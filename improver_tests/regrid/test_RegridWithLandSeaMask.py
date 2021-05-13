@@ -33,16 +33,16 @@
 # set up target grid and its land-sea mask info
 # it is designed to cover different scenarios for regridding with land-sea
 # the regridding reference results are manually checked for different methods
-
+# not using "set_up_variable_cube" because of different spacing at lat/lon
 
 import iris
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube
 
-import improver.cli as imcli
 from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
+from improver.regrid.landsea import RegridLandSea
 
 
 # function for creating cube from data, lats, lons
@@ -100,17 +100,17 @@ def define_source_target_grid_data():
     out_lons = np.linspace(5, 35, 11)
 
     # assume a set of nwp data
-    data = np.arange(20).reshape(4, 5)
+    data = np.arange(20).reshape(4, 5).astype(np.float32)
 
     # input grid mask info
-    in_mask = np.empty((4, 5), dtype=int)
+    in_mask = np.empty((4, 5), dtype=np.int)
     in_mask[:, :] = 1
     in_mask[0, 2] = 0
     in_mask[2, 2:4] = 0
     in_mask[3, 2:4] = 0
 
     # output grid mask info
-    out_mask = np.empty((8, 11), dtype=int)
+    out_mask = np.empty((8, 11), dtype=np.int)
     out_mask[:, :] = 1
     out_mask[0, 4:7] = 0
     out_mask[1, 5] = 0
@@ -138,17 +138,17 @@ def define_source_target_grid_data_same_domain():
     out_lons = np.linspace(5, 40, 9)
 
     # assume a set of nwp data
-    data = np.arange(20).reshape(4, 5)
+    data = np.arange(20).reshape(4, 5).astype(np.float32)
 
     # input grid mask info
-    in_mask = np.empty((4, 5), dtype=int)
+    in_mask = np.empty((4, 5), dtype=np.int)
     in_mask[:, :] = 1
     in_mask[0, 2] = 0
     in_mask[2, 2:4] = 0
     in_mask[3, 2:4] = 0
 
     # output grid mask info
-    out_mask = np.empty((7, 9), dtype=int)
+    out_mask = np.empty((7, 9), dtype=np.int)
     out_mask[:, :] = 1
     out_mask[0, 3:6] = 0
     out_mask[1, 4] = 0
@@ -187,15 +187,10 @@ def test_basic_indexes():
 
 
 def test_regrid_nearest_2():
-    """Test nearest neighbour regridding"""
+    """Test nearest neighbour regridding option 'nearest-2'"""
 
     cube_in, cube_out_mask, _ = define_source_target_grid_data()
-    regrid_nearest = imcli.regrid.process(
-        cube=cube_in,
-        target_grid=cube_out_mask,
-        regrid_mode="nearest-2",
-        regridded_title="regridding with nearest neighbouring method",
-    )
+    regrid_nearest = RegridLandSea(regrid_mode="nearest-2",)(cube_in, cube_out_mask)
     expected_results = np.array(
         [
             [0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3],
@@ -208,28 +203,23 @@ def test_regrid_nearest_2():
             [15, 16, 16, 16, 17, 17, 17, 18, 18, 18, 18],
         ]
     )
-
     np.testing.assert_allclose(regrid_nearest.data, expected_results, atol=1e-3)
 
 
 def test_regrid_bilinear_2():
-    """Test bilinear regridding"""
+    """Test bilinear regridding option 'bilinear-2'"""
 
     cube_in, cube_out_mask, _ = define_source_target_grid_data()
-    regrid_bilinear = imcli.regrid.process(
-        cube=cube_in,
-        target_grid=cube_out_mask,
-        regrid_mode="bilinear-2",
-        regridded_title="regridding with bilinear method",
-    )
+    regrid_bilinear = RegridLandSea(regrid_mode="bilinear-2",)(cube_in, cube_out_mask)
+
     expected_results = np.array(
         [
-            [0.50, 0.80, 1.10, 1.40, 1.70, 2.00, 2.30, 2.60, 2.90, 3.20, 3.5],
-            [2.50, 2.80, 3.10, 3.40, 3.70, 4.00, 4.30, 4.60, 4.90, 5.20, 5.50],
-            [4.50, 4.80, 5.10, 5.40, 5.70, 6.00, 6.30, 6.60, 6.90, 7.20, 7.50],
-            [6.50, 6.80, 7.10, 7.40, 7.70, 8.00, 8.30, 8.60, 8.90, 9.20, 9.50],
-            [8.50, 8.80, 9.10, 9.40, 9.70, 10.00, 10.30, 10.60, 10.90, 11.20, 11.50],
-            [10.5, 10.80, 11.10, 11.40, 11.70, 12.0, 12.30, 12.60, 12.90, 13.20, 13.5],
+            [0.5, 0.8, 1.1, 1.4, 1.7, 2.0, 2.3, 2.6, 2.9, 3.2, 3.5],
+            [2.5, 2.8, 3.1, 3.4, 3.7, 4.0, 4.3, 4.6, 4.9, 5.2, 5.5],
+            [4.5, 4.8, 5.1, 5.4, 5.7, 6.0, 6.3, 6.6, 6.9, 7.2, 7.5],
+            [6.5, 6.8, 7.1, 7.4, 7.7, 8.0, 8.3, 8.6, 8.9, 9.2, 9.5],
+            [8.5, 8.8, 9.1, 9.4, 9.7, 10.0, 10.3, 10.6, 10.9, 11.2, 11.5],
+            [10.5, 10.8, 11.1, 11.4, 11.7, 12.0, 12.3, 12.6, 12.9, 13.2, 13.5],
             [12.5, 12.8, 13.1, 13.4, 13.7, 14.0, 14.3, 14.6, 14.9, 15.2, 15.5],
             [14.5, 14.8, 15.1, 15.4, 15.7, 16.0, 16.3, 16.6, 16.9, 17.2, 17.5],
         ]
@@ -242,15 +232,11 @@ def test_regrid_nearest_with_mask_2():
     """Test nearest-with-mask-2 regridding"""
 
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data()
-    regrid_nearest_with_mask = imcli.regrid.process(
-        cube=cube_in,
-        target_grid=cube_out_mask,
-        land_sea_mask=cube_in_mask,
+    regrid_nearest_with_mask = RegridLandSea(
         regrid_mode="nearest-with-mask-2",
-        # big grid size. just give a huge number for skipping search limit
-        land_sea_mask_vicinity=250000000,
-        regridded_title="regridding with nearest neighbouring with mask method",
-    )
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask)
 
     expected_results = np.array(
         [
@@ -269,129 +255,104 @@ def test_regrid_nearest_with_mask_2():
         regrid_nearest_with_mask.data, expected_results, atol=1e-3
     )
 
+    # consider constant field
+    cube_in.data = np.repeat(1.0, 20).reshape(4, 5).astype(np.float32)
+    regrid_nearest_with_mask = RegridLandSea(
+        regrid_mode="nearest-with-mask-2",
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask)
+
+    expected_results = np.repeat(1.0, 88).reshape(8, 11).astype(np.float32)
+    np.testing.assert_allclose(
+        regrid_nearest_with_mask.data, expected_results, atol=1e-3
+    )
+
 
 def test_regrid_bilinear_with_mask_2():
     """Test bilinear-with-mask-2 regridding """
 
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data()
-    regrid_bilinear_with_mask = imcli.regrid.process(
-        cube=cube_in,
-        target_grid=cube_out_mask,
-        land_sea_mask=cube_in_mask,
+    regrid_bilinear_with_mask = RegridLandSea(
         regrid_mode="bilinear-with-mask-2",
-        # big grid size. just give a huge number for skipping search limit
-        land_sea_mask_vicinity=250000000,
-        regridded_title="regridding with bilinear-with-mask-2 method",
-    )
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask)
 
     expected_results = np.array(
         [
+            [0.5, 0.8, 1.40096, 3.2916, 2.0, 2.0, 2.0, 4.94333, 3.25586, 3.2, 3.5],
+            [2.5, 2.8, 3.1, 3.4, 5.48911, 2.76267, 6.32926, 4.6, 4.9, 5.2, 5.5],
+            [4.5, 4.8, 5.1, 5.4, 5.7, 7.0154, 6.3, 6.6, 6.9, 7.2, 7.5],
+            [6.5, 6.8, 7.1, 7.4, 7.7, 7.0, 7.19033, 7.6681, 7.6618, 9.2, 9.5],
             [
-                0.5,
-                0.80000001,
-                1.40096027,
-                3.29159665,
-                2.0,
-                2.0,
-                2.0,
-                4.94332907,
-                3.25585669,
-                3.20000005,
-                3.5,
-            ],
-            [
-                2.50000004,
-                2.79999994,
-                3.10000011,
-                3.40000007,
-                5.48911114,
-                2.76267353,
-                6.32926057,
-                4.60000011,
-                4.90000018,
-                5.19999988,
-                5.50000013,
-            ],
-            [
-                4.50000007,
-                4.79999989,
-                5.09999994,
-                5.40000008,
-                5.69999993,
-                7.01540265,
-                6.29999994,
-                6.6000001,
-                6.89999992,
-                7.19999984,
-                7.50000011,
-            ],
-            [
-                6.5000001,
-                6.79999985,
-                7.09999997,
-                7.40000011,
-                7.69999996,
-                7.0,
-                7.19032955,
-                7.66809729,
-                7.66179522,
-                9.20000014,
-                9.50000015,
-            ],
-            [
-                8.50000028,
-                8.7999998,
-                9.10000034,
-                9.4000003,
-                8.106325,
+                8.5,
+                8.8,
+                9.1,
+                9.4,
+                8.10633,
                 7.0,
                 7.0,
-                7.62914938,
-                7.21672498,
-                9.1143364,
-                10.52362841,
+                7.62915,
+                7.21672,
+                9.11434,
+                10.52363,
             ],
             [
                 10.5,
-                10.80000016,
-                11.00012407,
-                11.01183078,
-                13.15439245,
+                10.8,
+                11.00012,
+                11.01183,
+                13.15439,
                 12.0,
-                12.30000001,
-                12.60000038,
-                12.89999971,
-                13.71286288,
-                15.74504042,
+                12.3,
+                12.6,
+                12.9,
+                13.71286,
+                15.74504,
             ],
             [
-                12.50000034,
-                12.79999971,
-                12.23411396,
-                13.25881261,
-                14.14155376,
-                14.00000039,
-                8.07328124,
-                14.59999996,
-                14.90000051,
-                14.96331972,
-                16.33340055,
+                12.5,
+                12.8,
+                12.23411,
+                13.25881,
+                14.14155,
+                14.0,
+                8.07328,
+                14.6,
+                14.9,
+                14.96332,
+                16.3334,
             ],
             [
-                14.50000022,
-                14.79999967,
-                15.09969542,
-                14.22658959,
-                15.50904876,
-                16.00000024,
-                9.87329583,
-                16.59999963,
-                16.90000057,
-                16.91113956,
-                17.03773564,
+                14.5,
+                14.8,
+                15.0997,
+                14.22659,
+                15.50905,
+                16.0,
+                9.8733,
+                16.6,
+                16.9,
+                16.91114,
+                17.03773,
             ],
         ]
     )
+
+    np.testing.assert_allclose(
+        regrid_bilinear_with_mask.data, expected_results, atol=1e-3
+    )
+
+    # consider constant field
+    cube_in.data = np.repeat(1.0, 20).reshape(4, 5).astype(np.float32)
+    regrid_bilinear_with_mask = RegridLandSea(
+        regrid_mode="bilinear-with-mask-2",
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask)
+
+    expected_results = np.repeat(1.0, 88).reshape(8, 11).astype(np.float32)
 
     np.testing.assert_allclose(
         regrid_bilinear_with_mask.data, expected_results, atol=1e-3

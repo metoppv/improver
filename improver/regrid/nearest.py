@@ -76,8 +76,6 @@ def nearest_with_mask_regrid(
              indexes: updated array of four source grid point number for each target grid points
  
     """
-    if distances.shape != surface_type_mask.shape:
-        raise ValueError("Distance and mask arrays must be same shape")
 
     # Check if there are output points with mismatched surface types
     matched_nearby_points_count = np.count_nonzero(surface_type_mask, axis=1)

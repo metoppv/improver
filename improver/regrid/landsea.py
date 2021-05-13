@@ -154,19 +154,6 @@ class RegridLandSea(BasePlugin):
                     cube, self.landmask_source_grid, target_grid
                 )
 
-            # identify grid-describing attributes on source cube that need updating
-            # MOSG_GRID_ATTRIBUTES={"mosg__grid_type","mosg__grid_version", "mosg__grid_domain"}
-            required_grid_attributes = [
-                attr for attr in cube.attributes if attr in MOSG_GRID_ATTRIBUTES
-            ]
-
-            # update attributes if available on target grid, otherwise remove
-            for key in required_grid_attributes:
-                if key in target_grid.attributes:
-                    cube.attributes[key] = target_grid.attributes[key]
-                else:
-                    cube.attributes.pop(key)
-
         # new version of nearest/bilinear option with/without land-sea mask
         elif regrid_mode in (
             "nearest-2",
@@ -177,6 +164,18 @@ class RegridLandSea(BasePlugin):
             cube = RegridWithLandSeaMask(
                 regrid_mode=regrid_mode, vicinity_radius=self.landmask_vicinity
             )(cube, self.landmask_source_grid, target_grid)
+
+        # identify grid-describing attributes on source cube that need updating
+        required_grid_attributes = [
+            attr for attr in cube.attributes if attr in MOSG_GRID_ATTRIBUTES
+        ]
+
+        # update attributes if available on target grid, otherwise remove
+        for key in required_grid_attributes:
+            if key in target_grid.attributes:
+                cube.attributes[key] = target_grid.attributes[key]
+            else:
+                cube.attributes.pop(key)
 
         cube.attributes["title"] = (
             MANDATORY_ATTRIBUTE_DEFAULTS["title"]

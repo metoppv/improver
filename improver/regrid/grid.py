@@ -119,23 +119,6 @@ def latlon_from_cube(cube):
     return latlon
 
 
-def get_grid_spacing(cube):
-    """
-    get cube grid size (cube in even lats/lons system)
-
-    Args:
-        cube (iris.cube.Cube):
-            input cube
-    Return:
-        lat_d,lon_d (float):
-            latitude/logitude grid size
-    """
-    lats_name, lons_name = latlon_names(cube)
-    lat_d = cube.coord(lats_name).points[1] - cube.coord(lats_name).points[0]
-    lon_d = cube.coord(lons_name).points[1] - cube.coord(lons_name).points[0]
-    return lat_d, lon_d
-
-
 def unflatten_spatial_dimensions(
     regrid_result, cube_out_mask, in_values, lats_index, lons_index
 ):
@@ -297,7 +280,7 @@ def slice_cube_by_domain(cube_in, output_domain):
             data cube after slicing
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
-    lat_d, lon_d = get_grid_spacing(cube_in)
+    lat_d, lon_d = calculate_input_grid_spacing(cube_in)
 
     domain = iris.Constraint(
         latitude=lambda val: lat_min - 2.0 * lat_d < val < lat_max + 2.0 * lat_d
@@ -326,8 +309,8 @@ def slice_mask_cube_by_domain(cube_in, cube_in_mask, output_domain):
             data cube after slicing, mask cube after slicing
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
-    lat_d_1, lon_d_1 = get_grid_spacing(cube_in)
-    lat_d_2, lon_d_2 = get_grid_spacing(cube_in_mask)
+    lat_d_1, lon_d_1 = calculate_input_grid_spacing(cube_in)
+    lat_d_2, lon_d_2 = calculate_input_grid_spacing(cube_in_mask)
     lat_d = lat_d_1 if lat_d_1 > lat_d_2 else lat_d_2
     lon_d = lon_d_1 if lon_d_1 > lon_d_2 else lon_d_2
 
