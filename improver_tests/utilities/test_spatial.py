@@ -167,7 +167,7 @@ class Test_common_functions(IrisTest):
 
 
 class GridSpacingTest(IrisTest):
-    """Test the calculate_grid_spacing function"""
+    """Base class for testing the calculate_grid_spacing function"""
 
     def setUp(self):
         """Set up an equal area cube"""
@@ -179,8 +179,8 @@ class GridSpacingTest(IrisTest):
         self.lat_lon_cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
 
 
-class Test_calculate_grid_spacing(GridSpacingTest):
-    """Test the calculate_grid_spacing function"""
+class Test_calculate_grid_spacing_without_tolerance(GridSpacingTest):
+    """Test the calculate_grid_spacing function without tolerance"""
 
     def test_basic(self):
         """Test correct answer is returned from an equal area grid"""
