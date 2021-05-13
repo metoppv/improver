@@ -44,6 +44,7 @@ def process(
     truth_attribute,
     point_by_point=False,
     use_default_initial_guess=False,
+    local_standardise=False,
     units=None,
     predictor="mean",
     tolerance: float = 0.02,
@@ -86,6 +87,8 @@ def process(
             predictor to generate the calibrated distribution. This means
             coefficients of 1 for the multiplicative coefficients and 0 for
             the additive coefficients. If False, the initial guess is computed.
+        local_standardise (bool):
+
         units (str):
             The units that calibration should be undertaken in. The historical
             forecast and truth will be converted as required.
@@ -125,6 +128,7 @@ def process(
         distribution,
         point_by_point=point_by_point,
         use_default_initial_guess=use_default_initial_guess,
+        local_standardise=local_standardise,
         desired_units=units,
         predictor=predictor,
         tolerance=tolerance,

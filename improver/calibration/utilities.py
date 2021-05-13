@@ -364,3 +364,44 @@ def statsmodels_available() -> bool:
     if importlib.util.find_spec("statsmodels"):
         return True
     return False
+
+
+def standardise_forecast_and_truths(historic_forecasts, truths):
+    """Standardise the forecast and truths by subtracting the mean and dividing
+    by the standard deviation.
+
+    Args:
+        forecast (iris.cube.Cube)
+        truth (iris.cube.Cube)
+
+    Returns:
+        Tuple:
+    """
+    hf_coords = ["realization", "time"]
+    truth_coords = "time"
+
+    # standardise ensemble members using the mean and standard deviation of the ensemble mean
+    forecast_mean = historic_forecasts.collapsed(hf_coords, iris.analysis.MEAN)
+    forecast_mean.rename("fbar")
+    forecast_sd = historic_forecasts.collapsed(hf_coords, iris.analysis.STD_DEV)
+    forecast_sd.rename("fsig")
+    std_forecast = (historic_forecasts - forecast_mean)/forecast_sd
+    std_forecast.rename(historic_forecasts.name())
+
+    # Use nanmean and nanstd as observations can sometimes be missing i.e. nan.
+    from iris.analysis import WeightedAggregator
+    nanmean = WeightedAggregator("mean", np.nanmean)
+    nanstd = WeightedAggregator("standard_deviation", np.nanstd)
+
+    truth_mean = truths.collapsed(truth_coords, nanmean)
+    truth_mean.rename("ybar")
+
+    truth_sd = truths.collapsed(truth_coords, nanstd)
+    truth_sd.rename("ysig")
+
+    std_truth = (truths - truth_mean)/truth_sd
+    std_truth.rename(truths.name())
+    std_truth.data = std_truth.data.filled(np.nan)
+
+
+    return std_forecast, std_truth, forecast_mean, forecast_sd, truth_mean, truth_sd

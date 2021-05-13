@@ -61,6 +61,7 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
+    standardise_forecast_and_truths,
     statsmodels_available,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -655,6 +656,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         distribution: str,
         point_by_point: bool = False,
         use_default_initial_guess: bool = False,
+        local_standardise: bool = False,
         desired_units: Optional[Union[str, Unit]] = None,
         predictor: str = "mean",
         tolerance: float = 0.02,
@@ -686,6 +688,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 This means coefficients of 1 for the multiplicative
                 coefficients and 0 for the additive coefficients. If False,
                 the initial guess is computed.
+            local_standardise:
             desired_units:
                 The unit that you would like the calibration to be undertaken
                 in. The current forecast, historical forecast and truth will be
@@ -716,6 +719,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.distribution = distribution
         self.point_by_point = point_by_point
         self.use_default_initial_guess = use_default_initial_guess
+        self.local_standardise = local_standardise
         self._validate_distribution()
         self.desired_units = desired_units
         # Ensure predictor is valid.
@@ -1228,6 +1232,13 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
+        coefficients_cubelist = iris.cube.CubeList()
+        if self.local_standardise:
+            historic_forecasts, truths, hf_mean, hf_sd, tr_mean, tr_sd = standardise_forecast_and_truths(
+                historic_forecasts, truths)
+            # Note that these are not coefficients.
+            coefficients_cubelist.extend(iris.cube.CubeList([hf_mean, hf_sd, tr_mean, tr_sd]))
+
         number_of_realizations = None
         if self.predictor.lower() == "mean":
             forecast_predictor = collapsed(
@@ -1284,6 +1295,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         self.coefficients_cubelist = None
         self.current_forecast = None
+        self.standardise_cubelist = None
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -1357,6 +1369,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         forecast_predictor = collapsed(
             self.current_forecast, "realization", iris.analysis.MEAN
         )
+        if self.standardise_cubelist:
+            forecast_predictor_orig = forecast_predictor.copy()
+            forecast_predictor = (forecast_predictor - self.standardise_cubelist.extract_strict("fbar"))/self.standardise_cubelist.extract_strict("fsig")
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
@@ -1365,6 +1380,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             + self.coefficients_cubelist.extract_strict("emos_coefficient_beta").data
             * forecast_predictor.data
         ).astype(np.float32)
+        if self.standardise_cubelist:
+            location_parameter = (location_parameter*self.standardise_cubelist.extract_strict("ysig").data) + self.standardise_cubelist.extract_strict("ybar").data
+            index = np.isnan(location_parameter)
+            location_parameter[index] = forecast_predictor_orig.data[index]
 
         return location_parameter
 
@@ -1427,15 +1446,20 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         forecast_var = self.current_forecast.collapsed(
             "realization", iris.analysis.VARIANCE
         )
+
+        scale_factor = 1
+        if self.standardise_cubelist:
+            scale_factor = self.standardise_cubelist.extract_strict("ysig").data**2 / self.standardise_cubelist.extract_strict("fsig").data**2
+
         # Calculating the scale parameter, based on the raw variance S^2,
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
         scale_parameter = (
             self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
-            * self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
+            ** 2
             + self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
-            * self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
-            * forecast_var.data
+            ** 2
+            * forecast_var.data*scale_factor
         ).astype(np.float32)
         return scale_parameter
 
@@ -1480,6 +1504,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self,
         current_forecast: Cube,
         coefficients_cubelist: CubeList,
+        standardise_cubelist: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
     ) -> Tuple[Cube, Cube]:
         """
@@ -1514,6 +1539,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         self.current_forecast = current_forecast
         self.coefficients_cubelist = coefficients_cubelist
+        self.standardise_cubelist = standardise_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
         self._diagnostic_match()
@@ -1765,6 +1791,11 @@ class ApplyEMOS(PostProcessingPlugin):
             Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations)
         """
+        allowed_coeff_names = ["emos_coefficient_alpha", "emos_coefficient_beta",
+            "emos_coefficient_gamma", "emos_coefficient_delta", "shape_parameters"]
+        standardisers = iris.cube.CubeList([c for c in coefficients if c.name() not in allowed_coeff_names])
+        coefficients = iris.cube.CubeList([c for c in coefficients if c.name() in allowed_coeff_names])
+
         self.forecast_type = self._get_forecast_type(forecast)
 
         forecast_as_realizations = forecast.copy()
@@ -1777,7 +1808,8 @@ class ApplyEMOS(PostProcessingPlugin):
             predictor=predictor
         )
         location_parameter, scale_parameter = calibration_plugin(
-            forecast_as_realizations, coefficients, landsea_mask=land_sea_mask
+            forecast_as_realizations, coefficients, standardise_cubelist=standardisers,
+            landsea_mask=land_sea_mask
         )
 
         self.distribution = {
