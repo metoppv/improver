@@ -68,12 +68,12 @@ def parse_range_string_to_dict(value: str) -> Dict[str, str]:
     [min, max, step].
 
     Args:
-       value:
-          A string containing the range information.
-	  It is assumed that the input value is of the form: "[2:10]".
+        value:
+            A string containing the range information.
+	        It is assumed that the input value is of the form: "[2:10]".
 
     Returns:
-       A list containing the min and max (and step).
+        A list containing the min and max (and step).
     """
     value = value.replace("[", "").replace("]", "").split(":")
     return dict(zip(["min", "max", "step"], value))
@@ -131,7 +131,7 @@ def parse_constraint_list(
         - A combination of all the constraints that were supplied.
         - A dictionary of unit keys and values
         - A list of lists containing the min and max values for a longitude constraint
-	    - A dictionary of coordinate and the step value, i.e. a step of 2 will skip every other point
+        - A dictionary of coordinate and the step value, i.e. a step of 2 will skip every other point
     """
 
     if units is None:
@@ -243,7 +243,6 @@ def apply_extraction(
                     pass
 
     if longitude_constraint:
-        # disable max_inclusive to better match python slicing behaviour
         output_cube = output_cube.intersection(
             longitude=longitude_constraint, ignore_bounds=True
         )

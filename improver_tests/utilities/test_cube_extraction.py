@@ -35,7 +35,6 @@ import unittest
 
 import iris
 import numpy as np
-import pytest
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
@@ -97,26 +96,6 @@ def set_up_precip_probability_cube():
     )
 
     return cube
-
-
-@pytest.fixture
-def spot_cube():
-    """ Set up spot cube """
-    # details pulled from verification site list
-    alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
-    lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
-    lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
-    wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
-
-    return build_spotdata_cube(
-        np.arange(6).astype(np.float32),
-        "screen_temperature",
-        "degC",
-        alts,
-        lats,
-        lons,
-        wmo_ids,
-    )
 
 
 def set_up_gridded_data():
