@@ -87,6 +87,11 @@ jobs:
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
         black --check .
+    - name: flake8
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate improver_${{ matrix.env }}
+        flake8 improver improver_tests
     - name: pylint
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
