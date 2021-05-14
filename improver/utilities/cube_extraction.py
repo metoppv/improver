@@ -45,26 +45,9 @@ from improver.utilities.cube_manipulation import (
 )
 
 
-def create_range_constraint(coord_name: str, value: List[str]) -> Constraint:
-    """
-    Create a constraint that is representative of a range.
-
-    Args:
-        coord_name:
-            Name of the coordinate for which the constraint will be created.
-        value:
-            A string containing the range information.
-            It is assumed that the input value is of the form: ["2", "10"].
-
-    Returns:
-        The constraint that has been created to represent the range.
-    """
-    return create_sorted_lambda_constraint(coord_name, value)
-
-
 def parse_range_string_to_dict(value: str) -> Dict[str, str]:
     """
-    Splits up a string in the form [min:max:step] into a list of
+    Splits up a string in the form "[min:max:step]" into a list of
     [min, max, step].
 
     Args:
@@ -121,7 +104,9 @@ def parse_constraint_list(
     Args:
         constraints:
             List of string constraints with keys and values split by "=":
-            e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"].
+            e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"], where the 'val's
+            could include ranges e.g. [0:20] or ranges with a step value e.g.
+            [0:20:3].
         units:
             List of units (as strings) corresponding to each coordinate in the
             list of constraints.  One or more "units" may be None, and units
@@ -163,7 +148,7 @@ def parse_constraint_list(
                 ]
             else:
                 complex_constraints.append(
-                    create_range_constraint(key, [range_dict["min"], range_dict["max"]])
+                    create_sorted_lambda_constraint(key, [range_dict["min"], range_dict["max"]])
                 )
             if range_dict.get("step", None):
                 thinning_values[key] = int(range_dict["step"])
@@ -216,7 +201,7 @@ def apply_extraction(
             should be converted back to their original units. The default is
             True, indicating that the units should be converted back to the
             original units.
-        longitude_constraints:
+        longitude_constraint:
             List containing the min and max values for the longitude.
             This has to be treated separately to the normal constraints due
             to the circular nature of longitude.
