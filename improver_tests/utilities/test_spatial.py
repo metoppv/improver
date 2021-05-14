@@ -212,7 +212,7 @@ class Test_calculate_grid_spacing(IrisTest):
             10.0,
             20.00001,
         ]
-        result = calculate_grid_spacing(self.lat_lon_cube, "degrees")
+        result = calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=1.0e-5)
         self.assertAlmostEqual(result, 10.0)
 
     def test_lat_lon_negative_spacing(self):
@@ -224,7 +224,7 @@ class Test_calculate_grid_spacing(IrisTest):
             -10.0,
             -19.99999,
         ]
-        result = calculate_grid_spacing(self.lat_lon_cube, "degrees")
+        result = calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=1.0e-5)
         self.assertAlmostEqual(result, -10.0)
 
     def test_lat_lon_unequal_spacing(self):
@@ -238,7 +238,7 @@ class Test_calculate_grid_spacing(IrisTest):
         ]
         msg = "Coordinate longitude points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
-            calculate_grid_spacing(self.lat_lon_cube, "degrees")
+            calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=1.0e-5)
 
     def test_incorrect_units(self):
         """Test ValueError for incorrect units"""

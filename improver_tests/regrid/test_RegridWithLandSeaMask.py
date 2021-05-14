@@ -35,58 +35,23 @@
 # the regridding reference results are manually checked for different methods
 # not using "set_up_variable_cube" because of different spacing at lat/lon
 
-import iris
 import numpy as np
-from iris.coords import DimCoord
-from iris.cube import Cube
 
 from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 from improver.regrid.landsea import RegridLandSea
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-# function for creating cube from data, lats, lons
-def create_cube(cube_array, lats, lons, name, unit):
-    """
-    create a simple cube from data and lat/lon coords
-    args:
-        cube_array (numpy.ndarray):
-            data value (two dimensional)
-        lats ( numpy.ndarray):
-            latitude array
-        lons ( numpy.ndarray):
-            longitude array
-        name (str):
-            variable name
-        unit (str):
-            variable unit
-    return:
-         cube_v(iris.cube.Cube):
-             new-created cube
-    """
-    cube_v = Cube(cube_array)
-    # assume name
-    cube_v.var_name = name
-    # cube_v.standard_name= name
-    cube_v.units = unit
-
-    coord_lat = DimCoord(
-        lats,
-        standard_name="latitude",
-        units="degrees",
-        coord_system=iris.coord_systems.GeogCS(6371229),
-    )
-    coord_lon = DimCoord(
-        lons,
-        standard_name="longitude",
-        units="degrees",
-        coord_system=iris.coord_systems.GeogCS(6371229),
-    )
-
-    cube_v.add_dim_coord(coord_lat, 0)
-    cube_v.add_dim_coord(coord_lon, 1)
-
-    return cube_v
+def modify_cube_coordinate_value(cube, coord_x, coord_y):
+    """modify x(longitude) & y(latitude) andcoordinates for a cube"""
+    cube.coord(axis="x").points = coord_x
+    cube.coord(axis="x").bounds = None
+    cube.coord(axis="x").guess_bounds()
+    cube.coord(axis="y").points = coord_y
+    cube.coord(axis="y").bounds = None
+    cube.coord(axis="y").guess_bounds()
+    return cube
 
 
 def define_source_target_grid_data():
@@ -120,9 +85,15 @@ def define_source_target_grid_data():
     out_mask[7, 6] = 1
     out_mask[1, 0] = 0
 
-    cube_in = create_cube(data, in_lats, in_lons, "air_temperature", "Celsius")
-    cube_in_mask = create_cube(in_mask, in_lats, in_lons, "Land_Binary_Mask", "1")
-    cube_out_mask = create_cube(out_mask, out_lats, out_lons, "Land_Binary_Mask", "1")
+    # create cube with default spacing
+    cube_in = set_up_variable_cube(data, "air_temperature", "Celsius")
+    cube_in_mask = set_up_variable_cube(in_mask, "Land_Binary_Mask", "1")
+    cube_out_mask = set_up_variable_cube(out_mask, "Land_Binary_Mask", "1")
+
+    # modify cube coordinates to the designed value
+    cube_in = modify_cube_coordinate_value(cube_in, in_lons, in_lats)
+    cube_in_mask = modify_cube_coordinate_value(cube_in_mask, in_lons, in_lats)
+    cube_out_mask = modify_cube_coordinate_value(cube_out_mask, out_lons, out_lats)
 
     return cube_in, cube_out_mask, cube_in_mask
 
@@ -156,9 +127,15 @@ def define_source_target_grid_data_same_domain():
     out_mask[6, 6] = 1
     out_mask[1, 0] = 0
 
-    cube_in = create_cube(data, in_lats, in_lons, "air_temperature", "Celsius")
-    cube_in_mask = create_cube(in_mask, in_lats, in_lons, "Land_Binary_Mask", "1")
-    cube_out_mask = create_cube(out_mask, out_lats, out_lons, "Land_Binary_Mask", "1")
+    # create cube with default spacing
+    cube_in = set_up_variable_cube(data, "air_temperature", "Celsius")
+    cube_in_mask = set_up_variable_cube(in_mask, "Land_Binary_Mask", "1")
+    cube_out_mask = set_up_variable_cube(out_mask, "Land_Binary_Mask", "1")
+
+    # modify cube coordinates to the designed value
+    cube_in = modify_cube_coordinate_value(cube_in, in_lons, in_lats)
+    cube_in_mask = modify_cube_coordinate_value(cube_in_mask, in_lons, in_lats)
+    cube_out_mask = modify_cube_coordinate_value(cube_out_mask, out_lons, out_lats)
 
     return cube_in, cube_out_mask, cube_in_mask
 

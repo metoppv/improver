@@ -60,8 +60,8 @@ def calculate_input_grid_spacing(cube_in):
         raise ValueError("Input grid is not on a latitude/longitude system")
 
     # calculate grid spacing
-    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x")
-    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y")
+    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=1.0e-5)
+    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=1.0e-5)
 
     if lon_spacing < 0 or lat_spacing < 0:
         raise ValueError("Input grid coordinates are not ascending.")
@@ -169,8 +169,8 @@ def flatten_spatial_dimensions(cube):
     in_values = cube.data
     coord_names = get_cube_coord_names(cube)
     lats_name, lons_name = latlon_names(cube)
-    lats_index = coord_names.index(lats_name)
-    lons_index = coord_names.index(lons_name)
+    lats_index = cube.coord_dims(lats_name)[0]
+    lons_index = cube.coord_dims(lons_name)[0]
 
     in_values = np.swapaxes(in_values, 0, lats_index)
     in_values = np.swapaxes(in_values, 1, lons_index)
@@ -343,32 +343,32 @@ def create_regrid_cube(cube_array, cube_in, cube_out):
     Returns:
          iris.cube.Cube: regridded result cube
     """
+
+    # generate a cube based on new data and cube_in
+    cube_v = Cube(
+        cube_array,
+        standard_name=cube_in.standard_name,
+        var_name=cube_in.var_name,
+        units=cube_in.units,
+        attributes=cube_in.attributes,
+    )
+
+    # use dim_coord from cube_in except lat/lon
     cube_coord_names = get_cube_coord_names(cube_in)
     lats_name, lons_name = latlon_names(cube_in)
     cube_coord_names.remove(lats_name)
     cube_coord_names.remove(lons_name)
 
-    cube_v = Cube(cube_array)
-    cube_v.attributes = cube_in.attributes
-
-    cube_v.var_name = cube_in.var_name
-    cube_v.standard_name = cube_in.standard_name
-    cube_v.units = cube_in.units
-
     ndim = len(cube_coord_names)
     for i, val in enumerate(cube_coord_names):
         cube_v.add_dim_coord(cube_in.coord(val), i)
 
-    cube_coord_names = get_cube_coord_names(cube_out)
-    if "projection_y_coordinate" in cube_coord_names:
-        cord_1 = "projection_y_coordinate"
-        cord_2 = "projection_x_coordinate"
-    else:
-        cord_1, cord_2 = latlon_names(cube_out)
-
+    # Put in suitable spatial coord from cube_out into cube_in
+    cord_1, cord_2 = latlon_names(cube_out)
     cube_v.add_dim_coord(cube_out.coord(cord_1), ndim)
     cube_v.add_dim_coord(cube_out.coord(cord_2), ndim + 1)
 
+    # add all aus_coords from cube_in
     for coord in cube_in.aux_coords:
         dims = np.array(cube_in.coord_dims(coord)) + 1
         cube_v.add_aux_coord(coord.copy(), dims)
