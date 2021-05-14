@@ -115,10 +115,12 @@ def process(
             The key that identifies site y coordinates in the provided site
             dictionary. Defaults to latitude.
         unique_site_id_key (str):
-            Key in the provided site list that corresponds to a unique ID for
-            every site. If this optional key is provided such an identifier must
-            exist for every site. This key will be used as the name for an
-            additional coordinate on the returned neighbour cube.
+            Key in the provided site list that corresponds to a unique numerical
+            ID for every site (up to 8 digits). If this optional key is provided
+            such an identifier must exist for every site. This key will be used
+            as the name for an additional coordinate on the returned neighbour
+            cube. Values in this coordinate will be recorded as strings, with
+            all numbers padded to 8-digits, e.g. "00012345".
 
     Returns:
         iris.cube.Cube:

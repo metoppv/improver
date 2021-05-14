@@ -105,11 +105,12 @@ class NeighbourSelection(BasePlugin):
                 when querying the tree for a selection of neighbours from which
                 one matching the minimum_dz constraint will be picked.
             unique_site_id_key:
-                Key in the provided site list that corresponds to a unique ID
-                for every site. If this optional key is provided such an
-                identifier must exist for every site. This key will also be
+                Key in the provided site list that corresponds to a unique numerical
+                ID for every site (up to 8 digits). If this optional key is provided
+                such an identifier must exist for every site. This key will also be
                 used to name the resulting unique ID coordinate on the constructed
-                cube.
+                cube. Values in this coordinate will be recorded as strings, with
+                all numbers padded to 8-digits, e.g. "00012345".
         """
         self.minimum_dz = minimum_dz
         self.land_constraint = land_constraint
@@ -486,6 +487,7 @@ class NeighbourSelection(BasePlugin):
                       available for every site in sites.
             ValueError: If a unique_site_id is in use but the unique_site_id is
                         not unique for every site.
+            ValueError: If any unique IDs are longer than 8 digits.
         """
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis="x").circular
@@ -626,6 +628,12 @@ class NeighbourSelection(BasePlugin):
 
             if len(set(unique_site_id)) != len(sites):
                 raise ValueError("The unique_site_id is not unique for every site")
+
+            if any([len(id) > 8 for id in unique_site_id]):
+                raise ValueError(
+                    "Unique IDs should be 8 digits or less to ensure "
+                    "a coordinate of consistent padded values is produced"
+                )
 
         # Construct a name to describe the neighbour finding method employed
         method_name = self.neighbour_finding_method_name()

@@ -717,6 +717,19 @@ class Test_process(Test_NeighbourSelection):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(sites, self.global_orography, self.global_land_mask)
 
+    def test_error_for_unique_ids_longer_than_8_digits(self):
+        """Test that an error is raised if the list of unique IDs contains values
+        that are more than 8 characters in length. This limitation is inteded to
+        give consistent length identifiers."""
+
+        plugin = NeighbourSelection(unique_site_id_key="met_office_site_id")
+        sites = self.global_sites
+        sites[0]["met_office_site_id"] = 123456789
+
+        msg = "Unique IDs should be 8 digits or less"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(sites, self.global_orography, self.global_land_mask)
+
     def test_global_nearest(self):
         """Test that a cube is returned, here using a conventional site list
         with lat/lon site coordinates. Neighbour coordinates of [2, 4] are
