@@ -47,7 +47,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_extraction import (
     apply_extraction,
     create_constraint,
-    create_range_constraint,
     extract_subcube,
     parse_constraint_list,
 )
@@ -122,27 +121,6 @@ def set_up_uk_gridded_cube():
         domain_corner=(-5000, -5000),
         grid_spacing=2000,
     )
-
-
-class Test_create_range_constraint(IrisTest):
-    """Test that the desired constraint is created from
-    create_range_constraint."""
-
-    def setUp(self):
-        """Set up cube for testing range constraint."""
-        self.precip_cube = set_up_precip_probability_cube()
-        self.coord_name = find_threshold_coordinate(self.precip_cube).name()
-        self.precip_cube.coord(self.coord_name).convert_units("mm h-1")
-        self.expected_data = self.precip_cube[:2].data
-
-    def test_basic(self):
-        """Test that a constraint is formed correctly."""
-        values = ["0.03", "0.1"]
-        result = create_range_constraint(self.coord_name, values)
-        self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
-        result_cube = self.precip_cube.extract(result)
-        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
 
 
 class Test_create_constraint(IrisTest):

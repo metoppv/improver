@@ -148,7 +148,9 @@ def parse_constraint_list(
                 ]
             else:
                 complex_constraints.append(
-                    create_sorted_lambda_constraint(key, [range_dict["min"], range_dict["max"]])
+                    create_sorted_lambda_constraint(
+                        key, [range_dict["min"], range_dict["max"]]
+                    )
                 )
             if range_dict.get("step", None):
                 thinning_values[key] = int(range_dict["step"])
