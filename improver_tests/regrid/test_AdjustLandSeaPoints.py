@@ -39,7 +39,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.grids import ELLIPSOID
-from improver.standardise import AdjustLandSeaPoints
+from improver.regrid.landsea import AdjustLandSeaPoints
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
@@ -101,19 +101,6 @@ class Test__init__(IrisTest):
         This is not possible as OccurrenceWithinVicinity does not check the
         input value."""
         pass
-
-
-class Test__repr__(IrisTest):
-    """Tests the __repr__ method of the AdjustLandSeaPoints class."""
-
-    def test_basic(self):
-        """Test that the expected string is returned."""
-        expected = (
-            "<AdjustLandSeaPoints: regridder: Nearest('nanmask'); "
-            "vicinity: <OccurrenceWithinVicinity: distance: 25000.0>>"
-        )
-        result = repr(AdjustLandSeaPoints())
-        self.assertEqual(result, expected)
 
 
 class Test_correct_where_input_true(IrisTest):

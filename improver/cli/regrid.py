@@ -63,6 +63,9 @@ def process(
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses iris.analysis.Nearest();
             "nearest-with-mask" uses Nearest() with land-sea awareness.
+            "nearest-2": new/fast version without using Iris
+            "nearest-with-mask-2": new super-fast version without using Iris
+            "bilinear-with-mask": bilinear option with land-sea mask considered
         extrapolation_mode (str):
             Mode to use for extrapolating data into regions beyond the limits
             of the input cube domain. Refer to online documentation for
@@ -96,9 +99,12 @@ def process(
             If regrid_mode is "nearest-with-mask" but no source land_sea_mask
             is provided (from plugin).
     """
-    from improver.standardise import RegridLandSea
+    from improver.regrid.landsea import RegridLandSea
 
-    if land_sea_mask and "nearest-with-mask" not in regrid_mode:
+    if land_sea_mask and (
+        regrid_mode
+        not in ("nearest-with-mask", "nearest-with-mask-2", "bilinear-with-mask-2")
+    ):
         msg = (
             "Land-mask file supplied without appropriate regrid-mode. "
             "Use --regrid-mode nearest-with-mask."
