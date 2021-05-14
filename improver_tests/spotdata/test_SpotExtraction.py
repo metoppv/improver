@@ -38,6 +38,7 @@ from iris.tests import IrisTest
 
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import create_coordinate_hash
+from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
 
@@ -107,20 +108,24 @@ class Test_SpotExtraction(IrisTest):
             ]
         )
 
-        altitudes = np.array([0, 1, 3, 2])
-        latitudes = np.array([10, 10, 20, 20])
-        longitudes = np.array([10, 10, 20, 20])
-        wmo_ids = np.arange(4)
+        self.altitudes = np.array([0, 1, 3, 2])
+        self.latitudes = np.array([10, 10, 20, 20])
+        self.longitudes = np.array([10, 10, 20, 20])
+        self.wmo_ids = np.arange(4)
+        self.unique_site_id = np.arange(4)
+        self.unique_site_id_key = "met_office_site_id"
         grid_attributes = ["x_index", "y_index", "vertical_displacement"]
         neighbour_methods = ["nearest", "nearest_land"]
         neighbour_cube = build_spotdata_cube(
             neighbours,
             "grid_neighbours",
             1,
-            altitudes,
-            latitudes,
-            longitudes,
-            wmo_ids,
+            self.altitudes,
+            self.latitudes,
+            self.longitudes,
+            self.wmo_ids,
+            unique_site_id=self.unique_site_id,
+            unique_site_id_key=self.unique_site_id_key,
             grid_attributes=grid_attributes,
             neighbour_methods=neighbour_methods,
         )
@@ -132,8 +137,6 @@ class Test_SpotExtraction(IrisTest):
         )
         coordinate_cube.data = np.rint(coordinate_cube.data).astype(int)
 
-        self.latitudes = latitudes
-        self.longitudes = longitudes
         self.diagnostic_cube_xy = diagnostic_cube_xy
         self.diagnostic_cube_yx = diagnostic_cube_yx
         self.neighbours = neighbours
@@ -221,6 +224,28 @@ class Test_extract_diagnostic_data(Test_SpotExtraction):
         self.assertArrayEqual(result, expected)
 
 
+class Test_check_for_unique_id(Test_SpotExtraction):
+
+    """Test identification of unique site ID coordinates from coordinate
+    attributes."""
+
+    def test_unique_is_present(self):
+        """Test that the IDs and coordinate name are returned if a unique site
+        ID coordinate is present on the neighbour cube."""
+        plugin = SpotExtraction()
+        result = plugin.check_for_unique_id(self.neighbour_cube)
+        self.assertArrayEqual(result[0], self.unique_site_id)
+        self.assertEqual(result[1], self.unique_site_id_key)
+
+    def test_unique_is_not_present(self):
+        """Test that Nones are returned if no unique site ID coordinate is
+        present on the neighbour cube."""
+        self.neighbour_cube.remove_coord("met_office_site_id")
+        plugin = SpotExtraction()
+        result = plugin.check_for_unique_id(self.neighbour_cube)
+        self.assertIsNone(result)
+
+
 class Test_build_diagnostic_cube(Test_SpotExtraction):
 
     """Test the building of a spot data cube with given inputs."""
@@ -230,10 +255,19 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
         plugin = SpotExtraction()
         spot_values = np.array([0, 0, 12, 12])
         result = plugin.build_diagnostic_cube(
-            self.neighbour_cube, self.diagnostic_cube_xy, spot_values
+            self.neighbour_cube,
+            self.diagnostic_cube_xy,
+            spot_values,
+            unique_site_id=self.unique_site_id,
+            unique_site_id_key=self.unique_site_id_key,
         )
         self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
         self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
+        self.assertArrayEqual(result.coord("altitude").points, self.altitudes)
+        self.assertArrayEqual(result.coord("wmo_id").points, self.wmo_ids)
+        self.assertArrayEqual(
+            result.coord(self.unique_site_id_key).points, self.unique_site_id
+        )
         self.assertArrayEqual(result.data, spot_values)
 
 
@@ -330,6 +364,16 @@ class Test_process(Test_SpotExtraction):
             new_title="IMPROVER Spot Forecast",
         )
         self.assertEqual(result.cell_methods, self.cell_methods)
+
+    def test_removal_of_internal_metadata(self):
+        """Test that internal metadata used to identify the unique id coordinate
+        is removed in the resulting spot diagnostic cube."""
+        plugin = SpotExtraction()
+        result = plugin.process(self.neighbour_cube, self.diagnostic_cube_xy)
+        self.assertNotIn(
+            UNIQUE_ID_ATTRIBUTE,
+            [att for att in result.coord(self.unique_site_id_key).attributes],
+        )
 
 
 if __name__ == "__main__":
