@@ -299,7 +299,7 @@ def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
         ValueError: The two cubes are not equivalent.
     """
     mismatches = []
-    if first_cube.coord("forecast_period") != second_cube.coord("forecast_period"):
+    if first_cube.coord("forecast_period").points != second_cube.coord("forecast_period").points:
         mismatches.append("forecast_period")
 
     if get_frt_hours(first_cube.coord("forecast_reference_time")) != get_frt_hours(
