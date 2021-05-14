@@ -668,16 +668,67 @@ class Test_process(Test_NeighbourSelection):
 
     def test_wmo_ids(self):
         """Test that the returned cube has the wmo_ids present when they are
-        available. Should be None when they are not provided."""
+        available. Should be None when they are not provided. WMO IDs are
+        stored as 5 digits encoded as strings, so zero-padding is expected."""
 
         plugin = NeighbourSelection()
-        sites = self.global_sites + [self.global_sites.copy()[0].copy()]
-        sites[1]["wmo_id"] = None
-        expected = ["1", "None"]
-
+        sites = self.global_sites + [
+            self.global_sites[0].copy(),
+            self.global_sites[0].copy(),
+        ]
+        sites[1].pop("wmo_id")
+        sites[2]["wmo_id"] = None
+        expected = ["00001", "None", "None"]
         result = plugin.process(sites, self.global_orography, self.global_land_mask)
 
         self.assertArrayEqual(result.coord("wmo_id").points, expected)
+
+    def test_use_of_unique_ids(self):
+        """Test that the returned cube has the unique_id present when they are
+        provided. These are stored as 8 digits encoded as strings, so
+        zero-padding is expected."""
+
+        plugin = NeighbourSelection(unique_site_id_key="met_office_site_id")
+        sites = self.global_sites + [self.global_sites[0].copy()]
+        sites[0]["met_office_site_id"] = sites[0]["wmo_id"]
+        sites[1]["wmo_id"] = None
+        sites[1]["met_office_site_id"] = 353
+        expected = ["00000001", "00000353"]
+        result = plugin.process(sites, self.global_orography, self.global_land_mask)
+
+        self.assertArrayEqual(result.coord("met_office_site_id").points, expected)
+
+    def test_error_for_incomplete_unique_ids(self):
+        """Test that an error is raised if the list of unique IDs is incomplete,
+        or if it contains duplicate IDs."""
+
+        plugin = NeighbourSelection(unique_site_id_key="met_office_site_id")
+        sites = self.global_sites + [self.global_sites[0].copy()]
+        sites[0]["met_office_site_id"] = sites[0]["wmo_id"]
+
+        # unique_site_id only set for the first site
+        msg = "The unique_site_id is not available for every site"
+        with self.assertRaisesRegex(KeyError, msg):
+            plugin.process(sites, self.global_orography, self.global_land_mask)
+
+        # duplicate site id used
+        sites[1]["met_office_site_id"] = sites[0]["wmo_id"]
+        msg = "The unique_site_id is not unique for every site"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(sites, self.global_orography, self.global_land_mask)
+
+    def test_error_for_unique_ids_longer_than_8_digits(self):
+        """Test that an error is raised if the list of unique IDs contains values
+        that are more than 8 characters in length. This limitation is inteded to
+        give consistent length identifiers."""
+
+        plugin = NeighbourSelection(unique_site_id_key="met_office_site_id")
+        sites = self.global_sites
+        sites[0]["met_office_site_id"] = 123456789
+
+        msg = "Unique IDs should be 8 digits or less"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(sites, self.global_orography, self.global_land_mask)
 
     def test_global_nearest(self):
         """Test that a cube is returned, here using a conventional site list

@@ -236,14 +236,23 @@ def test_coord_beyond_bounds(tmp_path):
     acc.compare(output_path, kgo_path, exclude_vars=["longitude"])
 
 
-def test_unset_wmo_ids(tmp_path):
-    """Test sites with missing WMO ID numbers"""
+def test_unset_wmo_ids_with_unique_ids(tmp_path):
+    """Test sites with missing WMO ID numbers, but with valid unique IDs for
+    all sites"""
     kgo_dir = acc.kgo_root() / "neighbour-finding"
-    kgo_path = kgo_dir / "outputs/nearest_uk_kgo_some_unset_wmo_ids.nc"
-    sites_path = kgo_dir / "inputs/uk_sites_missing_wmo_ids.json"
+    kgo_path = kgo_dir / "outputs/nearest_uk_kgo_some_unset_wmo_ids_unique_ids.nc"
+    sites_path = kgo_dir / "inputs/uk_sites_missing_wmo_ids_with_unique_ids.json"
     orography_path = kgo_dir / "inputs/ukvx_orography.nc"
     landmask_path = kgo_dir / "inputs/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [orography_path, landmask_path, sites_path, "--output", output_path]
+    args = [
+        orography_path,
+        landmask_path,
+        sites_path,
+        "--unique-site-id-key",
+        "met_office_site_id",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

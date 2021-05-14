@@ -76,6 +76,7 @@ class NeighbourSelection(BasePlugin):
         site_x_coordinate: str = "longitude",
         site_y_coordinate: str = "latitude",
         node_limit: int = 36,
+        unique_site_id_key: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -103,6 +104,13 @@ class NeighbourSelection(BasePlugin):
                 The upper limit for the number of nearest neighbours to return
                 when querying the tree for a selection of neighbours from which
                 one matching the minimum_dz constraint will be picked.
+            unique_site_id_key:
+                Key in the provided site list that corresponds to a unique numerical
+                ID for every site (up to 8 digits). If this optional key is provided
+                such an identifier must exist for every site. This key will also be
+                used to name the resulting unique ID coordinate on the constructed
+                cube. Values in this coordinate will be recorded as strings, with
+                all numbers padded to 8-digits, e.g. "00012345".
         """
         self.minimum_dz = minimum_dz
         self.land_constraint = land_constraint
@@ -112,6 +120,7 @@ class NeighbourSelection(BasePlugin):
         self.site_y_coordinate = site_y_coordinate
         self.site_altitude = "altitude"
         self.node_limit = node_limit
+        self.unique_site_id_key = unique_site_id_key
         self.global_coordinate_system = False
 
     def __repr__(self) -> str:
@@ -472,6 +481,13 @@ class NeighbourSelection(BasePlugin):
             A cube containing both the spot site information and for each
             the grid point indices of its nearest neighbour as per the
             imposed constraints.
+
+        Raises:
+            KeyError: If a unique_site_id is in use but unique_site_id is not
+                      available for every site in sites.
+            ValueError: If a unique_site_id is in use but the unique_site_id is
+                        not unique for every site.
+            ValueError: If any unique IDs are longer than 8 digits.
         """
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis="x").circular
@@ -587,7 +603,37 @@ class NeighbourSelection(BasePlugin):
 
         # Create a list of WMO IDs if available. These are stored as strings
         # to accommodate the use of 'None' for unset IDs.
-        wmo_ids = [str(site.get("wmo_id", None)) for site in sites]
+        wmo_ids = []
+        for site in sites:
+            site_id = site.get("wmo_id", None)
+            if site_id:
+                wmo_ids.append("{:05d}".format(site["wmo_id"]))
+            else:
+                wmo_ids.append("None")
+
+        # Create a list of unique site IDs if available. These are stored as
+        # string representations of 8-digit numbers.
+        unique_site_id = None
+        if self.unique_site_id_key:
+            unique_site_id = []
+            for site in sites:
+                try:
+                    unique_site_id.append(
+                        "{:08d}".format(site[self.unique_site_id_key])
+                    )
+                except KeyError as err:
+                    raise KeyError(
+                        "The unique_site_id is not available for every site"
+                    ) from err
+
+            if len(set(unique_site_id)) != len(sites):
+                raise ValueError("The unique_site_id is not unique for every site")
+
+            if any([len(id) > 8 for id in unique_site_id]):
+                raise ValueError(
+                    "Unique IDs should be 8 digits or less to ensure "
+                    "a coordinate of consistent padded values is produced"
+                )
 
         # Construct a name to describe the neighbour finding method employed
         method_name = self.neighbour_finding_method_name()
@@ -620,6 +666,8 @@ class NeighbourSelection(BasePlugin):
             latitudes.astype(np.float32),
             longitudes.astype(np.float32),
             wmo_ids,
+            unique_site_id=unique_site_id,
+            unique_site_id_key=self.unique_site_id_key,
             neighbour_methods=[method_name],
             grid_attributes=["x_index", "y_index", "vertical_displacement"],
         )
