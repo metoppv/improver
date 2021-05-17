@@ -33,6 +33,7 @@
 
 import iris
 import numpy as np
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
@@ -45,10 +46,10 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
     orography.
     """
 
-    def __init__(self, neighbour_selection_method="nearest"):
+    def __init__(self, neighbour_selection_method: str = "nearest") -> None:
         """
         Args:
-            neighbour_selection_method (str):
+            neighbour_selection_method:
                 The neighbour cube may contain one or several sets of grid
                 coordinates that match a spot site. These are determined by
                 the neighbour finding method employed. This keyword is used to
@@ -66,13 +67,15 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         """
         self.neighbour_selection_method = neighbour_selection_method
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<SpotLapseRateAdjust: neighbour_selection_method: {}" ">".format(
             self.neighbour_selection_method
         )
 
-    def process(self, spot_data_cube, neighbour_cube, gridded_lapse_rate_cube):
+    def process(
+        self, spot_data_cube: Cube, neighbour_cube: Cube, gridded_lapse_rate_cube: Cube
+    ) -> Cube:
         """
         Extract lapse rates from the appropriate grid points and apply them to
         the spot extracted temperatures.
@@ -83,26 +86,26 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
          vertical_displacement
 
         Args:
-            spot_data_cube (iris.cube.Cube):
+            spot_data_cube:
                 A spot data cube of temperatures for the spot data sites,
                 extracted from the gridded temperature field. These
                 temperatures will have been extracted using the same
                 neighbour_cube and neighbour_selection_method that are being
                 used here.
-            neighbour_cube (iris.cube.Cube):
+            neighbour_cube:
                 The neighbour_cube that contains the grid coordinates at which
                 lapse rates should be extracted and the vertical displacement
                 between those grid points on the model orography and the spot
                 data sites actual altitudes. This cube is only updated when
                 a new site is added.
-            gridded_lapse_rate_cube (iris.cube.Cube):
+            gridded_lapse_rate_cube:
                 A cube of temperature lapse rates on the same grid as that from
                 which the spot data temperatures were extracted.
+
         Returns:
-            iris.cube.Cube:
-                A copy of the input spot_data_cube with the data modified by
-                the lapse rates to give a better representation of the site's
-                temperatures.
+            A copy of the input spot_data_cube with the data modified by
+            the lapse rates to give a better representation of the site's
+            temperatures.
         """
         # Check the cubes are compatible.
         check_grid_match([neighbour_cube, spot_data_cube, gridded_lapse_rate_cube])

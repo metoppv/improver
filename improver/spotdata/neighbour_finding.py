@@ -32,9 +32,13 @@
 """Neighbour finding for the Improver site specific process chain."""
 
 import warnings
+from typing import Any, Dict, List, Optional, Tuple
 
 import cartopy.crs as ccrs
 import numpy as np
+from cartopy.crs import CRS
+from iris.cube import Cube
+from numpy import ndarray
 from scipy.spatial import cKDTree
 
 from improver import BasePlugin
@@ -65,37 +69,37 @@ class NeighbourSelection(BasePlugin):
 
     def __init__(
         self,
-        land_constraint=False,
-        minimum_dz=False,
-        search_radius=1.0e4,
-        site_coordinate_system=ccrs.PlateCarree(),
-        site_x_coordinate="longitude",
-        site_y_coordinate="latitude",
-        node_limit=36,
-    ):
+        land_constraint: bool = False,
+        minimum_dz: bool = False,
+        search_radius: float = 1.0e4,
+        site_coordinate_system: CRS = ccrs.PlateCarree(),
+        site_x_coordinate: str = "longitude",
+        site_y_coordinate: str = "latitude",
+        node_limit: int = 36,
+    ) -> None:
         """
         Args:
-            land_constraint (bool):
+            land_constraint:
                 If True the selected neighbouring grid point must be on land,
                 where this is determined using a land_mask.
-            minimum_dz (bool):
+            minimum_dz:
                 If True the selected neighbouring grid point must be chosen to
                 minimise the vertical displacement compared to the site
                 altitude.
-            search_radius (float):
+            search_radius:
                 The radius in metres from a spot site within which to search
                 for a grid point neighbour.
-            site_coordinate_system (cartopy coordinate system):
+            site_coordinate_system:
                 The coordinate system of the sitelist coordinates that will be
                 provided. This defaults to be a latitude/longitude grid, a
                 PlateCarree projection.
-            site_x_coordinate (str):
+            site_x_coordinate:
                 The key that identifies site x coordinates in the provided site
                 dictionary. Defaults to longitude.
-            site_y_coordinate (str):
+            site_y_coordinate:
                 The key that identifies site y coordinates in the provided site
                 dictionary. Defaults to latitude.
-            node_limit (int):
+            node_limit:
                 The upper limit for the number of nearest neighbours to return
                 when querying the tree for a selection of neighbours from which
                 one matching the minimum_dz constraint will be picked.
@@ -110,7 +114,7 @@ class NeighbourSelection(BasePlugin):
         self.node_limit = node_limit
         self.global_coordinate_system = False
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return (
             "<NeighbourSelection: land_constraint: {}, "
@@ -127,15 +131,14 @@ class NeighbourSelection(BasePlugin):
             self.node_limit,
         )
 
-    def neighbour_finding_method_name(self):
+    def neighbour_finding_method_name(self) -> str:
         """
         Create a name to describe the neighbour method based on the constraints
         provided.
 
         Returns:
-            str:
-                A string that describes the neighbour finding method employed.
-                This is essentially a concatenation of the options.
+            A string that describes the neighbour finding method employed.
+            This is essentially a concatenation of the options.
         """
         method_name = "{}{}{}".format(
             "nearest",
@@ -144,7 +147,9 @@ class NeighbourSelection(BasePlugin):
         )
         return method_name
 
-    def _transform_sites_coordinate_system(self, x_points, y_points, target_crs):
+    def _transform_sites_coordinate_system(
+        self, x_points: ndarray, y_points: ndarray, target_crs: CRS
+    ) -> ndarray:
         """
         Function to convert coordinate pairs that specify spot sites into the
         coordinate system of the model from which data will be extracted. Note
@@ -152,69 +157,69 @@ class NeighbourSelection(BasePlugin):
         want in this case, as such only the first two columns are returned.
 
         Args:
-            x_points (numpy.ndarray):
+            x_points:
                 An array of x coordinates to be transformed in conjunction
                 with the corresponding y coordinates.
-            y_points (numpy.ndarray):
+            y_points:
                 An array of y coordinates to be transformed in conjunction
                 with the corresponding x coordinates.
-            target_crs (cartopy.crs):
+            target_crs:
                 Coordinate system to which the site coordinates should be
                 transformed. This should be the coordinate system of the model
                 from which data will be spot extracted.
+
         Returns:
-            numpy.ndarray:
-                An array containing the x and y coordinates of the spot sites
-                in the target coordinate system, shaped as (n_sites, 2). The
-                z coordinate column is excluded from the return.
+            An array containing the x and y coordinates of the spot sites
+            in the target coordinate system, shaped as (n_sites, 2). The
+            z coordinate column is excluded from the return.
         """
         return target_crs.transform_points(
             self.site_coordinate_system, x_points, y_points
         )[:, 0:2]
 
     def check_sites_are_within_domain(
-        self, sites, site_coords, site_x_coords, site_y_coords, cube
-    ):
+        self,
+        sites: List[Dict[str, Any]],
+        site_coords: ndarray,
+        site_x_coords: ndarray,
+        site_y_coords: ndarray,
+        cube: Cube,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         """
         A function to remove sites from consideration if they fall outside the
         domain of the provided model cube. A warning is raised and the details
         of each rejected site are printed.
 
         Args:
-            sites (list of dict):
+            sites:
                 A list of dictionaries defining the spot sites for which
                 neighbours are to be found. e.g.:
 
                    [{'altitude': 11.0, 'latitude': 57.867000579833984,
                     'longitude': -5.632999897003174, 'wmo_id': 3034}]
 
-            site_coords (numpy.ndarray):
+            site_coords:
                 An array of shape (n_sites, 2) that contains the spot site
                 coordinates in the coordinate system of the model cube.
-            site_x_coords (numpy.ndarray):
+            site_x_coords:
                 The x coordinates of the spot sites in their original
                 coordinate system, from which invalid sites must be removed.
-            site_y_coords (numpy.ndarray):
+            site_y_coords:
                 The y coordinates of the spot sites in their original
                 coordinate system, from which invalid sites must be removed.
-            cube (iris.cube.Cube):
+            cube:
                 A cube that is representative of the model/grid from which spot
                 data will be extracted.
 
         Returns:
-            (tuple): tuple containing:
-                **sites** (numpy.ndarray):
-                    The sites modified to filter out the sites falling outside
-                    the grid domain of the cube.
-                **site_coords** (numpy.ndarray):
-                    The site_coords modified to filter out the sites falling
-                    outside the grid domain of the cube.
-                **site_x_coords** (numpy.ndarray):
-                    The x_coords modified to filter out the sites falling
-                    outside the grid domain of the cube.
-                **site_y_coords** (numpy.ndarray):
-                    The y_coords modified to filter out the sites falling
-                    outside the grid domain of the cube.
+            - The sites modified to filter out the sites falling outside
+              the grid domain of the cube.
+            - The site_coords modified to filter out the sites falling
+              outside the grid domain of the cube.
+            - The x_coords modified to filter out the sites falling
+              outside the grid domain of the cube.
+            - The y_coords modified to filter out the sites falling
+              outside the grid domain of the cube.
         """
         # Get the grid domain limits
         x_min = cube.coord(axis="x").bounds.min()
@@ -263,21 +268,21 @@ class NeighbourSelection(BasePlugin):
         return sites, site_coords, site_x_coords, site_y_coords
 
     @staticmethod
-    def get_nearest_indices(site_coords, cube):
+    def get_nearest_indices(site_coords: ndarray, cube: Cube) -> ndarray:
         """
         Uses the iris cube method nearest_neighbour_index to find the nearest
         grid points to a site.
 
         Args:
-            site_coords (numpy.ndarray):
+            site_coords:
                 An array of shape (n_sites, 2) that contains the x and y
                 coordinates of the sites.
-            cube (iris.cube.Cube):
+            cube:
                 Cube containing a representative grid.
+
         Returns:
-            numpy.ndarray:
-                A list of shape (n_sites, 2) that contains the x and y indices
-                of the nearest grid points to the sites.
+            A list of shape (n_sites, 2) that contains the x and y indices
+            of the nearest grid points to the sites.
         """
         nearest_indices = np.zeros((len(site_coords), 2)).astype(np.int)
         for index, (x_point, y_point) in enumerate(site_coords):
@@ -290,7 +295,9 @@ class NeighbourSelection(BasePlugin):
         return nearest_indices
 
     @staticmethod
-    def geocentric_cartesian(cube, x_coords, y_coords):
+    def geocentric_cartesian(
+        cube: Cube, x_coords: ndarray, y_coords: ndarray
+    ) -> ndarray:
         """
         A function to convert a global (lat/lon) coordinate system into a
         geocentric (3D trignonometric) system. This function ignores orographic
@@ -299,20 +306,20 @@ class NeighbourSelection(BasePlugin):
         point without considering their vertical displacement.
 
         Args:
-            cube (iris.cube.Cube):
+            cube:
                 A cube from which is taken the globe for which the geocentric
                 coordinates are being calculated.
-            x_coords (numpy.ndarray):
+            x_coords:
                 An array of x coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
-            y_coords (numpy.ndarray):
+            y_coords:
                 An array of y coordinates that will represent one axis of the
                 mesh of coordinates to be transformed.
+
         Returns:
-            numpy.ndarray:
-                An array of all the xyz combinations that describe the nodes of
-                the grid, now in 3D geocentric cartesian coordinates. The shape
-                of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
+            An array of all the xyz combinations that describe the nodes of
+            the grid, now in 3D geocentric cartesian coordinates. The shape
+            of the array is (n_nodes, 3), order x[:, 0], y[:, 1], z[:, 2].
         """
         coordinate_system = cube.coord_system().as_cartopy_crs()
         cartesian_calculator = coordinate_system.as_geocentric()
@@ -322,26 +329,24 @@ class NeighbourSelection(BasePlugin):
         )
         return cartesian_nodes
 
-    def build_KDTree(self, land_mask):
+    def build_KDTree(self, land_mask: Cube) -> Tuple[cKDTree, ndarray]:
         """
         Build a KDTree for extracting the nearest point or points to a site.
         The tree can be built with a constrained set of grid points, e.g. only
         land points, if required.
 
         Args:
-            land_mask (iris.cube.Cube):
+            land_mask:
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected.
+
         Returns:
-            (tuple): tuple containing:
-                **scipy.spatial.ckdtree.cKDTree**:
-                    A KDTree containing the required nodes, built using the
-                    scipy cKDTree method.
-                **numpy.ndarray**:
-                    An array of shape (n_nodes, 2) that contains the x and y
-                    indices that correspond to the selected node,
-                    e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
-                    index_nodes[100] = [10, 300]
+            - A KDTree containing the required nodes, built using the
+              scipy cKDTree method.
+            - An array of shape (n_nodes, 2) that contains the x and y
+              indices that correspond to the selected node,
+              e.g. node=100 -->  x_coord_index=10, y_coord_index=300,
+              index_nodes[100] = [10, 300]
         """
         if self.land_constraint:
             included_points = np.nonzero(land_mask.data)
@@ -363,8 +368,13 @@ class NeighbourSelection(BasePlugin):
         return cKDTree(nodes), index_nodes
 
     def select_minimum_dz(
-        self, orography, site_altitude, index_nodes, distance, indices
-    ):
+        self,
+        orography: Cube,
+        site_altitude: float,
+        index_nodes: ndarray,
+        distance: ndarray,
+        indices: ndarray,
+    ) -> Optional[ndarray]:
         """
         Given a selection of nearest neighbours to a given site, this function
         calculates the absolute vertical displacement between the site and the
@@ -376,25 +386,25 @@ class NeighbourSelection(BasePlugin):
         raised.
 
         Args:
-            orography (iris.cube.Cube):
+            orography:
                 A cube of orography, used to obtain the grid point altitudes.
-            site_altitude (float):
+            site_altitude:
                 The altitude of the spot site being considered.
-            index_nodes (numpy.ndarray):
+            index_nodes:
                 An array of shape (n_nodes, 2) that contains the x and y
                 indices that correspond to the selected node,
-            distance (numpy.ndarray):
+            distance:
                 An array that contains the distances from the spot site to each
                 grid point neighbour being considered. The number maybe np.inf
                 if the site is beyond the search_radius.
-            indices (numpy.ndarray):
+            indices:
                 An array of tree node indices identifying the neigbouring grid
                 points, the list corresponding to the array of distances.
+
         Returns:
-            numpy.ndarray or None:
-                A 2-element array giving the x and y indices of the chosen grid
-                point neighbour. Returns None if no valid neighbours were found
-                in the tree query.
+            A 2-element array giving the x and y indices of the chosen grid
+            point neighbour. Returns None if no valid neighbours were found
+            in the tree query.
         """
         # Values beyond the imposed search radius are set to inf,
         # these need to be excluded.
@@ -433,7 +443,9 @@ class NeighbourSelection(BasePlugin):
 
         return grid_point
 
-    def process(self, sites, orography, land_mask):
+    def process(
+        self, sites: List[Dict[str, Any]], orography: Cube, land_mask: Cube
+    ) -> Cube:
         """
         Using the constraints provided, find the nearest grid point neighbours
         to the given spot sites for the model/grid given by the input cubes.
@@ -442,24 +454,24 @@ class NeighbourSelection(BasePlugin):
         of the selected grid point neighbour.
 
         Args:
-            sites (list of dict):
+            sites:
                 A list of dictionaries defining the spot sites for which
                 neighbours are to be found. e.g.:
 
                    [{'altitude': 11.0, 'latitude': 57.867000579833984,
                     'longitude': -5.632999897003174, 'wmo_id': 3034}]
 
-            orography (iris.cube.Cube):
+            orography:
                 A cube of orography, used to obtain the grid point altitudes.
-            land_mask (iris.cube.Cube):
+            land_mask:
                 A land mask cube for the model/grid from which grid point
                 neighbours are being selected, with land points set to one and
                 sea points set to zero.
+
         Returns:
-            iris.cube.Cube:
-                A cube containing both the spot site information and for each
-                the grid point indices of its nearest neighbour as per the
-                imposed constraints.
+            A cube containing both the spot site information and for each
+            the grid point indices of its nearest neighbour as per the
+            imposed constraints.
         """
         # Check if we are dealing with a global grid.
         self.global_coordinate_system = orography.coord(axis="x").circular
