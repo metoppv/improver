@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the display_interpretation function"""
 
-import pytest
-
 from improver.developer_tools.metadata_interpreter import display_interpretation
 
 

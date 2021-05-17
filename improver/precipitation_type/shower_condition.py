@@ -42,7 +42,6 @@ from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_diagnostic_cube_name_from_probability_name,
-    probability_is_above_or_below,
 )
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,

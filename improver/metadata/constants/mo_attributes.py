@@ -61,7 +61,7 @@ MOSG_GRID_DEFINITION = {
         "mosg__grid_domain": "global",
         "mosg__grid_version": STAGE_VERSION,
     },
-    "nc_det": {"mosg__model_configuration": "nc_det",},
+    "nc_det": {"mosg__model_configuration": "nc_det"},
 }
 
 # Map correct metadata from StaGE v1.1.0

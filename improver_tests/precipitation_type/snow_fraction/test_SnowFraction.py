@@ -163,7 +163,7 @@ def test_wrong_input_names_error():
     snow.rename("puppies")
     with pytest.raises(
         ValueError,
-        match="Could not find both rain and snow in \['kittens', 'puppies'\]",
+        match=r"Could not find both rain and snow in \['kittens', 'puppies'\]",
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))
 
@@ -175,7 +175,7 @@ def test_input_name_matches_both_phases_error():
     snow.rename("puppies")
     with pytest.raises(
         ValueError,
-        match="Failed to find unique rain and snow cubes from \['its_raining_snowy_kittens', 'puppies'\]",
+        match=r"Failed to find unique rain and snow cubes from \['its_raining_snowy_kittens', 'puppies'\]",
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))
 
@@ -196,6 +196,6 @@ def test_non_coercing_units_error():
     rain, snow = setup_cubes()
     rain.units = Unit("K")
     with pytest.raises(
-        ValueError, match="Unable to convert from 'Unit\('m s-1'\)' to 'Unit\('K'\)'."
+        ValueError, match=r"Unable to convert from 'Unit\('m s-1'\)' to 'Unit\('K'\)'."
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))

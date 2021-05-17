@@ -74,7 +74,7 @@ def test_rolling_window_exception_too_many_dims(array_size_5):
 
 
 def test_rolling_window_exception_dims_too_large(array_size_5):
-    """Test an exception is raised if dimensions of shape are larger than 
+    """Test an exception is raised if dimensions of shape are larger than
     corresponding dimensions of input array."""
     msg = (
         "The calculated shape of the output array view contains a "
@@ -157,7 +157,7 @@ def test_boxsum_with_automatic_cumsum(array_size_5):
 
 
 def test_boxsum_non_square(array_size_5):
-    """Test that boxsum correctly calculates neighbourhood sums using 
+    """Test that boxsum correctly calculates neighbourhood sums using
     non-square box."""
     result = boxsum(array_size_5, (1, 3))
     expected = np.array(
@@ -170,7 +170,7 @@ def test_boxsum_non_square(array_size_5):
 
 
 def test_boxsum_with_precalculated_cumsum(array_size_5):
-    """Test that boxsum correctly calculates neighbourhood sums using 
+    """Test that boxsum correctly calculates neighbourhood sums using
     pre-calculated cumsum."""
     cumsum_arr = np.array(
         [  # pylint: disable=E1136

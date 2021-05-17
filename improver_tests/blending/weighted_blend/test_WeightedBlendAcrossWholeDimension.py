@@ -42,16 +42,14 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
-from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.cube_manipulation import MergeCubes, enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .test_PercentileBlendingAggregator import (

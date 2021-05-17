@@ -44,8 +44,6 @@ from improver.calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin,
 )
 from improver.calibration.utilities import convert_cube_data_to_2d
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes

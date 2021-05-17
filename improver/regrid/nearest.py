@@ -74,7 +74,7 @@ def nearest_with_mask_regrid(
         Tuple[numpy.ndarray, numpy.ndarray]:
              distances: updated distnace array from each target grid point to its source grid points
              indexes: updated array of four source grid point number for each target grid points
- 
+
     """
 
     # Check if there are output points with mismatched surface types

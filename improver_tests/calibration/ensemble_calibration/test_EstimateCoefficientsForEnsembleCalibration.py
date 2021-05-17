@@ -54,7 +54,6 @@ from improver.utilities.warnings_handler import ManageWarnings
 from .helper_functions import (
     EnsembleCalibrationAssertions,
     SetupCubes,
-    _create_historic_forecasts,
 )
 
 try:

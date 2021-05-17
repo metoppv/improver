@@ -30,10 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to standardise metadata"""
 
-import warnings
 from typing import Any, Dict, List, Optional
 
-import iris
 import numpy as np
 from iris.analysis import Linear, Nearest
 from iris.coords import CellMethod

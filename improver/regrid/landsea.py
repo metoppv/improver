@@ -78,7 +78,7 @@ class RegridLandSea(BasePlugin):
             regrid_mode (str):
                 Mode of interpolation in regridding.  Valid options are "bilinear",
                 "nearest", "nearest-with-mask", "bilinear-2","nearest-2",
-                "nearest-with-mask-2" or "bilinear-with-mask-2".  "***-with-mask**" 
+                "nearest-with-mask-2" or "bilinear-with-mask-2".  "***-with-mask**"
                 option triggers adjustment of regridded points to match source points
                 in terms of land / sea type.
             extrapolation_mode (str):

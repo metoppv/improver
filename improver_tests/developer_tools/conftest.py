@@ -147,7 +147,7 @@ def precip_accum_fixture():
     cube.add_cell_method(iris.coords.CellMethod(method="sum", coords="time"))
     for coord in ["time", "forecast_period"]:
         cube.coord(coord).bounds = np.array(
-            [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0],],
+            [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0]],
             dtype=cube.coord(coord).dtype,
         )
     return cube

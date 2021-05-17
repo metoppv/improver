@@ -87,7 +87,7 @@ def set_up_wxcube(time_points=None, lat_lon=False):
 
     if lat_lon:
         kwargs.update(
-            {"spatial_grid": "latlon", "domain_corner": (49, -8), "grid_spacing": 1,}
+            {"spatial_grid": "latlon", "domain_corner": (49, -8), "grid_spacing": 1}
         )
 
     cube = set_up_variable_cube(np.ones((16, 16), dtype=np.float32), **kwargs)

@@ -170,9 +170,9 @@ class Test__combine_undersampled_bins(Test_setup):
 
         expected = np.array(
             [
-                [25,],  # Observation count
-                [25,],  # Sum of forecast probability
-                [50,],  # Forecast count
+                [25],  # Observation count
+                [25],  # Sum of forecast probability
+                [50],  # Forecast count
             ]
         )
 
