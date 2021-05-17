@@ -35,14 +35,11 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from iris import Constraint
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
-from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering,
-    get_dim_coord_names,
-)
+from improver.utilities.cube_manipulation import get_dim_coord_names
 
 
 def parse_range_string_to_dict(value: str) -> Dict[str, str]:
@@ -104,7 +101,7 @@ def parse_constraint_list(
     Args:
         constraints:
             List of string constraints with keys and values split by "=":
-            e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"], where the 'val's
+            e.g: ["kw1=val1", "kw2 = val2", "kw3=val3"], where the vals
             could include ranges e.g. [0:20] or ranges with a step value e.g.
             [0:20:3].
         units:
@@ -115,8 +112,9 @@ def parse_constraint_list(
     Returns:
         - A combination of all the constraints that were supplied.
         - A dictionary of unit keys and values
-        - A list of lists containing the min and max values for a longitude constraint
-        - A dictionary of coordinate and the step value, i.e. a step of 2 will skip every other point
+        - A list containing the min and max values for a longitude constraint
+        - A dictionary of coordinate and the step value, i.e. a step of 2 will
+          skip every other point
     """
 
     if units is None:
@@ -141,7 +139,8 @@ def parse_constraint_list(
         if ":" in value:
             range_dict = parse_range_string_to_dict(value)
 
-            # longitude is a circular coordinate, so needs to be treated in a different way to a normal constraint
+            # longitude is a circular coordinate, so needs to be treated in a
+            # different way to a normal constraint
             if key == "longitude":
                 longitude_constraint = [
                     FLOAT_DTYPE(range_dict[k]) for k in ["min", "max"]
@@ -233,7 +232,7 @@ def apply_extraction(
         output_cube = output_cube.intersection(
             longitude=longitude_constraint, ignore_bounds=True
         )
-        # Below can be removed when https://github.com/SciTools/iris/issues/4119 is fixed
+        # TODO: Below can be removed when https://github.com/SciTools/iris/issues/4119 is fixed
         output_cube.coord("longitude").points = output_cube.coord(
             "longitude"
         ).points.astype(FLOAT_DTYPE)
@@ -290,13 +289,15 @@ def extract_subcube(
 
 def thin_cube(cube: Cube, thinning_dict: Dict[str, int]) -> Cube:
     """
-    Thin the coordinate by taking every X points, defined in the thinning dict as {coordinate: X}
+    Thin the coordinate by taking every X points, defined in the thinning dict
+    as {coordinate: X}
 
     Args:
         cube:
             The cube containing the coordinates to be thinned.
         thinning_dict:
-            A dictionary of coordinate and the step value, i.e. a step of 2 will skip every other point
+            A dictionary of coordinate and the step value, i.e. a step of 2
+            will skip every other point
 
     Returns:
         A cube with thinned coordinates.

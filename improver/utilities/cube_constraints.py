@@ -70,6 +70,6 @@ def create_sorted_lambda_constraint(
     values[0] = (1.0 - tolerance) * values[0]
     values[1] = (1.0 + tolerance) * values[1]
     constr = iris.Constraint(
-        coord_values={coord_name: lambda cell: values[0] <= cell <= values[1]}
+        coord_values={coord_name: lambda cell: values[0] <= cell.point <= values[1]}
     )
     return constr

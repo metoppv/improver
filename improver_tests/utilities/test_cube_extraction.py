@@ -389,8 +389,8 @@ class Test_apply_extraction(IrisTest):
         """ Test that a list of constraints behaves correctly. This includes
         converting the units to the units that the constraints is
         defined in."""
-        lower_bound = 0.03 * (1.0 - 1.0e-7)
-        upper_bound = 0.1 * (1.0 + 1.0e-7)
+        lower_bound = 0.03 - 1.0e-7
+        upper_bound = 0.1 + 1.0e-7
         constraint_dict = {
             self.threshold_coord: lambda cell: lower_bound <= cell <= upper_bound
         }
@@ -410,8 +410,8 @@ class Test_apply_extraction(IrisTest):
             ]
         )
         expected_points = np.array([1000.0, 3000.0, 5000.0, 7000.0])
-        lower_bound = 1000 * (1.0 - 1.0e-7)
-        upper_bound = 7000 * (1.0 + 1.0e-7)
+        lower_bound = 1000 - 1.0e-7
+        upper_bound = 7000 + 1.0e-7
         constraint_dict = {
             "projection_x_coordinate": lambda cell: lower_bound <= cell <= upper_bound,
             "projection_y_coordinate": lambda cell: lower_bound <= cell <= upper_bound,
@@ -425,8 +425,8 @@ class Test_apply_extraction(IrisTest):
 
     def test_subset_global_grid(self):
         """ Extract subset of global lat-lon grid """
-        lower_bound = 42 * (1.0 - 1.0e-7)
-        upper_bound = 52 * (1.0 + 1.0e-7)
+        lower_bound = 42 - 1.0e-7
+        upper_bound = 52 + 1.0e-7
         constraint_dict = {"latitude": lambda cell: lower_bound <= cell <= upper_bound}
         constr = iris.Constraint(**constraint_dict)
         result = apply_extraction(
@@ -559,7 +559,7 @@ class Test_extract_subcube(IrisTest):
 
     def test_thin_global_gridded_cube(self):
         """ Subsets a grid from a global grid and thins the data"""
-        expected_result = np.array([[1.0, 4.0], [17.0, 20.0], [33.0, 36.0]])
+        expected_result = np.array([[1.0, 4.0], [17.0, 20.0]])
         result = extract_subcube(
             self.global_gridded_cube, ["latitude=[42:52:2]", "longitude=[0:7:3]"]
         )
@@ -568,7 +568,7 @@ class Test_extract_subcube(IrisTest):
             result.coord("longitude").points, np.array([0.0, 6.0])
         )
         self.assertArrayAlmostEqual(
-            result.coord("latitude").points, np.array([45.0, 49.0, 53.0])
+            result.coord("latitude").points, np.array([45.0, 49.0])
         )
 
     def test_thin_longitude_global_gridded_cube(self):

@@ -141,9 +141,9 @@ def test_range_constraints(tmp_path):
     args = [
         input_path,
         "--constraints",
-        "projection_y_coordinate=[-398000:-160000]",
+        "projection_y_coordinate=[-400000:-158000]",
         "--constraints",
-        "projection_x_coordinate=[-202000:16000]",
+        "projection_x_coordinate=[-204000:16000]",
         "--output",
         output_path,
     ]
@@ -173,14 +173,13 @@ def test_uk_grid(tmp_path):
     kgo_dir = acc.kgo_root() / "extract/grids"
     kgo_path = kgo_dir / "kgo_grid_uk.nc"
     input_path = kgo_dir / "input_grid_uk.nc"
-    grid_spec_path = kgo_dir / "grid_spec.json"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         "--constraints",
-        "projection_x_coordinate=[-100000:150000:5]",
+        "projection_x_coordinate=[-102000:150000:5]",
         "--constraints",
-        "projection_y_coordinate=[-100000:200000:5]",
+        "projection_y_coordinate=[-102000:200000:5]",
         "--output",
         output_path,
     ]
@@ -193,12 +192,11 @@ def test_lat_lon_grid(tmp_path):
     kgo_dir = acc.kgo_root() / "extract/grids"
     kgo_path = kgo_dir / "kgo_grid_latlon.nc"
     input_path = kgo_dir / "input_grid_latlon.nc"
-    grid_spec_path = kgo_dir / "grid_spec.json"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
         "--constraints",
-        "latitude=[45.1:52:2]",
+        "latitude=[45.0:52:2]",
         "--constraints",
         "longitude=[-2:6:2]",
         "--output",
