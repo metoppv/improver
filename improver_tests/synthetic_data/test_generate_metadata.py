@@ -417,7 +417,7 @@ def test_set_attributes():
     """ Tests cube generated with specified attributes and the rest of the values set
     as default values """
     attributes = {"test_attribute": "kittens"}
-    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, attributes=attributes.copy())
+    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, attributes=attributes)
     expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
     expected_attributes["test_attribute"] = "kittens"
     assert cube.attributes == expected_attributes

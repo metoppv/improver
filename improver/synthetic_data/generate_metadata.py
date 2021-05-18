@@ -209,7 +209,9 @@ def generate_metadata(
         raise KeyError(
             f"No values for these mandatory attributes: {missing_mandatory_attributes}"
         )
-    if "attributes" not in kwargs:
+    if "attributes" in kwargs:
+        kwargs["attributes"] = kwargs["attributes"].copy()
+    else:
         kwargs["attributes"] = {}
     kwargs["attributes"].update(mandatory_attributes)
 
