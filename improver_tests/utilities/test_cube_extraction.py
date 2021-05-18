@@ -392,7 +392,7 @@ class Test_apply_extraction(IrisTest):
         lower_bound = 0.03 - 1.0e-7
         upper_bound = 0.1 + 1.0e-7
         constraint_dict = {
-            self.threshold_coord: lambda cell: lower_bound <= cell <= upper_bound
+            self.threshold_coord: lambda cell: lower_bound <= cell.point <= upper_bound
         }
         constr = iris.Constraint(coord_values=constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
@@ -413,8 +413,12 @@ class Test_apply_extraction(IrisTest):
         lower_bound = 1000 - 1.0e-7
         upper_bound = 7000 + 1.0e-7
         constraint_dict = {
-            "projection_x_coordinate": lambda cell: lower_bound <= cell <= upper_bound,
-            "projection_y_coordinate": lambda cell: lower_bound <= cell <= upper_bound,
+            "projection_x_coordinate": lambda cell: lower_bound
+            <= cell.point
+            <= upper_bound,
+            "projection_y_coordinate": lambda cell: lower_bound
+            <= cell.point
+            <= upper_bound,
         }
         constr = iris.Constraint(**constraint_dict)
         result = apply_extraction(self.uk_gridded_cube, constr)
@@ -427,7 +431,9 @@ class Test_apply_extraction(IrisTest):
         """ Extract subset of global lat-lon grid """
         lower_bound = 42 - 1.0e-7
         upper_bound = 52 + 1.0e-7
-        constraint_dict = {"latitude": lambda cell: lower_bound <= cell <= upper_bound}
+        constraint_dict = {
+            "latitude": lambda cell: lower_bound <= cell.point <= upper_bound
+        }
         constr = iris.Constraint(**constraint_dict)
         result = apply_extraction(
             self.global_gridded_cube, constr, longitude_constraint=[0, 7]
@@ -438,7 +444,6 @@ class Test_apply_extraction(IrisTest):
                 [9.0, 10.0, 11.0, 12.0],
                 [17.0, 18.0, 19.0, 20.0],
                 [25.0, 26.0, 27.0, 28.0],
-                [33.0, 34.0, 35.0, 36.0],
             ]
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
@@ -446,7 +451,7 @@ class Test_apply_extraction(IrisTest):
             result.coord("longitude").points, np.array([0.0, 2.0, 4.0, 6.0])
         )
         self.assertArrayAlmostEqual(
-            result.coord("latitude").points, np.array([45.0, 47.0, 49.0, 51.0, 53.0])
+            result.coord("latitude").points, np.array([45.0, 47.0, 49.0, 51.0])
         )
 
     def test_subset_global_grid_pacific(self):
@@ -459,9 +464,11 @@ class Test_apply_extraction(IrisTest):
             domain_corner=(0, 175),
             grid_spacing=2,
         )
-        lower_bound = 0 * (1.0 - 1.0e-7)
-        upper_bound = 4 * (1.0 + 1.0e-7)
-        constraint_dict = {"latitude": lambda cell: lower_bound <= cell <= upper_bound}
+        lower_bound = -1.0e-7
+        upper_bound = 4 + 1.0e-7
+        constraint_dict = {
+            "latitude": lambda cell: lower_bound <= cell.point <= upper_bound
+        }
         constr = iris.Constraint(**constraint_dict)
         expected_data = np.array(
             [[2.0, 3.0, 4.0], [10.0, 11.0, 12.0], [18.0, 19.0, 20.0]]
