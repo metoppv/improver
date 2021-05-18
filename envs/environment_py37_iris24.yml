@@ -36,7 +36,6 @@ dependencies:
   - isort=5.*
   - mock
   - mypy
-  - pylint
   - pytest
   - pytest-cov
   - safety

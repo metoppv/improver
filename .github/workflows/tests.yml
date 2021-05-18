@@ -49,7 +49,7 @@ jobs:
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - uses: codecov/codecov-action@v1
-  Codestyle-and-Pylint:
+  Codestyle-and-flake8:
     runs-on: ubuntu-latest
     strategy:
       fail-fast: false
@@ -94,11 +94,6 @@ jobs:
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
         flake8 improver improver_tests || true
-    - name: pylint
-      run: |
-        source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda activate improver_${{ matrix.env }}
-        pylint -j 0 -E --rcfile=etc/pylintrc improver improver_tests
   Safety-Bandit:
     runs-on: ubuntu-latest
     strategy:

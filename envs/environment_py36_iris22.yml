@@ -17,7 +17,6 @@ dependencies:
   - pytest
   - pytest-cov
   - codacy-coverage
-  - pylint=2.4.4
   - astroid=2.3.3
   - filelock
   - mock

@@ -66,15 +66,8 @@ function improver_test_isort {
     echo_ok "isort"
 }
 
-function improver_test_pylint {
-    # Pylint score generation.
-    ${PYLINT:-pylint} --rcfile=etc/pylintrc $FILES_TO_TEST
-}
-
-function improver_test_pylintE {
-    # Pylint obvious-errors-only testing.
-    ${PYLINT:-pylint} -E --rcfile=etc/pylintrc $FILES_TO_TEST
-    echo_ok "pylint -E"
+function improver_test_flake8 {
+    ${FLAKE8:-flake8} $FILES_TO_TEST
 }
 
 function improver_test_doc {
@@ -108,7 +101,6 @@ function improver_test_recreate_checksums {
     echo_ok "Checksums recreated"
 }
 
-
 function improver_test_cli {
     # CLI testing.
 
@@ -137,7 +129,7 @@ function print_usage {
     cat <<'__USAGE__'
 improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 
-Run black, isort, pylint, documentation, unit and CLI acceptance tests.
+Run black, isort, flake8, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
     --debug         Run in verbose mode (may take longer for CLI)
@@ -145,13 +137,11 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: black, isort, pylint, pylintE,
-                    doc, unit, cli, and recreate_checksums. The default tests
-                    are black, isort, pylintE, doc, unit,
-                    and cli.
-                    Using recreate_checksums will regenerate the
-                    test data checksum file which is used as part of the cli
-                    tests.
+                    Valid names are: black, isort, flake8, doc, unit, cli,
+                    and recreate_checksums. The default tests are black,
+                    isort, flake8, doc, unit, and cli.  Using
+                    recreate_checksums will regenerate the test data
+                    checksum file which is used as part of the cli tests.
 __USAGE__
 }
 
@@ -192,7 +182,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        black|isort|pylint|pylintE|doc|unit|cli|recreate_checksums)
+        black|isort|flake8|doc|unit|cli|recreate_checksums)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)
@@ -210,7 +200,7 @@ if [[ -n "$SUBTESTS" ]]; then
     TESTS="$SUBTESTS"
 else
     # Default tests.
-    TESTS="isort black pylintE doc unit cli"
+    TESTS="isort black flake8 doc unit cli"
 fi
 
 # If cli sub test is not specified by user, do all cli tests.
