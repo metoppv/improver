@@ -419,7 +419,7 @@ def test_set_attributes():
     attributes = {"test_attribute": "kittens"}
     cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, attributes=attributes)
 
-    expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS
+    expected_attributes = MANDATORY_ATTRIBUTE_DEFAULTS.copy()
     expected_attributes["test_attribute"] = "kittens"
     assert cube.attributes == attributes
 
