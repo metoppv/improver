@@ -37,6 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
+    mandatory_attributes_json: cli.inputjson,
     *,
     name="air_pressure_at_sea_level",
     units=None,
@@ -51,6 +52,9 @@ def process(
     """ Generate a cube with metadata only.
 
     Args:
+        mandatory_attributes_json (Dict):
+            Specifies the values of the mandatory attributes, title, institution and
+            source.
         name (Optional[str]):
             Output variable name, or if creating a probability cube the name of the
             underlying variable to which the probability field applies.
@@ -89,7 +93,8 @@ def process(
     # Set arguments to pass to generate_metadata function and remove json_input for
     # processing contents before adding
     generate_metadata_args = locals()
-    generate_metadata_args.pop("json_input", None)
+    for key in ["mandatory_attributes_json", "json_input"]:
+        generate_metadata_args.pop(key, None)
 
     from improver.synthetic_data.generate_metadata import generate_metadata
     from improver.synthetic_data.utilities import (
@@ -128,5 +133,4 @@ def process(
 
         # Update generate_metadata_args with the json_input data
         generate_metadata_args.update(json_input)
-
-    return generate_metadata(**generate_metadata_args)
+    return generate_metadata(mandatory_attributes_json, **generate_metadata_args)

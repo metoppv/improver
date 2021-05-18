@@ -36,4 +36,4 @@ MANDATORY_ATTRIBUTE_DEFAULTS = {
     "institution": "unknown",
 }
 
-MANDATORY_ATTRIBUTES = ["title", "source", "institution"]
+MANDATORY_ATTRIBUTES = [x for x in MANDATORY_ATTRIBUTE_DEFAULTS.keys()]
