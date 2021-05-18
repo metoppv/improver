@@ -10,33 +10,33 @@ Developer advice
 General comments
 ~~~~~~~~~~~~~~~~
 
--  IMPROVER uses a number of commonly used Python modules
-   e.g. `numpy <https://numpy.org/>`_,
-   `scipy <https://www.scipy.org/>`_. Additionally IMPROVER makes use
-   of `Iris <https://scitools.org.uk/iris/docs/latest/index.html>`_ for
-   the in-memory data representation.
--  Aim for smaller methods with a single purpose.
--  Aim for fewer logical branches in each method to make it easier to
-   test each route through the code and make it easier to maintain.
--  Aim for simpler process methods (see the plugin example below),
-   preferably that just call other methods in the plugin.
--  Centralise functions that check input (i.e. checking input is a cube)
-   so we only have to test them once.
--  Aim for simple plugins with better defined purposes.
--  Think about fixing metadata separately after main array manipulation
-   (although there are cases where it may make sense to do it together,
-   like when adding or removing dimensions).
--  Some things that could be functions, should be functions, rather than
-   classes (if appropriate).
--  Use inline comments where functionality is not immediately obvious,
-   eg where we do complex array or cube manipulation. Consider the top
-   level goal: that code should be readable to a non-expert developer.
--  Document in plugin docstrings and CLI help when we add or remove a
-   dimension from a cube.
--  Ensure that functions and classes are unit tested and CLIs (command
-   line interfaces) have acceptance tests.
--  Use type annotations on function and method interfaces, except for
-   CLIs.
+* IMPROVER uses a number of commonly used Python modules
+  e.g. `numpy <https://numpy.org/>`_,
+  `scipy <https://www.scipy.org/>`_. Additionally IMPROVER makes use
+  of `Iris <https://scitools.org.uk/iris/docs/latest/index.html>`_ for
+  the in-memory data representation.
+* Aim for smaller methods with a single purpose.
+* Aim for fewer logical branches in each method to make it easier to
+  test each route through the code and make it easier to maintain.
+* Aim for simpler process methods (see the plugin example below),
+  preferably that just call other methods in the plugin.
+* Centralise functions that check input (i.e. checking input is a cube)
+  so we only have to test them once.
+* Aim for simple plugins with better defined purposes.
+* Think about fixing metadata separately after main array manipulation
+  (although there are cases where it may make sense to do it together,
+  like when adding or removing dimensions).
+* Some things that could be functions, should be functions, rather than
+  classes (if appropriate).
+* Use inline comments where functionality is not immediately obvious,
+  eg where we do complex array or cube manipulation. Consider the top
+  level goal: that code should be readable to a non-expert developer.
+* Document in plugin docstrings and CLI help when we add or remove a
+  dimension from a cube.
+* Ensure that functions and classes are unit tested and CLIs (command
+  line interfaces) have acceptance tests.
+* Use type annotations on function and method interfaces, except for
+  CLIs.
 
 Pull requests
 ~~~~~~~~~~~~~
@@ -500,16 +500,16 @@ they should live depends on how they will be used.
 
 **Case 1:** A function used in more than one module.
 
-- In this case the function should be located in a shared location e.g.
+* In this case the function should be located in a shared location e.g.
   utilities.py
 
 **Case 2:** A function used by several classes within one module.
 
-- The function should be kept outside of any one class, but within the module.
+* The function should be kept outside of any one class, but within the module.
 
 **Case 3:** A function used only within a single class.
 
-- Should be kept within the class; as a static method if it makes no use of
+* Should be kept within the class; as a static method if it makes no use of
   self.
 
 Command Line Interface (CLI)
@@ -540,25 +540,25 @@ go with the typed variable, spaces are required around the ``=`` for
 example ``weights: cli.inputcube = None``. There are other types which
 can be used such as:
 
-- the python standards
+* the python standards
 
-  - ``float``
-  - ``int``
-  - ``bool``
+  * ``float``
+  * ``int``
+  * ``bool``
 
-- specific additions
+* specific additions
 
-  - ``cli.inputcube``
+  * ``cli.inputcube``
 
-    - Where a string is given which is a path to a cube to load
+    * Where a string is given which is a path to a cube to load
 
-  - ``cli.inputjson``
+  * ``cli.inputjson``
 
-    - Where a string is given which is a path to a json file to load
+    * Where a string is given which is a path to a json file to load
 
-  - ``cli.comma_separated_list``
+  * ``cli.comma_separated_list``
 
-    - This will convert the argument into that format and deal with error
+    * This will convert the argument into that format and deal with error
       handling if no conversion is possible.
 
 A complete list of local added variable types can be found by
@@ -589,8 +589,8 @@ the star. for example
 
 The required arguments in this example are:
 
-- cube
-- coord_for_masking
+* cube
+* coord_for_masking
 
 Testing
 -------
