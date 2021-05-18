@@ -88,10 +88,12 @@ jobs:
         conda activate improver_${{ matrix.env }}
         black --check .
     - name: flake8
+      # flake8 is run but failures are ignored
+      # Remove `|| true` to cause failure to fail CI job
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate improver_${{ matrix.env }}
-        flake8 improver improver_tests
+        flake8 improver improver_tests || true
     - name: pylint
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
