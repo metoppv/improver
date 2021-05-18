@@ -563,7 +563,7 @@ can be used such as:
 
 A complete list of local added variable types can be found by
 identifying all the ``@value_converter`` decorated functions in
-`cli/init.py <https://github.com/metoppv/improver/blob/master/improver/cli/__init__.py>`_.
+`cli/__init__.py <https://github.com/metoppv/improver/blob/master/improver/cli/__init__.py>`_.
 
 Arguments into the process function should start with the cubes. After
 all the cubes, there should be an argument of ``*``, this separates the

@@ -40,52 +40,52 @@ As a Reviewer:
 
 3. Main reviewers should:
 
-   i.   **Read the code and post in-line comments for suggested
-        alterations.**
-   ii.  **Ensure unit tests are run and pass.**
-   iii. **Ensure command line interface acceptance tests run and pass.
-        These must be ran on the desktop using bin/improver tests as they
-        are not run by travis**
-   iv.  **The Acceptance Criteria defined within the associated issue has
-        been met.**
-   v.   **The criteria within the Definition of Done has been satisfied.**
-   vi.  **Ensure their testing is documented on the issue.**
+  i.   **Read the code and post in-line comments for suggested
+       alterations.**
+  ii.  **Ensure unit tests are run and pass.**
+  iii. **Ensure command line interface acceptance tests run and pass.
+       These must be ran on the desktop using bin/improver tests as they
+       are not run by travis**
+  iv.  **The Acceptance Criteria defined within the associated issue has
+       been met.**
+  v.   **The criteria within the Definition of Done has been satisfied.**
+  vi.  **Ensure their testing is documented on the issue.**
 
 4. Main reviewers should post comments to the pull request to show that
    they have completed: i, ii, iii, iv, v, vi.
 
 5. Things to consider when reading through the code are:
 
-   i. **Naming conventions and coding style**
+  i.   **Naming conventions and coding style**
 
-      -  Does the code follow the expected protocols for formatting,
-         style and naming?
-      -  Do the names chosen make sense?
+    - Does the code follow the expected protocols for formatting,
+      style and naming?
+    - Do the names chosen make sense?
 
-   ii. **Design**
+  ii.  **Design**
 
-      -  How does the code fit in with overall IMPROVER design?
-      -  Is the code in the right place?
-      -  Is the code logical?
-      -  Could the new code have reused existing code?
+    - How does the code fit in with overall IMPROVER design?
+    - Is the code in the right place?
+    - Is the code logical?
+    - Could the new code have reused existing code?
 
-   iii. **Readability and Maintainability**
+  iii. **Readability and Maintainability**
 
-      -  Are the names used meaningful?
-      -  Are the functions understandable, with the use of the provided
-         docstrings and comments?
-      -  Are any warnings raised when running new unit tests.
+    - Are the names used meaningful?
+    - Are the functions understandable, with the use of the provided
+      docstrings and comments?
+    - Are any warnings raised when running new unit tests.
 
-   iv. **Functionality**
+  iv.  **Functionality**
 
-      -  Does the code do what is supposed to?
-      -  Are errors handled appropriately?
+    - Does the code do what is supposed to?
+    - Are errors handled appropriately?
 
-   v. **Test coverage**
+  v.   **Test coverage**
 
-      -  Do the tests provided cover the expected situations?
-      -  Are the tests understandable?
-      -  Have edge cases been considered?
+    - Do the tests provided cover the expected situations?
+    - Are the tests understandable?
+    - Have edge cases been considered?
 
 6. If this is a first review, the developer should then move the issue
    into 'Second Review' and a second reviewer should ensure that the
