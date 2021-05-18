@@ -203,3 +203,91 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_regrid_nearest_2_multi_realization(tmp_path):
+    """Test nearest-2 neighbour regridding"""
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "nearest_2/kgo_multi_realization.nc"
+    input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
+    target_path = kgo_dir / "landmask/ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest-2",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_regrid_bilinear_2_multi_realization(tmp_path):
+    """Test bilinear-2 neighbour regridding"""
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "bilinear_2/kgo_multi_realization.nc"
+    input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
+    target_path = kgo_dir / "landmask/ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-2",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_regrid_nearest_landmask_2_multi_realization(tmp_path):
+    """Test nearest neighbour-2 with land sea mask and realizations"""
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "nearest_landmask_2/kgo_multi_realization.nc"
+    input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
+    landmask_path = kgo_dir / "landmask/glm_landmask.nc"
+    target_path = kgo_dir / "landmask/ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        target_path,
+        landmask_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "nearest-with-mask-2",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
+    """Test bilinear-2 with land sea mask and realizations"""
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "bilinear_landmask_2/kgo_multi_realization.nc"
+    input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
+    landmask_path = kgo_dir / "landmask/glm_landmask.nc"
+    target_path = kgo_dir / "landmask/ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        target_path,
+        landmask_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-with-mask-2",
+        "--regridded-title",
+        GLOBAL_UK_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=0.05)

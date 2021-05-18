@@ -32,7 +32,6 @@
    whole dimension."""
 
 import warnings
-from copy import copy
 from typing import List, Optional, Union
 
 import iris
@@ -45,11 +44,7 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
-from improver.blending.utilities import (
-    find_blend_dim_coord,
-    get_coords_to_remove,
-    update_blended_metadata,
-)
+from improver.blending.utilities import find_blend_dim_coord
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.cube_manipulation import (

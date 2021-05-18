@@ -34,7 +34,7 @@ import unittest
 
 import numpy as np
 
-from improver.standardise import grid_contains_cutout
+from improver.regrid.landsea import grid_contains_cutout
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import calculate_grid_spacing
 

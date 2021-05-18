@@ -21,12 +21,11 @@ request is merged into master.
 
 We have a checklist for making sure code is ready to merge in:
 
-https://github.com/metoppv/improver/wiki/Definition-of-Done
+https://improver.readthedocs.io/Definition-of-Done.html
 
 and guidance for going through the review process:
 
-https://github.com/metoppv/improver/wiki/Guidance-for-Reviewing-Code
-
+https://improver.readthedocs.io/Guidance-for-Reviewing-Code.html
 
 ## Code Contributors
 
@@ -41,13 +40,14 @@ below:
 * James Canvin (Bureau of Meteorology, Australia)
 * Neil Crosswaite (Met Office, UK)
 * Gavin Evans (Met Office, UK)
+* Zhiliang Fan (Bureau of Meteorology, Australia)
 * Ben Fitzpatrick (Met Office, UK)
 * Martina Friedrich (Met Office, UK, pre-GitHub)
 * Tom Gale (Bureau of Meteorology, Australia)
 * Aaron Hopkinson (Met Office, UK)
 * Kathryn Howard (Met Office, UK)
 * Tim Hume (Bureau of Meteorology, Australia)
-* Katharine Hurst (Met Office, UK) 
+* Katharine Hurst (Met Office, UK)
 * Simon Jackson (Met Office, UK)
 * Caroline Jones (Met Office, UK)
 * Bruno P. Kinoshita (NIWA, NZ)
