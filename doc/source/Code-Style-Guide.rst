@@ -11,9 +11,9 @@ General comments
 ~~~~~~~~~~~~~~~~
 
 -  IMPROVER uses a number of commonly used Python modules
-   e.g. `numpy <https://numpy.org/>`__,
-   `scipy <https://www.scipy.org/>`__. Additionally IMPROVER makes use
-   of `Iris <https://scitools.org.uk/iris/docs/latest/index.html>`__ for
+   e.g. `numpy <https://numpy.org/>`_,
+   `scipy <https://www.scipy.org/>`_. Additionally IMPROVER makes use
+   of `Iris <https://scitools.org.uk/iris/docs/latest/index.html>`_ for
    the in-memory data representation.
 -  Aim for smaller methods with a single purpose.
 -  Aim for fewer logical branches in each method to make it easier to
@@ -55,19 +55,20 @@ this.
 
 Guidance (eg
 https://smartbear.com/learn/code-review/best-practices-for-peer-code-review/)
-suggests that for reviews to be effective reviewers should: \* Take time
-over reviews: don’t review faster than 500 lines of code per hour \* Not
-review more than 400 lines of code at a time, or for more than one hour
-continuously
+suggests that for reviews to be effective reviewers should:
+
+* Take time over reviews: don’t review faster than 500 lines of code per hour
+* Not review more than 400 lines of code at a time, or for more than one hour
+  continuously
 
 Code formatting
 ---------------
 
 In general, follow the very sensible `Google style
-guide <https://google.github.io/styleguide/pyguide.html>`__.
+guide <https://google.github.io/styleguide/pyguide.html>`_.
 
 Code format should match that produced by the
-`black <https://github.com/psf/black>`__ code formatter - this is
+`black <https://github.com/psf/black>`_ code formatter - this is
 checked as part of the test suite on Github Actions. Codacy will give
 you a mark based around ``pylint`` (with some caveats). A pylint score
 of >8 is OK, >9 is good - skip pylint-misled errors for e.g. numpy
@@ -114,8 +115,8 @@ conform to the following datatypes:
 In general, numerical data should be 32-bit (either float32 or int32 is
 acceptable), with the exception of absolute times, which cannot be
 handled with sufficient precision as 32-bit. Absolute times are
-therefore handled as 64-bit integers, in units of “seconds since
-1970-01-01 00:00:00”.
+therefore handled as 64-bit integers, in units of 'seconds since
+1970-01-01 00:00:00'.
 
 Avoiding 64-bit floats
 ^^^^^^^^^^^^^^^^^^^^^^
@@ -131,12 +132,11 @@ seconds, but not for most physical quantities or probabilities.
 This means passing in ``dtype=np.float32`` to most numpy array
 constructor functions (e.g. ``array``, ``full``, ``zeros``, ``ones``,
 ``arange``) and avoiding Python floating point numbers. You could use
-‘astype’ to cast if your array is already 64 bit, but it is best for
+'astype' to cast if your array is already 64 bit, but it is best for
 performance to try to track down 64 bit computation at the places it
 comes in.
 
 .. code:: python
-
 
    # Bad
    foo = (bar + baz) / 2.0  # 2.0 is float64, so even if bar and baz are float32 foo will come out float64.
@@ -167,16 +167,19 @@ defined elsewhere, a doc-string is advisable. If any argument needs
 defining for a private method, all arguments to that method should be
 defined in its docstring to avoid partial information.
 
-Due to the use of `Sphinx <http://www.sphinx-doc.org/en/stable/>`__ for
+Due to the use of `Sphinx <http://www.sphinx-doc.org/en/stable/>`_ for
 documentation building, a number of `docstring section
-headers <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/index.html#docstring-sections>`__
-are supported. Favoured docstring section headers are: \* Args:
-Compulsory arguments. \* Keyword Args : Keyword arguments. \* Raises:
-Exceptions raised. \* Returns: Variables returned by the function or
-method. \* References: Link to available documentation. \* Warns:
-Warnings raised.
+headers <http://sphinxcontrib-napoleon.readthedocs.io/en/latest/index.html#docstring-sections>`_
+are supported. Favoured docstring section headers are:
 
-“Napolean Google style” Returns: only displays properly in Sphinx if
+* Args: Compulsory arguments.
+* Keyword Args : Keyword arguments.
+* Raises: Exceptions raised.
+* Returns: Variables returned by the function or method.
+* References: Link to available documentation.
+* Warns: Warnings raised.
+
+'Napolean Google style' Returns: only displays properly in Sphinx if
 there is only one variable being returned. If more than one variable is
 being returned then the return value should be a list of each item
 returned in the tuple. See the example below.
@@ -186,7 +189,7 @@ Type annotations
 
 All function and method interfaces, except for those in CLIs (see
 below), should have `type
-annotations <https://docs.python.org/3/library/typing.html>`__. Type
+annotations <https://docs.python.org/3/library/typing.html>`_. Type
 annotations have been part of Python since version 3.5. Here is a simple
 example showing type annotations for a function that takes a string and
 returns a string.
@@ -261,14 +264,24 @@ Note that we use clize in the CLIs which uses type annotations at
 runtime, hence the need to define these clearly within the docstring.
 
 Within docstrings, when specifying a variable type, Python built-in data
-types can be used directly e.g. \* int \* float \* str \* bool
+types can be used directly e.g.
+
+* int
+* float
+* str
+* bool
 
 In order for variable types to link correctly within
-`readthedocs <http://improver.readthedocs.io/en/latest/?badge=latest>`__,
+`readthedocs <http://improver.readthedocs.io/en/latest/?badge=latest>`_,
 the ``intersphinx_mapping`` needs to be updated to link to the
 documentation of the module where the variable type originates. For
-example: \* numpy.ndarray \* datatime.datetime The full name of the
-module is required, rather than an alias e.g. numpy rather than np.
+example:
+
+* numpy.ndarray
+* datatime.datetime
+
+The full name of the module is required, rather than an alias e.g. numpy rather
+than np.
 
 When defining variables with non-trivial shapes (e.g. arrays, cubes), if
 useful information about the shape of these variables can be included,
@@ -285,28 +298,28 @@ Example 1:
 
 ::
 
-       Returns:
-           Tuple[numpy.ndarray, numpy.ndarray]:
-               Tuple containing the modified data arrays for A and B.
+    Returns:
+        Tuple[numpy.ndarray, numpy.ndarray]:
+            Tuple containing the modified data arrays for A and B.
 
 Example 2:
 
 ::
 
-       Returns:
-           Dict[pathlib.Path, str]:
-               Dict with keys being relative paths and values being hexadecimal checksums
+    Returns:
+        Dict[pathlib.Path, str]:
+            Dict with keys being relative paths and values being hexadecimal checksums
 
 Example 3:
 
 ::
 
-       Args:
-           structured_input (Dict[pathlib.Path, str]):
-               Dict with keys being relative paths and values being hexadecimal checksums
+    Args:
+        structured_input (Dict[pathlib.Path, str]):
+            Dict with keys being relative paths and values being hexadecimal checksums
 
 Further examples of this syntax can be `found
-here <https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html>`__.
+here <https://mypy.readthedocs.io/en/stable/cheat_sheet_py3.html>`_.
 
 Constants
 ~~~~~~~~~
@@ -329,12 +342,12 @@ Plugins (classes) should be an example of a non-trivial algorithm or set
 of algorithms for a particular purpose. They should be set up via the
 ``__init__`` method and then invoked on a particular iris Cube ``cube``
 using a ``process`` method - e.g. using ``process(cube)``. See
-e.g. `BasicThreshold <https://github.com/metoppv/improver/blob/master/lib/improver/threshold.py>`__
+e.g. `BasicThreshold <https://github.com/metoppv/improver/blob/master/lib/improver/threshold.py>`_
 class. In some limited cases an iris ``CubeList`` may be preferable.
 Avoid writing code that can do both. Class names use
-`PascalCase <https://en.wikipedia.org/wiki/PascalCase>`__ whilst
+`PascalCase <https://en.wikipedia.org/wiki/PascalCase>`_ whilst
 variable names and method names use
-`snake_case <https://en.wikipedia.org/wiki/Snake_case>`__. ``__repr__``
+`snake_case <https://en.wikipedia.org/wiki/Snake_case>`_. ``__repr__``
 methods are not required, though they may be found in existing code.
 
 .. code:: python
@@ -485,20 +498,25 @@ Helper Functions/Methods
 Helper functions or methods may live in one of several places. Where
 they should live depends on how they will be used.
 
-**Case 1:** A function used in more than one module. - In this case the
-function should be located in a shared location e.g. utilities.py
+**Case 1:** A function used in more than one module.
 
-**Case 2:** A function used by several classes within one module. - The
-function should be kept outside of any one class, but within the module.
+- In this case the function should be located in a shared location e.g.
+  utilities.py
 
-**Case 3:** A function used only within a single class. - Should be kept
-within the class; as a static method if it makes no use of self.
+**Case 2:** A function used by several classes within one module.
+
+- The function should be kept outside of any one class, but within the module.
+
+**Case 3:** A function used only within a single class.
+
+- Should be kept within the class; as a static method if it makes no use of
+  self.
 
 Command Line Interface (CLI)
 ----------------------------
 
-Add a command line interface (improver/cli/.py) to invoke plugins that
-can be used as a standalone utility or executable within a suite context
+Add a command line interface (improver/cli/<cli_name>.py) to invoke plugins
+that can be used as a standalone utility or executable within a suite context
 (e.g. wind downscaling, neighbourhood processing, spot data extraction).
 These CLIs are invoked using ``bin/improver <cli-name>`` (note that the
 CLI filename uses underscores, but the call to use the CLI uses hyphens)
@@ -511,7 +529,7 @@ not needed.
 
 Each CLI should have a process function. This will require a
 ``@cli.clizefy`` decorator to gain the functionality of
-`clize <https://clize.readthedocs.io/en/stable/>`__. If you want the CLI
+`clize <https://clize.readthedocs.io/en/stable/>`_. If you want the CLI
 to save a cube to disk, it will need the decorator ``@cli.with_output``,
 this will mean on the command line, the ``--output`` flag can be used to
 specify an output path.
@@ -520,16 +538,32 @@ To load the cubes, each cube argument will need a type. For a basic cube
 this will be ``cube: cli.inputcube``. If there is a default argument to
 go with the typed variable, spaces are required around the ``=`` for
 example ``weights: cli.inputcube = None``. There are other types which
-can be used such as: - the python standards - ``float`` - ``int`` -
-``bool`` - specific additions - ``cli.inputcube`` - Where a string is
-given which is a path to a cube to load - ``cli.inputjson`` - Where a
-string is given which is a path to a json file to load -
-``cli.comma_separated_list`` - This will convert the argument into that
-format and deal with error handling if no conversion is possible.
+can be used such as:
+
+- the python standards
+
+  - ``float``
+  - ``int``
+  - ``bool``
+
+- specific additions
+
+  - ``cli.inputcube``
+
+    - Where a string is given which is a path to a cube to load
+
+  - ``cli.inputjson``
+
+    - Where a string is given which is a path to a json file to load
+
+  - ``cli.comma_separated_list``
+
+    - This will convert the argument into that format and deal with error
+      handling if no conversion is possible.
 
 A complete list of local added variable types can be found by
 identifying all the ``@value_converter`` decorated functions in
-`cli/init.py <https://github.com/metoppv/improver/blob/master/improver/cli/__init__.py>`__.
+`cli/init.py <https://github.com/metoppv/improver/blob/master/improver/cli/__init__.py>`_.
 
 Arguments into the process function should start with the cubes. After
 all the cubes, there should be an argument of ``*``, this separates the
@@ -553,7 +587,10 @@ the star. for example
                coord_for_masking,
                radius: float = None)
 
-The required arguments in this example are: - cube - coord_for_masking
+The required arguments in this example are:
+
+- cube
+- coord_for_masking
 
 Testing
 -------
@@ -565,16 +602,18 @@ validating that the behaviour is as expected. In IMPROVER, GitHub
 Actions are used to run a series of tests on each pull request to ensure
 that the pull request meets the expected standards. Tests can be run
 from the top-level directory using bin/improver-tests or using
-`pytest <https://docs.pytest.org/en/latest/>`__.
+`pytest <https://docs.pytest.org/en/latest/>`_.
 
 Unit Testing
 ~~~~~~~~~~~~
 
 Add unit tests for functions and methods of classes where reasonable.
 
-You should add a unit test if: \* the logic in the function or method is
-not reasonably obvious from just looking at it, or \* the code is not
-otherwise covered by unit tests
+You should add a unit test if:
+
+* the logic in the function or method is not reasonably obvious from just
+  looking at it, or
+* the code is not otherwise covered by unit tests
 
 You don’t have to add unit tests for every function or method, including
 private ones, if the above is true.
@@ -582,15 +621,18 @@ private ones, if the above is true.
 Writing unit tests usually saves time in the long run and helps document
 the effect of your code.
 
-Unit tests should: 1. Usually pass in representative inputs with the
-expected metadata and dimensions (consistent with what is enforced by
-the “load” module). 2. Use centralised test `cube set-up
-utilities <https://github.com/metoppv/improver/blob/master/improver/synthetic_data/set_up_test_cubes.py>`__
-where possible. 3. Consider the most likely uses of the plugin and
-ensure these are represented in the unit tests. 4. Consider possible
-edge cases e.g. cubes with different input dimensions. 5. Ensure the
-correct output is generated in good cases. 6. Ensure exceptions are
-raised as required for bad cases.
+Unit tests should:
+
+1. Usually pass in representative inputs with the expected metadata and
+   dimensions (consistent with what is enforced by the 'load' module).
+2. Use centralised test `cube set-up
+   utilities <https://github.com/metoppv/improver/blob/master/improver/synthetic_data/set_up_test_cubes.py>`_
+   where possible.
+3. Consider the most likely uses of the plugin and ensure these are represented
+   in the unit tests.
+4. Consider possible edge cases e.g. cubes with different input dimensions.
+5. Ensure the correct output is generated in good cases.
+6. Ensure exceptions are raised as required for bad cases.
 
 Unit test structure
 ^^^^^^^^^^^^^^^^^^^
@@ -612,8 +654,11 @@ test files named for the source file:
 ``e.g. utilities/spatial.py --> improver_tests/utilities/test_spatial.py``
 
 New unit test in IMPROVER should be written adhering to pytest style.
-These include: \* no test classes \* tests are written as functions \*
-test data is provided by fixtures
+These include:
+
+* no test classes
+* tests are written as functions
+* test data is provided by fixtures
 
 Many existing tests use a different approach, but these will slowly be
 migrated towards this format over time.
@@ -730,15 +775,15 @@ Making a new release
 New release steps:
 
 1. Go to `Draft a new
-   release <https://github.com/metoppv/improver/releases/new>`__ page.
+   release <https://github.com/metoppv/improver/releases/new>`_ page.
    The **tag version** and **release title** should be the version
-   number prepended with ‘v’ (e.g., ``v0.17.0``). It is important that
+   number prepended with 'v' (e.g., ``v0.17.0``). It is important that
    the **tag version** follows this naming convention as this enables
    the source code to be automatically downloaded in the conda recipe.
    Publish the release after adding any description text.
 2. Update the version number and sha256 checksum in the ``meta.yaml``
    file of the conda-forge recipe by opening a pull request in the
-   `improver-feedstock <https://github.com/conda-forge/improver-feedstock>`__
+   `improver-feedstock <https://github.com/conda-forge/improver-feedstock>`_
    repository. The checksum of the compressed ``.tar.gz`` IMPROVER
    source code can be obtained via ``openssl sha256 <file name>``.
    Currently the people with write access to the improver-feedstock

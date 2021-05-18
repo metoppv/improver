@@ -5,13 +5,13 @@ What is an IMPROVER CLI?
 ------------------------
 
 An IMPROVER command line interface (CLI) is a Python module located in
-``improver/cli`` that uses `clize <https://github.com/epsy/clize>`__ to
+``improver/cli`` that uses `clize <https://github.com/epsy/clize>`_ to
 provide both a command line interface and a Python function interface.
 Clize automatically handles command line argument parsing, errors and
 help, including generated ``--help`` text based on the Python docstring.
 
 When called as a Python function, input and output are via
-`Iris <https://github.com/SciTools/iris>`__ cubes. When run from the
+`Iris <https://github.com/SciTools/iris>`_ cubes. When run from the
 command line, input and output are via netCDF files which are loaded and
 saved by Iris. These netCDF files contain a single cube with an
 ensemble-CDF related dimension as the first dimension - one of
@@ -32,11 +32,11 @@ Command line testing
 
 IMPROVER CLIs should have corresponding acceptance tests located in
 ``improver_tests/acceptance``. These tests are written using the
-`pytest <https://docs.pytest.org/en/latest/>`__ test framework.
+`pytest <https://docs.pytest.org/en/latest/>`_ test framework.
 
 The point of acceptance tests is to provide reference test data to
 explain and test normal use of the CLI. These acceptance tests consist
-of reference NetCDF input files and a ‘known good output’ (KGO) NetCDF
+of reference NetCDF input files and a 'known good output' (KGO) NetCDF
 output file.
 
 See the :doc:`Running-at-your-site`
@@ -48,7 +48,7 @@ Recreating acceptance test data
 When a new test has been written and the input data has been put in
 place it is possible to generate the expected output:
 
-.. code:: sh
+.. code:: bash
 
    export RECREATE_KGO=/path/to/new/kgos
    pytest -m acc -k combine
@@ -59,7 +59,7 @@ The ``RECREATE_KGO`` path must be distinct from the input path
 It is also possible to use this method to recreate all KGOs following
 changes that may affect them, for example modifications to metadata.
 
-.. code:: sh
+.. code:: bash
 
    export RECREATE_KGO=/path/to/new/kgos
    bin/improver-tests cli
@@ -72,7 +72,8 @@ Acceptance test checksums
 
 The input and output files for acceptance tests are identified by
 checksums listed in
-`improver_tests/acceptance/SHA256SUMS <https://github.com/metoppv/improver/blob/master/improver_tests/acceptance/SHA256SUMS>`__.
+`improver_tests/acceptance/SHA256SUMS
+<https://github.com/metoppv/improver/blob/master/improver_tests/acceptance/SHA256SUMS>`_.
 Changes to the checksum file in the code repository identify when
 changes are made to the code requiring corresponding changes to the data
 files. The acceptance test data files are maintained internally in a Met
@@ -81,7 +82,7 @@ plugin names.
 
 Minimising the usage of input and output data files is desirable in the
 future, as described in issue
-`#1218 <https://github.com/metoppv/improver/issues/1218>`__.
+`#1218 <https://github.com/metoppv/improver/issues/1218>`_.
 
 Use of checksums
 ~~~~~~~~~~~~~~~~
@@ -110,6 +111,7 @@ Updating acceptance test data checksums is achieved using the command:
 ``bin/improver-tests recreate_checksums``
 
 The updated
-`improver_tests/acceptance/SHA256SUMS <https://github.com/metoppv/improver/blob/master/improver_tests/acceptance/SHA256SUMS>`__
+`improver_tests/acceptance/SHA256SUMS
+<https://github.com/metoppv/improver/blob/master/improver_tests/acceptance/SHA256SUMS>`_
 file will need to be committed to the IMPROVER repository along with the
 code that has required / led to the modified test inputs / outputs.
