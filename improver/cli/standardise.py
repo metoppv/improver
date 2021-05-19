@@ -48,8 +48,8 @@ def process(
     """
     Standardise a source cube. Available options are renaming, converting units,
     updating attributes and removing named scalar coordinates. Remaining scalar
-    coordinates are collapsed, and data are cast to IMPROVER standard datatypes
-    and units.
+    coordinates are collapsed, CellMethod("point": "time") is discarded, and data
+    are cast to IMPROVER standard datatypes and units.
 
     Deprecated behaviour:
     Translates metadata relating to the grid_id attribute from StaGE

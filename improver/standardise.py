@@ -35,6 +35,8 @@ from typing import Any, Dict, List, Optional
 
 import iris
 import numpy as np
+from iris.analysis import Linear, Nearest
+from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import dtype, ndarray
@@ -124,6 +126,24 @@ class StandardiseMetadata(BasePlugin):
                     coord.bounds = round_close(coord.bounds)
                 coord.bounds = as_correct_dtype(coord.bounds, req_dtype)
 
+    @staticmethod
+    def _discard_redundant_cell_methods(cube: Cube) -> None:
+        """
+        Removes cell method "point": "time" from cube if present.
+        """
+        if not cube.cell_methods:
+            return
+        removable_cms = [
+            CellMethod(method="point", coords="time"),
+        ]
+        updated_cms = []
+        for cm in cube.cell_methods:
+            if cm in removable_cms:
+                continue
+            updated_cms.append(cm)
+
+        cube.cell_methods = updated_cms
+
     def process(
         self,
         cube: Cube,
@@ -134,10 +154,13 @@ class StandardiseMetadata(BasePlugin):
     ) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The
-        compulsory adjustments are to collapse any scalar dimensions apart from
-        realization (which is expected always to be a dimension); to cast the cube
-        data and coordinates into suitable datatypes; and to convert time-related
-        metadata into the required units.
+        compulsory adjustments are:
+
+        - to collapse any scalar dimensions apart from realization (which is expected
+          always to be a dimension);
+        - to cast the cube data and coordinates into suitable datatypes;
+        - to convert time-related metadata into the required units
+        - to remove cell method ("point": "time").
 
         Args:
             cube:
@@ -165,6 +188,7 @@ class StandardiseMetadata(BasePlugin):
             self._remove_scalar_coords(cube, coords_to_remove)
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
+        self._discard_redundant_cell_methods(cube)
 
         # this must be done after unit conversion as if the input is an integer
         # field, unit conversion outputs the new data as float64

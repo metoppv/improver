@@ -39,6 +39,7 @@ from iris.std_names import STD_NAMES
 from iris.util import squeeze
 from numpy import ndarray
 
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
@@ -101,6 +102,7 @@ def _create_data_array(
 
 
 def generate_metadata(
+    mandatory_attributes: dict,
     name: str = "air_pressure_at_sea_level",
     units: Optional[str] = None,
     time_period: Optional[int] = None,
@@ -114,6 +116,9 @@ def generate_metadata(
     """ Generate a cube with metadata only.
 
     Args:
+        mandatory_attributes:
+            Specifies the values of the mandatory attributes, title, institution and
+            source.
         name:
             Output variable name, or if creating a probability cube the name of the
             underlying variable to which the probability field applies.
@@ -139,6 +144,12 @@ def generate_metadata(
             Number of points along each of the y and x spatial axes.
         **kwargs:
             Additional keyword arguments to pass to the required cube setup function.
+
+    Raises:
+        ValueError:
+            If any options are not supported
+        KeyError:
+            If mandatory_attributes does not contain all the required keys
 
     Returns:
         Output of set_up_variable_cube(), set_up_percentile_cube() or
@@ -193,6 +204,16 @@ def generate_metadata(
     data = _create_data_array(
         ensemble_members, leading_dimension, npoints, kwargs["height_levels"]
     )
+    missing_mandatory_attributes = MANDATORY_ATTRIBUTES - mandatory_attributes.keys()
+    if missing_mandatory_attributes:
+        raise KeyError(
+            f"No values for these mandatory attributes: {missing_mandatory_attributes}"
+        )
+    if "attributes" in kwargs:
+        kwargs["attributes"] = kwargs["attributes"].copy()
+    else:
+        kwargs["attributes"] = {}
+    kwargs["attributes"].update(mandatory_attributes)
 
     # Set up requested cube
     if cube_type == "percentile":
