@@ -32,10 +32,10 @@ dependencies:
   - black=19.10b0
   - codacy-coverage
   - filelock
+  - flake8
   - isort=5.*
   - mock
   - mypy
-  - pylint
   - pytest
   - pytest-cov
   - safety
