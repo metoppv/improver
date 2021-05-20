@@ -157,10 +157,10 @@ def generate_metadata(
     """
     if cube_type not in CUBE_TYPES:
         raise ValueError(
-            ('Cube type {} not supported.'
-             'Specify one of "variable", "percentile" or "probability".').format(
-                cube_type
-            )
+            (
+                "Cube type {} not supported."
+                'Specify one of "variable", "percentile" or "probability".'
+            ).format(cube_type)
         )
 
     if "spatial_grid" in kwargs and kwargs["spatial_grid"] not in (

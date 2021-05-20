@@ -296,9 +296,7 @@ def _construct_dimension_coords(
     if realizations is not None and height_levels is not None and ndims != 4:
         raise ValueError(
             "Input data must have 4 dimensions to add both realization "
-            "and height coordinates: got {}".format(
-                ndims
-            )
+            "and height coordinates: got {}".format(ndims)
         )
 
     if height_levels is None and ndims == 4:

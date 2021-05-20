@@ -431,8 +431,10 @@ class Test_set_up_variable_cube(IrisTest):
         """Test error is raised if 3D input cube and both realizations and heights provided"""
         realizations = [0, 3, 4]
         height_levels = [1.5, 3.0, 4.5]
-        msg = ("Input data must have 4 dimensions to add both realization "
-               "and height coordinates: got 3")
+        msg = (
+            "Input data must have 4 dimensions to add both realization "
+            "and height coordinates: got 3"
+        )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
                 self.data_3d, realizations=realizations, height_levels=height_levels

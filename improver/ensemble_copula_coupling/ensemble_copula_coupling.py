@@ -195,14 +195,12 @@ class ResamplePercentiles(BasePlugin):
         """
         lower_bound, upper_bound = bounds_pairing
         percentiles = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
-        forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
+        forecast = concatenate_2d_array_with_2d_array_endpoints(
             forecast_at_percentiles, lower_bound, upper_bound
         )
 
-        if np.any(np.diff(forecast_at_percentiles_with_endpoints) < 0):
-            out_of_bounds_vals = forecast_at_percentiles_with_endpoints[
-                np.where(np.diff(forecast_at_percentiles_with_endpoints) < 0)
-            ]
+        if np.any(np.diff(forecast) < 0):
+            out_of_bounds_vals = forecast[np.where(np.diff(forecast) < 0)]
             msg = (
                 "Forecast values exist that fall outside the expected extrema "
                 "values that are defined as bounds in "
@@ -222,14 +220,12 @@ class ResamplePercentiles(BasePlugin):
                     "as new bounds."
                 )
                 warnings.warn(warn_msg)
-                if upper_bound < forecast_at_percentiles_with_endpoints.max():
-                    upper_bound = forecast_at_percentiles_with_endpoints.max()
-                if lower_bound > forecast_at_percentiles_with_endpoints.min():
-                    lower_bound = forecast_at_percentiles_with_endpoints.min()
-                forecast_at_percentiles_with_endpoints = (
-                    concatenate_2d_array_with_2d_array_endpoints(
-                        forecast_at_percentiles, lower_bound, upper_bound
-                    )
+                if upper_bound < forecast.max():
+                    upper_bound = forecast.max()
+                if lower_bound > forecast.min():
+                    lower_bound = forecast.min()
+                forecast = concatenate_2d_array_with_2d_array_endpoints(
+                    forecast_at_percentiles, lower_bound, upper_bound
                 )
             else:
                 raise ValueError(msg)
@@ -239,7 +235,7 @@ class ResamplePercentiles(BasePlugin):
                 "The input percentiles were {}".format(percentiles)
             )
             raise ValueError(msg)
-        return percentiles, forecast_at_percentiles_with_endpoints
+        return percentiles, forecast
 
     def _interpolate_percentiles(
         self,
@@ -564,10 +560,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             [x / 100.0 for x in percentiles], dtype=np.float32
         )
 
-        forecast_at_percentiles = (
-            np.empty(
-                (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
-            )
+        forecast_at_percentiles = np.empty(
+            (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
         )
         for index in range(probabilities_for_cdf.shape[0]):
             forecast_at_percentiles[:, index] = np.interp(

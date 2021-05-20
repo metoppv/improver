@@ -161,10 +161,7 @@ def test_boxsum_non_square(array_size_5):
     non-square box."""
     result = boxsum(array_size_5, (1, 3))
     expected = np.array(
-        [
-            [np.sum(array_size_5[i, j - 1 : j + 2]) for j in [2, 3]]
-            for i in range(1, 5)
-        ]
+        [[np.sum(array_size_5[i, j - 1 : j + 2]) for j in [2, 3]] for i in range(1, 5)]
     )
     np.testing.assert_array_equal(result, expected)
 
@@ -173,9 +170,7 @@ def test_boxsum_with_precalculated_cumsum(array_size_5):
     """Test that boxsum correctly calculates neighbourhood sums using
     pre-calculated cumsum."""
     cumsum_arr = np.array(
-        [
-            [np.sum(array_size_5[: i + 1, : j + 1]) for j in range(5)] for i in range(5)
-        ]
+        [[np.sum(array_size_5[: i + 1, : j + 1]) for j in range(5)] for i in range(5)]
     )
     result = boxsum(cumsum_arr, 3, cumsum=False)
     expected = np.array(
