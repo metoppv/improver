@@ -232,7 +232,8 @@ def apply_extraction(
         output_cube = output_cube.intersection(
             longitude=longitude_constraint, ignore_bounds=True
         )
-        # TODO: Below can be removed when https://github.com/SciTools/iris/issues/4119 is fixed
+        # TODO: Below can be removed when https://github.com/SciTools/iris/issues/4119
+        # is fixed
         output_cube.coord("longitude").points = output_cube.coord(
             "longitude"
         ).points.astype(FLOAT_DTYPE)
