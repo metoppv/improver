@@ -567,8 +567,10 @@ class Test_compute_initial_guess(IrisTest):
         self.historic_forecast_predictor_mean_masked_halo = cube.collapsed(
             "realization", iris.analysis.MEAN
         )
-        self.historic_forecast_predictor_mean_masked_halo.data = self.historic_forecast_predictor_mean_masked_halo.data.astype(
-            np.float32
+        self.historic_forecast_predictor_mean_masked_halo.data = (
+            self.historic_forecast_predictor_mean_masked_halo.data.astype(
+                np.float32
+            )
         )
         self.historic_forecast_predictor_realizations_masked_halo = cube.copy()
         self.truth_masked_halo = cube.collapsed("realization", iris.analysis.MAX)

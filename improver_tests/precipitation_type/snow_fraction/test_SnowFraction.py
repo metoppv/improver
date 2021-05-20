@@ -175,7 +175,10 @@ def test_input_name_matches_both_phases_error():
     snow.rename("puppies")
     with pytest.raises(
         ValueError,
-        match=r"Failed to find unique rain and snow cubes from \['its_raining_snowy_kittens', 'puppies'\]",
+        match=(
+            "Failed to find unique rain and snow cubes from "
+            r"\['its_raining_snowy_kittens', 'puppies'\]"
+        ),
     ):
         SnowFraction()(iris.cube.CubeList([rain, snow]))
 

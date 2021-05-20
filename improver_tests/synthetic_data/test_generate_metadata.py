@@ -349,7 +349,9 @@ def test_leading_dimension(cube_type, spp__relative_to_threshold):
     probability flags, and different values for spp__relative_to_threshold """
     if cube_type == "other":
         # Tests that error is raised when cube type isn't supported
-        msg = 'Cube type {} not supported. Specify one of "variable", "percentile" or "probability".'.format(
+        msg = (
+            'Cube type {} not supported. '
+            'Specify one of "variable", "percentile" or "probability".').format(
             cube_type
         )
 

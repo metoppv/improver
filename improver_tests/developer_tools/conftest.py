@@ -65,7 +65,7 @@ def emos_coefficient_fixture():
     y_coord, x_coord = construct_yx_coords(1, 1, "equalarea")
     cube = iris.cube.Cube(
         0,
-        long_name=f"emos_coefficient_alpha",
+        long_name="emos_coefficient_alpha",
         units="K",
         dim_coords_and_dims=None,
         aux_coords_and_dims=[(y_coord, None), (x_coord, None)],

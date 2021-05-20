@@ -33,7 +33,6 @@
 from typing import Any, Dict, List, Optional
 
 import numpy as np
-from iris.analysis import Linear, Nearest
 from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError

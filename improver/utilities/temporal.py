@@ -457,7 +457,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         ]
         if input_time_points != output_times:
             raise ValueError(
-                f"Time coord on input cube does not match required times. Expected\n"
+                "Time coord on input cube does not match required times. Expected\n"
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in output_times])
                 + "\nFound:\n"
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in input_time_points])

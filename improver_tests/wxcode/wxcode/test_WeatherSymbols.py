@@ -662,11 +662,12 @@ class Test_construct_extract_constraint(Test_WXCode):
     def test_zero_threshold(self):
         """Test construct_extract_constraint when threshold is zero."""
         plugin = WeatherSymbols()
-        diagnostic = "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold"
+        diagnostic = (
+            "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold")
         threshold = AuxCoord(0.0, units="m-2")
         result = plugin.construct_extract_constraint(diagnostic, threshold, False)
         expected = iris.Constraint(
-            name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold",
+            name=diagnostic,
             number_of_lightning_flashes_per_unit_area=lambda cell: np.isclose(
                 cell.point,
                 threshold.points[0],

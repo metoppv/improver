@@ -90,7 +90,8 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
         msg = (
             r"Cannot find coord threshold in "
-            r"<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
+            r"<iris 'Cube' of "
+            r"probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
             r"\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
         )
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):

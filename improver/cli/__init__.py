@@ -457,8 +457,8 @@ def main(
     prog_name: parameters.pass_name,
     command: LAST_OPTION,
     *args,
-    profile: value_converter(lambda _: _, name="FILENAME") = None,
-    memprofile: value_converter(lambda _: _, name="FILENAME") = None,
+    profile: value_converter(lambda _: _, name="FILENAME") = None,  # noqa: F821
+    memprofile: value_converter(lambda _: _, name="FILENAME") = None,  # noqa: F821
     verbose=False,
     dry_run=False,
 ):

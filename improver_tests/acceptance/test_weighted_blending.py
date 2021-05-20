@@ -424,8 +424,8 @@ def test_nowcast_cycle_blending(tmp_path):
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
     kgo_path = kgo_dir / "kgo/cycle.nc"
     input_files = [
-        kgo_dir / f"nowcast_data/20181129T1000Z-PT{l:04}H00M-{PRECIP}.nc"
-        for l in range(2, 5)
+        kgo_dir / f"nowcast_data/20181129T1000Z-PT{hr:04}H00M-{PRECIP}.nc"
+        for hr in range(2, 5)
     ]
     output_path = tmp_path / "output.nc"
     args = [
@@ -484,8 +484,8 @@ def test_nowcast_cycle_no_fuzzy(tmp_path):
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
     kgo_path = kgo_dir / "kgo/cycle_no_fuzzy.nc"
     input_files = [
-        kgo_dir / f"nowcast_data/20181129T1000Z-PT{l:04}H00M-{PRECIP}.nc"
-        for l in range(2, 5)
+        kgo_dir / f"nowcast_data/20181129T1000Z-PT{hr:04}H00M-{PRECIP}.nc"
+        for hr in range(2, 5)
     ]
     output_path = tmp_path / "output.nc"
     args = [
