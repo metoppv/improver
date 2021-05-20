@@ -226,8 +226,10 @@ class ResamplePercentiles(BasePlugin):
                     upper_bound = forecast_at_percentiles_with_endpoints.max()
                 if lower_bound > forecast_at_percentiles_with_endpoints.min():
                     lower_bound = forecast_at_percentiles_with_endpoints.min()
-                forecast_at_percentiles_with_endpoints = concatenate_2d_array_with_2d_array_endpoints(
-                    forecast_at_percentiles, lower_bound, upper_bound
+                forecast_at_percentiles_with_endpoints = (
+                    concatenate_2d_array_with_2d_array_endpoints(
+                        forecast_at_percentiles, lower_bound, upper_bound
+                    )
                 )
             else:
                 raise ValueError(msg)
@@ -563,12 +565,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
 
         forecast_at_percentiles = (
-            # pylint: disable=unsubscriptable-object
             np.empty(
                 (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
             )
         )
-        # pylint: disable=unsubscriptable-object
         for index in range(probabilities_for_cdf.shape[0]):
             forecast_at_percentiles[:, index] = np.interp(
                 percentiles_as_fractions,
@@ -1110,7 +1110,6 @@ class ConvertLocationAndScaleParametersToProbabilities(
             probability_method = distribution.sf
 
         for index, threshold in enumerate(thresholds):
-            # pylint: disable=unsubscriptable-object
             probabilities[index, ...] = np.reshape(
                 probability_method(threshold), probabilities.shape[1:]
             )

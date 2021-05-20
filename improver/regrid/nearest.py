@@ -271,7 +271,6 @@ def lakes_islands(
     # From the expansion to 8 nearby input points, a same surface type input has been found
     # Update the index and surface type mask to use the newly found same surface type input point
     points_with_match = (np.where(count_matching_surface > 0))[0]
-    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     for point_idx in range(count_of_points_with_match):

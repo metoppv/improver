@@ -583,7 +583,6 @@ def lakes_islands(
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]
-    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     # if no further processing can be done, return early
@@ -593,7 +592,6 @@ def lakes_islands(
     # Where a same surface type match has been found among the 8 nearest inputs, apply
     # inverse distance weighting with those matched points
     new_distances = np.zeros([count_of_points_with_match, NUM_NEIGHBOURS])
-    # pylint: disable=unsubscriptable-object
     for point_idx in range(points_with_match.shape[0]):
         match_indexes = lake_island_indexes[points_with_match[point_idx]]
         # Reset all input weight and surface type to mismatched

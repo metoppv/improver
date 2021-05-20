@@ -51,7 +51,6 @@ def iris_nimrod_patcher():
     if hasattr(iris.fileformats.nimrod_load_rules, "DEFAULT_UNITS"):
         raise RuntimeError("FIXME: nimrod monkey patch is no longer needed")
     try:
-        # pylint: disable=import-error
         from iris_nimrod_patch import nimrod, nimrod_load_rules
     except ModuleNotFoundError:
         yield
@@ -139,7 +138,6 @@ def load_cubelist(
         enforce_coordinate_ordering(cube, [y_name, x_name], anchor_start=False)
         if no_lazy_load:
             # Force cube's data into memory by touching the .data attribute.
-            # pylint: disable=pointless-statement
             cube.data
 
     return cubes

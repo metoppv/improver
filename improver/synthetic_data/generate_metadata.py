@@ -157,7 +157,8 @@ def generate_metadata(
     """
     if cube_type not in CUBE_TYPES:
         raise ValueError(
-            'Cube type {} not supported. Specify one of "variable", "percentile" or "probability".'.format(
+            ('Cube type {} not supported.'
+             'Specify one of "variable", "percentile" or "probability".').format(
                 cube_type
             )
         )

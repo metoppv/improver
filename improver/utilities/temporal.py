@@ -423,7 +423,8 @@ class TimezoneExtraction(PostProcessingPlugin):
             [expected_coord in cube_coords for expected_coord in expected_coords]
         ):
             raise ValueError(
-                f"Expected coords on input_cube: time, y, x ({expected_coords}). Found {cube_coords}"
+                f"Expected coords on input_cube: time, y, x ({expected_coords})."
+                f"Found {cube_coords}"
             )
         enforce_coordinate_ordering(input_cube, ["time"], anchor_start=False)
         self.timezone_cube = timezone_cube.copy()

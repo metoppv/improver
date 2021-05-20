@@ -77,11 +77,11 @@ def construct_yx_coords(
         spatial_grid:
             Specifier to produce either a "latlon" or "equalarea" grid
         grid_spacing:
-            Grid resolution (degrees for latlon or metres for equalarea). If not provided, defaults to 10 degrees
-            for "latlon" grid or 2000 metres for "equalarea" grid
+            Grid resolution (degrees for latlon or metres for equalarea). If not provided,
+            defaults to 10 degrees for "latlon" grid or 2000 metres for "equalarea" grid
         domain_corner:
-            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea). If not
-            provided, a grid is created centred around (0,0).
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
+            If not provided, a grid is created centred around (0,0).
 
     Returns:
         Tuple containing y and x iris.coords.DimCoords
@@ -261,7 +261,8 @@ def _create_dimension_coord(
         coord_array = np.array(coord_array)
 
         if issubclass(coord_array.dtype.type, np.float):
-            # option needed for realizations percentile & probability cube setup and heights coordinate
+            # option needed for realizations percentile & probability cube setup
+            # and heights coordinate
             coord_array = coord_array.astype(np.float32)
     else:
         coord_array = np.arange(data_length).astype(np.int32)
@@ -294,7 +295,8 @@ def _construct_dimension_coords(
 
     if realizations is not None and height_levels is not None and ndims != 4:
         raise ValueError(
-            "Input data must have 4 dimensions to add both realization and height coordinates: got {}".format(
+            "Input data must have 4 dimensions to add both realization "
+            "and height coordinates: got {}".format(
                 ndims
             )
         )
@@ -315,7 +317,7 @@ def _construct_dimension_coords(
         dim_coords.append((realization_coord, 0))
 
     if height_levels is not None and ndims in (3, 4):
-        # Determine the index of the height coord based on whether a realization coord has been created
+        # Determine the index of the height coord based on if a realization coord has been created
         i = len(dim_coords)
         coord_length = data_shape[i]
 

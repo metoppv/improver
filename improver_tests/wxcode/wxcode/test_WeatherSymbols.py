@@ -97,7 +97,6 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
-        # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
 
         precip_rate = set_up_probability_cube(
@@ -1288,7 +1287,6 @@ class Test_process(Test_WXCode):
             ],
             dtype=np.float32,
         )
-        # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
         data_precipv = np.array(
             [
@@ -1333,7 +1331,6 @@ class Test_process(Test_WXCode):
         data_snow = np.zeros_like(self.cubes[0].data)
         data_sleet = np.ones_like(self.cubes[0].data)
         data_rain = np.zeros_like(self.cubes[0].data)
-        # pylint: disable=no-member
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
         data_precipv = np.ones_like(self.cubes[0].data)
         data_cloud = np.ones_like(self.cubes[4].data)

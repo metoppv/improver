@@ -301,11 +301,12 @@ def with_output(
     Add `compression_level` option.
     Add `least_significant_digit` option.
 
-    This is used to add extra `output`, `compression_level` and `least_significant_digit` CLI options. If `output`
-    provided, it saves the result of calling `wrapped` to file and returns None, otherwise
-    it returns the result. If `compression_level` provided, it compresses the data with the
-    provided compression level (or not, if `compression_level` 0). If `least_significant_digit`
-    provided, it will quantize the data to a certain number of significant figures.
+    This is used to add extra `output`, `compression_level` and `least_significant_digit` CLI
+    options. If `output` is provided, it saves the result of calling `wrapped` to file and returns
+    None, otherwise it returns the result. If `compression_level` is provided, it compresses the
+    data with the provided compression level (or not, if `compression_level` 0). If
+    `least_significant_digit` provided, it will quantize the data to a certain number of
+    significant figures.
 
     Args:
         wrapped (obj):
@@ -316,8 +317,9 @@ def with_output(
         compression_level (int):
             Will set the compression level (1 to 9), or disable compression (0).
         least_significant_digit (int):
-            If specified will truncate the data to a precision given by 10**(-least_significant_digit),
-            e.g. if least_significant_digit=2, then the data will be quantized to a precision of 0.01 (10**(-2)). See
+            If specified will truncate the data to a precision given by
+            10**(-least_significant_digit), e.g. if least_significant_digit=2, then the data will
+            be quantized to a precision of 0.01 (10**(-2)). See
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
             compression.
@@ -532,4 +534,4 @@ def run_main(argv=None):
     if argv is None:
         argv = sys.argv[:]
         argv[0] = "improver"
-    run(main, args=argv)  # pylint: disable=E1124
+    run(main, args=argv)

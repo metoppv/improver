@@ -193,7 +193,6 @@ class RegridWithLandSeaMask(BasePlugin):
         elif BILINEAR in self.regrid_mode:
             # Assume all four nearby points are same surface type and calculate default weights
             # These will be updated for mask/mismatched surface type further below
-            # pylint: disable=unsubscriptable-object
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
                 index_range,

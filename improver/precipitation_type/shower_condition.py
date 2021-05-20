@@ -142,9 +142,10 @@ class ShowerCondition(BasePlugin):
         """
         Determine the shower condition from global or UK data depending
         on input fields. Expected inputs for UK:
-        cloud_texture: probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold,
-        and for global:
-        cloud: probability_of_low_and_medium_type_cloud_area_fraction_above_threshold
+        cloud_texture:
+        probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold,
+        and for global cloud:
+        probability_of_low_and_medium_type_cloud_area_fraction_above_threshold
         conv_ratio: probability_of_convective_ratio_above_threshold
 
         Args:

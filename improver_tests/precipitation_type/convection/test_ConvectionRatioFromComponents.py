@@ -125,7 +125,6 @@ def test_data(data_con_dyn_out, units):
     result = ConvectionRatioFromComponents()(grid)
     assert_allclose(result.data, expected_array)
     # assert_allclose doesn't check masks appropriately, so check separately
-    # pylint: disable=no-member
     assert_equal(result.data.mask, expected_array.mask)
 
 
