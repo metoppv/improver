@@ -141,11 +141,66 @@ def test_range_constraints(tmp_path):
     args = [
         input_path,
         "--constraints",
-        "projection_y_coordinate=[-398000:-160000]",
+        "projection_y_coordinate=[-400000:-158000]",
         "--constraints",
-        "projection_x_coordinate=[-202000:16000]",
+        "projection_x_coordinate=[-204000:16000]",
         "--output",
         output_path,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, recreate=False)
+
+
+def test_spot(tmp_path):
+    """Test extraction from spot file"""
+    kgo_dir = acc.kgo_root() / "extract/sites"
+    kgo_path = kgo_dir / "kgo_spot.nc"
+    input_path = kgo_dir / "input_spot.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--constraints",
+        "wmo_id=['700', '845', '996', '3346', '3382']",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_uk_grid(tmp_path):
+    """Test subsetting of UK standard gridded data"""
+    kgo_dir = acc.kgo_root() / "extract/grids"
+    kgo_path = kgo_dir / "kgo_grid_uk.nc"
+    input_path = kgo_dir / "input_grid_uk.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--constraints",
+        "projection_x_coordinate=[-102000:150000:5]",
+        "--constraints",
+        "projection_y_coordinate=[-102000:200000:5]",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_lat_lon_grid(tmp_path):
+    """Test subsetting of data on a lat-lon grid"""
+    kgo_dir = acc.kgo_root() / "extract/grids"
+    kgo_path = kgo_dir / "kgo_grid_latlon.nc"
+    input_path = kgo_dir / "input_grid_latlon.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--constraints",
+        "latitude=[45.0:52:2]",
+        "--constraints",
+        "longitude=[-2:6:2]",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

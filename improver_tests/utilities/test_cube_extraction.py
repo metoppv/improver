@@ -47,11 +47,8 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_extraction import (
     apply_extraction,
     create_constraint,
-    create_range_constraint,
     extract_subcube,
-    is_complex_parsing_required,
     parse_constraint_list,
-    subset_data,
 )
 from improver.utilities.cube_manipulation import get_dim_coord_names
 
@@ -100,51 +97,30 @@ def set_up_precip_probability_cube():
     return cube
 
 
-class Test_create_range_constraint(IrisTest):
-    """Test that the desired constraint is created from
-    create_range_constraint."""
-
-    def setUp(self):
-        """Set up cube for testing range constraint."""
-        self.precip_cube = set_up_precip_probability_cube()
-        self.coord_name = find_threshold_coordinate(self.precip_cube).name()
-        self.precip_cube.coord(self.coord_name).convert_units("mm h-1")
-        self.expected_data = self.precip_cube[:2].data
-
-    def test_basic(self):
-        """Test that a constraint is formed correctly."""
-        values = "[0.03:0.1]"
-        result = create_range_constraint(self.coord_name, values)
-        self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
-        result_cube = self.precip_cube.extract(result)
-        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
-
-    def test_without_square_brackets(self):
-        """Test that a constraint is formed correctly when square brackets
-        are not within the input."""
-        values = "0.03:0.1"
-        result = create_range_constraint(self.coord_name, values)
-        self.assertIsInstance(result, iris.Constraint)
-        self.assertEqual(list(result._coord_values.keys()), [self.coord_name])
-        result_cube = self.precip_cube.extract(result)
-        self.assertArrayAlmostEqual(result_cube.data, self.expected_data)
+def set_up_gridded_data():
+    return np.arange(56).reshape((7, 8)).astype(np.float32)
 
 
-class Test_is_complex_parsing_required(IrisTest):
-    """Test if the string requires complex parsing."""
+def set_up_global_gridded_cube():
+    return set_up_variable_cube(
+        set_up_gridded_data(),
+        name="screen_temperature",
+        units="degC",
+        spatial_grid="latlon",
+        domain_corner=(45, -2),
+        grid_spacing=2,
+    )
 
-    def test_basic_with_colon(self):
-        """Test that a value with a colon is parsed correctly."""
-        value = "1230:1240"
-        result = is_complex_parsing_required(value)
-        self.assertTrue(result)
 
-    def test_basic_without_colon(self):
-        """Test that a value without a colon is parsed correctly."""
-        value = "12301240"
-        result = is_complex_parsing_required(value)
-        self.assertFalse(result)
+def set_up_uk_gridded_cube():
+    return set_up_variable_cube(
+        set_up_gridded_data(),
+        name="screen_temperature",
+        units="degC",
+        spatial_grid="equalarea",
+        domain_corner=(-5000, -5000),
+        grid_spacing=2000,
+    )
 
 
 class Test_create_constraint(IrisTest):
@@ -232,7 +208,7 @@ class Test_parse_constraint_list(IrisTest):
 
     def test_basic_no_units(self):
         """ Test simple key-value splitting with no units """
-        result, udict = parse_constraint_list(self.constraints)
+        result, udict, _, _ = parse_constraint_list(self.constraints)
         self.assertIsInstance(result, iris.Constraint)
         self.assertCountEqual(
             list(result._coord_values.keys()), ["threshold", "percentile"]
@@ -249,7 +225,7 @@ class Test_parse_constraint_list(IrisTest):
     def test_whitespace(self):
         """ Test constraint parsing with padding whitespace """
         constraints = ["percentile = 10", "threshold = 0.1"]
-        result, _ = parse_constraint_list(constraints)
+        result, _, _, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
         self.assertTrue(islambda(cdict["percentile"]))
         self.assertTrue(cdict["percentile"](self.p_crd.cell(0)))
@@ -261,7 +237,7 @@ class Test_parse_constraint_list(IrisTest):
         not a lambda function. This is created via the literal_eval ValueError.
         """
         constraints = ["percentile=kittens"]
-        result, _ = parse_constraint_list(constraints)
+        result, _, _, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
         self.assertFalse(islambda(cdict["percentile"]))
         self.assertEqual(cdict["percentile"], "kittens")
@@ -269,7 +245,7 @@ class Test_parse_constraint_list(IrisTest):
 
     def test_some_units(self):
         """ Test units list containing "None" elements is correctly parsed """
-        _, udict = parse_constraint_list(self.constraints, units=self.units)
+        _, udict, _, _ = parse_constraint_list(self.constraints, units=self.units)
         self.assertEqual(udict["threshold"], "mm h-1")
         self.assertNotIn("percentile", udict.keys())
 
@@ -283,7 +259,7 @@ class Test_parse_constraint_list(IrisTest):
     def test_list_constraint(self):
         """ Test that a list of constraints is parsed correctly """
         constraints = ["threshold=[0.1,1.0]"]
-        result, _ = parse_constraint_list(constraints)
+        result, _, _, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
         self.assertTrue(islambda(cdict["threshold"]))
 
@@ -295,7 +271,7 @@ class Test_parse_constraint_list(IrisTest):
         precip_cube.coord(threshold_coord).convert_units("mm h-1")
         # generate constraints
         constraints = ["{}=[0.03:0.1]".format(threshold_coord)]
-        result, _ = parse_constraint_list(constraints)
+        result, _, _, _ = parse_constraint_list(constraints)
         self.assertIsInstance(result, iris._constraints.ConstraintCombination)
         cdict = result.rhs._coord_values
         self.assertEqual(list(cdict.keys()), [threshold_coord])
@@ -305,6 +281,20 @@ class Test_parse_constraint_list(IrisTest):
             result_cube.coord(threshold_coord).points, np.array([0.03, 0.1])
         )
 
+    def test_longitude_constraint(self):
+        """ Test that the longitude constraint is parsed correctly """
+        constraint = ["longitude=[0:20:2]"]
+        _, _, longitude_constraint, thinning_dict = parse_constraint_list(constraint)
+        self.assertEqual(longitude_constraint, [0, 20])
+        self.assertEqual(thinning_dict, {"longitude": 2})
+
+    def test_longitude_constraint_whitespace(self):
+        """ Test that the longitude constraint is parsed correctly with whitespace """
+        constraint = ["longitude = [ 0 : 20 : 2 ]"]
+        _, _, longitude_constraint, thinning_dict = parse_constraint_list(constraint)
+        self.assertEqual(longitude_constraint, [0, 20])
+        self.assertEqual(thinning_dict, {"longitude": 2})
+
 
 class Test_apply_extraction(IrisTest):
     """ Test function to extract subcube according to constraints """
@@ -313,6 +303,8 @@ class Test_apply_extraction(IrisTest):
         """ Set up temporary input cube """
         self.precip_cube = set_up_precip_probability_cube()
         self.threshold_coord = find_threshold_coordinate(self.precip_cube).name()
+        self.uk_gridded_cube = set_up_uk_gridded_cube()
+        self.global_gridded_cube = set_up_global_gridded_cube()
         self.units_dict = {self.threshold_coord: "mm h-1"}
 
     def test_basic_no_units(self):
@@ -397,15 +389,98 @@ class Test_apply_extraction(IrisTest):
         """ Test that a list of constraints behaves correctly. This includes
         converting the units to the units that the constraints is
         defined in."""
-        lower_bound = 0.03 * (1.0 - 1.0e-7)
-        upper_bound = 0.1 * (1.0 + 1.0e-7)
+        lower_bound = 0.03 - 1.0e-7
+        upper_bound = 0.1 + 1.0e-7
         constraint_dict = {
-            self.threshold_coord: lambda cell: lower_bound <= cell <= upper_bound
+            self.threshold_coord: lambda cell: lower_bound <= cell.point <= upper_bound
         }
         constr = iris.Constraint(coord_values=constraint_dict)
         cube = apply_extraction(self.precip_cube, constr, self.units_dict)
         reference_data = self.precip_cube.data[:2, :, :]
         self.assertArrayEqual(cube.data, reference_data)
+
+    def test_subset_uk_grid(self):
+        """ Test subsetting a gridded cube. """
+        expected_data = np.array(
+            [
+                [27.0, 28.0, 29.0, 30.0],
+                [35.0, 36.0, 37.0, 38.0],
+                [43.0, 44.0, 45.0, 46.0],
+                [51.0, 52.0, 53.0, 54.0],
+            ]
+        )
+        expected_points = np.array([1000.0, 3000.0, 5000.0, 7000.0])
+        lower_bound = 1000 - 1.0e-7
+        upper_bound = 7000 + 1.0e-7
+        constraint_dict = {
+            "projection_x_coordinate": lambda cell: lower_bound
+            <= cell.point
+            <= upper_bound,
+            "projection_y_coordinate": lambda cell: lower_bound
+            <= cell.point
+            <= upper_bound,
+        }
+        constr = iris.Constraint(**constraint_dict)
+        result = apply_extraction(self.uk_gridded_cube, constr)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        for axis in ["x", "y"]:
+            coord = f"projection_{axis}_coordinate"
+            self.assertArrayAlmostEqual(result.coord(coord).points, expected_points)
+
+    def test_subset_global_grid(self):
+        """ Extract subset of global lat-lon grid """
+        lower_bound = 42 - 1.0e-7
+        upper_bound = 52 + 1.0e-7
+        constraint_dict = {
+            "latitude": lambda cell: lower_bound <= cell.point <= upper_bound
+        }
+        constr = iris.Constraint(**constraint_dict)
+        result = apply_extraction(
+            self.global_gridded_cube, constr, longitude_constraint=[0, 7]
+        )
+        expected_data = np.array(
+            [
+                [1.0, 2.0, 3.0, 4.0],
+                [9.0, 10.0, 11.0, 12.0],
+                [17.0, 18.0, 19.0, 20.0],
+                [25.0, 26.0, 27.0, 28.0],
+            ]
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, np.array([0.0, 2.0, 4.0, 6.0])
+        )
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, np.array([45.0, 47.0, 49.0, 51.0])
+        )
+
+    def test_subset_global_grid_pacific(self):
+        """Extract subset of global lat-lon grid over the international date line"""
+        global_pacific_cube = set_up_variable_cube(
+            self.global_gridded_cube.data.copy(),
+            name="screen_temperature",
+            units="degC",
+            spatial_grid="latlon",
+            domain_corner=(0, 175),
+            grid_spacing=2,
+        )
+        lower_bound = -1.0e-7
+        upper_bound = 4 + 1.0e-7
+        constraint_dict = {
+            "latitude": lambda cell: lower_bound <= cell.point <= upper_bound
+        }
+        constr = iris.Constraint(**constraint_dict)
+        expected_data = np.array(
+            [[2.0, 3.0, 4.0], [10.0, 11.0, 12.0], [18.0, 19.0, 20.0]]
+        )
+        result = apply_extraction(
+            global_pacific_cube, constr, longitude_constraint=[179.0, 183.0]
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, [179.0, 181.0, 183.0]
+        )
+        self.assertArrayAlmostEqual(result.coord("latitude").points, [0.0, 2.0, 4.0])
 
 
 class Test_extract_subcube(IrisTest):
@@ -415,6 +490,7 @@ class Test_extract_subcube(IrisTest):
     def setUp(self):
         """ Set up temporary input cube """
         self.precip_cube = set_up_precip_probability_cube()
+        self.global_gridded_cube = set_up_global_gridded_cube()
 
     def test_single_threshold(self):
         """Test that a single threshold is extracted correctly when using the
@@ -488,199 +564,42 @@ class Test_extract_subcube(IrisTest):
             expected.coord("precipitation_rate"), result.coord("precipitation_rate")
         )
 
-
-class Test_subset_data(IrisTest):
-    """Tests for the subset_data function"""
-
-    def setUp(self):
-        """Set up spot and gridded cubes for testing"""
-        # details pulled from verification site list
-        alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
-        lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
-        lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
-        wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
-
-        self.spot_cube = build_spotdata_cube(
-            np.arange(6).astype(np.float32),
-            "screen_temperature",
-            "degC",
-            alts,
-            lats,
-            lons,
-            wmo_ids,
+    def test_thin_global_gridded_cube(self):
+        """ Subsets a grid from a global grid and thins the data"""
+        expected_result = np.array([[1.0, 4.0], [17.0, 20.0]])
+        result = extract_subcube(
+            self.global_gridded_cube, ["latitude=[42:52:2]", "longitude=[0:7:3]"]
         )
-
-        data = np.arange(56).reshape((7, 8)).astype(np.float32)
-        self.uk_cube = set_up_variable_cube(
-            data,
-            name="screen_temperature",
-            units="degC",
-            spatial_grid="equalarea",
-            domain_corner=(-5000, -5000),
-            grid_spacing=2000,
-        )
-
-        self.gl_cube = set_up_variable_cube(
-            data,
-            name="screen_temperature",
-            units="degC",
-            spatial_grid="latlon",
-            domain_corner=(45, -2),
-            grid_spacing=2,
-        )
-
-        self.grid_spec = {
-            "longitude": {"min": 0, "max": 7, "thin": 2},
-            "latitude": {"min": 42, "max": 52, "thin": 2},
-            "projection_x_coordinate": {"min": 0, "max": 10000, "thin": 3},
-            "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
-        }
-
-        self.expected_points = {
-            "longitude": [0.0, 4.0],
-            "latitude": [45.0, 49.0],
-            "projection_x_coordinate": [1000.0, 7000.0],
-            "projection_y_coordinate": [1000.0, 7000.0],
-        }
-
-    def test_subset_spot_cube(self):
-        """Extract a list of spot sites"""
-        site_list = ["3005", "3023"]
-        result = subset_data(self.spot_cube, site_list=site_list)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.coord("wmo_id").points, site_list)
-        self.assertArrayAlmostEqual(result.data, [1, 3])
-
-    def test_subset_uk_grid(self):
-        """Extract subset of UK equal area grid"""
-        expected_data = np.array([[27, 30], [51, 54]])
-        result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        for axis in ["x", "y"]:
-            coord = f"projection_{axis}_coordinate"
-            self.assertArrayAlmostEqual(
-                result.coord(coord).points, self.expected_points[coord]
-            )
-
-    def test_subset_global_grid(self):
-        """Extract subset of global lat-lon grid"""
-        expected_data = np.array([[1, 3], [17, 19]])
-        result = subset_data(self.gl_cube, grid_spec=self.grid_spec)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertArrayAlmostEqual(
-            result.coord("longitude").points, self.expected_points["longitude"]
+            result.coord("longitude").points, np.array([0.0, 6.0])
         )
         self.assertArrayAlmostEqual(
-            result.coord("latitude").points, self.expected_points["latitude"]
+            result.coord("latitude").points, np.array([45.0, 49.0])
         )
 
-    def test_subset_global_grid_pacific(self):
-        """Extract subset of global lat-lon grid over the international date line"""
-        gl_pacific_cube = set_up_variable_cube(
-            self.gl_cube.data.copy(),
-            name="screen_temperature",
-            units="degC",
-            spatial_grid="latlon",
-            domain_corner=(0, 175),
-            grid_spacing=2,
+    def test_thin_longitude_global_gridded_cube(self):
+        """ Subsets a grid from a global grid and thins the data"""
+        expected_result = np.array(
+            [
+                [1.0, 4.0],
+                [9.0, 12.0],
+                [17.0, 20.0],
+                [25.0, 28.0],
+                [33.0, 36.0],
+                [41.0, 44.0],
+                [49.0, 52.0],
+            ],
         )
-        expected_data = np.array([[2.0, 4.0], [18.0, 20.0]])
-        grid_spec = {
-            "longitude": {"min": 178, "max": 185, "thin": 2},
-            "latitude": {"min": 0, "max": 7, "thin": 2},
-        }
-        result = subset_data(gl_pacific_cube, grid_spec=grid_spec)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(result.coord("longitude").points, [179.0, 183.0])
-        self.assertArrayAlmostEqual(result.coord("latitude").points, [0.0, 4.0])
-
-    def test_subset_no_thinning(self):
-        """Test grid subsetting can handle a "thin" value of 1"""
-        grid_spec = {
-            "longitude": {"min": 0, "max": 7, "thin": 1},
-            "latitude": {"min": 42, "max": 52, "thin": 2},
-        }
-        expected_data = np.array([[1, 2, 3, 4], [17, 18, 19, 20]])
-        result = subset_data(self.gl_cube, grid_spec=grid_spec)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        result = extract_subcube(self.global_gridded_cube, ["longitude=[0:7:3]"])
+        self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertArrayAlmostEqual(
-            result.coord("longitude").points, [0.0, 2.0, 4.0, 6.0]
+            result.coord("longitude").points, np.array([0.0, 6.0])
         )
-        self.assertArrayAlmostEqual(result.coord("latitude").points, [45.0, 49.0])
-
-    def test_preserves_dimension_order(self):
-        """Test order of original cube dimensions is preserved on subsetting"""
-        self.uk_cube.transpose([1, 0])
-        expected_dims = get_dim_coord_names(self.uk_cube)
-        result = subset_data(self.uk_cube, grid_spec=self.grid_spec)
-        result_dims = get_dim_coord_names(result)
-        self.assertSequenceEqual(result_dims, expected_dims)
-
-    def test_error_no_site_list(self):
-        """Test error when required site_list is not provided"""
-        msg = "site_list required"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.spot_cube)
-
-    def test_error_no_grid_spec(self):
-        """Test error when required grid_spec is not provided"""
-        msg = "grid_spec required"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.uk_cube)
-
-    def test_error_no_sites_available(self):
-        """Test error raised when none of the required sites are present in
-        the input spot cube"""
-        msg = "Cube does not contain any of the required sites"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.spot_cube, site_list=["3100"])
-
-    def test_error_wrong_grid_spec(self):
-        """Test error raised when required coordinates are not in the grid
-        spec dictionary"""
-        grid_spec_latlon = {
-            "longitude": {"min": 0, "max": 7, "thin": 2},
-            "latitude": {"min": 42, "max": 52, "thin": 2},
-        }
-        msg = "Cube coordinates .* are not present"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.uk_cube, grid_spec=grid_spec_latlon)
-
-    def test_error_non_overlapping_grid_spec(self):
-        """Test error raised when defined cutout does not overlap with input
-        cube"""
-        grid_spec_xy = {
-            "projection_x_coordinate": {"min": -10000, "max": -6000, "thin": 3},
-            "projection_y_coordinate": {"min": 0, "max": 10000, "thin": 3},
-        }
-        msg = "Cube domain does not overlap with cutout specified"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.uk_cube, grid_spec=grid_spec_xy)
-
-    def test_error_order_agnostic(self):
-        """Test non-overlapping grid error is correctly raised regardless of
-        which coordinate is non-overlapping. This is needed because there are
-        ways of calling iris.extract that appear to modify the input constraints,
-        such that the output of this function was not always correct depending on
-        which coordinate did not match."""
-        grid_spec_xy = {
-            "projection_y_coordinate": {"min": -10000, "max": -6000, "thin": 3},
-            "projection_x_coordinate": {"min": 0, "max": 10000, "thin": 3},
-        }
-        msg = "Cube domain does not overlap with cutout specified"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.uk_cube, grid_spec=grid_spec_xy)
-
-    def test_error_single_point(self):
-        """Function does not support extraction of a single (non-dimensioned)
-        point from a grid - test a suitable error is raised if this is requested"""
-        grid_spec = {
-            "projection_x_coordinate": {"min": 0, "max": 1000, "thin": 1},
-            "projection_y_coordinate": {"min": 0, "max": 1000, "thin": 1},
-        }
-        msg = "Function does not support single point extraction"
-        with self.assertRaisesRegex(ValueError, msg):
-            subset_data(self.uk_cube, grid_spec=grid_spec)
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points,
+            np.array([45.0, 47.0, 49.0, 51.0, 53.0, 55.0, 57.0]),
+        )
 
 
 if __name__ == "__main__":
