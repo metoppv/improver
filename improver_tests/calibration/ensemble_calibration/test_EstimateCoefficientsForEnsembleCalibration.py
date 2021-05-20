@@ -667,7 +667,7 @@ class Test_compute_initial_guess(IrisTest):
         )
 
         self.assertArrayAlmostEqual(
-            self.expected_mean_predictor_compute_initial_guess, result
+            self.expected_mean_pred_compute_initial_guess, result
         )
 
     @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
