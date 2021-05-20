@@ -50,7 +50,7 @@ def parse_range_string_to_dict(value: str) -> Dict[str, str]:
     Args:
         value:
             A string containing the range information.
-	        It is assumed that the input value is of the form: "[2:10]".
+            It is assumed that the input value is of the form: "[2:10]".
 
     Returns:
         A list containing the min and max (and step).
