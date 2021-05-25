@@ -41,7 +41,7 @@ from improver.calibration.reliability_calibration import (
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as CalPlugin,
 )
-from improver_tests.calibration.reliability_calibration.test_ConstructReliabilityCalibrationTables import (
+from improver_tests.calibration.reliability_calibration.test_ConstructReliabilityCalibrationTables import (  # noqa: E501
     Test_Setup,
 )
 

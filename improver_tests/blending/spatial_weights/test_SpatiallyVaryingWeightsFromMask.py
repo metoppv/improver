@@ -38,7 +38,6 @@ from datetime import datetime
 import numpy as np
 from iris.coords import AuxCoord
 from iris.cube import CubeList
-from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 from iris.util import squeeze
 
@@ -156,7 +155,7 @@ class Test__create_template_slice(IrisTest):
            an AuxCoord"""
         expected = self.cube_to_collapse.copy()[:, 0, :, :]
         plugin = SpatiallyVaryingWeightsFromMask("forecast_period")
-        result = self.plugin._create_template_slice(self.cube_to_collapse)
+        result = plugin._create_template_slice(self.cube_to_collapse)
         self.assertEqual(expected.metadata, result.metadata)
         self.assertArrayAlmostEqual(expected.data, result.data)
 

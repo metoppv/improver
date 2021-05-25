@@ -116,7 +116,7 @@ def make_timezone_cube():
     true_row = [1, 1, 1, 1]
     false_row = [0, 0, 0, 0]
     cube.data = np.array(
-        [[true_row, true_row, false_row], [false_row, false_row, true_row],],
+        [[true_row, true_row, false_row], [false_row, false_row, true_row]],
         dtype=np.int8,
     )
     return cube
@@ -234,7 +234,7 @@ def test_process(with_percentiles, input_as_cube, input_has_time_bounds):
     time coord for our test data"""
     data_shape = [3, 4]
     data = np.array(
-        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32),]
+        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
     )
     expected_data = [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
     if with_percentiles:

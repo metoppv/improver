@@ -75,7 +75,6 @@ class Test_process(CombinerTest):
         cube.data = np.ones_like(cube.data)
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
-        input_copy = deepcopy(cubelist)
         result = CubeMultiplier()(cubelist, output, broadcast_to_threshold=True)
         self.assertEqual(result.name(), f"probability_of_{output}_above_threshold")
         self.assertEqual(
@@ -90,9 +89,10 @@ class Test_process(CombinerTest):
         cube.remove_coord("lwe_thickness_of_precipitation_amount")
         cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
         msg = (
-            "Cannot find coord threshold in "
-            "<iris 'Cube' of probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
-            "\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
+            r"Cannot find coord threshold in "
+            r"<iris 'Cube' of "
+            r"probability_of_lwe_thickness_of_precipitation_amount_above_threshold / \(1\) "
+            r"\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
         )
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_threshold=True)

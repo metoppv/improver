@@ -98,8 +98,9 @@ def save_netcdf(
             1-9 to specify compression level, or 0 to not compress (default compress
             with complevel 1)
         least_significant_digit:
-            If specified will truncate the data to a precision given by 10**(-least_significant_digit),
-            e.g. if least_significant_digit=2, then the data will be quantized to a precision of 0.01 (10**(-2)). See
+            If specified will truncate the data to a precision given by
+            10**(-least_significant_digit), e.g. if least_significant_digit=2, then the data will
+            be quantized to a precision of 0.01 (10**(-2)). See
             http://www.esrl.noaa.gov/psd/data/gridded/conventions/cdc_netcdf_standard.shtml
             for details. When used with `compression level`, this will result in lossy
             compression.

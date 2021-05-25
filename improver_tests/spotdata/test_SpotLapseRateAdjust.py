@@ -106,7 +106,6 @@ class Test_SpotLapseRateAdjust(IrisTest):
             ]
         )
         altitudes = np.array([3, 4, 0])
-        # pylint: disable=unsubscriptable-object
         latitudes = np.array([y_coord[0], y_coord[1], y_coord[2]])
         longitudes = np.array([x_coord[0], x_coord[1], x_coord[2]])
         wmo_ids = np.arange(3)

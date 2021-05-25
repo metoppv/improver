@@ -47,13 +47,13 @@ def calculate_input_grid_spacing(cube_in):
     Args:
          cube_in (iris.cube.Cube):
             input source cube
-            
+
     Returns:
          Grid spacing in latitude and logitude (unit: degree)
-    
+
     Raises:
          ValueError: if input grid is not on a latitude/longitude system or
-         Input grid coordinates are not ascending.       
+         Input grid coordinates are not ascending.
     """
     # check if in lat/lon system
     if lat_lon_determine(cube_in) is not None:
@@ -167,7 +167,6 @@ def flatten_spatial_dimensions(cube):
             lattitude/logitude indexes in cube coord.
     """
     in_values = cube.data
-    coord_names = get_cube_coord_names(cube)
     lats_name, lons_name = latlon_names(cube)
     lats_index = cube.coord_dims(lats_name)[0]
     lons_index = cube.coord_dims(lons_name)[0]

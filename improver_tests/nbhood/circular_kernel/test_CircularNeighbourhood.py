@@ -349,7 +349,7 @@ class Test_apply_circular_kernel(IrisTest):
 
         expected = np.ones_like(self.cube.data)
         expected_centroid = np.array(
-            [[0.592, 0.768, 0.92], [0.768, 0.872, 0.96], [0.92, 0.96, 0.992],]
+            [[0.592, 0.768, 0.92], [0.768, 0.872, 0.96], [0.92, 0.96, 0.992]]
         )
         for index, slice_ in enumerate(expected_centroid):
             expected[index][0:3] = slice_

@@ -43,7 +43,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_basic(tmp_path):
     """Test basic wet bulb temperature integral calculation"""
-    kgo_dir = acc.kgo_root() / f"wet-bulb-temperature-integral/basic"
+    kgo_dir = acc.kgo_root() / "wet-bulb-temperature-integral/basic"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     input_path = kgo_dir / "input.nc"
@@ -55,7 +55,7 @@ def test_basic(tmp_path):
 def test_realizations(tmp_path):
     """Test wet bulb temperature integral calculation with a realization
     coord on the input cube"""
-    kgo_dir = acc.kgo_root() / f"wet-bulb-temperature-integral/realizations"
+    kgo_dir = acc.kgo_root() / "wet-bulb-temperature-integral/realizations"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     input_path = kgo_dir / "input.nc"

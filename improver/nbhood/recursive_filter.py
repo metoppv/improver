@@ -264,7 +264,6 @@ class RecursiveFilter(PostProcessingPlugin):
         smoothing_coefficients.sort(key=lambda cell: cell.name())
         axes = ["x", "y"]
 
-        padded_coefficients = []
         for axis, smoothing_coefficient in zip(axes, smoothing_coefficients):
 
             # Check the smoothing coefficient cube name is as expected

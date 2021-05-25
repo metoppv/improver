@@ -67,7 +67,7 @@ def apply_weights(indexes, in_values, weights):
 
 def basic_indexes(out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacing):
     """
-    Calculate the surrounding source point indexes for given target points 
+    Calculate the surrounding source point indexes for given target points
 
     Args:
         in_latlons(numpy.ndarray):
@@ -264,16 +264,16 @@ def adjust_for_surface_mismatch(
     updating source points and weighting for mismatched-source-point cases
     (1) triangle interpolation function is used for only one mismatched source
     point and target point is within the triangle formed with three matched sourced point
-    (2) In one of 3 cases (a)one false source points, three true source points but the 
-    target point is outside triangle (b)Two false source points, two true source points 
+    (2) In one of 3 cases (a)one false source points, three true source points but the
+    target point is outside triangle (b)Two false source points, two true source points
     (c) three false source points, one true source pointfor, find four surrounding source
-    points using KDtree, and regridding with inverse distance weighting(IDW) if matched 
+    points using KDtree, and regridding with inverse distance weighting(IDW) if matched
     source point is available
-    (3) In case of four mismatched source points(zero matched source point), Look up 8 
+    (3) In case of four mismatched source points(zero matched source point), Look up 8
     points with specified distance limit (input) using KD tree, and then check if there
     are any same-type source points. If yes, pick up the points of the same type, and do
     IDW interpolation. If no, ignore surface type and just do normal bilinear interpolation
- 
+
     Args:
         in_latlons(numpy.ndarray):
             source points's latitude-longitudes
@@ -583,7 +583,6 @@ def lakes_islands(
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]
-    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     # if no further processing can be done, return early
@@ -593,7 +592,6 @@ def lakes_islands(
     # Where a same surface type match has been found among the 8 nearest inputs, apply
     # inverse distance weighting with those matched points
     new_distances = np.zeros([count_of_points_with_match, NUM_NEIGHBOURS])
-    # pylint: disable=unsubscriptable-object
     for point_idx in range(points_with_match.shape[0]):
         match_indexes = lake_island_indexes[points_with_match[point_idx]]
         # Reset all input weight and surface type to mismatched

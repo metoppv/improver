@@ -34,7 +34,7 @@ import numpy as np
 import pytest
 from iris.coords import CellMethod
 
-## Test successful outputs (input cubes in alphabetical order by fixture)
+# Test successful outputs (input cubes in alphabetical order by fixture)
 
 
 def test_realizations(ensemble_cube, interpreter):
@@ -190,7 +190,7 @@ def test_weather_code(wxcode_cube, interpreter):
     assert interpreter.blended
 
 
-## Test errors and warnings (input cubes in alphabetical order by fixture)
+# Test errors and warnings (input cubes in alphabetical order by fixture)
 
 
 def test_error_inconsistent_model_attributes(ensemble_cube, interpreter):

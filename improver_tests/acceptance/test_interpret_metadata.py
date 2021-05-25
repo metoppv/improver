@@ -54,7 +54,7 @@ cube name : weather_code
 Non-compliant :
 Attributes dict_keys(['institution', 'title', 'weather_code', 'weather_code_meaning', 'Conventions']) missing one or more mandatory values ['source']
 No mosg__model_configuration on blended file
-"""
+"""  # noqa: E501
 
 KGO_verbose = """
 cube name : probability_of_air_temperature_above_threshold

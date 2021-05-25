@@ -496,7 +496,6 @@ class WetBulbTemperatureIntegral(BasePlugin):
         wbt.coord("height").convert_units("m")
         # Touch the data to ensure it is not lazy
         # otherwise vertical interpolation is slow
-        # pylint: disable=pointless-statement
         wbt.data
         wet_bulb_temperature_integral = self.integration_plugin(wbt)
         # although the integral is computed over degC the standard unit is

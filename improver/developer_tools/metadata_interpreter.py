@@ -592,7 +592,7 @@ def display_interpretation(
         output.extend(_format_standard_cases(interpreter, verbose, vstring))
 
     if interpreter.diagnostic in ANCILLARIES:
-        output.append(f"This is a static ancillary with no time information")
+        output.append("This is a static ancillary with no time information")
     elif interpreter.blended:
         output.append(f"It contains blended data from models: {interpreter.model}")
         if verbose:

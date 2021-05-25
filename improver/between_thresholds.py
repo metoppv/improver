@@ -91,7 +91,10 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
                 If any of the required constraints returns None
         """
         thresh_coord = self.cube.coord(self.thresh_coord.name())
-        error_string = f"{thresh_coord.name()} threshold {{}} {self.threshold_units} is not available\n"
+        error_string = (
+            f"{thresh_coord.name()} threshold {{}} {self.threshold_units} "
+            "is not available\n"
+        )
         error_msg = ""
 
         cubes = []

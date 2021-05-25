@@ -57,7 +57,7 @@ def check_diagnostic_lists_consistency(query):
         for key in diagnostic_keys
     ]
     if not check_nested_list_consistency(values):
-        msg = f"Inconsistent list structure: \n"
+        msg = "Inconsistent list structure: \n"
         for key in diagnostic_keys:
             msg += f"{key} = {query[key]}; \n"
         raise ValueError(msg)
