@@ -35,7 +35,6 @@ from typing import Any, Dict, List, Optional, Union
 
 import iris
 import numpy as np
-from iris._cube_coord_common import LimitedAttributeDict
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
@@ -321,9 +320,7 @@ class MergeCubes(BasePlugin):
         return result
 
 
-def get_filtered_attributes(
-    cube: Cube, attribute_filter: Optional[str] = None
-) -> LimitedAttributeDict:
+def get_filtered_attributes(cube: Cube, attribute_filter: Optional[str] = None) -> Dict:
     """
     Build dictionary of attributes that match the attribute_filter. If the
     attribute_filter is None, return all attributes.
