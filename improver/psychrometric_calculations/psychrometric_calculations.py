@@ -452,7 +452,7 @@ class WetBulbTemperature(BasePlugin):
             )
 
         temperature, relative_humidity, pressure = tuple(
-            CubeList(cubes).extract_strict(n) for n in names_to_extract
+            CubeList(cubes).extract_cube(n) for n in names_to_extract
         )
 
         slices = self._slice_inputs(temperature, relative_humidity, pressure)
@@ -1012,7 +1012,7 @@ class PhaseChangeLevel(BasePlugin):
             )
 
         wet_bulb_temperature, wet_bulb_integral, orog, land_sea_mask = tuple(
-            CubeList(cubes).extract_strict(n) for n in names_to_extract
+            CubeList(cubes).extract_cube(n) for n in names_to_extract
         )
 
         wet_bulb_temperature.convert_units("celsius")

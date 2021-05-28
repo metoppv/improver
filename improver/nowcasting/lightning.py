@@ -504,13 +504,13 @@ class NowcastLightning(PostProcessingPlugin):
             iris.exceptions.ConstraintMismatchError:
                 If cubelist does not contain the expected cubes.
         """
-        first_guess_lightning_cube = cubelist.extract(
-            "probability_of_rate_of_lightning_above_threshold", strict=True
+        first_guess_lightning_cube = cubelist.extract_cube(
+            "probability_of_rate_of_lightning_above_threshold"
         )
-        lightning_rate_cube = cubelist.extract("rate_of_lightning", strict=True)
+        lightning_rate_cube = cubelist.extract_cube("rate_of_lightning")
         lightning_rate_cube.convert_units("min^-1")  # Ensure units are correct
-        prob_precip_cube = cubelist.extract(
-            "probability_of_lwe_precipitation_rate_above_threshold", strict=True
+        prob_precip_cube = cubelist.extract_cube(
+            "probability_of_lwe_precipitation_rate_above_threshold"
         )
         # Now find prob_vii_cube. Can't use strict=True here as cube may not be
         # present, so will use a normal extract and then merge_cube if needed.
