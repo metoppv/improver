@@ -431,7 +431,7 @@ class Test_check_if_grid_is_equal_area(IrisTest):
 class Test_lat_lon_determine(Test_common_functions):
     """Test function that tests projections used in diagnostic cubes."""
 
-    @pytest.mark.skip(reason="Failing for Iris 3.0. Unsure if the failure is sensible.")
+    @pytest.mark.xfail
     def test_projection_test(self):
         """Test identification of non-lat/lon projections."""
         src_crs = ccrs.PlateCarree()
