@@ -56,6 +56,27 @@ def test_regrid_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_regrid_bilinear(tmp_path):
+    """Test bilinear-2 regridding"""
+    # KGO for this test is the same as test_regrid_check_landmask below
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "basic/kgo.nc"
+    input_path = kgo_dir / "global_cutout.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+    # args = [input_path, target_path, "--output", output_path]
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-2",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_regrid_nearest(tmp_path):
     """Test nearest neighbour regridding"""
     kgo_dir = acc.kgo_root() / "regrid"
@@ -227,7 +248,7 @@ def test_regrid_nearest_2_multi_realization(tmp_path):
 
 
 def test_regrid_bilinear_2_multi_realization(tmp_path):
-    """Test bilinear-2 neighbour regridding"""
+    """Test bilinear-2 regridding"""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "bilinear_2/kgo_multi_realization.nc"
     input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
