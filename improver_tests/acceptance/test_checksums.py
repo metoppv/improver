@@ -31,17 +31,65 @@
 """Bulk checking and updating of checksum file"""
 
 import difflib
+import functools
+import locale
 import os
 import pathlib
+from contextlib import contextmanager
+from typing import Callable, Dict, List
 
 import pytest
 
 from . import acceptance as acc
 
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+
+@contextmanager
+def temporary_sort_locale(collate: str) -> Callable[[str, str], bool]:
+    """
+    Set a temporary locale for sorting.
+
+    Args:
+        collate: LC_COLLATE locale name
+
+    Yields:
+        String comparison function
+    """
+    old = locale.getlocale(locale.LC_COLLATE)
+    try:
+        locale.setlocale(locale.LC_COLLATE, collate)
+        yield locale.strcoll
+    finally:
+        locale.setlocale(locale.LC_COLLATE, old)
 
 
+def checksums_to_text(
+    path_csums: Dict[pathlib.Path, str], sort: bool = False
+) -> List[str]:
+    """
+    Convert checksum dict to sha256sum like format.
+
+    Args:
+        path_csums: per-file checksums
+        sort: apply sorting to file paths
+
+    Returns:
+        List of checksum file lines, no newline at end.
+    """
+    path_csums = {str(path): csum for path, csum in path_csums.items()}
+    if sort:
+        paths = [str(path) for path in path_csums.keys()]
+        # sorting uses C locale to avoid locale-specific variation
+        with temporary_sort_locale("C") as strcoll:
+            paths.sort(key=functools.cmp_to_key(strcoll))
+    else:
+        paths = path_csums.keys()
+    lines = [f"{path_csums[path]}  {path}" for path in paths]
+    return lines
+
+
+@pytest.mark.acc
 @pytest.mark.checksum
+@acc.skip_if_kgo_missing
 def test_kgo_checksums():
     """Bulk check of all KGO checksums independent of other tests"""
     kgo_root = acc.kgo_root()
@@ -59,13 +107,9 @@ def test_kgo_checksums():
         for dpath in data_paths
     }
 
-    def format_checksums(path_csums):
-        lines = [f"{path_csums[path]}  {path}" for path in sorted(path_csums.keys())]
-        return lines
-
     # convert to SHA256SUMS-like text format for comparison and diff output
-    expected_text = format_checksums(acc.acceptance_checksums())
-    actual_text = format_checksums(path_checksums)
+    expected_text = checksums_to_text(acc.acceptance_checksums(), sort=False)
+    actual_text = checksums_to_text(path_checksums, sort=True)
     diff_generator = difflib.unified_diff(
         expected_text,
         actual_text,
@@ -79,3 +123,16 @@ def test_kgo_checksums():
         f"Files in {kgo_root} don't match checksums in {acc.DEFAULT_CHECKSUM_FILE}"
         " - see diff in stdout for details"
     )
+
+
+def test_checksums_sorted():
+    """
+    Test that the checksums file is sorted.
+
+    This test doesn't depend on having the acceptance test data available, so
+    can run with the unit tests.
+    """
+    csum_paths = [str(path) for path in acc.acceptance_checksums().keys()]
+    with temporary_sort_locale("C") as strcoll:
+        csum_paths_sorted = sorted(csum_paths, key=functools.cmp_to_key(strcoll))
+    assert csum_paths == csum_paths_sorted
