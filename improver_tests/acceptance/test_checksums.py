@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Bulk checking and updating of checksum file"""
 
+import difflib
 import os
 import pathlib
 
@@ -52,11 +53,29 @@ def test_kgo_checksums():
         filenames = [f for f in filenames if not f.startswith(".")]
         for filename in filenames:
             data_paths.append(pathlib.Path(directory) / filename)
-    try:
-        # check that all the data files are in the list
-        assert len(data_paths) == len(acc.acceptance_checksums())
-        # check each file's checksum
-        for path in data_paths:
-            acc.verify_checksum(path)
-    except Exception as e:
-        raise e
+    # generate checksums for all the found files
+    path_checksums = {
+        dpath.relative_to(kgo_root): acc.calculate_checksum(dpath)
+        for dpath in data_paths
+    }
+
+    def format_checksums(path_csums):
+        lines = [f"{path_csums[path]}  {path}" for path in sorted(path_csums.keys())]
+        return lines
+
+    # convert to SHA256SUMS-like text format for comparison and diff output
+    expected_text = format_checksums(acc.acceptance_checksums())
+    actual_text = format_checksums(path_checksums)
+    diff_generator = difflib.unified_diff(
+        expected_text,
+        actual_text,
+        fromfile=str(acc.DEFAULT_CHECKSUM_FILE),
+        tofile=str(kgo_root),
+        n=1,
+        lineterm="",
+    )
+    print("\n".join(diff_generator))
+    assert actual_text == expected_text, (
+        f"Files in {kgo_root} don't match checksums in {acc.DEFAULT_CHECKSUM_FILE}"
+        " - see diff in stdout for details"
+    )
