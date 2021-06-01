@@ -45,7 +45,7 @@ run_cli = acc.run_cli(CLI)
 
 def test_regrid_basic(tmp_path):
     """Test basic regridding"""
-    # KGO for this test (deafult: bilinear) is the same as test_regrid_bilinear_2
+    # KGO for this test (default: bilinear) is the same as test_regrid_bilinear_2
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "basic/kgo.nc"
     input_path = kgo_dir / "global_cutout.nc"
