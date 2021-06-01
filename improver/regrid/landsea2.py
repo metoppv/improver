@@ -34,6 +34,7 @@ land-sea awareness
 """
 
 import numpy as np
+from iris.cube import Cube
 
 from improver import BasePlugin
 from improver.regrid.bilinear import (
@@ -76,41 +77,39 @@ class RegridWithLandSeaMask(BasePlugin):
     and "bilinear-with-mask-2" in this class.
     """
 
-    def __init__(self, regrid_mode="bilinear-2", vicinity_radius=25000.0):
+    def __init__(
+        self, regrid_mode: str = "bilinear-2", vicinity_radius: float = 25000.0
+    ):
         """
         Initialise class
-
         Args:
-            regrid_mode (str):
+            regrid_mode:
                 Mode of interpolation in regridding.  Valid options are "bilinear-2",
                 "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2". 
                 The last two options trigger adjustment of regridded points to match
                 source points in terms of land / sea type.
-            vicinity_radius (float):
+            vicinity_radius:
                 Radius of vicinity to search for a coastline, in metres
         """
         self.regrid_mode = regrid_mode
         self.vicinity = vicinity_radius
 
-    def process(self, cube_in, cube_in_mask, cube_out_mask):
+    def process(self, cube_in: Cube, cube_in_mask: Cube, cube_out_mask: Cube):
         """
         Regridding considering land_sea mask. please note cube_in must use
         lats/lons rectlinear system(GeogCS). cube_in_mask and cube_in could be
         different  resolution. cube_our could be either in lats/lons rectlinear
         system or LambertAzimuthalEqualArea system.
-
         Args:
-            cube_in (iris.cube.Cube):
+            cube_in:
                 Cube of data to be regridded
-            cube_in_mask (iris.cube.Cube):
+            cube_in_mask:
                 Cube of land_binary_mask data ((land:1, sea:0). used to determine
                 where the input model data is representing land and sea points.
-            cube_out_mask (iris.cube.Cube):
+            cube_out_mask:
                 Cube of land_binary_mask data on target grid (land:1, sea:0).
-
         Returns:
-            iris.cube.Cube:
-                Regridded result cube
+            Regridded result cube
         """
         # check if input source grid is on even-spacing, ascending lat/lon system
         # return grid spacing for latitude and logitude
@@ -196,13 +195,7 @@ class RegridWithLandSeaMask(BasePlugin):
             # pylint: disable=unsubscriptable-object
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
-                index_range,
-                indexes,
-                out_latlons,
-                in_latlons,
-                in_lons_size,
-                lat_spacing,
-                lon_spacing,
+                index_range, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing,
             )
 
             if WITH_MASK in self.regrid_mode:

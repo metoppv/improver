@@ -32,51 +32,50 @@
 Nearest neighbour interpolation functions
 """
 
+from typing import Tuple
+
 import numpy as np
+from numpy import ndarray
 
 from improver.regrid.grid import similar_surface_classify
 from improver.regrid.idw import nearest_input_pts
 
 
 def nearest_with_mask_regrid(
-    distances,
-    indexes,
-    surface_type_mask,
-    in_latlons,
-    out_latlons,
-    in_classified,
-    out_classified,
-    vicinity,
-):
+    distances: ndarray,
+    indexes: ndarray,
+    surface_type_mask: ndarray,
+    in_latlons: ndarray,
+    out_latlons: ndarray,
+    in_classified: ndarray,
+    out_classified: ndarray,
+    vicinity: float,
+) -> Tuple[ndarray, ndarray]:
     """
     Main regridding function for the nearest distance option
     some input just for handling island-like points
-
     Args:
-        distances(numpy.ndarray):
+        distances:
             distnace array from each target grid point to its source grid points
-        indexes(numpy.ndarray):
-            array of source grid point number for each target grid points
-        surface_type_mask(numpy.ndarray):
-            numpy ndarray of bool, true if source points' surface type matches target point's
-        in_latlons(numpy.ndarray):
-            tource points's latitude-longitudes
-        out_latlons(numpy.ndarray):
-            target points's latitude-longitudes
-        in_classified(numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified(numpy.ndarray):
-            land_sea type for terget grid points (land =>True)
-        vicinity (float32):
+        indexes:
+            Source grid point indexes for each target grid point
+        surface_type_mask:
+            Boolean true if source point type matches target point type
+        in_latlons:
+            Source points's latitude-longitudes
+        out_latlons:
+            Target points's latitude-longitudes
+        in_classified:
+            Land/sea type for source grid points (land -> True)
+        out_classified:
+            Land/sea type for target grid points (land -> True)
+        vicinity:
             radius of specified searching domain (unit: m)
-
-    Return:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-             distances: updated distnace array from each target grid point to its source grid points
-             indexes: updated array of four source grid point number for each target grid points
+    Returns:
+        Updated indexes - source grid point number for all target grid points.
+        Updated distances - array from each target grid point to its source grid points.
  
     """
-
     # Check if there are output points with mismatched surface types
     matched_nearby_points_count = np.count_nonzero(surface_type_mask, axis=1)
     points_with_mismatches = (np.where(matched_nearby_points_count < 4))[0]
@@ -120,20 +119,18 @@ def nearest_with_mask_regrid(
     return masked_distances, indexes
 
 
-def nearest_regrid(distances, indexes, in_values):
+def nearest_regrid(distances: ndarray, indexes: ndarray, in_values: ndarray) -> ndarray:
     """
     Main regridding function for the nearest distance option
-
     Args:
-        distances(numpy.ndarray):
-            distnace array from each target grid point to its source grid points
-        indexes(numpy.ndarray):
-            array of source grid point number for each target grid points
-        in_values(numpy.ndarray):
-            input values (multidimensional, reshaped in function _reshape_data_cube)
-
+        distances:
+            Distance from each target grid point to its source grid points
+        indexes:
+             Source grid point indexes for each target grid point
+        in_values:
+            Input values with spatial dimensions flattened
     Returns:
-        numpy.ndarray: output values (multidimensional)
+        Regridded output values with spatial dimensions flattened
     """
     min_index = np.argmin(distances, axis=1)
     index0 = np.arange(min_index.shape[0])
@@ -143,41 +140,40 @@ def nearest_regrid(distances, indexes, in_values):
 
 
 def update_nearest_points(
-    points_with_mismatches,
-    in_latlons,
-    out_latlons,
-    indexes,
-    distances,
-    surface_type_mask,
-    in_classified,
-    out_classified,
-):
+    points_with_mismatches: ndarray,
+    in_latlons: ndarray,
+    out_latlons: ndarray,
+    indexes: ndarray,
+    distances: ndarray,
+    surface_type_mask: ndarray,
+    in_classified: ndarray,
+    out_classified: ndarray,
+) -> Tuple[ndarray, ndarray, ndarray]:
     """
-    updating nearest source points and distances/surface_type for selective target points
-
+    Update nearest source points and distances/surface_type to take into account
+    surface type of nearby points.
     Args:
-        points_with_mismatches(numpy.ndarray):
-            selected target points which will use Inverse Distance Weighting(idw) approach
-        in_latlons(numpy.ndarray):
+        points_with_mismatches:
+            Selected target points which will use Inverse Distance Weighting
+            (idw) approach. These points will be processed by this function.
+        in_latlons:
             Source points's latitude-longitudes
-        out_latlons(numpy.ndarray):
+        out_latlons:
             Target points's latitude-longitudes
-        indexes(numpy.ndarray):
-            array of source grid point number for all target grid points
-        distances(numpy.ndarray):
-            distnace array from each target grid point to its source grid points
-        surface_type_mask(numpy.ndarray)):
-            numpy ndarray of bool, true if source point type matches target point type
-        in_classified(numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified(numpy.ndarray):
-            land_sea type for terget grid points (land =>True)
-
+        indexes:
+             Source grid point indexes for each target grid point
+        distances:
+            Distance from each target grid point to its source grid points
+        surface_type_mask:
+            Boolean true if source point type matches target point type
+        in_classified:
+            Land/sea type for source grid points (land -> True)
+        out_classified:
+            Land/sea type for target grid points (land -> True)
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-            updated Indexes - source grid point number for all target grid points.
-            updated surface_type_mask - matching info between source/target point types
-            updated distnace - array from each target grid point to its source grid points
+        Updated indexes - source grid point number for all target grid points.
+        Updated surface_type_mask - matching info between source/target point types.
+        Updated distances - array from each target grid point to its source grid points.
     """
     # Gather output points with mismatched surface type and find four nearest input
     # points via KDtree
@@ -199,43 +195,42 @@ def update_nearest_points(
 
 
 def lakes_islands(
-    lake_island_indexes,
-    indexes,
-    surface_type_mask,
-    in_latlons,
-    out_latlons,
-    in_classified,
-    out_classified,
-    vicinity,
-):
+    lake_island_indexes: ndarray,
+    indexes: ndarray,
+    surface_type_mask: ndarray,
+    in_latlons: ndarray,
+    out_latlons: ndarray,
+    in_classified: ndarray,
+    out_classified: ndarray,
+    vicinity: float,
+) -> Tuple[ndarray, ndarray]:
     """
-    updating source points and weighting for 4-unmatching-source-point cases
-    this function searching nearest 8 points to check if any matching point exists
+    Updating source points and weighting for 4-unmatching-source-point
+    cases - water surrounded by land or land surrounded by water.
+    This function searches nearest 8 points to check if any matching point exists.
     Note that a similar function can be found in bilinear.py for bilinear
     regridding rather than nearest neighbour regridding.
-
     Args:
-        lake_island_indexes (numpy.ndarray):
-            indexes of points which are lakes/islands surrounded by mismatched surface type
-        in_latlons (numpy.ndarray):
-            tource points's latitude-longitudes
-        out_latlons (numpy.ndarray):
-            target points's latitude-longitudes
-        surface_type_mask (numpy.ndarray)):
-            numpy ndarray of bool, true if source point type matches target point type
-        indexes (numpy.ndarray):
-            array of source grid point number for all target grid points
-        in_classified (numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified (numpy.ndarray):
-            land_sea type for target grid points (land =>True)
-        vicinity (float):
+        lake_island_indexes:
+            Indexes of points which are lakes/islands surrounded by mismatched surface type.
+            These points will be processed by this function.
+        in_latlons:
+            Source points's latitude-longitudes
+        out_latlons:
+            Target points's latitude-longitudes
+        surface_type_mask:
+            Boolean true if source point type matches target point type
+        indexes:
+            Source grid point indexes for each target grid point
+        in_classified:
+            Land/sea type for source grid points (land -> True)
+        out_classified:
+            Land/sea type for target grid points (land -> True)
+        vicinity:
             Radius of vicinity to search for a matching surface type, in metres
-
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            updated Indexes - source grid point number for all target grid points.
-            updated surface_type_mask - matching info between source/target point types
+        Updated indexes - source grid point number for all target grid points.
+        Updated surface_type_mask - matching info between source/target point types.
     """
 
     out_latlons_updates = out_latlons[lake_island_indexes]

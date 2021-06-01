@@ -31,21 +31,24 @@
 """
 Grid handling for regridding
 """
+from typing import List, Tuple, Union
 
 import iris
 import numpy as np
 from iris.cube import Cube
+from numpy import ndarray
+from numpy.ma.core import MaskedArray
 from scipy.interpolate import RegularGridInterpolator
 
 from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
 
 
-def calculate_input_grid_spacing(cube_in):
+def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
     """
     calculate grid spacing in latitude and logitude
     check if input source grid is on even-spacing, ascending lat/lon system
     Args:
-         cube_in (iris.cube.Cube):
+         cube_in:
             input source cube
             
     Returns:
@@ -68,30 +71,25 @@ def calculate_input_grid_spacing(cube_in):
     return lat_spacing, lon_spacing
 
 
-def get_cube_coord_names(cube):
+def get_cube_coord_names(cube: Cube) -> List[str]:
     """
     Get all coordinate names from a cube
-
     Args:
-         cube (iris.cube.Cube):
-            input cube
-
-    Return:
-        List[str]:
-            List of coordinate names
+        cube:
+            Input cube
+    Returns:
+        List of coordinate names
     """
     return [coord.standard_name for coord in cube.dim_coords]
 
 
-def latlon_names(cube):
+def latlon_names(cube: Cube) -> Tuple[str, str]:
     """
     Identify the names of the latitude and longitude dimensions of cube
-
     Args:
-        cube (iris.cube.Cube):
-            input cube
-
-    Return:
+        cube:
+            Input cube
+    Returns:
         str: names of latitude and longitude
     """
     lats_name = cube.coord(axis="y").standard_name
@@ -99,17 +97,14 @@ def latlon_names(cube):
     return lats_name, lons_name
 
 
-def latlon_from_cube(cube):
+def latlon_from_cube(cube: Cube) -> ndarray:
     """
     Produce an array of latitude-longitude coordinates used by an Iris cube
-
     Args:
-       cube(iris.cube.Cube):
-           cube information
-
-    Return:
-       numpy.ndarray:
-           latitude-longitude pairs (N x 2)
+       cube:
+           Cube with spatial coords
+    Returns:
+       Latitude-longitude pairs (N x 2)
     """
     lats_name, lons_name = latlon_names(cube)
     lats_data = cube.coord(lats_name).points
@@ -120,27 +115,28 @@ def latlon_from_cube(cube):
 
 
 def unflatten_spatial_dimensions(
-    regrid_result, cube_out_mask, in_values, lats_index, lons_index
-):
+    regrid_result: ndarray,
+    cube_out_mask: Cube,
+    in_values: ndarray,
+    lats_index: int,
+    lons_index: int,
+) -> Union[ndarray, MaskedArray]:
     """
     Reshape numpy array regrid_result from (lat*lon,...) to (....,lat,lon)
     or from (projy*projx,...) to (...,projy,projx)
-
     Args:
-        regrid_result (numpy.ndarray):
-            array of regridded result in (lat*lon,....) or (projy*projx,...)
-        cube_out_mask (iris.cube.Cube):
-            target grid cube (for getting grid dimension here)
-        in_values (numpy.ndarray):
-            reshaped source data (in _reshape_data_cube)
-        lats_index(int):
-            index of lats or projy coord in reshaped array
-        lons_index(int):
-            index of lons or projx coord in reshaped array
-
+        regrid_result:
+            Array of regridded result in (lat*lon,....) or (projy*projx,...)
+        cube_out_mask:
+            Target grid cube (for getting grid dimension here)
+        in_values:
+            Reshaped source data (in _reshape_data_cube)
+        lats_index:
+            Index of lats or projy coord in reshaped array
+        lons_index:
+            Index of lons or projx coord in reshaped array
     Returns:
-        Union[numpy.ndarray, numpy.ma.core.MaskedArray]:
-            Reshaped data array
+        Reshaped data array
     """
     cube_out_dim0 = cube_out_mask.coord(axis="y").shape[0]
     cube_out_dim1 = cube_out_mask.coord(axis="x").shape[0]
@@ -152,22 +148,18 @@ def unflatten_spatial_dimensions(
     return regrid_result
 
 
-def flatten_spatial_dimensions(cube):
+def flatten_spatial_dimensions(
+    cube: Cube,
+) -> Tuple[Union[ndarray, MaskedArray], int, int]:
     """
     Reshape data cube from (....,lat,lon) into data (lat*lon,...)
-
     Args:
-        cube (iris.cube.Cube):
-            original data cube
-
+        cube:
+            Original data cube
     Returns:
-        in_values(numpy.ndarray or numpy.ma.core.MaskedArray)
-            Reshaped data array
-        lats_index,lons_index (int):
-            lattitude/logitude indexes in cube coord.
+        Reshaped data array, indexes of latitude and longitude cube coords
     """
     in_values = cube.data
-    coord_names = get_cube_coord_names(cube)
     lats_name, lons_name = latlon_names(cube)
     lats_index = cube.coord_dims(lats_name)[0]
     lons_index = cube.coord_dims(lons_name)[0]
@@ -182,16 +174,13 @@ def flatten_spatial_dimensions(cube):
     return in_values, lats_index, lons_index
 
 
-def classify_output_surface_type(cube_out_mask):
+def classify_output_surface_type(cube_out_mask: Cube) -> ndarray:
     """
     Classify surface types of target grid points based on a binary True/False land mask
-
     Args:
-        cube_out_mask (iris.cube.Cube):
+        cube_out_mask:
             land_sea mask information cube for target grid (land=>1)
-
-    Return:
-        numpy.ndarray:
+    Returns:
         1D land-sea mask information for 1D-ordered target grid points
     """
     # cube y-axis => latitude or projection-y
@@ -201,20 +190,20 @@ def classify_output_surface_type(cube_out_mask):
     return out_classified
 
 
-def classify_input_surface_type(cube_in_mask, classify_latlons):
+def classify_input_surface_type(
+    cube_in_mask: Cube, classify_latlons: ndarray
+) -> np.bool_:
     """
     Classify surface types of source grid points based on a binary True/False land mask
     cube_in_mask's grid could be different from input source grid of NWP results
-
     Args:
-        cube_in_mask (iris.cube.Cube):
-            land_sea mask information cube for input source grid(land=>1)
+        cube_in_mask:
+            land_sea mask information cube for input source grid (land=>1)
             should in GeogCS's lats/lons coordinate system
-        classify_latlons(numpy.ndarray):
+        classify_latlons:
             latitude and longitude source grid points to classify (N x 2)
-
     Returns:
-        numpy.ndarray: classifications (N) for 1D-ordered source grid points
+        Classifications (N) for 1D-ordered source grid points
     """
     in_land_mask = cube_in_mask.data
     lats_name, lons_name = latlon_names(cube_in_mask)
@@ -232,22 +221,21 @@ def classify_input_surface_type(cube_in_mask, classify_latlons):
     return is_land
 
 
-def similar_surface_classify(in_is_land, out_is_land, nearest_in_indexes):
+def similar_surface_classify(
+    in_is_land: ndarray, out_is_land: ndarray, nearest_in_indexes: ndarray
+) -> ndarray:
     """
     Classify surface types as matched (True) or unmatched(False) between target points
     and their source point
-
     Args:
-        in_is_land (numpy.ndarray):
+        in_is_land:
             source point classifications (N)
-        out_is_land (numpy.ndarray):
+        out_is_land:
             target point classifications (M)
-        nearest_in_indexes (numpy.ndarray)
+        nearest_in_indexes:
             indexes of input points nearby output points (M x K)
-
     Return:
-        numpy.ndarray:
-            Boolean true if input surface type matches output or no matches (M x K)
+        Boolean true if input surface type matches output or no matches (M x K)
     """
     k = nearest_in_indexes.shape[1]
     out_is_land_bcast = np.broadcast_to(
@@ -265,19 +253,18 @@ def similar_surface_classify(in_is_land, out_is_land, nearest_in_indexes):
     return nearest_same_type
 
 
-def slice_cube_by_domain(cube_in, output_domain):
+def slice_cube_by_domain(
+    cube_in: Cube, output_domain: Tuple[float, float, float, float]
+) -> Cube:
     """
-    extract cube domain to be consistent as cube_reference's domain
-
+    Extract cube domain to be consistent as cube_reference's domain
     Args:
-        cube_in (iris.cube.Cube):
+        cube_in:
             input data cube to be sliced
-        output_domain(tuple):
-            lat_max,lon_max,lat_min,lon_min
-
+        output_domain:
+            lat_max, lon_max, lat_min, lon_min
     Returns:
-        cube_in (iris.cube.Cube):
-            data cube after slicing
+        Data cube after slicing
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
     lat_d, lon_d = calculate_input_grid_spacing(cube_in)
@@ -293,20 +280,20 @@ def slice_cube_by_domain(cube_in, output_domain):
     return cube_in
 
 
-def slice_mask_cube_by_domain(cube_in, cube_in_mask, output_domain):
+def slice_mask_cube_by_domain(
+    cube_in: Cube, cube_in_mask: Cube, output_domain: Tuple[float, float, float, float]
+) -> Tuple[Cube, Cube]:
     """
     extract cube domain to be consistent as cube_reference's domain
-
     Args:
-        cube_in (iris.cube.Cube):
-            input data cube to be sliced
-        cube_in_mask (iris.cube.Cube):
-            input maskcube to be sliced
-        output_domain (Tuple[float, float, float, float]):
+        cube_in:
+            Input data cube to be sliced
+        cube_in_mask:
+            Input mask cube to be sliced
+        output_domain:
             lat_max, lon_max, lat_min, lon_min
     Returns:
-        Tuple[iris.cube.cube, iris.cube.Cube]:
-            data cube after slicing, mask cube after slicing
+        Data cube after slicing, mask cube after slicing
     """
     lat_max, lon_max, lat_min, lon_min = output_domain
     lat_d_1, lon_d_1 = calculate_input_grid_spacing(cube_in)
@@ -326,24 +313,21 @@ def slice_mask_cube_by_domain(cube_in, cube_in_mask, output_domain):
     return cube_in, cube_in_mask
 
 
-def create_regrid_cube(cube_array, cube_in, cube_out):
+def create_regrid_cube(cube_array: ndarray, cube_in: Cube, cube_out: Cube) -> Cube:
     """
-    create a regridded cube from regridded value(numpy array)
-    source cube cube_in must be in  GeogCS's lats/lons system
-    tergat cube_out either lats/lons system or LambertAzimuthalEqualArea system
-
+    Create a regridded cube from regridded value(numpy array).
+    Source cube_in must be in regular latitude/longitude coordinates.
+    Target cube_out can be either regular latitude/longitude grid or equal area.
     Args:
-        cube_array (numpy ndarray):
+        cube_array:
             regridded value (multidimensional)
-        cube_in (iris.cube.Cube):
+        cube_in:
             source cube (for value's non-grid dimensions and attributes)
-        cube_out (iris.cube.Cube):
+        cube_out:
             target cube (for target grid information)
-
     Returns:
-         iris.cube.Cube: regridded result cube
+         Regridded result cube
     """
-
     # generate a cube based on new data and cube_in
     cube_v = Cube(
         cube_array,
