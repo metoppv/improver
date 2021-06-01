@@ -85,7 +85,7 @@ class RegridWithLandSeaMask(BasePlugin):
         Args:
             regrid_mode:
                 Mode of interpolation in regridding.  Valid options are "bilinear-2",
-                "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2". 
+                "nearest-2","nearest-with-mask-2" and "bilinear-with-mask-2".
                 The last two options trigger adjustment of regridded points to match
                 source points in terms of land / sea type.
             vicinity_radius:
@@ -192,7 +192,6 @@ class RegridWithLandSeaMask(BasePlugin):
         elif BILINEAR in self.regrid_mode:
             # Assume all four nearby points are same surface type and calculate default weights
             # These will be updated for mask/mismatched surface type further below
-            # pylint: disable=unsubscriptable-object
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
                 index_range, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing,

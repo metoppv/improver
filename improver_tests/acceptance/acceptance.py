@@ -335,7 +335,6 @@ def compare(
         None
     """
     # don't show this function in pytest tracebacks
-    # pylint: disable=unused-variable
     __tracebackhide__ = True
     assert output_path.is_absolute()
     assert kgo_path.is_absolute()
@@ -371,23 +370,19 @@ def compare(
 
 
 # Pytest decorator to skip tests if KGO is not available for use
-# pylint: disable=invalid-name
 skip_if_kgo_missing = pytest.mark.skipif(not kgo_exists(), reason="KGO files required")
 
 # Pytest decorator to skip tests if statsmodels is available
-# pylint: disable=invalid-name
 skip_if_statsmodels = pytest.mark.skipif(
     statsmodels_available(), reason="statsmodels library is available"
 )
 
 # Pytest decorator to skip tests if statsmodels is not available
-# pylint: disable=invalid-name
 skip_if_no_statsmodels = pytest.mark.skipif(
     not statsmodels_available(), reason="statsmodels library is not available"
 )
 
 # Pytest decorator to skip tests if iris_nimrod_patch is not available
-# pylint: disable=invalid-name
 skip_if_no_iris_nimrod_patch = pytest.mark.skipif(
     not iris_nimrod_patch_available(),
     reason="iris_nimrod_patch library is not available",

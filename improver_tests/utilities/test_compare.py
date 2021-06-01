@@ -512,11 +512,8 @@ def test_compare_data_type(dummy_nc, tchange):
     # netcdf API does not have the concept of deleting a variable
     for key in expected_ds.ncattrs():
         actual_ds.setncattr(key, expected_ds.getncattr(key))
-    # pylint: disable=no-member
     for dim_name in expected_ds.dimensions.keys():
-        # pylint: disable=unsubscriptable-object
         actual_ds.createDimension(dim_name, expected_ds.dimensions[dim_name].size)
-    # pylint: disable=no-member
     for var_name in expected_ds.variables.keys():
         if var_name == tchange:
             continue

@@ -50,13 +50,13 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
     Args:
          cube_in:
             input source cube
-            
+
     Returns:
          Grid spacing in latitude and logitude (unit: degree)
-    
+
     Raises:
          ValueError: if input grid is not on a latitude/longitude system or
-         Input grid coordinates are not ascending.       
+         Input grid coordinates are not ascending.
     """
     # check if in lat/lon system
     if lat_lon_determine(cube_in) is not None:

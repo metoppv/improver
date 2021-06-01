@@ -444,7 +444,6 @@ class Test_process(IrisTest):
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
 
-        fp_points = [2, 3, 4]
         radii = [5600, 9500]
         lead_times = [2, 4]
         neighbourhood_method = CircularNeighbourhood()

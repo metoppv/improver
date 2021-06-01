@@ -45,13 +45,34 @@ run_cli = acc.run_cli(CLI)
 
 def test_regrid_basic(tmp_path):
     """Test basic regridding"""
-    # KGO for this test is the same as test_regrid_check_landmask below
+    # KGO for this test (default: bilinear) is the same as test_regrid_bilinear_2
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "basic/kgo.nc"
     input_path = kgo_dir / "global_cutout.nc"
     target_path = kgo_dir / "ukvx_grid.nc"
     output_path = tmp_path / "output.nc"
     args = [input_path, target_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_regrid_bilinear_2(tmp_path):
+    """Test bilinear-2 regridding"""
+    # KGO for this test is the same as test_regrid_basic
+    # bilinear-2 regridding produces the same result as Iris/bilinear regridding
+    kgo_dir = acc.kgo_root() / "regrid"
+    kgo_path = kgo_dir / "basic/kgo.nc"
+    input_path = kgo_dir / "global_cutout.nc"
+    target_path = kgo_dir / "ukvx_grid.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        target_path,
+        "--output",
+        output_path,
+        "--regrid-mode",
+        "bilinear-2",
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -127,7 +148,6 @@ def test_regrid_nearest_landmask(tmp_path):
 @pytest.mark.slow
 def test_regrid_check_landmask(tmp_path):
     """Test land sea mask output matches other test"""
-    # KGO for this test is the same as test_basic above
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "nearest/kgo.nc"
     input_path = kgo_dir / "global_cutout.nc"
@@ -227,7 +247,7 @@ def test_regrid_nearest_2_multi_realization(tmp_path):
 
 
 def test_regrid_bilinear_2_multi_realization(tmp_path):
-    """Test bilinear-2 neighbour regridding"""
+    """Test bilinear-2 regridding"""
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "bilinear_2/kgo_multi_realization.nc"
     input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"

@@ -423,7 +423,8 @@ class TimezoneExtraction(PostProcessingPlugin):
             [expected_coord in cube_coords for expected_coord in expected_coords]
         ):
             raise ValueError(
-                f"Expected coords on input_cube: time, y, x ({expected_coords}). Found {cube_coords}"
+                f"Expected coords on input_cube: time, y, x ({expected_coords})."
+                f"Found {cube_coords}"
             )
         enforce_coordinate_ordering(input_cube, ["time"], anchor_start=False)
         self.timezone_cube = timezone_cube.copy()
@@ -456,7 +457,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         ]
         if input_time_points != output_times:
             raise ValueError(
-                f"Time coord on input cube does not match required times. Expected\n"
+                "Time coord on input cube does not match required times. Expected\n"
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in output_times])
                 + "\nFound:\n"
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in input_time_points])

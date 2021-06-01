@@ -48,7 +48,7 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "time-lagged-ens/same_validity"
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
-        kgo_dir / f"20180924T1300Z-PT{l:04}H00M-{T2M}.nc" for l in range(5, 11)
+        kgo_dir / f"20180924T1300Z-PT{hr:04}H00M-{T2M}.nc" for hr in range(5, 11)
     ]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]

@@ -200,7 +200,6 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coord)[0], datetime(2017, 12, 1, 14, 0)
         )
-        # pylint: disable=unsubscriptable-object
         self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
         self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
 
@@ -216,7 +215,6 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coord)[0], datetime(2017, 12, 1, 14, 0)
         )
-        # pylint: disable=unsubscriptable-object
         self.assertEqual(time_coord.bounds[0][0], time_coord.points[0] - 3600)
         self.assertEqual(time_coord.bounds[0][1], time_coord.points[0])
 
@@ -430,10 +428,13 @@ class Test_set_up_variable_cube(IrisTest):
             _ = set_up_variable_cube(data_5d)
 
     def test_error_not_enough_dimensions(self):
-        """Test error is raised if input cube 3 dimensions and both realizations and height_levels provided"""
+        """Test error is raised if 3D input cube and both realizations and heights provided"""
         realizations = [0, 3, 4]
         height_levels = [1.5, 3.0, 4.5]
-        msg = "Input data must have 4 dimensions to add both realization and height coordinates: got 3"
+        msg = (
+            "Input data must have 4 dimensions to add both realization "
+            "and height coordinates: got 3"
+        )
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(
                 self.data_3d, realizations=realizations, height_levels=height_levels

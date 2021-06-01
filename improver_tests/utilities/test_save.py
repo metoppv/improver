@@ -111,7 +111,6 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath)
 
         data = Dataset(self.filepath, mode="r")
-        # pylint: disable=unsubscriptable-object
         filters = data.variables["air_temperature"].filters()
 
         self.assertTrue(filters["zlib"])
@@ -123,7 +122,6 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath, compression_level=3)
 
         data = Dataset(self.filepath, mode="r")
-        # pylint: disable=unsubscriptable-object
         filters = data.variables["air_temperature"].filters()
 
         self.assertTrue(filters["zlib"])
@@ -134,7 +132,6 @@ class Test_save_netcdf(IrisTest):
         save_netcdf(self.cube, self.filepath, compression_level=0)
 
         data = Dataset(self.filepath, mode="r")
-        # pylint: disable=unsubscriptable-object
         filters = data.variables["air_temperature"].filters()
 
         self.assertFalse(filters["zlib"])
@@ -283,7 +280,6 @@ def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
 
     # check that netcdf metadata has been set
     data = Dataset(filepath, mode="r")
-    # pylint: disable=unsubscriptable-object
     assert data.variables["air_temperature"].least_significant_digit == lsd
 
     file_cube = load_cube(str(filepath))

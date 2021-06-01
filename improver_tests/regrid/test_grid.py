@@ -152,7 +152,6 @@ class Test_calculate_input_grid_spacing(IrisTest):
     def setUp(self):
         """Set up a lat/lon cube"""
         self.unit = "degrees"
-        self_spacing = 10.0
         self.lat_lon_cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
         self.equal_area_cube = set_up_variable_cube(
             np.ones((5, 5), dtype=np.float32), spatial_grid="equalarea"

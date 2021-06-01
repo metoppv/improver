@@ -65,7 +65,7 @@ def emos_coefficient_fixture():
     y_coord, x_coord = construct_yx_coords(1, 1, "equalarea")
     cube = iris.cube.Cube(
         0,
-        long_name=f"emos_coefficient_alpha",
+        long_name="emos_coefficient_alpha",
         units="K",
         dim_coords_and_dims=None,
         aux_coords_and_dims=[(y_coord, None), (x_coord, None)],
@@ -147,7 +147,7 @@ def precip_accum_fixture():
     cube.add_cell_method(iris.coords.CellMethod(method="sum", coords="time"))
     for coord in ["time", "forecast_period"]:
         cube.coord(coord).bounds = np.array(
-            [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0],],
+            [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0]],
             dtype=cube.coord(coord).dtype,
         )
     return cube

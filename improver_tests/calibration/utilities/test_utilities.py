@@ -655,8 +655,8 @@ class Test_check_forecast_consistency(IrisTest):
         forecasts = iris.cube.CubeList([self.forecast1, forecast2]).merge_cube()
 
         msg = (
-            "Forecasts have been provided with differing forecast periods "
-            "\[10800 14400\]"
+            r"Forecasts have been provided with differing forecast periods "
+            r"\[10800 14400\]"
         )
 
         with self.assertRaisesRegex(ValueError, msg):

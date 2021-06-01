@@ -83,14 +83,14 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", desired_units="Celsius"
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
-            self.expected_mean_predictor_norm, self.historic_temperature_forecast_cube,
+            self.expected_mean_pred_norm, self.historic_temperature_forecast_cube,
         )
 
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", point_by_point=True, desired_units="Celsius"
         )
         point_by_point_predictor = np.stack(
-            [self.expected_mean_predictor_norm] * 9
+            [self.expected_mean_pred_norm] * 9
         ).T.reshape(4, 3, 3)
         self.coeffs_from_mean_point_by_point = estimator.create_coefficients_cubelist(
             point_by_point_predictor, self.historic_temperature_forecast_cube,

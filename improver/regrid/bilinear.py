@@ -75,8 +75,7 @@ def basic_indexes(
     lon_spacing: float,
 ) -> ndarray:
     """
-    locating source points for each target point
- 
+    Calculate the surrounding source point indexes for given target points
     Args:
         in_latlons:
             source points's latitude-longitudes
@@ -273,7 +272,6 @@ def adjust_for_surface_mismatch(
         with specified distance limit (input) using KD tree, and then check if there are any
         same-type source points. If yes, pick up the points of the same type, and do IDW
         interpolation. If no, ignore surface type and just do normal bilinear interpolation
- 
     Args:
         in_latlons:
             source points's latitude-longitudes
@@ -572,7 +570,6 @@ def lakes_islands(
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]
-    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     # if no further processing can be done, return early
@@ -582,7 +579,6 @@ def lakes_islands(
     # Where a same surface type match has been found among the 8 nearest inputs, apply
     # inverse distance weighting with those matched points
     new_distances = np.zeros([count_of_points_with_match, NUM_NEIGHBOURS])
-    # pylint: disable=unsubscriptable-object
     for point_idx in range(points_with_match.shape[0]):
         match_indexes = lake_island_indexes[points_with_match[point_idx]]
         # Reset all input weight and surface type to mismatched
