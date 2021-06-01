@@ -52,8 +52,9 @@ def nearest_with_mask_regrid(
     vicinity: float,
 ) -> Tuple[ndarray, ndarray]:
     """
-    Main regridding function for the nearest distance option
-    some input just for handling island-like points
+    Main regridding function for the nearest distance option.
+    some input just for handling island-like points.
+
     Args:
         distances:
             distnace array from each target grid point to its source grid points
@@ -71,9 +72,11 @@ def nearest_with_mask_regrid(
             Land/sea type for target grid points (land -> True)
         vicinity:
             radius of specified searching domain (unit: m)
+
     Returns:
         Updated indexes - source grid point number for all target grid points.
         Updated distances - array from each target grid point to its source grid points.
+
     """
     # Check if there are output points with mismatched surface types
     matched_nearby_points_count = np.count_nonzero(surface_type_mask, axis=1)
@@ -120,7 +123,8 @@ def nearest_with_mask_regrid(
 
 def nearest_regrid(distances: ndarray, indexes: ndarray, in_values: ndarray) -> ndarray:
     """
-    Main regridding function for the nearest distance option
+    Main regridding function for the nearest neighbour option.
+
     Args:
         distances:
             Distance from each target grid point to its source grid points
@@ -128,6 +132,7 @@ def nearest_regrid(distances: ndarray, indexes: ndarray, in_values: ndarray) -> 
              Source grid point indexes for each target grid point
         in_values:
             Input values with spatial dimensions flattened
+
     Returns:
         Regridded output values with spatial dimensions flattened
     """
@@ -151,6 +156,7 @@ def update_nearest_points(
     """
     Update nearest source points and distances/surface_type to take into account
     surface type of nearby points.
+
     Args:
         points_with_mismatches:
             Selected target points which will use Inverse Distance Weighting
@@ -160,7 +166,7 @@ def update_nearest_points(
         out_latlons:
             Target points's latitude-longitudes
         indexes:
-             Source grid point indexes for each target grid point
+            Source grid point indexes for each target grid point
         distances:
             Distance from each target grid point to its source grid points
         surface_type_mask:
@@ -169,6 +175,7 @@ def update_nearest_points(
             Land/sea type for source grid points (land -> True)
         out_classified:
             Land/sea type for target grid points (land -> True)
+
     Returns:
         Updated indexes - source grid point number for all target grid points.
         Updated surface_type_mask - matching info between source/target point types.
@@ -209,6 +216,7 @@ def lakes_islands(
     This function searches nearest 8 points to check if any matching point exists.
     Note that a similar function can be found in bilinear.py for bilinear
     regridding rather than nearest neighbour regridding.
+
     Args:
         lake_island_indexes:
             Indexes of points which are lakes/islands surrounded by mismatched surface type.
@@ -227,6 +235,7 @@ def lakes_islands(
             Land/sea type for target grid points (land -> True)
         vicinity:
             Radius of vicinity to search for a matching surface type, in metres
+
     Returns:
         Updated indexes - source grid point number for all target grid points.
         Updated surface_type_mask - matching info between source/target point types.
@@ -265,6 +274,7 @@ def lakes_islands(
     # From the expansion to 8 nearby input points, a same surface type input has been found
     # Update the index and surface type mask to use the newly found same surface type input point
     points_with_match = (np.where(count_matching_surface > 0))[0]
+    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     for point_idx in range(count_of_points_with_match):

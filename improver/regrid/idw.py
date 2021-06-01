@@ -56,7 +56,8 @@ def inverse_distance_weighting(
     out_classified: ndarray,
 ) -> Tuple[ndarray, ndarray, ndarray]:
     """
-    Locating source points and calculating inverse distance weights for selective target points
+    Locating source points and calculating inverse distance weights for selective target points.
+
     Args:
         idw_out_indexes:
             selected target points which will use Inverse Distance Weighting(idw) approach
@@ -72,6 +73,7 @@ def inverse_distance_weighting(
             land_sea type for source grid points (land =>True)
         out_classified:
             land_sea type for target grid points (land =>True)
+
     Returns:
         updated Indexes - source grid point number for all target grid points.
         updated weights - array from each target grid point to its source grid points
@@ -128,7 +130,8 @@ def nearest_input_pts(
 ) -> Tuple[ndarray, ndarray]:
     """
     Find k nearest source (input) points to each target (output)
-    point, using a KDtree
+    point, using a KDtree.
+
     Args:
         in_latlons:
             Source grid points' latitude-longitudes (N x 2)
@@ -136,6 +139,7 @@ def nearest_input_pts(
             Target grid points' latitude-longitudes (M x 2)
         k:
             Number of points surrounding each output point
+
     Return:
         Distances from target grid point to source grid points and indexes
         of those points (M x K)
@@ -160,11 +164,13 @@ def ecef_coords(lats: ndarray, lons: ndarray) -> Tuple[ndarray, ndarray, ndarray
     """
     Transform latitude-longitude coordinates to earth centred, earth fixed
     cartesian XYZ coordinates.
+
     Args:
         lats:
             latitude coordinates
         lons:
             longitude coordinates
+
     Returns:
          X-Y-Z transformed coordinates
     """

@@ -75,6 +75,7 @@ class RegridLandSea(BasePlugin):
     ):
         """
         Initialise regridding parameters
+
         Args:
             regrid_mode:
                 Mode of interpolation in regridding.  Valid options are "bilinear",
@@ -112,6 +113,7 @@ class RegridLandSea(BasePlugin):
     ):
         """
         Regrid cube to target_grid, inherit grid attributes and update title
+
         Args:
             cube:
                 Cube to be regridded
@@ -125,6 +127,7 @@ class RegridLandSea(BasePlugin):
             regrid_mode:
                 "bilinear","nearest","nearest-with-mask",
                 "nearest-2","nearest-with-mask-2","bilinear-2","bilinear-with-mask-2"
+
         Returns:
             Regridded cube with updated attributes
         """
@@ -195,6 +198,7 @@ class RegridLandSea(BasePlugin):
     ):
         """
         Regrids cube onto spatial grid provided by target_grid
+
         Args:
             cube:
                 Cube to be regridded
@@ -205,6 +209,7 @@ class RegridLandSea(BasePlugin):
             regridded_title:
                 New value for the "title" attribute to be used after
                 regridding. If not set, a default value is used.
+
         Returns:
             Regridded cube with updated attributes
         """
@@ -233,6 +238,7 @@ class AdjustLandSeaPoints(BasePlugin):
     ):
         """
         Initialise class
+
         Args:
             extrapolation_mode:
                 Mode to use for extrapolating data into regions
@@ -258,6 +264,7 @@ class AdjustLandSeaPoints(BasePlugin):
         points in the vicinity, with the nearest matching point in the
         vicinity in the original nearest_cube.
         Updates self.output_cube.data
+
         Args:
             selector_val:
                 Value of mask to replace if needed.
@@ -315,6 +322,7 @@ class AdjustLandSeaPoints(BasePlugin):
         specified vicinity radius. Note that before calling this plugin the
         input land mask MUST be checked against the source grid, to ensure
         the grids match.
+
         Args:
             cube:
                 Cube of data to be updated (on same grid as output_land).
@@ -363,11 +371,13 @@ class AdjustLandSeaPoints(BasePlugin):
 def grid_contains_cutout(grid: Cube, cutout: Cube):
     """
     Check that a spatial cutout is contained within a given grid
+
     Args:
         grid:
             A cube defining a data grid
         cutout:
             The cutout to search for within the grid
+
     Returns:
         True if cutout is contained within grid, False otherwise
     """

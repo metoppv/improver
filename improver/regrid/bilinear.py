@@ -48,7 +48,8 @@ NUM_NEIGHBOURS = 4
 
 def apply_weights(indexes: ndarray, in_values: ndarray, weights: ndarray) -> ndarray:
     """
-    Apply bilinear weight of source points for target value
+    Apply bilinear weight of source points for target value.
+
     Args:
         indexes:
             array of source grid point number for target grid points
@@ -56,6 +57,7 @@ def apply_weights(indexes: ndarray, in_values: ndarray, weights: ndarray) -> nda
             array of source grid point weighting for target grid points
         in_values:
             input values (maybe multidimensional)
+
     Returns:
             Regridded values for target points
     """
@@ -75,7 +77,8 @@ def basic_indexes(
     lon_spacing: float,
 ) -> ndarray:
     """
-    Calculate the surrounding source point indexes for given target points
+    locating source points for each target point.
+
     Args:
         in_latlons:
             source points's latitude-longitudes
@@ -87,6 +90,7 @@ def basic_indexes(
             input grid latitude spacing (unit: degree)
         lon_spacing:
             input grid longitude spacing (unit: degree)
+
     Returns:
         Updated array of source grid point number for all target grid points.
         Array shape is (total number of target points, 4).
@@ -136,9 +140,10 @@ def adjust_boundary_indexes(
     indexes: ndarray,
 ) -> ndarray:
     """
-    adjust surrounding source point indexes for boundary target points
+    adjust surrounding source point indexes for boundary target points.
     it is required when maximum latitude and logitude are identical between
-    source and target grids
+    source and target grids.
+
     Args:
         in_lons_size:
             source grid's longitude dimension
@@ -154,6 +159,7 @@ def adjust_boundary_indexes(
             target points's latitude-longitudes
         indexes:
             Updated array of source grid point number for all target grid points
+
     Returns:
         Updated array of source grid point number for all target grid points.
         Array shape is (total number of target points, 4).
@@ -204,7 +210,8 @@ def basic_weights(
     lon_spacing: float,
 ) -> ndarray:
     """
-    calculate weighting for selecting target points using standard bilinear function
+    calculate weighting for selecting target points using standard bilinear function.
+
     Args:
         index_range:
             a list of target points
@@ -218,6 +225,7 @@ def basic_weights(
             input grid latitude spacing (unit: degree)
         lon_spacing:
             input grid longitude spacing (unit: degree)
+
     Returns:
         Weighting array of source grid point number for target grid points.
     """
@@ -261,17 +269,21 @@ def adjust_for_surface_mismatch(
 ) -> Tuple[ndarray, ndarray]:
     """
     Updating source points and weighting for mismatched-source-point cases.
+
     (1) triangle interpolation function is used for only one mismatched source point and
-        target point is within the triangle formed with three matched sourced point
+    target point is within the triangle formed with three matched sourced point
+
     (2) In one of 3 cases (a)one false source points, three true source points but the target
-        point is outside triangle (b)Two false source points, two true source points (c) three
-        false source points, one true source pointfor, find four surrounding source points
-        using KDtree, and regridding with inverse distance weighting(IDW) if matched source 
-        point is available
+    point is outside triangle (b)Two false source points, two true source points (c) three
+    false source points, one true source pointfor, find four surrounding source points
+    using KDtree, and regridding with inverse distance weighting(IDW) if matched source
+    point is available
+
     (3) In case of four mismatched source points(zero matched source point), Look up 8 points
-        with specified distance limit (input) using KD tree, and then check if there are any
-        same-type source points. If yes, pick up the points of the same type, and do IDW
-        interpolation. If no, ignore surface type and just do normal bilinear interpolation
+    with specified distance limit (input) using KD tree, and then check if there are any
+    same-type source points. If yes, pick up the points of the same type, and do IDW
+    interpolation. If no, ignore surface type and just do normal bilinear interpolation
+
     Args:
         in_latlons:
             source points's latitude-longitudes
@@ -295,6 +307,7 @@ def adjust_for_surface_mismatch(
             input grid latitude spacing (unit: degree)
         lon_spacing:
             input grid longitude spacing (unit: degree)
+
     Returns:
         updated array of source grid point index and weights for all
         target grid points
@@ -377,6 +390,7 @@ def one_mismatched_input_point(
     updating source points and weighting for one mismatched source-point cases.
     If target is not within the triangle formed by 3 matched-sourced-points,
     updating of weights is deferred to inverse-distance-weight method.
+
     Args:
         one_mismatch_indexes:
             selected target points which have 1 false source point
@@ -395,7 +409,8 @@ def one_mismatched_input_point(
         lat_spacing:
             input grid latitude spacing (unit: degree)
         lon_spacing:
-            input grid longitude spacing (unit: degree)    
+            input grid longitude spacing (unit: degree)
+
     Returns:
         Updated weights - array of source grid point weighting for target grid points.
         Excluded indexes - target points which are not handled in this function.
@@ -496,31 +511,33 @@ def lakes_islands(
     These are lakes (water surrounded by land) and islands (land surrounded by water).
     Note that a similar function can be found in nearest.py for nearest
     neighbour regridding rather than bilinear regridding.
+
     Args:
-        lake_island_indexes (numpy.ndarray):
+        lake_island_indexes:
             selected target points which have 4 false source points
-        in_latlons (numpy.ndarray):
+        in_latlons:
             tource points's latitude-longitudes
-        out_latlons (numpy.ndarray):
+        out_latlons:
             target points's latitude-longitudes
-        surface_type_mask (numpy.ndarray)):
+        surface_type_mask:
             numpy ndarray of bool, true if source point type matches target point type
-        indexes (numpy.ndarray):
+        indexes:
             array of source grid point number for all target grid points
-        weights (numpy.ndarray):
+        weights:
             array of source grid point weighting for all target grid points
-        in_classified (numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified (numpy.ndarray):
-            land_sea type for terget grid points (land =>True)
-        in_lons_size (int):
+        in_classified:
+            land_sea type for source grid points (land ->True)
+        out_classified:
+            land_sea type for terget grid points (land ->True)
+        in_lons_size:
             source grid's longitude dimension
-        vicinity (float32):
+        vicinity:
             radius of specified searching domain (unit: m)
         lat_spacing:
             input grid latitude spacing (unit: degree)
         lon_spacing:
-            input grid longitude spacing (unit: degree)    
+            input grid longitude spacing (unit: degree)
+
     Returns:
         updated indexes: source grid point number for all target grid points
         updated weights: source grid point weighting for all target grid points
@@ -570,6 +587,7 @@ def lakes_islands(
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]
+    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     # if no further processing can be done, return early
@@ -579,6 +597,7 @@ def lakes_islands(
     # Where a same surface type match has been found among the 8 nearest inputs, apply
     # inverse distance weighting with those matched points
     new_distances = np.zeros([count_of_points_with_match, NUM_NEIGHBOURS])
+    # pylint: disable=unsubscriptable-object
     for point_idx in range(points_with_match.shape[0]):
         match_indexes = lake_island_indexes[points_with_match[point_idx]]
         # Reset all input weight and surface type to mismatched
