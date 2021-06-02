@@ -60,24 +60,24 @@ def inverse_distance_weighting(
 
     Args:
         idw_out_indexes:
-            selected target points which will use Inverse Distance Weighting(idw) approach
+            Selected target points which will use Inverse Distance Weighting(idw) approach.
         in_latlons:
-            Source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            Target points's latitude-longitudes
+            Target points's latitude-longitudes.
         indexes:
-            array of source grid point number for all target grid points
+            Array of source grid point number for all target grid points.
         weights:
-            array of source grid point weighting for all target grid points
+            Array of source grid point weighting for all target grid points.
         in_classified:
-            land_sea type for source grid points (land =>True)
+            Land_sea type for source grid points (land ->True).
         out_classified:
-            land_sea type for target grid points (land =>True)
+            Land_sea type for target grid points (land ->True).
 
     Returns:
-        updated Indexes - source grid point number for all target grid points.
-        updated weights - array from each target grid point to its source grid points
-        output_points_no_match - special target points without matching source points
+        - Updated Indexes - source grid point number for all target grid points.
+        - Updated weights - array from each target grid point to its source grid points.
+        - Output_points_no_match - special target points without matching source points.
     """
 
     out_latlons_updates = out_latlons[idw_out_indexes]
@@ -134,15 +134,15 @@ def nearest_input_pts(
 
     Args:
         in_latlons:
-            Source grid points' latitude-longitudes (N x 2)
+            Source grid points' latitude-longitudes (N x 2).
         out_latlons:
-            Target grid points' latitude-longitudes (M x 2)
+            Target grid points' latitude-longitudes (M x 2).
         k:
-            Number of points surrounding each output point
+            Number of points surrounding each output point.
 
     Return:
-        Distances from target grid point to source grid points and indexes
-        of those points (M x K)
+        - Distances from target grid point to source grid points (M x K).
+        - Indexes of those source points (M x K).
     """
     # Convert input latitude and longitude to XYZ coordinates, then create KDtree
     in_x, in_y, in_z = ecef_coords(in_latlons[:, 0].flat, in_latlons[:, 1].flat)
@@ -167,12 +167,14 @@ def ecef_coords(lats: ndarray, lons: ndarray) -> Tuple[ndarray, ndarray, ndarray
 
     Args:
         lats:
-            latitude coordinates
+            Latitude coordinates.
         lons:
-            longitude coordinates
+            Longitude coordinates.
 
     Returns:
-         X-Y-Z transformed coordinates
+        - X transformed coordinates.
+        - Y transformed coordinates.
+        - Z transformed coordinates.
     """
     # Cartopy Geodetic and Geocentric both default to the WGS84 datum
     spherical_latlon_crs = Geodetic()

@@ -54,7 +54,7 @@ class RegridLandSea(BasePlugin):
     points are excluded from field regridding calculation for target points.
     For example, for regridding a field using nearest-neighbour approach with
     land-sea awareness, regridded land points always take values from a land
-    point on the source grid, and vice versa for sea points"""
+    point on the source grid, and vice versa for sea points."""
 
     REGRID_REQUIRES_LANDMASK = {
         "bilinear": False,
@@ -74,7 +74,7 @@ class RegridLandSea(BasePlugin):
         landmask_vicinity: float = 25000,
     ):
         """
-        Initialise regridding parameters
+        Initialise regridding parameters.
 
         Args:
             regrid_mode:
@@ -90,7 +90,7 @@ class RegridLandSea(BasePlugin):
                 land points set to one and sea points set to zero.  Required for
                 "nearest-with-mask" regridding option.
             landmask_vicinity:
-                Radius of vicinity to search for a coastline, in metres
+                Radius of vicinity to search for a coastline, in metres.
         """
         if regrid_mode not in self.REGRID_REQUIRES_LANDMASK:
             msg = "Unrecognised regrid mode {}"
@@ -110,7 +110,7 @@ class RegridLandSea(BasePlugin):
         target_grid: Cube,
         regridded_title: Optional[str],
         regrid_mode: str,
-    ):
+    ) -> Cube:
         """
         Regrid cube to target_grid, inherit grid attributes and update title
 
@@ -129,7 +129,7 @@ class RegridLandSea(BasePlugin):
                 "nearest-2","nearest-with-mask-2","bilinear-2","bilinear-with-mask-2"
 
         Returns:
-            Regridded cube with updated attributes
+            Regridded cube with updated attributes.
         """
         if regrid_mode in (
             "nearest-with-mask",
@@ -195,13 +195,13 @@ class RegridLandSea(BasePlugin):
 
     def process(
         self, cube: Cube, target_grid: Cube, regridded_title: Optional[str] = None
-    ):
+    ) -> Cube:
         """
-        Regrids cube onto spatial grid provided by target_grid
+        Regrids cube onto spatial grid provided by target_grid.
 
         Args:
             cube:
-                Cube to be regridded
+                Cube to be regridded.
             target_grid:
                 Data on the target grid. If regridding with mask, this cube
                 should contain land-sea mask data to be used in adjusting land
@@ -211,7 +211,7 @@ class RegridLandSea(BasePlugin):
                 regridding. If not set, a default value is used.
 
         Returns:
-            Regridded cube with updated attributes
+            Regridded cube with updated attributes.
         """
         # if regridding using a land-sea mask, check this covers the source
         # grid in the required coordinates
@@ -257,13 +257,13 @@ class AdjustLandSeaPoints(BasePlugin):
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
         self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
 
-    def correct_where_input_true(self, selector_val: int):
+    def correct_where_input_true(self, selector_val: int) -> None:
         """
         Replace points in the output_cube where output_land matches the
         selector_val and the input_land does not match, but has matching
         points in the vicinity, with the nearest matching point in the
         vicinity in the original nearest_cube.
-        Updates self.output_cube.data
+        Updates self.output_cube.data.
 
         Args:
             selector_val:
@@ -315,7 +315,7 @@ class AdjustLandSeaPoints(BasePlugin):
         # Replace these points with the filled-domain data
         self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
 
-    def process(self, cube: Cube, input_land: Cube, output_land: Cube):
+    def process(self, cube: Cube, input_land: Cube, output_land: Cube) -> Cube:
         """
         Update cube.data so that output_land and sea points match an input_land
         or sea point respectively so long as one is present within the
@@ -335,6 +335,8 @@ class AdjustLandSeaPoints(BasePlugin):
                 representing land and sea points.
             output_land:
                 Cube of land_binary_mask data on target grid.
+        Returns:
+            Cube of regridding results.
         """
         # Check cube and output_land are on the same grid:
         if not spatial_coords_match(cube, output_land):
@@ -354,7 +356,7 @@ class AdjustLandSeaPoints(BasePlugin):
 
             # Store and copy cube ready for the output data
             self.nearest_cube = xyslice
-            self.output_cube = self.nearest_cube.copy()  # type: ignore
+            self.output_cube = self.nearest_cube.copy()
 
             # Update sea points that were incorrectly sourced from land points
             self.correct_where_input_true(0)
@@ -368,18 +370,18 @@ class AdjustLandSeaPoints(BasePlugin):
         return result
 
 
-def grid_contains_cutout(grid: Cube, cutout: Cube):
+def grid_contains_cutout(grid: Cube, cutout: Cube) -> bool:
     """
     Check that a spatial cutout is contained within a given grid
 
     Args:
         grid:
-            A cube defining a data grid
+            A cube defining a data grid.
         cutout:
-            The cutout to search for within the grid
+            The cutout to search for within the grid.
 
     Returns:
-        True if cutout is contained within grid, False otherwise
+        True if cutout is contained within grid, False otherwise.
     """
 
     if spatial_coords_match(grid, cutout):

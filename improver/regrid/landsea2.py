@@ -95,7 +95,7 @@ class RegridWithLandSeaMask(BasePlugin):
         self.regrid_mode = regrid_mode
         self.vicinity = vicinity_radius
 
-    def process(self, cube_in: Cube, cube_in_mask: Cube, cube_out_mask: Cube):
+    def process(self, cube_in: Cube, cube_in_mask: Cube, cube_out_mask: Cube) -> Cube:
         """
         Regridding considering land_sea mask. please note cube_in must use
         lats/lons rectlinear system(GeogCS). cube_in_mask and cube_in could be
@@ -195,7 +195,6 @@ class RegridWithLandSeaMask(BasePlugin):
         elif BILINEAR in self.regrid_mode:
             # Assume all four nearby points are same surface type and calculate default weights
             # These will be updated for mask/mismatched surface type further below
-            # pylint: disable=unsubscriptable-object
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
                 index_range, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing,

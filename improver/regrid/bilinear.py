@@ -52,14 +52,14 @@ def apply_weights(indexes: ndarray, in_values: ndarray, weights: ndarray) -> nda
 
     Args:
         indexes:
-            array of source grid point number for target grid points
+            Array of source grid point number for target grid points.
         weights:
-            array of source grid point weighting for target grid points
+            Array of source grid point weighting for target grid points.
         in_values:
-            input values (maybe multidimensional)
+            Input values (maybe multidimensional).
 
     Returns:
-            Regridded values for target points
+        Regridded values for target points.
     """
     in_values_expanded = (np.ma.filled(in_values, np.nan))[indexes]
     weighted = np.transpose(
@@ -77,19 +77,19 @@ def basic_indexes(
     lon_spacing: float,
 ) -> ndarray:
     """
-    locating source points for each target point.
+    Locating source points for each target point.
 
     Args:
         in_latlons:
-            source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            target points's latitude-longitudes
+            Target points's latitude-longitudes.
         in_lons_size:
-            source grid's longitude dimension
+            Source grid's longitude dimension.
         lat_spacing:
-            input grid latitude spacing (unit: degree)
+            Input grid latitude spacing, in degree.
         lon_spacing:
-            input grid longitude spacing (unit: degree)
+            Input grid longitude spacing, in degree.
 
     Returns:
         Updated array of source grid point number for all target grid points.
@@ -140,25 +140,25 @@ def adjust_boundary_indexes(
     indexes: ndarray,
 ) -> ndarray:
     """
-    adjust surrounding source point indexes for boundary target points.
+    Adjust surrounding source point indexes for boundary target points.
     it is required when maximum latitude and logitude are identical between
     source and target grids.
 
     Args:
         in_lons_size:
-            source grid's longitude dimension
+            Source grid's longitude dimension.
         lat_max_equal:
-            whether maximum latitude is identical between source/targin grids
+            Whether maximum latitude is identical between source/targin grids.
         lon_max_equal:
-            whether maximum longitude is identical between source/targin grids
+            Whether maximum longitude is identical between source/targin grids.
         lat_max_in:
-            input grid's maximum latitude
+            Input grid's maximum latitude.
         lon_max_in:
-            input grid's maximum longtitude
+            Input grid's maximum longtitude.
         out_latlons:
-            target points's latitude-longitudes
+            Target points's latitude-longitudes.
         indexes:
-            Updated array of source grid point number for all target grid points
+            Updated array of source grid point number for all target grid points.
 
     Returns:
         Updated array of source grid point number for all target grid points.
@@ -210,21 +210,21 @@ def basic_weights(
     lon_spacing: float,
 ) -> ndarray:
     """
-    calculate weighting for selecting target points using standard bilinear function.
+    Calculate weighting for selecting target points using standard bilinear function.
 
     Args:
         index_range:
-            a list of target points
+            A list of target points.
         indexes:
-            array of source grid point number for all target grid points
+            Array of source grid point number for all target grid points.
         in_latlons:
-            source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            target points's latitude-longitudes
+            Target points's latitude-longitudes.
         lat_spacing:
-            input grid latitude spacing (unit: degree)
+            Input grid latitude spacing, in degree.
         lon_spacing:
-            input grid longitude spacing (unit: degree)
+            Input grid longitude spacing, in degree.
 
     Returns:
         Weighting array of source grid point number for target grid points.
@@ -270,47 +270,45 @@ def adjust_for_surface_mismatch(
     """
     Updating source points and weighting for mismatched-source-point cases.
 
-    (1) triangle interpolation function is used for only one mismatched source point and
-    target point is within the triangle formed with three matched sourced point
-
-    (2) In one of 3 cases (a)one false source points, three true source points but the target
-    point is outside triangle (b)Two false source points, two true source points (c) three
-    false source points, one true source pointfor, find four surrounding source points
-    using KDtree, and regridding with inverse distance weighting(IDW) if matched source
-    point is available
-
-    (3) In case of four mismatched source points(zero matched source point), Look up 8 points
-    with specified distance limit (input) using KD tree, and then check if there are any
-    same-type source points. If yes, pick up the points of the same type, and do IDW
-    interpolation. If no, ignore surface type and just do normal bilinear interpolation
+    1. Triangle interpolation function is used for only one mismatched source point and
+       target point is within the triangle formed with three matched sourced point.
+    2. In one of 3 cases (a)one false source points, three true source points but the target
+       point is outside triangle (b)Two false source points, two true source points (c) three
+       false source points, one true source pointfor, find four surrounding source points
+       using KDtree, and regridding with inverse distance weighting(IDW) if matched source
+       point is available.
+    3. In case of four mismatched source points(zero matched source point), Look up 8 points
+       with specified distance limit (input) using KD tree, and then check if there are any
+       same-type source points. If yes, pick up the points of the same type, and do IDW
+       interpolation. If no, ignore surface type and just do normal bilinear interpolation.
 
     Args:
         in_latlons:
-            source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            target points's latitude-longitudes
+            Target points's latitude-longitudes.
         in_classified:
-            land_sea type for source grid points (land =>True)
+            Land_sea type for source grid points (land ->True).
         out_classified:
-            land_sea type for terget grid points (land =>True)
+            Land_sea type for terget grid points (land ->True).
         weights:
-            array of source grid point weighting for all target grid points
+            Array of source grid point weighting for all target grid points.
         indexes:
-            array of source grid point number for all target grid points
+            Array of source grid point number for all target grid points.
         surface_type_mask:
-            numpy ndarray of bool, true if source point type matches target point type
+            Numpy ndarray of bool, true if source point type matches target point type.
         in_lons_size:
-            longitude dimension in cube_in
+            Longitude dimension in cube_in.
         vicinity:
-            radius of specified searching domain (unit: m)
+            Radius of specified searching domain, in meter.
         lat_spacing:
-            input grid latitude spacing (unit: degree)
+            Input grid latitude spacing, in degree.
         lon_spacing:
-            input grid longitude spacing (unit: degree)
+            Input grid longitude spacing, in degree.
 
     Returns:
-        updated array of source grid point index and weights for all
-        target grid points
+        - Updated array of source grid point index for all target grid points.
+        - Updated array of source grid point weights for all target grid points.
     """
     count_same_surface_type = np.count_nonzero(surface_type_mask, axis=1)
 
@@ -387,33 +385,33 @@ def one_mismatched_input_point(
     lon_spacing: float,
 ) -> Tuple[ndarray, ndarray]:
     """
-    updating source points and weighting for one mismatched source-point cases.
+    Updating source points and weighting for one mismatched source-point cases.
     If target is not within the triangle formed by 3 matched-sourced-points,
     updating of weights is deferred to inverse-distance-weight method.
 
     Args:
         one_mismatch_indexes:
-            selected target points which have 1 false source point
+            Selected target points which have 1 false source point.
         surface_type_mask:
-            numpy ndarray of bool, true if source point type matches target point type
+            Numpy ndarray of bool, true if source point type matches target point type.
         indexes:
-            array of source grid point number for all target grid points
+            Array of source grid point number for all target grid points.
         weights:
-            array of source grid point weighting for all target grid points
+            Array of source grid point weighting for all target grid points.
         in_latlons:
-            tource points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            target points's latitude-longitudes
+            Target points's latitude-longitudes.
         in_lons_size:
-            source grid's longitude dimension
+            Source grid's longitude dimension.
         lat_spacing:
-            input grid latitude spacing (unit: degree)
+            Input grid latitude spacing, in degree.
         lon_spacing:
-            input grid longitude spacing (unit: degree)
+            Input grid longitude spacing, in degree.
 
     Returns:
-        Updated weights - array of source grid point weighting for target grid points.
-        Excluded indexes - target points which are not handled in this function.
+        - Updated weights - array of source grid point weighting for target grid points.
+        - Excluded indexes - target points which are not handled in this function.
     """
     lat_lon_area = lat_spacing * lon_spacing
     excluded_indexes = np.array([], dtype=int)
@@ -514,34 +512,34 @@ def lakes_islands(
 
     Args:
         lake_island_indexes:
-            selected target points which have 4 false source points
+            Selected target points which have 4 false source points.
         in_latlons:
-            tource points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            target points's latitude-longitudes
+            Target points's latitude-longitudes.
         surface_type_mask:
-            numpy ndarray of bool, true if source point type matches target point type
+            Numpy ndarray of bool, true if source point type matches target point type.
         indexes:
-            array of source grid point number for all target grid points
+            Array of source grid point number for all target grid points.
         weights:
-            array of source grid point weighting for all target grid points
+            Array of source grid point weighting for all target grid points.
         in_classified:
-            land_sea type for source grid points (land ->True)
+            Land_sea type for source grid points (land ->True).
         out_classified:
-            land_sea type for terget grid points (land ->True)
+            Land_sea type for terget grid points (land ->True).
         in_lons_size:
-            source grid's longitude dimension
+            Source grid's longitude dimension.
         vicinity:
-            radius of specified searching domain (unit: m)
+            Radius of specified searching domain, in meter.
         lat_spacing:
-            input grid latitude spacing (unit: degree)
+            Input grid latitude spacing, in degree.
         lon_spacing:
-            input grid longitude spacing (unit: degree)
+            Input grid longitude spacing, in degree.
 
     Returns:
-        updated indexes: source grid point number for all target grid points
-        updated weights: source grid point weighting for all target grid points
-        updated surface_type_mask: - matching info between source/target point types
+        - Updated weights - source point weighting for all target grid points.
+        - Updated indexes - source grid point number for all target grid points.
+        - Updated surface_type_mask - matching info between source/target point types.
     """
 
     # increase 4 points to 8 points
@@ -587,7 +585,6 @@ def lakes_islands(
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]
-    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     # if no further processing can be done, return early
@@ -597,7 +594,6 @@ def lakes_islands(
     # Where a same surface type match has been found among the 8 nearest inputs, apply
     # inverse distance weighting with those matched points
     new_distances = np.zeros([count_of_points_with_match, NUM_NEIGHBOURS])
-    # pylint: disable=unsubscriptable-object
     for point_idx in range(points_with_match.shape[0]):
         match_indexes = lake_island_indexes[points_with_match[point_idx]]
         # Reset all input weight and surface type to mismatched

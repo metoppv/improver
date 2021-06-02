@@ -57,25 +57,25 @@ def nearest_with_mask_regrid(
 
     Args:
         distances:
-            distnace array from each target grid point to its source grid points
+            Distnace array from each target grid point to its source grid points.
         indexes:
-            Source grid point indexes for each target grid point
+            Source grid point indexes for each target grid point.
         surface_type_mask:
-            Boolean true if source point type matches target point type
+            Boolean true if source point type matches target point type.
         in_latlons:
-            Source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            Target points's latitude-longitudes
+            Target points's latitude-longitudes.
         in_classified:
-            Land/sea type for source grid points (land -> True)
+            Land/sea type for source grid points (land -> True).
         out_classified:
-            Land/sea type for target grid points (land -> True)
+            Land/sea type for target grid points (land -> True).
         vicinity:
-            radius of specified searching domain (unit: m)
+            Radius of specified searching domain, in meter.
 
     Returns:
-        Updated indexes - source grid point number for all target grid points.
-        Updated distances - array from each target grid point to its source grid points.
+        - Updated indexes - source grid point number for all target grid points.
+        - Updated distances - array from each target grid point to its source grid points.
 
     """
     # Check if there are output points with mismatched surface types
@@ -127,14 +127,14 @@ def nearest_regrid(distances: ndarray, indexes: ndarray, in_values: ndarray) -> 
 
     Args:
         distances:
-            Distance from each target grid point to its source grid points
+            Distance from each target grid point to its source grid points.
         indexes:
-             Source grid point indexes for each target grid point
+             Source grid point indexes for each target grid point.
         in_values:
-            Input values with spatial dimensions flattened
+            Input values with spatial dimensions flattened.
 
     Returns:
-        Regridded output values with spatial dimensions flattened
+        Regridded output values with spatial dimensions flattened.
     """
     min_index = np.argmin(distances, axis=1)
     index0 = np.arange(min_index.shape[0])
@@ -162,24 +162,24 @@ def update_nearest_points(
             Selected target points which will use Inverse Distance Weighting
             (idw) approach. These points will be processed by this function.
         in_latlons:
-            Source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            Target points's latitude-longitudes
+            Target points's latitude-longitudes.
         indexes:
-            Source grid point indexes for each target grid point
+            Source grid point indexes for each target grid point.
         distances:
-            Distance from each target grid point to its source grid points
+            Distance from each target grid point to its source grid points.
         surface_type_mask:
-            Boolean true if source point type matches target point type
+            Boolean true if source point type matches target point type.
         in_classified:
-            Land/sea type for source grid points (land -> True)
+            Land/sea type for source grid points (land -> True).
         out_classified:
-            Land/sea type for target grid points (land -> True)
+            Land/sea type for target grid points (land -> True).
 
     Returns:
-        Updated indexes - source grid point number for all target grid points.
-        Updated surface_type_mask - matching info between source/target point types.
-        Updated distances - array from each target grid point to its source grid points.
+        - Updated indexes - source grid point number for all target grid points.
+        - Updated surface_type_mask - matching info between source/target point types.
+        - Updated distances - array from each target grid point to its source grid points.
     """
     # Gather output points with mismatched surface type and find four nearest input
     # points via KDtree
@@ -222,23 +222,23 @@ def lakes_islands(
             Indexes of points which are lakes/islands surrounded by mismatched surface type.
             These points will be processed by this function.
         in_latlons:
-            Source points's latitude-longitudes
+            Source points's latitude-longitudes.
         out_latlons:
-            Target points's latitude-longitudes
+            Target points's latitude-longitudes.
         surface_type_mask:
-            Boolean true if source point type matches target point type
+            Boolean true if source point type matches target point type.
         indexes:
-            Source grid point indexes for each target grid point
+            Source grid point indexes for each target grid point.
         in_classified:
-            Land/sea type for source grid points (land -> True)
+            Land/sea type for source grid points (land -> True).
         out_classified:
-            Land/sea type for target grid points (land -> True)
+            Land/sea type for target grid points (land -> True).
         vicinity:
-            Radius of vicinity to search for a matching surface type, in metres
+            Radius of vicinity to search for a matching surface type, in metres.
 
     Returns:
-        Updated indexes - source grid point number for all target grid points.
-        Updated surface_type_mask - matching info between source/target point types.
+        - Updated indexes - source grid point number for all target grid points.
+        - Updated surface_type_mask - matching info between source/target point types.
     """
 
     out_latlons_updates = out_latlons[lake_island_indexes]
@@ -274,7 +274,6 @@ def lakes_islands(
     # From the expansion to 8 nearby input points, a same surface type input has been found
     # Update the index and surface type mask to use the newly found same surface type input point
     points_with_match = (np.where(count_matching_surface > 0))[0]
-    # pylint: disable=unsubscriptable-object
     count_of_points_with_match = points_with_match.shape[0]
 
     for point_idx in range(count_of_points_with_match):
