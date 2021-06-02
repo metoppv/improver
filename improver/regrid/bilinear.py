@@ -307,8 +307,8 @@ def adjust_for_surface_mismatch(
             Input grid longitude spacing, in degree.
 
     Returns:
-        - Updated array of source grid point index for all target grid points.
         - Updated array of source grid point weights for all target grid points.
+        - Updated array of source grid point index for all target grid points.
     """
     count_same_surface_type = np.count_nonzero(surface_type_mask, axis=1)
 

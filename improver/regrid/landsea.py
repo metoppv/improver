@@ -335,6 +335,7 @@ class AdjustLandSeaPoints(BasePlugin):
                 representing land and sea points.
             output_land:
                 Cube of land_binary_mask data on target grid.
+
         Returns:
             Cube of regridding results.
         """

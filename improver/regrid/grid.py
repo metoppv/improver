@@ -110,8 +110,8 @@ def latlon_from_cube(cube: Cube) -> ndarray:
     Produce an array of latitude-longitude coordinates used by an Iris cube.
 
     Args:
-       cube:
-           Cube with spatial coords.
+        cube:
+            Cube with spatial coords.
 
     Returns:
         Latitude-longitude pairs (N x 2).

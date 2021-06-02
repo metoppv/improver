@@ -74,8 +74,8 @@ def nearest_with_mask_regrid(
             Radius of specified searching domain, in meter.
 
     Returns:
-        - Updated indexes - source grid point number for all target grid points.
         - Updated distances - array from each target grid point to its source grid points.
+        - Updated indexes - source grid point number for all target grid points.
 
     """
     # Check if there are output points with mismatched surface types
@@ -178,8 +178,8 @@ def update_nearest_points(
 
     Returns:
         - Updated indexes - source grid point number for all target grid points.
-        - Updated surface_type_mask - matching info between source/target point types.
         - Updated distances - array from each target grid point to its source grid points.
+        - Updated surface_type_mask - matching info between source/target point types.
     """
     # Gather output points with mismatched surface type and find four nearest input
     # points via KDtree
