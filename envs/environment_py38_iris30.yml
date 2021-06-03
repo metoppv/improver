@@ -1,0 +1,42 @@
+# Use this file to create a conda environment using:
+# conda env create --file envs/environment_py38_iris30.yml
+
+name: improver_py38_iris30
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  # Required
+  - cartopy
+  - cftime
+  - cf-units
+  - clize
+  - dask
+  - iris=3.0
+  - netCDF4
+  - numpy
+  - python-dateutil
+  - python-stratify
+  - pytz=2020.5
+  - scipy=1.3
+  - sigtools
+  - sphinx
+  # Optional
+  - numba
+  - pysteps=1.3.2
+  - statsmodels
+  - timezonefinder=4.1.0
+  # Development
+  - astroid
+  - bandit
+  - black=19.10b0
+  - codacy-coverage
+  - filelock
+  - flake8
+  - isort=5.*
+  - mock
+  - mypy
+  - pytest
+  - pytest-cov
+  - safety
+  - sphinx-autodoc-typehints
