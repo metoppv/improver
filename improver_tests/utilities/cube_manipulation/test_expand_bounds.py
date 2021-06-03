@@ -67,8 +67,8 @@ class Test_expand_bounds(IrisTest):
             self.cubelist.append(cube)
 
         self.expected_bounds_seconds = [
-            date2num(dt(2015, 11, 19, 0), TIME_UNIT, CALENDAR).astype(np.int64),
-            date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR).astype(np.int64),
+            np.int64(date2num(dt(2015, 11, 19, 0), TIME_UNIT, CALENDAR)),
+            np.int64(date2num(dt(2015, 11, 19, 3), TIME_UNIT, CALENDAR)),
         ]
 
         self.expected_bounds_hours = [
