@@ -32,51 +32,52 @@
 Inverse distance weighting interpolation functions
 """
 
+from typing import Tuple
+
 import numpy as np
+from cartopy.crs import Geocentric, Geodetic
+from numpy import ndarray
 from scipy.spatial.ckdtree import cKDTree as KDTree
 
 from improver.regrid.grid import similar_surface_classify
 
-# WGS84: The World Geodetic System 1984
-WGS84_A = 6378137.0
-WGS84_IF = 298.257223563
-WGS84_F = 1.0 / WGS84_IF
-WGS84_E = np.sqrt((2.0 * WGS84_F) - (WGS84_F * WGS84_F))
+# An optimal distance scaling power was found through minimising regridding RMSE
+# using inverse distance weighting on a collection of sample surface temperature grids
+OPTIMUM_IDW_POWER = 1.80
 
 
 def inverse_distance_weighting(
-    idw_out_indexes,
-    in_latlons,
-    out_latlons,
-    indexes,
-    weights,
-    in_classified,
-    out_classified,
-):
+    idw_out_indexes: ndarray,
+    in_latlons: ndarray,
+    out_latlons: ndarray,
+    indexes: ndarray,
+    weights: ndarray,
+    in_classified: ndarray,
+    out_classified: ndarray,
+) -> Tuple[ndarray, ndarray, ndarray]:
     """
-    Locating source points and calculating inverse distance weights for selective target points
+    Locating source points and calculating inverse distance weights for selective target points.
 
     Args:
-        idw_out_indexes (numpy.ndarray):
-            selected target points which will use Inverse Distance Weighting(idw) approach
-        in_latlons (numpy.ndarray):
-            Source points's latitude-longitudes
-        out_latlons (numpy.ndarray):
-            Target points's latitude-longitudes
-        indexes (numpy.ndarray):
-            array of source grid point number for all target grid points
-        weights (numpy.ndarray):
-            array of source grid point weighting for all target grid points
-        in_classified (numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified (numpy.ndarray):
-            land_sea type for target grid points (land =>True)
+        idw_out_indexes:
+            Selected target points which will use Inverse Distance Weighting(idw) approach.
+        in_latlons:
+            Source points's latitude-longitudes.
+        out_latlons:
+            Target points's latitude-longitudes.
+        indexes:
+            Array of source grid point number for all target grid points.
+        weights:
+            Array of source grid point weighting for all target grid points.
+        in_classified:
+            Land_sea type for source grid points (land ->True).
+        out_classified:
+            Land_sea type for target grid points (land ->True).
 
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-            updated Indexes - source grid point number for all target grid points.
-            updated weights - array from each target grid point to its source grid points
-            output_points_no_match - special target points without matching source points
+        - Updated Indexes - source grid point number for all target grid points.
+        - Updated weights - array from each target grid point to its source grid points.
+        - Output_points_no_match - special target points without matching source points.
     """
 
     out_latlons_updates = out_latlons[idw_out_indexes]
@@ -113,8 +114,7 @@ def inverse_distance_weighting(
     # Invert the distances, sum the k surrounding points, scale to produce weights
     inv_distances = 1.0 / masked_distances
     # add power 1.80 for inverse diatance weight
-    optimum_power = 1.80
-    inv_distances_power = np.power(inv_distances, optimum_power)
+    inv_distances_power = np.power(inv_distances, OPTIMUM_IDW_POWER)
     inv_distances_sum = np.sum(inv_distances_power, axis=1)
     inv_distances_sum = 1.0 / inv_distances_sum
     weights_idw = inv_distances_power * inv_distances_sum.reshape(-1, 1)
@@ -125,23 +125,24 @@ def inverse_distance_weighting(
     return indexes, weights, output_points_no_match
 
 
-def nearest_input_pts(in_latlons, out_latlons, k):
+def nearest_input_pts(
+    in_latlons: ndarray, out_latlons: ndarray, k: int
+) -> Tuple[ndarray, ndarray]:
     """
     Find k nearest source (input) points to each target (output)
-    point, using a KDtree
+    point, using a KDtree.
 
     Args:
-        in_latlons (numpy.ndarray):
-            Source grid points' latitude-longitudes (N x 2)
-        out_latlons (numpy.ndarray):
-            Target grid points' latitude-longitudes (M x 2)
-        k (int):
-            Number of points surrounding each output point
+        in_latlons:
+            Source grid points' latitude-longitudes (N x 2).
+        out_latlons:
+            Target grid points' latitude-longitudes (M x 2).
+        k:
+            Number of points surrounding each output point.
 
     Return:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            Distances from target grid point to source grid points and indexes
-            of those points (M x K)
+        - Distances from target grid point to source grid points (M x K).
+        - Indexes of those source points (M x K).
     """
     # Convert input latitude and longitude to XYZ coordinates, then create KDtree
     in_x, in_y, in_z = ecef_coords(in_latlons[:, 0].flat, in_latlons[:, 1].flat)
@@ -159,29 +160,26 @@ def nearest_input_pts(in_latlons, out_latlons, k):
     return distances, indexes
 
 
-def ecef_coords(lats, lons, alts=np.array(0.0)):
+def ecef_coords(lats: ndarray, lons: ndarray) -> Tuple[ndarray, ndarray, ndarray]:
     """
-    Transforms the coordinates to Earth Centred Earth Fixed coordinates
-    with WGS84 parameters. used in function _nearest_input_pts
+    Transform latitude-longitude coordinates to earth centred, earth fixed
+    cartesian XYZ coordinates.
+
     Args:
-        lats(numpy.ndarray):
-            latitude coordinates
-        lons(numpy.ndarray):
-            longitude coordinates
-        alts(numpy.ndarray):
-            altitudes coordinates
-    Return:
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-            Transformed coordinates
+        lats:
+            Latitude coordinates.
+        lons:
+            Longitude coordinates.
+
+    Returns:
+        - X transformed coordinates.
+        - Y transformed coordinates.
+        - Z transformed coordinates.
     """
-    rlats = np.deg2rad(lats)
-    rlons = np.deg2rad(lons)
-    clats = np.cos(rlats)
-    clons = np.cos(rlons)
-    slats = np.sin(rlats)
-    slons = np.sin(rlons)
-    n = WGS84_A / np.sqrt(1.0 - (WGS84_E * WGS84_E * slats * slats))
-    x = (n + alts) * clats * clons
-    y = (n + alts) * clats * slons
-    z = (n * (1.0 - (WGS84_E * WGS84_E)) + alts) * slats
-    return x, y, z
+    # Cartopy Geodetic and Geocentric both default to the WGS84 datum
+    spherical_latlon_crs = Geodetic()
+    ecef_crs = Geocentric()
+    xyz = ecef_crs.transform_points(
+        spherical_latlon_crs, np.array(lons), np.array(lats)
+    )
+    return xyz[..., 0], xyz[..., 1], xyz[..., 2]
