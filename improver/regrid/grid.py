@@ -46,7 +46,7 @@ from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
 def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
     """
     Calculate grid spacing in latitude and logitude.
-    Check if input source grid is on even-spacing, ascending lat/lon system.
+    Check if input source grid is on even-spacing and ascending lat/lon system.
 
     Args:
         cube_in:
