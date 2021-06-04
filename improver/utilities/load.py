@@ -44,36 +44,6 @@ from improver.utilities.cube_manipulation import (
 )
 
 
-@contextlib.contextmanager
-def iris_nimrod_patcher():
-    """Temporarily monkey patches iris.fileformats.nimrod* modules."""
-    # FIXME: monkey patched nimrod loading in iris, so it works for radar files
-    if hasattr(iris.fileformats.nimrod_load_rules, "DEFAULT_UNITS"):
-        raise RuntimeError("FIXME: nimrod monkey patch is no longer needed")
-    try:
-        from iris_nimrod_patch import nimrod, nimrod_load_rules
-    except ModuleNotFoundError:
-        yield
-        return
-    else:
-        header_attrs = [
-            "general_header_int16s",
-            "general_header_float32s",
-            "data_header_int16s",
-            "data_header_float32s",
-        ]
-        attribs = [
-            {attr: getattr(m, attr) for attr in header_attrs}
-            for m in [nimrod, iris.fileformats.nimrod]
-        ]
-        modules = [nimrod_load_rules, iris.fileformats.nimrod_load_rules]
-        for m, d in zip(modules, attribs):
-            vars(iris.fileformats.nimrod).update(d)
-            iris.fileformats.nimrod_load_rules = m
-            if m is nimrod_load_rules:
-                yield
-
-
 def load_cubelist(
     filepath: Union[str, List[str]],
     constraints: Optional[Union[Constraint, str]] = None,
@@ -108,13 +78,12 @@ def load_cubelist(
 
     # Load each file individually to avoid partial merging (not used
     # iris.load_raw() due to issues with time representation)
-    with iris_nimrod_patcher():
-        if isinstance(filepath, str):
-            cubes = iris.load(filepath, constraints=constraints)
-        else:
-            cubes = iris.cube.CubeList([])
-            for item in filepath:
-                cubes.extend(iris.load(item, constraints=constraints))
+    if isinstance(filepath, str):
+        cubes = iris.load(filepath, constraints=constraints)
+    else:
+        cubes = iris.cube.CubeList([])
+        for item in filepath:
+            cubes.extend(iris.load(item, constraints=constraints))
 
     if not cubes:
         message = "No cubes found using constraints {}".format(constraints)
