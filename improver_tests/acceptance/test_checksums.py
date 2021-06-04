@@ -73,17 +73,16 @@ def checksums_to_text(
         sort: apply sorting to file paths
 
     Returns:
-        List of checksum file lines, no newline at end.
+        List of checksum file lines, no newline at end of each line.
     """
-    path_csums = {str(path): csum for path, csum in path_csums.items()}
+    pathstr_csums = {str(path): csum for path, csum in path_csums.items()}
     if sort:
-        paths = [str(path) for path in path_csums.keys()]
         # sorting uses C locale to avoid locale-specific variation
         with temporary_sort_locale("C") as strcoll:
-            paths.sort(key=functools.cmp_to_key(strcoll))
+            paths = sorted(pathstr_csums.keys(), key=functools.cmp_to_key(strcoll))
     else:
-        paths = path_csums.keys()
-    lines = [f"{path_csums[path]}  {path}" for path in paths]
+        paths = pathstr_csums.keys()
+    lines = [f"{pathstr_csums[path]}  {path}" for path in paths]
     return lines
 
 
