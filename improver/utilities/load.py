@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
-import contextlib
 from typing import List, Optional, Union
 
 import iris

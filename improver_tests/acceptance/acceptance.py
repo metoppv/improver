@@ -32,7 +32,6 @@
 
 import functools
 import hashlib
-import importlib
 import os
 import pathlib
 import shlex
