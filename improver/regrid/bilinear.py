@@ -214,7 +214,7 @@ def basic_weights(
 ) -> ndarray:
     """
     Calculate weighting for selecting target points using standard bilinear function.
-  
+
     Args:
         index_range:
             A list of target points.
