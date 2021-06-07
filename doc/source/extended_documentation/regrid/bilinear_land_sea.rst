@@ -40,7 +40,7 @@ The weight calculation and adjustment
    weights can be  calculated using the Finite-Element based interpolation shape function. 
 
 .. math:: 
-        var &= \sum_{i=1}^4 weight_i \cdot var_i
+        var &= \sum \limits_{i=1}^4 weight_i \cdot var_i
       
         weight_1 &= (lat_2-lat)*(lon_3-lon)/area
  
@@ -116,7 +116,7 @@ target points will be added into the target point list with “four unmatched so
 If there are matched surface points, the weights of inverse distance weighting are calculated: 
 
 .. math::  
-    weight_i &= \frac{w_i}{\sum_{i=1}^N w_i}
+    weight_i &= \frac{w_i}{\sum \limits_{i=1}^N w_i}
     
     w_i &= \frac{1}{distance_i^p}    
     
