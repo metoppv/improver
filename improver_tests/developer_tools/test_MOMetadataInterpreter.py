@@ -222,7 +222,7 @@ def test_error_wrong_percentile_name_units(wind_gust_percentile_cube, interprete
 def test_error_deterministic_model_with_realizations(ensemble_cube, interpreter):
     """Test error raised when the model ID is deterministic and cube has multiple realizations"""
     ensemble_cube.attributes["mosg__model_configuration"] = "uk_det"
-    ensemble_cube.attributes["title"] = "Met Office UKV Model on UK 2 km Standard Grid"
+    ensemble_cube.attributes["title"] = "UKV Model on UK 2 km Standard Grid"
     msg = "Deterministic model should not have . realizations"
     with pytest.raises(ValueError, match=msg):
         interpreter.run(ensemble_cube)

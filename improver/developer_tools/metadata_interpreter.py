@@ -525,10 +525,8 @@ class MOMetadataInterpreter:
             except CoordinateNotFoundError:
                 pass
             else:
-                if (
-                    "ens" not in cube.attributes[self.model_id_attr]
-                    and len(realization_coord.points) > 1
-                ):
+                model_id = cube.attributes.get(self.model_id_attr, "ens")
+                if "ens" not in model_id and len(realization_coord.points) > 1:
                     self.errors.append(
                         f"Deterministic model should not have {len(realization_coord.points)} "
                         "realizations"
