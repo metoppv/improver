@@ -530,7 +530,8 @@ class MOMetadataInterpreter:
                     and len(realization_coord.points) > 1
                 ):
                     self.errors.append(
-                        f"Deterministic model should not have {len(realization_coord.points)} realizations"
+                        f"Deterministic model should not have {len(realization_coord.points)} "
+                        "realizations"
                     )
 
         # 7) Raise collated errors if present
