@@ -518,7 +518,22 @@ class MOMetadataInterpreter:
         except ValueError as cause:
             self.errors.append(str(cause))
 
-        # 6) Raise collated errors if present
+        # 6) Check multiple realizations only exist for ensemble models
+        if self.field_type == self.DIAG:
+            try:
+                realization_coord = cube.coord("realization")
+            except CoordinateNotFoundError:
+                pass
+            else:
+                if (
+                    "ens" not in cube.attributes[self.model_id_attr]
+                    and len(realization_coord.points) > 1
+                ):
+                    self.errors.append(
+                        f"Deterministic model should not have {len(realization_coord.points)} realizations"
+                    )
+
+        # 7) Raise collated errors if present
         if self.errors:
             raise ValueError("\n".join(self.errors))
 

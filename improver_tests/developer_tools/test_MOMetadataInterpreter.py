@@ -223,7 +223,8 @@ def test_error_deterministic_model_with_realizations(ensemble_cube, interpreter)
     """Test error raised when the model ID is deterministic and cube has multiple realizations"""
     ensemble_cube.attributes["mosg__model_configuration"] = "uk_det"
     ensemble_cube.attributes["title"] = "Met Office UKV Model on UK 2 km Standard Grid"
-    with pytest.raises(ValueError, match="Deterministic model should not have . realizations"):
+    msg = "Deterministic model should not have . realizations"
+    with pytest.raises(ValueError, match=msg):
         interpreter.run(ensemble_cube)
 
 
