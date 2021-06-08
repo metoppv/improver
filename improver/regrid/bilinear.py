@@ -31,31 +31,35 @@
 """
 Bilinear interpolation functions
 """
+from typing import Tuple
 
 import numpy as np
+from numpy import ndarray
 
 from improver.regrid.grid import similar_surface_classify
-from improver.regrid.idw import inverse_distance_weighting, nearest_input_pts
+from improver.regrid.idw import (
+    OPTIMUM_IDW_POWER,
+    inverse_distance_weighting,
+    nearest_input_pts,
+)
 
-OPTIMUM_IDW_POWER = 1.80
 NUM_NEIGHBOURS = 4
 
 
-def apply_weights(indexes, in_values, weights):
+def apply_weights(indexes: ndarray, in_values: ndarray, weights: ndarray) -> ndarray:
     """
-    Apply bilinear weight of source points for target value
+    Apply bilinear weight of source points for target value.
 
     Args:
-        indexes (numpy.ndarray):
-            array of source grid point number for target grid points
-        weights (numpy.ndarray):
-            array of source grid point weighting for target grid points
-        in_values (numpy.ndarray):
-            input values (maybe multidimensional)
+        indexes:
+            Array of source grid point number for target grid points.
+        weights:
+            Array of source grid point weighting for target grid points.
+        in_values:
+            Input values (maybe multidimensional).
 
     Returns:
-        numpy.ndarray:
-            Regridded values for target points
+        Regridded values for target points.
     """
     in_values_expanded = (np.ma.filled(in_values, np.nan))[indexes]
     weighted = np.transpose(
@@ -65,27 +69,32 @@ def apply_weights(indexes, in_values, weights):
     return out_values
 
 
-def basic_indexes(out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacing):
+def basic_indexes(
+    out_latlons: ndarray,
+    in_latlons: ndarray,
+    in_lons_size: int,
+    lat_spacing: float,
+    lon_spacing: float,
+) -> ndarray:
     """
-    Calculate the surrounding source point indexes for given target points
+    Locating source points for each target point.
 
     Args:
-        in_latlons(numpy.ndarray):
-            source points's latitude-longitudes
-        out_latlons(numpy.ndarray):
-            target points's latitude-longitudes
-        in_lons_size (int):
-            source grid's longitude dimension
-        lat_spacing (float32) :
-            input grid latitude spacing (unit: degree)
-        lon_spacing (float32):
-            input grid longitude spacing (unit: degree)
+        in_latlons:
+            Source points's latitude-longitudes.
+        out_latlons:
+            Target points's latitude-longitudes.
+        in_lons_size:
+            Source grid's longitude dimension.
+        lat_spacing:
+            Input grid latitude spacing, in degree.
+        lon_spacing:
+            Input grid longitude spacing, in degree.
 
     Returns:
-        numpy.ndarray(total number of target points, 4) :
-            Updated array of source grid point number for all target grid points
+        Updated array of source grid point number for all target grid points.
+        Array shape is (total number of target points, 4).
     """
-
     # Calculate input/output offset, expressed in terms of the spacing
     n_lat = (out_latlons[:, 0] - in_latlons[0, 0]) // lat_spacing
     m_lon = (out_latlons[:, 1] - in_latlons[0, 1]) // lon_spacing
@@ -122,37 +131,38 @@ def basic_indexes(out_latlons, in_latlons, in_lons_size, lat_spacing, lon_spacin
 
 
 def adjust_boundary_indexes(
-    in_lons_size,
-    lat_max_equal,
-    lon_max_equal,
-    lat_max_in,
-    lon_max_in,
-    out_latlons,
-    indexes,
-):
+    in_lons_size: int,
+    lat_max_equal: bool,
+    lon_max_equal: bool,
+    lat_max_in: float,
+    lon_max_in: float,
+    out_latlons: ndarray,
+    indexes: ndarray,
+) -> ndarray:
     """
-    adjust surrounding source point indexes for boundary target points
+    Adjust surrounding source point indexes for boundary target points.
     it is required when maximum latitude and logitude are identical between
-    source and target grids
+    source and target grids.
 
     Args:
-        in_lons_size (int):
-            source grid's longitude dimension
-        lat_max_equal(bool):
-            whether maximum latitude is identical between source/targin grids
-        lon_max_equal(bool):
-            whether maximum longitude is identical between source/targin grids
-        lat_max_in(float32):
-            input grid's maximum latitude
-        lon_max_in(float32):
-            input grid's maximum longtitude
-        out_latlons(numpy.ndarray):
-            target points's latitude-longitudes
-        indexes(numpy.ndarray):
-            Updated array of source grid point number for all target grid points
+        in_lons_size:
+            Source grid's longitude dimension.
+        lat_max_equal:
+            Whether maximum latitude is identical between source/targin grids.
+        lon_max_equal:
+            Whether maximum longitude is identical between source/targin grids.
+        lat_max_in:
+            Input grid's maximum latitude.
+        lon_max_in:
+            Input grid's maximum longtitude.
+        out_latlons:
+            Target points's latitude-longitudes.
+        indexes:
+            Updated array of source grid point number for all target grid points.
+
     Returns:
-        numpy.ndarray (total number of target points, 4):
-            Updated array of source grid point number for all target grid points
+        Updated array of source grid point number for all target grid points.
+        Array shape is (total number of target points, 4).
     """
     # find a list of target points with its latitude
     if lat_max_equal:
@@ -192,35 +202,32 @@ def adjust_boundary_indexes(
 
 
 def basic_weights(
-    index_range,
-    indexes,
-    out_latlons,
-    in_latlons,
-    in_lons_size,
-    lat_spacing,
-    lon_spacing,
-):
+    index_range: ndarray,
+    indexes: ndarray,
+    out_latlons: ndarray,
+    in_latlons: ndarray,
+    lat_spacing: float,
+    lon_spacing: float,
+) -> ndarray:
     """
-    calculate weighting for selecting target points using standard bilinear function
+    Calculate weighting for selecting target points using standard bilinear function.
+
     Args:
-        index_range((numpy.ndarray):
-            a list of target points
-        indexes(numpy.ndarray):
-            array of source grid point number for all target grid points
-        in_latlons(numpy.ndarray):
-            source points's latitude-longitudes
-        out_latlons(numpy.ndarray):
-            target points's latitude-longitudes
-        in_lons_size (int):
-            source grid's longitude dimension
-        lat_spacing (float32) :
-            input grid latitude spacing (unit: degree)
-        lon_spacing (float32):
-            input grid longitude spacing (unit: degree)
+        index_range:
+            A list of target points.
+        indexes:
+            Array of source grid point number for all target grid points.
+        in_latlons:
+            Source points's latitude-longitudes.
+        out_latlons:
+            Target points's latitude-longitudes.
+        lat_spacing:
+            Input grid latitude spacing, in degree.
+        lon_spacing:
+            Input grid longitude spacing, in degree.
 
     Returns:
-        numpy.ndarray (len(index_range),4):
-            weigting array of source grid point number for target grid points
+        Weighting array of source grid point number for target grid points.
     """
     # Set up input points spacing values
     latlon_area = lat_spacing * lon_spacing
@@ -248,59 +255,60 @@ def basic_weights(
 
 
 def adjust_for_surface_mismatch(
-    in_latlons,
-    out_latlons,
-    in_classified,
-    out_classified,
-    weights,
-    indexes,
-    surface_type_mask,
-    in_lons_size,
-    vicinity,
-    lat_spacing,
-    lon_spacing,
-):
+    in_latlons: ndarray,
+    out_latlons: ndarray,
+    in_classified: ndarray,
+    out_classified: ndarray,
+    weights: ndarray,
+    indexes: ndarray,
+    surface_type_mask: ndarray,
+    in_lons_size: int,
+    vicinity: float,
+    lat_spacing: float,
+    lon_spacing: float,
+) -> Tuple[ndarray, ndarray]:
     """
-    updating source points and weighting for mismatched-source-point cases
-    (1) triangle interpolation function is used for only one mismatched source
-    point and target point is within the triangle formed with three matched sourced point
-    (2) In one of 3 cases (a)one false source points, three true source points but the
-    target point is outside triangle (b)Two false source points, two true source points
-    (c) three false source points, one true source pointfor, find four surrounding source
-    points using KDtree, and regridding with inverse distance weighting(IDW) if matched
-    source point is available
-    (3) In case of four mismatched source points(zero matched source point), Look up 8
-    points with specified distance limit (input) using KD tree, and then check if there
-    are any same-type source points. If yes, pick up the points of the same type, and do
-    IDW interpolation. If no, ignore surface type and just do normal bilinear interpolation
+    Updating source points and weighting for mismatched-source-point cases.
+
+    1. Triangle interpolation function is used for only one mismatched source point and
+       target point is within the triangle formed with three matched sourced point.
+    2. In one of 3 cases (a)one false source points, three true source points but the target
+       point is outside triangle (b)Two false source points, two true source points (c) three
+       false source points, one true source pointfor, find four surrounding source points
+       using KDtree, and regridding with inverse distance weighting(IDW) if matched source
+       point is available.
+    3. In case of four mismatched source points(zero matched source point), Look up 8 points
+       with specified distance limit (input) using KD tree, and then check if there are any
+       same-type source points. If yes, pick up the points of the same type, and do IDW
+       interpolation. If no, ignore surface type and just do normal bilinear interpolation.
 
     Args:
-        in_latlons(numpy.ndarray):
-            source points's latitude-longitudes
-        out_latlons(numpy.ndarray):
-            target points's latitude-longitudes
-        in_classified(numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified(numpy.ndarray):
-            land_sea type for terget grid points (land =>True)
-        weights(numpy.ndarray):
-            array of source grid point weighting for all target grid points
-        indexes(numpy.ndarray):
-            array of source grid point number for all target grid points
-        surface_type_mask(numpy.ndarray)):
-            numpy ndarray of bool, true if source point type matches target point type
-        in_lons_size (int):
-            longitude dimension in cube_in
-        vicinity (float32):
-            radius of specified searching domain (unit: m)
-        lat_spacing (float32) :
-            input grid latitude spacing (unit: degree)
-        lon_spacing (float32):
-            input grid longitude spacing (unit: degree)
+        in_latlons:
+            Source points's latitude-longitudes.
+        out_latlons:
+            Target points's latitude-longitudes.
+        in_classified:
+            Land_sea type for source grid points (land ->True).
+        out_classified:
+            Land_sea type for terget grid points (land ->True).
+        weights:
+            Array of source grid point weighting for all target grid points.
+        indexes:
+            Array of source grid point number for all target grid points.
+        surface_type_mask:
+            Numpy ndarray of bool, true if source point type matches target point type.
+        in_lons_size:
+            Longitude dimension in cube_in.
+        vicinity:
+            Radius of specified searching domain, in meter.
+        lat_spacing:
+            Input grid latitude spacing, in degree.
+        lon_spacing:
+            Input grid longitude spacing, in degree.
+
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray]:
-            updated array of source grid point index and weights for all
-            target grid points
+        - Updated array of source grid point weights for all target grid points.
+        - Updated array of source grid point index for all target grid points.
     """
     count_same_surface_type = np.count_nonzero(surface_type_mask, axis=1)
 
@@ -318,7 +326,6 @@ def adjust_for_surface_mismatch(
         weights,
         out_latlons,
         in_latlons,
-        in_lons_size,
         lat_spacing,
         lon_spacing,
     )
@@ -368,47 +375,44 @@ def adjust_for_surface_mismatch(
 
 
 def one_mismatched_input_point(
-    one_mismatch_indexes,
-    surface_type_mask,
-    indexes,
-    weights,
-    out_latlons,
-    in_latlons,
-    in_lons_size,
-    lat_spacing,
-    lon_spacing,
-):
+    one_mismatch_indexes: ndarray,
+    surface_type_mask: ndarray,
+    indexes: ndarray,
+    weights: ndarray,
+    out_latlons: ndarray,
+    in_latlons: ndarray,
+    lat_spacing: float,
+    lon_spacing: float,
+) -> Tuple[ndarray, ndarray]:
     """
-    updating source points and weighting for one mismatched source-point cases
-    if traget is not within the triangle formed by 3 matched-sourced-points,
-    updating of weights is defered to inverse-distance-weight method
+    Updating source points and weighting for one mismatched source-point cases.
+    If target is not within the triangle formed by 3 matched-sourced-points,
+    updating of weights is deferred to inverse-distance-weight method.
 
     Args:
-        one_mismatch_indexes(numpy.ndarray):
-            selected target points which have 1 false source point
-        surface_type_mask(numpy.ndarray)):
-            numpy ndarray of bool, true if source point type matches target point type
-        indexes(numpy.ndarray):
-            array of source grid point number for all target grid points
-        weights(numpy.ndarray):
-            array of source grid point weighting for all target grid points
-        in_latlons(numpy.ndarray):
-            tource points's latitude-longitudes
-        out_latlons(numpy.ndarray):
-            target points's latitude-longitudes
-        in_lons_size (int):
-            source grid's longitude dimension
-        lat_spacing (float32) :
-            input grid latitude spacing (unit: degree)
-        lon_spacing (float32):
-            input grid longitude spacing (unit: degree)
+        one_mismatch_indexes:
+            Selected target points which have 1 false source point.
+        surface_type_mask:
+            Numpy ndarray of bool, true if source point type matches target point type.
+        indexes:
+            Array of source grid point number for all target grid points.
+        weights:
+            Array of source grid point weighting for all target grid points.
+        in_latlons:
+            Source points's latitude-longitudes.
+        out_latlons:
+            Target points's latitude-longitudes.
+        in_lons_size:
+            Source grid's longitude dimension.
+        lat_spacing:
+            Input grid latitude spacing, in degree.
+        lon_spacing:
+            Input grid longitude spacing, in degree.
 
     Returns:
-         Tuple[numpy.ndarray,numpy.ndarray]:
-            updated weights: array of source grid point weighting for target grid points
-            excluded_indexes: target points which are not handled in this function
+        - Updated weights - array of source grid point weighting for target grid points.
+        - Excluded indexes - target points which are not handled in this function.
     """
-
     lat_lon_area = lat_spacing * lon_spacing
     excluded_indexes = np.array([], dtype=int)
 
@@ -487,56 +491,55 @@ def one_mismatched_input_point(
 
 
 def lakes_islands(
-    lake_island_indexes,
-    weights,
-    indexes,
-    surface_type_mask,
-    in_latlons,
-    out_latlons,
-    in_classified,
-    out_classified,
-    in_lons_size,
-    vicinity,
-    lat_spacing,
-    lon_spacing,
-):
+    lake_island_indexes: ndarray,
+    weights: ndarray,
+    indexes: ndarray,
+    surface_type_mask: ndarray,
+    in_latlons: ndarray,
+    out_latlons: ndarray,
+    in_classified: ndarray,
+    out_classified: ndarray,
+    in_lons_size: int,
+    vicinity: float,
+    lat_spacing: float,
+    lon_spacing: float,
+) -> Tuple[ndarray, ndarray, ndarray]:
     """
-    updating source points and weighting for 4-false-source-point cases
-    this function used for
+    Updating source points and weighting for 4-false-source-point cases.
+    These are lakes (water surrounded by land) and islands (land surrounded by water).
     Note that a similar function can be found in nearest.py for nearest
     neighbour regridding rather than bilinear regridding.
 
     Args:
-        lake_island_indexes (numpy.ndarray):
-            selected target points which have 4 false source points
-        in_latlons (numpy.ndarray):
-            tource points's latitude-longitudes
-        out_latlons (numpy.ndarray):
-            target points's latitude-longitudes
-        surface_type_mask (numpy.ndarray)):
-            numpy ndarray of bool, true if source point type matches target point type
-        indexes (numpy.ndarray):
-            array of source grid point number for all target grid points
-        weights (numpy.ndarray):
-            array of source grid point weighting for all target grid points
-        in_classified (numpy.ndarray):
-            land_sea type for source grid points (land =>True)
-        out_classified (numpy.ndarray):
-            land_sea type for terget grid points (land =>True)
-        in_lons_size (int):
-            source grid's longitude dimension
-        vicinity (float32):
-            radius of specified searching domain (unit: m)
-        lat_spacing (float32) :
-            input grid latitude spacing (unit: degree)
-        lon_spacing (float32):
-            input grid longitude spacing (unit: degree)
+        lake_island_indexes:
+            Selected target points which have 4 false source points.
+        in_latlons:
+            Source points's latitude-longitudes.
+        out_latlons:
+            Target points's latitude-longitudes.
+        surface_type_mask:
+            Numpy ndarray of bool, true if source point type matches target point type.
+        indexes:
+            Array of source grid point number for all target grid points.
+        weights:
+            Array of source grid point weighting for all target grid points.
+        in_classified:
+            Land_sea type for source grid points (land ->True).
+        out_classified:
+            Land_sea type for terget grid points (land ->True).
+        in_lons_size:
+            Source grid's longitude dimension.
+        vicinity:
+            Radius of specified searching domain, in meter.
+        lat_spacing:
+            Input grid latitude spacing, in degree.
+        lon_spacing:
+            Input grid longitude spacing, in degree.
 
     Returns:
-        Tuple[numpy.ndarray, numpy.ndarray, numpy.ndarray]:
-            updated indexes: source grid point number for all target grid points
-            updated weights: source grid point weighting for all target grid points
-            updated surface_type_mask: - matching info between source/target point types
+        - Updated weights - source point weighting for all target grid points.
+        - Updated indexes - source grid point number for all target grid points.
+        - Updated surface_type_mask - matching info between source/target point types.
     """
 
     # increase 4 points to 8 points
@@ -577,7 +580,6 @@ def lakes_islands(
             indexes,
             out_latlons,
             in_latlons,
-            in_lons_size,
             lat_spacing,
             lon_spacing,
         )
@@ -623,8 +625,7 @@ def lakes_islands(
     masked_distances += np.finfo(np.float32).eps
     inv_distances = 1.0 / masked_distances
     # add power 1.80 for inverse diatance weight
-    optimum_power = 1.80
-    inv_distances_power = np.power(inv_distances, optimum_power)
+    inv_distances_power = np.power(inv_distances, OPTIMUM_IDW_POWER)
     inv_distances_sum = np.sum(inv_distances_power, axis=1)
     inv_distances_sum = 1.0 / inv_distances_sum
     weights_idw = inv_distances_power * inv_distances_sum.reshape(-1, 1)
