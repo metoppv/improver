@@ -2,7 +2,7 @@
 Bilinear regridding with land-sea mask awareness
 ################################################
 
-This subpackage provides a fast and unified implementation of bilinear regridding with land-sea mask awareness. It is assumed that the source grid is evenly-spaced in a rectilinear latitude/longitude system. The target grid could be rectilinear or curvilinear. 
+This subpackage provides a fast and unified implementation of bilinear regridding with land-sea mask awareness. It is assumed that the source grid is evenly-spaced in a rectilinear latitude/longitude system. The target grid could be rectilinear or curvilinear. Regridding a field with land-sea mask awareness means that only land-surface source points are used for regridding at the land-surface target points, and vice versa at the sea-surface target points.
 
 ********************************
 Calculation steps of Regridding 
@@ -37,7 +37,8 @@ The weight calculation and adjustment
  
 
 1. For the target points with four matched surrounding source points, their source point
-   weights can be  calculated using the Finite-Element based interpolation shape function. 
+   weights can be  calculated using the Finite-Element based interpolation shape function.
+   The formulations are as below (*var* is the physical variable to be interpolated).
 
 .. math:: 
         var &= \sum \limits_{i=1}^4 weight_i \cdot var_i
@@ -51,6 +52,8 @@ The weight calculation and adjustment
         weight_4 &= (lat_2-lat)*(lon-lon_1)/area
 
         area &= (lat_2-lat_1)*(lon_3-lon_1)
+        
+     
 
 2.  For the target points with three matched source points plus one unmatached source point, and
     the target point inside the triangle formed with three matched source points, three matched 
@@ -58,7 +61,7 @@ The weight calculation and adjustment
     interpolation shape functions are given for the weight calculation.
 
 - if source point 1 is unmatched:
-
+    
 .. math::
     weight_1 &= 0.0
     
@@ -67,9 +70,9 @@ The weight calculation and adjustment
     weight_3 &= (lat_2-lat)*(lon_3-lon_1)/area
     
     weight_4 &= 1.0-weight_2-weight_3
-    
-- if source point 2 is unmatched:  
 
+- if source point 2 is unmatched:  
+   
 .. math::  
     weight_1 &= (lat_2-lat_1)*(lon_3-lon)/area
     
@@ -91,7 +94,7 @@ The weight calculation and adjustment
     weight_1 &= 1.0-weight_2-weight_4
     
 - if source point 4 is unmatched:
-
+   
 .. math::  
     weight_1 &= (lat_2-lat)*(lon_3-lon_1)/area
     
@@ -100,6 +103,7 @@ The weight calculation and adjustment
     weight_2 &= 1.0-weight_1-weight_3
     
     weight_4 &= 0.0
+    
     
 3. The inverse distance weighting(IDW) method is used for the target points with the following:
 
@@ -126,7 +130,6 @@ where p is a positive number, called the power parameter. The optimum value =1.8
    re-locating their source points by looking up eight nearest source points with specified
    distance limit using the K-D tree method and then check if there are any same-type source points: 
   
-  - if yes, use the matched source for the interpolation of inverse distance weighting 
-  
-  - if no, just ignore the surface type and do normal bilinear interpolation
+- if yes, use the matched source for the interpolation of inverse distance weighting  
+- if no, just ignore the surface type and do normal bilinear interpolation
 
