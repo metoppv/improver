@@ -39,7 +39,7 @@ from . import acceptance as acc
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 GLOBAL_UK_TITLE = "Global Model Forecast on UK 2 km Standard Grid"
 MOGREPS_G_UK_TITLE = "MOGREPS-G Model Forecast on UK 2 km Standard Grid"
-UKV_GLOBAL_TITLE = "UKV Model Forecast on Global 10 km Standard Grid"
+UKV_GLOBAL_CUTOUT_TITLE = "UKV Model Forecast on UK 10 km Grid"
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
@@ -116,7 +116,7 @@ def test_regrid_extrapolate(tmp_path):
         "--extrapolation-mode",
         "extrapolate",
         "--regridded-title",
-        UKV_GLOBAL_TITLE,
+        UKV_GLOBAL_CUTOUT_TITLE,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
