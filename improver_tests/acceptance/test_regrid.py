@@ -208,7 +208,7 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
     kgo_dir = acc.kgo_root() / "regrid/landmask"
     kgo_path = kgo_dir / "kgo_multi_realization.nc"
     input_path = kgo_dir / "global_cutout_multi_realization.nc"
-    landmask_path = kgo_dir / "glm_landmask.nc"
+    landmask_path = kgo_dir / "engl_landmask.nc"
     target_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -273,7 +273,7 @@ def test_regrid_nearest_landmask_2_multi_realization(tmp_path):
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "nearest_landmask_2/kgo_multi_realization.nc"
     input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
-    landmask_path = kgo_dir / "landmask/glm_landmask.nc"
+    landmask_path = kgo_dir / "landmask/engl_landmask.nc"
     target_path = kgo_dir / "landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -296,7 +296,7 @@ def test_regrid_bilinear_landmask_2_multi_realization(tmp_path):
     kgo_dir = acc.kgo_root() / "regrid"
     kgo_path = kgo_dir / "bilinear_landmask_2/kgo_multi_realization.nc"
     input_path = kgo_dir / "landmask/global_cutout_multi_realization.nc"
-    landmask_path = kgo_dir / "landmask/glm_landmask.nc"
+    landmask_path = kgo_dir / "landmask/engl_landmask.nc"
     target_path = kgo_dir / "landmask/ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
     args = [

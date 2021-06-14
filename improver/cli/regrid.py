@@ -58,7 +58,8 @@ def process(
         land_sea_mask (iris.cube.Cube):
             Cube describing the land_binary_mask on the source grid if land-sea
             aware regridding is required, with land points set to one and sea points
-            set to zero.
+            set to zero. This can be a larger domain than cube, so long as cube is
+            a strict cut-out (not a reprojection) of the land_sea_mask domain.
         regrid_mode (str):
             Selects which regridding techniques to use. Default uses
             iris.analysis.Linear(); "nearest" uses iris.analysis.Nearest();
