@@ -29,7 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Bilinear interpolation functions
+.. Further information is available in:
+.. include:: extended_documentation/regrid/
+   bilinear_land_sea.rst
+
 """
 from typing import Tuple
 
