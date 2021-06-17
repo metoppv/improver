@@ -31,6 +31,7 @@
 """Utilities for Unit tests for Weather Symbols"""
 
 from typing import Any, Dict
+
 from improver.wxcode.utilities import get_parameter_names
 
 
@@ -53,66 +54,6 @@ RAIN_PROB_ABOVE = prob_above_name("rainfall_rate")
 SLEET_PROB_ABOVE = prob_above_name("lwe_sleetfall_rate")
 SNOW_PROB_ABOVE = prob_above_name("lwe_snowfall_rate")
 VIS_PROB_BELOW = "probability_of_visibility_in_air_below_threshold"
-
-
-def check_diagnostic_lists_consistency(query):
-    """
-    Checks if specific input lists have same nested list
-    structure. e.g. ['item'] != [['item']]
-
-    Args:
-        query (dict):
-            of weather-symbols decision-making information
-
-    Raises:
-        ValueError: if diagnostic query lists have different nested list
-            structure.
-
-    """
-    diagnostic_keys = [
-        "diagnostic_fields",
-        "diagnostic_conditions",
-        "diagnostic_thresholds",
-    ]
-    values = [
-        get_parameter_names(query[key]) if key == "diagnostic_fields" else query[key]
-        for key in diagnostic_keys
-    ]
-    if not check_nested_list_consistency(values):
-        msg = "Inconsistent list structure: \n"
-        for key in diagnostic_keys:
-            msg += f"{key} = {query[key]}; \n"
-        raise ValueError(msg)
-
-
-def check_nested_list_consistency(query):
-    """
-    Return True if all input lists have same nested list
-    structure. e.g. ['item'] != [['item']]
-
-    Args:
-        query (list of lists):
-            Nested lists to check for consistency.
-
-    Returns:
-        bool: True if diagnostic query lists have same nested list
-            structure.
-
-    """
-
-    def _checker(lists):
-        """Return True if all input lists have same nested list
-        structure. e.g. ['item'] != [['item']]."""
-        type_set = set(map(type, lists))
-        if list in type_set:
-            return (
-                len(type_set) == 1
-                and len(set(map(len, lists))) == 1
-                and all(map(_checker, zip(*lists)))
-            )
-        return True
-
-    return _checker(query)
 
 
 def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
@@ -416,6 +357,7 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
     }
 
     return queries
+
 
 def wxcode_decision_tree_global() -> Dict[str, Dict[str, Any]]:
     """

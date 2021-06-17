@@ -33,8 +33,8 @@
 from collections import OrderedDict
 from typing import Any, Dict, List
 
-from improver.wxcode.wxcode_decision_tree import wxcode_decision_tree
-from improver.wxcode.wxcode_decision_tree_global import wxcode_decision_tree_global
+import iris
+
 
 _WX_DICT_IN = {
     0: "Clear_Night",
@@ -73,6 +73,21 @@ _WX_DICT_IN = {
 WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
+
+
+def update_tree_units(tree):
+
+    def _make_thresholds_with_units(items):
+        if isinstance(items[0], list):
+            return [_make_thresholds_with_units(item) for item in items]
+        values, units = items
+        return iris.coords.AuxCoord(values, units=units)
+
+    for query in tree.values():
+        query["diagnostic_thresholds"] = _make_thresholds_with_units(
+            query["diagnostic_thresholds"]
+        )
+    return tree
 
 
 def weather_code_attributes() -> Dict[str, Any]:
@@ -153,7 +168,7 @@ def update_daynight(cubewx):
     return cubewx_daynight
 
 
-def interrogate_decision_tree(wxtree: str) -> List[str]:
+def interrogate_decision_tree(wxtree: Dict) -> List[str]:
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
@@ -169,19 +184,9 @@ def interrogate_decision_tree(wxtree: str) -> List[str]:
         Returns a formatted string descring the diagnostics required,
         including threshold details.
     """
-
-    # Get current weather symbol decision tree and populate a list of
-    # required inputs for printing.
-    if wxtree == "high_resolution":
-        queries = wxcode_decision_tree()
-    elif wxtree == "global":
-        queries = wxcode_decision_tree_global()
-    else:
-        raise ValueError("Unknown decision tree name provided.")
-
     # Diagnostic names and threshold values.
     requirements = {}
-    for query in queries.values():
+    for query in wxtree.values():
         diagnostics = get_parameter_names(
             expand_nested_lists(query, "diagnostic_fields")
         )
@@ -193,9 +198,9 @@ def interrogate_decision_tree(wxtree: str) -> List[str]:
     # CLI help.
     output = []
     for requirement, uniq_thresh in sorted(requirements.items()):
-        (units,) = {u for (_, u) in uniq_thresh}  # enforces same units
-        thresh_str = ", ".join(map(str, sorted(v for (v, _) in uniq_thresh)))
-        output.append("{} ({}): {}".format(requirement, units, thresh_str))
+        (units,) = {u.units for u in uniq_thresh}  # enforces same units
+        thresh_str = ", ".join(map(str, sorted({v.points[0] for v in uniq_thresh})))
+        output.append("- {} ({}): {}".format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = "{}\n" * n_files

@@ -59,6 +59,7 @@ from improver.wxcode.utilities import (
     is_variable,
     update_daynight,
     weather_code_attributes,
+    update_tree_units,
 )
 
 
@@ -90,9 +91,7 @@ class WeatherSymbols(BasePlugin):
     defined in the input cubes.
     """
 
-    def __init__(
-        self, wxtree: dict, model_id_attr: Optional[str] = None
-    ) -> None:
+    def __init__(self, wxtree: dict, model_id_attr: Optional[str] = None) -> None:
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -120,13 +119,9 @@ class WeatherSymbols(BasePlugin):
             values, units = items
             return iris.coords.AuxCoord(values, units=units)
 
-        self.queries = wxtree
         self.model_id_attr = model_id_attr
-        self.start_node = list(self.queries.keys())[0]
-        for query in self.queries.values():
-            query["diagnostic_thresholds"] = make_thresholds_with_units(
-                query["diagnostic_thresholds"]
-            )
+        self.start_node = list(wxtree.keys())[0]
+        self.queries = update_tree_units(wxtree)
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name

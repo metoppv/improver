@@ -43,7 +43,8 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
-from . import wxcode_decision_tree_uk, wxcode_decision_tree_global
+
+from . import wxcode_decision_tree_global, wxcode_decision_tree_uk
 
 
 class Test_WXCode(IrisTest):
@@ -634,7 +635,10 @@ class Test_construct_extract_constraint(Test_WXCode):
         expected = iris.Constraint(
             name="probability_of_rainfall_rate_above_threshold",
             rainfall_rate=lambda cell: np.isclose(
-                cell.point, threshold.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                cell.point,
+                threshold.points[0],
+                rtol=self.plugin.float_tolerance,
+                atol=0,
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
@@ -724,14 +728,20 @@ class Test_evaluate_extract_expression(Test_WXCode):
                 iris.Constraint(
                     name="probability_of_rainfall_rate_above_threshold",
                     rainfall_rate=lambda cell: np.isclose(
-                        cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                        cell.point,
+                        t.points[0],
+                        rtol=self.plugin.float_tolerance,
+                        atol=0,
                     ),
                 ),
                 "-",
                 iris.Constraint(
                     name="probability_of_lwe_snowfall_rate_above_threshold",
                     lwe_snowfall_rate=lambda cell: np.isclose(
-                        cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                        cell.point,
+                        t.points[0],
+                        rtol=self.plugin.float_tolerance,
+                        atol=0,
                     ),
                 ),
             ],
@@ -1109,7 +1119,7 @@ class Test_create_symbol_cube(IrisTest):
     def test_model_id_attr(self):
         """Test cube is constructed with appropriate metadata with
         model_id_attr attribute"""
-        self.plugin.model_id_attr="mosg__model_configuration"
+        self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
