@@ -60,11 +60,6 @@ from improver.wxcode.utilities import (
     update_daynight,
     weather_code_attributes,
 )
-from improver.wxcode.wxcode_decision_tree import START_NODE, wxcode_decision_tree
-from improver.wxcode.wxcode_decision_tree_global import (
-    START_NODE_GLOBAL,
-    wxcode_decision_tree_global,
-)
 
 
 def _define_invertible_conditions() -> Dict[str, str]:
@@ -96,7 +91,7 @@ class WeatherSymbols(BasePlugin):
     """
 
     def __init__(
-        self, wxtree: str = "high_resolution", model_id_attr: Optional[str] = None
+        self, wxtree: dict, model_id_attr: Optional[str] = None
     ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
@@ -105,9 +100,8 @@ class WeatherSymbols(BasePlugin):
 
         Args:
             wxtree:
-                Used to choose weather symbol decision tree.
-                Default is "high_resolution"
-                "global" will load the global weather symbol decision tree.
+                Weather symbols decision tree definition, provided as a
+                dictionary.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
@@ -121,19 +115,14 @@ class WeatherSymbols(BasePlugin):
         """
 
         def make_thresholds_with_units(items):
-            if isinstance(items, list):
+            if isinstance(items[0], list):
                 return [make_thresholds_with_units(item) for item in items]
             values, units = items
             return iris.coords.AuxCoord(values, units=units)
 
-        self.wxtree = wxtree
+        self.queries = wxtree
         self.model_id_attr = model_id_attr
-        if wxtree == "global":
-            self.queries = wxcode_decision_tree_global()
-            self.start_node = START_NODE_GLOBAL
-        else:
-            self.queries = wxcode_decision_tree()
-            self.start_node = START_NODE
+        self.start_node = list(self.queries.keys())[0]
         for query in self.queries.values():
             query["diagnostic_thresholds"] = make_thresholds_with_units(
                 query["diagnostic_thresholds"]
@@ -146,9 +135,7 @@ class WeatherSymbols(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        return "<WeatherSymbols tree={} start_node={}>".format(
-            self.wxtree, self.start_node
-        )
+        return "<WeatherSymbols start_node={}>".format(self.start_node)
 
     def check_input_cubes(self, cubes: CubeList) -> Optional[Dict[str, Any]]:
         """

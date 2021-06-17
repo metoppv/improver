@@ -58,9 +58,12 @@ def test_basic(tmp_path):
     kgo_dir = acc.kgo_root() / "wxcode/basic"
     kgo_path = kgo_dir / "kgo.nc"
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS]
+    wxtree = kgo_dir / "decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
+        "--wxtree",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",
@@ -81,9 +84,12 @@ def test_native_units(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
 
     param_paths = [input_dir / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS]
+    wxtree = kgo_dir / "decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
+        "--wxtree",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",
@@ -108,11 +114,12 @@ def test_global(tmp_path):
         "convective_ratio_above",
     ]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in params]
+    wxtree = kgo_dir / "decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
         "--wxtree",
-        "global",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",
@@ -132,11 +139,12 @@ def test_insufficient_files(tmp_path):
         "low_type_cloud_area_fraction_above",
     ]
     param_paths = [kgo_dir / f"probability_of_{p}_threshold.nc" for p in params]
+    wxtree = kgo_dir / "decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
         "--wxtree",
-        "global",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",
@@ -156,9 +164,12 @@ def test_no_lightning(tmp_path):
         for p in ALL_PARAMS
         if "lightning" not in p
     ]
+    wxtree = kgo_dir / "decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
+        "--wxtree",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--output",

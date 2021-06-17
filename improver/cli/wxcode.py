@@ -54,15 +54,15 @@ def _extend_help(fn):
 @cli.clizefy
 @cli.with_output
 @_extend_help
-def process(*cubes: cli.inputcube, wxtree="high_resolution", model_id_attr: str = None):
+def process(*cubes: cli.inputcube, wxtree: cli.inputjson = None, model_id_attr: str = None):
     """ Processes cube for Weather symbols.
 
     Args:
         cubes (iris.cube.CubeList):
             A cubelist containing the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
-        wxtree (str):
-            Weather Code tree: high_resolution or global.
+        wxtree (dict):
+            A JSON file containing a weather symbols decision tree definition.
         model_id_attr (str):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
@@ -81,4 +81,4 @@ def process(*cubes: cli.inputcube, wxtree="high_resolution", model_id_attr: str 
             "Not enough input arguments. " "See help for more information."
         )
 
-    return WeatherSymbols(wxtree=wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
