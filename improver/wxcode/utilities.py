@@ -46,7 +46,7 @@ REQUIRED_KEY_WORDS = [
     "diagnostic_conditions",
 ]
 
-OPTIONAL_KEY_WORDS = ["diagnostic_missing_action", "diagnostic_gamma"]
+OPTIONAL_KEY_WORDS = ["diagnostic_missing_action"]
 
 THRESHOLD_CONDITIONS = ["<=", "<", ">", ">="]
 CONDITION_COMBINATIONS = ["AND", "OR"]

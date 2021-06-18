@@ -44,6 +44,9 @@ def process(
 ):
     """ Processes cube for Weather symbols.
 
+    .. See the documentation for information about building a decisiont tree.
+    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
+
     Args:
         cubes (iris.cube.CubeList):
             A cubelist containing the diagnostics required for the
