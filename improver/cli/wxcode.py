@@ -40,7 +40,7 @@ def process(
     *cubes: cli.inputcube,
     wxtree: cli.inputjson = None,
     model_id_attr: str = None,
-    check_tree: bool = False
+    check_tree: bool = False,
 ):
     """ Processes cube for Weather symbols.
 
@@ -63,7 +63,7 @@ def process(
             A cube of weather symbols.
     """
     if check_tree:
-        from improver.wxcode.check_tree import check_tree
+        from improver.wxcode.utilities import check_tree
         return check_tree(wxtree)
 
     from iris.cube import CubeList

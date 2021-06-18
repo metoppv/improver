@@ -58,8 +58,8 @@ from improver.wxcode.utilities import (
     get_parameter_names,
     is_variable,
     update_daynight,
-    weather_code_attributes,
     update_tree_units,
+    weather_code_attributes,
 )
 
 
