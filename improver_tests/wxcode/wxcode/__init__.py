@@ -32,8 +32,6 @@
 
 from typing import Any, Dict
 
-from improver.wxcode.utilities import get_parameter_names
-
 
 def prob_above_name(diagnostic: str) -> str:
     """Inline function to construct probability cube name"""

@@ -48,8 +48,10 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
+from . import wxcode_decision_tree_uk
 from improver.wxcode.utilities import (
     WX_DICT,
+    check_tree,
     expand_nested_lists,
     get_parameter_names,
     interrogate_decision_tree,
@@ -436,6 +438,156 @@ class Test_get_parameter_names(IrisTest):
         ]
         result = get_parameter_names(condition)
         self.assertEqual(result, expected)
+
+
+@pytest.fixture(name="modify_tree")
+def modify_tree_fixture(node, key, value):
+    """Create a new decision tree and modify it"""
+    tree = wxcode_decision_tree_uk()
+    tree[node][key] = value
+    return tree
+
+
+@pytest.mark.parametrize(
+    "node, key, value, expected",
+    (
+        (
+            "lightning",
+            "diagnostic_missing_action",
+            "kittens",
+            (
+                "Node lightning contains a diagnostic_missing_action that targets "
+                "key 'kittens' which is neither 'succeed' nor 'fail'"
+            ),
+        ),
+        (
+            "drizzle_mist",
+            "condition_combination",
+            "kittens",
+            (
+                "Node drizzle_mist utilises 2 diagnostic fields but 'kittens' is "
+                "not a valid combination condition"
+            ),
+        ),
+        (
+            "lightning",
+            "condition_combination",
+            "AND",
+            (
+                "Node lightning utilises combination condition 'AND' but does not "
+                "use 2 diagnostic fields for combination in this way"
+            ),
+        ),
+        (
+            "lightning",
+            "threshold_condition",
+            ">>",
+            "Node lightning uses invalid threshold condition >>",
+        ),
+        (
+            "lightning",
+            "diagnostic_conditions",
+            ["equal"],
+            (
+                "Node lightning uses invalid diagnostic condition 'equal'; this "
+                "should be 'above' or 'below'"
+            ),
+        ),
+        (
+            "lightning",
+            "succeed",
+            100,
+            (
+                "Node lightning results in an invalid weather code of 100 for the "
+                "succeed condition"
+            ),
+        ),
+        (
+            "lightning",
+            "fail",
+            100,
+            (
+                "Node lightning results in an invalid weather code of 100 for the "
+                "fail condition"
+            ),
+        ),
+        (
+            "lightning",
+            "fail",
+            "kittens",
+            "Node lightning has an invalid destination of kittens for the fail condition",
+        ),
+        (
+            "snow_in_vicinity",
+            "diagnostic_fields",
+            [
+                [
+                    [
+                        "probability_of_lwe_sleetfall_rate_above_threshold",
+                        "+",
+                        "probability_of_rainfall_rate_above_threshold",
+                        "-",
+                        "probability_of_lwe_snowfall_rate_above_threshold",
+                    ]
+                ]
+            ],
+            (
+                "Node snow_in_vicinity has inconsistent nesting for the "
+                "diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds "
+                "fields"
+            ),
+        ),
+        (
+            "snow_in_vicinity",
+            "diagnostic_conditions",
+            ["above", "above", "above"],
+            (
+                "Node snow_in_vicinity has inconsistent nesting for the "
+                "diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds "
+                "fields"
+            ),
+        ),
+        (
+            "snow_in_vicinity",
+            "diagnostic_thresholds",
+            [[0.03, "mm hr-1"], [0.03, "mm hr-1"], [0.03, "mm hr-1"]],
+            (
+                "Node snow_in_vicinity has inconsistent nesting for the "
+                "diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds "
+                "fields"
+            ),
+        ),
+        (
+            "lightning",
+            "probability_thresholds",
+            [0.5, 0.5],
+            (
+                "Node lightning has a different number of probability thresholds "
+                "and diagnostic_fields: [0.5, 0.5], "
+                "['probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold']"
+            ),
+        ),
+        (
+            "lightning",
+            "probability_thresholds",
+            ["kittens"],
+            "Node lightning has a non-numeric probability threshold ['kittens']",
+        ),
+    ),
+)
+def test_check_tree(modify_tree, expected):
+    """Test that the various possible decision tree problems are identified."""
+    result = check_tree(modify_tree)
+    assert result == expected
+
+
+def test_check_tree_invalid_key():
+    """Modify a wx decision tree."""
+    expected = "Node lightning contains unknown key 'kittens'"
+    tree = wxcode_decision_tree_uk()
+    tree['lightning']['kittens'] = 0
+    result = check_tree(tree)
+    assert result == expected
 
 
 if __name__ == "__main__":

@@ -269,7 +269,7 @@ def get_parameter_names(diagnostic_fields: List[List[str]]) -> List[List[str]]:
     return parameter_names
 
 
-def check_diagnostic_lists_consistency(query: Dict[str, Any]) -> bool:
+def _check_diagnostic_lists_consistency(query: Dict[str, Any]) -> bool:
     """
     Checks if specific input lists have same nested list
     structure. e.g. ['item'] != [['item']]
@@ -292,10 +292,10 @@ def check_diagnostic_lists_consistency(query: Dict[str, Any]) -> bool:
         get_parameter_names(query[key]) if key == "diagnostic_fields" else query[key]
         for key in diagnostic_keys
     ]
-    return check_nested_list_consistency(values)
+    return _check_nested_list_consistency(values)
 
 
-def check_nested_list_consistency(query: List[List[Any]]) -> bool:
+def _check_nested_list_consistency(query: List[List[Any]]) -> bool:
     """
     Return True if all input lists have same nested list
     structure. e.g. ['item'] != [['item']]
@@ -394,7 +394,7 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
             if value not in DIAGNOSTIC_CONDITIONS:
                 issues.append(
                     f"Node {node} uses invalid diagnostic condition "
-                    f"{value}; this should be 'above' or 'below'"
+                    f"'{value}'; this should be 'above' or 'below'"
                 )
 
         # Check the succeed and fail destinations are valid; that is valid
@@ -416,7 +416,7 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
 
         # Check diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds
         # are all nested equivalently
-        if not check_diagnostic_lists_consistency(items):
+        if not _check_diagnostic_lists_consistency(items):
             issues.append(
                 f"Node {node} has inconsistent nesting for the "
                 "diagnostic_fields, diagnostic_conditions, and "
