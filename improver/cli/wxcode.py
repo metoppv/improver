@@ -64,6 +64,7 @@ def process(
     """
     if check_tree:
         from improver.wxcode.utilities import check_tree
+
         return check_tree(wxtree)
 
     from iris.cube import CubeList

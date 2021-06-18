@@ -35,7 +35,6 @@ from typing import Any, Dict, List
 
 import iris
 
-
 REQUIRED_KEY_WORDS = [
     "succeed",
     "fail",
@@ -192,8 +191,8 @@ def interrogate_decision_tree(wxtree: Dict) -> List[str]:
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
     thresholds needed, and whether they are thresholded above or below these
-    values. This output is used to create the CLI help, informing the user of
-    the necessary inputs.
+    values. This output is used with the --check option in the CLI, informing
+    the user of the necessary inputs for a provided decision tree.
 
     Args:
         wxtree:

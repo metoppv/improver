@@ -48,7 +48,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from . import wxcode_decision_tree_uk
 from improver.wxcode.utilities import (
     WX_DICT,
     check_tree,
@@ -56,8 +55,11 @@ from improver.wxcode.utilities import (
     get_parameter_names,
     interrogate_decision_tree,
     update_daynight,
+    update_tree_units,
     weather_code_attributes,
 )
+
+from . import wxcode_decision_tree_uk, wxcode_decision_tree_global
 
 
 def set_up_wxcube(time_points=None, lat_lon=False):
@@ -369,50 +371,43 @@ class Test_update_daynight(IrisTest):
 class Test_interrogate_decision_tree(IrisTest):
     """Test the function for generating extended help."""
 
-    def test_raises_exception(self):
-        """Test the function raises an exception for an unknown weather symbol
-        tree name."""
-        msg = "Unknown decision tree name provided."
-        with self.assertRaisesRegex(ValueError, msg):
-            interrogate_decision_tree("kittens")
-
 
 @pytest.mark.parametrize(
-    "tree_name,expected",
+    "tree,expected",
     [
         (
-            "global",
+            update_tree_units(wxcode_decision_tree_global()),
             (
-                "probability_of_convective_ratio_above_threshold (1): 0.8\n"
-                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-                "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-                "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+                "- probability_of_convective_ratio_above_threshold (1): 0.8\n"
+                "- probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+                "- probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "- probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "- probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "- probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "- probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "- probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
             ),
         ),
         (
-            "high_resolution",
+            update_tree_units(wxcode_decision_tree_uk()),
             (
-                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-                "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-                "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
-                "probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
-                "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.05\n"  # noqa: E501
-                "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+                "- probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+                "- probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "- probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "- probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+                "- probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "- probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "- probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+                "- probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "- probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.05\n"  # noqa: E501
+                "- probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
             ),
         ),
     ],
 )
-def test_interrogate_decision_tree(tree_name, expected):
+def test_interrogate_decision_tree(tree, expected):
     """Test that the function returns the right strings."""
-    result = interrogate_decision_tree(tree_name)
+    result = interrogate_decision_tree(tree)
     assert result == expected
 
 
@@ -585,7 +580,7 @@ def test_check_tree_invalid_key():
     """Modify a wx decision tree."""
     expected = "Node lightning contains unknown key 'kittens'"
     tree = wxcode_decision_tree_uk()
-    tree['lightning']['kittens'] = 0
+    tree["lightning"]["kittens"] = 0
     result = check_tree(tree)
     assert result == expected
 
