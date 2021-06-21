@@ -34,6 +34,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List
 
 import iris
+from iris.cube import Cube
 
 REQUIRED_KEY_WORDS = [
     "succeed",
@@ -94,7 +95,18 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def update_tree_units(tree):
+def update_tree_units(tree: Dict) -> Dict:
+    """
+    Replaces value / unit pairs from tree definition with an Iris AuxCoord
+    that encodes the same information.
+
+    Args:
+        tree:
+            Weather symbols decision tree.
+    Returns:
+        The tree now containing AuxCoords instead of value / unit pairs.
+    """
+
     def _make_thresholds_with_units(items):
         if isinstance(items[0], list):
             return [_make_thresholds_with_units(item) for item in items]
@@ -123,7 +135,7 @@ def weather_code_attributes() -> Dict[str, Any]:
     return attributes
 
 
-def expand_nested_lists(query: Dict, key: str) -> List:
+def expand_nested_lists(query: Dict[str, Any], key: str) -> List:
     """
     Produce flat lists from list and nested lists.
 
@@ -145,7 +157,7 @@ def expand_nested_lists(query: Dict, key: str) -> List:
     return items
 
 
-def update_daynight(cubewx):
+def update_daynight(cubewx: Cube) -> Cube:
     """ Update weather cube depending on whether it is day or night
 
     Args:
@@ -186,12 +198,12 @@ def update_daynight(cubewx):
     return cubewx_daynight
 
 
-def interrogate_decision_tree(wxtree: Dict) -> List[str]:
+def interrogate_decision_tree(wxtree: Dict[str, Dict[str, Any]]) -> List[str]:
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
     thresholds needed, and whether they are thresholded above or below these
-    values. This output is used with the --check option in the CLI, informing
+    values. This output is used with the --check-tree option in the CLI, informing
     the user of the necessary inputs for a provided decision tree.
 
     Args:

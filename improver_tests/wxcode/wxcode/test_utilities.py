@@ -381,7 +381,7 @@ class Test_interrogate_decision_tree(IrisTest):
                 "- probability_of_convective_ratio_above_threshold (1): 0.8\n"
                 "- probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
                 "- probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-                "- probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "- probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"  # noqa: E501
                 "- probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
                 "- probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
                 "- probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
@@ -559,7 +559,7 @@ def modify_tree_fixture(node, key, value):
             (
                 "Node lightning has a different number of probability thresholds "
                 "and diagnostic_fields: [0.5, 0.5], "
-                "['probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold']"
+                "['probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold']"  # noqa: E501
             ),
         ),
         (
