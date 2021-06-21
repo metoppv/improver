@@ -1,11 +1,11 @@
 ################################################
-Bilinear regridding with land-sea mask awareness
+Bilinear Regridding with Land-sea Mask Awareness
 ################################################
 
 This subpackage provides a fast and unified implementation of bilinear regridding with land-sea mask awareness. It is assumed that the source grid is evenly-spaced in a rectilinear latitude/longitude system. The target grid could be rectilinear or curvilinear. Regridding a field with land-sea mask awareness means that only land-surface source points are used for regridding at the land-surface target points, and vice versa at the sea-surface target points.
 
 *******************************
-Calculation steps of Regridding
+Calculation Steps of Regridding
 *******************************
  
 * Given a target point, determine its four source points according to regular grid point ordering.
@@ -22,9 +22,9 @@ Calculation steps of Regridding
 * Apply weights at values of source points for interpolated value in a unified way
   so that vectorisation of the Numpy computation can be fully achieved.
   
-*************************************
-The weight calculation and adjustment
-*************************************
+*********************************
+Weight Calculation and Adjustment
+*********************************
 
 ::
                       
