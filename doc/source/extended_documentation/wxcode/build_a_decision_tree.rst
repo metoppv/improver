@@ -77,3 +77,35 @@ accessed with this key contains the essentials that make the node function.
     construct the input probability field. This is checked against the
     spp__relative_to_threshold attribute of the threshold coordinate in the
     provided diagnostic.
+
+Every decision tree must have a starting node, and this is taken as the first
+node defined in the dictionary.
+
+Manipulation of the diagnostics is possible using the decision tree configuration
+to enable more complex comparisons. For example::
+
+  "heavy_rain_or_sleet_shower": {
+      "succeed": 14,
+      "fail": 17,
+      "probability_thresholds": [0.0],
+      "threshold_condition": "<",
+      "condition_combination": "",
+      "diagnostic_fields": [
+          [
+              "probability_of_lwe_sleetfall_rate_above_threshold",
+              "+",
+              "probability_of_lwe_snowfall_rate_above_threshold",
+              "-",
+              "probability_of_rainfall_rate_above_threshold"
+          ]
+      ],
+      "diagnostic_thresholds": [[[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]],
+      "diagnostic_conditions": [["above", "above", "above"]]
+  },
+
+This node uses three diagnostics. It combines them according to the mathematical
+operators that separate the names in the `diagnostic_fields` list. The resulting
+value is compared to the probability threshold value using the threshold condition.
+In this example the purpose is to check whether the probability of the rain rate
+exceeding 1.0 mm/hr is greater than the combined probability of the same rate
+being exceeded by sleet and snow.

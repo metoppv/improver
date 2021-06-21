@@ -44,9 +44,6 @@ def process(
 ):
     """ Processes cube for Weather symbols.
 
-    .. See the documentation for information about building a decisiont tree.
-    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
-
     Args:
         cubes (iris.cube.CubeList):
             A cubelist containing the diagnostics required for the
@@ -59,11 +56,17 @@ def process(
             a space-separated string.
         check_tree (bool):
             If set the decision tree will be checked to see if it conforms to
-            the expected format. If so the required inputs will be listed.
+            the expected format; the only other argument required is the path
+            to the decision tree. If the tree is found to be valid the required
+            inputs will be listed. Setting this flag will prevent the CLI
+            performing any other actions.
 
     Returns:
         iris.cube.Cube:
             A cube of weather symbols.
+
+    .. See the documentation for information about building a decisiont tree.
+    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
     """
     if check_tree:
         from improver.wxcode.utilities import check_tree
