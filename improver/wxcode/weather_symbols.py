@@ -89,6 +89,9 @@ class WeatherSymbols(BasePlugin):
     plugin uses a variety of diagnostic inputs and the decision tree logic
     to determine the most representative weather symbol for each site
     defined in the input cubes.
+
+    .. See the documentation for information about building a decision tree.
+    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
     """
 
     def __init__(self, wxtree: dict, model_id_attr: Optional[str] = None) -> None:

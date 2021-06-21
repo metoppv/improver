@@ -64,9 +64,6 @@ def process(
     Returns:
         iris.cube.Cube:
             A cube of weather symbols.
-
-    .. See the documentation for information about building a decisiont tree.
-    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
     """
     if check_tree:
         from improver.wxcode.utilities import check_tree

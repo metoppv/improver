@@ -59,7 +59,7 @@ from improver.wxcode.utilities import (
     weather_code_attributes,
 )
 
-from . import wxcode_decision_tree_uk, wxcode_decision_tree_global
+from . import wxcode_decision_tree_global, wxcode_decision_tree_uk
 
 
 def set_up_wxcube(time_points=None, lat_lon=False):
