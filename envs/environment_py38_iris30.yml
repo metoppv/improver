@@ -38,5 +38,6 @@ dependencies:
   - mypy
   - pytest
   - pytest-cov
+  - pytest-xdist
   - safety
   - sphinx-autodoc-typehints
