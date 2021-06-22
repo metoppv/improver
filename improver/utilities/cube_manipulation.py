@@ -122,43 +122,6 @@ def get_coord_names(cube: Cube) -> List[str]:
     return [coord.name() for coord in cube.coords()]
 
 
-def equalise_cube_attributes(
-    cubes: CubeList, silent: Optional[List[str]] = None
-) -> None:
-    """
-    Function to remove attributes that do not match between all cubes in the
-    list.  Cubes are modified in place.
-
-    Args:
-        cubes:
-            List of cubes to check the attributes and revise.
-        silent:
-            List of attributes to remove silently if unmatched.
-
-    Warns:
-        UserWarning:
-            If an unmatched attribute is not in the "silent" list,
-            a warning will be raised.
-
-    NOTE 16/05/19: iris.experimental now has an equalise_attributes function,
-    which removes any unmatched attributes without raising a warning.
-
-    TODO replace this function with the iris version once it is promoted into
-    the standard iris package.  At that time, the silent_attributes member of
-    MergeCubes becomes obsolete and should be removed.
-    """
-    if silent is None:
-        silent = []
-    unmatched = compare_attributes(cubes)
-    warning_msg = "Deleting unmatched attribute {}, value {}"
-    if len(unmatched) > 0:
-        for i, cube in enumerate(cubes):
-            for attr in unmatched[i]:
-                if attr not in silent:
-                    warnings.warn(warning_msg.format(attr, cube.attributes[attr]))
-                cube.attributes.pop(attr)
-
-
 def strip_var_names(cubes: Union[Cube, CubeList]) -> CubeList:
     """
     Strips var_name from the cube and from all coordinates except where
@@ -306,7 +269,7 @@ class MergeCubes(BasePlugin):
                 cubelist.append(cube_return(cube))
 
         # equalise cube attributes, cell methods and coordinate names
-        equalise_cube_attributes(cubelist, silent=self.silent_attributes)
+        iris.util.equalise_attributes(cubelist)
         strip_var_names(cubelist)
         self._equalise_cell_methods(cubelist)
 
