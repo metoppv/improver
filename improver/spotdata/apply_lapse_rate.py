@@ -37,6 +37,7 @@ from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
+from improver.metadata.probabilistic import is_probability
 
 
 class SpotLapseRateAdjust(PostProcessingPlugin):
@@ -124,9 +125,17 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
             method_constraint & data_constraint
         )
 
-        # Apply lapse rate adjustment to the temperature at each site.
-        new_temperatures = (
-            spot_data_cube.data + (spot_lapse_rate.data * vertical_displacement.data)
-        ).astype(np.float32)
-        new_spot_cube = spot_data_cube.copy(data=new_temperatures)
-        return new_spot_cube
+        # Check cube does not have a probability coodinate.
+        cube_type = is_probability(spot_data_cube)
+        if not cube_type:
+            # Apply lapse rate adjustment to the temperature at each site.
+            new_spot_lapse_rate = iris.util.broadcast_to_shape(spot_lapse_rate.data, spot_data_cube.shape, [-1])
+            new_temperatures = (
+                spot_data_cube.data + (new_spot_lapse_rate.data * vertical_displacement.data)
+            ).astype(np.float32)
+            new_spot_cube = spot_data_cube.copy(data=new_temperatures)
+            return new_spot_cube
+        else:
+            raise ValueError(
+            "Input cube has a probability coordinate and cannot be broadcasted"
+        )
