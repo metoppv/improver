@@ -33,6 +33,7 @@ Tests for the interpret-metadata CLI
 """
 
 import pytest
+
 from clize.errors import UnknownOption
 
 from . import acceptance as acc
