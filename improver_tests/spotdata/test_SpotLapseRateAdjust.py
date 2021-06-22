@@ -266,7 +266,7 @@ class Test_process(Test_SpotLapseRateAdjust):
             plugin(probability_cube, self.neighbour_cube, self.lapse_rate_cube)
 
     def test_different_dimensions(self):
-        """Test that the lapse rate cube can be broadcast to the same dimensions 
+        """Test that the lapse rate cube can be broadcast to the same dimensions
         as the spot data cube."""
 
         data = np.array([25, 50, 75], dtype=np.float32)
