@@ -23,7 +23,7 @@ dependencies:
   - sphinx
   # Optional
   - numba
-  - pysteps=1.3.2
+  - pysteps=1.4.1
   - statsmodels
   - timezonefinder=4.1.0
   # Development
