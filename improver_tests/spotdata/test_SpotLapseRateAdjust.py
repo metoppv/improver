@@ -41,11 +41,11 @@ from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
     construct_scalar_time_coords,
     construct_yx_coords,
-    set_up_variable_cube,
     set_up_probability_cube,
-    add_coordinate,
+    set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
@@ -169,6 +169,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
         )
         self.spot_temperature_mindz.attributes["model_grid_hash"] = diagnostic_cube_hash
 
+
 class Test_process(Test_SpotLapseRateAdjust):
 
     """Tests the class process method."""
@@ -250,22 +251,19 @@ class Test_process(Test_SpotLapseRateAdjust):
         """Ensure that the plugin exits with value error if the spot data cube
         is in probability space. """
 
-        diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube) 
+        diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
         data = np.ones((3, 3, 3), dtype=np.float32)
         threshold_points = np.array([276, 277, 278], dtype=np.float32)
         probability_cube = set_up_probability_cube(
             data, threshold_points, spp__relative_to_threshold="above"
         )
-        probability_cube.attributes[
-            "model_grid_hash"
-        ] = diagnostic_cube_hash
- 
+        probability_cube.attributes["model_grid_hash"] = diagnostic_cube_hash
+
         plugin = SpotLapseRateAdjust()
         msg = "Input cube has a probability coordinate and cannot be broadcasted"
 
         with self.assertRaisesRegex(ValueError, msg):
             plugin(probability_cube, self.neighbour_cube, self.lapse_rate_cube)
-
 
     def test_different_dimensions(self):
         """Test that the lapse rate cube can be broadcast to the same dimensions 
@@ -273,10 +271,7 @@ class Test_process(Test_SpotLapseRateAdjust):
 
         data = np.array([25, 50, 75], dtype=np.float32)
         spot_temperature_new_coord = add_coordinate(
-            self.spot_temperature_nearest, 
-            data,
-            "percentile",
-            "%"
+            self.spot_temperature_nearest, data, "percentile", "%"
         )
         plugin = SpotLapseRateAdjust()
         result = plugin(
@@ -285,7 +280,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         expected = np.array([280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
         self.assertArrayEqual(result[0].data, expected)
-        
+
 
 if __name__ == "__main__":
     unittest.main()
