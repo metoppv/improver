@@ -48,35 +48,44 @@ The key at the first level, "lightning" in this case, names the node so that it
 can be targeted as a succeed or fail destination from other nodes. The dictionary
 accessed with this key contains the essentials that make the node function.
 
-  - **succeed**: The next node to test if the tests in this node succeed.
-    Alternatively this may be an integer number that identifies which weather
-    symbol has been reached; this is for the leaf (or final) nodes in the tree.
-  - **fail**: The next node to test if the tests in this node fail.
-    Alternatively this may be an integer number that identifies which weather
-    symbol has been reached; this is for the leaf (or final) nodes in the tree.
-  - **diagnostic_missing_action** (optional): If the expected diagnostic is not
-    provided, should the tree proceed to the fail or succeed node. This can be
-    useful if the tree is to be applied to output from different models, some of
-    which do not provide all the diagnostics that might be desirable.
-  - **probability_thresholds**: The probability that must be exceeded or not
-    exceeded (see threshold_condition) for the node to progress to the succeed
-    target.
-  - **threshold_condition**: Defines the inequality test to be applied to the
-    probability threshold. Inequalities that can be used are "<=", "<", ">", ">=".
-  - **condition_combination**: If multiple tests are being applied in a single
-    node, this value determines the logic with which they are combined. The
-    values can be "AND", "OR".
-  - **diagnostic_fields**: The name of the diagnostic that is to be used in the
-    tests in this node. There may be multiple diagnostics if they are being
-    combined in the test using a condition_combination, or if they are being
-    manipulated within the node (e.g. added together).
-  - **diagnostic_thresholds**: The diagnostic threshold value being used in the
-    test. A threshold [value, units] pair must be provided for each diagnostic
-    field.
-  - **diagnostic_conditions**: The expected inequality that has been used to
-    construct the input probability field. This is checked against the
-    spp__relative_to_threshold attribute of the threshold coordinate in the
-    provided diagnostic.
+  - **succeed** (str or int): The next node to test if the condition in this
+    node is true. Alternatively this may be an integer number that identifies
+    which weather symbol has been reached; this is for the leaf (or final)
+    nodes in the tree.
+  - **fail** (str or int): The next node to test if the condition in this node
+    is false. Alternatively this may be an integer number that identifies which
+    weather symbol has been reached; this is for the leaf (or final) nodes in
+    the tree.
+  - **diagnostic_missing_action** (str(bool), optional): If the expected
+    diagnostic is not provided, should the tree proceed to the succeed or fail
+    node. This can be useful if the tree is to be applied to output from
+    different models, some of which do not provide all the diagnostics that might
+    be desirable.
+  - **probability_thresholds** (list(float)): The probability threshold(s) that
+    must be exceeded or not exceeded (see threshold_condition) for the node to
+    progress to the succeed target. Two values required if condition_combination
+    is being used.
+  - **threshold_condition** (str): Defines the inequality test to be applied to
+    the probability threshold(s). Inequalities that can be used are "<=", "<",
+    ">", ">=".
+  - **condition_combination** (str): If multiple tests are being applied in a
+    single node, this value determines the logic with which they are combined.
+    The values can be "AND", "OR".
+  - **diagnostic_fields** (List(str or List(str)): The name(s) of the
+    diagnostic(s) that will form the test condition in this node. There may be
+    multiple diagnostics if they are being combined in the test using a
+    condition_combination. Alternatively, if they are being manipulated within
+    the node (e.g. added together), they must be separated by the desired
+    operators (e.g. 'diagnostic1', '+', 'diagnostic2').
+  - **diagnostic_thresholds** (List(List(float, str)): The diagnostic threshold
+    value and units being used in the test. A threshold [value, units] pair must
+    be provided for each diagnostic field with the same nested list structure; as
+    the basic unit is a list of value and unit, the overall nested structure is
+    one list deeper.
+  - **diagnostic_conditions** (as diagnostic_fields): The expected inequality
+    that has been used to construct the input probability field. This is checked
+    against the spp__relative_to_threshold attribute of the threshold coordinate
+    in the provided diagnostic.
 
 Every decision tree must have a starting node, and this is taken as the first
 node defined in the dictionary.

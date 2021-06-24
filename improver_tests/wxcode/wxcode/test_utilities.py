@@ -368,10 +368,6 @@ class Test_update_daynight(IrisTest):
         self.assertArrayEqual(result.data, expected_result)
 
 
-class Test_interrogate_decision_tree(IrisTest):
-    """Test the function for generating extended help."""
-
-
 @pytest.mark.parametrize(
     "tree,expected",
     [
