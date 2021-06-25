@@ -9,7 +9,7 @@ dependencies:
   # Required
   - cartopy
   - cftime
-  - cf-units
+  - cf-units==2.1.5
   - clize
   - dask
   - iris=3.0
