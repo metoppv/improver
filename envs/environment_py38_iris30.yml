@@ -9,12 +9,12 @@ dependencies:
   # Required
   - cartopy
   - cftime
-  - cf-units==2.1.5
+  - cf-units=2.1.5
   - clize
   - dask
   - iris=3.0
   - netCDF4
-  - numpy==1.20.*
+  - numpy<1.21
   - python-dateutil
   - python-stratify
   - pytz=2020.5
