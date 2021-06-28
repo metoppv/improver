@@ -83,7 +83,8 @@ class ShowerCondition(BasePlugin):
                 "threshold_condition": ">=",
                 "condition_combination": "",
                 "diagnostic_fields": [
-                    "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold",
+                    "probability_of_low_and_medium_type_cloud_area_"
+                    "fraction_above_threshold",
                 ],
                 "diagnostic_thresholds": [[0.8125, 1]],
                 "diagnostic_conditions": ["above"],
