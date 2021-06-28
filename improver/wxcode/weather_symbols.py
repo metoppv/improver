@@ -94,7 +94,9 @@ class WeatherSymbols(BasePlugin):
     .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
     """
 
-    def __init__(self, wxtree: dict, model_id_attr: Optional[str] = None) -> None:
+    def __init__(
+        self, wxtree: dict, model_id_attr: Optional[str] = None, ignore_day_night=False
+    ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -108,6 +110,9 @@ class WeatherSymbols(BasePlugin):
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
                 a space-separated string.
+            ignore_day_night:
+                If True do not modify the returned symbols to a day or night
+                symbol based upon the forecast time.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -123,6 +128,7 @@ class WeatherSymbols(BasePlugin):
             return iris.coords.AuxCoord(values, units=units)
 
         self.model_id_attr = model_id_attr
+        self.ignore_day_night = ignore_day_night
         self.start_node = list(wxtree.keys())[0]
         self.queries = update_tree_units(wxtree)
         self.float_tolerance = 0.01
@@ -697,6 +703,9 @@ class WeatherSymbols(BasePlugin):
                 symbols.data[
                     np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
                 ] = symbol_code
-        # Update symbols for day or night.
-        symbols = update_daynight(symbols)
+
+        if not self.ignore_day_night:
+            # Update symbols for day or night.
+            symbols = update_daynight(symbols)
+
         return symbols

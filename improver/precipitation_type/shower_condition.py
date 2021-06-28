@@ -32,21 +32,16 @@
 
 from typing import Dict, List, Tuple
 
-import iris
-import numpy as np
 from iris.cube import Cube, CubeList
-from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.probabilistic import (
-    find_threshold_coordinate,
-    get_diagnostic_cube_name_from_probability_name,
-)
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.wxcode.weather_symbols import WeatherSymbols
 
 
 class ShowerCondition(BasePlugin):
@@ -67,52 +62,48 @@ class ShowerCondition(BasePlugin):
         """
         self.conditions_uk = {
             "texture_of_low_and_medium_type_cloud_area_fraction": {
-                "diagnostic_threshold": 0.05,
-                "probability_threshold": 0.5,
-                "operator": "above",
+                "succeed": 1,
+                "fail": 0,
+                "probability_thresholds": [0.5],
+                "threshold_condition": ">=",
+                "condition_combination": "",
+                "diagnostic_fields": [
+                    "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold"
+                ],
+                "diagnostic_thresholds": [[0.05, 1]],
+                "diagnostic_conditions": ["above"],
             },
         }
+
         self.conditions_global = {
             "low_and_medium_type_cloud_area_fraction": {
-                "diagnostic_threshold": 0.8125,
-                "probability_threshold": 0.5,
-                "operator": "below",
+                "succeed": "convective_ratio",
+                "fail": 1,
+                "probability_thresholds": [0.5],
+                "threshold_condition": ">=",
+                "condition_combination": "",
+                "diagnostic_fields": [
+                    "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold",
+                ],
+                "diagnostic_thresholds": [[0.8125, 1]],
+                "diagnostic_conditions": ["above"],
             },
             "convective_ratio": {
-                "diagnostic_threshold": 0.8,
-                "probability_threshold": 0.5,
-                "operator": "above",
+                "succeed": 1,
+                "fail": 0,
+                "probability_thresholds": [0.5],
+                "threshold_condition": ">=",
+                "condition_combination": "",
+                "diagnostic_fields": [
+                    "probability_of_convective_ratio_above_threshold"
+                ],
+                "diagnostic_thresholds": [[0.8, 1]],
+                "diagnostic_conditions": ["above"],
             },
         }
+
         self.cubes = []
         self.tree = None
-
-    def _calculate_shower_condition(self, shape: Tuple) -> ndarray:
-        """Calculate deterministic "precipitation is showery" field"""
-        showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
-        for cube in self.cubes:
-            name = get_diagnostic_cube_name_from_probability_name(cube.name())
-            slice_constraint = iris.Constraint(
-                coord_values={
-                    name: lambda cell: np.isclose(
-                        cell.point, self.tree[name]["diagnostic_threshold"]
-                    )
-                }
-            )
-            threshold_slice = cube.extract(slice_constraint)
-            if threshold_slice is None:
-                msg = "Cube {} does not contain required threshold {}"
-                raise ValueError(
-                    msg.format(cube.name(), self.tree[name]["diagnostic_threshold"])
-                )
-
-            prob = self.tree[name]["probability_threshold"]
-            if self.tree[name]["operator"] == "above":
-                condition_met = np.where(threshold_slice.data >= prob, 1, 0)
-            else:
-                condition_met = np.where(threshold_slice.data < prob, 1, 0)
-            showery_points = np.multiply(showery_points, condition_met)
-        return showery_points.astype(FLOAT_DTYPE)
 
     def _output_metadata(self) -> Tuple[Cube, Dict]:
         """Returns template cube and mandatory attributes for result"""
@@ -134,7 +125,7 @@ class ShowerCondition(BasePlugin):
                 return False
             (found_cube,) = found_cubes  # We expect exactly one cube here
             matched_cubes.append(found_cube)
-        self.cubes = matched_cubes
+        self.cubes = CubeList(matched_cubes)
         self.tree = conditions
         return True
 
@@ -168,14 +159,16 @@ class ShowerCondition(BasePlugin):
             )
 
         template, attributes = self._output_metadata()
-        showery_points = self._calculate_shower_condition(template.shape)
+        showery_points = WeatherSymbols(
+            wxtree=self.tree, ignore_day_night=True
+        ).process(self.cubes)
 
         result = create_new_diagnostic_cube(
             "precipitation_is_showery",
             "1",
             template,
             mandatory_attributes=attributes,
-            data=showery_points,
+            data=showery_points.data.astype(FLOAT_DTYPE),
         )
 
         return result

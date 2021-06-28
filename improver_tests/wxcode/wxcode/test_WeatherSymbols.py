@@ -1340,14 +1340,28 @@ class Test_process(Test_WXCode):
         self.assertArrayAndMaskEqual(result.data, expected)
 
     def test_basic_global(self):
-        """Test process returns a wxcode cube with right values for global. """
+        """Test process returns a wxcode cube with right values for global."""
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
         cubes = self.cubes.extract(self.gbl)
         result = plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
+    def test_basic_global_ignore_day_night(self):
+        """Test process returns a wxcode cube with right values for global when
+        grid points are around the globe but day / night differentation is
+        ignored."""
+        plugin = WeatherSymbols(
+            wxtree=wxcode_decision_tree_global(), ignore_day_night=True
+        )
+        cubes = self.cubes.extract(self.gbl)
+        for cube in cubes:
+            cube.coord("longitude").points = np.array([-100, 0, 100])
+        result = plugin.process(cubes)
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
+
     def test_weather_data_global(self):
-        """Test process returns the right weather values global part2 """
+        """Test process returns the right weather values on the globe with
+        different inputs."""
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
 
         data_snow = np.array(

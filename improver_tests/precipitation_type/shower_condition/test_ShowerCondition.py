@@ -50,7 +50,7 @@ PROBABILITY_DATA = np.array(
 
 EXPECTED_UK = [[0, 0, 0], [0, 0, 1], [1, 1, 1]]
 
-EXPECTED_GLOBAL = [[0, 0, 0], [0, 0, 0], [1, 1, 1]]
+EXPECTED_GLOBAL = [[0, 0, 0], [1, 1, 1], [1, 1, 1]]
 
 
 @pytest.fixture(name="cloud_texture_cube")
@@ -160,11 +160,4 @@ def test_too_few_inputs(cloud_cube):
     """Test error if too few inputs are provided"""
     cubes = [cloud_cube]
     with pytest.raises(ValueError, match="Incomplete inputs"):
-        ShowerCondition()(CubeList(cubes))
-
-
-def test_missing_threshold(cloud_texture_cube):
-    """Test error if the required threshold is missing"""
-    cubes = [cloud_texture_cube[0]]
-    with pytest.raises(ValueError, match="contain required threshold"):
         ShowerCondition()(CubeList(cubes))
