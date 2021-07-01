@@ -28,143 +28,235 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for ShowerCondition plugin"""
+"""Unit tests for ShowerConditionProbability plugin"""
 
 import numpy as np
 import pytest
-from iris.cube import CubeList
 
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.precipitation_type.shower_condition import ShowerCondition
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
-
-# Set up probability data to boundary-test around 0.5
-PROBABILITY_DATA = np.array(
-    [
-        np.ones((3, 3)),
-        [[0.2, 0.2, 0.3], [0.4, 0.49, 0.5], [0.5, 0.51, 0.7]],
-        np.zeros((3, 3)),
-    ],
-    dtype=FLOAT_DTYPE,
+from improver.precipitation_type.shower_condition_probability import (
+    ShowerConditionProbability,
 )
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
-EXPECTED_UK = [[0, 0, 0], [0, 0, 1], [1, 1, 1]]
+ATTRIBUTES = {
+    "institution": "Met Office",
+    "mosg__model_configuration": "gl_ens",
+    "source": "Met Office Unified Model",
+    "title": "MOGREPS-G Forecast on UK 2 km Standard Grid",
+}
 
-EXPECTED_GLOBAL = [[0, 0, 0], [0, 0, 0], [1, 1, 1]]
-
-
-@pytest.fixture(name="cloud_texture_cube")
-def cloud_texture_fixture():
-    """Probability of cloud texture above threshold cube"""
-    thresholds = np.array([0, 0.05, 0.1], dtype=FLOAT_DTYPE)
-    name = "texture_of_low_and_medium_type_cloud_area_fraction"
-    return set_up_probability_cube(
-        PROBABILITY_DATA,
-        thresholds,
-        variable_name=name,
-        threshold_units="1",
-        spatial_grid="equalarea",
-    )
+EXPECTED_ATTRIBUTES = {
+    "institution": "Met Office",
+    "source": "Met Office Unified Model",
+    "title": "Post-Processed MOGREPS-G Forecast on UK 2 km Standard Grid",
+}
+MODEL_ID_ATTR_ATTRIBUTES = EXPECTED_ATTRIBUTES.copy()
+MODEL_ID_ATTR_ATTRIBUTES.update({"mosg__model_configuration": "gl_ens"})
 
 
-@pytest.fixture(name="below_threshold_cube")
-def below_threshold_fixture():
-    """Probability of cloud texture below threshold cube"""
-    thresholds = np.array([0.1, 0.05, 0], dtype=FLOAT_DTYPE)
-    name = "texture_of_low_and_medium_type_cloud_area_fraction"
-    return set_up_probability_cube(
-        PROBABILITY_DATA,
-        thresholds,
-        variable_name=name,
-        threshold_units="1",
-        spatial_grid="equalarea",
-        spp__relative_to_threshold="less_than",
-    )
+@pytest.fixture(name="test_cubes")
+def cube_fixture(cube_properties):
+    """Create a test cube"""
+    cubes = []
+    for name, values in cube_properties.items():
+        cubes.append(
+            set_up_variable_cube(
+                values["data"],
+                name=name,
+                units=1,
+                realizations=values["realizations"],
+                attributes=ATTRIBUTES,
+            )
+        )
+    return cubes
 
 
-@pytest.fixture(name="cloud_cube")
-def cloud_fixture():
-    """Probability of cloud above threshold cube"""
-    thresholds = np.array([0.5, 0.8125, 1.0], dtype=FLOAT_DTYPE)
-    name = "low_and_medium_type_cloud_area_fraction"
-    return set_up_probability_cube(
-        np.flip(PROBABILITY_DATA, axis=1),
-        thresholds,
-        variable_name=name,
-        threshold_units="1",
-        spatial_grid="equalarea",
-    )
-
-
-@pytest.fixture(name="conv_ratio_cube")
-def conv_ratio_fixture():
-    """Probability of convective ratio above threshold cube"""
-    thresholds = np.array([0.5, 0.8, 1.0], dtype=FLOAT_DTYPE)
-    name = "convective_ratio"
-    return set_up_probability_cube(
-        PROBABILITY_DATA,
-        thresholds,
-        variable_name=name,
-        threshold_units="1",
-        spatial_grid="equalarea",
-    )
-
-
-def test_basic(cloud_texture_cube):
+@pytest.mark.parametrize(
+    "cube_properties, kwargs, expected",
+    (
+        # Simple case with one realization, cloud dominates returned
+        # probabilities (i.e. clear skies).
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.zeros((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+                "convective_ratio": {
+                    "data": np.zeros((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+            },
+            # Other plugin kwargs
+            {},
+            # Expected result
+            (np.ones((2, 2)).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
+        ),
+        # As above, but using the model_id_attr keyword to preserve the model
+        # information.
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.zeros((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+                "convective_ratio": {
+                    "data": np.zeros((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+            },
+            # Other plugin kwargs
+            {"model_id_attr": "mosg__model_configuration"},
+            # Expected result
+            (np.ones((2, 2)).astype(FLOAT_DTYPE), MODEL_ID_ATTR_ATTRIBUTES),
+        ),
+        # Simple case with one realization, convection dominates returned
+        # probabilities.
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.ones((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+                "convective_ratio": {
+                    "data": np.ones((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+            },
+            # Other plugin kwargs
+            {},
+            # Expected result
+            (np.ones((2, 2)).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
+        ),
+        # As above, but the convective_ratio includes masked values. This test
+        # checks that they are ignored in setting the resulting probabilities
+        # and that the output is not masked. One resulting value differs to the
+        # above, corresponding to the masked point.
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.ones((2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0],
+                },
+                "convective_ratio": {
+                    "data": np.ma.masked_array(
+                        np.ones((2, 2)).astype(FLOAT_DTYPE),
+                        mask=np.array([[0, 0], [0, 1]]),
+                    ),
+                    "realizations": [0],
+                },
+            },
+            # Other plugin kwargs
+            {},
+            # Expected result
+            (np.array([[1, 1], [1, 0]]).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
+        ),
+        # Multi-realization case with a range of probabilities returned due
+        # to variable cloud.
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.array(
+                        [[[0.4, 0.6], [0.4, 0.6]], [[0.6, 0.6], [0.6, 0.6]]]
+                    ).astype(FLOAT_DTYPE),
+                    "realizations": [0, 1],
+                },
+                "convective_ratio": {
+                    "data": np.zeros((2, 2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0, 1],
+                },
+            },
+            # Other plugin kwargs
+            {},
+            # Expected result
+            (np.array([[0.5, 0], [0.5, 0]]).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
+        ),
+        # Same as above, but with different threshold values applied.
+        # Cloud =< 0.7, which will result in probabilities all equal to 1.
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.array(
+                        [[[0.4, 0.6], [0.4, 0.6]], [[0.6, 0.6], [0.6, 0.6]]]
+                    ).astype(FLOAT_DTYPE),
+                    "realizations": [0, 1],
+                },
+                "convective_ratio": {
+                    "data": np.zeros((2, 2, 2)).astype(FLOAT_DTYPE),
+                    "realizations": [0, 1],
+                },
+            },
+            # Other plugin kwargs
+            {"cloud_threshold": 0.7},
+            # Expected result
+            (np.ones((2, 2)).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
+        ),
+        # Multi-realization case with cloud and convection both providing a
+        # showery probability of 1.
+        (
+            {
+                "low_and_medium_type_cloud_area_fraction": {
+                    "data": np.array([[[0, 1], [1, 1]], [[0, 1], [1, 1]]]).astype(
+                        FLOAT_DTYPE
+                    ),
+                    "realizations": [0, 1],
+                },
+                "convective_ratio": {
+                    "data": np.array([[[0, 0], [0, 1]], [[0, 0], [0, 1]]]).astype(
+                        FLOAT_DTYPE
+                    ),
+                    "realizations": [0, 1],
+                },
+            },
+            # Other plugin kwargs
+            {},
+            # Expected result
+            (np.array([[1, 0], [0, 1]]).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
+        ),
+    ),
+)
+def test_scenarios(test_cubes, kwargs, expected):
     """Test output type and metadata"""
-    expected_dims = ["projection_y_coordinate", "projection_x_coordinate"]
-    expected_aux = {
-        coord.name() for coord in cloud_texture_cube.coords(dim_coords=False)
-    }
-    expected_attributes = {
-        "institution": "unknown",
-        "source": "IMPROVER",
-        "title": "unknown",
-    }
-    cubes = [cloud_texture_cube]
-    result = ShowerCondition()(CubeList(cubes))
-    dim_coords = [coord.name() for coord in result.coords(dim_coords=True)]
-    aux_coords = {coord.name() for coord in result.coords(dim_coords=False)}
+    result = ShowerConditionProbability(**kwargs)(*test_cubes)
 
-    assert result.name() == "precipitation_is_showery"
+    assert result.name() == "probability_of_shower_condition_above_threshold"
     assert result.units == "1"
-    assert result.shape == (3, 3)
+    assert result.shape == test_cubes[0].shape[-2:]
     assert result.data.dtype == FLOAT_DTYPE
-    assert aux_coords == expected_aux
-    assert dim_coords == expected_dims
-    assert result.attributes == expected_attributes
+    assert (result.data == expected[0]).all()
+    assert result.attributes == expected[1]
+    assert result.coord(var_name="threshold").name() == "shower_condition"
+    assert result.coord(var_name="threshold").points == 0.5
 
 
-def test_uk_tree(cloud_texture_cube):
-    """Test correct shower diagnosis using UK decision tree"""
-    cubes = [cloud_texture_cube]
-    result = ShowerCondition()(CubeList(cubes))
-    np.testing.assert_allclose(result.data, EXPECTED_UK)
+def test_incorrect_inputs_exception():
+    """Tests that the expected exception is raised for incorrectly named
+    input cubes."""
+    temperature = set_up_variable_cube(np.ones((2, 2)).astype(FLOAT_DTYPE))
+    expected = (
+        "A cloud area fraction and convective ratio are required, "
+        f"but the inputs were: {temperature.name()}, {temperature.name()}"
+    )
+
+    with pytest.raises(ValueError, match=expected):
+        ShowerConditionProbability()(temperature, temperature)
 
 
-def test_global_tree(cloud_cube, conv_ratio_cube):
-    """Test correct shower diagnosis using global decision tree"""
-    cubes = [cloud_cube, conv_ratio_cube]
-    result = ShowerCondition()(CubeList(cubes))
-    np.testing.assert_allclose(result.data, EXPECTED_GLOBAL)
+def test_mismatched_shape_exception():
+    """Tests that the expected exception is raised for cloud and convection
+    cubes of different shapes."""
+    cloud = set_up_variable_cube(
+        np.ones((2, 2)).astype(FLOAT_DTYPE),
+        name="low_and_medium_type_cloud_area_fraction")
+    convection = set_up_variable_cube(
+        np.ones((3, 3)).astype(FLOAT_DTYPE),
+        name="convective_ratio")
 
+    expected = (
+        "The cloud are fraction and convective ratio cubes are not the same "
+        "shape and cannot be combined to generate a shower probability"
+    )
 
-def test_too_many_inputs(cloud_texture_cube, cloud_cube, conv_ratio_cube):
-    """Test default behaviour using UK tree if all fields are provided"""
-    cubes = [cloud_texture_cube, cloud_cube, conv_ratio_cube]
-    result = ShowerCondition()(CubeList(cubes))
-    np.testing.assert_allclose(result.data, EXPECTED_UK)
-
-
-def test_too_few_inputs(cloud_cube):
-    """Test error if too few inputs are provided"""
-    cubes = [cloud_cube]
-    with pytest.raises(ValueError, match="Incomplete inputs"):
-        ShowerCondition()(CubeList(cubes))
-
-
-def test_missing_threshold(cloud_texture_cube):
-    """Test error if the required threshold is missing"""
-    cubes = [cloud_texture_cube[0]]
-    with pytest.raises(ValueError, match="contain required threshold"):
-        ShowerCondition()(CubeList(cubes))
+    with pytest.raises(ValueError, match=expected):
+        ShowerConditionProbability()(cloud, convection)

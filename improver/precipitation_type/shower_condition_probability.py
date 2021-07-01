@@ -30,12 +30,13 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to construct a shower conditions probability"""
 
-from typing import Dict, List, Tuple
+from typing import Dict, Tuple, Optional
 
 import numpy as np
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
@@ -46,13 +47,16 @@ from improver.threshold import BasicThreshold
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
-class ShowerConditionProbability(BasePlugin):
+class ShowerConditionProbability(PostProcessingPlugin):
     """Plugin to calculate the probability that conditions are such that
     precipitation will be showery, based on input cloud amounts and the
     convective ratio."""
 
     def __init__(
-        self, cloud_threshold: float = 0.5, convection_threshold: float = 0.5
+        self,
+        cloud_threshold: float = 0.5,
+        convection_threshold: float = 0.5,
+        model_id_attr: Optional[str] = None,
     ) -> None:
         """
         Args:
@@ -62,9 +66,13 @@ class ShowerConditionProbability(BasePlugin):
             convection_threshold:
                 The convective ratio value at which to threshold the convective
                 ratio data; default 0.5.
+            model_id_attr:
+                Name of the attribute used to identify the source model for
+                blending.
         """
         self.cloud_threshold = cloud_threshold
         self.convection_threshold = convection_threshold
+        self.model_id_attr = model_id_attr
 
     def _output_metadata(self, cube: Cube) -> Tuple[Cube, Dict]:
         """
@@ -87,7 +95,9 @@ class ShowerConditionProbability(BasePlugin):
         template.coord("shower_condition").var_name = "threshold"
         template.coord("shower_condition").points = 0.5
 
-        attributes = generate_mandatory_attributes([cube])
+        attributes = generate_mandatory_attributes(
+            [cube], model_id_attr=self.model_id_attr
+        )
         return template, attributes
 
     def process(self, cloud: Cube, convection: Cube) -> Cube:
@@ -109,11 +119,22 @@ class ShowerConditionProbability(BasePlugin):
 
         Raises:
             ValueError: If inputs are not those expected.
+            ValueError: If the input cubes have different shapes, perhaps due
+                        to a missing realization in one and not the other.
         """
-        if ("cloud_area_fraction" not in cloud.name() or
-                "convective_ratio" not in convection.name()):
-            msg = ("A cloud area fraction and convective ratio are required, "
-                   f"but the inputs were: {cloud.name()}, {convection.name()}")
+        if (
+            "cloud_area_fraction" not in cloud.name()
+            or "convective_ratio" not in convection.name()
+        ):
+            msg = (
+                "A cloud area fraction and convective ratio are required, "
+                f"but the inputs were: {cloud.name()}, {convection.name()}"
+            )
+            raise ValueError(msg)
+        if cloud.shape != convection.shape:
+            msg = ("The cloud are fraction and convective ratio cubes are not "
+                   "the same shape and cannot be combined to generate a shower"
+                   " probability")
             raise ValueError(msg)
 
         cloud_thresholded = BasicThreshold(
@@ -122,9 +143,9 @@ class ShowerConditionProbability(BasePlugin):
         convection_thresholded = BasicThreshold(self.convection_threshold).process(
             convection
         )
-
         # Fill any missing data in the convective ratio field with zeroes.
-        convection_thresholded.data = convection_thresholded.data.filled(0)
+        if np.ma.is_masked(convection_thresholded.data):
+            convection_thresholded.data = convection_thresholded.data.filled(0)
         # Create a combined field taking the maximum of each input
         shower_probability = np.maximum(
             cloud_thresholded.data, convection_thresholded.data
@@ -139,7 +160,12 @@ class ShowerConditionProbability(BasePlugin):
             data=shower_probability,
         )
 
-        # Perform a realization collapse
-        return WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5).process(
-            result
-        )
+        try:
+            result.coord("realization")
+        except CoordinateNotFoundError:
+            return result
+        else:
+            # Perform a realization collapse
+            return WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5).process(
+                result
+            )
