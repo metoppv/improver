@@ -46,9 +46,10 @@ from improver.threshold import BasicThreshold
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
-class ShowerCondition(BasePlugin):
-    """Plugin to calculate whether precipitation is showery based on input
-    cloud amounts and the convective ratio."""
+class ShowerConditionProbability(BasePlugin):
+    """Plugin to calculate the probability that conditions are such that
+    precipitation will be showery, based on input cloud amounts and the
+    convective ratio."""
 
     def __init__(
         self, cloud_threshold: float = 0.5, convection_threshold: float = 0.5
