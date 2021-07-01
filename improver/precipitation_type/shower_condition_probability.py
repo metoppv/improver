@@ -33,7 +33,8 @@
 from typing import Dict, Optional, Tuple
 
 import numpy as np
-from iris.cube import Cube
+import iris
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
@@ -73,6 +74,10 @@ class ShowerConditionProbability(PostProcessingPlugin):
         self.cloud_threshold = cloud_threshold
         self.convection_threshold = convection_threshold
         self.model_id_attr = model_id_attr
+        self.cloud_constraint = iris.Constraint(
+            cube_func=lambda cube: 'cloud_area_fraction' in cube.name())
+        self.convection_constraint = iris.Constraint(
+            cube_func=lambda cube: 'convective_ratio' in cube.name())
 
     def _output_metadata(self, cube: Cube) -> Tuple[Cube, Dict]:
         """
@@ -100,7 +105,30 @@ class ShowerConditionProbability(PostProcessingPlugin):
         )
         return template, attributes
 
-    def process(self, cloud: Cube, convection: Cube) -> Cube:
+    def _extract_inputs(self, cubes):
+        """Extract the required input cubes from the input cubelist and check
+        they are as required."""
+        try:
+            cloud, = cubes.extract(self.cloud_constraint)
+            convection, = cubes.extract(self.convection_constraint)
+        except ValueError:
+            input_cubes = ', '.join([cube.name() for cube in cubes])
+            msg = (
+                "A cloud area fraction and convective ratio are required, "
+                f"but the inputs were: {input_cubes}"
+            )
+            raise ValueError(msg)
+
+        if cloud.shape != convection.shape:
+            msg = (
+                "The cloud are fraction and convective ratio cubes are not "
+                "the same shape and cannot be combined to generate a shower"
+                " probability"
+            )
+            raise ValueError(msg)
+        return cloud, convection
+
+    def process(self, cubes: CubeList) -> Cube:
         """
         Create a shower condition probability from cloud fraction and convective
         ratio fields. This plugin thresholds the two input diagnostics,
@@ -109,50 +137,38 @@ class ShowerConditionProbability(PostProcessingPlugin):
         field that represents the likelihood of conditions being showery.
 
         Args:
-            cloud:
-                A cube of cloud fraction.
-            convection:
-                A cube of convective ratio.
+            cubes:
+                A cubelist containing a cube of cloud fraction and one of
+                convective ratio.
 
         Returns:
-            Probability of showery conditions.
+            Probability of any precipitation being classified as showery
 
         Raises:
             ValueError: If inputs are not those expected.
             ValueError: If the input cubes have different shapes, perhaps due
                         to a missing realization in one and not the other.
         """
-        if (
-            "cloud_area_fraction" not in cloud.name()
-            or "convective_ratio" not in convection.name()
-        ):
-            msg = (
-                "A cloud area fraction and convective ratio are required, "
-                f"but the inputs were: {cloud.name()}, {convection.name()}"
-            )
-            raise ValueError(msg)
-        if cloud.shape != convection.shape:
-            msg = (
-                "The cloud are fraction and convective ratio cubes are not "
-                "the same shape and cannot be combined to generate a shower"
-                " probability"
-            )
-            raise ValueError(msg)
+        cloud, convection = self._extract_inputs(cubes)
 
+        # Threshold cubes
         cloud_thresholded = BasicThreshold(
             self.cloud_threshold, comparison_operator="<="
         ).process(cloud)
         convection_thresholded = BasicThreshold(self.convection_threshold).process(
             convection
         )
+
         # Fill any missing data in the convective ratio field with zeroes.
         if np.ma.is_masked(convection_thresholded.data):
             convection_thresholded.data = convection_thresholded.data.filled(0)
+
         # Create a combined field taking the maximum of each input
         shower_probability = np.maximum(
             cloud_thresholded.data, convection_thresholded.data
         ).astype(FLOAT_DTYPE)
 
+        # Create a new diagnostic cube containing the new data
         template, attributes = self._output_metadata(convection_thresholded)
         result = create_new_diagnostic_cube(
             "probability_of_shower_condition_above_threshold",

@@ -33,6 +33,8 @@
 import numpy as np
 import pytest
 
+from iris.cube import CubeList
+
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.precipitation_type.shower_condition_probability import (
     ShowerConditionProbability,
@@ -58,7 +60,7 @@ MODEL_ID_ATTR_ATTRIBUTES.update({"mosg__model_configuration": "gl_ens"})
 @pytest.fixture(name="test_cubes")
 def cube_fixture(cube_properties):
     """Create a test cube"""
-    cubes = []
+    cubes = CubeList()
     for name, values in cube_properties.items():
         cubes.append(
             set_up_variable_cube(
@@ -218,7 +220,7 @@ def cube_fixture(cube_properties):
 )
 def test_scenarios(test_cubes, kwargs, expected):
     """Test output type and metadata"""
-    result = ShowerConditionProbability(**kwargs)(*test_cubes)
+    result = ShowerConditionProbability(**kwargs)(test_cubes)
 
     assert result.name() == "probability_of_shower_condition_above_threshold"
     assert result.units == "1"
@@ -240,7 +242,7 @@ def test_incorrect_inputs_exception():
     )
 
     with pytest.raises(ValueError, match=expected):
-        ShowerConditionProbability()(temperature, temperature)
+        ShowerConditionProbability()(CubeList([temperature, temperature]))
 
 
 def test_mismatched_shape_exception():
@@ -260,4 +262,4 @@ def test_mismatched_shape_exception():
     )
 
     with pytest.raises(ValueError, match=expected):
-        ShowerConditionProbability()(cloud, convection)
+        ShowerConditionProbability()(CubeList([cloud, convection]))

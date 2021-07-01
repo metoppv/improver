@@ -29,30 +29,54 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate whether precipitation is showery."""
+"""Script to calculate a probability of precipitation being showery if present."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube):
+def process(
+    *cubes: cli.inputcube,
+    cloud_threshold: float,
+    convection_threshold: float,
+    model_id_attr: str = None
+):
     """
-    Determine the shower condition from global or UK data depending on input fields
+    Determine the probability of showery condition from cloud area fraction
+    and convective ratio fields.
 
     Args:
         cubes (iris.cube.CubeList):
-            List of cubes to input into shower diagnosis. These should
-            contain probabilities of EITHER cloud texture from a high-resolution model,
-            OR cloud area fraction and convective ratio from a low-resolution model.
+            Cubes of cloud area fraction and convective ratio that are used
+            to calculate a proxy probability that conditions are suitable for
+            showery precipitation.
+        cloud_threshold (float):
+            The cloud area fraction value at which to threshold the input cube.
+            This sets the amount of cloud coverage below which conditions are
+            likely to be considered showery (i.e. precipitation between sunny
+            spells).
+        convection_threshold (float):
+            The convective ratio value above which, despite the cloud conditions
+            not suggesting showers, the precipitation is so clearly derived
+            from convection that it should be classified as showery.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending (optional).
 
     Returns:
         iris.cube.Cube:
-            Binary (0/1) "precipitation is showery"
+            Probability of any precipitation being classified as showery.
 
     """
     from iris.cube import CubeList
 
-    from improver.precipitation_type.shower_condition import ShowerCondition
+    from improver.precipitation_type.shower_condition_probability import (
+        ShowerConditionProbability,
+    )
 
-    return ShowerCondition()(CubeList(cubes))
+    return ShowerConditionProbability(
+        cloud_threshold=cloud_threshold,
+        convection_threshold=convection_threshold,
+        model_id_attr=model_id_attr,
+    )(CubeList(cubes))
