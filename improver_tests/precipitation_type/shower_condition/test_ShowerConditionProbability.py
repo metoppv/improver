@@ -248,10 +248,11 @@ def test_mismatched_shape_exception():
     cubes of different shapes."""
     cloud = set_up_variable_cube(
         np.ones((2, 2)).astype(FLOAT_DTYPE),
-        name="low_and_medium_type_cloud_area_fraction")
+        name="low_and_medium_type_cloud_area_fraction",
+    )
     convection = set_up_variable_cube(
-        np.ones((3, 3)).astype(FLOAT_DTYPE),
-        name="convective_ratio")
+        np.ones((3, 3)).astype(FLOAT_DTYPE), name="convective_ratio"
+    )
 
     expected = (
         "The cloud are fraction and convective ratio cubes are not the same "

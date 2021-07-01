@@ -30,13 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to construct a shower conditions probability"""
 
-from typing import Dict, Tuple, Optional
+from typing import Dict, Optional, Tuple
 
 import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
@@ -44,7 +45,6 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.threshold import BasicThreshold
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 class ShowerConditionProbability(PostProcessingPlugin):
@@ -132,9 +132,11 @@ class ShowerConditionProbability(PostProcessingPlugin):
             )
             raise ValueError(msg)
         if cloud.shape != convection.shape:
-            msg = ("The cloud are fraction and convective ratio cubes are not "
-                   "the same shape and cannot be combined to generate a shower"
-                   " probability")
+            msg = (
+                "The cloud are fraction and convective ratio cubes are not "
+                "the same shape and cannot be combined to generate a shower"
+                " probability"
+            )
             raise ValueError(msg)
 
         cloud_thresholded = BasicThreshold(
@@ -166,6 +168,6 @@ class ShowerConditionProbability(PostProcessingPlugin):
             return result
         else:
             # Perform a realization collapse
-            return WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5).process(
-                result
-            )
+            return WeightAndBlend(
+                "realization", "linear", y0val=0.5, ynval=0.5
+            ).process(result)
