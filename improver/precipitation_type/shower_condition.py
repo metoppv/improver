@@ -28,154 +28,117 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Plugin to calculate whether precipitation is showery"""
+"""Plugin to construct a shower conditions probability"""
 
 from typing import Dict, List, Tuple
 
-import iris
 import numpy as np
-from iris.cube import Cube, CubeList
-from numpy import ndarray
+from iris.cube import Cube
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.probabilistic import (
-    find_threshold_coordinate,
-    get_diagnostic_cube_name_from_probability_name,
-)
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.threshold import BasicThreshold
+from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
 
 class ShowerCondition(BasePlugin):
     """Plugin to calculate whether precipitation is showery based on input
-    cloud, texture and / or convective ratio probability fields"""
+    cloud amounts and the convective ratio."""
 
-    def __init__(self) -> None:
+    def __init__(
+        self, cloud_threshold: float = 0.5, convection_threshold: float = 0.5
+    ) -> None:
         """
-        Set up fixed conditions from which to diagnose showers from different
-        input fields.
-
-        Shower condition from UK diagnostics:
-        - Probability of cloud texture above 0.05 >= 0.5
-
-        Shower condition from global diagnostics:
-        - Probability of cloud area fraction above 6.5 oktas < 0.5 AND
-        - Probability of convective ratio above 0.8 >= 0.5
+        Args:
+            cloud_threshold:
+                The fractional cloud coverage value at which to threshold the
+                cloud data; default 0.5.
+            convection_threshold:
+                The convective ratio value at which to threshold the convective
+                ratio data; default 0.5.
         """
-        self.conditions_uk = {
-            "texture_of_low_and_medium_type_cloud_area_fraction": {
-                "diagnostic_threshold": 0.05,
-                "probability_threshold": 0.5,
-                "operator": "above",
-            },
-        }
-        self.conditions_global = {
-            "low_and_medium_type_cloud_area_fraction": {
-                "diagnostic_threshold": 0.8125,
-                "probability_threshold": 0.5,
-                "operator": "below",
-            },
-            "convective_ratio": {
-                "diagnostic_threshold": 0.8,
-                "probability_threshold": 0.5,
-                "operator": "above",
-            },
-        }
-        self.cubes = []
-        self.tree = None
+        self.cloud_threshold = cloud_threshold
+        self.convection_threshold = convection_threshold
 
-    def _calculate_shower_condition(self, shape: Tuple) -> ndarray:
-        """Calculate deterministic "precipitation is showery" field"""
-        showery_points = np.ones(shape, dtype=FLOAT_DTYPE)
-        for cube in self.cubes:
-            name = get_diagnostic_cube_name_from_probability_name(cube.name())
-            slice_constraint = iris.Constraint(
-                coord_values={
-                    name: lambda cell: np.isclose(
-                        cell.point, self.tree[name]["diagnostic_threshold"]
-                    )
-                }
-            )
-            threshold_slice = cube.extract(slice_constraint)
-            if threshold_slice is None:
-                msg = "Cube {} does not contain required threshold {}"
-                raise ValueError(
-                    msg.format(cube.name(), self.tree[name]["diagnostic_threshold"])
-                )
-
-            prob = self.tree[name]["probability_threshold"]
-            if self.tree[name]["operator"] == "above":
-                condition_met = np.where(threshold_slice.data >= prob, 1, 0)
-            else:
-                condition_met = np.where(threshold_slice.data < prob, 1, 0)
-            showery_points = np.multiply(showery_points, condition_met)
-        return showery_points.astype(FLOAT_DTYPE)
-
-    def _output_metadata(self) -> Tuple[Cube, Dict]:
-        """Returns template cube and mandatory attributes for result"""
-        template = next(
-            self.cubes[0].slices_over(find_threshold_coordinate(self.cubes[0]))
-        )
-        template.remove_coord(find_threshold_coordinate(self.cubes[0]))
-        attributes = generate_mandatory_attributes(self.cubes)
-        return template, attributes
-
-    def _extract_cubes(self, conditions: List[str], cubes: CubeList) -> bool:
-        """For a given set of conditions, put all matching cubes onto self.cubes and
-        put conditions onto self.tree. If ALL conditions are not satisfied, the function
-        exits without updating self.cubes or self.tree."""
-        matched_cubes = []
-        for name in conditions:
-            found_cubes = cubes.extract(f"probability_of_{name}_above_threshold")
-            if not found_cubes:
-                return False
-            (found_cube,) = found_cubes  # We expect exactly one cube here
-            matched_cubes.append(found_cube)
-        self.cubes = matched_cubes
-        self.tree = conditions
-        return True
-
-    def process(self, cubes: CubeList) -> Cube:
+    def _output_metadata(self, cube: Cube) -> Tuple[Cube, Dict]:
         """
-        Determine the shower condition from global or UK data depending
-        on input fields. Expected inputs for UK:
-        cloud_texture:
-        probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold,
-        and for global cloud:
-        probability_of_low_and_medium_type_cloud_area_fraction_above_threshold
-        conv_ratio: probability_of_convective_ratio_above_threshold
+        Returns template cube and mandatory attributes for result. The template
+        cube is modified to introduce an implied shower conditions threshold.
 
         Args:
-            cubes:
-                List of input cubes
+            cube:
+                The cube to use as a template, and from which to extract
+                attributes for use in the new diagnostic cube.
+        Returns:
+            A tuple containing the template cube and attributes.
+        """
+        template = cube.copy()
+        shower_threshold = find_threshold_coordinate(template)
+
+        # We introduce an implied threshold of shower conditions.
+        # Above 50% conditions are showery.
+        template.coord(shower_threshold).rename("shower_condition")
+        template.coord("shower_condition").var_name = "threshold"
+        template.coord("shower_condition").points = 0.5
+
+        attributes = generate_mandatory_attributes([cube])
+        return template, attributes
+
+    def process(self, cloud: Cube, convection: Cube) -> Cube:
+        """
+        Create a shower condition probability from cloud fraction and convective
+        ratio fields. This plugin thresholds the two input diagnostics,
+        creates a hybrid probability field from the resulting binary fields,
+        and then collapses the realizations to give a non-binary probability
+        field that represents the likelihood of conditions being showery.
+
+        Args:
+            cloud:
+                A cube of cloud fraction.
+            convection:
+                A cube of convective ratio.
 
         Returns:
-            Binary (0/1) "precipitation is showery"
+            Probability of showery conditions.
 
         Raises:
-            ValueError: If inputs are incomplete
+            ValueError: If inputs are not those expected.
         """
-        for conditions in [self.conditions_uk, self.conditions_global]:
-            if self._extract_cubes(conditions, cubes):
-                break
-        else:  # no break
-            raise ValueError(
-                "Incomplete inputs: must include either cloud_texture for the UK,"
-                "or cloud and conv_ratio for global."
-            )
+        if ("cloud_area_fraction" not in cloud.name() or
+                "convective_ratio" not in convection.name()):
+            msg = ("A cloud area fraction and convective ratio are required, "
+                   f"but the inputs were: {cloud.name()}, {convection.name()}")
+            raise ValueError(msg)
 
-        template, attributes = self._output_metadata()
-        showery_points = self._calculate_shower_condition(template.shape)
+        cloud_thresholded = BasicThreshold(
+            self.cloud_threshold, comparison_operator="<="
+        ).process(cloud)
+        convection_thresholded = BasicThreshold(self.convection_threshold).process(
+            convection
+        )
 
+        # Fill any missing data in the convective ratio field with zeroes.
+        convection_thresholded.data = convection_thresholded.data.filled(0)
+        # Create a combined field taking the maximum of each input
+        shower_probability = np.maximum(
+            cloud_thresholded.data, convection_thresholded.data
+        ).astype(FLOAT_DTYPE)
+
+        template, attributes = self._output_metadata(convection_thresholded)
         result = create_new_diagnostic_cube(
-            "precipitation_is_showery",
+            "probability_of_shower_condition_above_threshold",
             "1",
             template,
             mandatory_attributes=attributes,
-            data=showery_points,
+            data=shower_probability,
         )
 
-        return result
+        # Perform a realization collapse
+        return WeightAndBlend("realization", "linear", y0val=0.5, ynval=0.5).process(
+            result
+        )
