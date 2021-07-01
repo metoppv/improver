@@ -39,37 +39,25 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_uk_basic(tmp_path):
-    """Test shower condition operation with UK arguments."""
+def test_basic(tmp_path):
+    """Test shower condition probability is generated using global model
+    derived data."""
 
-    kgo_dir = acc.kgo_root() / "shower-condition/uk_basic"
+    kgo_dir = acc.kgo_root() / "shower-condition-probability/"
     kgo_path = kgo_dir / "kgo.nc"
-    inputs = [kgo_dir / f for f in ["cloud_texture.nc"]]
-    print(inputs)
+    inputs = [kgo_dir / f for f in ["cloud_input.nc", "convection_input.nc"]]
     output_path = tmp_path / "output.nc"
 
     args = [
         *inputs,
         "--output",
         output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_global_basic(tmp_path):
-    """Test shower condition operation with global arguments."""
-
-    kgo_dir = acc.kgo_root() / "shower-condition/global_basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    inputs = [kgo_dir / f for f in ["cloud.nc", "conv_ratio.nc"]]
-    print(inputs)
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        *inputs,
-        "--output",
-        output_path,
+        "--cloud-threshold",
+        "0.8125",
+        "--convection-threshold",
+        "0.8",
+        "--model-id-attr",
+        "mosg__model_configuration",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

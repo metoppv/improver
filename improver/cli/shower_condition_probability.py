@@ -40,7 +40,7 @@ def process(
     *cubes: cli.inputcube,
     cloud_threshold: float,
     convection_threshold: float,
-    model_id_attr: str = None
+    model_id_attr: str = None,
 ):
     """
     Determine the probability of showery condition from cloud area fraction

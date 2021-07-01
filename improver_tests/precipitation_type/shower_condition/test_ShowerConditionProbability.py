@@ -32,7 +32,6 @@
 
 import numpy as np
 import pytest
-
 from iris.cube import CubeList
 
 from improver.metadata.constants import FLOAT_DTYPE

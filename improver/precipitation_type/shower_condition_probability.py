@@ -32,8 +32,8 @@
 
 from typing import Dict, Optional, Tuple
 
-import numpy as np
 import iris
+import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
@@ -75,9 +75,11 @@ class ShowerConditionProbability(PostProcessingPlugin):
         self.convection_threshold = convection_threshold
         self.model_id_attr = model_id_attr
         self.cloud_constraint = iris.Constraint(
-            cube_func=lambda cube: 'cloud_area_fraction' in cube.name())
+            cube_func=lambda cube: "cloud_area_fraction" in cube.name()
+        )
         self.convection_constraint = iris.Constraint(
-            cube_func=lambda cube: 'convective_ratio' in cube.name())
+            cube_func=lambda cube: "convective_ratio" in cube.name()
+        )
 
     def _output_metadata(self, cube: Cube) -> Tuple[Cube, Dict]:
         """
@@ -98,7 +100,7 @@ class ShowerConditionProbability(PostProcessingPlugin):
         # Above 50% conditions are showery.
         template.coord(shower_threshold).rename("shower_condition")
         template.coord("shower_condition").var_name = "threshold"
-        template.coord("shower_condition").points = 0.5
+        template.coord("shower_condition").points = FLOAT_DTYPE(0.5)
 
         attributes = generate_mandatory_attributes(
             [cube], model_id_attr=self.model_id_attr
@@ -109,10 +111,10 @@ class ShowerConditionProbability(PostProcessingPlugin):
         """Extract the required input cubes from the input cubelist and check
         they are as required."""
         try:
-            cloud, = cubes.extract(self.cloud_constraint)
-            convection, = cubes.extract(self.convection_constraint)
+            (cloud,) = cubes.extract(self.cloud_constraint)
+            (convection,) = cubes.extract(self.convection_constraint)
         except ValueError:
-            input_cubes = ', '.join([cube.name() for cube in cubes])
+            input_cubes = ", ".join([cube.name() for cube in cubes])
             msg = (
                 "A cloud area fraction and convective ratio are required, "
                 f"but the inputs were: {input_cubes}"
