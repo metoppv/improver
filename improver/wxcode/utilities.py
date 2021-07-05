@@ -95,7 +95,7 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def update_tree_units(tree: Dict) -> Dict:
+def update_tree_units(tree: Dict[str, Dict[str, Any]]) -> Dict:
     """
     Replaces value / unit pairs from tree definition with an Iris AuxCoord
     that encodes the same information.
@@ -230,7 +230,7 @@ def interrogate_decision_tree(wxtree: Dict[str, Dict[str, Any]]) -> List[str]:
     for requirement, uniq_thresh in sorted(requirements.items()):
         (units,) = {u.units for u in uniq_thresh}  # enforces same units
         thresh_str = ", ".join(map(str, sorted({v.points[0] for v in uniq_thresh})))
-        output.append("- {} ({}): {}".format(requirement, units, thresh_str))
+        output.append("\u26C5 {} ({}): {}".format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = "{}\n" * n_files
@@ -286,13 +286,8 @@ def _check_diagnostic_lists_consistency(query: Dict[str, Any]) -> bool:
     structure. e.g. ['item'] != [['item']]
 
     Args:
-        query (dict):
+        query:
             of weather-symbols decision-making information
-
-    Raises:
-        ValueError: if diagnostic query lists have different nested list
-            structure.
-
     """
     diagnostic_keys = [
         "diagnostic_fields",
@@ -312,12 +307,12 @@ def _check_nested_list_consistency(query: List[List[Any]]) -> bool:
     structure. e.g. ['item'] != [['item']]
 
     Args:
-        query (list of lists):
+        query:
             Nested lists to check for consistency.
 
     Returns:
-        bool: True if diagnostic query lists have same nested list
-            structure.
+        True if diagnostic query lists have same nested list
+        structure, else returns False.
 
     """
 
@@ -343,18 +338,21 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
         wxtree:
             Weather symbols decision tree definition, provided as a
             dictionary.
+
     Returns:
         A list of problems found in the decision tree, or if none are found, the
         required input diagnostics.
+
+    Raises:
+        ValueError: If wxtree is not a dictionary.
     """
-
-    wxtree = update_tree_units(wxtree)
-
-    issues = []
-    valid_codes = list(WX_DICT.keys())
     # Check tree is a dictionary
     if not isinstance(wxtree, dict):
-        issues.append("Decision tree is not a dictionary")
+        raise ValueError("Decision tree is not a dictionary")
+
+    issues = []
+    wxtree = update_tree_units(wxtree)
+    valid_codes = list(WX_DICT.keys())
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
     for node, items in wxtree.items():
@@ -392,9 +390,7 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
         # Check only permissible values are used in threshold_condition
         threshold = wxtree[node]["threshold_condition"]
         if threshold not in THRESHOLD_CONDITIONS:
-            issues.append(
-                f"Node {node} uses invalid threshold condition " f"{threshold}"
-            )
+            issues.append(f"Node {node} uses invalid threshold condition {threshold}")
 
         # Check diagnostic_conditions are all above or below.
         diagnostic = wxtree[node]["diagnostic_conditions"]
@@ -434,7 +430,7 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
                 "diagnostic_thresholds fields"
             )
 
-        # Check probabiltiy thresholds are numeric and there are as many of them
+        # Check probability thresholds are numeric and there are as many of them
         # as there are diagnostics_fields.
         prob_thresholds = items["probability_thresholds"]
         diagnostic_fields = items["diagnostic_fields"]

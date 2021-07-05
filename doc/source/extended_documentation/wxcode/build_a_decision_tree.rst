@@ -56,7 +56,7 @@ accessed with this key contains the essentials that make the node function.
     is false. Alternatively this may be an integer number that identifies which
     weather symbol has been reached; this is for the leaf (or final) nodes in
     the tree.
-  - **diagnostic_missing_action** (str(bool), optional): If the expected
+  - **diagnostic_missing_action** (str, optional): If the expected
     diagnostic is not provided, should the tree proceed to the succeed or fail
     node. This can be useful if the tree is to be applied to output from
     different models, some of which do not provide all the diagnostics that might
