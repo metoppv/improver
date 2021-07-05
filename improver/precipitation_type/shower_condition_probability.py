@@ -46,6 +46,7 @@ from improver.metadata.utilities import (
 )
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapse_realizations
+from .utilities import make_shower_condition_cube
 
 
 class ShowerConditionProbability(PostProcessingPlugin):
@@ -93,14 +94,7 @@ class ShowerConditionProbability(PostProcessingPlugin):
         Returns:
             A tuple containing the template cube and attributes.
         """
-        template = cube.copy()
-        shower_threshold = find_threshold_coordinate(template)
-
-        # We introduce an implied threshold of shower conditions.
-        # Above 50% conditions are showery.
-        template.coord(shower_threshold).rename("shower_condition")
-        template.coord("shower_condition").var_name = "threshold"
-        template.coord("shower_condition").points = FLOAT_DTYPE(0.5)
+        template = make_shower_condition_cube(cube)
 
         attributes = generate_mandatory_attributes(
             [cube], model_id_attr=self.model_id_attr
@@ -173,7 +167,7 @@ class ShowerConditionProbability(PostProcessingPlugin):
         # Create a new diagnostic cube containing the new data
         template, attributes = self._output_metadata(convection_thresholded)
         result = create_new_diagnostic_cube(
-            "probability_of_shower_condition_above_threshold",
+            template.name(),
             "1",
             template,
             mandatory_attributes=attributes,

@@ -35,7 +35,7 @@ import numpy as np
 import pytest
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.precipitation_type.field_texture import FieldTexture
+from improver.utilities.textural import FieldTexture
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
