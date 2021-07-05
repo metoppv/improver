@@ -95,7 +95,7 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
 
-def update_tree_units(tree: Dict[str, Dict[str, Any]]) -> Dict:
+def update_tree_units(tree: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     """
     Replaces value / unit pairs from tree definition with an Iris AuxCoord
     that encodes the same information.
