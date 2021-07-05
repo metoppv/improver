@@ -135,7 +135,7 @@ def weather_code_attributes() -> Dict[str, Any]:
     return attributes
 
 
-def expand_nested_lists(query: Dict[str, Any], key: str) -> List:
+def expand_nested_lists(query: Dict[str, Any], key: str) -> List[Any]:
     """
     Produce flat lists from list and nested lists.
 
