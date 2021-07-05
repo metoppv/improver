@@ -14,7 +14,7 @@ dependencies:
   - dask
   - iris=2.4
   - netCDF4
-  - numpy
+  - numpy<1.21
   - python-dateutil
   - python-stratify
   - pytz=2020.5
