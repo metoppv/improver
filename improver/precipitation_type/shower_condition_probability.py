@@ -38,7 +38,6 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
@@ -46,6 +45,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.threshold import BasicThreshold
+from improver.utilities.cube_manipulation import collapse_realizations
 
 
 class ShowerConditionProbability(PostProcessingPlugin):
@@ -181,11 +181,8 @@ class ShowerConditionProbability(PostProcessingPlugin):
         )
 
         try:
-            result.coord("realization")
+            shower_conditions = iris.util.squeeze(collapse_realizations(result))
         except CoordinateNotFoundError:
-            return result
-        else:
-            # Perform a realization collapse
-            return WeightAndBlend(
-                "realization", "linear", y0val=0.5, ynval=0.5
-            ).process(result)
+            shower_conditions = iris.util.squeeze(result)
+
+        return shower_conditions
