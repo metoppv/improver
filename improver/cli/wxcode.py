@@ -34,44 +34,42 @@
 from improver import cli
 
 
-def _extend_help(fn):
-    # TODO: speed up help - pulling in decision tree imports iris
-    # (and gets executed at import time)
-    from improver.wxcode.utilities import interrogate_decision_tree
-
-    for wxtree in ("high_resolution", "global"):
-        title = wxtree.capitalize().replace("_", " ") + " tree inputs"
-        inputs = interrogate_decision_tree(wxtree).replace("\n", "\n        ")
-        tree_help = f"""
-    {title}::
-
-        {inputs}
-    """
-        fn.__doc__ += tree_help
-    return fn
-
-
 @cli.clizefy
 @cli.with_output
-@_extend_help
-def process(*cubes: cli.inputcube, wxtree="high_resolution", model_id_attr: str = None):
+def process(
+    *cubes: cli.inputcube,
+    wxtree: cli.inputjson = None,
+    model_id_attr: str = None,
+    check_tree: bool = False,
+):
     """ Processes cube for Weather symbols.
 
     Args:
         cubes (iris.cube.CubeList):
             A cubelist containing the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
-        wxtree (str):
-            Weather Code tree: high_resolution or global.
+        wxtree (dict):
+            A JSON file containing a weather symbols decision tree definition.
         model_id_attr (str):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
             a space-separated string.
+        check_tree (bool):
+            If set the decision tree will be checked to see if it conforms to
+            the expected format; the only other argument required is the path
+            to the decision tree. If the tree is found to be valid the required
+            inputs will be listed. Setting this flag will prevent the CLI
+            performing any other actions.
 
     Returns:
         iris.cube.Cube:
             A cube of weather symbols.
     """
+    if check_tree:
+        from improver.wxcode.utilities import check_tree
+
+        return check_tree(wxtree)
+
     from iris.cube import CubeList
 
     from improver.wxcode.weather_symbols import WeatherSymbols
@@ -81,4 +79,4 @@ def process(*cubes: cli.inputcube, wxtree="high_resolution", model_id_attr: str 
             "Not enough input arguments. " "See help for more information."
         )
 
-    return WeatherSymbols(wxtree=wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))

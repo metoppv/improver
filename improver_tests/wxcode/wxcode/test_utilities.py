@@ -50,12 +50,16 @@ from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver.wxcode.utilities import (
     WX_DICT,
+    check_tree,
     expand_nested_lists,
     get_parameter_names,
     interrogate_decision_tree,
     update_daynight,
+    update_tree_units,
     weather_code_attributes,
 )
+
+from . import wxcode_decision_tree_global, wxcode_decision_tree_uk
 
 
 def set_up_wxcube(time_points=None, lat_lon=False):
@@ -364,53 +368,42 @@ class Test_update_daynight(IrisTest):
         self.assertArrayEqual(result.data, expected_result)
 
 
-class Test_interrogate_decision_tree(IrisTest):
-    """Test the function for generating extended help."""
-
-    def test_raises_exception(self):
-        """Test the function raises an exception for an unknown weather symbol
-        tree name."""
-        msg = "Unknown decision tree name provided."
-        with self.assertRaisesRegex(ValueError, msg):
-            interrogate_decision_tree("kittens")
-
-
 @pytest.mark.parametrize(
-    "tree_name,expected",
+    "tree,expected",
     [
         (
-            "global",
+            update_tree_units(wxcode_decision_tree_global()),
             (
-                "probability_of_convective_ratio_above_threshold (1): 0.8\n"
-                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-                "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-                "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
-                "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+                "\u26C5 probability_of_convective_ratio_above_threshold (1): 0.8\n"
+                "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+                "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"  # noqa: E501
+                "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"  # noqa: E501
+                "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"  # noqa: E501
+                "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 0.1, 1.0\n"
+                "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
             ),
         ),
         (
-            "high_resolution",
+            update_tree_units(wxcode_decision_tree_uk()),
             (
-                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-                "probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-                "probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
-                "probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
-                "probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-                "probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.05\n"  # noqa: E501
-                "probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+                "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+                "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+                "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"  # noqa: E501
+                "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+                "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+                "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+                "\u26C5 probability_of_texture_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.05\n"  # noqa: E501
+                "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
             ),
         ),
     ],
 )
-def test_interrogate_decision_tree(tree_name, expected):
+def test_interrogate_decision_tree(tree, expected):
     """Test that the function returns the right strings."""
-    result = interrogate_decision_tree(tree_name)
+    result = interrogate_decision_tree(tree)
     assert result == expected
 
 
@@ -436,6 +429,175 @@ class Test_get_parameter_names(IrisTest):
         ]
         result = get_parameter_names(condition)
         self.assertEqual(result, expected)
+
+
+@pytest.fixture(name="modify_tree")
+def modify_tree_fixture(node, key, value):
+    """Create a new decision tree and modify it"""
+    tree = wxcode_decision_tree_uk()
+    tree[node][key] = value
+    return tree
+
+
+@pytest.mark.parametrize(
+    "node, key, value, expected",
+    (
+        (
+            "lightning",
+            "diagnostic_missing_action",
+            "kittens",
+            (
+                "Node lightning contains a diagnostic_missing_action that targets "
+                "key 'kittens' which is neither 'succeed' nor 'fail'"
+            ),
+        ),
+        (
+            "drizzle_mist",
+            "condition_combination",
+            "kittens",
+            (
+                "Node drizzle_mist utilises 2 diagnostic fields but 'kittens' is "
+                "not a valid combination condition"
+            ),
+        ),
+        (
+            "lightning",
+            "condition_combination",
+            "AND",
+            (
+                "Node lightning utilises combination condition 'AND' but does not "
+                "use 2 diagnostic fields for combination in this way"
+            ),
+        ),
+        (
+            "lightning",
+            "threshold_condition",
+            ">>",
+            "Node lightning uses invalid threshold condition >>",
+        ),
+        (
+            "lightning",
+            "diagnostic_conditions",
+            ["equal"],
+            (
+                "Node lightning uses invalid diagnostic condition 'equal'; this "
+                "should be 'above' or 'below'"
+            ),
+        ),
+        (
+            "lightning",
+            "succeed",
+            100,
+            (
+                "Node lightning results in an invalid weather code of 100 for the "
+                "succeed condition"
+            ),
+        ),
+        (
+            "lightning",
+            "fail",
+            100,
+            (
+                "Node lightning results in an invalid weather code of 100 for the "
+                "fail condition"
+            ),
+        ),
+        (
+            "lightning",
+            "fail",
+            "kittens",
+            "Node lightning has an invalid destination of kittens for the fail condition",
+        ),
+        (
+            "snow_in_vicinity",
+            "diagnostic_fields",
+            [
+                [
+                    [
+                        "probability_of_lwe_sleetfall_rate_above_threshold",
+                        "+",
+                        "probability_of_rainfall_rate_above_threshold",
+                        "-",
+                        "probability_of_lwe_snowfall_rate_above_threshold",
+                    ]
+                ]
+            ],
+            (
+                "Node snow_in_vicinity has inconsistent nesting for the "
+                "diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds "
+                "fields"
+            ),
+        ),
+        (
+            "snow_in_vicinity",
+            "diagnostic_conditions",
+            ["above", "above", "above"],
+            (
+                "Node snow_in_vicinity has inconsistent nesting for the "
+                "diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds "
+                "fields"
+            ),
+        ),
+        (
+            "snow_in_vicinity",
+            "diagnostic_thresholds",
+            [[0.03, "mm hr-1"], [0.03, "mm hr-1"], [0.03, "mm hr-1"]],
+            (
+                "Node snow_in_vicinity has inconsistent nesting for the "
+                "diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds "
+                "fields"
+            ),
+        ),
+        (
+            "lightning",
+            "probability_thresholds",
+            [0.5, 0.5],
+            (
+                "Node lightning has a different number of probability thresholds "
+                "and diagnostic_fields: [0.5, 0.5], "
+                "['probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold']"  # noqa: E501
+            ),
+        ),
+        (
+            "lightning",
+            "probability_thresholds",
+            ["kittens"],
+            "Node lightning has a non-numeric probability threshold ['kittens']",
+        ),
+    ),
+)
+def test_check_tree(modify_tree, expected):
+    """Test that the various possible decision tree problems are identified."""
+    result = check_tree(modify_tree)
+    assert result == expected
+
+
+def test_check_tree_invalid_key():
+    """Modify a wx decision tree."""
+    expected = "Node lightning contains unknown key 'kittens'"
+    tree = wxcode_decision_tree_uk()
+    tree["lightning"]["kittens"] = 0
+    result = check_tree(tree)
+    assert result == expected
+
+
+def test_check_tree_non_dictionary():
+    """Check ValueError is raised if non-dictionary is passed to check_tree."""
+    expected = "Decision tree is not a dictionary"
+    with pytest.raises(ValueError, match=expected):
+        check_tree(1.0)
+
+
+def test_check_tree_list_requirements():
+    """
+    This test simply checks that the expected wrapper text is returned. The
+    listing of the diagnostics is checked in testing the interrogate_decision_tree
+    function.
+    """
+    expected = "Decision tree OK\nRequired inputs are:"
+    tree = wxcode_decision_tree_uk()
+    result = check_tree(tree)
+    assert expected in result
 
 
 if __name__ == "__main__":

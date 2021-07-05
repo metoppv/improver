@@ -44,6 +44,8 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
+from . import wxcode_decision_tree_global, wxcode_decision_tree_uk
+
 
 class Test_WXCode(IrisTest):
 
@@ -230,6 +232,7 @@ class Test_WXCode(IrisTest):
             for name in self.uk_no_lightning
             if "vicinity" not in name and "texture" not in name
         ]
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
 
     def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
         """
@@ -272,14 +275,14 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(WeatherSymbols())
-        msg = "<WeatherSymbols tree=high_resolution start_node=lightning>"
+        result = str(WeatherSymbols(wxtree=wxcode_decision_tree_uk()))
+        msg = "<WeatherSymbols start_node=lightning>"
         self.assertEqual(result, msg)
 
     def test_global(self):
         """Test that the __repr__ returns right string for global tree."""
-        result = str(WeatherSymbols(wxtree="global"))
-        msg = "<WeatherSymbols tree=global start_node=heavy_precipitation>"
+        result = str(WeatherSymbols(wxtree=wxcode_decision_tree_global()))
+        msg = "<WeatherSymbols start_node=heavy_precipitation>"
         self.assertEqual(result, msg)
 
 
@@ -289,55 +292,50 @@ class Test_check_input_cubes(Test_WXCode):
 
     def test_basic(self):
         """Test check_input_cubes method raises no error if the data is OK"""
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         self.assertEqual(plugin.check_input_cubes(self.cubes), None)
 
     def test_no_lightning(self):
         """Test check_input_cubes raises no error if lightning missing"""
-        plugin = WeatherSymbols()
         cubes = self.cubes.extract(self.uk_no_lightning)
-        result = plugin.check_input_cubes(cubes)
+        result = self.plugin.check_input_cubes(cubes)
         self.assertIsInstance(result, dict)
         self.assertEqual(len(result), 1)
         self.assertTrue("lightning" in result)
 
     def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
-        plugin = WeatherSymbols()
         cubes = self.cubes.pop()
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
-            plugin.check_input_cubes(cubes)
+            self.plugin.check_input_cubes(cubes)
 
     def test_raises_error_missing_threshold(self):
         """Test check_input_cubes method raises error if data is missing"""
-        plugin = WeatherSymbols()
         cubes = self.cubes
         cubes[0] = cubes[0][0]
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
-            plugin.check_input_cubes(cubes)
+            self.plugin.check_input_cubes(cubes)
 
     def test_incorrect_units(self):
         """Test that check_input_cubes method raises an error if the units are
         incompatible between the input cube and the decision tree."""
-        plugin = WeatherSymbols()
-
         msg = "Unable to convert from"
         threshold_coord = find_threshold_coordinate(self.cubes[0])
         self.cubes[0].coord(threshold_coord).units = Unit("mm kg-1")
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.check_input_cubes(self.cubes)
+            self.plugin.check_input_cubes(self.cubes)
 
     def test_basic_global(self):
         """Test check_input_cubes method has no error if global data is OK"""
-        plugin = WeatherSymbols(wxtree="global")
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
         cubes = self.cubes.extract(self.gbl)
         self.assertEqual(plugin.check_input_cubes(cubes), None)
 
     def test_raises_error_missing_cubes_global(self):
         """Test check_input_cubes method raises error if data is missing"""
-        plugin = WeatherSymbols(wxtree="global")
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
         cubes = self.cubes.extract(self.gbl)[0:3]
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
@@ -350,7 +348,7 @@ class Test_invert_condition(IrisTest):
 
     def test_basic(self):
         """Test that the invert_condition method returns a tuple of strings."""
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         tree = plugin.queries
         result = plugin.invert_condition(tree[list(tree.keys())[0]])
         self.assertIsInstance(result, tuple)
@@ -360,7 +358,7 @@ class Test_invert_condition(IrisTest):
 
     def test_invert_thresholds_correctly(self):
         """Test invert_condition inverts thresholds correctly."""
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         node = {"threshold_condition": ">=", "condition_combination": ""}
         possible_inputs = [">=", "<=", "<", ">"]
         inverse_outputs = ["<", ">", ">=", "<="]
@@ -371,7 +369,7 @@ class Test_invert_condition(IrisTest):
 
     def test_invert_combination_correctly(self):
         """Test invert_condition inverts combination correctly."""
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         node = {"threshold_condition": ">=", "condition_combination": ""}
         possible_inputs = ["AND", "OR", ""]
         inverse_outputs = ["OR", "AND", ""]
@@ -383,7 +381,7 @@ class Test_invert_condition(IrisTest):
     def test_error(self):
         """Test that the _invert_comparator method raises an error when the condition
         cannot be inverted."""
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         possible_inputs = ["==", "!=", "NOT", "XOR"]
         for val in possible_inputs:
             with self.assertRaisesRegex(
@@ -420,12 +418,11 @@ class Test_create_condition_chain(Test_WXCode):
     def test_basic(self):
         """Test create_condition_chain returns a nested list of iris.Constraint,
         floats, and strings representing operators that extracts the correct data."""
-        plugin = WeatherSymbols()
         test_condition = self.dummy_queries["significant_precipitation"]
         for t in test_condition["diagnostic_thresholds"]:
             t.convert_units("m s-1")
         thresholds = [t.points.item() for t in test_condition["diagnostic_thresholds"]]
-        result = plugin.create_condition_chain(test_condition)
+        result = self.plugin.create_condition_chain(test_condition)
         expected = [
             [
                 [
@@ -434,7 +431,7 @@ class Test_create_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             thresholds[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -447,7 +444,7 @@ class Test_create_condition_chain(Test_WXCode):
                         lwe_snowfall_rate=lambda cell: np.isclose(
                             cell.point,
                             thresholds[1],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -473,13 +470,12 @@ class Test_create_condition_chain(Test_WXCode):
     def test_old_naming_convention(self):
         """Test create_condition_chain can return conditions using old
         threshold coordinate name"""
-        plugin = WeatherSymbols()
-        plugin.coord_named_threshold = True
+        self.plugin.coord_named_threshold = True
         test_condition = self.dummy_queries["significant_precipitation"]
         for t in test_condition["diagnostic_thresholds"]:
             t.convert_units("m s-1")
         thresholds = [t.points.item() for t in test_condition["diagnostic_thresholds"]]
-        result = plugin.create_condition_chain(test_condition)
+        result = self.plugin.create_condition_chain(test_condition)
         expected = [
             [
                 [
@@ -488,7 +484,7 @@ class Test_create_condition_chain(Test_WXCode):
                         threshold=lambda cell: np.isclose(
                             cell.point,
                             thresholds[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -501,7 +497,7 @@ class Test_create_condition_chain(Test_WXCode):
                         threshold=lambda cell: np.isclose(
                             cell.point,
                             thresholds[1],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -545,14 +541,13 @@ class Test_create_condition_chain(Test_WXCode):
             ["above", "above"],
             ["above", "above"],
         ]
-        plugin = WeatherSymbols()
         test_condition = query["rain_or_snow"]
         for t in (
             test_condition["diagnostic_thresholds"][0]
             + test_condition["diagnostic_thresholds"][1]
         ):
             t.convert_units("m s-1")
-        result = plugin.create_condition_chain(test_condition)
+        result = self.plugin.create_condition_chain(test_condition)
         thresholds = [
             t.points.item() for t in test_condition["diagnostic_thresholds"][0]
         ] + [t.points.item() for t in test_condition["diagnostic_thresholds"][1]]
@@ -565,7 +560,7 @@ class Test_create_condition_chain(Test_WXCode):
                             lwe_sleetfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[0],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -575,7 +570,7 @@ class Test_create_condition_chain(Test_WXCode):
                             rainfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[1],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -590,7 +585,7 @@ class Test_create_condition_chain(Test_WXCode):
                             lwe_sleetfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[2],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -600,7 +595,7 @@ class Test_create_condition_chain(Test_WXCode):
                             lwe_snowfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 thresholds[3],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -633,15 +628,17 @@ class Test_construct_extract_constraint(Test_WXCode):
 
     def test_basic(self):
         """Test construct_extract_constraint returns a iris.Constraint."""
-        plugin = WeatherSymbols()
         diagnostic = "probability_of_rainfall_rate_above_threshold"
         threshold = AuxCoord(0.03, units="mm hr-1")
         threshold.convert_units("m s-1")
-        result = plugin.construct_extract_constraint(diagnostic, threshold, False)
+        result = self.plugin.construct_extract_constraint(diagnostic, threshold, False)
         expected = iris.Constraint(
             name="probability_of_rainfall_rate_above_threshold",
             rainfall_rate=lambda cell: np.isclose(
-                cell.point, threshold.points[0], rtol=plugin.float_tolerance, atol=0,
+                cell.point,
+                threshold.points[0],
+                rtol=self.plugin.float_tolerance,
+                atol=0,
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
@@ -652,29 +649,27 @@ class Test_construct_extract_constraint(Test_WXCode):
     def test_old_naming_convention(self):
         """Test construct_extract_constraint can return a constraint with a
         "threshold" coordinate"""
-        plugin = WeatherSymbols()
         diagnostic = "probability_of_rainfall_rate_above_threshold"
         threshold = AuxCoord(0.03, units="mm hr-1")
-        result = plugin.construct_extract_constraint(diagnostic, threshold, True)
+        result = self.plugin.construct_extract_constraint(diagnostic, threshold, True)
         self.assertIsInstance(result, iris.Constraint)
         self.assertTrue("threshold" in result.__dict__["_coord_values"])
 
     def test_zero_threshold(self):
         """Test construct_extract_constraint when threshold is zero."""
-        plugin = WeatherSymbols()
         diagnostic = (
             "probability_of_number_of_lightning_flashes"
             + "_per_unit_area_in_vicinity_above_threshold"
         )
         threshold = AuxCoord(0.0, units="m-2")
-        result = plugin.construct_extract_constraint(diagnostic, threshold, False)
+        result = self.plugin.construct_extract_constraint(diagnostic, threshold, False)
         expected = iris.Constraint(
             name=diagnostic,
             number_of_lightning_flashes_per_unit_area=lambda cell: np.isclose(
                 cell.point,
                 threshold.points[0],
                 rtol=0,
-                atol=plugin.float_abs_tolerance,
+                atol=self.plugin.float_abs_tolerance,
             ),
         )
         self.assertIsInstance(result, iris.Constraint)
@@ -689,14 +684,13 @@ class Test_evaluate_extract_expression(Test_WXCode):
     def test_basic(self):
         """Test evaluating a basic expression consisting of constraints,
         operators, and constants."""
-        plugin = WeatherSymbols()
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
         expression = [
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
+                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
                 ),
             ),
             "-",
@@ -705,11 +699,11 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_rainfall_rate_above_threshold",
                 rainfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
+                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
                 ),
             ),
         ]
-        result = plugin.evaluate_extract_expression(self.cubes, expression)
+        result = self.plugin.evaluate_extract_expression(self.cubes, expression)
         expected = (
             self.cubes.extract(expression[0])[0].data
             - 0.5 * self.cubes.extract(expression[4])[0].data
@@ -720,14 +714,13 @@ class Test_evaluate_extract_expression(Test_WXCode):
         """Test evaluating an expression containing sub-expressions."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
-        plugin = WeatherSymbols()
         expression = [
             0.5,
             "*",
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
+                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
                 ),
             ),
             "+",
@@ -735,14 +728,20 @@ class Test_evaluate_extract_expression(Test_WXCode):
                 iris.Constraint(
                     name="probability_of_rainfall_rate_above_threshold",
                     rainfall_rate=lambda cell: np.isclose(
-                        cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
+                        cell.point,
+                        t.points[0],
+                        rtol=self.plugin.float_tolerance,
+                        atol=0,
                     ),
                 ),
                 "-",
                 iris.Constraint(
                     name="probability_of_lwe_snowfall_rate_above_threshold",
                     lwe_snowfall_rate=lambda cell: np.isclose(
-                        cell.point, t.points[0], rtol=plugin.float_tolerance, atol=0,
+                        cell.point,
+                        t.points[0],
+                        rtol=self.plugin.float_tolerance,
+                        atol=0,
                     ),
                 ),
             ],
@@ -751,7 +750,7 @@ class Test_evaluate_extract_expression(Test_WXCode):
             self.cubes.extract(expression[4][0])[0].data
             - self.cubes.extract(expression[4][2])[0].data
         )
-        result = plugin.evaluate_extract_expression(self.cubes, expression)
+        result = self.plugin.evaluate_extract_expression(self.cubes, expression)
         self.assertArrayEqual(result, expected)
 
 
@@ -762,7 +761,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test a simple condition chain with 2 simple expressions joined by "OR"."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
-        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -771,7 +769,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         lwe_sleetfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -784,7 +782,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -794,7 +792,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "OR",
         ]
-        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        result = self.plugin.evaluate_condition_chain(self.cubes, chain)
         c1 = chain[0][0][0]
         c2 = chain[0][1][0]
         expected = (self.cubes.extract(c1)[0].data >= 0.5) | (
@@ -807,7 +805,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
         and second element is ""."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
-        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -816,7 +813,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         lwe_sleetfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -829,7 +826,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -844,13 +841,12 @@ class Test_evaluate_condition_chain(Test_WXCode):
             "but second element is not 'AND' or 'OR'.",
         )
         with self.assertRaises(RuntimeError, msg=msg):
-            plugin.evaluate_condition_chain(self.cubes, chain)
+            self.plugin.evaluate_condition_chain(self.cubes, chain)
 
     def test_with_operators(self):
         """Test a condition chain where the expressions contain operators."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
-        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -860,7 +856,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             rainfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -870,7 +866,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             lwe_snowfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -884,7 +880,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         lwe_sleetfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -894,7 +890,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "OR",
         ]
-        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        result = self.plugin.evaluate_condition_chain(self.cubes, chain)
         c1 = chain[0][0][0][0]
         c2 = chain[0][0][0][2]
         c3 = chain[0][1][0]
@@ -907,7 +903,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test "AND" condition chain with sub-chain containing "OR"."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
-        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -918,7 +913,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                                 lwe_sleetfall_rate=lambda cell: np.isclose(
                                     cell.point,
                                     t.points[0],
-                                    rtol=plugin.float_tolerance,
+                                    rtol=self.plugin.float_tolerance,
                                     atol=0,
                                 ),
                             ),
@@ -931,7 +926,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                                 lwe_snowfall_rate=lambda cell: np.isclose(
                                     cell.point,
                                     t.points[0],
-                                    rtol=plugin.float_tolerance,
+                                    rtol=self.plugin.float_tolerance,
                                     atol=0,
                                 ),
                             ),
@@ -947,7 +942,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                         rainfall_rate=lambda cell: np.isclose(
                             cell.point,
                             t.points[0],
-                            rtol=plugin.float_tolerance,
+                            rtol=self.plugin.float_tolerance,
                             atol=0,
                         ),
                     ),
@@ -957,7 +952,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "AND",
         ]
-        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        result = self.plugin.evaluate_condition_chain(self.cubes, chain)
         c1 = chain[0][0][0][0][0]
         c2 = chain[0][0][0][1][0]
         c3 = chain[0][1][0]
@@ -971,7 +966,6 @@ class Test_evaluate_condition_chain(Test_WXCode):
         """Test a condition chain where the combination condition is ""."""
         t = AuxCoord(0.1, units="mm hr-1")
         t.convert_units("m s-1")
-        plugin = WeatherSymbols()
         chain = [
             [
                 [
@@ -981,7 +975,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             lwe_sleetfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -993,7 +987,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
                             rainfall_rate=lambda cell: np.isclose(
                                 cell.point,
                                 t.points[0],
-                                rtol=plugin.float_tolerance,
+                                rtol=self.plugin.float_tolerance,
                                 atol=0,
                             ),
                         ),
@@ -1004,7 +998,7 @@ class Test_evaluate_condition_chain(Test_WXCode):
             ],
             "",
         ]
-        result = plugin.evaluate_condition_chain(self.cubes, chain)
+        result = self.plugin.evaluate_condition_chain(self.cubes, chain)
         expression = chain[0][0][0]
         expected = (
             self.cubes.extract(expression[0])[0].data
@@ -1027,19 +1021,18 @@ class Test_find_all_routes(IrisTest):
             "fail_1_0": [2, 4],
             "success_0_1": [5, 1],
         }
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
 
     def test_basic(self):
         """Test find_all_routes returns a list of expected nodes."""
-        plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph, "start_node", 3)
+        result = self.plugin.find_all_routes(self.test_graph, "start_node", 3)
         expected_nodes = [["start_node", "fail_0", 3]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
     def test_multiple_routes(self):
         """Test finds multiple routes."""
-        plugin = WeatherSymbols()
-        result = plugin.find_all_routes(self.test_graph, "start_node", 1)
+        result = self.plugin.find_all_routes(self.test_graph, "start_node", 1)
         expected_nodes = [
             ["start_node", "success_1", "success_1_1", 1],
             ["start_node", "fail_0", "success_0_1", 1],
@@ -1050,8 +1043,7 @@ class Test_find_all_routes(IrisTest):
     def test_omit_nodes_top_node(self):
         """Test find_all_routes where omit node is top node."""
         omit_nodes = {"start_node": "success_1"}
-        plugin = WeatherSymbols()
-        result = plugin.find_all_routes(
+        result = self.plugin.find_all_routes(
             self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
         )
         expected_nodes = [["success_1", "success_1_1", 1]]
@@ -1061,8 +1053,7 @@ class Test_find_all_routes(IrisTest):
     def test_omit_nodes_midtree(self):
         """Test find_all_routes where omit node is mid tree."""
         omit_nodes = {"success_1": "success_1_1"}
-        plugin = WeatherSymbols()
-        result = plugin.find_all_routes(
+        result = self.plugin.find_all_routes(
             self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
         )
         expected_nodes = [
@@ -1075,8 +1066,7 @@ class Test_find_all_routes(IrisTest):
     def test_omit_nodes_blocked(self):
         """Test find_all_routes where omitted node is no longer accessible."""
         omit_nodes = {"fail_0": 3}
-        plugin = WeatherSymbols()
-        result = plugin.find_all_routes(
+        result = self.plugin.find_all_routes(
             self.test_graph, "start_node", 5, omit_nodes=omit_nodes,
         )
         expected_nodes = []
@@ -1086,8 +1076,7 @@ class Test_find_all_routes(IrisTest):
     def test_omit_nodes_multi(self):
         """Test find_all_routes where multiple omitted nodes."""
         omit_nodes = {"fail_0": 3, "success_1": "success_1_1"}
-        plugin = WeatherSymbols()
-        result = plugin.find_all_routes(
+        result = self.plugin.find_all_routes(
             self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
         )
         expected_nodes = [["start_node", "success_1_1", 1]]
@@ -1115,11 +1104,12 @@ class Test_create_symbol_cube(IrisTest):
         self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
 
     def test_basic(self):
         """Test cube is constructed with appropriate metadata without
         model_id_attr attribute"""
-        result = WeatherSymbols().create_symbol_cube([self.cube])
+        result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
@@ -1129,9 +1119,8 @@ class Test_create_symbol_cube(IrisTest):
     def test_model_id_attr(self):
         """Test cube is constructed with appropriate metadata with
         model_id_attr attribute"""
-        result = WeatherSymbols(
-            model_id_attr="mosg__model_configuration"
-        ).create_symbol_cube([self.cube])
+        self.plugin.model_id_attr = "mosg__model_configuration"
+        result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
@@ -1156,7 +1145,7 @@ class Test_create_symbol_cube(IrisTest):
             ],
             dtype=np.int32,
         )
-        result = WeatherSymbols().create_symbol_cube([self.cube])
+        result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
 
@@ -1168,7 +1157,7 @@ class Test_compare_to_threshold(IrisTest):
         """Test that compare_to_threshold produces the correct array of
         booleans."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         test_case_map = {
             "<": [True, False, False],
             "<=": [True, True, False],
@@ -1183,7 +1172,7 @@ class Test_compare_to_threshold(IrisTest):
         """Test that an error is raised if the comparison operator is not
         one of the expected strings."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        plugin = WeatherSymbols()
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
         msg = (
             "Invalid comparator: !=. ",
             "Comparator must be one of '<', '>', '<=', '>='.",
@@ -1213,8 +1202,7 @@ class Test_process(Test_WXCode):
     def test_basic(self):
         """Test process returns a weather code cube with right values and type.
         """
-        plugin = WeatherSymbols()
-        result = plugin.process(self.cubes)
+        result = self.plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
@@ -1223,26 +1211,23 @@ class Test_process(Test_WXCode):
 
     def test_day_night(self):
         """Test process returns the right values for night. """
-        plugin = WeatherSymbols()
         for i, cube in enumerate(self.cubes):
             self.cubes[i].coord("time").points = cube.coord("time").points + 3600 * 12
-        result = plugin.process(self.cubes)
+        result = self.plugin.process(self.cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_night)
 
     def test_no_lightning(self):
         """Test process returns right values if no lightning. """
-        plugin = WeatherSymbols()
         cubes = self.cubes.extract(self.uk_no_lightning)
-        result = plugin.process(cubes)
+        result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_lightning(self):
         """Test process returns right values if all lightning. """
-        plugin = WeatherSymbols()
         data_lightning = np.ones((3, 3))
         cubes = self.cubes
         cubes[7].data = data_lightning
-        result = plugin.process(self.cubes)
+        result = self.plugin.process(self.cubes)
         expected_wxcode = np.ones((3, 3)) * 30
         expected_wxcode[0, 1] = 29
         expected_wxcode[1, 1:] = 29
@@ -1253,11 +1238,10 @@ class Test_process(Test_WXCode):
         """Test process returns right values when precipitation data are fully masked
         (e.g. nowcast-only). The only possible non-masked result is a lightning code as
         these do not include precipitation in any of their decision routes."""
-        plugin = WeatherSymbols()
         data_precip = np.ma.masked_all_like(self.cubes[8].data)
         cubes = self.cubes
         cubes[8].data = data_precip
-        result = plugin.process(self.cubes)
+        result = self.plugin.process(self.cubes)
         expected_wxcode = np.ma.masked_all_like(self.expected_wxcode)
         expected_wxcode[0, 1] = self.expected_wxcode[0, 1]
         self.assertArrayAndMaskEqual(result.data, expected_wxcode)
@@ -1265,7 +1249,6 @@ class Test_process(Test_WXCode):
     def test_weather_data(self):
         """Test process returns the right weather values with a different
         set of data to walk the tree differently."""
-        plugin = WeatherSymbols()
         data_snow = np.array(
             [
                 [[0.0, 0.0, 1.0], [1.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
@@ -1325,12 +1308,11 @@ class Test_process(Test_WXCode):
         cubes[7].data = data_lightning
         cubes[8].data = data_precip
         cubes[9].data = data_cloud_texture
-        result = plugin.process(cubes)
+        result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
     def test_sleet(self):
         """Test process returns the sleet weather code."""
-        plugin = WeatherSymbols()
         data_snow = np.zeros_like(self.cubes[0].data)
         data_sleet = np.ones_like(self.cubes[0].data)
         data_rain = np.zeros_like(self.cubes[0].data)
@@ -1354,19 +1336,19 @@ class Test_process(Test_WXCode):
         cubes[7].data = data_lightning
         cubes[8].data = data_precip
         cubes[9].data = data_cloud_texture
-        result = plugin.process(cubes)
+        result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, expected)
 
     def test_basic_global(self):
         """Test process returns a wxcode cube with right values for global. """
-        plugin = WeatherSymbols(wxtree="global")
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
         cubes = self.cubes.extract(self.gbl)
         result = plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_weather_data_global(self):
         """Test process returns the right weather values global part2 """
-        plugin = WeatherSymbols(wxtree="global")
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
 
         data_snow = np.array(
             [
