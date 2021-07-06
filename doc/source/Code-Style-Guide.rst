@@ -777,7 +777,7 @@ New release steps:
 1. Go to `Draft a new
    release <https://github.com/metoppv/improver/releases/new>`_ page.
    The **tag version** and **release title** should be the version
-   number prepended with 'v' (e.g., ``v0.17.0``). It is important that
+   number (e.g., ``0.17.0``). It is important that
    the **tag version** follows this naming convention as this enables
    the source code to be automatically downloaded in the conda recipe.
    Publish the release after adding any description text.
