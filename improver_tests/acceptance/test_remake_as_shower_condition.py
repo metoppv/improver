@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the shower-condition-probability CLI"""
+"""Tests for the remake-as-shower-condition CLI"""
 
 import pytest
 
@@ -40,24 +40,17 @@ run_cli = acc.run_cli(CLI)
 
 
 def test_basic(tmp_path):
-    """Test shower condition probability is generated using global model
-    derived data."""
+    """Test a suitable proxy is remade as a shower condition cube."""
 
-    kgo_dir = acc.kgo_root() / "shower-condition-probability/"
+    kgo_dir = acc.kgo_root() / "remake-as-shower-condition/"
     kgo_path = kgo_dir / "kgo.nc"
-    inputs = [kgo_dir / f for f in ["cloud_input.nc", "convection_input.nc"]]
+    inputs = kgo_dir / "cloud_texture.nc"
     output_path = tmp_path / "output.nc"
 
     args = [
-        *inputs,
+        inputs,
         "--output",
         output_path,
-        "--cloud-threshold",
-        "0.8125",
-        "--convection-threshold",
-        "0.8",
-        "--model-id-attr",
-        "mosg__model_configuration",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

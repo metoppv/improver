@@ -31,6 +31,7 @@
 """Utilities for use by precipitation_type plugins / functions."""
 
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -39,23 +40,54 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 def make_shower_condition_cube(cube: Cube, in_place: bool = False) -> Cube:
     """
     Modify a cloud or precipitation rate texture cube to become a shower
-    condition proxy. This will modify the threshold coordinate and diagnostic
-    name to match those produced using the ShowerConditionProbability plugin.
-    This modification enables these two proxies to be blended to get a smooth
-    transition in the areas classified as showery when transitioning from
-    high resolution to coarse resolution models. """
+    condition proxy. This will modify the single valued threshold coordinate
+    and diagnostic name to match those produced using the
+    ShowerConditionProbability plugin. This modification enables these two
+    proxies to be blended to get a smooth transition in the areas classified
+    as showery when transitioning from high resolution to coarse resolution
+    models.
+
+    Args:
+        cube:
+            A thresholded diagnostic to be used as a proxy for showery conditions.
+            The threshold coordinate should contain only one value, which denotes
+            the key threshold that above which conditions are showery, and below
+            which precipitation is more likely dynamic.
+        in_place:
+            If set true the cube is modified in place. By default a modified
+            copy is returned.
+
+    Returns:
+        A shower condition probability cube that has the same name and threshold
+        coordinate as those produced using the shower_condition_probability
+        CLI.
+
+    Raises:
+        CoordinateNotFoundError: Input has no threshold coordinate.
+        ValueError: Input cube's threshold coordinate is multi-valued.
+    """
 
     if not in_place:
         cube = cube.copy()
 
     shower_condition_name = "shower_condition"
     cube.rename(f"probability_of_{shower_condition_name}_above_threshold")
-    shower_threshold = find_threshold_coordinate(cube)
+    try:
+        shower_threshold = find_threshold_coordinate(cube)
+        _, = shower_threshold.points
+    except CoordinateNotFoundError as err1:
+        msg = "Input has no threshold coordinate and cannot be used"
+        raise CoordinateNotFoundError(msg) from err1
+    except ValueError as err2:
+        msg = ("Expected a single valued threshold coordinate, but threshold "
+               f"contains multiple points : {shower_threshold.points}")
+        raise ValueError(msg) from err2
 
     # We introduce an implied threshold of shower conditions.
     # Above 50% conditions are showery.
     cube.coord(shower_threshold).rename(shower_condition_name)
     cube.coord(shower_condition_name).var_name = "threshold"
     cube.coord(shower_condition_name).points = FLOAT_DTYPE(0.5)
+    cube.coord(shower_condition_name).units = 1
 
     return cube
