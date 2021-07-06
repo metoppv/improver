@@ -74,13 +74,15 @@ def make_shower_condition_cube(cube: Cube, in_place: bool = False) -> Cube:
     cube.rename(f"probability_of_{shower_condition_name}_above_threshold")
     try:
         shower_threshold = find_threshold_coordinate(cube)
-        _, = shower_threshold.points
+        (_,) = shower_threshold.points
     except CoordinateNotFoundError as err1:
         msg = "Input has no threshold coordinate and cannot be used"
         raise CoordinateNotFoundError(msg) from err1
     except ValueError as err2:
-        msg = ("Expected a single valued threshold coordinate, but threshold "
-               f"contains multiple points : {shower_threshold.points}")
+        msg = (
+            "Expected a single valued threshold coordinate, but threshold "
+            f"contains multiple points : {shower_threshold.points}"
+        )
         raise ValueError(msg) from err2
 
     # We introduce an implied threshold of shower conditions.

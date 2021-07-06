@@ -39,12 +39,12 @@ from improver import cli
 @cli.with_output
 def process(cube: cli.inputcube):
     """
-    Modify the name and threshold coordinate of another diagnostic to appear
-    as a shower condition cube. Only suitable proxies for identifying showery
+    Modify the name and threshold coordinate of another diagnostic to create
+    a shower condition cube. Only suitable proxies for identifying showery
     conditions should be modified in this way. By modifying cubes in this way
     it is possible to blend different proxies from different models as though
-    they are equivalent diagnostics. This allows for averaging across models.
-    The user must be satisfied that the proxies are suitable for blending.
+    they are equivalent diagnostics. The user must be satisfied that the
+    proxies are suitable for blending.
 
     Args:
         cube (iris.cube.Cube):
