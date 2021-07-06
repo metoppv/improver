@@ -39,7 +39,6 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
