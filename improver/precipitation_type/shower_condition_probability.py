@@ -179,8 +179,10 @@ class ShowerConditionProbability(PostProcessingPlugin):
         )
 
         try:
-            shower_conditions = iris.util.squeeze(collapse_realizations(result))
+            shower_conditions = collapse_realizations(result)
         except CoordinateNotFoundError:
-            shower_conditions = iris.util.squeeze(result)
+            shower_conditions = result
+        finally:
+            shower_conditions = iris.util.squeeze(shower_conditions)
 
         return shower_conditions
