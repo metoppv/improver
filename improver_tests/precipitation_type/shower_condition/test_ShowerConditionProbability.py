@@ -30,9 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for ShowerConditionProbability plugin"""
 
+from typing import Dict, List, Tuple, Union
+
 import numpy as np
 import pytest
 from iris.cube import CubeList
+from numpy import ndarray
 
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.precipitation_type.shower_condition_probability import (
@@ -57,7 +60,7 @@ MODEL_ID_ATTR_ATTRIBUTES.update({"mosg__model_configuration": "gl_ens"})
 
 
 @pytest.fixture(name="test_cubes")
-def cube_fixture(cube_properties):
+def cube_fixture(cube_properties: Tuple[Dict[str, Dict[str, Union[List, ndarray]]]]):
     """Create a test cube"""
     cubes = CubeList()
     for name, values in cube_properties.items():
@@ -90,7 +93,7 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {},
+            {"cloud_threshold": 0.5, "convection_threshold": 0.5},
             # Expected result
             (np.ones((2, 2)).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
         ),
@@ -108,7 +111,11 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {"model_id_attr": "mosg__model_configuration"},
+            {
+                "model_id_attr": "mosg__model_configuration",
+                "cloud_threshold": 0.5,
+                "convection_threshold": 0.5,
+            },
             # Expected result
             (np.ones((2, 2)).astype(FLOAT_DTYPE), MODEL_ID_ATTR_ATTRIBUTES),
         ),
@@ -126,7 +133,7 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {},
+            {"cloud_threshold": 0.5, "convection_threshold": 0.5},
             # Expected result
             (np.ones((2, 2)).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
         ),
@@ -149,7 +156,7 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {},
+            {"cloud_threshold": 0.5, "convection_threshold": 0.5},
             # Expected result
             (np.array([[1, 1], [1, 0]]).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
         ),
@@ -169,7 +176,7 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {},
+            {"cloud_threshold": 0.5, "convection_threshold": 0.5},
             # Expected result
             (np.array([[0.5, 0], [0.5, 0]]).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
         ),
@@ -189,7 +196,7 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {"cloud_threshold": 0.7},
+            {"cloud_threshold": 0.7, "convection_threshold": 0.5},
             # Expected result
             (np.ones((2, 2)).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
         ),
@@ -211,7 +218,7 @@ def cube_fixture(cube_properties):
                 },
             },
             # Other plugin kwargs
-            {},
+            {"cloud_threshold": 0.5, "convection_threshold": 0.5},
             # Expected result
             (np.array([[1, 0], [0, 1]]).astype(FLOAT_DTYPE), EXPECTED_ATTRIBUTES),
         ),
@@ -219,16 +226,18 @@ def cube_fixture(cube_properties):
 )
 def test_scenarios(test_cubes, kwargs, expected):
     """Test output type and metadata"""
+
+    expected_shape = test_cubes[0].shape[-2:]
     result = ShowerConditionProbability(**kwargs)(test_cubes)
 
     assert result.name() == "probability_of_shower_condition_above_threshold"
     assert result.units == "1"
-    assert result.shape == test_cubes[0].shape[-2:]
+    assert result.shape == expected_shape
     assert result.data.dtype == FLOAT_DTYPE
     assert (result.data == expected[0]).all()
     assert result.attributes == expected[1]
     assert result.coord(var_name="threshold").name() == "shower_condition"
-    assert result.coord(var_name="threshold").points == 0.5
+    assert result.coord(var_name="threshold").points == 1.0
 
 
 def test_incorrect_inputs_exception():

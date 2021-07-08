@@ -36,6 +36,7 @@ import iris
 import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
+from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -56,18 +57,18 @@ class ShowerConditionProbability(PostProcessingPlugin):
 
     def __init__(
         self,
-        cloud_threshold: float = 0.5,
-        convection_threshold: float = 0.5,
+        cloud_threshold: float = 0.8125,
+        convection_threshold: float = 0.8,
         model_id_attr: Optional[str] = None,
     ) -> None:
         """
         Args:
             cloud_threshold:
                 The fractional cloud coverage value at which to threshold the
-                cloud data; default 0.5.
+                cloud data.
             convection_threshold:
                 The convective ratio value at which to threshold the convective
-                ratio data; default 0.5.
+                ratio data.
             model_id_attr:
                 Name of the attribute used to identify the source model for
                 blending.
@@ -82,24 +83,33 @@ class ShowerConditionProbability(PostProcessingPlugin):
             cube_func=lambda cube: "convective_ratio" in cube.name()
         )
 
-    def _output_metadata(self, cube: Cube) -> Tuple[Cube, Dict]:
+    def _create_shower_condition_cube(
+        self, data: ndarray, cube: Cube
+    ) -> Tuple[Cube, Dict]:
         """
-        Returns template cube and mandatory attributes for result. The template
-        cube is modified to introduce an implied shower conditions threshold.
+        Returns a shower condition cube, with coordinates and mandatory
+        attributes based upon the provided cube. The new cube has and modified
+        threshold coordinate with an implied shower condition threshold.
 
         Args:
+            data:
+                The shower condition probabilities to populate the new cube.
             cube:
                 The cube to use as a template, and from which to extract
                 attributes for use in the new diagnostic cube.
         Returns:
-            A tuple containing the template cube and attributes.
+            A probability of shower conditions cube.
         """
         template = make_shower_condition_cube(cube)
-
         attributes = generate_mandatory_attributes(
             [cube], model_id_attr=self.model_id_attr
         )
-        return template, attributes
+
+        result = create_new_diagnostic_cube(
+            template.name(), "1", template, mandatory_attributes=attributes, data=data,
+        )
+
+        return result
 
     def _extract_inputs(self, cubes):
         """Extract the required input cubes from the input cubelist and check
@@ -164,14 +174,8 @@ class ShowerConditionProbability(PostProcessingPlugin):
             cloud_thresholded.data, convection_thresholded.data
         ).astype(FLOAT_DTYPE)
 
-        # Create a new diagnostic cube containing the new data
-        template, attributes = self._output_metadata(convection_thresholded)
-        result = create_new_diagnostic_cube(
-            template.name(),
-            "1",
-            template,
-            mandatory_attributes=attributes,
-            data=shower_probability,
+        result = self._create_shower_condition_cube(
+            shower_probability, convection_thresholded
         )
 
         try:

@@ -65,6 +65,7 @@ def test_basic():
 
     assert result.name() == "probability_of_shower_condition_above_threshold"
     assert result.dtype == FLOAT_DTYPE
+    assert (result.data == cube.data).all()
     assert threshold_coord.name() == "shower_condition"
     assert threshold_coord.units == 1
 
