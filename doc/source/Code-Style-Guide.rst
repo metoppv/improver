@@ -774,14 +774,16 @@ Making a new release
 
 New release steps:
 
-1. Go to `Draft a new
+1. On the command line, check out the commit on master that you want
+   to tag. For a given version such as 1.1.0, run:
+   `git tag -a 1.1.0 -m "IMPROVER release 1.1.0"`. Then run:
+   `git push upstream 1.1.0`.
+2. Go to `Draft a new
    release <https://github.com/metoppv/improver/releases/new>`_ page.
-   The **tag version** and **release title** should be the version
-   number prepended with 'v' (e.g., ``v0.17.0``). It is important that
-   the **tag version** follows this naming convention as this enables
-   the source code to be automatically downloaded in the conda recipe.
+   Select your new tag under 'tag version'.
+   The **release title** should be the version number (e.g., ``1.1.0``).
    Publish the release after adding any description text.
-2. Update the version number and sha256 checksum in the ``meta.yaml``
+3. Update the version number and sha256 checksum in the ``meta.yaml``
    file of the conda-forge recipe by opening a pull request in the
    `improver-feedstock <https://github.com/conda-forge/improver-feedstock>`_
    repository. The checksum of the compressed ``.tar.gz`` IMPROVER
