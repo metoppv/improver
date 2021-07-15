@@ -39,13 +39,9 @@ from improver.metadata.probabilistic import find_threshold_coordinate
 
 def make_shower_condition_cube(cube: Cube, in_place: bool = False) -> Cube:
     """
-    Modify a cloud or precipitation rate texture cube to become a shower
-    condition proxy. This will modify the single valued threshold coordinate
-    and diagnostic name to match those produced using the
-    ShowerConditionProbability plugin. This modification enables these two
-    proxies to be blended to get a smooth transition in the areas classified
-    as showery when transitioning from high resolution to coarse resolution
-    models.
+    Modify the input cube's metadata and coordinates to produce a shower
+    condition proxy. The input cube is expected to possess a single valued
+    threshold coordinate.
 
     Args:
         cube:
@@ -58,9 +54,9 @@ def make_shower_condition_cube(cube: Cube, in_place: bool = False) -> Cube:
             copy is returned.
 
     Returns:
-        A shower condition probability cube that has the same name and threshold
-        coordinate as those produced using the shower_condition_probability
-        CLI.
+        A shower condition probability cube that is an appropriately renamed
+        version of the input with an updated threshold coordinate representing
+        the probability of shower conditions occurring.
 
     Raises:
         CoordinateNotFoundError: Input has no threshold coordinate.
@@ -74,10 +70,12 @@ def make_shower_condition_cube(cube: Cube, in_place: bool = False) -> Cube:
     cube.rename(f"probability_of_{shower_condition_name}_above_threshold")
     try:
         shower_threshold = find_threshold_coordinate(cube)
-        (_,) = shower_threshold.points
     except CoordinateNotFoundError as err:
         msg = "Input has no threshold coordinate and cannot be used"
         raise CoordinateNotFoundError(msg) from err
+
+    try:
+        (_,) = shower_threshold.points
     except ValueError as err:
         msg = (
             "Expected a single valued threshold coordinate, but threshold "
@@ -85,8 +83,6 @@ def make_shower_condition_cube(cube: Cube, in_place: bool = False) -> Cube:
         )
         raise ValueError(msg) from err
 
-    # We introduce an implied threshold of shower conditions.
-    # Above 50% conditions are showery.
     cube.coord(shower_threshold).rename(shower_condition_name)
     cube.coord(shower_condition_name).var_name = "threshold"
     cube.coord(shower_condition_name).points = FLOAT_DTYPE(1.0)

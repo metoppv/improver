@@ -265,7 +265,7 @@ def test_mismatched_shape_exception():
     )
 
     expected = (
-        "The cloud are fraction and convective ratio cubes are not the same "
+        "The cloud area fraction and convective ratio cubes are not the same "
         "shape and cannot be combined to generate a shower probability"
     )
 

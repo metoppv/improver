@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to construct a shower conditions probability"""
 
-from typing import Dict, Optional, Tuple
+from typing import Optional, Tuple
 
 import iris
 import numpy as np
@@ -52,8 +52,8 @@ from .utilities import make_shower_condition_cube
 
 class ShowerConditionProbability(PostProcessingPlugin):
     """Plugin to calculate the probability that conditions are such that
-    precipitation will be showery, based on input cloud amounts and the
-    convective ratio."""
+    precipitation, should it be present, will be showery, based on input cloud
+    amounts and the convective ratio."""
 
     def __init__(
         self,
@@ -83,13 +83,13 @@ class ShowerConditionProbability(PostProcessingPlugin):
             cube_func=lambda cube: "convective_ratio" in cube.name()
         )
 
-    def _create_shower_condition_cube(
-        self, data: ndarray, cube: Cube
-    ) -> Tuple[Cube, Dict]:
+    def _create_shower_condition_cube(self, data: ndarray, cube: Cube) -> Cube:
         """
         Returns a shower condition cube, with coordinates and mandatory
-        attributes based upon the provided cube. The new cube has and modified
-        threshold coordinate with an implied shower condition threshold.
+        attributes based upon the provided cube. The threshold coordinate is
+        modified to describe shower conditions, such that the probabilities
+        describe the likelihood of conditions being showery. The arbitrary
+        threshold value is 1.
 
         Args:
             data:
@@ -97,6 +97,7 @@ class ShowerConditionProbability(PostProcessingPlugin):
             cube:
                 The cube to use as a template, and from which to extract
                 attributes for use in the new diagnostic cube.
+
         Returns:
             A probability of shower conditions cube.
         """
@@ -111,9 +112,25 @@ class ShowerConditionProbability(PostProcessingPlugin):
 
         return result
 
-    def _extract_inputs(self, cubes):
-        """Extract the required input cubes from the input cubelist and check
-        they are as required."""
+    def _extract_inputs(self, cubes: CubeList) -> Tuple[Cube, Cube]:
+        """
+        Extract the required input cubes from the input cubelist and check
+        they are as required.
+
+        Args:
+            cubes:
+                A cubelist containing a cube of cloud fraction and one of
+                convective ratio.
+
+        Returns:
+            The cloud and convection cubes extracted from the cubelist.
+
+        Raises:
+            ValueError: If the expected cubes are not within the cubelist.
+            ValueError: If the input cubes have different shapes, perhaps due
+                        to a missing realization in one and not the other.
+        """
+
         try:
             (cloud,) = cubes.extract(self.cloud_constraint)
             (convection,) = cubes.extract(self.convection_constraint)
@@ -127,7 +144,7 @@ class ShowerConditionProbability(PostProcessingPlugin):
 
         if cloud.shape != convection.shape:
             msg = (
-                "The cloud are fraction and convective ratio cubes are not "
+                "The cloud area fraction and convective ratio cubes are not "
                 "the same shape and cannot be combined to generate a shower"
                 " probability"
             )
@@ -148,12 +165,8 @@ class ShowerConditionProbability(PostProcessingPlugin):
                 convective ratio.
 
         Returns:
-            Probability of any precipitation being classified as showery
-
-        Raises:
-            ValueError: If inputs are not those expected.
-            ValueError: If the input cubes have different shapes, perhaps due
-                        to a missing realization in one and not the other.
+            Probability of any precipitation, if present, being classified as
+            showery
         """
         cloud, convection = self._extract_inputs(cubes)
 

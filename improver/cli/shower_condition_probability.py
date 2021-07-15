@@ -43,8 +43,9 @@ def process(
     model_id_attr: str = None,
 ):
     """
-    Determine the probability of showery condition from cloud area fraction
-    and convective ratio fields.
+    Create a shower condition diagnostic that provides the probability that
+    precipitation, if present, should be classified as showery. This shower
+    condition is created from cloud area fraction and convective ratio fields.
 
     Args:
         cubes (iris.cube.CubeList):
@@ -66,8 +67,8 @@ def process(
 
     Returns:
         iris.cube.Cube:
-            Probability of any precipitation being classified as showery.
-
+            Probability of any precipitation, if present, being classified as
+            showery.
     """
     from iris.cube import CubeList
 

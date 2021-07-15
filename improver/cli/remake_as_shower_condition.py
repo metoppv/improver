@@ -40,11 +40,12 @@ from improver import cli
 def process(cube: cli.inputcube):
     """
     Modify the name and threshold coordinate of another diagnostic to create
-    a shower condition cube. Only suitable proxies for identifying showery
-    conditions should be modified in this way. By modifying cubes in this way
-    it is possible to blend different proxies from different models as though
-    they are equivalent diagnostics. The user must be satisfied that the
-    proxies are suitable for blending.
+    a shower condition cube. Such a cube provides the probability that any
+    precipitation, should it be present, should be classified as showery. Only
+    suitable proxies for identifying showery conditions should be modified in
+    this way. By modifying cubes in this way it is possible to blend different
+    proxies from different models as though they are equivalent diagnostics.
+    The user must be satisfied that the proxies are suitable for blending.
 
     Args:
         cube (iris.cube.Cube):
@@ -53,7 +54,8 @@ def process(cube: cli.inputcube):
 
     Returns:
         iris.cube.Cube:
-            Probability of any precipitation being classified as showery
+            Probability of any precipitation, if present, being classified as
+            showery.
     """
     from improver.precipitation_type.utilities import make_shower_condition_cube
 
