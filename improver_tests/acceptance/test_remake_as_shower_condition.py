@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -29,30 +28,29 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate whether precipitation is showery."""
+"""Tests for the remake-as-shower-condition CLI"""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(*cubes: cli.inputcube):
-    """
-    Determine the shower condition from global or UK data depending on input fields
+def test_basic(tmp_path):
+    """Test a suitable proxy is remade as a shower condition cube."""
 
-    Args:
-        cubes (iris.cube.CubeList):
-            List of cubes to input into shower diagnosis. These should
-            contain probabilities of EITHER cloud texture from a high-resolution model,
-            OR cloud area fraction and convective ratio from a low-resolution model.
+    kgo_dir = acc.kgo_root() / "remake-as-shower-condition/"
+    kgo_path = kgo_dir / "kgo.nc"
+    inputs = kgo_dir / "cloud_texture.nc"
+    output_path = tmp_path / "output.nc"
 
-    Returns:
-        iris.cube.Cube:
-            Binary (0/1) "precipitation is showery"
-
-    """
-    from iris.cube import CubeList
-
-    from improver.precipitation_type.shower_condition import ShowerCondition
-
-    return ShowerCondition()(CubeList(cubes))
+    args = [
+        inputs,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

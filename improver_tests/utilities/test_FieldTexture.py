@@ -35,11 +35,11 @@ import numpy as np
 import pytest
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.precipitation_type.field_texture import FieldTexture
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
 )
+from improver.utilities.textural import FieldTexture
 
 THRESHOLDS = [0.265, 0.415, 0.8125]
 NB_RADIUS = 10000

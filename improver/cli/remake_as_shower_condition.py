@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -28,48 +29,34 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the shower-condition CLI"""
+"""Script to modify a suitable shower condition proxy diagnostic into a shower
+condition cube."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-def test_uk_basic(tmp_path):
-    """Test shower condition operation with UK arguments."""
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube):
+    """
+    Modify the name and threshold coordinate of another diagnostic to create
+    a shower condition cube. Such a cube provides the probability that any
+    precipitation, should it be present, should be classified as showery. Only
+    suitable proxies for identifying showery conditions should be modified in
+    this way. By modifying cubes in this way it is possible to blend different
+    proxies from different models as though they are equivalent diagnostics.
+    The user must be satisfied that the proxies are suitable for blending.
 
-    kgo_dir = acc.kgo_root() / "shower-condition/uk_basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    inputs = [kgo_dir / f for f in ["cloud_texture.nc"]]
-    print(inputs)
-    output_path = tmp_path / "output.nc"
+    Args:
+        cube (iris.cube.Cube):
+            A cube containing the diagnostic that is a proxy for showery
+            conditions, e.g. cloud texture.
 
-    args = [
-        *inputs,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Returns:
+        iris.cube.Cube:
+            Probability of any precipitation, if present, being classified as
+            showery.
+    """
+    from improver.precipitation_type.utilities import make_shower_condition_cube
 
-
-def test_global_basic(tmp_path):
-    """Test shower condition operation with global arguments."""
-
-    kgo_dir = acc.kgo_root() / "shower-condition/global_basic"
-    kgo_path = kgo_dir / "kgo.nc"
-    inputs = [kgo_dir / f for f in ["cloud.nc", "conv_ratio.nc"]]
-    print(inputs)
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        *inputs,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    return make_shower_condition_cube(cube)

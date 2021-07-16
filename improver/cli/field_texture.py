@@ -52,8 +52,8 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Cloud area fraction or precipitation rate cube where transitions between
-            precipitating or cloudy regions and non-precipitating or cloudless
+            The diagnostic for which texture is to be assessed. For example cloud
+            area fraction where transitions between cloudy regions and cloudless
             regions will be diagnosed. Defaults set assuming cloud area fraction
             cube.
 
@@ -88,7 +88,7 @@ def process(
             the grid point.
     """
 
-    from improver.precipitation_type.field_texture import FieldTexture
+    from improver.utilities.textural import FieldTexture
 
     field_texture = FieldTexture(
         nbhood_radius,
