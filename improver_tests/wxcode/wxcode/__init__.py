@@ -71,7 +71,7 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
-                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold"
+                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold"  # noqa: E501
             ],
             "diagnostic_thresholds": [[0.0, "m-2"]],
             "diagnostic_conditions": ["above"],
