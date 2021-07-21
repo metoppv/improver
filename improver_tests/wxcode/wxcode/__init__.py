@@ -33,27 +33,6 @@
 from typing import Any, Dict
 
 
-def prob_above_name(diagnostic: str) -> str:
-    """Inline function to construct probability cube name"""
-    return f"probability_of_{diagnostic}_above_threshold"
-
-
-LIGHTNING_VICINITY_PROB = prob_above_name(
-    "number_of_lightning_flashes_per_unit_area_in_vicinity"
-)
-CLOUD_NAME = "low_and_medium_type_cloud_area_fraction"
-CLOUD_PROB_ABOVE = prob_above_name(CLOUD_NAME)
-LOW_CLOUD_PROB_ABOVE = prob_above_name("low_type_cloud_area_fraction")
-TEXTURE_PROB_ABOVE = prob_above_name(f"texture_of_{CLOUD_NAME}")
-CONVECTION_PROB_ABOVE = prob_above_name("convective_ratio")
-PRECIP_PROB_ABOVE = prob_above_name("lwe_precipitation_rate")
-PRECIP_VICINITY_PROB_ABOVE = prob_above_name("lwe_precipitation_rate_in_vicinity")
-RAIN_PROB_ABOVE = prob_above_name("rainfall_rate")
-SLEET_PROB_ABOVE = prob_above_name("lwe_sleetfall_rate")
-SNOW_PROB_ABOVE = prob_above_name("lwe_snowfall_rate")
-VIS_PROB_BELOW = "probability_of_visibility_in_air_below_threshold"
-
-
 def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
     """
     Define an example decision tree to test the weather symbols code.
