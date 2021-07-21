@@ -424,11 +424,11 @@ def modify_tree_fixture(node, key, value):
     (
         (
             "lightning",
-            "diagnostic_missing_action",
+            "if_diagnostic_missing",
             "kittens",
             (
-                "Node lightning contains a diagnostic_missing_action that targets "
-                "key 'kittens' which is neither 'succeed' nor 'fail'"
+                "Node lightning contains an if_diagnostic_missing key that targets "
+                "key 'kittens' which is neither 'if_true' nor 'if_false'"
             ),
         ),
         (
@@ -466,27 +466,27 @@ def modify_tree_fixture(node, key, value):
         ),
         (
             "lightning",
-            "succeed",
+            "if_true",
             100,
             (
                 "Node lightning results in an invalid weather code of 100 for the "
-                "succeed condition"
+                "if_true condition"
             ),
         ),
         (
             "lightning",
-            "fail",
+            "if_false",
             100,
             (
                 "Node lightning results in an invalid weather code of 100 for the "
-                "fail condition"
+                "if_false condition"
             ),
         ),
         (
             "lightning",
-            "fail",
+            "if_false",
             "kittens",
-            "Node lightning has an invalid destination of kittens for the fail condition",
+            "Node lightning has an invalid destination of kittens for the if_false condition",
         ),
         (
             "snow_in_vicinity",

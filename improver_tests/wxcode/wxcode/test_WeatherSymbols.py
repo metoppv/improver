@@ -358,8 +358,8 @@ class Test_create_condition_chain(Test_WXCode):
         super().setUp()
         self.dummy_queries = {
             "significant_precipitation": {
-                "succeed": "heavy_precipitation",
-                "fail": "any_precipitation",
+                "if_true": "heavy_precipitation",
+                "if_false": "any_precipitation",
                 "probability_thresholds": [0.5, 0.5],
                 "threshold_condition": ">=",
                 "condition_combination": "OR",
