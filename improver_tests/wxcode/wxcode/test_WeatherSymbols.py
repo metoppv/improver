@@ -44,7 +44,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
-from . import wxcode_decision_tree_global, wxcode_decision_tree_uk
+from . import wxcode_decision_tree
 
 
 class Test_WXCode(IrisTest):
@@ -119,20 +119,6 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
-        thresholds = np.array([0.8], dtype=np.float32)
-        data_convective_ratio = np.array(
-            [[[0.1, 0.1, 0.1], [0.2, 0.2, 1.0], [1.0, 1.0, 0.2]]], dtype=np.float32,
-        )
-
-        convective_ratio = set_up_probability_cube(
-            data_convective_ratio,
-            thresholds,
-            variable_name="convective_ratio",
-            threshold_units="1",
-            time=time,
-            frt=frt,
-        )
-
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
         data_cloud = np.array(
             [
@@ -196,15 +182,15 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
-        thresholds = np.array([0.05], dtype=np.float32)
-        data_cloud_texture = np.array(
+        thresholds = np.array([1.0], dtype=np.float32)
+        data_shower_condition = np.array(
             [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
         )
 
-        cloud_texture = set_up_probability_cube(
-            data_cloud_texture,
+        shower_condition = set_up_probability_cube(
+            data_shower_condition,
             thresholds,
-            variable_name="texture_of_low_and_medium_type_cloud_area_fraction",
+            variable_name="shower_condition",
             threshold_units="1",
             time=time,
             frt=frt,
@@ -221,18 +207,12 @@ class Test_WXCode(IrisTest):
                 visibility,
                 lightning,
                 precip_rate,
-                cloud_texture,
-                convective_ratio,
+                shower_condition,
             ]
         )
         names = [cube.name() for cube in self.cubes]
-        self.uk_no_lightning = [name for name in names if "lightning" not in name]
-        self.gbl = [
-            name
-            for name in self.uk_no_lightning
-            if "vicinity" not in name and "texture" not in name
-        ]
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        self.missing_diagnostic = [name for name in names if "lightning" not in name]
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
 
     def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
         """
@@ -275,14 +255,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(WeatherSymbols(wxtree=wxcode_decision_tree_uk()))
+        result = str(WeatherSymbols(wxtree=wxcode_decision_tree()))
         msg = "<WeatherSymbols start_node=lightning>"
-        self.assertEqual(result, msg)
-
-    def test_global(self):
-        """Test that the __repr__ returns right string for global tree."""
-        result = str(WeatherSymbols(wxtree=wxcode_decision_tree_global()))
-        msg = "<WeatherSymbols start_node=heavy_precipitation>"
         self.assertEqual(result, msg)
 
 
@@ -292,12 +266,12 @@ class Test_check_input_cubes(Test_WXCode):
 
     def test_basic(self):
         """Test check_input_cubes method raises no error if the data is OK"""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         self.assertEqual(plugin.check_input_cubes(self.cubes), None)
 
     def test_no_lightning(self):
         """Test check_input_cubes raises no error if lightning missing"""
-        cubes = self.cubes.extract(self.uk_no_lightning)
+        cubes = self.cubes.extract(self.missing_diagnostic)
         result = self.plugin.check_input_cubes(cubes)
         self.assertIsInstance(result, dict)
         self.assertEqual(len(result), 1)
@@ -327,20 +301,6 @@ class Test_check_input_cubes(Test_WXCode):
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_input_cubes(self.cubes)
 
-    def test_basic_global(self):
-        """Test check_input_cubes method has no error if global data is OK"""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
-        cubes = self.cubes.extract(self.gbl)
-        self.assertEqual(plugin.check_input_cubes(cubes), None)
-
-    def test_raises_error_missing_cubes_global(self):
-        """Test check_input_cubes method raises error if data is missing"""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
-        cubes = self.cubes.extract(self.gbl)[0:3]
-        msg = "Weather Symbols input cubes are missing"
-        with self.assertRaisesRegex(IOError, msg):
-            plugin.check_input_cubes(cubes)
-
 
 class Test_invert_condition(IrisTest):
 
@@ -348,7 +308,7 @@ class Test_invert_condition(IrisTest):
 
     def test_basic(self):
         """Test that the invert_condition method returns a tuple of strings."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         tree = plugin.queries
         result = plugin.invert_condition(tree[list(tree.keys())[0]])
         self.assertIsInstance(result, tuple)
@@ -358,7 +318,7 @@ class Test_invert_condition(IrisTest):
 
     def test_invert_thresholds_correctly(self):
         """Test invert_condition inverts thresholds correctly."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         node = {"threshold_condition": ">=", "condition_combination": ""}
         possible_inputs = [">=", "<=", "<", ">"]
         inverse_outputs = ["<", ">", ">=", "<="]
@@ -369,7 +329,7 @@ class Test_invert_condition(IrisTest):
 
     def test_invert_combination_correctly(self):
         """Test invert_condition inverts combination correctly."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         node = {"threshold_condition": ">=", "condition_combination": ""}
         possible_inputs = ["AND", "OR", ""]
         inverse_outputs = ["OR", "AND", ""]
@@ -381,7 +341,7 @@ class Test_invert_condition(IrisTest):
     def test_error(self):
         """Test that the _invert_comparator method raises an error when the condition
         cannot be inverted."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         possible_inputs = ["==", "!=", "NOT", "XOR"]
         for val in possible_inputs:
             with self.assertRaisesRegex(
@@ -1021,7 +981,7 @@ class Test_find_all_routes(IrisTest):
             "fail_1_0": [2, 4],
             "success_0_1": [5, 1],
         }
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
 
     def test_basic(self):
         """Test find_all_routes returns a list of expected nodes."""
@@ -1104,7 +1064,7 @@ class Test_create_symbol_cube(IrisTest):
         self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
 
     def test_basic(self):
         """Test cube is constructed with appropriate metadata without
@@ -1157,7 +1117,7 @@ class Test_compare_to_threshold(IrisTest):
         """Test that compare_to_threshold produces the correct array of
         booleans."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         test_case_map = {
             "<": [True, False, False],
             "<=": [True, True, False],
@@ -1172,7 +1132,7 @@ class Test_compare_to_threshold(IrisTest):
         """Test that an error is raised if the comparison operator is not
         one of the expected strings."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_uk())
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
         msg = (
             "Invalid comparator: !=. ",
             "Comparator must be one of '<', '>', '<=', '>='.",
@@ -1217,8 +1177,10 @@ class Test_process(Test_WXCode):
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_night)
 
     def test_no_lightning(self):
-        """Test process returns right values if no lightning. """
-        cubes = self.cubes.extract(self.uk_no_lightning)
+        """Test process returns right values if no lightning. This is equivalent
+        to a global weather symbols call as there is currently no lightning
+        field."""
+        cubes = self.cubes.extract(self.missing_diagnostic)
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
@@ -1289,7 +1251,7 @@ class Test_process(Test_WXCode):
             ],
             dtype=np.float32,
         )
-        data_cloud_texture = np.array(
+        data_shower_condition = np.array(
             [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32,
         )
 
@@ -1307,7 +1269,7 @@ class Test_process(Test_WXCode):
         cubes[6].data = data_vis
         cubes[7].data = data_lightning
         cubes[8].data = data_precip
-        cubes[9].data = data_cloud_texture
+        cubes[9].data = data_shower_condition
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
@@ -1322,7 +1284,7 @@ class Test_process(Test_WXCode):
         data_cld_low = np.ones_like(self.cubes[5].data)
         data_vis = np.zeros_like(self.cubes[6].data)
         data_lightning = np.zeros_like(self.cubes[7].data)
-        data_cloud_texture = np.zeros_like(self.cubes[9].data)
+        data_shower_condition = np.zeros_like(self.cubes[9].data)
         expected = np.ones_like(self.expected_wxcode_alternate) * 18
 
         cubes = self.cubes
@@ -1335,69 +1297,9 @@ class Test_process(Test_WXCode):
         cubes[6].data = data_vis
         cubes[7].data = data_lightning
         cubes[8].data = data_precip
-        cubes[9].data = data_cloud_texture
+        cubes[9].data = data_shower_condition
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, expected)
-
-    def test_basic_global(self):
-        """Test process returns a wxcode cube with right values for global. """
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
-        cubes = self.cubes.extract(self.gbl)
-        result = plugin.process(cubes)
-        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
-
-    def test_weather_data_global(self):
-        """Test process returns the right weather values global part2 """
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree_global())
-
-        data_snow = np.array(
-            [
-                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 0.1]],
-                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [1.0, 1.0, 0.0]],
-                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 1.0]],
-            ],
-            dtype=np.float32,
-        )
-        data_sleet = np.array(
-            [
-                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[0.0, 0.0, 1.0], [1.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-            ],
-            dtype=np.float32,
-        )
-        data_rain = np.array(
-            [
-                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                [[1.0, 1.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-            ],
-            dtype=np.float32,
-        )
-        data_cloud = np.array(
-            [
-                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
-                [[0.0, 1.0, 0.0], [1.0, 0.0, 1.0], [0.0, 1.0, 1.0]],
-            ],
-            dtype=np.float32,
-        )
-        data_cld_low = np.zeros((3, 3), dtype=np.float32)
-        data_vis = np.zeros((2, 3, 3), dtype=np.float32)
-        data_precip = np.max(np.array([data_snow, data_sleet, data_rain]), axis=0)
-        data_convective_ratio = np.array(
-            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32,
-        )
-        cubes = self.cubes.extract(self.gbl)
-        cubes[0].data = data_snow
-        cubes[1].data = data_sleet
-        cubes[2].data = data_rain
-        cubes[3].data = data_cloud
-        cubes[4].data = data_cld_low
-        cubes[5].data = data_vis
-        cubes[6].data = data_precip
-        cubes[7].data = data_convective_ratio
-        result = plugin.process(cubes)
-        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
 
 if __name__ == "__main__":

@@ -33,30 +33,9 @@
 from typing import Any, Dict
 
 
-def prob_above_name(diagnostic: str) -> str:
-    """Inline function to construct probability cube name"""
-    return f"probability_of_{diagnostic}_above_threshold"
-
-
-LIGHTNING_VICINITY_PROB = prob_above_name(
-    "number_of_lightning_flashes_per_unit_area_in_vicinity"
-)
-CLOUD_NAME = "low_and_medium_type_cloud_area_fraction"
-CLOUD_PROB_ABOVE = prob_above_name(CLOUD_NAME)
-LOW_CLOUD_PROB_ABOVE = prob_above_name("low_type_cloud_area_fraction")
-TEXTURE_PROB_ABOVE = prob_above_name(f"texture_of_{CLOUD_NAME}")
-CONVECTION_PROB_ABOVE = prob_above_name("convective_ratio")
-PRECIP_PROB_ABOVE = prob_above_name("lwe_precipitation_rate")
-PRECIP_VICINITY_PROB_ABOVE = prob_above_name("lwe_precipitation_rate_in_vicinity")
-RAIN_PROB_ABOVE = prob_above_name("rainfall_rate")
-SLEET_PROB_ABOVE = prob_above_name("lwe_sleetfall_rate")
-SNOW_PROB_ABOVE = prob_above_name("lwe_snowfall_rate")
-VIS_PROB_BELOW = "probability_of_visibility_in_air_below_threshold"
-
-
-def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
+def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
     """
-    Define an example UK decision tree to test the weather symbols code.
+    Define an example decision tree to test the weather symbols code.
 
     Returns:
         A dictionary containing the queries that comprise the decision
@@ -70,7 +49,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.3],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [LIGHTNING_VICINITY_PROB],
+            "diagnostic_fields": [
+                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold"  # noqa: E501
+            ],
             "diagnostic_thresholds": [[0.0, "m-2"]],
             "diagnostic_conditions": ["above"],
         },
@@ -80,8 +61,8 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.05, 1]],
+            "diagnostic_fields": ["probability_of_shower_condition_above_threshold"],
+            "diagnostic_thresholds": [[1.0, 1]],
             "diagnostic_conditions": ["above"],
         },
         "heavy_precipitation": {
@@ -90,7 +71,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_above_threshold"
+            ],
             "diagnostic_thresholds": [[1.0, "mm hr-1"]],
             "diagnostic_conditions": ["above"],
         },
@@ -100,8 +83,8 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.05, 1]],
+            "diagnostic_fields": ["probability_of_shower_condition_above_threshold"],
+            "diagnostic_thresholds": [[1.0, 1]],
             "diagnostic_conditions": ["above"],
         },
         "heavy_snow_shower": {
@@ -111,7 +94,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
@@ -125,7 +114,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
@@ -139,7 +134,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
@@ -153,7 +154,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
@@ -166,7 +173,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
+            ],
             "diagnostic_thresholds": [[0.1, "mm hr-1"]],
             "diagnostic_conditions": ["above"],
         },
@@ -177,7 +186,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_rainfall_rate_above_threshold",
+                    "-",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[0.03, "mm hr-1"], [0.03, "mm hr-1"], [0.03, "mm hr-1"]]
@@ -190,8 +205,8 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.05, 1]],
+            "diagnostic_fields": ["probability_of_shower_condition_above_threshold"],
+            "diagnostic_thresholds": [[1.0, 1]],
             "diagnostic_conditions": ["above"],
         },
         "heavy_snow_shower_in_vicinity": {
@@ -200,7 +215,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
+            ],
             "diagnostic_thresholds": [[1.0, "mm hr-1"]],
             "diagnostic_conditions": ["above"],
         },
@@ -210,7 +227,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
+            ],
             "diagnostic_thresholds": [[1.0, "mm hr-1"]],
             "diagnostic_conditions": ["above"],
         },
@@ -221,7 +240,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[0.03, "mm hr-1"], [0.03, "mm hr-1"], [0.03, "mm hr-1"]]
@@ -234,8 +259,8 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.05, 1]],
+            "diagnostic_fields": ["probability_of_shower_condition_above_threshold"],
+            "diagnostic_thresholds": [[1.0, 1]],
             "diagnostic_conditions": ["above"],
         },
         "heavy_rain_shower_in_vicinity": {
@@ -244,7 +269,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
+            ],
             "diagnostic_thresholds": [[1.0, "mm hr-1"]],
             "diagnostic_conditions": ["above"],
         },
@@ -254,7 +281,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [PRECIP_VICINITY_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_in_vicinity_above_threshold"
+            ],
             "diagnostic_thresholds": [[1.0, "mm hr-1"]],
             "diagnostic_conditions": ["above"],
         },
@@ -264,8 +293,8 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [TEXTURE_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.05, 1]],
+            "diagnostic_fields": ["probability_of_shower_condition_above_threshold"],
+            "diagnostic_thresholds": [[1.0, 1]],
             "diagnostic_conditions": ["above"],
         },
         "drizzle_mist": {
@@ -274,7 +303,10 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE, VIS_PROB_BELOW],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_above_threshold",
+                "probability_of_visibility_in_air_below_threshold",
+            ],
             "diagnostic_thresholds": [[0.03, "mm hr-1"], [5000.0, "m"]],
             "diagnostic_conditions": ["above", "below"],
         },
@@ -284,7 +316,10 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5, 0.5],
             "threshold_condition": ">=",
             "condition_combination": "AND",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE, LOW_CLOUD_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_above_threshold",
+                "probability_of_low_type_cloud_area_fraction_above_threshold",
+            ],
             "diagnostic_thresholds": [[0.03, "mm hr-1"], [0.85, 1]],
             "diagnostic_conditions": ["above", "above"],
         },
@@ -295,7 +330,13 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "threshold_condition": "<",
             "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
+                [
+                    "probability_of_lwe_sleetfall_rate_above_threshold",
+                    "+",
+                    "probability_of_lwe_snowfall_rate_above_threshold",
+                    "-",
+                    "probability_of_rainfall_rate_above_threshold",
+                ]
             ],
             "diagnostic_thresholds": [
                 [[0.03, "mm hr-1"], [0.03, "mm hr-1"], [0.03, "mm hr-1"]]
@@ -308,7 +349,7 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [VIS_PROB_BELOW],
+            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
             "diagnostic_thresholds": [[5000.0, "m"]],
             "diagnostic_conditions": ["below"],
         },
@@ -318,7 +359,7 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [VIS_PROB_BELOW],
+            "diagnostic_fields": ["probability_of_visibility_in_air_below_threshold"],
             "diagnostic_thresholds": [[1000.0, "m"]],
             "diagnostic_conditions": ["below"],
         },
@@ -328,7 +369,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [CLOUD_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
+            ],
             "diagnostic_thresholds": [[0.8125, 1]],
             "diagnostic_conditions": ["above"],
         },
@@ -338,7 +381,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [LOW_CLOUD_PROB_ABOVE],
+            "diagnostic_fields": [
+                "probability_of_low_type_cloud_area_fraction_above_threshold"
+            ],
             "diagnostic_thresholds": [[0.85, 1]],
             "diagnostic_conditions": ["above"],
         },
@@ -348,277 +393,9 @@ def wxcode_decision_tree_uk() -> Dict[str, Dict[str, Any]]:
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
-            "diagnostic_fields": [CLOUD_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.1875, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-    }
-
-    return queries
-
-
-def wxcode_decision_tree_global() -> Dict[str, Dict[str, Any]]:
-    """
-    Define an example global decision tree to test the weather symbols code.
-
-    Returns:
-        A dictionary containing the queries that comprise the decision
-        tree.
-    """
-    queries = {
-        "heavy_precipitation": {
-            "succeed": "heavy_precipitation_cloud",
-            "fail": "light_precipitation",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE],
-            "diagnostic_thresholds": [[1.0, "mm hr-1"]],
-            "diagnostic_conditions": ["above"],
-        },
-        "heavy_precipitation_cloud": {
-            "succeed": "heavy_precipitation_convective_ratio",
-            "fail": "heavy_snow_shower",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [CLOUD_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.8125, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-        "heavy_precipitation_convective_ratio": {
-            "succeed": "heavy_snow_shower",
-            "fail": "heavy_snow_continuous",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [CONVECTION_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.8, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-        "heavy_snow_shower": {
-            "succeed": 26,
-            "fail": "heavy_rain_or_sleet_shower",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
             "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
+                "probability_of_low_and_medium_type_cloud_area_fraction_above_threshold"
             ],
-            "diagnostic_thresholds": [
-                [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "heavy_rain_or_sleet_shower": {
-            "succeed": 14,
-            "fail": 17,
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "heavy_snow_continuous": {
-            "succeed": 27,
-            "fail": "heavy_rain_or_sleet_continuous",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "heavy_rain_or_sleet_continuous": {
-            "succeed": 15,
-            "fail": 18,
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[1.0, "mm hr-1"], [1.0, "mm hr-1"], [1.0, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "light_precipitation": {
-            "succeed": "light_precipitation_cloud",
-            "fail": "drizzle_mist",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.1, "mm hr-1"]],
-            "diagnostic_conditions": ["above"],
-        },
-        "light_precipitation_cloud": {
-            "succeed": "light_precipitation_convective_ratio",
-            "fail": "light_snow_shower",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [CLOUD_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.8125, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-        "light_precipitation_convective_ratio": {
-            "succeed": "light_snow_shower",
-            "fail": "light_snow_continuous",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [CONVECTION_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.8, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-        "light_snow_shower": {
-            "succeed": 23,
-            "fail": "light_rain_or_sleet_shower",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[0.1, "mm hr-1"], [0.1, "mm hr-1"], [0.1, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "light_rain_or_sleet_shower": {
-            "succeed": 10,
-            "fail": 17,
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[0.1, "mm hr-1"], [0.1, "mm hr-1"], [0.1, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "light_snow_continuous": {
-            "succeed": 24,
-            "fail": "light_rain_or_sleet_continuous",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", RAIN_PROB_ABOVE, "-", SNOW_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[0.1, "mm hr-1"], [0.1, "mm hr-1"], [0.1, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "light_rain_or_sleet_continuous": {
-            "succeed": 12,
-            "fail": 18,
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[0.1, "mm hr-1"], [0.1, "mm hr-1"], [0.1, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "drizzle_mist": {
-            "succeed": "drizzle_is_rain",
-            "fail": "drizzle_cloud",
-            "probability_thresholds": [0.5, 0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "AND",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE, VIS_PROB_BELOW],
-            "diagnostic_thresholds": [[0.03, "mm hr-1"], [5000.0, "m"]],
-            "diagnostic_conditions": ["above", "below"],
-        },
-        "drizzle_cloud": {
-            "succeed": "drizzle_is_rain",
-            "fail": "mist_conditions",
-            "probability_thresholds": [0.5, 0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "AND",
-            "diagnostic_fields": [PRECIP_PROB_ABOVE, LOW_CLOUD_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.03, "mm hr-1"], [0.85, 1]],
-            "diagnostic_conditions": ["above", "above"],
-        },
-        "drizzle_is_rain": {
-            "succeed": 11,
-            "fail": "mist_conditions",
-            "probability_thresholds": [0.0],
-            "threshold_condition": "<",
-            "condition_combination": "",
-            "diagnostic_fields": [
-                [SLEET_PROB_ABOVE, "+", SNOW_PROB_ABOVE, "-", RAIN_PROB_ABOVE]
-            ],
-            "diagnostic_thresholds": [
-                [[0.03, "mm hr-1"], [0.03, "mm hr-1"], [0.03, "mm hr-1"]]
-            ],
-            "diagnostic_conditions": [["above", "above", "above"]],
-        },
-        "mist_conditions": {
-            "succeed": "fog_conditions",
-            "fail": "no_precipitation_cloud",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [VIS_PROB_BELOW],
-            "diagnostic_thresholds": [[5000.0, "m"]],
-            "diagnostic_conditions": ["below"],
-        },
-        "fog_conditions": {
-            "succeed": 6,
-            "fail": 5,
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [VIS_PROB_BELOW],
-            "diagnostic_thresholds": [[1000.0, "m"]],
-            "diagnostic_conditions": ["below"],
-        },
-        "no_precipitation_cloud": {
-            "succeed": "overcast_cloud",
-            "fail": "partly_cloudy",
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [CLOUD_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.8125, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-        "overcast_cloud": {
-            "succeed": 8,
-            "fail": 7,
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [LOW_CLOUD_PROB_ABOVE],
-            "diagnostic_thresholds": [[0.85, 1]],
-            "diagnostic_conditions": ["above"],
-        },
-        "partly_cloudy": {
-            "succeed": 3,
-            "fail": 1,
-            "probability_thresholds": [0.5],
-            "threshold_condition": ">=",
-            "condition_combination": "",
-            "diagnostic_fields": [CLOUD_PROB_ABOVE],
             "diagnostic_thresholds": [[0.1875, 1]],
             "diagnostic_conditions": ["above"],
         },
