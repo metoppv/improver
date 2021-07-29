@@ -191,8 +191,7 @@ class SpotLapseRateAdjust(BasePlugin):
                 spot_lapse_rate.data, spot_data_cube.shape, [-1]
             )
             new_temperatures = (
-                spot_data_cube.data
-                + (new_spot_lapse_rate.data * vertical_displacement.data)
+                spot_data_cube.data + (new_spot_lapse_rate * vertical_displacement.data)
             ).astype(np.float32)
             new_spot_cube = spot_data_cube.copy(data=new_temperatures)
             return new_spot_cube

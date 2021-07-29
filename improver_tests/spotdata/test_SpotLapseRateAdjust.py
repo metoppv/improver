@@ -96,7 +96,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
             spatial_grid="equalarea",
         )
         self.lapse_rate_cube = add_coordinate(
-            incube=self.lapse_rate_cube, coord_points="3", coord_name="height"
+            incube=self.lapse_rate_cube, coord_points=[1.5], coord_name="height"
         )
         diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
 
@@ -157,7 +157,9 @@ class Test_SpotLapseRateAdjust(IrisTest):
             scalar_coords=time_coords,
         )
         self.spot_temperature_nearest = add_coordinate(
-            incube=self.spot_temperature_nearest, coord_points="3", coord_name="height"
+            incube=self.spot_temperature_nearest,
+            coord_points=[1.5],
+            coord_name="height",
         )
 
         self.spot_temperature_nearest.attributes[
@@ -180,7 +182,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
             scalar_coords=time_coords,
         )
         self.spot_temperature_mindz = add_coordinate(
-            incube=self.spot_temperature_mindz, coord_points="3", coord_name="height"
+            incube=self.spot_temperature_mindz, coord_points=[1.5], coord_name="height"
         )
         self.spot_temperature_mindz.attributes["model_grid_hash"] = diagnostic_cube_hash
 
@@ -302,8 +304,8 @@ class Test_process(Test_SpotLapseRateAdjust):
         self.assertArrayEqual(result[0].data, expected)
 
     def test_diagnostic_name(self):
-        """Test that appropriate error is called when the input cube has a
-        diganostic name that is not air temperature."""
+        """Test that appropriate error is raised when the input cube has a
+        diagnostic name that is not air temperature."""
 
         self.spot_temperature_nearest.rename("something")
         plugin = SpotLapseRateAdjust()
@@ -319,7 +321,7 @@ class Test_process(Test_SpotLapseRateAdjust):
 
     def test_lapse_rate_name(self):
         """Test that appropriate error is called when the input lapse rate cube
-        has a diganostic name that is not air temperature lapse rate."""
+        has a diagnostic name that is not air temperature lapse rate."""
 
         self.lapse_rate_cube.rename("something")
         plugin = SpotLapseRateAdjust()
@@ -356,10 +358,7 @@ class Test_process(Test_SpotLapseRateAdjust):
         """Test the the appropriate error is called when the input temperature
         cube and the lapse rate cube have differing height coordinates"""
 
-        self.spot_temperature_nearest.remove_coord("height")
-        self.spot_temperature_nearest = add_coordinate(
-            incube=self.spot_temperature_nearest, coord_points="4", coord_name="height"
-        )
+        self.spot_temperature_nearest.coord("height").points = [4]
 
         plugin = SpotLapseRateAdjust()
         msg = (
