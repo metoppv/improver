@@ -8,8 +8,8 @@ dependencies:
   - python=3.8
   # Required
   - cartopy
-  - cftime
-  - cf-units
+  - cftime<1.5
+  - cf-units=2.1.5
   - clize
   - dask
   - iris=3.0
@@ -18,7 +18,7 @@ dependencies:
   - python-dateutil
   - python-stratify
   - pytz=2020.5
-  - scipy
+  - scipy=1.6
   - sigtools
   - sphinx
   # Optional
