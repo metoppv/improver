@@ -37,8 +37,8 @@ import iris
 from iris.cube import Cube
 
 REQUIRED_KEY_WORDS = [
-    "succeed",
-    "fail",
+    "if_true",
+    "if_false",
     "probability_thresholds",
     "threshold_condition",
     "condition_combination",
@@ -47,13 +47,13 @@ REQUIRED_KEY_WORDS = [
     "diagnostic_conditions",
 ]
 
-OPTIONAL_KEY_WORDS = ["diagnostic_missing_action"]
+OPTIONAL_KEY_WORDS = ["if_diagnostic_missing"]
 
 THRESHOLD_CONDITIONS = ["<=", "<", ">", ">="]
 CONDITION_COMBINATIONS = ["AND", "OR"]
 DIAGNOSTIC_CONDITIONS = ["below", "above"]
 
-KEYWORDS_DIAGNOSTIC_MISSING_ACTION = ["succeed", "fail"]
+KEYWORDS_DIAGNOSTIC_MISSING = ["if_true", "if_false"]
 
 
 _WX_DICT_IN = {
@@ -361,14 +361,15 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
             if entry not in all_key_words:
                 issues.append(f"Node {node} contains unknown key '{entry}'")
 
-        # Check that diagnostic_missing_action point at a succeed or fail node
-        if "diagnostic_missing_action" in items:
-            entry = items["diagnostic_missing_action"]
-            if entry not in KEYWORDS_DIAGNOSTIC_MISSING_ACTION:
+        # Check that if_diagnostic_missing key points at a if_true or if_false
+        # node
+        if "if_diagnostic_missing" in items:
+            entry = items["if_diagnostic_missing"]
+            if entry not in KEYWORDS_DIAGNOSTIC_MISSING:
                 issues.append(
-                    f"Node {node} contains a diagnostic_missing_action "
-                    f"that targets key '{entry}' which is neither 'succeed' "
-                    "nor 'fail'"
+                    f"Node {node} contains an if_diagnostic_missing key "
+                    f"that targets key '{entry}' which is neither 'if_true' "
+                    "nor 'if_false'"
                 )
 
         # Check that only permissible values are used in condition_combination
@@ -406,7 +407,7 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
 
         # Check the succeed and fail destinations are valid; that is valid
         # weather codes for leaf nodes, and other tree nodes otherwise
-        for result in "succeed", "fail":
+        for result in "if_true", "if_false":
             value = wxtree[node][result]
             if isinstance(value, str):
                 if value not in wxtree.keys():

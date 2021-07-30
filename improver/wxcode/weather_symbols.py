@@ -150,7 +150,7 @@ class WeatherSymbols(BasePlugin):
         Returns:
             A dictionary of (keyword) nodes names where the diagnostic
             data is missing and (values) node associated with
-            diagnostic_missing_action.
+            if_diagnostic_missing.
 
         Raises:
             IOError:
@@ -174,9 +174,9 @@ class WeatherSymbols(BasePlugin):
                 test_condition = iris.Constraint(name=diagnostic)
                 matched_cube = cubes.extract(test_condition)
                 if not matched_cube:
-                    if "diagnostic_missing_action" in query:
+                    if "if_diagnostic_missing" in query:
                         optional_node_data_missing.update(
-                            {key: query[query["diagnostic_missing_action"]]}
+                            {key: query[query["if_diagnostic_missing"]]}
                         )
                     else:
                         missing_data.append([diagnostic, threshold, condition])
@@ -246,7 +246,7 @@ class WeatherSymbols(BasePlugin):
     def invert_condition(self, condition: Dict) -> Tuple[str, str]:
         """
         Invert a comparison condition to allow positive identification of conditions
-        satisfying the negative ('fail') case.
+        satisfying the negative case.
 
         Args:
             condition:
@@ -384,7 +384,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             graph:
                 A dictionary that describes each node in the tree,
-                e.g. {<node_name>: [<succeed_name>, <fail_name>]}
+                e.g. {<node_name>: [<if_true_name>, <if_false_name>]}
             start:
                 The node name of the tree root (currently always
                 heavy_precipitation).
@@ -393,7 +393,7 @@ class WeatherSymbols(BasePlugin):
             omit_nodes:
                 A dictionary of (keyword) nodes names where the diagnostic
                 data is missing and (values) node associated with
-                diagnostic_missing_action.
+                if_diagnostic_missing.
             route:
                 A list of node names found so far.
 
@@ -650,7 +650,7 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = self.check_input_cubes(cubes)
         # Construct graph nodes dictionary
         graph = {
-            key: [self.queries[key]["succeed"], self.queries[key]["fail"]]
+            key: [self.queries[key]["if_true"], self.queries[key]["if_false"]]
             for key in self.queries
         }
         # Search through tree for all leaves (weather code end points)
@@ -684,7 +684,7 @@ class WeatherSymbols(BasePlugin):
                     except KeyError:
                         next_node = symbol_code
 
-                    if current["fail"] == next_node:
+                    if current["if_false"] == next_node:
                         (
                             current["threshold_condition"],
                             current["condition_combination"],
