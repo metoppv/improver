@@ -130,10 +130,10 @@ class SpotLapseRateAdjust(BasePlugin):
         if not is_probability(spot_data_cube):
 
             # Check that we are dealing with temperature data.
-            if not spot_data_cube.name() == "air_temperature":
+            if not (spot_data_cube.name() == "air_temperature" or spot_data_cube.name() == "probability_of_feels_like_temperature_above_threshold"):
                 msg = (
                     "The diagnostic being processed is not air temperature "
-                    "and therefore cannot be adjusted."
+                    "or feels like temperature and therefore cannot be adjusted."
                 )
                 raise ValueError(msg)
 
