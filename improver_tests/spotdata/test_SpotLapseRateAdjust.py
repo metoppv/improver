@@ -206,12 +206,21 @@ class Test_process(Test_SpotLapseRateAdjust):
         self.assertEqual(result.coords(), self.spot_temperature_nearest.coords())
 
     def test_nearest_neighbour_method(self):
-        """Test that the plugin modifies temperatures as expected using the
-        vertical displacements taken from the nearest neighbour method in the
-        neighbour cube."""
+        """Test that the plugin modifies temperatures as expected for both air
+        temperature and feels like temperature cubes, using the vertical
+        displacements taken from the nearest neighbour method in the neighbour cube."""
+
         plugin = SpotLapseRateAdjust()
         expected = np.array([280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
+        # Air temperature cube
+        result = plugin(
+            self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+        )
+        self.assertArrayEqual(result.data, expected)
+
+        # Feels like temperature cube
+        self.spot_temperature_nearest.rename("feels_like_temperature")
         result = plugin(
             self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
         )
