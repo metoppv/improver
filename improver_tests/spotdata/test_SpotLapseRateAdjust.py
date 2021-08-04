@@ -305,13 +305,13 @@ class Test_process(Test_SpotLapseRateAdjust):
 
     def test_diagnostic_name(self):
         """Test that appropriate error is raised when the input cube has a
-        diagnostic name that is not air temperature."""
+        diagnostic name that is not air temperature or feels like temperature."""
 
         self.spot_temperature_nearest.rename("something")
         plugin = SpotLapseRateAdjust()
         msg = (
-            "The diagnostic being processed is not air temperature "
-            "and therefore cannot be adjusted."
+            "The diagnostic being processed is not air temperature or feels "
+            "like temperature and therefore cannot be adjusted."
         )
 
         with self.assertRaisesRegex(ValueError, msg):
