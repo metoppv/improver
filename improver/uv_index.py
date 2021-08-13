@@ -74,7 +74,7 @@ def calculate_uv_index(
         not a number.
 
     References:
-        Turner, E.C, Manners, J. Morcette, C. J, O'Hagan, J. B,
+        Turner, E.C, Manners, J. Morcrette, C. J, O'Hagan, J. B,
         & Smedley, A.R.D. (2017): Toward a New UV Index Diagnostic
         in the Met Office's Forecast Model. Journal of Advances in
         Modeling Earth Systems 9, 2654-2671.
