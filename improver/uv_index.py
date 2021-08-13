@@ -60,7 +60,7 @@ def calculate_uv_index(
             been empirically derived and should not be
             changed except if there are scientific reasons to
             do so. For more information see section 2.1.1 of the paper
-            referenced below (no units)
+            referenced below.(m2 W-1)
         model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
@@ -97,12 +97,13 @@ def calculate_uv_index(
         )
         raise ValueError(msg)
 
+    uv_downward.convert_units("W m-2")
     uv_data = uv_downward.data * scale_factor
     attributes = generate_mandatory_attributes(
         [uv_downward], model_id_attr=model_id_attr
     )
     uv_index = create_new_diagnostic_cube(
-        "ultraviolet_index", "1", uv_downward, attributes, data=uv_data
+        "ultraviolet_index", "W m-2", uv_downward, attributes, data=uv_data
     )
 
     return uv_index

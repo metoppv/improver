@@ -79,7 +79,7 @@ class Test_uv_index(IrisTest):
         self.assertEqual(str(result.standard_name), "ultraviolet_index")
         self.assertIsNone(result.var_name)
         self.assertIsNone(result.long_name)
-        self.assertEqual((result.units), Unit("1"))
+        self.assertEqual((result.units), Unit("W m-2"))
 
     def test_badname_down(self):
         """Tests that a ValueError is raised if the input uv down
@@ -115,6 +115,17 @@ class Test_uv_index(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             calculate_uv_index(self.cube_uv_down)
+
+    def test_unit_conversion(self):
+        """Test that the units are successfully converted to
+        W m-2."""
+        self.cube_uv_down.convert_units("kW m-2")
+        scale_factor = 1.0
+        expected = np.full_like(
+            self.cube_uv_down.data, dtype=np.float32, fill_value=0.1
+        )
+        result = calculate_uv_index(self.cube_uv_down, scale_factor)
+        self.assertArrayEqual(result.data, expected)
 
 
 if __name__ == "__main__":
