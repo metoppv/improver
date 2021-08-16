@@ -103,7 +103,7 @@ def calculate_uv_index(
         [uv_downward], model_id_attr=model_id_attr
     )
     uv_index = create_new_diagnostic_cube(
-        "ultraviolet_index", "W m-2", uv_downward, attributes, data=uv_data
+        "ultraviolet_index", "1", uv_downward, attributes, data=uv_data
     )
 
     return uv_index

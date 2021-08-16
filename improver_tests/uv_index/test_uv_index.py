@@ -79,7 +79,7 @@ class Test_uv_index(IrisTest):
         self.assertEqual(str(result.standard_name), "ultraviolet_index")
         self.assertIsNone(result.var_name)
         self.assertIsNone(result.long_name)
-        self.assertEqual((result.units), Unit("W m-2"))
+        self.assertEqual((result.units), Unit("1"))
 
     def test_badname_down(self):
         """Tests that a ValueError is raised if the input uv down
