@@ -400,13 +400,16 @@ def compare_attributes(
     return unmatching_attributes
 
 
-def compare_coords(cubes: CubeList) -> List[Dict]:
+def compare_coords(cubes: CubeList, ignored_coords: List = []) -> List[Dict]:
     """
     Function to compare the coordinates of the cubes
 
     Args:
         cubes:
             List of cubes to compare (must be more than 1)
+        ignored_coords:
+            List of coordinate names that identify coordinates to exclude from
+            the comparison.
 
     Returns:
         List of dictionaries of unmatching coordinates
@@ -437,7 +440,7 @@ def compare_coords(cubes: CubeList) -> List[Dict]:
         for i, cube in enumerate(cubes):
             unmatching_coords.append({})
             for coord in cube.coords():
-                if coord not in common_coords:
+                if coord not in common_coords and coord.name() not in ignored_coords:
                     dim_coords = cube.dim_coords
                     if coord in dim_coords:
                         dim_val = dim_coords.index(coord)
