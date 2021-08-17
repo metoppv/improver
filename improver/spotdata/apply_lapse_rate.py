@@ -127,80 +127,76 @@ class SpotLapseRateAdjust(BasePlugin):
                 If a lapse rate cube was provided, but the height of the
                 temperature does not match that of the data used.
         """
-        if not is_probability(spot_data_cube):
 
-            # Check that we are dealing with temperature data.
-            if not (
-                spot_data_cube.name() == "air_temperature"
-                or spot_data_cube.name() == "feels_like_temperature"
-            ):
-                msg = (
-                    "The diagnostic being processed is not air temperature "
-                    "or feels like temperature and therefore cannot be adjusted."
-                )
-                raise ValueError(msg)
-
-            if not gridded_lapse_rate_cube.name() == "air_temperature_lapse_rate":
-                msg = (
-                    "A cube has been provided as a lapse rate cube but does "
-                    "not have the expected name air_temperature_lapse_rate: "
-                    "{}".format(gridded_lapse_rate_cube.name())
-                )
-                raise ValueError(msg)
-
-            try:
-                lapse_rate_height_coord = gridded_lapse_rate_cube.coord("height")
-            except (ValueError, CoordinateNotFoundError):
-                msg = (
-                    "Lapse rate cube does not contain a single valued height "
-                    "coordinate. This is required to ensure it is applied to "
-                    "equivalent temperature data."
-                )
-                raise ValueError(msg)
-
-            # Check the height of the temperature data matches that used to
-            # calculate the lapse rates. If so, adjust temperatures using the lapse
-            # rate values.
-            if not spot_data_cube.coord("height") == lapse_rate_height_coord:
-                warnings.warn(
-                    "A lapse rate cube was provided, but the height of the "
-                    "temperature data does not match that of the data used "
-                    "to calculate the lapse rates. As such the temperatures "
-                    "were not adjusted with the lapse rates."
-                )
-                return spot_data_cube
-
-            # Check the cubes are compatible.
-            check_grid_match([neighbour_cube, spot_data_cube, gridded_lapse_rate_cube])
-
-            # Extract the lapse rates that correspond to the spot sites.
-            spot_lapse_rate = SpotExtraction(
-                neighbour_selection_method=self.neighbour_selection_method
-            )(neighbour_cube, gridded_lapse_rate_cube)
-
-            # Extract vertical displacements between the model orography and sites.
-            method_constraint = iris.Constraint(
-                neighbour_selection_method_name=self.neighbour_selection_method
-            )
-            data_constraint = iris.Constraint(
-                grid_attributes_key="vertical_displacement"
-            )
-            vertical_displacement = neighbour_cube.extract(
-                method_constraint & data_constraint
-            )
-
-            # Apply lapse rate adjustment to the temperature at each site.
-            new_spot_lapse_rate = iris.util.broadcast_to_shape(
-                spot_lapse_rate.data, spot_data_cube.shape, [-1]
-            )
-            new_temperatures = (
-                spot_data_cube.data + (new_spot_lapse_rate * vertical_displacement.data)
-            ).astype(np.float32)
-            new_spot_cube = spot_data_cube.copy(data=new_temperatures)
-            return new_spot_cube
-        else:
-            raise ValueError(
+        if is_probability(spot_data_cube):
+            msg = (
                 "Input cube has a probability coordinate which cannot be lapse "
                 "rate adjusted. Input data should be in percentile or "
                 "deterministic space only."
             )
+            raise ValueError(msg)
+
+        # Check that we are dealing with temperature data.
+        if spot_data_cube.name() not in ["air_temperature", "feels_like_temperature"]:
+            msg = (
+                "The diagnostic being processed is not air temperature "
+                "or feels like temperature and therefore cannot be adjusted."
+            )
+            raise ValueError(msg)
+
+        if not gridded_lapse_rate_cube.name() == "air_temperature_lapse_rate":
+            msg = (
+                "A cube has been provided as a lapse rate cube but does "
+                "not have the expected name air_temperature_lapse_rate: "
+                "{}".format(gridded_lapse_rate_cube.name())
+            )
+            raise ValueError(msg)
+
+        try:
+            lapse_rate_height_coord = gridded_lapse_rate_cube.coord("height")
+        except (CoordinateNotFoundError):
+            msg = (
+                "Lapse rate cube does not contain a single valued height "
+                "coordinate. This is required to ensure it is applied to "
+                "equivalent temperature data."
+            )
+            raise CoordinateNotFoundError(msg)
+
+        # Check the height of the temperature data matches that used to
+        # calculate the lapse rates. If so, adjust temperatures using the lapse
+        # rate values.
+        if not spot_data_cube.coord("height") == lapse_rate_height_coord:
+            warnings.warn(
+                "A lapse rate cube was provided, but the height of the "
+                "temperature data does not match that of the data used "
+                "to calculate the lapse rates. As such the temperatures "
+                "were not adjusted with the lapse rates."
+            )
+            return spot_data_cube
+
+        # Check the cubes are compatible.
+        check_grid_match([neighbour_cube, spot_data_cube, gridded_lapse_rate_cube])
+
+        # Extract the lapse rates that correspond to the spot sites.
+        spot_lapse_rate = SpotExtraction(
+            neighbour_selection_method=self.neighbour_selection_method
+        )(neighbour_cube, gridded_lapse_rate_cube)
+
+        # Extract vertical displacements between the model orography and sites.
+        method_constraint = iris.Constraint(
+            neighbour_selection_method_name=self.neighbour_selection_method
+        )
+        data_constraint = iris.Constraint(grid_attributes_key="vertical_displacement")
+        vertical_displacement = neighbour_cube.extract(
+            method_constraint & data_constraint
+        )
+
+        # Apply lapse rate adjustment to the temperature at each site.
+        new_spot_lapse_rate = iris.util.broadcast_to_shape(
+            spot_lapse_rate.data, spot_data_cube.shape, [-1]
+        )
+        new_temperatures = (
+            spot_data_cube.data + (new_spot_lapse_rate * vertical_displacement.data)
+        ).astype(np.float32)
+        new_spot_cube = spot_data_cube.copy(data=new_temperatures)
+        return new_spot_cube

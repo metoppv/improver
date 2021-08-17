@@ -34,6 +34,7 @@ import unittest
 
 import iris
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.constants import DALR
@@ -309,8 +310,12 @@ class Test_process(Test_SpotLapseRateAdjust):
             spot_temperature_new_coord, self.neighbour_cube, self.lapse_rate_cube
         )
         expected = np.array([280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
+        for slice in result.data:
+            self.assertArrayEqual(slice, expected)
 
-        self.assertArrayEqual(result[0].data, expected)
+    #    self.assertArrayEqual(result.data[0], expected)
+    #    self.assertArrayEqual(result.data[1], expected)
+    #    self.assertArrayEqual(result.data[2], expected)
 
     def test_diagnostic_name(self):
         """Test that appropriate error is raised when the input cube has a
@@ -346,7 +351,7 @@ class Test_process(Test_SpotLapseRateAdjust):
             )
 
     def test_height_coord(self):
-        """Test that the appropriate error is called when the input cube has
+        """Test that the appropriate error is raised when the input cube has
         no single valued height coordinate."""
 
         self.lapse_rate_cube.remove_coord("height")
@@ -357,7 +362,7 @@ class Test_process(Test_SpotLapseRateAdjust):
             "equivalent temperature data."
         )
 
-        with self.assertRaisesRegex(ValueError, msg):
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             plugin(
                 self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
             )
