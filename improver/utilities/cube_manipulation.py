@@ -400,7 +400,9 @@ def compare_attributes(
     return unmatching_attributes
 
 
-def compare_coords(cubes: CubeList, ignored_coords: List = []) -> List[Dict]:
+def compare_coords(
+    cubes: CubeList, ignored_coords: Optional[List[str]] = None
+) -> List[Dict]:
     """
     Function to compare the coordinates of the cubes
 
@@ -420,6 +422,9 @@ def compare_coords(cubes: CubeList, ignored_coords: List = []) -> List[Dict]:
     Warns:
         Warning: If only a single cube is supplied
     """
+    if ignored_coords is None:
+        ignored_coords = []
+
     unmatching_coords = []
     if len(cubes) == 1:
         msg = "Only a single cube so no differences will be found "
