@@ -56,11 +56,11 @@ def calculate_uv_index(
             This is a UM diagnostic produced by the UM radiation scheme
             see above or the paper referenced for more details.(W m-2)
         scale_factor:
-            The uv scale factor. Default is 3.6. This factor has
+            The uv scale factor. Default is 3.6 (m2 W-1). This factor has
             been empirically derived and should not be
             changed except if there are scientific reasons to
             do so. For more information see section 2.1.1 of the paper
-            referenced below. 3.6 (m2 W-1).
+            referenced below.
         model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
