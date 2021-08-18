@@ -60,7 +60,7 @@ def calculate_uv_index(
             been empirically derived and should not be
             changed except if there are scientific reasons to
             do so. For more information see section 2.1.1 of the paper
-            referenced below.(m2 W-1)
+            referenced below. 3.6 (m2 W-1).
         model_id_attr:
             Name of the attribute used to identify the source model for
             blending.
@@ -93,7 +93,7 @@ def calculate_uv_index(
     if np.any(uv_downward.data < 0) or np.isnan(uv_downward.data).any():
         msg = (
             "The radiation flux in UV downward contains data "
-            "that is negative or NaN. Data should be > 0."
+            "that is negative or NaN. Data should be >= 0."
         )
         raise ValueError(msg)
 

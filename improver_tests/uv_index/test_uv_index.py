@@ -84,7 +84,7 @@ class Test_uv_index(IrisTest):
     def test_badname_down(self):
         """Tests that a ValueError is raised if the input uv down
         file has the wrong name. """
-        msg = "The radiation flux in UV downward"
+        msg = "The radiation flux in UV downward has the wrong name"
         with self.assertRaisesRegex(ValueError, msg):
             calculate_uv_index(self.cube_down_badname)
 
@@ -94,13 +94,10 @@ class Test_uv_index(IrisTest):
         negative_data_down = np.full_like(
             self.cube_uv_down.data, dtype=np.float32, fill_value=-0.1
         )
-        uv_down_name = "surface_downwelling_ultraviolet_flux_in_air"
-        negative_uv_down = set_up_variable_cube(
-            negative_data_down, name=uv_down_name, units="W m-2"
-        )
+        negative_uv_down = self.cube_uv_down.copy(data=negative_data_down)
         msg = (
             "The radiation flux in UV downward contains data "
-            "that is negative or NaN. Data should be > 0."
+            "that is negative or NaN. Data should be >= 0."
         )
         with self.assertRaisesRegex(ValueError, msg):
             calculate_uv_index(negative_uv_down)
@@ -111,7 +108,7 @@ class Test_uv_index(IrisTest):
         self.cube_uv_down.data.fill(np.nan)
         msg = (
             "The radiation flux in UV downward contains data "
-            "that is negative or NaN. Data should be > 0."
+            "that is negative or NaN. Data should be >= 0."
         )
         with self.assertRaisesRegex(ValueError, msg):
             calculate_uv_index(self.cube_uv_down)
