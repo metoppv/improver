@@ -47,8 +47,7 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = [
         kgo_dir
-        / ("20181210T0600Z-PT0000H00M-" + f"radiation_flux_in_uv_{x}ward_at_surface.nc")
-        for x in ("up", "down")
+        / ("20181210T0600Z-PT0000H00M-radiation_flux_in_uv_downward_at_surface.nc")
     ]
     output_path = tmp_path / "output.nc"
     args = [
