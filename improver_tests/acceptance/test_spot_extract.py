@@ -33,6 +33,7 @@ Tests for the spot-extract CLI
 """
 
 import pytest
+from iris.exceptions import CoordinateNotFoundError
 
 from . import acceptance as acc
 
@@ -79,6 +80,28 @@ def test_lapse_rate_adjusted_uk(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate.nc"
     kgo_path = kgo_dir / "outputs/lapse_rate_adjusted_uk_temperatures.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        neighbour_path,
+        diag_path,
+        lapse_path,
+        "--output",
+        output_path,
+        "--apply-lapse-rate-correction",
+        "--new-title",
+        UK_SPOT_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_lapse_adjusting_multiple_percentile_input(tmp_path):
+    """Test adjusting multiple percentiles from multiple percentile input"""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    diag_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
+    lapse_path = kgo_dir / "inputs/enukx_lapse_rate.nc"
+    kgo_path = kgo_dir / "outputs/lapse_adjusted_multiple_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
         neighbour_path,
@@ -156,7 +179,7 @@ def test_lapse_rate_wrong_height(tmp_path):
         "--new-title",
         UK_SPOT_TITLE,
     ]
-    with pytest.raises(ValueError, match=".*single valued height.*"):
+    with pytest.raises(CoordinateNotFoundError, match=".*single valued height.*"):
         run_cli(args)
 
 
