@@ -313,10 +313,6 @@ class Test_process(Test_SpotLapseRateAdjust):
         for slice in result.data:
             self.assertArrayEqual(slice, expected)
 
-    #    self.assertArrayEqual(result.data[0], expected)
-    #    self.assertArrayEqual(result.data[1], expected)
-    #    self.assertArrayEqual(result.data[2], expected)
-
     def test_diagnostic_name(self):
         """Test that appropriate error is raised when the input cube has a
         diagnostic name that is not air temperature or feels like temperature."""
