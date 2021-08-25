@@ -194,8 +194,8 @@ class ChooseWeightsLinear(BasePlugin):
 
 
         To assign a different constant weight to each model, choose any coordinate
-        for "weighting_coord_name" and choose any two points for its value in the 
-        dictionary. Set the value of "weights" to be the same for both points in 
+        for "weighting_coord_name" and choose any two points for its value in the
+        dictionary. Set the value of "weights" to be the same for both points in
         each model's dictionary. For example, we can assign weights of 0.3 and 0.7
         to models uk_det and uk_ens as follows::
 
