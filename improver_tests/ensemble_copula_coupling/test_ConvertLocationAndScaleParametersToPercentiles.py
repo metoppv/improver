@@ -434,6 +434,21 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, data)
 
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_scalar_realisation_percentile(self):
+        """
+        Test that the plugin returns the expected values when providing a cube
+        with a scalar realisation or percentile coordinate.
+        """
+
+        result = Plugin()._location_and_scale_parameters_to_percentiles(
+            self.location_parameter,
+            self.scale_parameter,
+            self.temperature_cube[0],
+            self.percentiles,
+        )
+        self.assertIsInstance(result, Cube)
+
 
 class Test_process(IrisTest):
 
