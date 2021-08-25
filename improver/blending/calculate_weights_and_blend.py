@@ -92,7 +92,7 @@ class WeightAndBlend(PostProcessingPlugin):
             wts_dict:
                 Dictionary from which to calculate blending weights. Dictionary
                 format is as specified in
-                improver.blending.weights.ChoosingWeightsLinear
+                improver.blending.weights.ChooseWeightsLinear
             y0val:
                 The relative value of the weighting start point (lowest value of
                 blend coord) for choosing default linear weights.

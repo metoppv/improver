@@ -186,12 +186,31 @@ class ChooseWeightsLinear(BasePlugin):
                     "units": "hours"
                 }
                 "uk_ens": {
-                    "forecast_period": [7, 12, 48, 54]
-                    "weights": [0, 1, 1, 0]
+                    "forecast_period": [7, 12, 48, 54],
+                    "weights": [0, 1, 1, 0],
                     "units": "hours"
                 }
             }
 
+
+        To assign a different constant weight to each model, choose any coordinate
+        for "weighting_coord_name" and choose any two points for its value in the 
+        dictionary. Set the value of "weights" to be the same for both points in 
+        each model's dictionary. For example, we can assign weights of 0.3 and 0.7
+        to models uk_det and uk_ens as follows::
+
+            {
+                "uk_det": {
+                    "forecast_period": [0, 1],
+                    "weights": [0.3, 0.3],
+                    "units": "hours"
+                }
+                "uk_ens": {
+                    "forecast_period": [0, 1],
+                    "weights": [0.7, 0.7],
+                    "units": "hours"
+                }
+            }
         """
         self.weighting_coord_name = weighting_coord_name
         self.config_coord_name = config_coord_name
