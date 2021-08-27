@@ -201,12 +201,12 @@ class ChooseWeightsLinear(BasePlugin):
 
             {
                 "uk_det": {
-                    "forecast_period": [0, 1],
+                    "forecast_period": [0, 48],
                     "weights": [0.3, 0.3],
                     "units": "hours"
                 }
                 "uk_ens": {
-                    "forecast_period": [0, 1],
+                    "forecast_period": [0, 48],
                     "weights": [0.7, 0.7],
                     "units": "hours"
                 }
