@@ -438,7 +438,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
     def test_scalar_realisation_percentile(self):
         """
         Test that the plugin returns the expected values when providing a cube
-        with a scalar realisation or percentile coordinate.
+        with a scalar realization or percentile coordinate.
         """
 
         result = Plugin()._location_and_scale_parameters_to_percentiles(
