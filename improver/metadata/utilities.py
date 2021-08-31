@@ -38,7 +38,6 @@ import dask.array as da
 import iris
 import numpy as np
 from cf_units import Unit
-from iris._cube_coord_common import LimitedAttributeDict
 from iris.cube import Cube
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
@@ -53,8 +52,8 @@ def create_new_diagnostic_cube(
     name: str,
     units: Union[Unit, str],
     template_cube: Cube,
-    mandatory_attributes: Union[Dict[str, str], LimitedAttributeDict],
-    optional_attributes: Optional[Union[Dict[str, str], LimitedAttributeDict]] = None,
+    mandatory_attributes: Union[Dict[str, str], Dict],
+    optional_attributes: Optional[Union[Dict[str, str], Dict]] = None,
     data: Optional[Union[MaskedArray, ndarray]] = None,
     dtype: Type = np.float32,
 ) -> Cube:

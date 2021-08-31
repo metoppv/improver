@@ -409,9 +409,7 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         )
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
         self.assertArrayEqual(
-            result.extract("emos_coefficient_beta", strict=True)
-            .coord("realization")
-            .points,
+            result.extract_cube("emos_coefficient_beta").coord("realization").points,
             self.historic_forecast_with_realizations.coord("realization").points,
         )
 
