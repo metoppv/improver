@@ -132,17 +132,10 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
             )
 
         orog_diff = self._calc_orog_diff(source_orog, dest_orog)
-
-        adjusted_temperature = []
-        for lr_slice, t_slice in zip(
-            lapse_rate.slices(self.xy_coords), temperature.slices(self.xy_coords)
-        ):
-            newcube = t_slice.copy()
-            newcube.convert_units("K")
-            newcube.data += np.multiply(orog_diff.data, lr_slice.data)
-            adjusted_temperature.append(newcube)
-
-        return iris.cube.CubeList(adjusted_temperature).merge_cube()
+        adjusted_temperature = temperature.copy()
+        adjusted_temperature.convert_units("K")
+        adjusted_temperature.data += lapse_rate.data * orog_diff.data
+        return adjusted_temperature
 
 
 class LapseRate(BasePlugin):
