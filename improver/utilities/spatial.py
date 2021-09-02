@@ -70,8 +70,8 @@ def check_if_grid_is_equal_area(
             axis (from calculate_grid_spacing)
         ValueError: If point spacing is not equal for the two spatial axes
     """
-    x_diff = calculate_grid_spacing(cube, "metres", axis="x")
-    y_diff = calculate_grid_spacing(cube, "metres", axis="y")
+    x_diff = calculate_grid_spacing(cube, "metres", axis="x", rtol=7.0e-5)
+    y_diff = calculate_grid_spacing(cube, "metres", axis="y", rtol=7.0e-5)
     if require_equal_xy_spacing and not np.isclose(x_diff, y_diff):
         raise ValueError("Grid does not have equal spacing in x and y dimensions")
 
@@ -144,7 +144,7 @@ def distance_to_number_of_grid_cells(
         raise ValueError(f"Please specify a positive distance in metres. {d_error}")
 
     # calculate grid spacing along chosen axis
-    grid_spacing_metres = calculate_grid_spacing(cube, "metres", axis=axis)
+    grid_spacing_metres = calculate_grid_spacing(cube, "metres", axis=axis, rtol=7.0e-5)
     grid_cells = distance / abs(grid_spacing_metres)
 
     if return_int:
@@ -171,7 +171,7 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
         The radius in metres.
     """
     check_if_grid_is_equal_area(cube)
-    spacing = calculate_grid_spacing(cube, "metres")
+    spacing = calculate_grid_spacing(cube, "metres", rtol=7.0e-5)
     radius_in_metres = spacing * grid_points
     return radius_in_metres
 
