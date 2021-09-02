@@ -430,6 +430,42 @@ class WeatherSymbols(BasePlugin):
                 routes.extend(newroutes)
         return routes
 
+    @staticmethod
+    def check_for_time_bounds(cubes: Union[List[Cube], CubeList]):
+        """
+        Check if any of the input cubes have time bounds that imply the
+        resulting weather symbol cube represents a time period. If so, return
+        the time-bounded cube for use as the template in creating the weather
+        symbol cube.
+
+        Args:
+            cubes:
+                List of input cubes used to generate weather symbols
+
+        Returns:
+            A cube to use as a template for creating a weather symbol cube. The
+            returned cube will be for a time bounded diagnostic if any exist
+            within the input cubes list.
+
+        Raises:
+            ValueError: If period diagnostics have different periods.
+        """
+        bounds = []
+        template_cube = cubes[0]
+        for cube in cubes:
+            time_bounds = cube.coord("time").bounds
+            if time_bounds is not None:
+                bounds.extend(time_bounds.tolist())
+                template_cube = cube
+        # check that if multiple bounds have been returned, they are all identical.
+        if bounds and not bounds.count(bounds[0]) == len(bounds):
+            raise ValueError(
+                "Period diagnostics with different periods have been provided "
+                "as input to the weather symbols code. Period diagnostics must "
+                "all describe the same period to be used together."
+            )
+        return template_cube
+
     def create_symbol_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Create an empty weather symbol cube
@@ -443,13 +479,11 @@ class WeatherSymbols(BasePlugin):
             that will fill it and data initiated with the value -1 to allow
             any unset points to be readily identified.
         """
-        threshold_coord = find_threshold_coordinate(cubes[0])
-        template_cube = next(cubes[0].slices_over([threshold_coord])).copy()
+        template_cube = self.check_for_time_bounds(cubes)
+        threshold_coord = find_threshold_coordinate(template_cube)
+        template_cube = next(template_cube.slices_over([threshold_coord])).copy()
         # remove coordinates and bounds that do not apply to weather symbols
         template_cube.remove_coord(threshold_coord)
-        for coord in template_cube.coords():
-            if coord.name() in ["forecast_period", "time"]:
-                coord.bounds = None
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         optional_attributes = weather_code_attributes()
