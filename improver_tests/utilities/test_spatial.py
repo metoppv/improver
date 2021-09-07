@@ -263,7 +263,7 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
             calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
 
     def test_lat_lon_equal_spacing_recurring_decimal_spacing_fails(self):
-        """Test grid spacing with lat-lon grid with with 1/3 degree 
+        """Test grid spacing with lat-lon grid with with 1/3 degree
         intervals with tolerance of 1.0e-5"""
         self.lat_lon_cube.coord("longitude").points = self.longitude_points_thirds
         msg = "Coordinate longitude points are not equally spaced"
