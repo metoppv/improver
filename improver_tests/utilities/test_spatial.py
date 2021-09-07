@@ -228,8 +228,17 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
             10.0,
             20.00001,
         ]
+        self.longitude_points_2 = [
+            160.0,
+            160.33333,
+            160.66667,
+            161.0,
+            161.33333,
+        ]
         self.rtol = 1.0e-5
         self.expected = 10.0
+        self.expected_2 = 0.33333
+        self.rtol_2 = 3.0e-5
 
     def test_lat_lon_equal_spacing(self):
         """Test grid spacing outputs with lat-lon grid with tolerance"""
@@ -252,6 +261,19 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
         msg = "Coordinate longitude points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
             calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
+
+    def test_lat_lon_equal_spacing_recurring_decimal_spacing(self):
+        """Test grid spacing outputs with lat-lon grid with tolerance"""
+        self.lat_lon_cube.coord("longitude").points = self.longitude_points_2
+        msg = "Coordinate longitude points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
+
+    def test_lat_lon_equal_spacing_recurring_decimal_spacing_2(self):
+        """Test grid spacing outputs with lat-lon grid with tolerance 3.0e-5"""
+        self.lat_lon_cube.coord("longitude").points = self.longitude_points_2
+        result = calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol_2)
+        self.assertAlmostEqual(result, self.expected_2, places=5)
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
