@@ -255,15 +255,15 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
 
     def test_lat_lon_equal_spacing_recurring_decimal_spacing_fails(self):
         """Test grid spacing with lat-lon grid with with 1/3 degree
-        intervals with tolerance of1.0e-5"""
+        intervals with tolerance of 1.0e-5"""
         self.lat_lon_cube.coord("longitude").points = self.longitude_points_thirds
         msg = "Coordinate longitude points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
             calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
 
-    def test_lat_lon_equal_spacing_recurring_decimal_spacing_2(self):
+    def test_lat_lon_equal_spacing_recurring_decimal_spacing_passes(self):
         """Test grid spacing outputs with lat-lon grid with 1/3 degree
-        intervals with tolerance of 3.0e-5"""
+        intervals with tolerance of 4.0e-5"""
         self.lat_lon_cube.coord("longitude").points = self.longitude_points_thirds
         result = calculate_grid_spacing(
             self.lat_lon_cube, "degrees", rtol=self.rtol_thirds
