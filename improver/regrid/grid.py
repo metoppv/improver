@@ -66,8 +66,8 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
         raise ValueError("Input grid is not on a latitude/longitude system")
 
     # calculate grid spacing
-    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=1.0e-5)
-    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=1.0e-5)
+    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=4.0e-5)
+    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=4.0e-5)
 
     if lon_spacing < 0 or lat_spacing < 0:
         raise ValueError("Input grid coordinates are not ascending.")
