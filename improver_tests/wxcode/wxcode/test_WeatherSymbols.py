@@ -1092,7 +1092,15 @@ class Test_check_for_time_bounds(Test_WXCode):
         ]
         self.cubes.append(shower_cube)
 
-        msg = "Period diagnostics with different periods have been provided"
+        msg = (
+            "Period diagnostics with different periods have been provided as "
+            "input to the weather symbols code. Period diagnostics must all "
+            "describe the same period to be used together."
+            "['probability_of_number_of_lightning_flashes_per_unit_area_in_"
+            "vicinity_above_threshold: 3600', 'probability_of_shower_condition_"
+            "above_threshold: 7200', 'probability_of_shower_condition_above_"
+            "threshold: 7200']"
+        )
         with self.assertRaises(ValueError, msg=msg):
             self.plugin.check_for_time_bounds(self.cubes)
 

@@ -431,7 +431,7 @@ class WeatherSymbols(BasePlugin):
         return routes
 
     @staticmethod
-    def check_for_time_bounds(cubes: Union[List[Cube], CubeList]):
+    def check_for_time_bounds(cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Check if any of the input cubes have time bounds that imply the
         resulting weather symbol cube represents a time period. If so, return
@@ -451,18 +451,25 @@ class WeatherSymbols(BasePlugin):
             ValueError: If period diagnostics have different periods.
         """
         bounds = []
+        diagnostics = []
         template_cube = cubes[0]
         for cube in cubes:
             time_bounds = cube.coord("time").bounds
             if time_bounds is not None:
+                diagnostics.append(cube.name())
                 bounds.extend(time_bounds.tolist())
                 template_cube = cube
         # check that if multiple bounds have been returned, they are all identical.
         if bounds and not bounds.count(bounds[0]) == len(bounds):
+            diagnostic_bounds = [
+                f"{diagnostic}: {np.diff(bound)[0]}"
+                for diagnostic, bound in zip(diagnostics, bounds)
+            ]
             raise ValueError(
                 "Period diagnostics with different periods have been provided "
                 "as input to the weather symbols code. Period diagnostics must "
                 "all describe the same period to be used together."
+                f"\n{diagnostic_bounds}"
             )
         return template_cube
 
