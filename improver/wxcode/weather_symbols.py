@@ -157,6 +157,9 @@ class WeatherSymbols(BasePlugin):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
+        # Check that all cubes are valid at or over the same periods
+        self.check_coincidence(cubes)
+
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
@@ -234,6 +237,53 @@ class WeatherSymbols(BasePlugin):
         if not optional_node_data_missing:
             optional_node_data_missing = None
         return optional_node_data_missing
+
+    def check_coincidence(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+        """
+        Check that all the provided cubes are valid at the same time and if any
+        of the input cubes have time bounds, these match.
+
+        Args:
+            cubes:
+                List of input cubes used to generate weather symbols
+
+        Raises:
+            ValueError: If validity times differ for diagnostics.
+            ValueError: If period diagnostics have different periods.
+        """
+        times = []
+        bounds = []
+        diagnostics = []
+        self.template_cube = cubes[0]
+        for cube in cubes:
+            times.extend(cube.coord("time").points)
+            time_bounds = cube.coord("time").bounds
+            if time_bounds is not None:
+                diagnostics.append(cube.name())
+                bounds.extend(time_bounds.tolist())
+                self.template_cube = cube
+
+        # Check that all validity times are the same
+        if len(set(times)) != 1:
+            diagnostic_times = [
+                f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
+            ]
+            raise ValueError(
+                "Weather symbol input cubes are valid at different times; "
+                f"\n{diagnostic_times}"
+            )
+        # Check that if multiple bounds have been returned, they are all identical.
+        if bounds and not bounds.count(bounds[0]) == len(bounds):
+            diagnostic_bounds = [
+                f"{diagnostic}: {np.diff(bound)[0]}"
+                for diagnostic, bound in zip(diagnostics, bounds)
+            ]
+            raise ValueError(
+                "Period diagnostics with different periods have been provided "
+                "as input to the weather symbols code. Period diagnostics must "
+                "all describe the same period to be used together."
+                f"\n{diagnostic_bounds}"
+            )
 
     @staticmethod
     def _invert_comparator(comparator: str) -> str:
@@ -430,49 +480,6 @@ class WeatherSymbols(BasePlugin):
                 routes.extend(newroutes)
         return routes
 
-    @staticmethod
-    def check_for_time_bounds(cubes: Union[List[Cube], CubeList]) -> Cube:
-        """
-        Check if any of the input cubes have time bounds that imply the
-        resulting weather symbol cube represents a time period. If so, return
-        the time-bounded cube for use as the template in creating the weather
-        symbol cube.
-
-        Args:
-            cubes:
-                List of input cubes used to generate weather symbols
-
-        Returns:
-            A cube to use as a template for creating a weather symbol cube. The
-            returned cube will be for a time bounded diagnostic if any exist
-            within the input cubes list.
-
-        Raises:
-            ValueError: If period diagnostics have different periods.
-        """
-        bounds = []
-        diagnostics = []
-        template_cube = cubes[0]
-        for cube in cubes:
-            time_bounds = cube.coord("time").bounds
-            if time_bounds is not None:
-                diagnostics.append(cube.name())
-                bounds.extend(time_bounds.tolist())
-                template_cube = cube
-        # check that if multiple bounds have been returned, they are all identical.
-        if bounds and not bounds.count(bounds[0]) == len(bounds):
-            diagnostic_bounds = [
-                f"{diagnostic}: {np.diff(bound)[0]}"
-                for diagnostic, bound in zip(diagnostics, bounds)
-            ]
-            raise ValueError(
-                "Period diagnostics with different periods have been provided "
-                "as input to the weather symbols code. Period diagnostics must "
-                "all describe the same period to be used together."
-                f"\n{diagnostic_bounds}"
-            )
-        return template_cube
-
     def create_symbol_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Create an empty weather symbol cube
@@ -486,9 +493,8 @@ class WeatherSymbols(BasePlugin):
             that will fill it and data initiated with the value -1 to allow
             any unset points to be readily identified.
         """
-        template_cube = self.check_for_time_bounds(cubes)
-        threshold_coord = find_threshold_coordinate(template_cube)
-        template_cube = next(template_cube.slices_over([threshold_coord])).copy()
+        threshold_coord = find_threshold_coordinate(self.template_cube)
+        template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
         # remove coordinates and bounds that do not apply to weather symbols
         template_cube.remove_coord(threshold_coord)
 

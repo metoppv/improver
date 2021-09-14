@@ -281,7 +281,7 @@ class Test_check_input_cubes(Test_WXCode):
 
     def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
-        cubes = self.cubes.pop()
+        cubes = self.cubes[0:2]
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             self.plugin.check_input_cubes(cubes)
@@ -1046,8 +1046,8 @@ class Test_find_all_routes(IrisTest):
         self.assertListEqual(result, expected_nodes)
 
 
-class Test_check_for_time_bounds(Test_WXCode):
-    """Test the check_for_time_bounds method."""
+class Test_check_coincidence(Test_WXCode):
+    """Test the check_coincidence method."""
 
     def setUp(self):
         """Set up cubes for testing"""
@@ -1059,16 +1059,21 @@ class Test_check_for_time_bounds(Test_WXCode):
         self.expected_bounds = lightning.coord("time").bounds
 
     def test_basic(self):
-        """Test that the lightning diagnostic cube is returned, as this is the
-        only period diagnostic in the default set of inputs."""
+        """Test that a template cube is set as a global on the plugin and that
+        no exception is raised."""
 
-        result = self.plugin.check_for_time_bounds(self.cubes)
-        self.assertIn("number_of_lightning_flashes", result.name())
-        self.assertTrue((result.coord("time").bounds == self.expected_bounds).all())
+        self.plugin.check_coincidence(self.cubes)
+        self.assertIn("number_of_lightning_flashes", self.plugin.template_cube.name())
+        self.assertTrue(
+            (
+                self.plugin.template_cube.coord("time").bounds == self.expected_bounds
+            ).all()
+        )
 
     def test_multiple_matching_periods(self):
-        """Test that the last cube in the input list with a period is returned
-        if multiple period diagnostics with matching periods are provided."""
+        """Test that the last cube in the input list with a period is set as
+        the global template cube if multiple period diagnostics with matching
+        periods are provided."""
 
         (shower_cube,) = self.cubes.extract(
             "probability_of_shower_condition_above_threshold"
@@ -1076,8 +1081,30 @@ class Test_check_for_time_bounds(Test_WXCode):
         shower_cube.coord("time").bounds = self.expected_bounds
         self.cubes.append(shower_cube)
 
-        result = self.plugin.check_for_time_bounds(self.cubes)
-        self.assertIn("shower_condition", result.name())
+        self.plugin.check_coincidence(self.cubes)
+        self.assertIn("shower_condition", self.plugin.template_cube.name())
+
+    def test_unmatched_validity_times(self):
+        """Test that an exception is raised if the input cubes do not all share
+        the same valdity time."""
+
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 3600
+
+        msg = (
+            "Weather symbol input cubes are valid at different times"
+            "['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
+            "'probability_of_lwe_sleetfall_rate_above_threshold: 1507636800', "
+            "'probability_of_rainfall_rate_above_threshold: 1507636800', "
+            "'probability_of_lwe_precipitation_rate_in_vicinity_above_threshold: 1507636800', "
+            "'probability_of_low_and_medium_type_cloud_area_fraction_above_threshold: 1507636800', "
+            "'probability_of_low_type_cloud_area_fraction_above_threshold: 1507636800', "
+            "'probability_of_visibility_in_air_below_threshold: 1507636800', "
+            "'probability_of_lwe_precipitation_rate_above_threshold: 1507636800', "
+            "'probability_of_shower_condition_above_threshold: 1507640400']"
+        )
+        with self.assertRaises(ValueError, msg=msg):
+            self.plugin.check_coincidence(cubes)
 
     def test_unmatched_periods(self):
         """Test that an exception is raised if multiple period cubes are
@@ -1102,16 +1129,16 @@ class Test_check_for_time_bounds(Test_WXCode):
             "threshold: 7200']"
         )
         with self.assertRaises(ValueError, msg=msg):
-            self.plugin.check_for_time_bounds(self.cubes)
+            self.plugin.check_coincidence(self.cubes)
 
     def test_no_period_diagnostics(self):
-        """Test that the first cube in the diagnostic cube list is returned if
-        there are no period diagnostics."""
+        """Test that the first cube in the diagnostic cube list is set as the
+        global template cube if there are no period diagnostics."""
 
         cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
         expected = cubes[0]
-        result = self.plugin.check_for_time_bounds(cubes)
-        self.assertEqual(result, expected)
+        self.plugin.check_coincidence(cubes)
+        self.assertEqual(self.plugin.template_cube, expected)
 
 
 class Test_create_symbol_cube(IrisTest):
@@ -1139,6 +1166,7 @@ class Test_create_symbol_cube(IrisTest):
     def test_basic(self):
         """Test cube is constructed with appropriate metadata without
         model_id_attr attribute"""
+        self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
@@ -1149,6 +1177,7 @@ class Test_create_symbol_cube(IrisTest):
     def test_model_id_attr(self):
         """Test cube is constructed with appropriate metadata with
         model_id_attr attribute"""
+        self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
@@ -1176,6 +1205,7 @@ class Test_create_symbol_cube(IrisTest):
         self.cube.coord("forecast_period").bounds = np.array(
             expected_fp, dtype=np.int32,
         )
+        self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertTrue((result.coord("time").bounds == expected_time).all())
         self.assertTrue((result.coord("forecast_period").bounds == expected_fp).all())
@@ -1184,6 +1214,7 @@ class Test_create_symbol_cube(IrisTest):
         """Test no time bounds are present on the weather symbols cube if the
         inputs are all instantaneous."""
 
+        self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
