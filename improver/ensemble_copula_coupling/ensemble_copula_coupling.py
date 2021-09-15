@@ -611,30 +611,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
         )
 
-        # forecast_at_percentiles = np.zeros(
-        #     (probabilities_for_cdf.shape[0], len(percentiles)), dtype=np.float32
-        # )
-        # num_thresholds = len(threshold_points)
-        # forecast_at_percentiles[
-        #     percentiles_as_fractions <= probabilities_for_cdf[:, [0]]
-        # ] = threshold_points[0]
-        # for i in range(1, num_thresholds):
-        #     forecast_at_percentiles += np.where(
-        #         np.logical_and(
-        #             percentiles_as_fractions > probabilities_for_cdf[:, [i - 1]],
-        #             percentiles_as_fractions <= probabilities_for_cdf[:, [i]],
-        #         ),
-        #         threshold_points[i - 1]
-        #         + (threshold_points[i] - threshold_points[i - 1])
-        #         * (percentiles_as_fractions - probabilities_for_cdf[:, [i - 1]])
-        #         / (probabilities_for_cdf[:, [i]] - probabilities_for_cdf[:, [i - 1]]),
-        #         0,
-        #     )
-        # forecast_at_percentiles[
-        #     percentiles_as_fractions >= probabilities_for_cdf[:, [-1]]
-        # ] = threshold_points[-1]
-        # forecast_at_percentiles = np.transpose(forecast_at_percentiles)
-
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles = restore_non_percentile_dimensions(
