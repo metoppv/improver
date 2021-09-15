@@ -40,7 +40,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
-from scipy import stats
+from scipy import interpolate, stats
 
 from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
@@ -283,16 +283,33 @@ class ResamplePercentiles(BasePlugin):
             original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
         )
 
-        forecast_at_interpolated_percentiles = np.empty(
-            (len(desired_percentiles), forecast_at_reshaped_percentiles.shape[0]),
-            dtype=np.float32,
+        interpolator = interpolate.interp1d(
+            original_percentiles,
+            forecast_at_reshaped_percentiles,
+            kind="linear",
+            axis=1,
+            bounds_error=False,
         )
-        for index in range(forecast_at_reshaped_percentiles.shape[0]):
-            forecast_at_interpolated_percentiles[:, index] = np.interp(
-                desired_percentiles,
-                original_percentiles,
-                forecast_at_reshaped_percentiles[index, :],
-            )
+        forecast_at_interpolated_percentiles = np.transpose(
+            interpolator(desired_percentiles).astype(np.float32)
+        )
+        # fill out of bounds values
+        below_min_ind = [
+            i
+            for i in range(len(desired_percentiles))
+            if desired_percentiles[i] < np.min(original_percentiles)
+        ]
+        forecast_at_interpolated_percentiles[below_min_ind, :] = np.transpose(
+            forecast_at_reshaped_percentiles[:, [0]]
+        )
+        above_max_ind = [
+            i
+            for i in range(len(desired_percentiles))
+            if desired_percentiles[i] > np.max(original_percentiles)
+        ]
+        forecast_at_interpolated_percentiles[above_max_ind, :] = np.transpose(
+            forecast_at_reshaped_percentiles[:, [-1]]
+        )
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -473,6 +490,34 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 raise ValueError(msg)
         return threshold_points_with_endpoints, probabilities_for_cdf
 
+    @staticmethod
+    def _interp_2d_array(x: np.ndarray, y: ndarray, xi: ndarray):
+        """For each row of x, calculate the interpolated function using y.
+        Use this interpolation to predict y.
+
+        Args:
+            x: 2-d array
+            y: 1-d array with length equal to number of columns of x
+            xi: 1-d array
+
+        Returns: 2-d array. First dimension has same size as first dimension of
+            x. Second dimension has size equal to length of y. Row i is equal
+            to the output of np.interp1d(xi, x[i, :], y).
+        """
+        yi = np.zeros((x.shape[0], len(xi)), dtype=np.float32)
+        yi[xi <= x[:, [0]]] = y[0]
+        for i in range(1, len(y)):
+            yi += np.where(
+                np.logical_and(xi > x[:, [i - 1]], xi <= x[:, [i]],),
+                y[i - 1]
+                + (y[i] - y[i - 1])
+                * (xi - x[:, [i - 1]])
+                / (x[:, [i]] - x[:, [i - 1]]),
+                0,
+            )
+        yi[xi >= x[:, [-1]]] = y[-1]
+        return yi
+
     def _probabilities_to_percentiles(
         self,
         forecast_probabilities: Cube,
@@ -560,15 +605,35 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             [x / 100.0 for x in percentiles], dtype=np.float32
         )
 
-        forecast_at_percentiles = np.empty(
-            (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
-        )
-        for index in range(probabilities_for_cdf.shape[0]):
-            forecast_at_percentiles[:, index] = np.interp(
-                percentiles_as_fractions,
-                probabilities_for_cdf[index, :],
-                threshold_points,
+        forecast_at_percentiles = np.transpose(
+            self._interp_2d_array(
+                probabilities_for_cdf, threshold_points, percentiles_as_fractions
             )
+        )
+
+        # forecast_at_percentiles = np.zeros(
+        #     (probabilities_for_cdf.shape[0], len(percentiles)), dtype=np.float32
+        # )
+        # num_thresholds = len(threshold_points)
+        # forecast_at_percentiles[
+        #     percentiles_as_fractions <= probabilities_for_cdf[:, [0]]
+        # ] = threshold_points[0]
+        # for i in range(1, num_thresholds):
+        #     forecast_at_percentiles += np.where(
+        #         np.logical_and(
+        #             percentiles_as_fractions > probabilities_for_cdf[:, [i - 1]],
+        #             percentiles_as_fractions <= probabilities_for_cdf[:, [i]],
+        #         ),
+        #         threshold_points[i - 1]
+        #         + (threshold_points[i] - threshold_points[i - 1])
+        #         * (percentiles_as_fractions - probabilities_for_cdf[:, [i - 1]])
+        #         / (probabilities_for_cdf[:, [i]] - probabilities_for_cdf[:, [i - 1]]),
+        #         0,
+        #     )
+        # forecast_at_percentiles[
+        #     percentiles_as_fractions >= probabilities_for_cdf[:, [-1]]
+        # ] = threshold_points[-1]
+        # forecast_at_percentiles = np.transpose(forecast_at_percentiles)
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
