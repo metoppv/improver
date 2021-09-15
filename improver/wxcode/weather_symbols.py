@@ -243,6 +243,10 @@ class WeatherSymbols(BasePlugin):
         Check that all the provided cubes are valid at the same time and if any
         of the input cubes have time bounds, these match.
 
+        The last input cube with bounds (or first input cube if none have bounds)
+        is selected as a template_cube for later producing the weather symbol
+        cube.
+
         Args:
             cubes:
                 List of input cubes used to generate weather symbols
