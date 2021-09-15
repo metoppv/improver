@@ -152,40 +152,6 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         self.assertEqual(min(result[0]), min(threshold_points))
 
 
-class Test__interp_2d_array(IrisTest):
-    """Test the _interp_2d_array method of the
-    ConvertProbabilitiesToPercentiles plugin."""
-
-    def setUp(self):
-        """Set up test arrays."""
-        self.y = [-1, 1, 2, 4, 5]
-        np.random.seed(0)
-        self.x = np.sort(np.random.random_sample((100, len(self.y))), axis=1)
-        self.xi = [0.1, 0.2, 0.8]
-
-    def test_basic(self):
-        """Test that result is same as iterating over rows
-        using np.interp1d."""
-        expected = np.zeros((self.x.shape[0], len(self.xi)))
-        for i in range(self.x.shape[0]):
-            expected[i, :] = np.interp(self.xi, self.x[i, :], self.y)
-        result = Plugin()._interp_2d_array(self.x, self.y, self.xi)
-        self.assertArrayAlmostEqual(result, expected)
-
-    def test_repeated_values(self):
-        """Test that the method works when there are repeated values
-        in the rows of x."""
-        x_new = self.x.copy()
-        x_new[:50, :2] = 0
-        x_new[50:60, 2:3] = x_new[50:60, [2]]
-        x_new[:20, 2:] = 1
-        expected = np.zeros((x_new.shape[0], len(self.xi)))
-        for i in range(x_new.shape[0]):
-            expected[i, :] = np.interp(self.xi, x_new[i, :], self.y)
-        result = Plugin()._interp_2d_array(x_new, self.y, self.xi)
-        self.assertArrayAlmostEqual(result, expected)
-
-
 class Test__probabilities_to_percentiles(IrisTest):
 
     """Test the _probabilities_to_percentiles method of the
