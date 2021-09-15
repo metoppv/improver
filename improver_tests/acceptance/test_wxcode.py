@@ -42,11 +42,11 @@ ALL_PARAMS = [
     "lightning_flashes_per_unit_area_in_vicinity_above",
     "low_and_medium_type_cloud_area_fraction_above",
     "low_type_cloud_area_fraction_above",
-    "lwe_precipitation_rate_above",
-    "lwe_precipitation_rate_in_vicinity_above",
-    "lwe_sleetfall_rate_above",
-    "lwe_snowfall_rate_above",
-    "rainfall_rate_above",
+    "lwe_thickness_of_precipitation_amount_above",
+    "lwe_thickness_of_precipitation_amount_in_vicinity_above",
+    "lwe_thickness_of_sleetfall_amount_above",
+    "lwe_thickness_of_snowfall_amount_above",
+    "thickness_of_rainfall_amount_above",
     "shower_condition_above",
     "visibility_in_air_below",
 ]
@@ -60,7 +60,7 @@ def test_basic(tmp_path):
     param_paths = [
         kgo_dir / "basic" / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS
     ]
-    wxtree = kgo_dir / "wx_decision_tree.json"
+    wxtree = kgo_dir / "wx_decision_tree_1h.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -78,7 +78,7 @@ def test_basic(tmp_path):
 @pytest.mark.slow
 def test_native_units(tmp_path):
     """Test wxcode processing with non-SI units for threshold coordinates:
-    precipitation: mm h-1
+    precipitation: mm
     visibility: feet
     """
     kgo_dir = acc.kgo_root() / "wxcode"
@@ -87,7 +87,7 @@ def test_native_units(tmp_path):
         kgo_dir / "native_units" / f"probability_of_{p}_threshold.nc"
         for p in ALL_PARAMS
     ]
-    wxtree = kgo_dir / "wx_decision_tree.json"
+    wxtree = kgo_dir / "wx_decision_tree_1h.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -110,7 +110,7 @@ def test_global(tmp_path):
     param_paths = [
         kgo_dir / "global" / f"probability_of_{p}_threshold.nc" for p in params
     ]
-    wxtree = kgo_dir / "wx_decision_tree.json"
+    wxtree = kgo_dir / "wx_decision_tree_3h.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -131,13 +131,13 @@ def test_insufficient_files(tmp_path):
     params = [
         "low_and_medium_type_cloud_area_fraction_above",
         "low_type_cloud_area_fraction_above",
-        "lwe_snowfall_rate_above",
-        "rainfall_rate_above",
+        "lwe_thickness_of_snowfall_amount_above",
+        "thickness_of_rainfall_amount_above",
     ]
     param_paths = [
         kgo_dir / "global" / f"probability_of_{p}_threshold.nc" for p in params
     ]
-    wxtree = kgo_dir / "wx_decision_tree.json"
+    wxtree = kgo_dir / "wx_decision_tree_3h.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -162,7 +162,7 @@ def test_no_lightning(tmp_path):
         for p in ALL_PARAMS
         if "lightning" not in p
     ]
-    wxtree = kgo_dir / "wx_decision_tree.json"
+    wxtree = kgo_dir / "wx_decision_tree_1h.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
