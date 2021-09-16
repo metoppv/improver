@@ -32,6 +32,7 @@
    whole dimension."""
 
 import warnings
+from datetime import datetime
 from typing import List, Optional, Union
 
 import iris
@@ -65,6 +66,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         blend_coord: str,
         weighting_coord: Optional[str] = None,
         model_id_attr: Optional[str] = None,
+        blend_model_record_attr: Optional[str] = None,
     ) -> None:
         """
         Initialise the class
@@ -81,7 +83,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 multi-model blend.
             model_id_attr:
                 Name of attribute used to identify model for grid blending.
-                None for cycle blending.
+            blend_model_record_attr:
+                Name of attribute used to record models blended. Ignored
+                if None.
 
         Raises:
             ValueError:
@@ -93,7 +97,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
             )
 
         # ensure model coordinates are not created for non-model blending
-        if "model" not in blend_coord and model_id_attr is not None:
+        if "model" not in blend_coord and (
+            model_id_attr is not None and blend_model_record_attr is None
+        ):
             warnings.warn(
                 "model_id_attr not required for blending over {} - "
                 "will be ignored".format(blend_coord)
@@ -103,6 +109,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         self.blend_coord = blend_coord
         self.weighting_coord = weighting_coord
         self.model_id_attr = model_id_attr
+        self.blend_model_record_attr = blend_model_record_attr
 
     def _create_model_coordinates(self, cubelist: Union[List[Cube], CubeList]) -> None:
         """
@@ -134,7 +141,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
             model_title = cube.attributes.pop(self.model_id_attr)
             if model_title in model_titles:
                 raise ValueError(
-                    "Cannot create model dimension coordinate " "with duplicate points"
+                    "Cannot create model dimension coordinate with duplicate points"
                 )
             model_titles.append(model_title)
 
@@ -149,6 +156,29 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
             cube.add_aux_coord(new_model_id_coord)
             cube.add_aux_coord(new_model_coord)
+
+    def _set_blend_record_attr(self, cubelist: CubeList) -> None:
+        """Set a blend record attribute if configured."""
+        cycle_strings = []
+        for cube in cubelist:
+            if self.blend_model_record_attr in cube.attributes:
+                cycle_strings.extend(
+                    cube.attributes[self.blend_model_record_attr].splitlines()
+                )
+                continue
+            cycle = datetime.utcfromtimestamp(
+                cube.coord("forecast_reference_time").points[0]
+            )
+            cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+            if self.model_id_attr not in cube.attributes:
+                raise Exception("No model id attribute found in cube!", cube.attributes)
+            blending_weight = ""  # TODO: include actual blending weight here.
+            cycle_strings.append(
+                f"{cube.attributes[self.model_id_attr]}:{cycle_str}:{blending_weight}"
+            )
+        cycle_strings.sort()
+        for cube in cubelist:
+            cube.attributes[self.blend_model_record_attr] = "\n".join(cycle_strings)
 
     @staticmethod
     def _remove_blend_time(cube: Cube) -> Cube:
@@ -197,6 +227,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
             else [cube.copy() for cube in cubes_in]
         )
 
+        if self.blend_model_record_attr is not None and self.model_id_attr is not None:
+            self._set_blend_record_attr(cubelist)
+
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]
             cubelist = [self._remove_deprecation_warnings(cube) for cube in cubelist]
@@ -221,7 +254,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
         # create model ID and model configuration coordinates if blending
         # different models
-        if self.model_id_attr is not None:
+        if "model" in self.blend_coord:
             self._create_model_coordinates(cubelist)
 
         # merge resulting cubelist
