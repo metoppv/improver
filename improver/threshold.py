@@ -448,7 +448,9 @@ class LatitudeThreshold(BasicThreshold):
             raise TypeError("Threshold must be callable")
         self.threshold_function = threshold
 
-    def _add_latitude_threshold_coord(self, cube: Cube, threshold: np.ndarray, units: str) -> None:
+    def _add_latitude_threshold_coord(
+        self, cube: Cube, threshold: np.ndarray, units: str
+    ) -> None:
         """
         Add a 1D threshold-type coordinate with correct name and units
         to a 2D slice containing thresholded data.
@@ -525,7 +527,9 @@ class LatitudeThreshold(BasicThreshold):
         else:
             cube.data = truth_value
 
-        self._add_latitude_threshold_coord(cube, threshold_over_latitude, input_cube.units)
+        self._add_latitude_threshold_coord(
+            cube, threshold_over_latitude, input_cube.units
+        )
 
         for func in self.each_threshold_func:
             cube = func(cube)
