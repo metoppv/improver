@@ -32,7 +32,6 @@
 
 import functools
 import hashlib
-import importlib
 import os
 import pathlib
 import shlex
@@ -304,13 +303,6 @@ def recreate_if_needed(output_path, kgo_path, recreate_dir_path=None):
     return True
 
 
-def iris_nimrod_patch_available():
-    """True if iris_nimrod_patch library is importable"""
-    if importlib.util.find_spec("iris_nimrod_patch"):
-        return True
-    return False
-
-
 def compare(
     output_path,
     kgo_path,
@@ -380,10 +372,4 @@ skip_if_statsmodels = pytest.mark.skipif(
 # Pytest decorator to skip tests if statsmodels is not available
 skip_if_no_statsmodels = pytest.mark.skipif(
     not statsmodels_available(), reason="statsmodels library is not available"
-)
-
-# Pytest decorator to skip tests if iris_nimrod_patch is not available
-skip_if_no_iris_nimrod_patch = pytest.mark.skipif(
-    not iris_nimrod_patch_available(),
-    reason="iris_nimrod_patch library is not available",
 )

@@ -23,9 +23,10 @@ or ``python setup.py install`` (``python setup.py develop``). Note that
 with installation of the dependency ``iris`` via pip.
 
 Required dependencies are listed in
-`environment_py36_iris22.yml <https://github.com/metoppv/improver/blob/master/envs/environment_py36_iris22.yml>`_
-and
+`environment_py36_iris22.yml <https://github.com/metoppv/improver/blob/master/envs/environment_py36_iris22.yml>`_,
 `environment_py37_iris24.yml <https://github.com/metoppv/improver/blob/master/envs/environment_py37_iris24.yml>`_,
+and
+`environment_py37_iris30.yml <https://github.com/metoppv/improver/blob/master/envs/environment_py37_iris30.yml>`_,
 depending on your version requirements. Both environment files are used
 to run the test suite on Github actions, so these conda environments
 file should stay up to date with any dependency changes.

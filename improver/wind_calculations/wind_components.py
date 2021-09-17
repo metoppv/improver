@@ -206,7 +206,10 @@ class ResolveWindComponents(BasePlugin):
             raise ValueError("{} {}".format(wind_dir.name(), msg))
 
         # check input cube coordinates match
-        unmatched_coords = compare_coords([wind_speed, wind_dir])
+        ignored_coords = ["wind_from_direction status_flag", "wind_speed status_flag"]
+        unmatched_coords = compare_coords(
+            [wind_speed, wind_dir], ignored_coords=ignored_coords
+        )
         if unmatched_coords != [{}, {}]:
             msg = "Wind speed and direction cubes have unmatched coordinates"
             raise ValueError("{} {}".format(msg, unmatched_coords))

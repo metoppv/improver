@@ -150,13 +150,16 @@ class WeatherSymbols(BasePlugin):
         Returns:
             A dictionary of (keyword) nodes names where the diagnostic
             data is missing and (values) node associated with
-            diagnostic_missing_action.
+            if_diagnostic_missing.
 
         Raises:
             IOError:
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
+        # Check that all cubes are valid at or over the same periods
+        self.check_coincidence(cubes)
+
         optional_node_data_missing = {}
         missing_data = []
         for key, query in self.queries.items():
@@ -174,9 +177,9 @@ class WeatherSymbols(BasePlugin):
                 test_condition = iris.Constraint(name=diagnostic)
                 matched_cube = cubes.extract(test_condition)
                 if not matched_cube:
-                    if "diagnostic_missing_action" in query:
+                    if "if_diagnostic_missing" in query:
                         optional_node_data_missing.update(
-                            {key: query[query["diagnostic_missing_action"]]}
+                            {key: query[query["if_diagnostic_missing"]]}
                         )
                     else:
                         missing_data.append([diagnostic, threshold, condition])
@@ -235,6 +238,57 @@ class WeatherSymbols(BasePlugin):
             optional_node_data_missing = None
         return optional_node_data_missing
 
+    def check_coincidence(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+        """
+        Check that all the provided cubes are valid at the same time and if any
+        of the input cubes have time bounds, these match.
+
+        The last input cube with bounds (or first input cube if none have bounds)
+        is selected as a template_cube for later producing the weather symbol
+        cube.
+
+        Args:
+            cubes:
+                List of input cubes used to generate weather symbols
+
+        Raises:
+            ValueError: If validity times differ for diagnostics.
+            ValueError: If period diagnostics have different periods.
+        """
+        times = []
+        bounds = []
+        diagnostics = []
+        self.template_cube = cubes[0]
+        for cube in cubes:
+            times.extend(cube.coord("time").points)
+            time_bounds = cube.coord("time").bounds
+            if time_bounds is not None:
+                diagnostics.append(cube.name())
+                bounds.extend(time_bounds.tolist())
+                self.template_cube = cube
+
+        # Check that all validity times are the same
+        if len(set(times)) != 1:
+            diagnostic_times = [
+                f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
+            ]
+            raise ValueError(
+                "Weather symbol input cubes are valid at different times; "
+                f"\n{diagnostic_times}"
+            )
+        # Check that if multiple bounds have been returned, they are all identical.
+        if bounds and not bounds.count(bounds[0]) == len(bounds):
+            diagnostic_bounds = [
+                f"{diagnostic}: {np.diff(bound)[0]}"
+                for diagnostic, bound in zip(diagnostics, bounds)
+            ]
+            raise ValueError(
+                "Period diagnostics with different periods have been provided "
+                "as input to the weather symbols code. Period diagnostics must "
+                "all describe the same period to be used together."
+                f"\n{diagnostic_bounds}"
+            )
+
     @staticmethod
     def _invert_comparator(comparator: str) -> str:
         """Inverts a single comparator string."""
@@ -246,7 +300,7 @@ class WeatherSymbols(BasePlugin):
     def invert_condition(self, condition: Dict) -> Tuple[str, str]:
         """
         Invert a comparison condition to allow positive identification of conditions
-        satisfying the negative ('fail') case.
+        satisfying the negative case.
 
         Args:
             condition:
@@ -384,7 +438,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             graph:
                 A dictionary that describes each node in the tree,
-                e.g. {<node_name>: [<succeed_name>, <fail_name>]}
+                e.g. {<node_name>: [<if_true_name>, <if_false_name>]}
             start:
                 The node name of the tree root (currently always
                 heavy_precipitation).
@@ -393,7 +447,7 @@ class WeatherSymbols(BasePlugin):
             omit_nodes:
                 A dictionary of (keyword) nodes names where the diagnostic
                 data is missing and (values) node associated with
-                diagnostic_missing_action.
+                if_diagnostic_missing.
             route:
                 A list of node names found so far.
 
@@ -443,13 +497,10 @@ class WeatherSymbols(BasePlugin):
             that will fill it and data initiated with the value -1 to allow
             any unset points to be readily identified.
         """
-        threshold_coord = find_threshold_coordinate(cubes[0])
-        template_cube = next(cubes[0].slices_over([threshold_coord])).copy()
+        threshold_coord = find_threshold_coordinate(self.template_cube)
+        template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
         # remove coordinates and bounds that do not apply to weather symbols
         template_cube.remove_coord(threshold_coord)
-        for coord in template_cube.coords():
-            if coord.name() in ["forecast_period", "time"]:
-                coord.bounds = None
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         optional_attributes = weather_code_attributes()
@@ -650,7 +701,7 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = self.check_input_cubes(cubes)
         # Construct graph nodes dictionary
         graph = {
-            key: [self.queries[key]["succeed"], self.queries[key]["fail"]]
+            key: [self.queries[key]["if_true"], self.queries[key]["if_false"]]
             for key in self.queries
         }
         # Search through tree for all leaves (weather code end points)
@@ -684,7 +735,7 @@ class WeatherSymbols(BasePlugin):
                     except KeyError:
                         next_node = symbol_code
 
-                    if current["fail"] == next_node:
+                    if current["if_false"] == next_node:
                         (
                             current["threshold_condition"],
                             current["condition_combination"],

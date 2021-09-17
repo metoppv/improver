@@ -33,6 +33,7 @@
 import unittest
 from datetime import datetime
 
+import cftime
 import iris
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -200,14 +201,22 @@ class Test_datetime_to_iris_time(IrisTest):
     def setUp(self):
         """Define datetime for use in tests."""
         self.dt_in = datetime(2017, 2, 17, 6, 0)
+        self.cftime_in = cftime.DatetimeGregorian(2017, 2, 17, hour=6, minute=0)
+        self.expected = 1487311200.0
 
     def test_seconds(self):
         """Test datetime_to_iris_time returns float with expected value
         in seconds"""
         result = datetime_to_iris_time(self.dt_in)
-        expected = 1487311200.0
         self.assertIsInstance(result, np.int64)
-        self.assertEqual(result, expected)
+        self.assertEqual(result, self.expected)
+
+    def test_cftime(self):
+        """Test datetime_to_iris_time returns float with expected value
+        in seconds when a cftime.DatetimeGregorian object is provided."""
+        result = datetime_to_iris_time(self.cftime_in)
+        self.assertIsInstance(result, np.int64)
+        self.assertEqual(result, self.expected)
 
 
 class Test_datetime_constraint(IrisTest):

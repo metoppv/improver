@@ -32,6 +32,7 @@
 
 import unittest
 from datetime import datetime as dt
+from datetime import timedelta
 
 import iris
 import numpy as np
@@ -55,7 +56,7 @@ class Test_WXCode(IrisTest):
         """Set up cubes and constraints required for Weather Symbols."""
 
         time = dt(2017, 10, 10, 12, 0)
-        frt = dt(2017, 10, 10, 12, 0)
+        frt = dt(2017, 10, 10, 6, 0)
 
         thresholds = np.array(
             [8.33333333e-09, 2.77777778e-08, 2.77777778e-07], dtype=np.float32
@@ -179,6 +180,7 @@ class Test_WXCode(IrisTest):
             variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
             threshold_units="m-2",
             time=time,
+            time_bounds=[time - timedelta(hours=1), time],
             frt=frt,
         )
 
@@ -279,7 +281,7 @@ class Test_check_input_cubes(Test_WXCode):
 
     def test_raises_error_missing_cubes(self):
         """Test check_input_cubes method raises error if data is missing"""
-        cubes = self.cubes.pop()
+        cubes = self.cubes[0:2]
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             self.plugin.check_input_cubes(cubes)
@@ -358,8 +360,8 @@ class Test_create_condition_chain(Test_WXCode):
         super().setUp()
         self.dummy_queries = {
             "significant_precipitation": {
-                "succeed": "heavy_precipitation",
-                "fail": "any_precipitation",
+                "if_true": "heavy_precipitation",
+                "if_false": "any_precipitation",
                 "probability_thresholds": [0.5, 0.5],
                 "threshold_condition": ">=",
                 "condition_combination": "OR",
@@ -1044,6 +1046,101 @@ class Test_find_all_routes(IrisTest):
         self.assertListEqual(result, expected_nodes)
 
 
+class Test_check_coincidence(Test_WXCode):
+    """Test the check_coincidence method."""
+
+    def setUp(self):
+        """Set up cubes for testing"""
+        super().setUp()
+        (lightning,) = self.cubes.extract(
+            "probability_of_number_of_lightning_flashes_per_unit_area_in_"
+            "vicinity_above_threshold"
+        )
+        self.expected_bounds = lightning.coord("time").bounds
+
+    def test_basic(self):
+        """Test that a template cube is set as a global on the plugin and that
+        no exception is raised."""
+
+        self.plugin.check_coincidence(self.cubes)
+        self.assertIn("number_of_lightning_flashes", self.plugin.template_cube.name())
+        self.assertTrue(
+            (
+                self.plugin.template_cube.coord("time").bounds == self.expected_bounds
+            ).all()
+        )
+
+    def test_multiple_matching_periods(self):
+        """Test that the last cube in the input list with a period is set as
+        the global template cube if multiple period diagnostics with matching
+        periods are provided."""
+
+        (shower_cube,) = self.cubes.extract(
+            "probability_of_shower_condition_above_threshold"
+        )
+        shower_cube.coord("time").bounds = self.expected_bounds
+        self.cubes.append(shower_cube)
+
+        self.plugin.check_coincidence(self.cubes)
+        self.assertIn("shower_condition", self.plugin.template_cube.name())
+
+    def test_unmatched_validity_times(self):
+        """Test that an exception is raised if the input cubes do not all share
+        the same valdity time."""
+
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes[-1].coord("time").points = cubes[-1].coord("time").points + 3600
+
+        msg = (
+            "Weather symbol input cubes are valid at different times"
+            "['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
+            "'probability_of_lwe_sleetfall_rate_above_threshold: 1507636800', "
+            "'probability_of_rainfall_rate_above_threshold: 1507636800', "
+            "'probability_of_lwe_precipitation_rate_in_vicinity_above_threshold: 1507636800', "
+            "'probability_of_low_and_medium_type_cloud_area_fraction_above_threshold: 1507636800', "
+            "'probability_of_low_type_cloud_area_fraction_above_threshold: 1507636800', "
+            "'probability_of_visibility_in_air_below_threshold: 1507636800', "
+            "'probability_of_lwe_precipitation_rate_above_threshold: 1507636800', "
+            "'probability_of_shower_condition_above_threshold: 1507640400']"
+        )
+        with self.assertRaises(ValueError, msg=msg):
+            self.plugin.check_coincidence(cubes)
+
+    def test_unmatched_periods(self):
+        """Test that an exception is raised if multiple period cubes are
+        provided that do not have matching periods."""
+
+        (shower_cube,) = self.cubes.extract(
+            "probability_of_shower_condition_above_threshold"
+        )
+        shower_cube.coord("time").bounds = [
+            self.expected_bounds[0][0] - 3600,
+            self.expected_bounds[0][1],
+        ]
+        self.cubes.append(shower_cube)
+
+        msg = (
+            "Period diagnostics with different periods have been provided as "
+            "input to the weather symbols code. Period diagnostics must all "
+            "describe the same period to be used together."
+            "['probability_of_number_of_lightning_flashes_per_unit_area_in_"
+            "vicinity_above_threshold: 3600', 'probability_of_shower_condition_"
+            "above_threshold: 7200', 'probability_of_shower_condition_above_"
+            "threshold: 7200']"
+        )
+        with self.assertRaises(ValueError, msg=msg):
+            self.plugin.check_coincidence(self.cubes)
+
+    def test_no_period_diagnostics(self):
+        """Test that the first cube in the diagnostic cube list is set as the
+        global template cube if there are no period diagnostics."""
+
+        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        expected = cubes[0]
+        self.plugin.check_coincidence(cubes)
+        self.assertEqual(self.plugin.template_cube, expected)
+
+
 class Test_create_symbol_cube(IrisTest):
 
     """Test the create_symbol_cube method ."""
@@ -1069,6 +1166,7 @@ class Test_create_symbol_cube(IrisTest):
     def test_basic(self):
         """Test cube is constructed with appropriate metadata without
         model_id_attr attribute"""
+        self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
@@ -1079,6 +1177,7 @@ class Test_create_symbol_cube(IrisTest):
     def test_model_id_attr(self):
         """Test cube is constructed with appropriate metadata with
         model_id_attr attribute"""
+        self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
@@ -1089,22 +1188,33 @@ class Test_create_symbol_cube(IrisTest):
         )
         self.assertTrue((result.data.mask).all())
 
-    def test_removes_bounds(self):
-        """Test bounds are removed from time and forecast period coordinate"""
-        self.cube.coord("time").bounds = np.array(
-            [
-                self.cube.coord("time").points[0] - 3600,
-                self.cube.coord("time").points[0],
-            ],
-            dtype=np.int64,
-        )
+    def test_bounds_preserved_if_present(self):
+        """Test bounds are used to indicate a symbol representing a period has
+        been created."""
+
+        expected_time = [
+            self.cube.coord("time").points[0] - 3600,
+            self.cube.coord("time").points[0],
+        ]
+        expected_fp = [
+            self.cube.coord("forecast_period").points[0] - 3600,
+            self.cube.coord("forecast_period").points[0],
+        ]
+
+        self.cube.coord("time").bounds = np.array(expected_time, dtype=np.int64,)
         self.cube.coord("forecast_period").bounds = np.array(
-            [
-                self.cube.coord("forecast_period").points[0] - 3600,
-                self.cube.coord("forecast_period").points[0],
-            ],
-            dtype=np.int32,
+            expected_fp, dtype=np.int32,
         )
+        self.plugin.template_cube = self.cube
+        result = self.plugin.create_symbol_cube([self.cube])
+        self.assertTrue((result.coord("time").bounds == expected_time).all())
+        self.assertTrue((result.coord("forecast_period").bounds == expected_fp).all())
+
+    def test_no_bounds_for_instantaneous_inputs(self):
+        """Test no time bounds are present on the weather symbols cube if the
+        inputs are all instantaneous."""
+
+        self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)

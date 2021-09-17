@@ -274,9 +274,14 @@ class PystepsExtrapolate(BasePlugin):
         # Import here to minimise dependencies
         with redirect_stdout():
             from pysteps.extrapolation.semilagrangian import extrapolate
-        # call pysteps extrapolation method
+        # call pysteps extrapolation method; using interp_order=0 which is
+        # nearest neighbour
         all_forecasts = extrapolate(
-            precip_rate, displacement, self.num_timesteps, allow_nonfinite_values=True
+            precip_rate,
+            displacement,
+            self.num_timesteps,
+            allow_nonfinite_values=True,
+            interp_order=0,
         )
 
         # repackage data as IMPROVER masked cubes

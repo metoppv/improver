@@ -36,6 +36,7 @@ from datetime import datetime as dt
 import cartopy.crs as ccrs
 import cf_units
 import numpy as np
+import pytest
 from iris import Constraint, coord_systems
 from iris.coord_systems import GeogCS
 from iris.coords import AuxCoord, DimCoord
@@ -220,15 +221,16 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
     def setUp(self):
         """Set up an equal area cube"""
         super().setUp()
-        self.longitude_points = [
-            -19.99999,
-            -10.0,
-            0.0,
-            10.0,
-            20.00001,
-        ]
+        self.longitude_points = np.array(
+            [-19.99999, -10.0, 0.0, 10.0, 20.00001], dtype=np.float32
+        )
+        self.longitude_points_thirds = np.array(
+            [160.0, 160.33333, 160.66667, 161.0, 161.33333], dtype=np.float32
+        )
         self.rtol = 1.0e-5
         self.expected = 10.0
+        self.expected_thirds = 0.33333
+        self.rtol_thirds = 4.0e-5
 
     def test_lat_lon_equal_spacing(self):
         """Test grid spacing outputs with lat-lon grid with tolerance"""
@@ -238,8 +240,7 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
 
     def test_lat_lon_negative_spacing(self):
         """Test negative grid spacing outputs with lat-lon grid in degrees"""
-        self.longitude_points.reverse()
-        self.lat_lon_cube.coord("longitude").points = self.longitude_points
+        self.lat_lon_cube.coord("longitude").points = self.longitude_points[::-1]
         result = calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
         self.assertAlmostEqual(result, -self.expected)
 
@@ -251,6 +252,23 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
         msg = "Coordinate longitude points are not equally spaced"
         with self.assertRaisesRegex(ValueError, msg):
             calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
+
+    def test_lat_lon_equal_spacing_recurring_decimal_spacing_fails(self):
+        """Test grid spacing with lat-lon grid with with 1/3 degree
+        intervals with tolerance of 1.0e-5"""
+        self.lat_lon_cube.coord("longitude").points = self.longitude_points_thirds
+        msg = "Coordinate longitude points are not equally spaced"
+        with self.assertRaisesRegex(ValueError, msg):
+            calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
+
+    def test_lat_lon_equal_spacing_recurring_decimal_spacing_passes(self):
+        """Test grid spacing outputs with lat-lon grid with 1/3 degree
+        intervals with tolerance of 4.0e-5"""
+        self.lat_lon_cube.coord("longitude").points = self.longitude_points_thirds
+        result = calculate_grid_spacing(
+            self.lat_lon_cube, "degrees", rtol=self.rtol_thirds
+        )
+        self.assertAlmostEqual(result, self.expected_thirds, places=5)
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
@@ -430,6 +448,7 @@ class Test_check_if_grid_is_equal_area(IrisTest):
 class Test_lat_lon_determine(Test_common_functions):
     """Test function that tests projections used in diagnostic cubes."""
 
+    @pytest.mark.xfail
     def test_projection_test(self):
         """Test identification of non-lat/lon projections."""
         src_crs = ccrs.PlateCarree()

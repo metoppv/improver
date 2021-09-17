@@ -102,7 +102,6 @@ def test_stage_v110_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@acc.skip_if_no_iris_nimrod_patch
 def test_nimrod_radarrate_basic(tmp_path):
     """Test updating a file with Nimrod-format Radarnet data"""
     kgo_dir = acc.kgo_root() / "standardise/radarnet"
@@ -114,7 +113,6 @@ def test_nimrod_radarrate_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@acc.skip_if_no_iris_nimrod_patch
 def test_nimrod_radarcoverage_basic(tmp_path):
     """Test updating a file with Nimrod-format Radarnet data"""
     kgo_dir = acc.kgo_root() / "standardise/radarnet"

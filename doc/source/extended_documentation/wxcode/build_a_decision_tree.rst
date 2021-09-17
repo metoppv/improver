@@ -3,8 +3,8 @@
 Weather symbol decision trees use diagnostic fields to diagnose a suitable
 symbol to represent the weather conditions. The tree is comprised of a series
 of interconnected decision nodes. At each node one or multiple forecast
-diagnostics are compared to predefined threshold values. The node has a success
-and failure path on to the next node, or on to a resulting weather symbol. By
+diagnostics are compared to predefined threshold values. The node has an if_true
+and if_false path on to the next node, or on to a resulting weather symbol. By
 traversing the nodes it should be possible, given the right weather conditions,
 to arrive at any of the weather symbols.
 
@@ -22,7 +22,7 @@ flashes in an hour exceeding 0.0. The second threshold is the probability of
 exceeding (in this case) this diagnostic threshold. In this first node it's a
 probability of 0.3 (30%). So the node overall states that if there is an equal
 or greater than 30% probability of any lightning flashes in the hour being
-forecast, proceed to the succeed node, else move to the fail node.
+forecast, proceed to the if_true node, else move to the if_false node.
 
 **Encoding a decision tree**
 
@@ -30,9 +30,9 @@ The first node above is encoded as follows::
 
   {
     "lightning": {
-        "succeed": "lightning_cloud",
-        "fail": "heavy_precipitation",
-        "diagnostic_missing_action": "fail",
+        "if_true": "lightning_cloud",
+        "if_false": "heavy_precipitation",
+        "if_diagnostic_missing": "if_false",
         "probability_thresholds": [0.3],
         "threshold_condition": ">=",
         "condition_combination": "",
@@ -45,19 +45,19 @@ The first node above is encoded as follows::
   }
 
 The key at the first level, "lightning" in this case, names the node so that it
-can be targeted as a succeed or fail destination from other nodes. The dictionary
+can be targeted as an if_true or if_false destination from other nodes. The dictionary
 accessed with this key contains the essentials that make the node function.
 
-  - **succeed** (str or int): The next node to test if the condition in this
+  - **if_true** (str or int): The next node to test if the condition in this
     node is true. Alternatively this may be an integer number that identifies
     which weather symbol has been reached; this is for the leaf (or final)
     nodes in the tree.
-  - **fail** (str or int): The next node to test if the condition in this node
+  - **if_false** (str or int): The next node to test if the condition in this node
     is false. Alternatively this may be an integer number that identifies which
     weather symbol has been reached; this is for the leaf (or final) nodes in
     the tree.
-  - **diagnostic_missing_action** (str, optional): If the expected
-    diagnostic is not provided, should the tree proceed to the succeed or fail
+  - **if_diagnostic_missing** (str, optional): If the expected
+    diagnostic is not provided, should the tree proceed to the if_true or if_false
     node. This can be useful if the tree is to be applied to output from
     different models, some of which do not provide all the diagnostics that might
     be desirable.
@@ -94,8 +94,8 @@ Manipulation of the diagnostics is possible using the decision tree configuratio
 to enable more complex comparisons. For example::
 
   "heavy_rain_or_sleet_shower": {
-      "succeed": 14,
-      "fail": 17,
+      "if_true": 14,
+      "if_false": 17,
       "probability_thresholds": [0.0],
       "threshold_condition": "<",
       "condition_combination": "",

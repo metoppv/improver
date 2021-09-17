@@ -1059,7 +1059,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         if isinstance(reliability_table, iris.cube.Cube):
             extracted = reliability_table.extract(constr)
         else:
-            extracted = reliability_table.extract(constr, strict=True)
+            extracted = reliability_table.extract_cube(constr)
         if not extracted:
             raise ValueError(
                 "No reliability table found to match threshold "

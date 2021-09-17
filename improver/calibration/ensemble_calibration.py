@@ -1361,8 +1361,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
         location_parameter = (
-            self.coefficients_cubelist.extract_strict("emos_coefficient_alpha").data
-            + self.coefficients_cubelist.extract_strict("emos_coefficient_beta").data
+            self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data
+            + self.coefficients_cubelist.extract_cube("emos_coefficient_beta").data
             * forecast_predictor.data
         ).astype(np.float32)
 
@@ -1384,14 +1384,14 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # Calculate location parameter = a + b1*X1 .... + bn*Xn, where X is the
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
-        beta_cube = self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
+        beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
         beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
         beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
 
         a_and_b = np.hstack(
             (
                 np.atleast_2d(
-                    self.coefficients_cubelist.extract_strict(
+                    self.coefficients_cubelist.extract_cube(
                         "emos_coefficient_alpha"
                     ).data
                 ).T,
@@ -1431,10 +1431,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
         scale_parameter = (
-            self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
-            * self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
-            + self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
-            * self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
+            self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
+            * self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
+            + self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
+            * self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
             * forecast_var.data
         ).astype(np.float32)
         return scale_parameter

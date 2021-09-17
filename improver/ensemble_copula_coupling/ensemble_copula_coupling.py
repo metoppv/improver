@@ -846,9 +846,13 @@ class ConvertLocationAndScaleParametersToPercentiles(
         scale_data = np.ma.filled(scale_parameter.data, 1).flatten()
 
         # Convert percentiles into fractions.
-        percentiles = np.array([x / 100.0 for x in percentiles], dtype=np.float32)
+        percentiles_as_fractions = np.array(
+            [x / 100.0 for x in percentiles], dtype=np.float32
+        )
 
-        result = np.zeros((len(percentiles), location_data.shape[0]), dtype=np.float32)
+        result = np.zeros(
+            (len(percentiles_as_fractions), location_data.shape[0]), dtype=np.float32
+        )
 
         self._rescale_shape_parameters(location_data, np.sqrt(scale_data))
 
@@ -859,7 +863,7 @@ class ConvertLocationAndScaleParametersToPercentiles(
         # Loop over percentiles, and use the distribution as the
         # "percentile_method" with the location and scale parameter to
         # calculate the values at each percentile.
-        for index, percentile in enumerate(percentiles):
+        for index, percentile in enumerate(percentiles_as_fractions):
             percentile_list = np.repeat(percentile, len(location_data))
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
@@ -877,9 +881,6 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 )
                 raise ValueError(msg)
 
-        # Convert percentiles back into percentages.
-        percentiles = [x * 100.0 for x in percentiles]
-
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         result = result.reshape((len(percentiles),) + location_parameter.data.shape)
@@ -889,6 +890,8 @@ class ConvertLocationAndScaleParametersToPercentiles(
                 prob_coord = template_cube.coord(prob_coord_name)
                 template_slice = next(template_cube.slices_over(prob_coord))
                 template_slice.remove_coord(prob_coord)
+            elif template_cube.coords(prob_coord_name, dim_coords=False):
+                template_slice = template_cube
 
         percentile_cube = create_cube_with_percentiles(
             percentiles, template_slice, result

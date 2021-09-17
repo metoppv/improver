@@ -7,7 +7,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [py36_iris22, py37_iris24]
+        env: [py37_iris30, py38_iris30]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -54,7 +54,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [py37_iris24]
+        env: [py37_iris30]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -97,7 +97,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [py36_iris22, py37_iris24]
+        env: [py37_iris30, py38_iris30]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -135,7 +135,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [py37_iris24]
+        env: [py37_iris30]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2

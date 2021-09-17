@@ -1,29 +1,29 @@
 # Use this file to create a conda environment using:
-# conda env create --file envs/environment_py37_iris24.yml
+# conda env create --file envs/environment_py37_iris30.yml
 
-name: improver_py37_iris24
+name: improver_py37_iris30
 channels:
   - conda-forge
 dependencies:
   - python=3.7
   # Required
   - cartopy
-  - cftime=1.0.1
-  - cf_units
+  - cftime<1.5
+  - cf-units=2.1.5
   - clize
   - dask
-  - iris=2.4
+  - iris=3.0
   - netCDF4
   - numpy<1.21
   - python-dateutil
   - python-stratify
   - pytz=2020.5
-  - scipy=1.3
+  - scipy=1.6
   - sigtools
   - sphinx
   # Optional
   - numba
-  - pysteps=1.3.2
+  - pysteps=1.4.1
   - statsmodels
   - timezonefinder=4.1.0
   # Development
@@ -38,5 +38,6 @@ dependencies:
   - mypy
   - pytest
   - pytest-cov
+  - pytest-xdist
   - safety
   - sphinx-autodoc-typehints

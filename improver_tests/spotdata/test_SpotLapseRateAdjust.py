@@ -34,6 +34,7 @@ import unittest
 
 import iris
 import numpy as np
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.constants import DALR
@@ -41,12 +42,15 @@ from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
     construct_scalar_time_coords,
     construct_yx_coords,
+    set_up_probability_cube,
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
+from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_SpotLapseRateAdjust(IrisTest):
@@ -87,7 +91,13 @@ class Test_SpotLapseRateAdjust(IrisTest):
         lapse_rate_data[1, 1] = 2 * DALR
         lapse_rate_data[2, 0] = 2 * DALR
         self.lapse_rate_cube = set_up_variable_cube(
-            lapse_rate_data, name="lapse_rate", units="K m-1", spatial_grid="equalarea"
+            lapse_rate_data,
+            name="air_temperature_lapse_rate",
+            units="K m-1",
+            spatial_grid="equalarea",
+        )
+        self.lapse_rate_cube = add_coordinate(
+            incube=self.lapse_rate_cube, coord_points=[1.5], coord_name="height"
         )
         diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
 
@@ -125,6 +135,7 @@ class Test_SpotLapseRateAdjust(IrisTest):
         self.neighbour_cube.attributes["model_grid_hash"] = diagnostic_cube_hash
 
         (time,) = iris_time_to_datetime(self.lapse_rate_cube.coord("time"))
+
         (frt,) = iris_time_to_datetime(
             self.lapse_rate_cube.coord("forecast_reference_time")
         )
@@ -146,13 +157,19 @@ class Test_SpotLapseRateAdjust(IrisTest):
             wmo_ids,
             scalar_coords=time_coords,
         )
+        self.spot_temperature_nearest = add_coordinate(
+            incube=self.spot_temperature_nearest,
+            coord_points=[1.5],
+            coord_name="height",
+        )
+
         self.spot_temperature_nearest.attributes[
             "model_grid_hash"
         ] = diagnostic_cube_hash
 
         # This temperature cube is set up with the spot sites having obtained
         # their temperature values from the nearest minimum vertical
-        # displacment grid sites. The only difference here is for site 0, which
+        # displacement grid sites. The only difference here is for site 0, which
         # now gets its temperature from Bb (see doc-string above).
         temperatures_mindz = np.array([270, 270, 280])
         self.spot_temperature_mindz = build_spotdata_cube(
@@ -164,6 +181,9 @@ class Test_SpotLapseRateAdjust(IrisTest):
             longitudes,
             wmo_ids,
             scalar_coords=time_coords,
+        )
+        self.spot_temperature_mindz = add_coordinate(
+            incube=self.spot_temperature_mindz, coord_points=[1.5], coord_name="height"
         )
         self.spot_temperature_mindz.attributes["model_grid_hash"] = diagnostic_cube_hash
 
@@ -187,12 +207,21 @@ class Test_process(Test_SpotLapseRateAdjust):
         self.assertEqual(result.coords(), self.spot_temperature_nearest.coords())
 
     def test_nearest_neighbour_method(self):
-        """Test that the plugin modifies temperatures as expected using the
-        vertical displacements taken from the nearest neighbour method in the
-        neighbour cube."""
+        """Test that the plugin modifies temperatures as expected for both air
+        temperature and feels like temperature cubes, using the vertical
+        displacements taken from the nearest neighbour method in the neighbour cube."""
+
         plugin = SpotLapseRateAdjust()
         expected = np.array([280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
 
+        # Air temperature cube
+        result = plugin(
+            self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+        )
+        self.assertArrayEqual(result.data, expected)
+
+        # Feels like temperature cube
+        self.spot_temperature_nearest.rename("feels_like_temperature")
         result = plugin(
             self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
         )
@@ -244,6 +273,112 @@ class Test_process(Test_SpotLapseRateAdjust):
             self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
         )
         self.assertArrayEqual(result.data, expected)
+
+    def test_probability_cube(self):
+        """Ensure that the plugin exits with value error if the spot data cube
+        is in probability space. """
+
+        diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
+        data = np.ones((3, 3, 3), dtype=np.float32)
+        threshold_points = np.array([276, 277, 278], dtype=np.float32)
+        probability_cube = set_up_probability_cube(
+            data, threshold_points, spp__relative_to_threshold="above"
+        )
+
+        probability_cube.attributes["model_grid_hash"] = diagnostic_cube_hash
+
+        plugin = SpotLapseRateAdjust()
+        msg = (
+            "Input cube has a probability coordinate which cannot be lapse "
+            "rate adjusted. Input data should be in percentile or "
+            "deterministic space only."
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(probability_cube, self.neighbour_cube, self.lapse_rate_cube)
+
+    def test_different_dimensions(self):
+        """Test that the lapse rate cube can be broadcast to the same dimensions
+        as the spot data cube."""
+
+        data = np.array([25, 50, 75], dtype=np.float32)
+        spot_temperature_new_coord = add_coordinate(
+            self.spot_temperature_nearest, data, "percentile", "%"
+        )
+        plugin = SpotLapseRateAdjust()
+        result = plugin(
+            spot_temperature_new_coord, self.neighbour_cube, self.lapse_rate_cube
+        )
+        expected = np.array([280 + (2 * DALR), 270, 280 - DALR]).astype(np.float32)
+        for slice in result.data:
+            self.assertArrayEqual(slice, expected)
+
+    def test_diagnostic_name(self):
+        """Test that appropriate error is raised when the input cube has a
+        diagnostic name that is not air temperature or feels like temperature."""
+
+        self.spot_temperature_nearest.rename("something")
+        plugin = SpotLapseRateAdjust()
+        msg = (
+            "The diagnostic being processed is not air temperature or feels "
+            "like temperature and therefore cannot be adjusted."
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(
+                self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+            )
+
+    def test_lapse_rate_name(self):
+        """Test that appropriate error is called when the input lapse rate cube
+        has a diagnostic name that is not air temperature lapse rate."""
+
+        self.lapse_rate_cube.rename("something")
+        plugin = SpotLapseRateAdjust()
+        msg = (
+            "A cube has been provided as a lapse rate cube but does "
+            "not have the expected name air_temperature_lapse_rate: "
+            "{}".format(self.lapse_rate_cube.name())
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(
+                self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+            )
+
+    def test_height_coord(self):
+        """Test that the appropriate error is raised when the input cube has
+        no single valued height coordinate."""
+
+        self.lapse_rate_cube.remove_coord("height")
+        plugin = SpotLapseRateAdjust()
+        msg = (
+            "Lapse rate cube does not contain a single valued height "
+            "coordinate. This is required to ensure it is applied to "
+            "equivalent temperature data."
+        )
+
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            plugin(
+                self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+            )
+
+    @ManageWarnings(record=True)
+    def test_height_coords_match(self, warning_list=None):
+        """Test the the appropriate error is called when the input temperature
+        cube and the lapse rate cube have differing height coordinates"""
+
+        self.spot_temperature_nearest.coord("height").points = [4]
+
+        plugin = SpotLapseRateAdjust()
+        msg = (
+            "A lapse rate cube was provided, but the height of the "
+            "temperature data does not match that of the data used "
+            "to calculate the lapse rates. As such the temperatures "
+            "were not adjusted with the lapse rates."
+        )
+        plugin(self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube)
+        self.assertTrue(any(msg in str(warning) for warning in warning_list))
 
 
 if __name__ == "__main__":
