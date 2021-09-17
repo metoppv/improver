@@ -59,7 +59,7 @@ from improver.wxcode.utilities import (
     weather_code_attributes,
 )
 
-from . import wxcode_decision_tree, set_up_wxcube
+from . import set_up_wxcube, wxcode_decision_tree
 
 
 class Test_wx_dict(IrisTest):

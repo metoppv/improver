@@ -30,12 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for ModalWeatherCode class."""
 
-import pytest
 from calendar import timegm
-from datetime import timedelta
 from datetime import datetime as dt
-from iris.cube import Cube
+from datetime import timedelta
+
 import numpy as np
+import pytest
+from iris.cube import Cube
+
 from improver.wxcode.modal_code import ModalWeatherCode
 
 from . import set_up_wxcube
@@ -110,13 +112,16 @@ def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the
     representative symbol has been calculated."""
+
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
     result = ModalWeatherCode()(wxcode_series)
     expected_time = START_TIME + timedelta(hours=11)
-    expected_bounds = [START_TIME - timedelta(hours=1),
-                       START_TIME + timedelta(hours=11)]
+    expected_bounds = [
+        START_TIME - timedelta(hours=1),
+        START_TIME + timedelta(hours=11),
+    ]
 
     assert result.coord("time").points[0] == as_utc_timestamp(expected_time)
     assert result.coord("time").bounds[0][0] == as_utc_timestamp(expected_bounds[0])

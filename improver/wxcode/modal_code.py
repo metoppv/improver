@@ -40,6 +40,7 @@ from scipy import stats
 
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
+
 from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 
 CODE_MAX = 100
@@ -135,7 +136,9 @@ class ModalWeatherCode(BasePlugin):
         data = np.moveaxis(data, [axis], [0])
         minimum_significant_count = 0.1 * data.shape[0]
         mode_result, counts = stats.mode(CODE_MAX - data, axis=0)
-        mode_result[counts < minimum_significant_count] = CODE_MAX - UNSET_CODE_INDICATOR
+        mode_result[counts < minimum_significant_count] = (
+            CODE_MAX - UNSET_CODE_INDICATOR
+        )
         return CODE_MAX - np.squeeze(mode_result)
 
     def process(self, cubes: Union[CubeList, List[Cube]]):
@@ -161,7 +164,7 @@ class ModalWeatherCode(BasePlugin):
 
         mode_aggregator = Aggregator("mode", self.mode_aggregator)
         result = cube.collapsed("time", mode_aggregator)
-        result.coord('time').points = result.coord('time').bounds[0][-1]
+        result.coord("time").points = result.coord("time").bounds[0][-1]
 
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == UNSET_CODE_INDICATOR).any():

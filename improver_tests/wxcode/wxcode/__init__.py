@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for Unit tests for Weather Symbols"""
 
-from typing import Any, Dict
 import datetime
+from typing import Any, Dict
+
 import numpy as np
+
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
