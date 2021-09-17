@@ -79,31 +79,33 @@ def convert_cube_data_to_2d(
 
 
 def flatten_ignoring_masked_data(
-    data_array: Union[MaskedArray, ndarray], num_of_leading_dimensions_to_preserve: Optional[int] = None
+    data_array: Union[MaskedArray, ndarray],
+    num_of_leading_dimensions_to_preserve: Optional[int] = 0,
 ) -> ndarray:
     """
     Flatten an array, selecting only valid data if the array is masked. There
-    is also the option to reshape the resulting array so it has the same
-    leading dimension as the input array, but the other dimensions of the
-    array are flattened. It is assumed that each of the slices
-    along the leading dimension are masked in the same way. This functionality
-    is used in EstimateCoefficientsForEnsembleCalibration when realizations
-    are used as predictors.
+    is also the option to reshape the resulting array so that the requested
+    number of leading dimensions are flattened along the first dimension with
+    other non-leading dimensions flattened along the second dimension.
+    It is assumed that each of the slices along the leading dimension are
+    masked in the same way. This functionality is used in
+    EstimateCoefficientsForEnsembleCalibration when realizations are used
+    as predictors.
 
     Args:
         data_array:
             An array or masked array to be flattened. If it is masked and the
             leading dimension is preserved the mask must be the same for every
             slice along the leading dimension.
-        preserve_leading_dimension:
-            Default False.
-            If True the flattened array is reshaped so it has the same leading
-            dimension as the input array. If False the returned array is 1D.
+        num_of_leading_dimensions_to_preserve:
+            Default zero. A positive non-zero integer represents the number
+            of leading dimensions to flatten into the first dimension with
+            other non-leading dimensions flattened along the second dimension.
+            If this is zero, a 1D flattened array is returned.
 
     Returns:
         A flattened array containing only valid data. Either 1D or, if
-        preserving the leading dimension 2D. In the latter case the
-        leading dimension is the same as the input data_array.
+        preserving the leading dimensions, 2D.
 
     Raises:
         ValueError: If preserving the leading dimension and the mask on the
@@ -129,17 +131,10 @@ def flatten_ignoring_masked_data(
     else:
         result = data_array.flatten()
     if num_of_leading_dimensions_to_preserve:
-        #final_shape = (np.prod(data_array.shape[:num_of_leading_dimensions_to_preserve]), -1)
-
-        if num_of_leading_dimensions_to_preserve == 1:
-            # Reshape back to give the same leading dimension in the array. The 2nd
-            # dimension is inferred through the use of -1.
-            final_shape = (data_array.shape[0], -1)
-        elif num_of_leading_dimensions_to_preserve == 2:
-            final_shape = (data_array.shape[0] * data_array.shape[1], -1)
-        else:
-            msg = ""
-            raise ValueError(msg)
+        final_shape = (
+            np.prod(data_array.shape[:num_of_leading_dimensions_to_preserve]),
+            -1,
+        )
         result = result.reshape(final_shape)
     return result
 
@@ -362,8 +357,11 @@ def check_forecast_consistency(forecasts: Cube) -> None:
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
 
 
-def reshape_forecast_predictors(forecast_predictors: CubeList, constr: Optional[iris.Constraint] = None,
-        func: Optional[Callable] = lambda x: x) -> List[ndarray]:
+def reshape_forecast_predictors(
+    forecast_predictors: CubeList,
+    constr: Optional[iris.Constraint] = None,
+    func: Optional[Callable] = lambda x: x,
+) -> List[ndarray]:
     """Reshape forecast predictors without a time or realization dimension
     by broadcasting to the required shape.
 
@@ -378,8 +376,16 @@ def reshape_forecast_predictors(forecast_predictors: CubeList, constr: Optional[
        have been reshaped to account for the time and realization dimensions.
     """
     reshaped_forecast_predictors = []
-    num_realizations = [len(fp_cube.coord("realization").points) for fp_cube in forecast_predictors if fp_cube.coords("realization", dim_coords=True)]
-    num_times = [len(fp_cube.coord("time").points) for fp_cube in forecast_predictors if fp_cube.coords("time", dim_coords=True)]
+    num_realizations = [
+        len(fp_cube.coord("realization").points)
+        for fp_cube in forecast_predictors
+        if fp_cube.coords("realization", dim_coords=True)
+    ]
+    num_times = [
+        len(fp_cube.coord("time").points)
+        for fp_cube in forecast_predictors
+        if fp_cube.coords("time", dim_coords=True)
+    ]
     for fp_cube in forecast_predictors:
         if constr:
             fp_cube = fp_cube.extract(constr)
@@ -387,10 +393,10 @@ def reshape_forecast_predictors(forecast_predictors: CubeList, constr: Optional[
         fp_data = fp_cube.data
         if not fp_cube.coords("time"):
             # Broadcast static predictors to the required shape.
-            fp_data = np.broadcast_to(fp_data, tuple(num_times)+fp_data.shape)
+            fp_data = np.broadcast_to(fp_data, tuple(num_times) + fp_data.shape)
 
         if not fp_cube.coords("realization"):
-            fp_data = np.broadcast_to(fp_data, tuple(num_realizations)+fp_data.shape)
+            fp_data = np.broadcast_to(fp_data, tuple(num_realizations) + fp_data.shape)
 
         reshaped_forecast_predictors.append(func(fp_data))
     return reshaped_forecast_predictors
