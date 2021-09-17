@@ -35,14 +35,13 @@ class.
 
 """
 import datetime
-import importlib
 import unittest
 from functools import partial
 
 import iris
+import numpy as np
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
-import numpy as np
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import (
@@ -54,7 +53,6 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
-
 
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
@@ -97,32 +95,34 @@ class SetupExpectedCoefficients(IrisTest):
             [-0.6989, -0.4923, 0.3968, 0.7732, 0.0001, 1.0787], dtype=np.float32
         )
         self.expected_mean_pred_norm_alt = np.array(
-            [0.9980, 1., 0.,  0., 0.6976], dtype=np.float32
+            [0.9980, 1.0, 0.0, 0.0, 0.6976], dtype=np.float32
         )
         self.expected_realizations_norm_alt = np.array(
-            [1.3056, 0.6933, 0.7199, -0., 0., 0.0003, 0.0929], dtype=np.float32
+            [1.3056, 0.6933, 0.7199, -0.0, 0.0, 0.0003, 0.0929], dtype=np.float32
         )
 
         self.expected_mean_pred_each_grid_point = {
             "emos_coefficient_alpha": np.array(
                 [
-[ 0.0827, -0.0558, -0.9295],
-       [-0.8533, -0.7933, -0.7334],
-       [-0.474 , -0.7399, -0.7666],
+                    [0.0827, -0.0558, -0.9295],
+                    [-0.8533, -0.7933, -0.7334],
+                    [-0.474, -0.7399, -0.7666],
                 ]
             ),
             "emos_coefficient_beta": np.array(
-                [[
-                    [0.9999, 1.0001, 1.0006],
-        [1.0008, 1.0003, 1.    ],
-        [1.0001, 1.0006, 1.    ],
-                    ]]
+                [
+                    [
+                        [0.9999, 1.0001, 1.0006],
+                        [1.0008, 1.0003, 1.0],
+                        [1.0001, 1.0006, 1.0],
+                    ]
+                ]
             ),
             "emos_coefficient_gamma": np.array(
                 [
-                    [ 0.0009,  0.001 ,  0.0011],
-       [-0.0003, -0.0001,  0.    ],
-       [-0.0001, -0.0002, -0.    ],
+                    [0.0009, 0.001, 0.0011],
+                    [-0.0003, -0.0001, 0.0],
+                    [-0.0001, -0.0002, -0.0],
                 ]
             ),
             "emos_coefficient_delta": np.array(
@@ -138,11 +138,13 @@ class SetupExpectedCoefficients(IrisTest):
                 ]
             ),
             "emos_coefficient_beta": np.array(
-                [[
-                    [1.0002, 0.9999, 0.9972],
-                    [0.9977, 0.9975, 0.9973],
-                    [0.9984, 0.9979, 0.9972],
-                ]]
+                [
+                    [
+                        [1.0002, 0.9999, 0.9972],
+                        [0.9977, 0.9975, 0.9973],
+                        [0.9984, 0.9979, 0.9972],
+                    ]
+                ]
             ),
             "emos_coefficient_gamma": np.array(
                 [
@@ -164,23 +166,25 @@ class SetupExpectedCoefficients(IrisTest):
                 ]
             ),
             "emos_coefficient_beta": np.array(
-                [[
+                [
                     [
-                        [0.556, 0.5816, 0.6072],
-                        [0.507, 0.5596, 0.5519],
-                        [0.5918, 0.617, 0.5477],
-                    ],
-                    [
-                        [0.5584, 0.5818, 0.5585],
-                        [0.5751, 0.609, 0.6085],
-                        [0.5898, 0.5836, 0.5979],
-                    ],
-                    [
-                        [0.6156, 0.5685, 0.5627],
-                        [0.6401, 0.5598, 0.5678],
-                        [0.5481, 0.526, 0.5829],
-                    ],
-                ]]
+                        [
+                            [0.556, 0.5816, 0.6072],
+                            [0.507, 0.5596, 0.5519],
+                            [0.5918, 0.617, 0.5477],
+                        ],
+                        [
+                            [0.5584, 0.5818, 0.5585],
+                            [0.5751, 0.609, 0.6085],
+                            [0.5898, 0.5836, 0.5979],
+                        ],
+                        [
+                            [0.6156, 0.5685, 0.5627],
+                            [0.6401, 0.5598, 0.5678],
+                            [0.5481, 0.526, 0.5829],
+                        ],
+                    ]
+                ]
             ),
             "emos_coefficient_gamma": np.array(
                 [
@@ -206,16 +210,23 @@ class SetupExpectedCoefficients(IrisTest):
         self.expected_mean_pred_each_site_alt = {
             "emos_coefficient_alpha": np.array([0.0092, 0.0023, 0.0011, 0.0006]),
             "emos_coefficient_beta": np.array(
-                [[1., 1., 1., 1.], [0.0987, 0.0497, 0.0334, 0.0249]]
+                [[1.0, 1.0, 1.0, 1.0], [0.0987, 0.0497, 0.0334, 0.0249]]
             ),
-            "emos_coefficient_gamma": np.array([0., 0., 0., 0.]),
+            "emos_coefficient_gamma": np.array([0.0, 0.0, 0.0, 0.0]),
             "emos_coefficient_delta": np.array([0.9906, 0.5446, 0.5805, 0.6700]),
         }
         self.expected_realizations_each_site_alt = {
             "emos_coefficient_alpha": np.array([0.0045, 0.0011, 0.0005, 0.0003]),
             "emos_coefficient_beta": np.array(
-                [[[0.7506, 0.7514, 0.7526, 0.7505], [0.6633, 0.6625, 0.6611, 0.6636]],
-                 [[0.0414, 0.0207, 0.0138, 0.0104], [0.0464, 0.0233, 0.0156, 0.0116]],
+                [
+                    [
+                        [0.7506, 0.7514, 0.7526, 0.7505],
+                        [0.6633, 0.6625, 0.6611, 0.6636],
+                    ],
+                    [
+                        [0.0414, 0.0207, 0.0138, 0.0104],
+                        [0.0464, 0.0233, 0.0156, 0.0116],
+                    ],
                 ]
             ),
             "emos_coefficient_gamma": np.array([0.0004, 0.0004, 0.0004, 0.0004]),
@@ -430,7 +441,7 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         result = plugin.create_coefficients_cubelist(
             self.expected_mean_pred_each_site.values(),
             self.historic_forecast_spot_cube,
-            CubeList([self.historic_forecast_spot_cube])
+            CubeList([self.historic_forecast_spot_cube]),
         )
 
         self.assertEqual(len(result), 4)
@@ -442,15 +453,20 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
                 cube.coord("forecast_period"), self.expected_fp,
             )
             self.assertAlmostEqual(
-                cube.coord("latitude"), self.historic_forecast_spot_cube.coord("latitude")
+                cube.coord("latitude"),
+                self.historic_forecast_spot_cube.coord("latitude"),
             )
             self.assertAlmostEqual(
-                cube.coord("longitude"), self.historic_forecast_spot_cube.coord("longitude")
+                cube.coord("longitude"),
+                self.historic_forecast_spot_cube.coord("longitude"),
             )
             self.assertAlmostEqual(
-                cube.coord("altitude"), self.historic_forecast_spot_cube.coord("altitude")
+                cube.coord("altitude"),
+                self.historic_forecast_spot_cube.coord("altitude"),
             )
-            self.assertAlmostEqual(cube.coord("wmo_id"), self.historic_forecast_spot_cube.coord("wmo_id"))
+            self.assertAlmostEqual(
+                cube.coord("wmo_id"), self.historic_forecast_spot_cube.coord("wmo_id")
+            )
             self.assertDictEqual(cube.attributes, self.attributes)
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
@@ -460,8 +476,14 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         """Test that the expected coefficient cube, with the expected coefficients
         and metadata, is returned when the ensemble mean is used as the predictor
         when estimating coefficients for each site independently."""
-        expected_predictor_index_coord = DimCoord(np.array([0, 1], np.float32), units="1", long_name="predictor_index")
-        expected_predictor_name_coord = AuxCoord(np.array(['air_temperature', 'altitude']), units="no_unit", long_name="predictor_name")
+        expected_predictor_index_coord = DimCoord(
+            np.array([0, 1], np.float32), units="1", long_name="predictor_index"
+        )
+        expected_predictor_name_coord = AuxCoord(
+            np.array(["air_temperature", "altitude"]),
+            units="no_unit",
+            long_name="predictor_name",
+        )
 
         plugin = Plugin(
             distribution=self.distribution,
@@ -472,7 +494,7 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         result = plugin.create_coefficients_cubelist(
             list(self.expected_mean_pred_each_site_alt.values()),
             self.historic_forecast_spot_cube,
-            CubeList([self.historic_forecast_spot_cube, self.spot_altitude_cube])
+            CubeList([self.historic_forecast_spot_cube, self.spot_altitude_cube]),
         )
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
@@ -647,7 +669,11 @@ class Test_compute_initial_guess(IrisTest):
         )
 
         result = plugin.compute_initial_guess(
-            self.truth.data, np.expand_dims(self.hist_fcast_pred_mean.data, axis=0), self.predictor, self.no_of_forecast_predictors, None,
+            self.truth.data,
+            np.expand_dims(self.hist_fcast_pred_mean.data, axis=0),
+            self.predictor,
+            self.no_of_forecast_predictors,
+            None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -699,7 +725,11 @@ class Test_compute_initial_guess(IrisTest):
             desired_units=self.desired_units,
         )
         result = plugin.compute_initial_guess(
-            self.truth.data, np.expand_dims(self.hist_fcast_pred_mean.data, 0), self.predictor, self.no_of_forecast_predictors, None,
+            self.truth.data,
+            np.expand_dims(self.hist_fcast_pred_mean.data, 0),
+            self.predictor,
+            self.no_of_forecast_predictors,
+            None,
         )
 
         self.assertArrayAlmostEqual(
@@ -811,12 +841,14 @@ class Test_compute_initial_guess(IrisTest):
         )
         no_of_forecast_predictors = 2
         result = plugin.compute_initial_guess(
-            self.truth.data, np.expand_dims(self.hist_fcast_pred_mean.data, 0), self.predictor, no_of_forecast_predictors, None,
+            self.truth.data,
+            np.expand_dims(self.hist_fcast_pred_mean.data, 0),
+            self.predictor,
+            no_of_forecast_predictors,
+            None,
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(
-            result, self.expected_multiple_predictors
-        )
+        self.assertArrayAlmostEqual(result, self.expected_multiple_predictors)
 
 
 class Test_mask_cube(SetupCubes):
@@ -1205,7 +1237,7 @@ class Test_process(
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
                 [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()]
+                expected_dim_coords[cube.name()],
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1224,7 +1256,9 @@ class Test_process(
         replacements = [0.0037, 1.0002, 0.0007, 0.0]
         for index, key in enumerate(self.expected_mean_pred_each_grid_point.keys()):
             if "beta" in key:
-                self.expected_mean_pred_each_grid_point[key][0][0][0] = replacements[index]
+                self.expected_mean_pred_each_grid_point[key][0][0][0] = replacements[
+                    index
+                ]
             else:
                 self.expected_mean_pred_each_grid_point[key][0][0] = replacements[index]
 
@@ -1239,7 +1273,7 @@ class Test_process(
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
                 [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()]
+                expected_dim_coords[cube.name()],
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1261,7 +1295,8 @@ class Test_process(
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords[cube.name()],
+                [c.name() for c in cube.coords(dim_coords=True)],
+                expected_dim_coords[cube.name()],
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1282,8 +1317,7 @@ class Test_process(
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data,
-                self.expected_realizations_each_site[cube.name()],
+                cube.data, self.expected_realizations_each_site[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
@@ -1338,7 +1372,12 @@ class Test_process(
         when using the realizations as the predictor."""
         expected_dim_coords = {
             "emos_coefficient_alpha": ["latitude", "longitude"],
-            "emos_coefficient_beta": ["predictor_index", "realization", "latitude", "longitude"],
+            "emos_coefficient_beta": [
+                "predictor_index",
+                "realization",
+                "latitude",
+                "longitude",
+            ],
             "emos_coefficient_gamma": ["latitude", "longitude"],
             "emos_coefficient_delta": ["latitude", "longitude"],
         }
@@ -1368,8 +1407,9 @@ class Test_process(
         when using an additional static predictor."""
         plugin = self.plugin(self.distribution)
         result = plugin.process(
-            self.historic_forecast_spot_cube, self.truth_spot_cube,
-            CubeList([self.spot_altitude_cube])
+            self.historic_forecast_spot_cube,
+            self.truth_spot_cube,
+            CubeList([self.spot_altitude_cube]),
         )
         self.assertEMOSCoefficientsAlmostEqual(
             np.hstack([cube.data for cube in result]), self.expected_mean_pred_norm_alt,
@@ -1384,11 +1424,13 @@ class Test_process(
         when using an additional static predictor."""
         plugin = self.plugin(self.distribution, predictor="realizations")
         result = plugin.process(
-            self.historic_forecast_spot_cube, self.truth_spot_cube,
-            CubeList([self.spot_altitude_cube])
+            self.historic_forecast_spot_cube,
+            self.truth_spot_cube,
+            CubeList([self.spot_altitude_cube]),
         )
         self.assertEMOSCoefficientsAlmostEqual(
-            np.hstack([cube.data.flatten() for cube in result]), self.expected_realizations_norm_alt,
+            np.hstack([cube.data.flatten() for cube in result]),
+            self.expected_realizations_norm_alt,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1406,14 +1448,14 @@ class Test_process(
         }
         plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(
-            self.historic_forecast_spot_cube, self.truth_spot_cube,
-            CubeList([self.spot_altitude_cube])
+            self.historic_forecast_spot_cube,
+            self.truth_spot_cube,
+            CubeList([self.spot_altitude_cube]),
         )
 
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data,
-                self.expected_mean_pred_each_site_alt[cube.name()],
+                cube.data, self.expected_mean_pred_each_site_alt[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
@@ -1431,16 +1473,18 @@ class Test_process(
             "emos_coefficient_gamma": ["spot_index"],
             "emos_coefficient_delta": ["spot_index"],
         }
-        plugin = self.plugin(self.distribution, point_by_point=True, predictor="realizations")
+        plugin = self.plugin(
+            self.distribution, point_by_point=True, predictor="realizations"
+        )
         result = plugin.process(
-            self.historic_forecast_spot_cube, self.truth_spot_cube,
-            CubeList([self.spot_altitude_cube])
+            self.historic_forecast_spot_cube,
+            self.truth_spot_cube,
+            CubeList([self.spot_altitude_cube]),
         )
 
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data,
-                self.expected_realizations_each_site_alt[cube.name()],
+                cube.data, self.expected_realizations_each_site_alt[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
@@ -1455,8 +1499,9 @@ class Test_process(
         msg = "Only static additional predictors are supported."
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(
-                self.historic_temperature_forecast_cube, self.temperature_truth_cube,
-                CubeList([self.historic_wind_speed_forecast_cube])
+                self.historic_temperature_forecast_cube,
+                self.temperature_truth_cube,
+                CubeList([self.historic_wind_speed_forecast_cube]),
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

@@ -41,6 +41,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
+import statsmodels.api as sm
 from cf_units import Unit
 from iris.coords import Coord
 from iris.cube import Cube, CubeList
@@ -48,7 +49,6 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from scipy.optimize import minimize
 from scipy.stats import norm
-import statsmodels.api as sm
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
@@ -243,19 +243,20 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         initial_guess = np.array(initial_guess, dtype=np.float64)
         for index in range(len(forecast_predictors)):
-            forecast_predictors[index].data = forecast_predictors[index].data.astype(np.float64)
+            forecast_predictors[index].data = forecast_predictors[index].data.astype(
+                np.float64
+            )
         forecast_var.data = forecast_var.data.astype(np.float64)
         truth.data = truth.data.astype(np.float64)
         sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-        return (
-            initial_guess,
-            forecast_predictors,
-            forecast_var,
-            truth,
-            sqrt_pi)
+        return (initial_guess, forecast_predictors, forecast_var, truth, sqrt_pi)
 
     @staticmethod
-    def _prepare_forecasts(forecast_predictors: CubeList, predictor: str, constr: Optional[iris.Constraint] = None) -> np.ndarray:
+    def _prepare_forecasts(
+        forecast_predictors: CubeList,
+        predictor: str,
+        constr: Optional[iris.Constraint] = None,
+    ) -> np.ndarray:
         """Prepare forecasts for minimisation by flattening and reshaping.
 
         Args:
@@ -274,15 +275,20 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             spatiotemporal dimensions and an optional second dimension for
             flattened non-spatiotemporal dimensions (e.g. realizations).
         """
-        num_of_leading_dimensions_to_preserve = 1 if predictor.lower() == "realizations" else 0
-        g = partial(flatten_ignoring_masked_data,
-            num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve)
+        num_of_leading_dimensions_to_preserve = (
+            1 if predictor.lower() == "realizations" else 0
+        )
+        g = partial(
+            flatten_ignoring_masked_data,
+            num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
+        )
         forecast_predictor_data = reshape_forecast_predictors(
-            forecast_predictors, constr=constr, func=g)
+            forecast_predictors, constr=constr, func=g
+        )
         if len(forecast_predictors) > 1:
             forecast_predictor_data = np.ma.vstack(forecast_predictor_data)
         else:
-            forecast_predictor_data, = forecast_predictor_data
+            (forecast_predictor_data,) = forecast_predictor_data
         return forecast_predictor_data
 
     def _process_points_independently(
@@ -331,7 +337,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         x_name = truth.coord(axis="x").name()
 
         optimised_coeffs = []
-        for index, (truth_slice, fv_slice) in enumerate(zip(truth.slices_over(sindex), forecast_var.slices_over(sindex))):
+        for index, (truth_slice, fv_slice) in enumerate(
+            zip(truth.slices_over(sindex), forecast_var.slices_over(sindex))
+        ):
             # For site forecasts, with a wmo_id coordinate, the WMO ID is
             # more reliable as the specific x and y location of a site can
             # be subject to change.
@@ -339,13 +347,24 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 constr = iris.Constraint(wmo_id=truth_slice.coord("wmo_id").points)
             else:
                 constr = iris.Constraint(
-                    coord_values={y_name: lambda cell: any(np.isclose(cell.point, truth_slice.coord(axis="y").points)),
-                                  x_name: lambda cell: any(np.isclose(cell.point, truth_slice.coord(axis="x").points))})
+                    coord_values={
+                        y_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                        ),
+                        x_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                        ),
+                    }
+                )
 
-            forecast_predictor_data = self._prepare_forecasts(forecast_predictors, predictor, constr)
+            forecast_predictor_data = self._prepare_forecasts(
+                forecast_predictors, predictor, constr
+            )
 
             if all(np.isnan(truth_slice.data)):
-                optimised_coeffs.append(np.array(initial_guess[index], dtype=np.float32))
+                optimised_coeffs.append(
+                    np.array(initial_guess[index], dtype=np.float32)
+                )
             else:
                 optimised_coeffs.append(
                     self._minimise_caller(
@@ -361,9 +380,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         y_coord = fp_template.coord(axis="y")
         x_coord = fp_template.coord(axis="x")
 
-        if fp_template.coord_dims(y_coord) == fp_template.coord_dims(
-            x_coord
-        ):
+        if fp_template.coord_dims(y_coord) == fp_template.coord_dims(x_coord):
             return np.array(np.transpose(optimised_coeffs)).reshape(
                 (len(initial_guess[0]), len(fp_template.coord(axis="y").points),)
             )
@@ -411,7 +428,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
-        forecast_predictor_data = self._prepare_forecasts(forecast_predictors, predictor)
+        forecast_predictor_data = self._prepare_forecasts(
+            forecast_predictors, predictor
+        )
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
@@ -557,11 +576,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             value across all points.
         """
         aa, bb, gamma, delta = (
-                initial_guess[0],
-                initial_guess[1:-2],
-                initial_guess[-2],
-                initial_guess[-1],
-            )
+            initial_guess[0],
+            initial_guess[1:-2],
+            initial_guess[-2],
+            initial_guess[-1],
+        )
 
         if predictor.lower() == "mean":
             a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
@@ -852,7 +871,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         return template_dims, spatial_associated_coords
 
     def _create_cubelist(
-        self, optimised_coeffs: ndarray, historic_forecasts: Cube, forecast_predictors: CubeList
+        self,
+        optimised_coeffs: ndarray,
+        historic_forecasts: Cube,
+        forecast_predictors: CubeList,
     ) -> CubeList:
         """Create a cubelist by combining the optimised coefficients and the
         appropriate metadata. The units of the alpha and gamma coefficients
@@ -895,14 +917,25 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 fp_names = []
                 for index, fp in enumerate(forecast_predictors):
                     template_cube_copy = template_cube.copy()
-                    predictor_index = iris.coords.DimCoord(np.array(index, dtype=np.int32), long_name="predictor_index", units="1")
+                    predictor_index = iris.coords.DimCoord(
+                        np.array(index, dtype=np.int32),
+                        long_name="predictor_index",
+                        units="1",
+                    )
                     template_cube_copy.add_aux_coord(predictor_index)
-                    template_cube_copy = iris.util.new_axis(template_cube_copy, predictor_index)
+                    template_cube_copy = iris.util.new_axis(
+                        template_cube_copy, predictor_index
+                    )
                     template_cubes.append(template_cube_copy)
                     fp_names.append(fp.name())
                 template_cube = template_cubes.concatenate_cube()
-                predictor_name = iris.coords.AuxCoord(fp_names, long_name="predictor_name", units="no_unit")
-                template_cube.add_aux_coord(predictor_name, data_dims=template_cube.coord_dims("predictor_index"))
+                predictor_name = iris.coords.AuxCoord(
+                    fp_names, long_name="predictor_name", units="no_unit"
+                )
+                template_cube.add_aux_coord(
+                    predictor_name,
+                    data_dims=template_cube.coord_dims("predictor_index"),
+                )
                 replacements += ["predictor_index", "predictor_name"]
 
             for coord in coords_to_replace:
@@ -925,14 +958,18 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 template_cube,
                 generate_mandatory_attributes([historic_forecasts]),
                 optional_attributes=self._set_attributes(historic_forecasts),
-                data=np.reshape(optimised_coeff, template_cube.shape) if "beta" == coeff_name else np.array(optimised_coeff),
+                data=np.reshape(optimised_coeff, template_cube.shape)
+                if "beta" == coeff_name
+                else np.array(optimised_coeff),
             )
             cubelist.append(cube)
         return cubelist
 
     def create_coefficients_cubelist(
-        self, optimised_coeffs: Union[List[float], ndarray], historic_forecasts: Cube,
-        forecast_predictors: CubeList
+        self,
+        optimised_coeffs: Union[List[float], ndarray],
+        historic_forecasts: Cube,
+        forecast_predictors: CubeList,
     ) -> CubeList:
         """Create a cubelist for storing the coefficients computed using EMOS.
 
@@ -976,7 +1013,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-        return self._create_cubelist(optimised_coeffs, historic_forecasts, forecast_predictors)
+        return self._create_cubelist(
+            optimised_coeffs, historic_forecasts, forecast_predictors
+        )
 
     def compute_initial_guess(
         self,
@@ -1044,7 +1083,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
 
         if predictor.lower() == "mean" and default_initial_guess:
-            initial_beta = np.repeat(1.0/number_of_forecast_predictors, number_of_forecast_predictors).tolist()
+            initial_beta = np.repeat(
+                1.0 / number_of_forecast_predictors, number_of_forecast_predictors
+            ).tolist()
             initial_guess = [0] + initial_beta + [0, 1]
         elif predictor.lower() == "realizations" and (
             default_initial_guess or not statsmodels_available()
@@ -1055,11 +1096,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             initial_guess = [0] + initial_beta + [0, 1]
         elif not self.use_default_initial_guess:
             truths_flattened = flatten_ignoring_masked_data(truths)
-            num_of_leading_dimensions_to_preserve = 2 if predictor.lower() == "realizations" else 1
-            forecast_predictor_flattened = flatten_ignoring_masked_data(
-                forecast_predictor, num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve
+            num_of_leading_dimensions_to_preserve = (
+                2 if predictor.lower() == "realizations" else 1
             )
-            val = sm.add_constant(forecast_predictor_flattened.T, has_constant="add").astype(np.float64)
+            forecast_predictor_flattened = flatten_ignoring_masked_data(
+                forecast_predictor,
+                num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
+            )
+            val = sm.add_constant(
+                forecast_predictor_flattened.T, has_constant="add"
+            ).astype(np.float64)
             est = sm.OLS(truths_flattened.astype(np.float64), val).fit()
             intercept = est.params[0].astype(np.float32)
             gradient = est.params[1:].astype(np.float32)
@@ -1137,9 +1183,18 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             initial_guess = []
             for truths_slice in truths.slices_over(index):
                 constr = iris.Constraint(
-                    coord_values={y_name: lambda cell: any(np.isclose(cell.point, truths_slice.coord(axis="y").points)),
-                                  x_name: lambda cell: any(np.isclose(cell.point, truths_slice.coord(axis="x").points))})
-                forecast_predictors_data = np.ma.stack(reshape_forecast_predictors(forecast_predictors, constr=constr))
+                    coord_values={
+                        y_name: lambda cell: any(
+                            np.isclose(cell.point, truths_slice.coord(axis="y").points)
+                        ),
+                        x_name: lambda cell: any(
+                            np.isclose(cell.point, truths_slice.coord(axis="x").points)
+                        ),
+                    }
+                )
+                forecast_predictors_data = np.ma.stack(
+                    reshape_forecast_predictors(forecast_predictors, constr=constr)
+                )
                 initial_guess.append(
                     self.compute_initial_guess(
                         truths_slice.data,
@@ -1153,7 +1208,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             # Computing initial guess for EMOS coefficients
             # import pdb
             # pdb.set_trace()
-            forecast_predictor_data = np.ma.stack(reshape_forecast_predictors(forecast_predictors))
+            forecast_predictor_data = np.ma.stack(
+                reshape_forecast_predictors(forecast_predictors)
+            )
             initial_guess = self.compute_initial_guess(
                 truths.data,
                 forecast_predictor_data,
@@ -1259,10 +1316,29 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         check_forecast_consistency(historic_forecasts)
         if additional_fields:
             for af_cube in additional_fields:
-                if any([af_cube.coords(c) for c in ["forecast_period", "forecast_reference_time", "realization"]]):
-                    coords = [af_cube.coord(cn) for cn in ["forecast_period", "forecast_reference_time", "realization"] if af_cube.coords(cn)]
-                    msg = ("Only static additional predictors are supported. "
-                           f"The {af_cube.name()} cube provided contains {coords}.")
+                if any(
+                    [
+                        af_cube.coords(c)
+                        for c in [
+                            "forecast_period",
+                            "forecast_reference_time",
+                            "realization",
+                        ]
+                    ]
+                ):
+                    coords = [
+                        af_cube.coord(cn)
+                        for cn in [
+                            "forecast_period",
+                            "forecast_reference_time",
+                            "realization",
+                        ]
+                        if af_cube.coords(cn)
+                    ]
+                    msg = (
+                        "Only static additional predictors are supported. "
+                        f"The {af_cube.name()} cube provided contains {coords}."
+                    )
                     raise ValueError(msg)
 
         # Make sure inputs have the same units.
@@ -1281,9 +1357,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         number_of_realizations = None
         if self.predictor.lower() == "mean":
             forecast_predictors = iris.cube.CubeList()
-            forecast_predictors.append(collapsed(
-                historic_forecasts, "realization", iris.analysis.MEAN
-            ))
+            forecast_predictors.append(
+                collapsed(historic_forecasts, "realization", iris.analysis.MEAN)
+            )
         elif self.predictor.lower() == "realizations":
             number_of_realizations = len(historic_forecasts.coord("realization").points)
             enforce_coordinate_ordering(historic_forecasts, "realization")
@@ -1407,34 +1483,54 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             predictor.
         """
         forecast_predictors = iris.cube.CubeList()
-        forecast_predictors.append(collapsed(
-            self.current_forecast, "realization", iris.analysis.MEAN
-        ))
+        forecast_predictors.append(
+            collapsed(self.current_forecast, "realization", iris.analysis.MEAN)
+        )
         for af in self.additional_fields:
             if af.coords("realization"):
-                forecast_predictors.append(collapsed(af, "realization", iris.analysis.MEAN))
+                forecast_predictors.append(
+                    collapsed(af, "realization", iris.analysis.MEAN)
+                )
             else:
                 forecast_predictors.append(af)
 
         fp_names = [fp.name() for fp in forecast_predictors]
-        if len(forecast_predictors) != len(self.coefficients_cubelist.extract_strict("emos_coefficient_beta").coord("predictor_index").points):
-            msg = ("The number of forecast predictors must equal the number of "
-                   "beta coefficients in order to create a calibrated forecast. "
-                   f"Number of predictor cubes = {len(forecast_predictors)}: {fp_names}, "
-                   f"Number of predictor coords = {len(self.coefficients_cubelist.extract_strict('emos_coefficient_beta').coord('predictor_index').points)}: {self.coefficients_cubelist.extract_strict('emos_coefficient_beta').coord('predictor_name').points}")
+        if len(forecast_predictors) != len(
+            self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
+            .coord("predictor_index")
+            .points
+        ):
+            msg = (
+                "The number of forecast predictors must equal the number of "
+                "beta coefficients in order to create a calibrated forecast. "
+                f"Number of predictor cubes = {len(forecast_predictors)}: {fp_names}, "
+                f"Number of predictor coords = {len(self.coefficients_cubelist.extract_strict('emos_coefficient_beta').coord('predictor_index').points)}: {self.coefficients_cubelist.extract_strict('emos_coefficient_beta').coord('predictor_name').points}"
+            )
             raise ValueError(msg)
         else:
             fp_names = [fp.name() for fp in forecast_predictors]
             print("predictor_cube_names = ", fp_names)
-            print("predictor_coord_names", self.coefficients_cubelist.extract_strict("emos_coefficient_beta").coord("predictor_name").points)
+            print(
+                "predictor_coord_names",
+                self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
+                .coord("predictor_name")
+                .points,
+            )
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
         location_parameter = np.zeros(forecast_predictors[0].shape)
         for fp in forecast_predictors:
             constr = iris.Constraint(predictor_name=fp.name())
-            location_parameter += self.coefficients_cubelist.extract_strict("emos_coefficient_beta").extract(constr).data * fp.data
-        location_parameter += self.coefficients_cubelist.extract_strict("emos_coefficient_alpha").data
+            location_parameter += (
+                self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
+                .extract(constr)
+                .data
+                * fp.data
+            )
+        location_parameter += self.coefficients_cubelist.extract_strict(
+            "emos_coefficient_alpha"
+        ).data
         location_parameter = location_parameter.astype(np.float32)
 
         return location_parameter
@@ -1854,7 +1950,10 @@ class ApplyEMOS(PostProcessingPlugin):
             predictor=predictor
         )
         location_parameter, scale_parameter = calibration_plugin(
-            forecast_as_realizations, additional_fields, coefficients, landsea_mask=land_sea_mask
+            forecast_as_realizations,
+            additional_fields,
+            coefficients,
+            landsea_mask=land_sea_mask,
         )
 
         self.distribution = {
