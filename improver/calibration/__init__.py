@@ -43,12 +43,12 @@ from improver.utilities.cube_manipulation import MergeCubes
 
 
 def split_forecasts_and_truth(
-    cubes: List[Cube], truth_attribute: str, land_sea_mask_name: bool
+    cubes: List[Cube], truth_attribute: str, land_sea_mask_name: Optional[str] = None
 ) -> Tuple[Cube, Cube, Optional[CubeList], Optional[Cube]]:
     """
     A common utility for splitting the various inputs cubes required for
     calibration CLIs. These are generally the forecast cubes, historic truths,
-    and in some instances a land-sea mask is also required.
+    and in some instances a land-sea mask and other additional fields.
 
     Args:
         cubes:
@@ -58,23 +58,28 @@ def split_forecasts_and_truth(
         truth_attribute:
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
+        land_sea_mask_name:
+            Name of the land-sea mask cube to help identification.
 
     Returns:
         - A cube containing all the historic forecasts.
         - A cube containing all the truth data.
+        - If present, a cubelist containing the additional fields.
         - If found within the input cubes list a land-sea mask will be
           returned, else None is returned.
 
     Raises:
         ValueError:
-            An unexpected number of distinct cube names were passed in.
+            Truth cubes are present for multiple diagnostics.
         IOError:
             More than one cube was identified as a land-sea mask.
         IOError:
-            Missing truth or historical forecast in input cubes.
+            Missing truth in input cubes.
+        IOError:
+            Missing forecasts in input cubes.
     """
     cubes_dict = {"truth": {}, "land_sea_mask": {}, "other": {}, "historic_forecasts": {}, "additional_fields": {}}
-    # split non-land_sea_mask cubes on forecast vs truth
+    # Perform an initial split of the inputs to identify truth, land sea mask and "other"
     truth_key, truth_value = truth_attribute.split("=")
     for cube in cubes:
         try:
@@ -84,51 +89,51 @@ def split_forecasts_and_truth(
         if cube.attributes.get(truth_key) == truth_value:
             cubes_dict["truth"].setdefault(cube_name, []).append(cube)
         elif cube_name == land_sea_mask_name:
-            cubes_dict["land_sea_mask"].setdefault(cube_name, []).append(cube)
+            cubes_dict["land_sea_mask"].setdefault(cube_name, CubeList()).append(cube)
         else:
-            blend_time_list = [c for c in cube.coords() if c.name() == "blend_time"]
-            if len(blend_time_list):
-                cube.remove_coord("blend_time")
-            if cube.coords("forecast_period"):
-                cube.coord("forecast_period").attributes = {}
-            if cube.coords("forecast_reference_time"):
-                cube.coord("forecast_reference_time").attributes = {}
-            cubes_dict["other"].setdefault(cube_name, []).append(cube)
+            # blend_time_list = [c for c in cube.coords() if c.name() == "blend_time"]
+            # if len(blend_time_list):
+            #     cube.remove_coord("blend_time")
+            cubes_dict["other"].setdefault(cube_name, CubeList()).append(cube)
 
     if len(cubes_dict["truth"]) > 1:
         msg = (f"Truth supplied for multiple diagnostics {list(cubes_dict['truth'].keys())}. "
                "The truth should only exist for one diagnostic.")
         raise ValueError(msg)
 
-    if land_sea_mask_name and not cubes_dict["land_sea_mask"]:
+    # import pdb
+    # pdb.set_trace()
+    if cubes_dict["land_sea_mask"] and len(cubes_dict["land_sea_mask"][land_sea_mask_name]) == 1:
+        land_sea_mask, = cubes_dict["land_sea_mask"][land_sea_mask_name]
+    elif land_sea_mask_name and (not cubes_dict["land_sea_mask"] or len(cubes_dict["land_sea_mask"][land_sea_mask_name]) != 1):
         raise IOError("Expected one cube for land-sea mask with "
                       f"the name {land_sea_mask_name}.")
+    elif not cubes_dict["land_sea_mask"]:
+        land_sea_mask = None
 
-    diag_name = list(cubes_dict["truth"].keys())[0]
-    cubes_dict["historic_forecasts"] = cubes_dict["other"][diag_name]
-    for k, v in cubes_dict["other"].items():
-        if k != diag_name:
-            cubes_dict["additional_fields"].setdefault(k, []).extend(v)
-
-    missing_inputs = " and ".join(k for k, v in cubes_dict.items() if k in ["truth", "historic_forecasts"] and not v)
-    if missing_inputs:
-        raise IOError(f"Missing {missing_inputs} input.")
+    # Further splitting of the "other" grouping into historical forecasts
+    # and additional fields
+    if cubes_dict["truth"]:
+        diag_name = list(cubes_dict["truth"].keys())[0]
+        try:
+            cubes_dict["historic_forecasts"] = cubes_dict["other"][diag_name]
+        except KeyError:
+            raise IOError("Missing historic forecast input.")
+        for k, v in cubes_dict["other"].items():
+            if k != diag_name:
+                cubes_dict["additional_fields"].setdefault(k, CubeList()).extend(v)
+    else:
+        raise IOError("Missing truth input.")
 
     truth = MergeCubes()(filter_obs(cubes_dict["truth"][diag_name]))
     forecast = MergeCubes()(cubes_dict["historic_forecasts"])
     additional_fields = CubeList([MergeCubes()(cubes_dict["additional_fields"][k]) for k in cubes_dict["additional_fields"]])
-    return forecast, truth, additional_fields, cubes_dict["land_sea_mask"]
+    return forecast, truth, additional_fields, land_sea_mask
 
 
 def filter_obs(spot_truths_cubelist: CubeList) -> CubeList:
-    """Deal with observation sites that failed to provide an altitude, latitude
-    and longitude. As we've ensured that each observation site has an entry
-    for each timestep, even if no observation was available at that timestep,
-    some observations will not have an altitude, latitudes or longitudes.
-    There is also the potential for some sites to report different altitudes,
-    latitudes and longitudes at different times. For simplicity, the altitude,
-    latitude and longitude from the first timestep is used as the altitude,
-    latitude and longitude throughout the input CubeList.
+    """Ensure that the x and y coordinates and altitude coordinate associated
+    with site observations are consistent. The mode of the coordinates is used.
 
     Args:
         spot_truths_cubelist:
@@ -161,7 +166,6 @@ def filter_obs(spot_truths_cubelist: CubeList) -> CubeList:
     longitudes = np.nan_to_num(longitudes)
 
     for index, _ in enumerate(spot_truths_cubelist):
-
         spot_truths_cubelist[index].coord("altitude").points = altitudes
         spot_truths_cubelist[index].coord(axis="y").points = latitudes
         spot_truths_cubelist[index].coord(axis="x").points = longitudes
