@@ -34,7 +34,7 @@
 import unittest
 
 import numpy as np
-from iris.coords import CellMethod, AuxCoord
+from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 
