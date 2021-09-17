@@ -130,7 +130,9 @@ class BasicThreshold(PostProcessingPlugin):
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set.
         """
-        self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
+        self.threshold_function = (
+            [thresholds] if np.isscalar(thresholds) else thresholds
+        )
         self.threshold_units = (
             None if threshold_units is None else Unit(threshold_units)
         )
@@ -148,7 +150,7 @@ class BasicThreshold(PostProcessingPlugin):
                 raise ValueError(
                     "Invalid fuzzy_factor: must be >0 and <1: {}".format(fuzzy_factor)
                 )
-            if 0 in self.thresholds:
+            if 0 in self.threshold_function:
                 raise ValueError(
                     "Invalid threshold with fuzzy factor: cannot use a "
                     "multiplicative fuzzy factor with threshold == 0"
@@ -178,7 +180,7 @@ class BasicThreshold(PostProcessingPlugin):
         the fuzzy bounds match the threshold values for basic thresholding.
         """
         fuzzy_bounds = []
-        for thr in self.thresholds:
+        for thr in self.threshold_function:
             lower_thr = thr * fuzzy_factor_loc
             upper_thr = thr * (2.0 - fuzzy_factor_loc)
             if thr < 0:
@@ -190,7 +192,7 @@ class BasicThreshold(PostProcessingPlugin):
         """If fuzzy bounds have been set from the command line, check they
         are consistent with the required thresholds
         """
-        for thr, bounds in zip(self.thresholds, self.fuzzy_bounds):
+        for thr, bounds in zip(self.threshold_function, self.fuzzy_bounds):
             if len(bounds) != 2:
                 raise ValueError(
                     "Invalid bounds for one threshold: {}."
@@ -327,9 +329,9 @@ class BasicThreshold(PostProcessingPlugin):
             raise ValueError("Error: NaN detected in input cube data")
 
         if self.threshold_units is not None:
-            self.thresholds = [
+            self.threshold_function = [
                 self.threshold_units.convert(threshold, input_cube.units)
-                for threshold in self.thresholds
+                for threshold in self.threshold_function
             ]
             self.fuzzy_bounds = [
                 tuple(
@@ -344,7 +346,7 @@ class BasicThreshold(PostProcessingPlugin):
         self.threshold_coord_name = input_cube.name()
 
         thresholded_cubes = iris.cube.CubeList()
-        for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
+        for threshold, bounds in zip(self.threshold_function, self.fuzzy_bounds):
             cube = input_cube.copy()
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
@@ -391,6 +393,142 @@ class BasicThreshold(PostProcessingPlugin):
             thresholded_cubes.append(cube)
 
         (cube,) = thresholded_cubes.merge()
+
+        self._update_metadata(cube)
+        enforce_coordinate_ordering(cube, ["realization", "percentile"])
+
+        return cube
+
+
+class LatitudeThreshold(BasicThreshold):
+
+    """Apply a threshold truth criterion to a cube.
+
+    Calculate the threshold truth values based on a linear membership function
+    around the threshold function provided. A cube will be returned with a new
+    threshold dimension coordinate.
+
+    Can operate on multiple time sequences within a cube.
+    """
+
+    def __init__(
+        self,
+        threshold: callable,
+        threshold_units: Optional[str] = None,
+        comparison_operator: str = ">",
+        each_threshold_func: Union[Callable, List[Callable]] = (),
+    ) -> None:
+        """
+        Sets up latitude-dependent threshold class
+
+        Args:
+            threshold:
+                A function which takes a latitude value (in degrees) and returns
+                the desired threshold.
+            threshold_units:
+                Units of the threshold values. If not provided the units are
+                assumed to be the same as those of the input cube.
+            comparison_operator:
+                Indicates the comparison_operator to use with the threshold.
+                e.g. 'ge' or '>=' to evaluate 'data >= threshold' or '<' to
+                evaluate 'data < threshold'. When using fuzzy thresholds, there
+                is no difference between < and <= or > and >=.
+                Valid choices: > >= < <= gt ge lt le.
+            each_threshold_func:
+                Callable or sequence of callables to apply after thresholding.
+                Eg vicinity processing or collapse over ensemble realizations.
+        """
+        super().__init__(
+            thresholds=[1],
+            threshold_units=threshold_units,
+            comparison_operator=comparison_operator,
+            each_threshold_func=each_threshold_func,
+        )
+        if not callable(threshold):
+            raise TypeError("Threshold must be callable")
+        self.threshold_function = threshold
+
+    def _add_latitude_threshold_coord(self, cube: Cube, threshold: np.ndarray, units: str) -> None:
+        """
+        Add a 1D threshold-type coordinate with correct name and units
+        to a 2D slice containing thresholded data.
+        Assumes latitude coordinate is always the penultimate one (which standardise
+        will have enforced)
+
+        Args:
+            cube:
+                Cube containing thresholded data (1s and 0s)
+            threshold:
+                Values at which the data has been thresholded (matches cube's y-axis)
+            units:
+                The units to convert the coordinate to
+        """
+        coord = iris.coords.AuxCoord(threshold.astype(FLOAT_DTYPE), units=cube.units)
+        coord.rename(self.threshold_coord_name)
+        coord.var_name = "threshold"
+        coord.convert_units(units)
+        cube.add_aux_coord(coord, data_dims=len(cube.shape) - 2)
+
+    def process(self, input_cube: Cube) -> Cube:
+        """Convert each point to a truth value based on provided threshold
+        function. If the plugin has a "threshold_units"
+        member, this is used to convert a copy of the input_cube into
+        the units specified.
+
+        Args:
+            input_cube:
+                Cube to threshold. Must have a latitude coordinate.
+
+        Returns:
+            Cube after a threshold has been applied. The data within this
+            cube will contain values between 0 and 1 to indicate whether
+            a given threshold has been exceeded or not.
+
+                The cube meta-data will contain:
+                * Input_cube name prepended with
+                probability_of_X_above(or below)_threshold (where X is
+                the diagnostic under consideration)
+                * Threshold dimension coordinate with same units as input_cube
+                * Threshold attribute ("greater_than",
+                "greater_than_or_equal_to", "less_than", or
+                less_than_or_equal_to" depending on the operator)
+                * Cube units set to (1).
+
+        Raises:
+            ValueError: if a np.nan value is detected within the input cube.
+        """
+        if np.isnan(input_cube.data).any():
+            raise ValueError("Error: NaN detected in input cube data")
+
+        self.threshold_coord_name = input_cube.name()
+
+        cube = input_cube.copy()
+        if self.threshold_units is not None:
+            cube.convert_units(self.threshold_units)
+
+        cube.coord("latitude").convert_units("degrees")
+        threshold_variant = cube.coord("latitude").points
+        threshold_over_latitude = np.array(self.threshold_function(threshold_variant))
+
+        # Add a scalar axis for the longitude axis so that numpy's array-
+        # broadcasting knows what we want to do
+        truth_value = self.comparison_operator["function"](
+            cube.data,
+            threshold_over_latitude.reshape((len(threshold_over_latitude), 1)),
+        )
+
+        truth_value = truth_value.astype(FLOAT_DTYPE)
+
+        if np.ma.is_masked(cube.data):
+            # update unmasked points only
+            cube.data[~input_cube.data.mask] = truth_value[~input_cube.data.mask]
+        else:
+            cube.data = truth_value
+
+        self._add_latitude_threshold_coord(cube, threshold_over_latitude, input_cube.units)
+
+        for func in self.each_threshold_func:
+            cube = func(cube)
 
         self._update_metadata(cube)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
