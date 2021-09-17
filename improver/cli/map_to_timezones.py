@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, local_time: str, timezone_cube: cli.inputcube,
+    local_time: str, *cubes: cli.inputcube, timezone_cube: cli.inputcube,
 ):
     """Calculates timezone-offset data for the specified UTC output times
 
