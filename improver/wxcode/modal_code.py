@@ -152,6 +152,10 @@ class ModalWeatherCode(BasePlugin):
             A single weather code cube with time bounds that span those of
             the input weather code cubes.
         """
+        # Handle case in which a single time is provided.
+        if len(cubes) == 1:
+            return cubes[0]
+
         cube = MergeCubes()(cubes)
         self.unify_day_and_night(cube)
 
