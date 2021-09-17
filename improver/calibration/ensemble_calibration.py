@@ -61,7 +61,6 @@ from improver.calibration.utilities import (
     forecast_coords_match,
     merge_land_and_sea,
     reshape_forecast_predictors,
-    statsmodels_available,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -1087,9 +1086,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 1.0 / number_of_forecast_predictors, number_of_forecast_predictors
             ).tolist()
             initial_guess = [0] + initial_beta + [0, 1]
-        elif predictor.lower() == "realizations" and (
-            default_initial_guess or not statsmodels_available()
-        ):
+        elif predictor.lower() == "realizations" and default_initial_guess:
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
