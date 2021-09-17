@@ -34,12 +34,12 @@ specific for ensemble calibration.
 
 """
 import importlib
-from typing import Set, Tuple, Union
+from typing import Callable, List, Optional, Set, Tuple, Union
 
 import iris
 import numpy as np
 from iris.coords import DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
@@ -80,7 +80,7 @@ def convert_cube_data_to_2d(
 
 
 def flatten_ignoring_masked_data(
-    data_array: Union[MaskedArray, ndarray], preserve_leading_dimension: bool = False
+    data_array: Union[MaskedArray, ndarray], num_of_leading_dimensions_to_preserve: Optional[int] = None
 ) -> ndarray:
     """
     Flatten an array, selecting only valid data if the array is masked. There
@@ -129,10 +129,18 @@ def flatten_ignoring_masked_data(
         result = data_array[~data_array.mask]
     else:
         result = data_array.flatten()
-    if preserve_leading_dimension:
-        # Reshape back to give the same leading dimension in the array. The 2nd
-        # dimension is inferred through the use of -1.
-        final_shape = (data_array.shape[0], -1)
+    if num_of_leading_dimensions_to_preserve:
+        #final_shape = (np.prod(data_array.shape[:num_of_leading_dimensions_to_preserve]), -1)
+
+        if num_of_leading_dimensions_to_preserve == 1:
+            # Reshape back to give the same leading dimension in the array. The 2nd
+            # dimension is inferred through the use of -1.
+            final_shape = (data_array.shape[0], -1)
+        elif num_of_leading_dimensions_to_preserve == 2:
+            final_shape = (data_array.shape[0] * data_array.shape[1], -1)
+        else:
+            msg = ""
+            raise ValueError(msg)
         result = result.reshape(final_shape)
     return result
 
@@ -364,3 +372,37 @@ def statsmodels_available() -> bool:
     if importlib.util.find_spec("statsmodels"):
         return True
     return False
+
+
+def reshape_forecast_predictors(forecast_predictors: CubeList, constr: Optional[iris.Constraint] = None,
+        func: Optional[Callable] = lambda x: x) -> List[ndarray]:
+    """Reshape forecast predictors without a time or realization dimension
+    by broadcasting to the required shape.
+
+    Args:
+        forecast_predictors:
+            The forecast predictors to be reshaped.
+        constr:
+            A constraint for selecting the required forecast predictor.
+
+    Returns:
+       Consistently-shaped forecast predictors where static forecast predictors
+       have been reshaped to account for the time and realization dimensions.
+    """
+    reshaped_forecast_predictors = []
+    num_realizations = [len(fp_cube.coord("realization").points) for fp_cube in forecast_predictors if fp_cube.coords("realization", dim_coords=True)]
+    num_times = [len(fp_cube.coord("time").points) for fp_cube in forecast_predictors if fp_cube.coords("time", dim_coords=True)]
+    for fp_cube in forecast_predictors:
+        if constr:
+            fp_cube = fp_cube.extract(constr)
+
+        fp_data = fp_cube.data
+        if not fp_cube.coords("time"):
+            # Broadcast static predictors to the required shape.
+            fp_data = np.broadcast_to(fp_data, tuple(num_times)+fp_data.shape)
+
+        if not fp_cube.coords("realization"):
+            fp_data = np.broadcast_to(fp_data, tuple(num_realizations)+fp_data.shape)
+
+        reshaped_forecast_predictors.append(func(fp_data))
+    return reshaped_forecast_predictors

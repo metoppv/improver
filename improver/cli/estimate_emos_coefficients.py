@@ -48,6 +48,7 @@ def process(
     predictor="mean",
     tolerance: float = 0.02,
     max_iterations: int = 1000,
+    land_sea_mask_name: str = None,
 ):
     """Estimate coefficients for Ensemble Model Output Statistics.
 
@@ -107,6 +108,10 @@ def process(
             is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
+        land_sea_mask_name (str):
+            Name of the land-sea mask cube. If supplied, a land-sea mask cube
+            is expected within the list of input cubes and this land-sea mask
+            will be used to calibrate land points only.
 
     Returns:
         iris.cube.CubeList:
@@ -119,7 +124,7 @@ def process(
         EstimateCoefficientsForEnsembleCalibration,
     )
 
-    forecast, truth, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute)
+    forecast, truth, additional_fields, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute, land_sea_mask_name)
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
@@ -130,4 +135,4 @@ def process(
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast, truth, landsea_mask=land_sea_mask)
+    return plugin(forecast, truth, additional_fields=additional_fields, landsea_mask=land_sea_mask)

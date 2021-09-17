@@ -205,7 +205,7 @@ def test_using_realizations_as_predictor_no_sm(tmp_path):
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
 
-
+@pytest.mark.slow
 @acc.skip_if_no_statsmodels
 def test_using_realizations_as_predictor_sm(tmp_path):
     """Test using non-default predictor realizations"""
@@ -235,6 +235,34 @@ def test_using_realizations_as_predictor_sm(tmp_path):
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
 
+@pytest.mark.slow
+def test_static_additional_predictor(tmp_path):
+    """Test using a static additional predictor."""
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
+    kgo_path = kgo_dir / "normal/grid_altitude_kgo.nc"
+    history_path = kgo_dir / "normal/history/*.nc"
+    truth_path = kgo_dir / "normal/truth/*.nc"
+    additional_predictor_path = kgo_dir / "grid_altitude.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        additional_predictor_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--max-iterations",
+        "150",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 @pytest.mark.slow
 def test_land_points_only(tmp_path):
@@ -364,4 +392,34 @@ def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
     run_cli(args)
     acc.compare(
         output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
+    )
+
+@pytest.mark.slow
+def test_point_by_point_static_additional_predictor(tmp_path):
+    """Test using a static additional predictor at sites."""
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
+    kgo_path = kgo_dir / "point_by_point" / "site_altitude_kgo.nc"
+    history_path = kgo_dir / "history/*.nc"
+    truth_path = kgo_dir / "truth/*.nc"
+    additional_predictor_path = kgo_dir / "site_altitude.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        additional_predictor_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--max-iterations",
+        "150",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--point-by-point",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )

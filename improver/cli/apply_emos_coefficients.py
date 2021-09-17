@@ -47,15 +47,17 @@ inputcoeffs = cli.create_constrained_inputcubelist_converter(
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
-    coefficients: inputcoeffs = None,
-    land_sea_mask: cli.inputcube = None,
-    *,
+    *cubes: cli.inputcubelist,
+    # cube: cli.inputcube,
+    # coefficients: inputcoeffs = None,
+    # land_sea_mask: cli.inputcube = None,
+    # *,
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
+    land_sea_mask_name: str = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
 
@@ -108,6 +110,10 @@ def process(
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
+        land_sea_mask_name (str):
+            Name of the land-sea mask cube. If supplied, a land-sea mask cube
+            is expected within the list of input cubes and this land-sea mask
+            will be used to calibrate land points only.
 
     Returns:
         iris.cube.Cube:
@@ -126,22 +132,21 @@ def process(
     import warnings
 
     from improver.calibration.ensemble_calibration import ApplyEMOS
+    from improver.calibration import split_forecasts_and_coeffs
 
+    forecast, additional_fields, coefficients, land_sea_mask = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
     if coefficients is None:
         msg = (
             "There are no coefficients provided for calibration. The "
             "uncalibrated forecast will be returned."
         )
         warnings.warn(msg)
-        return cube
-
-    if land_sea_mask and land_sea_mask.name() != "land_binary_mask":
-        msg = "The land_sea_mask cube does not have the name 'land_binary_mask'"
-        raise ValueError(msg)
+        return forecast
 
     calibration_plugin = ApplyEMOS()
     result = calibration_plugin(
-        cube,
+        forecast,
+        additional_fields,
         coefficients,
         land_sea_mask=land_sea_mask,
         realizations_count=realizations_count,
