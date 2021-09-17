@@ -37,6 +37,7 @@ class.
 import unittest
 
 import iris
+from iris.cube import CubeList
 import numpy as np
 from iris.tests import IrisTest
 
@@ -77,19 +78,19 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         """Set up expected inputs."""
         super().setUp()
         # Set up cubes and associated data arrays for temperature.
-        self.forecast_predictor_mean = self.historic_temperature_forecast_cube.collapsed(
+        self.forecast_predictor_mean = CubeList([self.historic_temperature_forecast_cube.collapsed(
             "realization", iris.analysis.MEAN
-        )
-        self.forecast_predictor_realizations = (
+        )])
+        self.forecast_predictor_realizations = CubeList([(
             self.historic_temperature_forecast_cube.copy()
-        )
+        )])
         self.forecast_variance = self.historic_temperature_forecast_cube.collapsed(
             "realization", iris.analysis.VARIANCE
         )
         self.truth = self.historic_temperature_forecast_cube.collapsed(
             "realization", iris.analysis.MAX
         )
-        self.forecast_predictor_data = self.forecast_predictor_mean.data.flatten().astype(
+        self.forecast_predictor_data = self.forecast_predictor_mean[0].data.flatten().astype(
             np.float64
         )
         self.forecast_predictor_data_realizations = convert_cube_data_to_2d(
@@ -506,7 +507,7 @@ class Test_process_normal_distribution(
         plugin = Plugin(tolerance=self.tolerance, point_by_point=True)
         result = plugin.process(
             initial_guess,
-            forecast_spot_cube,
+            CubeList([forecast_spot_cube]),
             self.truth_spot_cube,
             forecast_var_spot_cube,
             predictor,
@@ -634,19 +635,19 @@ class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
         """Set up expected inputs."""
         super().setUp()
         # Set up cubes and associated data arrays for wind speed.
-        self.forecast_predictor_mean = self.historic_wind_speed_forecast_cube.collapsed(
+        self.forecast_predictor_mean = CubeList([self.historic_wind_speed_forecast_cube.collapsed(
             "realization", iris.analysis.MEAN
-        )
-        self.forecast_predictor_realizations = (
+        )])
+        self.forecast_predictor_realizations = CubeList([(
             self.historic_wind_speed_forecast_cube.copy()
-        )
+        )])
         self.forecast_variance = self.historic_wind_speed_forecast_cube.collapsed(
             "realization", iris.analysis.VARIANCE
         )
         self.truth = self.historic_wind_speed_forecast_cube.collapsed(
             "realization", iris.analysis.MAX
         )
-        self.forecast_predictor_data = self.forecast_predictor_mean.data.flatten().astype(
+        self.forecast_predictor_data = self.forecast_predictor_mean[0].data.flatten().astype(
             np.float64
         )
         self.forecast_predictor_data_realizations = convert_cube_data_to_2d(

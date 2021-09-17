@@ -278,12 +278,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         num_of_leading_dimensions_to_preserve = (
             1 if predictor.lower() == "realizations" else 0
         )
-        g = partial(
+        partial_func = partial(
             flatten_ignoring_masked_data,
             num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
         )
         forecast_predictor_data = reshape_forecast_predictors(
-            forecast_predictors, constr=constr, func=g
+            forecast_predictors, constr=constr, func=partial_func
         )
         if len(forecast_predictors) > 1:
             forecast_predictor_data = np.ma.vstack(forecast_predictor_data)
