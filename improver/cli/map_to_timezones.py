@@ -65,7 +65,8 @@ def process(
 
     from improver.utilities.temporal import TimezoneExtraction
 
-    timezone_cube = cubes.pop()
+    timezone_cube = cubes[-1]
+    cubes = cubes[:-1]
 
     local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
     return TimezoneExtraction()(cubes, timezone_cube, local_datetime)
