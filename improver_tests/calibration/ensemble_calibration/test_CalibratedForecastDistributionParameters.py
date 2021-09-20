@@ -35,6 +35,7 @@ class.
 
 """
 import unittest
+from iris.cube import CubeList
 
 import numpy as np
 from iris.tests import IrisTest
@@ -62,10 +63,8 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         ignored_messages=[
             "Collapsing a non-contiguous coordinate.",
             "invalid escape sequence",
-            "can't resolve package from",
-            "The statsmodels module cannot be imported",
         ],
-        warning_types=[UserWarning, DeprecationWarning, ImportWarning, ImportWarning],
+        warning_types=[UserWarning, DeprecationWarning],
     )
     def setUp(self):
         """Set up coefficients cubes for when either the ensemble mean or the
@@ -84,8 +83,11 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
             self.expected_mean_pred_norm, self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube])
         )
 
+        # Set up a coefficients cube when using the ensemble mean as the
+        # predictor and separate coefficients at each point.
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", point_by_point=True, desired_units="Celsius"
         )
@@ -94,39 +96,76 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         ).T.reshape(4, 3, 3)
         self.coeffs_from_mean_point_by_point = estimator.create_coefficients_cubelist(
             point_by_point_predictor, self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube])
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
-        # predictor and the coefficients have been estimated using statsmodels.
+        # predictor.
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", desired_units="Celsius", predictor="realizations"
         )
-        self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_norm_statsmodels,
+        self.coeffs_from_realizations = estimator.create_coefficients_cubelist(
+            self.expected_realizations_norm,
             self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube])
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
-        # predictor and the coefficients have been estimated without using
-        # statsmodels.
-        estimator = EstimateCoefficientsForEnsembleCalibration(
-            "norm", desired_units="Celsius", predictor="realizations"
-        )
-        self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_norm_no_statsmodels,
-            self.historic_temperature_forecast_cube,
-        )
+        # predictor and separate coefficients at each point.
+        # import pdb
+        # pdb.set_trace()
 
-        # Set up a coefficients cube when using the ensemble realization as the
-        # predictor and the coefficients have been estimated using statsmodels.
-        expected_realizations_each_site = np.vstack(
-            list(self.expected_realizations_each_site_statsmodels.values())
-        )
+        # coeffs = []
+        # for array in list(self.expected_realizations_each_site.values()):
+        #     if array.ndim == 1:
+        #         coeffs.append(array)
+        #     else:
+        #         coeffs.append(np.squeeze(array))
+        #         #for subarray in np.squeeze(array):
+        #             #coeffs.append(subarray)
+        # expected_realizations_each_site = coeffs
+        expected_realizations_each_site = [array if array.ndim == 1 else np.squeeze(array) for array in list(self.expected_realizations_each_site.values())]
+        # import pdb
+        # pdb.set_trace()
+
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", predictor="realizations", point_by_point=True
         )
         self.coeffs_from_realizations_sites = estimator.create_coefficients_cubelist(
             expected_realizations_each_site, self.historic_forecast_spot_cube,
+            CubeList([self.historic_temperature_forecast_cube])
+        )
+
+        # # Set up a coefficients cube when using an additional predictor.
+        self.altitude = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
+        )
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            self.altitude.remove_coord(coord)
+
+        estimator = EstimateCoefficientsForEnsembleCalibration(
+            "norm", desired_units="Celsius"
+        )
+        self.coeffs_from_mean_alt = estimator.create_coefficients_cubelist(
+            self.expected_mean_pred_norm_alt, self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube, self.altitude])
+        )
+        # import pdb
+        # pdb.set_trace()
+        expected_realizations_norm_alt = [
+            self.expected_realizations_norm_alt[0],
+            self.expected_realizations_norm_alt[1:-2].reshape(2, 2),
+            self.expected_realizations_norm_alt[2],
+            self.expected_realizations_norm_alt[3]
+        ]
+
+        estimator = EstimateCoefficientsForEnsembleCalibration(
+            "norm", desired_units="Celsius", predictor="realizations"
+        )
+        self.coeffs_from_realizations_alt = estimator.create_coefficients_cubelist(
+            expected_realizations_norm_alt,
+            self.historic_forecast_spot_cube,
+            CubeList([self.historic_forecast_spot_cube, self.altitude])
         )
 
         # Some expected data that are used in various tests.
@@ -146,19 +185,11 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             ],
             dtype=np.float32,
         )
-        self.expected_loc_param_statsmodels_realizations = np.array(
+        self.expected_loc_param_realizations = np.array(
             [
                 [274.388, 275.3053, 275.4492],
                 [277.1295, 277.3866, 278.4672],
                 [280.2007, 280.3929, 281.2602],
-            ],
-            dtype=np.float32,
-        )
-        self.expected_loc_param_no_statsmodels_realizations = np.array(
-            [
-                [273.9595, 274.9872, 275.4302],
-                [277.0191, 277.6373, 278.6069],
-                [279.9651, 280.1437, 281.4046],
             ],
             dtype=np.float32,
         )
@@ -169,6 +200,24 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         self.expected_scale_param_realizations_sites = np.array(
             [0, 0, 0, 0], dtype=np.float32
         )
+
+        self.expected_loc_param_mean_alt = np.array([[275.18134, 276.18134, 277.01465],
+        [278.58133, 279.44797, 280.2813 ],
+        [281.48132, 281.91464, 283.11465]], dtype=np.float32)
+
+        self.expected_scale_param_mean_alt = np.array([[0.4347, 0.4396, 0.0308],
+                    [0.0503, 0.0438, 0.0308],
+                    [0.1184, 0.2157, 0.0211]], dtype=np.float32)
+
+        self.expected_loc_param_realizations_sites_alt = np.array(
+            [277.757 , 277.4573, 277.5572, 277.2575],
+            dtype=np.float32,
+        )
+        self.expected_scale_param_realizations_sites_alt = np.array(
+            [0.518256, 0.518256, 0.518256, 0.518256],
+            dtype=np.float32,
+        )
+
 
         # Create output cubes with the expected data.
         self.expected_loc_param_mean_cube = set_up_variable_cube(
@@ -293,12 +342,7 @@ class Test__calculate_location_parameter_from_mean(
         )
         assert_array_almost_equal(
             location_parameter,
-            self.expected_loc_param_statsmodels_realizations,
-            decimal=0,
-        )
-        assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_no_statsmodels_realizations,
+            self.expected_loc_param_realizations,
             decimal=0,
         )
 
@@ -318,49 +362,20 @@ class Test__calculate_location_parameter_from_realizations(
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_with_statsmodels(self):
+    def test_basic(self):
         """Test that the expected values for the location parameter are
-        calculated when using the ensemble realizations with statsmodels.
-        These expected values are compared to the results when using the
-        ensemble mean and when statsmodels is not used to ensure that the
-        results are similar."""
-        self.plugin.coefficients_cubelist = self.coeffs_from_statsmodels_realizations
+        calculated when using the ensemble realizations. These expected values
+        are compared to the results when using the ensemble mean to ensure
+        that the results are similar."""
+        self.plugin.coefficients_cubelist = self.coeffs_from_realizations
         location_parameter = (
             self.plugin._calculate_location_parameter_from_realizations()
         )
         self.assertCalibratedVariablesAlmostEqual(
-            location_parameter, self.expected_loc_param_statsmodels_realizations
+            location_parameter, self.expected_loc_param_realizations
         )
         assert_array_almost_equal(
             location_parameter, self.expected_loc_param_mean, decimal=0
-        )
-        assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_no_statsmodels_realizations,
-            decimal=0,
-        )
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_without_statsmodels(self):
-        """Test that the expected values for the location parameter are
-        calculated when using the ensemble realizations without statsmodels.
-        These expected values are compared to the results when using the
-        ensemble mean and when statsmodels is used to ensure that the results
-        are similar."""
-        self.plugin.coefficients_cubelist = self.coeffs_from_no_statsmodels_realizations
-        location_parameter = (
-            self.plugin._calculate_location_parameter_from_realizations()
-        )
-        self.assertCalibratedVariablesAlmostEqual(
-            location_parameter, self.expected_loc_param_no_statsmodels_realizations
-        )
-        assert_array_almost_equal(
-            location_parameter, self.expected_loc_param_mean, decimal=0
-        )
-        assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_statsmodels_realizations,
-            decimal=0,
         )
 
 
@@ -491,6 +506,51 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertCalibratedVariablesAlmostEqual(
             calibrated_forecast_var.data, self.expected_scale_param_realizations_sites
+        )
+        self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_end_to_end_with_additional_predictor(self):
+        """An example end-to-end calculation. This repeats the test elements
+        above but all grouped together."""
+        calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
+            self.current_temperature_forecast_cube, self.coeffs_from_mean_alt,
+            additional_fields=CubeList([self.altitude])
+        )
+
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_predictor.data, self.expected_loc_param_mean_alt
+        )
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_var.data, self.expected_scale_param_mean_alt
+        )
+        self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_end_to_end_missing_additional_predictor(self):
+        """An example end-to-end calculation. This repeats the test elements
+        above but all grouped together."""
+        msg = "The number of forecast predictors must equal the number"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(
+                self.current_temperature_forecast_cube, self.coeffs_from_mean_alt
+            )
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_end_to_end_with_additional_predictor_realizations(self):
+        """An example end-to-end calculation. This repeats the test elements
+        above but all grouped together."""
+        plugin = Plugin(predictor="realizations")
+        calibrated_forecast_predictor, calibrated_forecast_var = plugin.process(
+            self.current_forecast_spot_cube, self.coeffs_from_realizations_alt,
+            additional_fields=CubeList([self.spot_altitude_cube])
+        )
+
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_predictor.data, self.expected_loc_param_realizations_sites_alt
+        )
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_var.data, self.expected_scale_param_realizations_sites_alt
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 

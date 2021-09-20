@@ -98,7 +98,7 @@ class SetupExpectedCoefficients(IrisTest):
             [0.9980, 1.0, 0.0, 0.0, 0.6976], dtype=np.float32
         )
         self.expected_realizations_norm_alt = np.array(
-            [1.3056, 0.6933, 0.7199, -0.0, 0.0, 0.0003, 0.0929], dtype=np.float32
+            [ 0.7521 ,  0.7608,  0.6497, -0.        ,  0.        , 0.0005,  0.4936], dtype=np.float32
         )
 
         self.expected_mean_pred_each_grid_point = {
@@ -1428,6 +1428,8 @@ class Test_process(
             self.truth_spot_cube,
             CubeList([self.spot_altitude_cube]),
         )
+        np.set_printoptions(suppress=True)
+        print(repr(result))
         self.assertEMOSCoefficientsAlmostEqual(
             np.hstack([cube.data.flatten() for cube in result]),
             self.expected_realizations_norm_alt,

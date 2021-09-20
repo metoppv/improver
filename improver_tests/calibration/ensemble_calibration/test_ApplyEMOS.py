@@ -30,9 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the `ensemble_calibration.ApplyEMOS` class."""
 
+from typing import Optional, Sequence, Union
 import unittest
 
 import iris
+from iris.cube import Cube, CubeList
 import numpy as np
 from iris.tests import IrisTest
 
@@ -45,7 +47,7 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import get_dim_coord_names
 
 
-def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
+def build_coefficients_cubelist(template: Cube, coeff_values: Union[Sequence, np.ndarray], forecast_predictors: CubeList, predictor: Optional[str] ="mean"):
     """Make a cubelist of coefficients with expected metadata
 
     Args:
@@ -56,6 +58,9 @@ def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
         coeff_values (numpy.ndarray or list):
             The values of the coefficients. These values will be used as the
             cube data.
+        forecast_predictors (iris.cube.CubeList):
+            The forecast predictors used for constructing the coordinates
+            required for the beta coefficient.
         predictor (str):
             Choice of predictor of location parameter. Either the ensemble mean
             "mean" or ensemble realizations ("realizations") are supported.
@@ -97,18 +102,34 @@ def build_coefficients_cubelist(template, coeff_values, predictor="mean"):
 
     coeff_names = ["alpha", "beta", "gamma", "delta"]
     cubelist = iris.cube.CubeList([])
-    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
+    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):#
+        modified_dim_coords_and_dims = dim_coords_and_dims.copy()
+        modified_aux_coords_and_dims = aux_coords_and_dims.copy()
         coeff_units = "1"
         if coeff_name in ["alpha", "gamma"]:
             coeff_units = template.units
+        if coeff_name == "beta":
+            fp_names = [fp.name() for fp in forecast_predictors]
+            predictor_index = iris.coords.DimCoord(
+                np.array(range(len(fp_names)), dtype=np.int32),
+                long_name="predictor_index",
+                units="1",
+            )
+            modified_dim_coords_and_dims.append((predictor_index, 0))
+            predictor_name = iris.coords.AuxCoord(
+                fp_names, long_name="predictor_name", units="no_unit"
+            )
+            modified_aux_coords_and_dims.append((predictor_name, 0))
         if predictor.lower() == "realizations" and coeff_name == "beta":
-            dim_coords_and_dims.append((template.coord("realization").copy(), 0))
+            modified_dim_coords_and_dims.append((template.coord("realization").copy(), 1))
         cube = iris.cube.Cube(
-            optimised_coeff,
+            np.atleast_1d(optimised_coeff)
+            if "beta" == coeff_name
+            else optimised_coeff,
             long_name=f"emos_coefficient_{coeff_name}",
             units=coeff_units,
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims,
+            dim_coords_and_dims=modified_dim_coords_and_dims,
+            aux_coords_and_dims=modified_aux_coords_and_dims,
             attributes=attributes,
         )
         cubelist.append(cube)
@@ -157,7 +178,7 @@ class Test_process(IrisTest):
             attributes=attributes,
         )
 
-        self.coefficients = build_coefficients_cubelist(self.realizations, [0, 1, 0, 1])
+        self.coefficients = build_coefficients_cubelist(self.realizations, [0, 1, 0, 1], CubeList([self.realizations]))
 
         self.null_percentiles_expected_mean = np.mean(self.percentiles.data)
         self.null_percentiles_expected = np.array(
@@ -247,6 +268,29 @@ class Test_process(IrisTest):
         msg = "The 'realizations_count' argument must be defined"
         with self.assertRaisesRegex(ValueError, msg):
             ApplyEMOS()(self.percentiles, self.coefficients)
+
+    def test_additional_predictor(self):
+        altitude = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
+        )
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            altitude.remove_coord(coord)
+        coefficients = build_coefficients_cubelist(
+            self.realizations, [0, [0.9, 0.1], 0, 1], CubeList([self.realizations, altitude]))
+        expected_data = np.array(
+            [
+                np.full((3, 3), 9.325102),
+                np.full((3, 3), 9.46),
+                np.full((3, 3), 9.594898),
+            ]
+        )
+        result = ApplyEMOS()(
+            self.percentiles,
+            coefficients,
+            additional_fields=CubeList([altitude]),
+            realizations_count=3,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_land_sea_mask(self):
         """Test that coefficients can be effectively applied to "land" points
