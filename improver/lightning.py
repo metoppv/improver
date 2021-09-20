@@ -106,7 +106,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
         cube = create_new_diagnostic_cube(
             name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity"
-                 "_above_threshold",
+            "_above_threshold",
             units="1",
             template_cube=precip,
             data=data.astype(FLOAT_DTYPE),
