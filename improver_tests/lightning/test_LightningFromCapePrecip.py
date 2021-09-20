@@ -155,9 +155,7 @@ def break_time_point(cape_cube, precip_cube):
 def break_time_bound(cape_cube, precip_cube):
     bounds = precip_cube.coord("time").bounds
     precip_cube.coord("time").bounds = (bounds[0][0] + 1, bounds[0][1])
-    return (
-        r"CAPE cube time window .* does not match precip cube time window .*"
-    )
+    return r"CAPE cube time window .* does not match precip cube time window .*"
 
 
 def break_reference_time(cape_cube, precip_cube):
