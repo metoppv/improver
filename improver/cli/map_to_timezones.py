@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    local_time: str, *cubes: cli.inputcube, timezone_cube: cli.inputcube,
+    local_time: str, *cubes: cli.inputcube,
 ):
     """Calculates timezone-offset data for the specified UTC output times
 
@@ -51,8 +51,9 @@ def process(
             Source data to be remapped onto time-zones. Must contain an exact 1-to-1
             mapping of times to time-zones. Multiple input files will be merged into one
             cube.
-        timezone_cube (iris.cube.Cube):
-            Cube describing the UTC offset for the local time at each grid location.
+            Assumes the final argument is a timezone_cube,
+            which is a cube describing the UTC
+            offset for the local time at each grid location.
             Must have the same spatial coords as input_cube.
             Use generate-timezone-mask-ancillary to create this.
 
@@ -63,6 +64,8 @@ def process(
     from datetime import datetime
 
     from improver.utilities.temporal import TimezoneExtraction
+
+    timezone_cube = cubes.pop()
 
     local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
     return TimezoneExtraction()(cubes, timezone_cube, local_datetime)
