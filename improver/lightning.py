@@ -105,7 +105,8 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         data = cape_true.data * precip_true.data
 
         cube = create_new_diagnostic_cube(
-            name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold",
+            name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity"
+                 "_above_threshold",
             units="1",
             template_cube=precip,
             data=data.astype(FLOAT_DTYPE),
@@ -139,7 +140,8 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             cape = cape.merge_cube()
         else:
             raise ValueError(
-                f"No cube named atmosphere_convective_available_potential_energy_max found in {cubes}"
+                f"No cube named atmosphere_convective_available_potential_energy_max found "
+                f"in {cubes}"
             )
         precip = cubes.extract(
             iris.Constraint(
