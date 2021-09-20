@@ -98,6 +98,26 @@ def test_normal_point_by_point_sites(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
+def test_additional_predictor(tmp_path):
+    """Test diagnostic with an additional predictor"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/additional_predictor"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "../normal/input.nc"
+    alt_path = kgo_dir / "grid_altitude.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        alt_path,
+        emos_est_path,
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
 
 def test_realizations_input_land_sea(tmp_path):
     """Test realizations as input with a land sea mask"""
@@ -111,6 +131,8 @@ def test_realizations_input_land_sea(tmp_path):
         input_path,
         emos_est_path,
         land_sea_path,
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--random-seed",
         "0",
         "--output",
@@ -172,6 +194,8 @@ def test_probabilities_input_land_sea(tmp_path):
         input_path,
         emos_est_path,
         land_sea_path,
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--realizations-count",
         "18",
         "--output",
@@ -228,6 +252,8 @@ def test_percentiles_input_land_sea(tmp_path):
         input_path,
         emos_est_path,
         land_sea_path,
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--realizations-count",
         "18",
         "--output",
@@ -317,9 +343,7 @@ def test_wrong_coefficients(tmp_path):
         "--output",
         output_path,
     ]
-    from iris.exceptions import ConstraintMismatchError
-
-    with pytest.raises(ConstraintMismatchError, match="Got 0 cubes for constraint.*"):
+    with pytest.raises(IOError, match="Expecting one forecast.*"):
         run_cli(args)
 
 
@@ -333,12 +357,14 @@ def test_wrong_land_sea_mask(tmp_path):
         input_path,
         emos_est_path,
         input_path,
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--random-seed",
         "0",
         "--output",
         output_path,
     ]
-    with pytest.raises(ValueError, match=".*land_sea_mask.*"):
+    with pytest.raises(IOError, match="Expected one cube for land-sea mask.*"):
         run_cli(args)
 
 
@@ -354,7 +380,5 @@ def test_wrong_forecast_coefficients(tmp_path):
         "--output",
         output_path,
     ]
-    from iris.exceptions import MergeError
-
-    with pytest.raises(MergeError, match="failed to merge into a single cube.*"):
+    with pytest.raises(KeyError, match=".*air_temperature.*"):
         run_cli(args)

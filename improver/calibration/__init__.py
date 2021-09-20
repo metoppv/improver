@@ -42,6 +42,17 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 
 
+def _land_sea_mask_check(cubes_dict, land_sea_mask_name):
+    if cubes_dict["land_sea_mask"] and len(cubes_dict["land_sea_mask"][land_sea_mask_name]) == 1:
+        land_sea_mask, = cubes_dict["land_sea_mask"][land_sea_mask_name]
+    elif land_sea_mask_name and (not cubes_dict["land_sea_mask"] or len(cubes_dict["land_sea_mask"][land_sea_mask_name]) != 1):
+        raise IOError("Expected one cube for land-sea mask with "
+                      f"the name {land_sea_mask_name}.")
+    elif not cubes_dict["land_sea_mask"]:
+        land_sea_mask = None
+    return land_sea_mask
+
+
 def split_forecasts_and_truth(
     cubes: List[Cube], truth_attribute: str, land_sea_mask_name: Optional[str] = None
 ) -> Tuple[Cube, Cube, Optional[CubeList], Optional[Cube]]:
@@ -101,15 +112,7 @@ def split_forecasts_and_truth(
                "The truth should only exist for one diagnostic.")
         raise ValueError(msg)
 
-    # import pdb
-    # pdb.set_trace()
-    if cubes_dict["land_sea_mask"] and len(cubes_dict["land_sea_mask"][land_sea_mask_name]) == 1:
-        land_sea_mask, = cubes_dict["land_sea_mask"][land_sea_mask_name]
-    elif land_sea_mask_name and (not cubes_dict["land_sea_mask"] or len(cubes_dict["land_sea_mask"][land_sea_mask_name]) != 1):
-        raise IOError("Expected one cube for land-sea mask with "
-                      f"the name {land_sea_mask_name}.")
-    elif not cubes_dict["land_sea_mask"]:
-        land_sea_mask = None
+    land_sea_mask = _land_sea_mask_check(cubes_dict, land_sea_mask_name)
 
     # Further splitting of the "other" grouping into historical forecasts
     # and additional fields
@@ -174,25 +177,24 @@ def filter_obs(spot_truths_cubelist: CubeList) -> CubeList:
 
 
 def split_forecasts_and_coeffs(
-    cubes: List[Cube], land_sea_mask_name: bool
-) -> Tuple[Cube, Optional[Cube], CubeList, Optional[Cube]]:
+    cubes: List[CubeList], land_sea_mask_name: Optional[str] = None
+) -> Tuple[Cube, CubeList, Optional[CubeList], Optional[Cube]]:
     """
-    A common utility for splitting the various inputs cubes required for
-    calibration CLIs. These are generally the forecast cubes, historic truths,
-    and in some instances a land-sea mask is also required.
+    Utility for separating the forecasts, coefficients, additional fields
+    and land-sea mask, which all may be required for calibration.
 
     Args:
         cubes:
             A list of input cubes which will be split into relevant groups.
-            These include the historical forecasts, in the format supported by
-            the calibration CLIs, and the truth cubes.
-        truth_attribute:
-            An attribute and its value in the format of "attribute=value",
-            which must be present on truth cubes.
+            The include the forecast, coefficients, additional fields and
+            land-sea mask.
+        land_sea_mask_name:
+            Name of the land-sea mask cube to help identification.
 
     Returns:
-        - A cube containing all the historic forecasts.
-        - A cube containing all the truth data.
+        - A cube containing the current forecast
+        - A cubelist containing the coefficients.
+        - If found, a cubelist containing additional fields, else None.
         - If found within the input cubes list a land-sea mask will be
           returned, else None is returned.
 
@@ -216,23 +218,34 @@ def split_forecasts_and_coeffs(
             if "emos_coefficient" in cube_name:
                 cubes_dict["coefficients"].setdefault(cube_name, []).append(cube)
             elif cube_name == land_sea_mask_name:
-                cubes_dict["land_sea_mask"] = cube
+                cubes_dict["land_sea_mask"].setdefault(cube_name, CubeList()).append(cube)
             else:
                 cubes_dict["other"].setdefault(cube_name, []).append(cube)
 
-    if land_sea_mask_name and not cubes_dict["land_sea_mask"]:
-        raise IOError("Expected one cube for land-sea mask with "
-                      f"the name {land_sea_mask_name}.")
+    land_sea_mask = _land_sea_mask_check(cubes_dict, land_sea_mask_name)
 
     diagnostic_standard_name = list(set([v[0].attributes["diagnostic_standard_name"] for v in cubes_dict["coefficients"].values() if v[0].attributes.get("diagnostic_standard_name")]))
     if len(diagnostic_standard_name) == 1:
         diagnostic_standard_name, = diagnostic_standard_name
-    else:
+    elif len(diagnostic_standard_name) > 1:
         msg = ("The coefficients cubes are expected to have one consistent "
                f"diagnostic_standard_name attribute, rather than {diagnostic_standard_name}")
         raise AttributeError(msg)
 
-    cubes_dict["current_forecast"], = cubes_dict["other"][diagnostic_standard_name]
+    if diagnostic_standard_name and diagnostic_standard_name in cubes_dict["other"].keys():
+        cubes_dict["current_forecast"], = cubes_dict["other"][diagnostic_standard_name]
+    elif not diagnostic_standard_name:
+        if len(list(cubes_dict["other"].values())[0]) == 1:
+            cubes_dict["current_forecast"], = list(cubes_dict["other"].values())[0]
+        else:
+            msg = ("Expecting one forecast. "
+                  f"{len(list(cubes_dict['other'].values())[0])} forecasts are present.")
+            raise IOError(msg)
+    else:
+        msg = (f"A forecast corresponding to {diagnostic_standard_name} is "
+               "not available.")
+        raise KeyError(msg)
+
     for k, v in cubes_dict["other"].items():
         if k != diagnostic_standard_name:
             cubes_dict["additional_fields"].setdefault(k, []).extend(v)
@@ -240,4 +253,4 @@ def split_forecasts_and_coeffs(
     additional_fields = CubeList([cubes_dict["additional_fields"][k][0] for k in cubes_dict["additional_fields"]])
     coefficients = CubeList([cubes_dict["coefficients"][k][0] for k in cubes_dict["coefficients"]])
 
-    return cubes_dict["current_forecast"], additional_fields, coefficients, cubes_dict["land_sea_mask"]
+    return cubes_dict["current_forecast"], coefficients, additional_fields, land_sea_mask

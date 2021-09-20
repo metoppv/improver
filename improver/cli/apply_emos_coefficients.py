@@ -48,10 +48,6 @@ inputcoeffs = cli.create_constrained_inputcubelist_converter(
 @cli.with_output
 def process(
     *cubes: cli.inputcubelist,
-    # cube: cli.inputcube,
-    # coefficients: inputcoeffs = None,
-    # land_sea_mask: cli.inputcube = None,
-    # *,
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
@@ -134,8 +130,8 @@ def process(
     from improver.calibration.ensemble_calibration import ApplyEMOS
     from improver.calibration import split_forecasts_and_coeffs
 
-    forecast, additional_fields, coefficients, land_sea_mask = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
-    if coefficients is None:
+    forecast, coefficients, additional_fields, land_sea_mask = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+    if not coefficients:
         msg = (
             "There are no coefficients provided for calibration. The "
             "uncalibrated forecast will be returned."
@@ -146,8 +142,8 @@ def process(
     calibration_plugin = ApplyEMOS()
     result = calibration_plugin(
         forecast,
-        additional_fields,
         coefficients,
+        additional_fields=additional_fields,
         land_sea_mask=land_sea_mask,
         realizations_count=realizations_count,
         ignore_ecc_bounds=ignore_ecc_bounds,

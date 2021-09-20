@@ -1504,7 +1504,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         )
         if self.additional_fields:
             forecast_predictors.extend(self.additional_fields)
-
+        # import pdb
+        # pdb.set_trace()
         fp_names = [fp.name() for fp in forecast_predictors]
         if len(forecast_predictors) != len(
             self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
@@ -1910,10 +1911,10 @@ class ApplyEMOS(PostProcessingPlugin):
             forecast:
                 Uncalibrated forecast as probabilities, percentiles or
                 realizations
-            additional_fields:
-
             coefficients:
                 EMOS coefficients
+            additional_fields:
+                Additional fields to be used as forecast predictors.
             land_sea_mask:
                 Land sea mask where a value of "1" represents land points and
                 "0" represents sea.  If set, allows calibration of land points
@@ -1938,6 +1939,8 @@ class ApplyEMOS(PostProcessingPlugin):
             Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations)
         """
+        # import pdb
+        # pdb.set_trace()
         self.forecast_type = self._get_forecast_type(forecast)
 
         forecast_as_realizations = forecast.copy()
