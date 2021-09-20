@@ -51,9 +51,8 @@ def process(
             Source data to be remapped onto time-zones. Must contain an exact 1-to-1
             mapping of times to time-zones. Multiple input files will be merged into one
             cube.
-            Assumes the final argument is a timezone_cube,
-            which is a cube describing the UTC
-            offset for the local time at each grid location.
+            Assumes the final argument is a timezone_cube, which is a cube describing
+            the UTC offset for the local time at each grid location.
             Must have the same spatial coords as input_cube.
             Use generate-timezone-mask-ancillary to create this.
 
