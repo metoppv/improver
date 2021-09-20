@@ -715,43 +715,42 @@ class Test_reshape_forecast_predictors(IrisTest):
         for coord in ["time", "forecast_reference_time", "forecast_period"]:
             self.altitude.remove_coord(coord)
 
+        self.expected_forecast = self.forecast.data.shape
+        self.expected_altitude = (len(self.forecast.coord("time").points),) + self.altitude.shape
+
     def test_one_forecast_predictor(self):
         """Test reshaping one forecast predictor"""
         self.forecast_predictors = iris.cube.CubeList([self.forecast])
-        expected = self.forecast.data
         results = reshape_forecast_predictors(self.forecast_predictors)
         self.assertEqual(len(results), 1)
-        self.assertTupleEqual(results[0].shape, expected.shape)
-        self.assertArrayEqual(results[0], expected)
+        self.assertTupleEqual(results[0].shape, self.expected_forecast)
+        self.assertArrayEqual(results[0], self.forecast.data)
 
     def test_two_forecast_predictors(self):
         """Test reshaping two forecast predictors, where one is a static predictor."""
         self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        expected = self.forecast.data
         results = reshape_forecast_predictors(self.forecast_predictors)
         self.assertEqual(len(results), 2)
-        for result in results:
-            self.assertTupleEqual(result.shape, expected.shape)
+        self.assertTupleEqual(results[0].shape, self.expected_forecast)
+        self.assertTupleEqual(results[1].shape, self.expected_altitude)
 
     def test_constr(self):
         """Test reshaping two forecast predictors when passing a constraint."""
         self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        expected = self.forecast.data
         constr = iris.Constraint(
             latitude=self.forecast.coord("latitude").points[0]
         ) & iris.Constraint(longitude=self.forecast.coord("longitude").points[0])
         results = reshape_forecast_predictors(self.forecast_predictors, constr=constr)
-        for result in results:
-            self.assertTupleEqual(result.shape, expected.shape[:2])
+        self.assertTupleEqual(results[0].shape, self.expected_forecast[:2])
+        self.assertTupleEqual(results[1].shape, self.expected_altitude[:1])
 
     def test_func(self):
         """Test reshaping two forecast predictors when passing a function."""
         self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        expected = self.forecast.data
-        func = lambda x: np.expand_dims(x, 0)
-        results = reshape_forecast_predictors(self.forecast_predictors, func=func)
-        for result in results:
-            self.assertTupleEqual(result.shape, (1,) + expected.shape)
+        results = reshape_forecast_predictors(
+            self.forecast_predictors, func=lambda x: np.expand_dims(x, 0))
+        self.assertTupleEqual(results[0].shape, (1,) + self.expected_forecast)
+        self.assertTupleEqual(results[1].shape, (1,) + self.expected_altitude)
 
 
 if __name__ == "__main__":

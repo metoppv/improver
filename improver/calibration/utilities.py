@@ -362,8 +362,7 @@ def reshape_forecast_predictors(
     constr: Optional[iris.Constraint] = None,
     func: Optional[Callable] = lambda x: x,
 ) -> List[ndarray]:
-    """Reshape forecast predictors without a time or realization dimension
-    by broadcasting to the required shape.
+    """Reshape forecast predictors without a time by broadcasting to the required shape.
 
     Args:
         forecast_predictors:
@@ -373,14 +372,9 @@ def reshape_forecast_predictors(
 
     Returns:
        Consistently-shaped forecast predictors where static forecast predictors
-       have been reshaped to account for the time and realization dimensions.
+       have been reshaped to account for a time dimensions.
     """
     reshaped_forecast_predictors = []
-    # num_realizations = [
-    #     len(fp_cube.coord("realization").points)
-    #     for fp_cube in forecast_predictors
-    #     if fp_cube.coords("realization", dim_coords=True)
-    # ]
     num_times = [
         len(fp_cube.coord("time").points)
         for fp_cube in forecast_predictors
@@ -394,11 +388,6 @@ def reshape_forecast_predictors(
         if not fp_cube.coords("time"):
             # Broadcast static predictors to the required shape.
             fp_data = np.broadcast_to(fp_data, tuple(num_times) + fp_data.shape)
-
-        # if not fp_cube.coords("realization"):
-        #     fp_data = np.expand_dims(fp_data, 0)
-            #fp_data = np.expand_dims(fp_data, 0)
-        #     fp_data = np.broadcast_to(fp_data, tuple(num_realizations) + fp_data.shape)
 
         reshaped_forecast_predictors.append(func(fp_data))
     return reshaped_forecast_predictors

@@ -97,9 +97,6 @@ class SetupExpectedCoefficients(IrisTest):
         self.expected_mean_pred_norm_alt = np.array(
             [0.9980, 1.0, 0.0, 0.0, 0.6976], dtype=np.float32
         )
-        self.expected_realizations_norm_alt = np.array(
-            [ 0.7521 ,  0.7608,  0.6497, -0.        ,  0.        , 0.0005,  0.4936], dtype=np.float32
-        )
 
         self.expected_mean_pred_each_grid_point = {
             "emos_coefficient_alpha": np.array(
@@ -1419,26 +1416,6 @@ class Test_process(
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_sites_additional_static_predictor_realizations(self):
-        """Ensure that the coefficients and coefficient names are as expected
-        when using an additional static predictor."""
-        plugin = self.plugin(self.distribution, predictor="realizations")
-        result = plugin.process(
-            self.historic_forecast_spot_cube,
-            self.truth_spot_cube,
-            CubeList([self.spot_altitude_cube]),
-        )
-        np.set_printoptions(suppress=True)
-        print(repr(result))
-        self.assertEMOSCoefficientsAlmostEqual(
-            np.hstack([cube.data.flatten() for cube in result]),
-            self.expected_realizations_norm_alt,
-        )
-        self.assertArrayEqual(
-            [cube.name() for cube in result], self.expected_coeff_names
-        )
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_sites_point_by_point_with_additional_static_predictor(self):
         """Ensure that the coefficients and coefficient names are as expected
         when using an additional static predictor."""
@@ -1466,35 +1443,6 @@ class Test_process(
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_sites_point_by_point_with_additional_static_predictor_realizations(self):
-        """Ensure that the coefficients and coefficient names are as expected
-        when using an additional static predictor."""
-        expected_dim_coords = {
-            "emos_coefficient_alpha": ["spot_index"],
-            "emos_coefficient_beta": ["predictor_index", "realization", "spot_index"],
-            "emos_coefficient_gamma": ["spot_index"],
-            "emos_coefficient_delta": ["spot_index"],
-        }
-        plugin = self.plugin(
-            self.distribution, point_by_point=True, predictor="realizations"
-        )
-        result = plugin.process(
-            self.historic_forecast_spot_cube,
-            self.truth_spot_cube,
-            CubeList([self.spot_altitude_cube]),
-        )
-
-        for cube in result:
-            self.assertEMOSCoefficientsAlmostEqual(
-                cube.data, self.expected_realizations_each_site_alt[cube.name()],
-            )
-            self.assertIn(cube.name(), self.expected_coeff_names)
-            self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()],
-            )
-
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_additional_dynamic_predictor(self):
         """Raise an error if the additional predictor provided is not static."""
         plugin = self.plugin(self.distribution)
@@ -1504,6 +1452,19 @@ class Test_process(
                 self.historic_temperature_forecast_cube,
                 self.temperature_truth_cube,
                 CubeList([self.historic_wind_speed_forecast_cube]),
+            )
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_additional_static_predictor_realizations(self):
+        """Raise an error if an additional static predictor is provided with
+        the realizations predictor."""
+        plugin = self.plugin(self.distribution, predictor="realizations")
+        msg = "is not supported."
+        with self.assertRaisesRegex(NotImplementedError, msg):
+            plugin.process(
+                self.historic_forecast_spot_cube,
+                self.truth_spot_cube,
+                CubeList([self.spot_altitude_cube]),
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)

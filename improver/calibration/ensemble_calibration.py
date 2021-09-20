@@ -940,14 +940,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 # import pdb
                 # pdb.set_trace()
                 # Reorganise beta coeffs
-                n_points = len(template_cube.coord("realization").points)
-                if n_points > 1 and len(optimised_coeff) != n_points:
-                    beta_coeffs = [optimised_coeff[:n_points]]
-                    static_predictor_betas = np.split(optimised_coeff[n_points:], 1)
-                    padded_coeffs = np.pad(static_predictor_betas, ((0, 0), (0, n_points-1)))
-                    beta_coeffs = np.squeeze(np.stack((beta_coeffs, padded_coeffs)))
-                else:
-                    beta_coeffs = np.reshape(optimised_coeff, template_cube.shape)
+                # n_points = len(template_cube.coord("realization").points)
+                # if n_points > 1 and len(optimised_coeff) != n_points:
+                #     beta_coeffs = [optimised_coeff[:n_points]]
+                #     static_predictor_betas = np.split(optimised_coeff[n_points:], 1)
+                #     padded_coeffs = np.pad(static_predictor_betas, ((0, 0), (0, n_points-1)))
+                #     beta_coeffs = np.squeeze(np.stack((beta_coeffs, padded_coeffs)))
+                # else:
+                # beta_coeffs =
 
             for coord in coords_to_replace:
                 template_cube.replace_coord(coord)
@@ -970,7 +970,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 template_cube,
                 generate_mandatory_attributes([historic_forecasts]),
                 optional_attributes=self._set_attributes(historic_forecasts),
-                data=beta_coeffs
+                data=np.reshape(optimised_coeff, template_cube.shape)
                 if "beta" == coeff_name
                 else np.array(optimised_coeff),
             )
@@ -1220,8 +1220,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 )
         else:
             # Computing initial guess for EMOS coefficients
-            import pdb
-            pdb.set_trace()
             forecast_predictor_data = np.ma.stack(
                 reshape_forecast_predictors(forecast_predictors)
             )
@@ -1329,6 +1327,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
         check_forecast_consistency(historic_forecasts)
         if additional_fields:
+            if self.predictor.lower() == "realizations":
+                msg = ("Currently the usage of additional fields with the use "
+                       "of realizations as the predictor is not supported.")
+                raise NotImplementedError(msg)
             for af_cube in additional_fields:
                 if any(
                     [
@@ -1539,75 +1541,41 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
-
         Further information is available in the :mod:`module level docstring \
 <improver.calibration.ensemble_calibration>`.
-
         Returns:
             Location parameter calculated using the ensemble realizations
             as the predictor.
         """
         forecast_predictor = self.current_forecast
-        forecast_predictors = [forecast_predictor]
         # Calculate location parameter = a + b1*X1 .... + bn*Xn, where X is the
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
-        import pdb
-        pdb.set_trace()
-        #beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
-        # beta_values = beta_cube.data * beta_cube.data
-        #beta_values = np.atleast_2d(beta_cube.data.reshape(forecast_predictor.shape) * beta_cube.data.reshape(forecast_predictor.shape))
-        #beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
+        beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+        beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
+        beta_values = np.atleast_2d(np.squeeze(beta_values.T)) if beta_cube.data.ndim != 1 else beta_values
 
-        #reshaped_a = np.tile(np.atleast_2d(self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data).T, (len(beta_cube.coord("predictor_index").points), 1))
-        # reshaped_a = np.tile(self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data,(len(beta_cube.coord("realization").points), 1))
-        # reshaped_a = np.tile(reshaped_a, (len(beta_cube.coord("predictor_index").points), 1))
-        #reshaped_a = np.broadcast_to(self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data, beta_cube.shape)
-        #a_and_b = np.stack((reshaped_a, beta_values))
-
-        #forecast_predictor_flat = convert_cube_data_to_2d(forecast_predictor)
-        if self.additional_fields:
-            for af in self.additional_fields:
-                forecast_predictors.append(af)
-
-                # af_flat = np.broadcast_to(af.data, forecast_predictor.shape)  #np.tile(np.expand_dims(af.data.flatten(), 1), (1, len(forecast_predictor.coord("realization").points)))
-                # #af_flat = convert_cube_data_to_2d(af_flat)
-                # forecast_predictor_flat = np.column_stack((forecast_predictor_flat, af_flat))
-
-        #total_beta = []
-
-        location_parameter = np.zeros(forecast_predictors[0].shape)
-        for fp in forecast_predictors:
-            constr = iris.Constraint(predictor_name=fp.name())
-            location_parameter += (
-                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
-                .extract(constr)
-                .data
-                * fp.data
+        a_and_b = np.hstack(
+            (
+                np.atleast_2d(
+                    self.coefficients_cubelist.extract_cube(
+                        "emos_coefficient_alpha"
+                    ).data
+                ).T,
+                beta_values,
             )
-        location_parameter += self.coefficients_cubelist.extract_cube(
-            "emos_coefficient_alpha"
-        ).data
-        location_parameter = location_parameter.astype(np.float32)
+        )
 
-        # for beta_slice in beta_cube.slices_over("predictor_index"):
-        #     beta_values = beta_slice.data * beta_slice.data
-        #     constr = iris.Constraint(beta_slice.coord("predictor_name").points[0]))
-        #     total_beta.append(beta_values * forecast_predictors(constr).data)
+        forecast_predictor_flat = convert_cube_data_to_2d(forecast_predictor)
+        xy_shape = next(forecast_predictor.slices_over("realization")).shape
+        col_of_ones = np.ones(np.prod(xy_shape), dtype=np.float32)
+        ones_and_predictor = np.column_stack((col_of_ones, forecast_predictor_flat))
 
-
-
-        # xy_shape = next(forecast_predictor.slices_over("realization")).shape
-        # col_of_ones = np.ones(np.prod(xy_shape), dtype=np.float32)
-        # ones_and_predictor = np.column_stack((col_of_ones, forecast_predictor_flat))
-
-
-
-        # location_parameter = (
-        #     np.sum(ones_and_predictor * a_and_b, axis=-1)
-        #     .reshape(xy_shape)
-        #     .astype(np.float32)
-        # )
+        location_parameter = (
+            np.sum(ones_and_predictor * a_and_b, axis=-1)
+            .reshape(xy_shape)
+            .astype(np.float32)
+        )
 
         return location_parameter
 

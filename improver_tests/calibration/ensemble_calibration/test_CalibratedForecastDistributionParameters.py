@@ -150,23 +150,6 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             self.expected_mean_pred_norm_alt, self.historic_temperature_forecast_cube,
             CubeList([self.historic_temperature_forecast_cube, self.altitude])
         )
-        # import pdb
-        # pdb.set_trace()
-        expected_realizations_norm_alt = [
-            self.expected_realizations_norm_alt[0],
-            self.expected_realizations_norm_alt[1:-2].reshape(2, 2),
-            self.expected_realizations_norm_alt[2],
-            self.expected_realizations_norm_alt[3]
-        ]
-
-        estimator = EstimateCoefficientsForEnsembleCalibration(
-            "norm", desired_units="Celsius", predictor="realizations"
-        )
-        self.coeffs_from_realizations_alt = estimator.create_coefficients_cubelist(
-            expected_realizations_norm_alt,
-            self.historic_forecast_spot_cube,
-            CubeList([self.historic_forecast_spot_cube, self.altitude])
-        )
 
         # Some expected data that are used in various tests.
         self.expected_loc_param_mean = np.array(
@@ -329,6 +312,7 @@ class Test__calculate_location_parameter_from_mean(
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
+        self.plugin.additional_fields = None
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
@@ -535,24 +519,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
             self.plugin.process(
                 self.current_temperature_forecast_cube, self.coeffs_from_mean_alt
             )
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_end_to_end_with_additional_predictor_realizations(self):
-        """An example end-to-end calculation. This repeats the test elements
-        above but all grouped together."""
-        plugin = Plugin(predictor="realizations")
-        calibrated_forecast_predictor, calibrated_forecast_var = plugin.process(
-            self.current_forecast_spot_cube, self.coeffs_from_realizations_alt,
-            additional_fields=CubeList([self.spot_altitude_cube])
-        )
-
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_predictor.data, self.expected_loc_param_realizations_sites_alt
-        )
-        self.assertCalibratedVariablesAlmostEqual(
-            calibrated_forecast_var.data, self.expected_scale_param_realizations_sites_alt
-        )
-        self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_with_mask(self):
