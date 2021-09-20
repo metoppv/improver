@@ -138,7 +138,9 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         if cape:
             cape = cape.merge_cube()
         else:
-            raise ValueError(f"No cube named atmosphere_convective_available_potential_energy_max found in {cubes}")
+            raise ValueError(
+                f"No cube named atmosphere_convective_available_potential_energy_max found in {cubes}"
+            )
         precip = cubes.extract(
             iris.Constraint(
                 cube_func=lambda cube: "precipitation_rate_max" in cube.name()
