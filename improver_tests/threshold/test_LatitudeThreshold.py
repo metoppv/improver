@@ -38,24 +38,9 @@ from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 
+from improver.lightning import latitude_to_threshold
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.threshold import LatitudeThreshold as Threshold
-from improver.utilities.rescale import rescale
-
-
-def latitude_to_threshold(
-    latitude: np.ndarray, midlatitude: float = 1.0, tropics: float = 3.0,
-) -> np.ndarray:
-    """
-    Below 10 degrees, returns tropics
-    Above 50 degrees, returns [midlatitude]
-    Varies linearly in between
-    """
-    return np.where(
-        latitude > 0,
-        rescale(latitude, (50.0, 10), (midlatitude, tropics), clip=True),
-        rescale(latitude, (-50.0, -10), (midlatitude, tropics), clip=True),
-    )
 
 
 class Test__init(IrisTest):
@@ -77,7 +62,9 @@ class Test__add_latitude_threshold_coord(IrisTest):
         self.plugin = Threshold(latitude_to_threshold)
         self.plugin.threshold_coord_name = self.cube.name()
         self.thresholds = np.array(
-            latitude_to_threshold(self.cube.coord("latitude").points)
+            latitude_to_threshold(
+                self.cube.coord("latitude").points, midlatitude=1.0, tropics=3.0
+            )
         )
 
     def test_basic(self):
