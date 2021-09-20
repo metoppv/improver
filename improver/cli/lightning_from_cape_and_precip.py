@@ -53,9 +53,7 @@ def process(
 
     Returns:
         iris.cube.Cube:
-            Cube of probabilities relative to the given thresholds
-
-    Raises:
+            Cube of probabilities of lightning relative to a zero rate thresholds
     """
     from improver.lightning import LightningFromCapePrecip
 
