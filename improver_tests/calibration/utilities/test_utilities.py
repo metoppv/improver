@@ -716,7 +716,9 @@ class Test_reshape_forecast_predictors(IrisTest):
             self.altitude.remove_coord(coord)
 
         self.expected_forecast = self.forecast.data.shape
-        self.expected_altitude = (len(self.forecast.coord("time").points),) + self.altitude.shape
+        self.expected_altitude = (
+            len(self.forecast.coord("time").points),
+        ) + self.altitude.shape
 
     def test_one_forecast_predictor(self):
         """Test reshaping one forecast predictor"""
@@ -748,7 +750,8 @@ class Test_reshape_forecast_predictors(IrisTest):
         """Test reshaping two forecast predictors when passing a function."""
         self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
         results = reshape_forecast_predictors(
-            self.forecast_predictors, func=lambda x: np.expand_dims(x, 0))
+            self.forecast_predictors, func=lambda x: np.expand_dims(x, 0)
+        )
         self.assertTupleEqual(results[0].shape, (1,) + self.expected_forecast)
         self.assertTupleEqual(results[1].shape, (1,) + self.expected_altitude)
 

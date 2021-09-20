@@ -98,6 +98,7 @@ def test_normal_point_by_point_sites(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
+
 def test_additional_predictor(tmp_path):
     """Test diagnostic with an additional predictor"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/additional_predictor"

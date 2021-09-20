@@ -30,12 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the `ensemble_calibration.ApplyEMOS` class."""
 
-from typing import Optional, Sequence, Union
 import unittest
+from typing import Optional, Sequence, Union
 
 import iris
-from iris.cube import Cube, CubeList
 import numpy as np
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import ApplyEMOS
@@ -47,7 +47,12 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.cube_manipulation import get_dim_coord_names
 
 
-def build_coefficients_cubelist(template: Cube, coeff_values: Union[Sequence, np.ndarray], forecast_predictors: CubeList, predictor: Optional[str] ="mean"):
+def build_coefficients_cubelist(
+    template: Cube,
+    coeff_values: Union[Sequence, np.ndarray],
+    forecast_predictors: CubeList,
+    predictor: Optional[str] = "mean",
+):
     """Make a cubelist of coefficients with expected metadata
 
     Args:
@@ -102,7 +107,7 @@ def build_coefficients_cubelist(template: Cube, coeff_values: Union[Sequence, np
 
     coeff_names = ["alpha", "beta", "gamma", "delta"]
     cubelist = iris.cube.CubeList([])
-    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):#
+    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):  #
         modified_dim_coords_and_dims = dim_coords_and_dims.copy()
         modified_aux_coords_and_dims = aux_coords_and_dims.copy()
         coeff_units = "1"
@@ -121,11 +126,11 @@ def build_coefficients_cubelist(template: Cube, coeff_values: Union[Sequence, np
             )
             modified_aux_coords_and_dims.append((predictor_name, 0))
         if predictor.lower() == "realizations" and coeff_name == "beta":
-            modified_dim_coords_and_dims.append((template.coord("realization").copy(), 1))
+            modified_dim_coords_and_dims.append(
+                (template.coord("realization").copy(), 1)
+            )
         cube = iris.cube.Cube(
-            np.atleast_1d(optimised_coeff)
-            if "beta" == coeff_name
-            else optimised_coeff,
+            np.atleast_1d(optimised_coeff) if "beta" == coeff_name else optimised_coeff,
             long_name=f"emos_coefficient_{coeff_name}",
             units=coeff_units,
             dim_coords_and_dims=modified_dim_coords_and_dims,
@@ -178,7 +183,9 @@ class Test_process(IrisTest):
             attributes=attributes,
         )
 
-        self.coefficients = build_coefficients_cubelist(self.realizations, [0, 1, 0, 1], CubeList([self.realizations]))
+        self.coefficients = build_coefficients_cubelist(
+            self.realizations, [0, 1, 0, 1], CubeList([self.realizations])
+        )
 
         self.null_percentiles_expected_mean = np.mean(self.percentiles.data)
         self.null_percentiles_expected = np.array(
@@ -276,7 +283,10 @@ class Test_process(IrisTest):
         for coord in ["time", "forecast_reference_time", "forecast_period"]:
             altitude.remove_coord(coord)
         coefficients = build_coefficients_cubelist(
-            self.realizations, [0, [0.9, 0.1], 0, 1], CubeList([self.realizations, altitude]))
+            self.realizations,
+            [0, [0.9, 0.1], 0, 1],
+            CubeList([self.realizations, altitude]),
+        )
         expected_data = np.array(
             [
                 np.full((3, 3), 9.325102),

@@ -130,7 +130,12 @@ def process(
     from improver.calibration.ensemble_calibration import ApplyEMOS
     from improver.calibration import split_forecasts_and_coeffs
 
-    forecast, coefficients, additional_fields, land_sea_mask = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+    (
+        forecast,
+        coefficients,
+        additional_fields,
+        land_sea_mask,
+    ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
     if not coefficients:
         msg = (
             "There are no coefficients provided for calibration. The "

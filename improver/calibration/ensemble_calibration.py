@@ -35,9 +35,9 @@ Statistics (EMOS).
 .. include:: extended_documentation/calibration/ensemble_calibration/
    ensemble_calibration.rst
 """
-from re import template
 import warnings
 from functools import partial
+from re import template
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
@@ -1328,8 +1328,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         check_forecast_consistency(historic_forecasts)
         if additional_fields:
             if self.predictor.lower() == "realizations":
-                msg = ("Currently the usage of additional fields with the use "
-                       "of realizations as the predictor is not supported.")
+                msg = (
+                    "Currently the usage of additional fields with the use "
+                    "of realizations as the predictor is not supported."
+                )
                 raise NotImplementedError(msg)
             for af_cube in additional_fields:
                 if any(
@@ -1554,7 +1556,11 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # number of ensemble realizations. In this case, b = beta^2.
         beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
         beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
-        beta_values = np.atleast_2d(np.squeeze(beta_values.T)) if beta_cube.data.ndim != 1 else beta_values
+        beta_values = (
+            np.atleast_2d(np.squeeze(beta_values.T))
+            if beta_cube.data.ndim != 1
+            else beta_values
+        )
 
         a_and_b = np.hstack(
             (
@@ -1598,8 +1604,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
         scale_parameter = (
-            self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
-            ** 2
+            self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data ** 2
             + self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
             ** 2
             * forecast_var.data

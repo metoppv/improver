@@ -34,10 +34,14 @@ import unittest
 from datetime import datetime
 
 import iris
-from iris.cube import Cube, CubeList
 import numpy as np
+from iris.cube import Cube, CubeList
 
-from improver.calibration import filter_obs, split_forecasts_and_coeffs, split_forecasts_and_truth
+from improver.calibration import (
+    filter_obs,
+    split_forecasts_and_coeffs,
+    split_forecasts_and_truth,
+)
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
@@ -103,7 +107,8 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
 
         self.landsea_mask_name = "land_binary_mask"
         self.landsea_mask = set_up_variable_cube(
-            np.zeros((4, 4), dtype=np.float32), name=self.landsea_mask_name)
+            np.zeros((4, 4), dtype=np.float32), name=self.landsea_mask_name
+        )
         for coord in ["time", "forecast_reference_time", "forecast_period"]:
             self.landsea_mask.remove_coord(coord)
 
@@ -137,7 +142,8 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
 
         forecast, truth, others, land_sea_mask = split_forecasts_and_truth(
             self.probability_forecasts + self.probability_truths + [self.landsea_mask],
-            self.truth_attribute, land_sea_mask_name=self.landsea_mask_name
+            self.truth_attribute,
+            land_sea_mask_name=self.landsea_mask_name,
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -195,7 +201,8 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
 
         forecast, truth, others, land_sea_mask = split_forecasts_and_truth(
             self.realization_forecasts + self.realization_truths + [self.landsea_mask],
-            self.truth_attribute, self.landsea_mask_name
+            self.truth_attribute,
+            self.landsea_mask_name,
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -216,7 +223,7 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
 
         forecast, truth, others, land_sea_mask = split_forecasts_and_truth(
             self.realization_forecasts + self.realization_truths + [self.altitude],
-            self.truth_attribute
+            self.truth_attribute,
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -240,7 +247,8 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 self.realization_forecasts
                 + self.realization_truths
                 + [self.landsea_mask, self.landsea_mask],
-                self.truth_attribute, self.landsea_mask_name
+                self.truth_attribute,
+                self.landsea_mask_name,
             )
 
     def test_exception_for_misnamed_land_sea_mask(self):
@@ -255,7 +263,8 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 self.realization_forecasts
                 + self.realization_truths
                 + [self.landsea_mask],
-                self.truth_attribute, self.landsea_mask_name
+                self.truth_attribute,
+                self.landsea_mask_name,
             )
 
     def test_exception_for_missing_truth_inputs(self):
@@ -306,19 +315,25 @@ class Test_filter_obs(unittest.TestCase):
         ]
         self.spot_obs = CubeList()
         for time in times:
-            time_coord = [iris.coords.DimCoord(
-                    (time-datetime(1970, 1, 1)).total_seconds(), "time", units=TIME_COORDS["time"].units
-                )]
-            self.spot_obs.append(build_spotdata_cube(
-                data,
-                "air_temperature",
-                "K",
-                altitudes.copy(),
-                latitudes.copy(),
-                longitudes.copy(),
-                wmo_ids,
-                scalar_coords=time_coord,
-            ))
+            time_coord = [
+                iris.coords.DimCoord(
+                    (time - datetime(1970, 1, 1)).total_seconds(),
+                    "time",
+                    units=TIME_COORDS["time"].units,
+                )
+            ]
+            self.spot_obs.append(
+                build_spotdata_cube(
+                    data,
+                    "air_temperature",
+                    "K",
+                    altitudes.copy(),
+                    latitudes.copy(),
+                    longitudes.copy(),
+                    wmo_ids,
+                    scalar_coords=time_coord,
+                )
+            )
 
     def test_matching_coords(self):
         """Test the site output is consistent, if the input is consistent."""
@@ -343,9 +358,9 @@ class Test_filter_obs(unittest.TestCase):
 
     def test_gridded_input(self):
         """Test the function has no impact on gridded data."""
-        gridded_cubes = CubeList([set_up_variable_cube(
-                np.ones((3, 3), dtype=np.float32),
-        )])
+        gridded_cubes = CubeList(
+            [set_up_variable_cube(np.ones((3, 3), dtype=np.float32),)]
+        )
         result = filter_obs(gridded_cubes)
         self.assertEqual(result, gridded_cubes)
 
@@ -364,7 +379,9 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
         truth_attributes = {"mosg__model_configuration": "uk_det"}
 
         # Set-up probability and realization forecast cubes
-        self.probability_forecast = CubeList([set_up_probability_cube(probability_data, thresholds)])
+        self.probability_forecast = CubeList(
+            [set_up_probability_cube(probability_data, thresholds)]
+        )
         self.realization_forecast = CubeList([set_up_variable_cube(realization_data)])
 
         # Set-up coefficient cubes
@@ -382,31 +399,41 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
 
         attributes = {
             "diagnostic_standard_name": self.realization_forecast[0].name(),
-            "distribution": "norm"
+            "distribution": "norm",
         }
         alpha = iris.cube.Cube(
-            np.array(0, dtype=np.float32), long_name="emos_coefficients_alpha", units="K",
-            attributes=attributes
+            np.array(0, dtype=np.float32),
+            long_name="emos_coefficients_alpha",
+            units="K",
+            attributes=attributes,
         )
         beta = iris.cube.Cube(
-            np.array([0.5], dtype=np.float32), long_name="emos_coefficients_beta", units="1",
-            attributes=attributes, dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims
+            np.array([0.5], dtype=np.float32),
+            long_name="emos_coefficients_beta",
+            units="1",
+            attributes=attributes,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
         )
         gamma = iris.cube.Cube(
-            np.array(0, dtype=np.float32), long_name="emos_coefficients_gamma", units="K",
-            attributes=attributes
+            np.array(0, dtype=np.float32),
+            long_name="emos_coefficients_gamma",
+            units="K",
+            attributes=attributes,
         )
         delta = iris.cube.Cube(
-            np.array(1, dtype=np.float32), long_name="emos_coefficients_delta", units="1",
-            attributes=attributes
+            np.array(1, dtype=np.float32),
+            long_name="emos_coefficients_delta",
+            units="1",
+            attributes=attributes,
         )
 
         self.coefficient_cubelist = CubeList([alpha, beta, gamma, delta])
 
         self.landsea_mask_name = "land_binary_mask"
         self.landsea_mask = set_up_variable_cube(
-            np.zeros((4, 4), dtype=np.float32), name=self.landsea_mask_name)
+            np.zeros((4, 4), dtype=np.float32), name=self.landsea_mask_name
+        )
         for coord in ["time", "forecast_reference_time", "forecast_period"]:
             self.landsea_mask.remove_coord(coord)
         self.landsea_mask = CubeList([self.landsea_mask])
@@ -418,10 +445,11 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
             self.altitude.remove_coord(coord)
         self.altitude = CubeList([self.altitude])
 
-
     def test_realization(self):
         """Test a realization forecast input."""
-        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist]))
+        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(
+            CubeList([self.realization_forecast, self.coefficient_cubelist])
+        )
         self.assertEqual(forecast, self.realization_forecast[0])
         self.assertEqual(coeffs, self.coefficient_cubelist)
         self.assertEqual(others, CubeList())
@@ -429,7 +457,9 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
 
     def test_probability(self):
         """Test a probability forecast input."""
-        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(CubeList([self.probability_forecast, self.coefficient_cubelist]))
+        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(
+            CubeList([self.probability_forecast, self.coefficient_cubelist])
+        )
         self.assertEqual(forecast, self.probability_forecast[0])
         self.assertEqual(coeffs, self.coefficient_cubelist)
         self.assertEqual(others, CubeList())
@@ -437,7 +467,16 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
 
     def test_land_sea_mask(self):
         """Test the addition of a land-sea mask input."""
-        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist, self.landsea_mask]), self.landsea_mask_name)
+        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(
+            CubeList(
+                [
+                    self.realization_forecast,
+                    self.coefficient_cubelist,
+                    self.landsea_mask,
+                ]
+            ),
+            self.landsea_mask_name,
+        )
         self.assertEqual(forecast, self.realization_forecast[0])
         self.assertEqual(coeffs, self.coefficient_cubelist)
         self.assertEqual(others, CubeList())
@@ -459,18 +498,27 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
 
         attributes = {
             "diagnostic_standard_name": self.realization_forecast[0].name(),
-            "distribution": "norm"
+            "distribution": "norm",
         }
 
         beta = iris.cube.Cube(
-            np.array([0.5, 0.5], dtype=np.float32), long_name="emos_coefficients_beta", units="1",
-            attributes=attributes, dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims
+            np.array([0.5, 0.5], dtype=np.float32),
+            long_name="emos_coefficients_beta",
+            units="1",
+            attributes=attributes,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
         )
 
-        self.coefficient_cubelist = CubeList([self.coefficient_cubelist[0], beta, *self.coefficient_cubelist[2:]])
+        self.coefficient_cubelist = CubeList(
+            [self.coefficient_cubelist[0], beta, *self.coefficient_cubelist[2:]]
+        )
 
-        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist, self.altitude]))
+        forecast, coeffs, others, landsea_mask = split_forecasts_and_coeffs(
+            CubeList(
+                [self.realization_forecast, self.coefficient_cubelist, self.altitude]
+            )
+        )
         self.assertEqual(forecast, self.realization_forecast[0])
         self.assertEqual(coeffs, self.coefficient_cubelist)
         self.assertEqual(others, self.altitude)
@@ -480,20 +528,37 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
         """Test a missing land-sea mask input."""
         msg = "Expected one cube for land-sea mask"
         with self.assertRaisesRegex(IOError, msg):
-            split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist]), self.landsea_mask_name)
+            split_forecasts_and_coeffs(
+                CubeList([self.realization_forecast, self.coefficient_cubelist]),
+                self.landsea_mask_name,
+            )
 
     def test_multiple_land_sea_masks(self):
         """Test multiple land-sea mask inputs."""
         msg = "Expected one cube for land-sea mask"
         with self.assertRaisesRegex(IOError, msg):
-            split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist, self.landsea_mask, self.landsea_mask]), self.landsea_mask_name)
+            split_forecasts_and_coeffs(
+                CubeList(
+                    [
+                        self.realization_forecast,
+                        self.coefficient_cubelist,
+                        self.landsea_mask,
+                        self.landsea_mask,
+                    ]
+                ),
+                self.landsea_mask_name,
+            )
 
     def test_coefficient_mismatch(self):
         """Test a mismatch between the forecast and coefficient cube attributes."""
-        self.coefficient_cubelist[0].attributes["diagnostic_standard_name"] = "wind_speed"
+        self.coefficient_cubelist[0].attributes[
+            "diagnostic_standard_name"
+        ] = "wind_speed"
         msg = "The coefficients cubes are expected to"
         with self.assertRaisesRegex(AttributeError, msg):
-            split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist]))
+            split_forecasts_and_coeffs(
+                CubeList([self.realization_forecast, self.coefficient_cubelist])
+            )
 
     def test_forecast_and_coefficient_mismatch(self):
         """Test a mismatch between the forecast and coefficient cube attributes."""
@@ -501,7 +566,9 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
             cube.attributes["diagnostic_standard_name"] = "wind_speed"
         msg = "A forecast corresponding to"
         with self.assertRaisesRegex(KeyError, msg):
-            split_forecasts_and_coeffs(CubeList([self.realization_forecast, self.coefficient_cubelist]))
+            split_forecasts_and_coeffs(
+                CubeList([self.realization_forecast, self.coefficient_cubelist])
+            )
 
 
 if __name__ == "__main__":

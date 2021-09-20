@@ -174,6 +174,7 @@ def test_units(tmp_path):
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
 
+
 @pytest.mark.slow
 def test_using_realizations_as_predictor(tmp_path):
     """Test using non-default predictor realizations"""
@@ -203,6 +204,7 @@ def test_using_realizations_as_predictor(tmp_path):
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
 
+
 @pytest.mark.slow
 def test_static_additional_predictor(tmp_path):
     """Test using a static additional predictor."""
@@ -231,6 +233,7 @@ def test_static_additional_predictor(tmp_path):
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
+
 
 @pytest.mark.slow
 def test_land_points_only(tmp_path):
@@ -360,6 +363,7 @@ def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
     acc.compare(
         output_path, kgo_path, atol=compare_emos_tolerance, rtol=compare_emos_tolerance
     )
+
 
 @pytest.mark.slow
 def test_point_by_point_static_additional_predictor(tmp_path):

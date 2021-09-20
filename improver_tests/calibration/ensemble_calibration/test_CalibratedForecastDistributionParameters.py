@@ -35,9 +35,9 @@ class.
 
 """
 import unittest
-from iris.cube import CubeList
 
 import numpy as np
+from iris.cube import CubeList
 from iris.tests import IrisTest
 from numpy.testing import assert_array_almost_equal
 
@@ -82,8 +82,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", desired_units="Celsius"
         )
         self.coeffs_from_mean = estimator.create_coefficients_cubelist(
-            self.expected_mean_pred_norm, self.historic_temperature_forecast_cube,
-            CubeList([self.historic_temperature_forecast_cube])
+            self.expected_mean_pred_norm,
+            self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube]),
         )
 
         # Set up a coefficients cube when using the ensemble mean as the
@@ -95,8 +96,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             [self.expected_mean_pred_norm] * 9
         ).T.reshape(4, 3, 3)
         self.coeffs_from_mean_point_by_point = estimator.create_coefficients_cubelist(
-            point_by_point_predictor, self.historic_temperature_forecast_cube,
-            CubeList([self.historic_temperature_forecast_cube])
+            point_by_point_predictor,
+            self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube]),
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -107,7 +109,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         self.coeffs_from_realizations = estimator.create_coefficients_cubelist(
             self.expected_realizations_norm,
             self.historic_temperature_forecast_cube,
-            CubeList([self.historic_temperature_forecast_cube])
+            CubeList([self.historic_temperature_forecast_cube]),
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -124,7 +126,10 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         #         #for subarray in np.squeeze(array):
         #             #coeffs.append(subarray)
         # expected_realizations_each_site = coeffs
-        expected_realizations_each_site = [array if array.ndim == 1 else np.squeeze(array) for array in list(self.expected_realizations_each_site.values())]
+        expected_realizations_each_site = [
+            array if array.ndim == 1 else np.squeeze(array)
+            for array in list(self.expected_realizations_each_site.values())
+        ]
         # import pdb
         # pdb.set_trace()
 
@@ -132,8 +137,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", predictor="realizations", point_by_point=True
         )
         self.coeffs_from_realizations_sites = estimator.create_coefficients_cubelist(
-            expected_realizations_each_site, self.historic_forecast_spot_cube,
-            CubeList([self.historic_temperature_forecast_cube])
+            expected_realizations_each_site,
+            self.historic_forecast_spot_cube,
+            CubeList([self.historic_temperature_forecast_cube]),
         )
 
         # # Set up a coefficients cube when using an additional predictor.
@@ -147,8 +153,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", desired_units="Celsius"
         )
         self.coeffs_from_mean_alt = estimator.create_coefficients_cubelist(
-            self.expected_mean_pred_norm_alt, self.historic_temperature_forecast_cube,
-            CubeList([self.historic_temperature_forecast_cube, self.altitude])
+            self.expected_mean_pred_norm_alt,
+            self.historic_temperature_forecast_cube,
+            CubeList([self.historic_temperature_forecast_cube, self.altitude]),
         )
 
         # Some expected data that are used in various tests.
@@ -184,23 +191,30 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             [0, 0, 0, 0], dtype=np.float32
         )
 
-        self.expected_loc_param_mean_alt = np.array([[275.18134, 276.18134, 277.01465],
-        [278.58133, 279.44797, 280.2813 ],
-        [281.48132, 281.91464, 283.11465]], dtype=np.float32)
+        self.expected_loc_param_mean_alt = np.array(
+            [
+                [275.18134, 276.18134, 277.01465],
+                [278.58133, 279.44797, 280.2813],
+                [281.48132, 281.91464, 283.11465],
+            ],
+            dtype=np.float32,
+        )
 
-        self.expected_scale_param_mean_alt = np.array([[0.4347, 0.4396, 0.0308],
-                    [0.0503, 0.0438, 0.0308],
-                    [0.1184, 0.2157, 0.0211]], dtype=np.float32)
+        self.expected_scale_param_mean_alt = np.array(
+            [
+                [0.4347, 0.4396, 0.0308],
+                [0.0503, 0.0438, 0.0308],
+                [0.1184, 0.2157, 0.0211],
+            ],
+            dtype=np.float32,
+        )
 
         self.expected_loc_param_realizations_sites_alt = np.array(
-            [277.757 , 277.4573, 277.5572, 277.2575],
-            dtype=np.float32,
+            [277.757, 277.4573, 277.5572, 277.2575], dtype=np.float32,
         )
         self.expected_scale_param_realizations_sites_alt = np.array(
-            [0.518256, 0.518256, 0.518256, 0.518256],
-            dtype=np.float32,
+            [0.518256, 0.518256, 0.518256, 0.518256], dtype=np.float32,
         )
-
 
         # Create output cubes with the expected data.
         self.expected_loc_param_mean_cube = set_up_variable_cube(
@@ -325,9 +339,7 @@ class Test__calculate_location_parameter_from_mean(
             location_parameter, self.expected_loc_param_mean
         )
         assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_realizations,
-            decimal=0,
+            location_parameter, self.expected_loc_param_realizations, decimal=0,
         )
 
 
@@ -498,8 +510,9 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         """An example end-to-end calculation. This repeats the test elements
         above but all grouped together."""
         calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
-            self.current_temperature_forecast_cube, self.coeffs_from_mean_alt,
-            additional_fields=CubeList([self.altitude])
+            self.current_temperature_forecast_cube,
+            self.coeffs_from_mean_alt,
+            additional_fields=CubeList([self.altitude]),
         )
 
         self.assertCalibratedVariablesAlmostEqual(

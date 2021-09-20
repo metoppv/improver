@@ -230,10 +230,18 @@ class SetupCubes(IrisTest):
         self.truth_spot_cube.remove_coord("realization")
         self.truth_spot_cube.data = self.truth_spot_cube.data + 1.0
 
-        self.spot_altitude_cube = forecast_spot_cube[0, 0].copy(forecast_spot_cube.coord("altitude").points)
+        self.spot_altitude_cube = forecast_spot_cube[0, 0].copy(
+            forecast_spot_cube.coord("altitude").points
+        )
         self.spot_altitude_cube.rename("altitude")
         self.spot_altitude_cube.units = "m"
-        for coord in ["altitude", "forecast_period", "forecast_reference_time", "realization", "time"]:
+        for coord in [
+            "altitude",
+            "forecast_period",
+            "forecast_reference_time",
+            "realization",
+            "time",
+        ]:
             self.spot_altitude_cube.remove_coord(coord)
 
 

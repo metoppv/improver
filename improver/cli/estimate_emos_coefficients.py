@@ -124,7 +124,12 @@ def process(
         EstimateCoefficientsForEnsembleCalibration,
     )
 
-    forecast, coefficients, additional_fields, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute, land_sea_mask_name)
+    (
+        forecast,
+        coefficients,
+        additional_fields,
+        land_sea_mask,
+    ) = split_forecasts_and_truth(cubes, truth_attribute, land_sea_mask_name)
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
@@ -135,4 +140,9 @@ def process(
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast, coefficients, additional_fields=additional_fields, landsea_mask=land_sea_mask)
+    return plugin(
+        forecast,
+        coefficients,
+        additional_fields=additional_fields,
+        landsea_mask=land_sea_mask,
+    )
