@@ -105,11 +105,7 @@ def expected_cube_fixture() -> Cube:
         threshold_units="s-1",
         time=datetime(2017, 11, 10, 5, 0),
         time_bounds=(datetime(2017, 11, 10, 4, 0), datetime(2017, 11, 10, 5, 0)),
-        attributes={
-            "institution": "unknown",
-            "source": "IMPROVER",
-            "title": "unknown",
-        },
+        attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         domain_corner=(-60, 0),
         grid_spacing=20,
     )
