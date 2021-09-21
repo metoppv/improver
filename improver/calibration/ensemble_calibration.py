@@ -114,6 +114,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         Initialise class for performing minimisation of the Continuous
         Ranked Probability Score (CRPS).
+
         Args:
             tolerance:
                 The tolerance for the Continuous Ranked Probability
@@ -136,6 +137,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 If True, coefficients are calculated independently for each
                 point within the input cube by minimising each point
                 independently.
+
         """
         # Dictionary containing the functions that will be minimised,
         # depending upon the distribution requested. The names of these
@@ -157,12 +159,15 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         the last iteration of the minimisation. If the percentage change
         between the last iteration and the last-but-one iteration exceeds
         the threshold, a warning message is printed.
+
         Args:
             allvecs:
                 List of numpy arrays containing the optimised coefficients,
                 after each iteration.
+
         Warns:
             Warning: If a satisfactory minimisation has not been achieved.
+
         """
         last_iteration_percentage_change = (
             np.absolute((allvecs[-1] - allvecs[-2]) / allvecs[-2]) * 100
@@ -192,6 +197,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         predictor: str,
     ) -> ndarray:
         """Call scipy minimize with the options provided.
+
         Args:
             minimisation_function
             initial_guess
@@ -201,8 +207,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             sqrt_pi:
                 Square root of pi for minimisation.
             predictor
+
         Return:
             A single set of coefficients with the order [alpha, beta, gamma, delta].
+
         """
         optimised_coeffs = minimize(
             minimisation_function,
@@ -243,6 +251,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             and forecast variance that have been set to float64 precision
             as well as defining a square root of pi variable with float64
             precision.
+
         """
         initial_guess = np.array(initial_guess, dtype=np.float64)
         for index in range(len(forecast_predictors)):
@@ -277,6 +286,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             Reshaped array with a first dimension representing the flattened
             spatiotemporal dimensions and an optional second dimension for
             flattened non-spatiotemporal dimensions (e.g. realizations).
+
         """
         num_of_leading_dimensions_to_preserve = (
             1 if predictor.lower() == "realizations" else 0
@@ -307,6 +317,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         create a set of coefficients for each point. The coefficients returned
         can be either gridded (i.e. separate dimensions for x and y) or for a
         list of sites where x and y share a common dimension.
+
         Args:
             minimisation_function:
                 Function to use when minimising.
@@ -315,10 +326,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             truth
             forecast_var
             predictor
+
         Returns:
             Separate optimised coefficients for each point. The shape of the
             coefficients array is (number of coefficients, length of spatial dimensions).
             Order of coefficients is [alpha, beta, gamma, delta].
+
         """
         (
             initial_guess,
@@ -407,6 +420,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     ) -> ndarray:
         """Minimise all points together in one minimisation to create a single
         set of coefficients.
+
         Args:
             minimisation_function:
                 Function to use when minimising.
@@ -415,8 +429,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             truth
             forecast_var
             predictor
+
         Returns:
             The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
+
         """
         (
             initial_guess,
@@ -492,6 +508,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             distribution:
                 String used to access the appropriate function for use in the
                 minimisation within self.minimisation_dict.
+
         Returns:
             The optimised coefficients following the order
             [alpha, beta, gamma, delta]. If point_by_point is False, then
@@ -500,10 +517,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             the length of the spatial dimensions within the forecast and
             truth cubes. Each set of coefficients are appropriate for a
             particular point.
+
         Raises:
             KeyError: If the distribution is not supported.
+
         Warns:
             Warning: If the minimisation did not converge.
+
         """
         try:
             minimisation_function = self.minimisation_dict[distribution]
@@ -558,13 +578,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Calibrated Probabilistic Forecasting Using Ensemble Model Output
         Statistics and Minimum CRPS Estimation.
         Monthly Weather Review, 133(5), pp.1098-1118.
+
         Args:
             initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor:
-                Data to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+                Data to be used as the predictor, either the ensemble mean
+                or the ensemble realizations.
             truth:
                 Data to be used as truth.
             forecast_var:
@@ -576,9 +597,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+
         Returns:
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
+
         """
         aa, bb, gamma, delta = (
             initial_guess[0],
@@ -626,13 +649,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         output statistics by using heteroscedastic censored regression.
         Journal of the Royal Statistical Society.
         Series A: Statistics in Society, 173(2), pp.371-388.
+
         Args:
             initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor:
-                Data to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+                Data to be used as the predictor, either the ensemble mean
+                or the ensemble realizations.
             truth:
                 Data to be used as truth.
             forecast_var:
@@ -644,9 +668,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+
         Returns:
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
+
         """
         if predictor.lower() == "mean":
             a, b, gamma, delta = initial_guess
@@ -1159,6 +1185,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         """Function to consolidate calls to compute the initial guess, compute
         the optimised coefficients using minimisation and store the resulting
         coefficients within a CubeList.
+
         Args:
             truths:
                 Truths from the training dataset.
@@ -1174,11 +1201,13 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             number_of_realizations:
                 Number of realizations within the forecast predictor. If no
                 realizations are present, this option is None.
+
         Returns:
             CubeList constructed using the coefficients provided and using
             metadata from the historic_forecasts cube. Each cube within the
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
+
         """
         if self.point_by_point and not self.use_default_initial_guess:
             index = [
