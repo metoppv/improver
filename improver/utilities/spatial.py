@@ -408,7 +408,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         if land_mask_cube:
             if land_mask_cube.name() != "land_binary_mask":
                 raise ValueError(
-                    f"Expected land_mask_cube to be called land_binary_mask, not {land_mask_cube.name()}"
+                    f"Expected land_mask_cube to be called land_binary_mask, "
+                    f"not {land_mask_cube.name()}"
                 )
             self.land_mask = np.where(land_mask_cube.data >= 0.5, True, False)
         else:
