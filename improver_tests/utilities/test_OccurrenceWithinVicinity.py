@@ -58,14 +58,14 @@ def land_mask_cube_generator(shape: Tuple[int, int] = (5, 5)) -> Cube:
     )
 
 
-@pytest.fixture(name="land_mask_cube_44")
+@pytest.fixture(name="all_land_cube")
 def land_mask_cube_44_fixture() -> Cube:
     cube = land_mask_cube_generator((4, 4))
     cube.data = np.zeros_like(cube.data)
     return cube
 
 
-@pytest.fixture(name="land_mask_cube_55")
+@pytest.fixture(name="land_mask_cube")
 def land_mask_cube_55_fixture() -> Cube:
     cube = land_mask_cube_generator()
     return cube
@@ -174,7 +174,7 @@ def test_masked_data(cube):
     assert np.allclose(result.data.mask, mask)
 
 
-def test_with_land_mask(cube, land_mask_cube_55):
+def test_with_land_mask(cube, land_mask_cube):
     """Test that a land mask is used correctly."""
     expected = np.array(
         [
@@ -189,14 +189,14 @@ def test_with_land_mask(cube, land_mask_cube_55):
     cube.data[2, 3] = 1.0  # would cross mask
     cube.data[0, 4] = 10.0  # would not cross mask
     result = OccurrenceWithinVicinity(
-        DISTANCE, land_mask_cube=land_mask_cube_55
+        DISTANCE, land_mask_cube=land_mask_cube
     ).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert ~isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data, expected)
 
 
-def test_with_land_mask_and_mask(cube, land_mask_cube_55):
+def test_with_land_mask_and_mask(cube, land_mask_cube):
     """Test that a land mask is used correctly when cube also has a mask."""
     expected = np.array(
         [
@@ -214,7 +214,7 @@ def test_with_land_mask_and_mask(cube, land_mask_cube_55):
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
     result = OccurrenceWithinVicinity(
-        DISTANCE, land_mask_cube=land_mask_cube_55
+        DISTANCE, land_mask_cube=land_mask_cube
     ).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
@@ -240,7 +240,7 @@ TIMESTEPS = [
 ]
 
 
-@pytest.mark.parametrize("land_fixture", [None, "land_mask_cube_44"])
+@pytest.mark.parametrize("land_fixture", [None, "all_land_cube"])
 def test_with_multiple_realizations_and_times(
     request, cube_with_realizations, land_fixture
 ):
@@ -292,7 +292,7 @@ def test_with_multiple_realizations_and_times(
     assert np.allclose(result.data, expected)
 
 
-@pytest.mark.parametrize("land_fixture", [None, "land_mask_cube_44"])
+@pytest.mark.parametrize("land_fixture", [None, "all_land_cube"])
 def test_with_multiple_realizations(request, cube_with_realizations, land_fixture):
     """Test for multiple realizations, so that multiple
     iterations will be required within the process method."""
@@ -321,7 +321,7 @@ def test_with_multiple_realizations(request, cube_with_realizations, land_fixtur
     assert np.allclose(result.data, expected)
 
 
-@pytest.mark.parametrize("land_fixture", [None, "land_mask_cube_44"])
+@pytest.mark.parametrize("land_fixture", [None, "all_land_cube"])
 def test_with_multiple_times(request, cube_with_realizations, land_fixture):
     """Test for multiple times, so that multiple
     iterations will be required within the process method."""
@@ -354,7 +354,7 @@ def test_with_multiple_times(request, cube_with_realizations, land_fixture):
     assert np.allclose(result.data, expected)
 
 
-@pytest.mark.parametrize("land_fixture", [None, "land_mask_cube_44"])
+@pytest.mark.parametrize("land_fixture", [None, "all_land_cube"])
 def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     """Test for no realizations and no times, so that the iterations
     will not require slicing cubes within the process method."""
