@@ -39,7 +39,7 @@ Statistics (EMOS).
 """
 import warnings
 from functools import partial
-from typing import Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -1197,10 +1197,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     constr = iris.Constraint(
                         coord_values={
                             y_name: lambda cell: any(
-                                np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                                np.isclose(
+                                    cell.point, truth_slice.coord(axis="y").points
+                                )
                             ),
                             x_name: lambda cell: any(
-                                np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                                np.isclose(
+                                    cell.point, truth_slice.coord(axis="x").points
+                                )
                             ),
                         }
                     )
