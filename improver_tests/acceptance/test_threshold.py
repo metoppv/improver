@@ -204,7 +204,7 @@ def test_vicinity_masked(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_landmask_without_vicinity(tmp_path):
+def test_landmask_without_vicinity():
     """Test supplying a land-mask triggers an error"""
     kgo_dir = acc.kgo_root() / "threshold/vicinity"
     input_path = kgo_dir / "input.nc"
