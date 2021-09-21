@@ -467,8 +467,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
+
         Args:
             initial_guess:
                 List of optimised coefficients.
@@ -706,8 +708,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Args:
             distribution:
@@ -1496,8 +1498,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
+
         Returns:
             Location parameter calculated using the ensemble mean as the
             predictor.
@@ -1555,8 +1559,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
+
         Returns:
             Location parameter calculated using the ensemble realizations
             as the predictor.
@@ -1601,8 +1607,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
+
         Returns:
             Scale parameter for defining the distribution of the calibrated
             forecast.
