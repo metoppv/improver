@@ -180,9 +180,7 @@ def break_precip_name(cape_cube, precip_cube):
 
 def break_cape_name(cape_cube, precip_cube):
     cape_cube.rename("CAPE")
-    return (
-        "No cube named atmosphere_convective_available_potential_energy found in .*"
-    )
+    return "No cube named atmosphere_convective_available_potential_energy found in .*"
 
 
 @pytest.mark.parametrize(
