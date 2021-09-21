@@ -65,14 +65,15 @@ def process(
     forecast is returned unchanged.
 
     Args:
-        cube (iris.cube.Cube):
-            A Cube containing the forecast to be calibrated. The input format
+        cubes (Tuple[iris.cube.CubeList]):
+            Cubelist containing some of the following:
+            - A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-        coefficients (iris.cube.CubeList):
-            A cubelist containing the coefficients used for calibration or None.
+            - A cubelist containing the coefficients used for calibration or None.
             If none then then input is returned unchanged.
-        land_sea_mask (iris.cube.Cube):
-            A cube containing the land-sea mask on the same domain as the
+            - A cubelist containing additional static predictors to be used
+            when applying the EMOS coefficients.
+            - A cube containing the land-sea mask on the same domain as the
             forecast that is to be calibrated. Land points are "
             "specified by ones and sea points are specified by zeros. "
             "If not None this argument will enable land-only calibration, in "
@@ -127,8 +128,8 @@ def process(
     """
     import warnings
 
-    from improver.calibration.ensemble_calibration import ApplyEMOS
     from improver.calibration import split_forecasts_and_coeffs
+    from improver.calibration.ensemble_calibration import ApplyEMOS
 
     (
         forecast,

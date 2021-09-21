@@ -114,24 +114,10 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         # Set up a coefficients cube when using the ensemble realization as the
         # predictor and separate coefficients at each point.
-        # import pdb
-        # pdb.set_trace()
-
-        # coeffs = []
-        # for array in list(self.expected_realizations_each_site.values()):
-        #     if array.ndim == 1:
-        #         coeffs.append(array)
-        #     else:
-        #         coeffs.append(np.squeeze(array))
-        #         #for subarray in np.squeeze(array):
-        #             #coeffs.append(subarray)
-        # expected_realizations_each_site = coeffs
         expected_realizations_each_site = [
             array if array.ndim == 1 else np.squeeze(array)
             for array in list(self.expected_realizations_each_site.values())
         ]
-        # import pdb
-        # pdb.set_trace()
 
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", predictor="realizations", point_by_point=True

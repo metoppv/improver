@@ -59,7 +59,7 @@ def process(
     The estimated coefficients are output as a cube.
 
     Args:
-        cubes (list of iris.cube.Cube):
+        cubes (Tuple[iris.cube.Cube]):
             A list of cubes containing the historical forecasts and
             corresponding truth used for calibration. They must have the same
             cube name and will be separated based on the truth attribute.

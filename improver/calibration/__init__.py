@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """init for calibration"""
 
-from typing import List, Optional, Tuple
+from typing import Any, Dict, List, Optional, Sequence, Tuple
 
 import numpy as np
 import scipy
@@ -42,7 +42,25 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import MergeCubes
 
 
-def _land_sea_mask_check(cubes_dict, land_sea_mask_name):
+def _land_sea_mask_check(
+    cubes_dict: Dict[str, Dict[str, Any]], land_sea_mask_name: str
+) -> Any:
+    """Check whether the land-sea mask is present within the dictionary.
+
+    Args:
+        cubes_dict:
+            Dictionary containings including the land-sea mask, if provided.
+        land_sea_mask_name:
+            Name of the land-sea mask cube to help identification.
+
+    Returns:
+        Return either the land-sea mask cube or None.
+
+    Raises:
+        IOError:
+            Raise an error if no land-sea mask present, if requested, or
+            if multiple land-sea mask cubes are present.
+    """
     if (
         cubes_dict["land_sea_mask"]
         and len(cubes_dict["land_sea_mask"][land_sea_mask_name]) == 1
@@ -116,9 +134,6 @@ def split_forecasts_and_truth(
         elif cube_name == land_sea_mask_name:
             cubes_dict["land_sea_mask"].setdefault(cube_name, CubeList()).append(cube)
         else:
-            # blend_time_list = [c for c in cube.coords() if c.name() == "blend_time"]
-            # if len(blend_time_list):
-            #     cube.remove_coord("blend_time")
             cubes_dict["other"].setdefault(cube_name, CubeList()).append(cube)
 
     if len(cubes_dict["truth"]) > 1:
@@ -198,7 +213,7 @@ def filter_obs(spot_truths_cubelist: CubeList) -> CubeList:
 
 
 def split_forecasts_and_coeffs(
-    cubes: List[CubeList], land_sea_mask_name: Optional[str] = None
+    cubes: Sequence[CubeList], land_sea_mask_name: Optional[str] = None
 ) -> Tuple[Cube, CubeList, Optional[CubeList], Optional[Cube]]:
     """
     Utility for separating the forecasts, coefficients, additional fields

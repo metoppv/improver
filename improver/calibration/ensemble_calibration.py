@@ -31,14 +31,15 @@
 """
 This module defines all the "plugins" specific for Ensemble Model Output
 Statistics (EMOS).
+
 .. Further information is available in:
 .. include:: extended_documentation/calibration/ensemble_calibration/
    ensemble_calibration.rst
+
 """
 import warnings
 from functools import partial
-from re import template
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -85,6 +86,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     Calculate the optimised coefficients for minimising the CRPS based on
     assuming a particular probability distribution for the phenomenon being
     minimised.
+
     The number of coefficients that will be optimised depend upon the initial
     guess. The coefficients will be calculated either using all points provided
     or coefficients will be calculated separately for each point.
@@ -92,6 +94,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     iterations to limit the computational expense.
     Note that the BFGS algorithm was initially trialled but had a bug
     in comparison to comparative results generated in R.
+
     """
 
     # The tolerated percentage change for the final iteration when
@@ -937,17 +940,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     data_dims=template_cube.coord_dims("predictor_index"),
                 )
                 replacements += ["predictor_index", "predictor_name"]
-                # import pdb
-                # pdb.set_trace()
-                # Reorganise beta coeffs
-                # n_points = len(template_cube.coord("realization").points)
-                # if n_points > 1 and len(optimised_coeff) != n_points:
-                #     beta_coeffs = [optimised_coeff[:n_points]]
-                #     static_predictor_betas = np.split(optimised_coeff[n_points:], 1)
-                #     padded_coeffs = np.pad(static_predictor_betas, ((0, 0), (0, n_points-1)))
-                #     beta_coeffs = np.squeeze(np.stack((beta_coeffs, padded_coeffs)))
-                # else:
-                # beta_coeffs =
 
             for coord in coords_to_replace:
                 template_cube.replace_coord(coord)
@@ -962,8 +954,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             coeff_units = "1"
             if coeff_name in ["alpha", "gamma"]:
                 coeff_units = historic_forecasts.units
-            # import pdb
-            # pdb.set_trace()
+
             cube = create_new_diagnostic_cube(
                 f"emos_coefficient_{coeff_name}",
                 coeff_units,
@@ -996,7 +987,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts:
                 Historic forecasts from the training dataset.
             forecast_predictors:
-
+                The predictors are the historic forecasts processed to be
+                either in the form of the ensemble mean or the ensemble
+                realizations and any additional predictors.
 
         Returns:
             CubeList constructed using the coefficients provided and using
@@ -1070,8 +1063,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             truths:
                 Array containing the truth fields.
             forecast_predictor:
-                Array containing the fields to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+                The predictors are the historic forecasts processed to be
+                either in the form of the ensemble mean or the ensemble
+                realizations and any additional predictors.
             predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
@@ -1115,8 +1109,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 forecast_predictor,
                 num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
             )
-            # import pdb
-            # pdb.set_trace()
             val = sm.add_constant(
                 forecast_predictor_flattened.T, has_constant="add"
             ).astype(np.float64)
@@ -1172,9 +1164,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset. These are used
                 as a template cube for creating the coefficient cube.
             forecast_predictors:
-                Predictors of the forecast. The predictors are the historic
-                forecasts processed to be either in the form of the ensemble
-                mean or the ensemble realizations and any additional predictors.
+                The predictors are the historic forecasts processed to be
+                either in the form of the ensemble mean or the ensemble
+                realizations and any additional predictors.
             forecast_var:
                 Variance of the forecast for use in the minimisation.
             number_of_realizations:
@@ -1195,23 +1187,29 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             x_name = truths.coord(axis="x").name()
 
             initial_guess = []
-            for truths_slice in truths.slices_over(index):
-                constr = iris.Constraint(
-                    coord_values={
-                        y_name: lambda cell: any(
-                            np.isclose(cell.point, truths_slice.coord(axis="y").points)
-                        ),
-                        x_name: lambda cell: any(
-                            np.isclose(cell.point, truths_slice.coord(axis="x").points)
-                        ),
-                    }
-                )
+            for truth_slice in truths.slices_over(index):
+                # For site forecasts, with a wmo_id coordinate, the WMO ID is
+                # more reliable as the specific x and y location of a site can
+                # be subject to change.
+                if truth_slice.coords("wmo_id"):
+                    constr = iris.Constraint(wmo_id=truth_slice.coord("wmo_id").points)
+                else:
+                    constr = iris.Constraint(
+                        coord_values={
+                            y_name: lambda cell: any(
+                                np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                            ),
+                            x_name: lambda cell: any(
+                                np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                            ),
+                        }
+                    )
                 forecast_predictors_data = np.ma.stack(
                     reshape_forecast_predictors(forecast_predictors, constr=constr)
                 )
                 initial_guess.append(
                     self.compute_initial_guess(
-                        truths_slice.data,
+                        truth_slice.data,
                         forecast_predictors_data,
                         self.predictor,
                         len(forecast_predictors),
@@ -1506,8 +1504,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         )
         if self.additional_fields:
             forecast_predictors.extend(self.additional_fields)
-        # import pdb
-        # pdb.set_trace()
+
         fp_names = [fp.name() for fp in forecast_predictors]
         if len(forecast_predictors) != len(
             self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
@@ -1604,9 +1601,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
         scale_parameter = (
-            self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data ** 2
+            self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
+            * self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
             + self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
-            ** 2
+            * self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
             * forecast_var.data
         ).astype(np.float32)
         return scale_parameter
@@ -1663,12 +1661,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Args:
             current_forecast:
                 The cube containing the current forecast.
-            additional_fields:
-
             coefficients_cubelist:
                 CubeList of EMOS coefficients where each cube within the
                 cubelist is for a separate EMOS coefficient e.g. alpha, beta,
                 gamma, delta.
+            additional_fields:
+                Additional fields to be used as forecast predictors.
             landsea_mask:
                 The optional cube containing a land-sea mask. If provided sea
                 points will be masked in the output cube.
@@ -1944,8 +1942,6 @@ class ApplyEMOS(PostProcessingPlugin):
             Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations)
         """
-        # import pdb
-        # pdb.set_trace()
         self.forecast_type = self._get_forecast_type(forecast)
 
         forecast_as_realizations = forecast.copy()
