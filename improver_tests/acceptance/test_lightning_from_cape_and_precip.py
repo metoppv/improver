@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -29,35 +28,34 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to apply thresholding to a parameter dataset."""
+"""Tests for the combine CLI"""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    *cubes: cli.inputcube, model_id_attr: str = None,
-):
-    """
-    Apply latitude-dependent thresholds to CAPE and precipitation rate to derive a
-    probability-of-lightning cube.
-    Does not collapse a realization coordinate.
+@pytest.mark.parametrize("with_model_attr", (True, False))
+def test_basic(tmp_path, with_model_attr):
+    """Test basic invocation"""
+    kgo_dir = acc.kgo_root() / "lightning-from-cape-and-precip"
+    kgo_path = kgo_dir / "kgo.nc"
+    cape_path = kgo_dir / "cape.nc"
+    precipitation_path = kgo_dir / "precipitation_rate.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        cape_path,
+        precipitation_path,
+        "--output",
+        f"{output_path}",
+    ]
+    if with_model_attr:
+        args.append("--model-id-attr=mosg__model_configuration")
+        kgo_path = kgo_dir / "kgo_with_model_config.nc"
 
-    Args:
-        cubes (list of iris.cube.Cube):
-            A cube to be processed.
-        model_id_attr (str):
-            Name of the attribute used to identify the source model for
-            blending.
-
-    Returns:
-        iris.cube.Cube:
-            Cube of probabilities of lightning relative to a zero rate thresholds
-    """
-    from iris.cube import CubeList
-    from improver.lightning import LightningFromCapePrecip
-
-    result = LightningFromCapePrecip()(CubeList(cubes), model_id_attr=model_id_attr)
-
-    return result
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
