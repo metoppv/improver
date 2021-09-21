@@ -1515,11 +1515,21 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             .coord("predictor_index")
             .points
         ):
+            n_coord_points = len(
+                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+                .coord("predictor_index")
+                .points
+            )
+            coord_names = (
+                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+                .coord("predictor_name")
+                .points
+            )
             msg = (
                 "The number of forecast predictors must equal the number of "
                 "beta coefficients in order to create a calibrated forecast. "
                 f"Number of predictor cubes = {len(forecast_predictors)}: {fp_names}, "
-                f"Number of predictor coords = {len(self.coefficients_cubelist.extract_cube('emos_coefficient_beta').coord('predictor_index').points)}: {self.coefficients_cubelist.extract_cube('emos_coefficient_beta').coord('predictor_name').points}"
+                f"Number of predictor coords = {n_coord_points}: {coord_names}"
             )
             raise ValueError(msg)
 

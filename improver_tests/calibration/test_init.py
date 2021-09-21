@@ -35,7 +35,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import CubeList
 
 from improver.calibration import (
     filter_obs,
@@ -376,7 +376,6 @@ class Test_split_forecasts_and_coeffs(unittest.TestCase):
         realization_data = np.ones((4, 4), dtype=np.float32)
 
         self.truth_attribute = "mosg__model_configuration=uk_det"
-        truth_attributes = {"mosg__model_configuration": "uk_det"}
 
         # Set-up probability and realization forecast cubes
         self.probability_forecast = CubeList(
