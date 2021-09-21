@@ -142,7 +142,23 @@ def test_collapse_realization_masked_data(tmp_path):
 
 @pytest.mark.parametrize(
     "extra_args,kgo",
-    (([], "kgo.nc"), (["--collapse-coord", "realization"], "kgo_collapsed.nc")),
+    (
+        ([], "kgo.nc"),
+        (["--collapse-coord", "realization"], "kgo_collapsed.nc"),
+        (
+            ["--land-mask", acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",],
+            "kgo_landmask.nc",
+        ),
+        (
+            [
+                "--land-mask",
+                acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+                "--collapse-coord",
+                "realization",
+            ],
+            "kgo_landmask_collapsed.nc",
+        ),
+    ),
 )
 def test_vicinity(tmp_path, extra_args, kgo):
     """Test thresholding with vicinity"""
@@ -186,3 +202,20 @@ def test_vicinity_masked(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_landmask_without_vicinity(tmp_path):
+    """Test supplying a land-mask triggers an error"""
+    kgo_dir = acc.kgo_root() / "threshold/vicinity"
+    input_path = kgo_dir / "input.nc"
+    args = [
+        input_path,
+        "--threshold-values",
+        "0.03",
+        "--land-mask",
+        acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+    ]
+    with pytest.raises(
+        ValueError, match="Cannot apply land-mask cube without in-vicinity processing"
+    ):
+        run_cli(args)
