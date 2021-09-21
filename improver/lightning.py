@@ -132,7 +132,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         """
         cape = cubes.extract(
             iris.Constraint(
-                cube_func=lambda cube: "atmosphere_convective_available_potential_energy_max"
+                cube_func=lambda cube: "atmosphere_convective_available_potential_energy"
                 in cube.name()
             )
         )
@@ -140,7 +140,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             cape = cape.merge_cube()
         else:
             raise ValueError(
-                f"No cube named atmosphere_convective_available_potential_energy_max found "
+                f"No cube named atmosphere_convective_available_potential_energy found "
                 f"in {cubes}"
             )
         precip = cubes.extract(
@@ -159,10 +159,9 @@ class LightningFromCapePrecip(PostProcessingPlugin):
                 f"CAPE cube time ({cape_time.point}) should be valid one hour earlier "
                 f"than precip cube time ({precip_time.point})."
             )
-        if np.diff(cape_time.bound) != np.diff(precip_time.bound):
+        if np.diff(precip_time.bound) != timedelta(hours=1):
             raise ValueError(
-                f"CAPE cube time window ({np.diff(cape_time.bound)}) does not match "
-                f"precip cube time window ({np.diff(precip_time.bound)})."
+                f"Precip cube time window must be one hour, not {np.diff(precip_time.bound)}."
             )
         if cape.coord("forecast_reference_time") != precip.coord(
             "forecast_reference_time"

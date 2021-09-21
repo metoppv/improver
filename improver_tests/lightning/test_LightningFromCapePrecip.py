@@ -55,10 +55,10 @@ def cape_cube_fixture() -> Cube:
     data = np.full((2, 7, 3), dtype=np.float32, fill_value=400)
     cube = set_up_variable_cube(
         data,
-        name="atmosphere_convective_available_potential_energy_max-PT01H",
+        name="atmosphere_convective_available_potential_energy",
         units="J kg-1",
         time=datetime(2017, 11, 10, 4, 0),
-        time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0)),
+        time_bounds=None,
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-60, 0),
@@ -151,7 +151,7 @@ def break_time_point(cape_cube, precip_cube):
 def break_time_bound(cape_cube, precip_cube):
     bounds = precip_cube.coord("time").bounds
     precip_cube.coord("time").bounds = (bounds[0][0] + 1, bounds[0][1])
-    return r"CAPE cube time window .* does not match precip cube time window .*"
+    return r"Precip cube time window must be one hour, not .*"
 
 
 def break_reference_time(cape_cube, precip_cube):
@@ -181,7 +181,7 @@ def break_precip_name(cape_cube, precip_cube):
 def break_cape_name(cape_cube, precip_cube):
     cape_cube.rename("CAPE")
     return (
-        "No cube named atmosphere_convective_available_potential_energy_max found in .*"
+        "No cube named atmosphere_convective_available_potential_energy found in .*"
     )
 
 
