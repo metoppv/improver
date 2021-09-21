@@ -34,10 +34,11 @@
    bilinear_land_sea.rst
 
 """
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from numpy import ndarray
+from numpy.ma.core import MaskedArray
 
 from improver.regrid.grid import similar_surface_classify
 from improver.regrid.idw import (
@@ -49,7 +50,9 @@ from improver.regrid.idw import (
 NUM_NEIGHBOURS = 4
 
 
-def apply_weights(indexes: ndarray, in_values: ndarray, weights: ndarray) -> ndarray:
+def apply_weights(
+    indexes: ndarray, in_values: Union[ndarray, MaskedArray], weights: ndarray
+) -> Union[ndarray, MaskedArray]:
     """
     Apply bilinear weight of source points for target value.
 
@@ -64,11 +67,19 @@ def apply_weights(indexes: ndarray, in_values: ndarray, weights: ndarray) -> nda
     Returns:
         Regridded values for target points.
     """
-    in_values_expanded = (np.ma.filled(in_values, np.nan))[indexes]
+    input_array_masked = False
+    if isinstance(in_values, np.ma.MaskedArray):
+        input_array_masked = True
+        in_values = np.ma.filled(in_values, np.nan)
+    in_values_expanded = in_values[indexes]
+
     weighted = np.transpose(
         np.multiply(np.transpose(weights), np.transpose(in_values_expanded))
     )
     out_values = np.sum(weighted, axis=1)
+    if input_array_masked:
+        out_values = np.ma.masked_invalid(out_values)
+
     return out_values
 
 
@@ -118,8 +129,14 @@ def basic_indexes(
     # needs change at relevant boundary
     lat_max_in, lon_max_in = in_latlons.max(axis=0)
     lat_max_out, lon_max_out = out_latlons.max(axis=0)
+
     lat_max_equal = np.isclose(lat_max_in, lat_max_out)
     lon_max_equal = np.isclose(lon_max_in, lon_max_out)
+
+    # debug code only
+    lat_min_in, lon_min_in = in_latlons.min(axis=0)
+    lat_min_out, lon_min_out = out_latlons.min(axis=0)
+
     if lat_max_equal or lon_max_equal:
         indexes = adjust_boundary_indexes(
             in_lons_size,
@@ -130,6 +147,7 @@ def basic_indexes(
             out_latlons,
             indexes,
         )
+
     return indexes
 
 
@@ -177,17 +195,20 @@ def adjust_boundary_indexes(
         point_lat_lon_max_index = np.where(
             np.isclose(out_latlons[point_lat_max, 1], lon_max_in)
         )[0]
-        point_lat_lon_max = point_lat_max[point_lat_lon_max_index[0]]
-        point_lat_max = np.delete(
-            point_lat_max, np.where(point_lat_max == point_lat_lon_max)[0]
-        )
-        point_lon_max = np.delete(
-            point_lon_max, np.where(point_lon_max == point_lat_lon_max)[0]
-        )
-        indexes[point_lat_lon_max, 2] = indexes[point_lat_lon_max, 0]
-        indexes[point_lat_lon_max, 1] = indexes[point_lat_lon_max, 2] - 1
-        indexes[point_lat_lon_max, 0] = indexes[point_lat_lon_max, 1] - in_lons_size
-        indexes[point_lat_lon_max, 3] = indexes[point_lat_lon_max, 0] + 1
+
+        # if point_lat_lon_max_index exists, handle it.
+        if len(point_lat_lon_max_index) > 0:
+            point_lat_lon_max = point_lat_max[point_lat_lon_max_index[0]]
+            point_lat_max = np.delete(
+                point_lat_max, np.where(point_lat_max == point_lat_lon_max)[0]
+            )
+            point_lon_max = np.delete(
+                point_lon_max, np.where(point_lon_max == point_lat_lon_max)[0]
+            )
+            indexes[point_lat_lon_max, 2] = indexes[point_lat_lon_max, 0]
+            indexes[point_lat_lon_max, 1] = indexes[point_lat_lon_max, 2] - 1
+            indexes[point_lat_lon_max, 0] = indexes[point_lat_lon_max, 1] - in_lons_size
+            indexes[point_lat_lon_max, 3] = indexes[point_lat_lon_max, 0] + 1
 
     if lat_max_equal:
         indexes[point_lat_max, 1] = indexes[point_lat_max, 0]

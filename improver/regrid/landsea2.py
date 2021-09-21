@@ -48,8 +48,11 @@ from improver.regrid.grid import (
     classify_input_surface_type,
     classify_output_surface_type,
     create_regrid_cube,
+    ensure_ascending_coord,
     flatten_spatial_dimensions,
+    group_target_points_with_source_domain,
     latlon_from_cube,
+    mask_target_points_outside_source_domain,
     similar_surface_classify,
     slice_cube_by_domain,
     slice_mask_cube_by_domain,
@@ -114,6 +117,12 @@ class RegridWithLandSeaMask(BasePlugin):
         Returns:
             Regridded result cube.
         """
+        # if cube_in's coordinate descending, make it assending.
+        # if mask considered, reverse mask cube's coordinate if descending
+        cube_in = ensure_ascending_coord(cube_in)
+        if WITH_MASK in self.regrid_mode:
+            cube_in_mask = ensure_ascending_coord(cube_in_mask)
+
         # check if input source grid is on even-spacing, ascending lat/lon system
         # return grid spacing for latitude and logitude
         lat_spacing, lon_spacing = calculate_input_grid_spacing(cube_in)
@@ -131,6 +140,7 @@ class RegridWithLandSeaMask(BasePlugin):
 
         # Subset the input cube so that extra spatial area beyond the output is removed
         # This is a performance optimisation to reduce the size of the dataset being processed
+        total_out_point_num = out_latlons.shape[0]
         lat_max, lon_max = out_latlons.max(axis=0)
         lat_min, lon_min = out_latlons.min(axis=0)
         if WITH_MASK in self.regrid_mode:
@@ -141,6 +151,16 @@ class RegridWithLandSeaMask(BasePlugin):
             cube_in = slice_cube_by_domain(
                 cube_in, (lat_max, lon_max, lat_min, lon_min)
             )
+
+        # group cube_out's grid points into outside or inside cube_in's domain
+        (
+            outside_input_domain_index,
+            inside_input_domain_index,
+        ) = group_target_points_with_source_domain(cube_in, out_latlons)
+
+        # exclude our-of-input-domain target point here
+        if len(outside_input_domain_index) > 0:
+            out_latlons = out_latlons[inside_input_domain_index]
 
         # Gather input latitude/longitudes from input cube
         in_latlons = latlon_from_cube(cube_in)
@@ -158,7 +178,12 @@ class RegridWithLandSeaMask(BasePlugin):
 
         if WITH_MASK in self.regrid_mode:
             in_classified = classify_input_surface_type(cube_in_mask, in_latlons)
+
             out_classified = classify_output_surface_type(cube_out_mask)
+
+            if len(outside_input_domain_index) > 0:
+                out_classified = out_classified[inside_input_domain_index]
+
             # Identify mismatched surface types from input and output classifications
             surface_type_mask = similar_surface_classify(
                 in_classified, out_classified, indexes
@@ -220,6 +245,14 @@ class RegridWithLandSeaMask(BasePlugin):
             # apply bilinear rule
             output_flat = apply_weights(indexes, in_values, weights)
 
+        # check if we need mask cube_out grid points which are out of cube_in range
+        if len(outside_input_domain_index) > 0:
+            output_flat = mask_target_points_outside_source_domain(
+                total_out_point_num,
+                outside_input_domain_index,
+                inside_input_domain_index,
+                output_flat,
+            )
         # Un-flatten spatial dimensions and put into output cube
         output_array = unflatten_spatial_dimensions(
             output_flat, cube_out_mask, in_values, lats_index, lons_index

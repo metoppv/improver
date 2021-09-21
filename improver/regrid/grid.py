@@ -40,7 +40,25 @@ from numpy import ndarray
 from numpy.ma.core import MaskedArray
 from scipy.interpolate import RegularGridInterpolator
 
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.spatial import calculate_grid_spacing, lat_lon_determine
+
+
+def ensure_ascending_coord(cube: Cube) -> Cube:
+    """
+    Check if cube coordinates ascending. if not, make it ascending
+
+    Args:
+        cube:
+            Input source cube.
+
+    Returns:
+        Cube with ascending coordinates
+    """
+    for ax in ("x", "y"):
+        if cube.coord(axis=ax).points[0] > cube.coord(axis=ax).points[-1]:
+            cube = sort_coord_in_cube(cube, cube.coord(axis=ax).standard_name)
+    return cube
 
 
 def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
@@ -66,8 +84,8 @@ def calculate_input_grid_spacing(cube_in: Cube) -> Tuple[float, float]:
         raise ValueError("Input grid is not on a latitude/longitude system")
 
     # calculate grid spacing
-    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=1.0e-5)
-    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=1.0e-5)
+    lon_spacing = calculate_grid_spacing(cube_in, "degree", axis="x", rtol=1.0e-4)
+    lat_spacing = calculate_grid_spacing(cube_in, "degree", axis="y", rtol=1.0e-4)
 
     if lon_spacing < 0 or lat_spacing < 0:
         raise ValueError("Input grid coordinates are not ascending.")
@@ -95,7 +113,6 @@ def latlon_names(cube: Cube) -> Tuple[str, str]:
     Args:
         cube:
             Input cube.
-
     Returns:
         - Name of latitude dimension of cube.
         - Name of longitude dimension of cube.
@@ -355,7 +372,7 @@ def create_regrid_cube(cube_array: ndarray, cube_in: Cube, cube_out: Cube) -> Cu
             target cube (for target grid information)
 
     Returns:
-         Regridded result cube
+        Regridded result cube
     """
     # generate a cube based on new data and cube_in
     cube_v = Cube(
@@ -382,8 +399,83 @@ def create_regrid_cube(cube_array: ndarray, cube_in: Cube, cube_out: Cube) -> Cu
     cube_v.add_dim_coord(cube_out.coord(cord_2), ndim + 1)
 
     # add all aus_coords from cube_in
+
     for coord in cube_in.aux_coords:
-        dims = np.array(cube_in.coord_dims(coord)) + 1
-        cube_v.add_aux_coord(coord.copy(), dims)
+        cube_v.add_aux_coord(coord.copy(), cube_in.coord_dims(coord))
 
     return cube_v
+
+
+def group_target_points_with_source_domain(
+    cube_in: Cube, out_latlons: ndarray
+) -> Tuple[ndarray, ndarray]:
+    """
+    Group cube_out's grid points into outside or inside cube_in's domain.
+
+    Args:
+        cube_in:
+            Source cube .
+        out_latlons:
+            Target points's latitude-longitudes.
+    Returns:
+        - Index array of target points outside input domain.
+        - Index array of target points inside input domain.
+    """
+
+    # get latitude and longitude coordinates of cube_in
+    lat_coord = cube_in.coord(axis="y").points
+    lon_coord = cube_in.coord(axis="x").points
+
+    in_lat_max, in_lat_min = np.max(lat_coord), np.min(lat_coord)
+    in_lon_max, in_lon_min = np.max(lon_coord), np.min(lon_coord)
+
+    lat = out_latlons[:, 0]
+    lon = out_latlons[:, 1]
+
+    # check target point coordinates inside/outside input source domain
+    in_domain_lat = np.logical_and(lat >= in_lat_min, lat <= in_lat_max)
+    in_domain_lon = np.logical_and(lon >= in_lon_min, lon <= in_lon_max)
+    in_domain = np.logical_and(in_domain_lat, in_domain_lon)
+
+    outside_input_domain_index = np.where(np.logical_not(in_domain))
+    inside_input_domain_index = np.where(in_domain)[0]
+
+    return outside_input_domain_index, inside_input_domain_index
+
+
+def mask_target_points_outside_source_domain(
+    total_out_point_num: int,
+    outside_input_domain_index: ndarray,
+    inside_input_domain_index: ndarray,
+    regrid_result: Union[ndarray, MaskedArray],
+) -> Union[ndarray, MaskedArray]:
+    """
+    Mask target points outside cube_in's domain.
+
+    Args:
+        total_out_point_num:
+            Total number of target points
+        outside_input_domain_index:
+            Index array of target points outside input domain.
+        inside_input_domain_index:
+            Index array of target points inside input domain.
+        regrid_result:
+            Array of regridded result in (lat*lon,....) or (projy*projx,...).
+    Returns:
+        Array of regridded result in (lat*lon,....) or (projy*projx,...).
+    """
+    # masked cube_out grid points which are out of cube_in range
+
+    output_shape = [total_out_point_num] + list(regrid_result.shape[1:])
+    if isinstance(regrid_result, np.ma.MaskedArray):
+        output = np.ma.zeros(output_shape)
+        output.mask = np.zeros(output_shape, dtype=bool)
+        output.mask[inside_input_domain_index] = regrid_result.mask
+        output.data[inside_input_domain_index] = regrid_result.data
+        output.mask[outside_input_domain_index] = True
+    else:
+        output = np.zeros(output_shape)
+        output[inside_input_domain_index] = regrid_result
+        output[outside_input_domain_index] = np.nan
+
+    return output
