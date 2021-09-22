@@ -437,7 +437,7 @@ def group_target_points_with_source_domain(
     in_domain_lon = np.logical_and(lon >= in_lon_min, lon <= in_lon_max)
     in_domain = np.logical_and(in_domain_lat, in_domain_lon)
 
-    outside_input_domain_index = np.where(np.logical_not(in_domain))
+    outside_input_domain_index = np.where(np.logical_not(in_domain))[0]
     inside_input_domain_index = np.where(in_domain)[0]
 
     return outside_input_domain_index, inside_input_domain_index

@@ -338,7 +338,7 @@ def test_regrid_bilinear_with_mask_2():
 
 
 def test_target_domain_bigger_than_source_domain_wo_mask():
-    """Test various regridding options when target domain is bigger than source domain"""
+    """Test nearest and bilinear regridding when target domain is bigger than source domain"""
 
     # set up source cube, target cube and land-sea mask cube
     cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
@@ -371,7 +371,7 @@ def test_target_domain_bigger_than_source_domain_wo_mask():
 
 
 def test_target_domain_bigger_than_source_domain_wi_mask():
-    """Test various regridding options when target domain is bigger than source domain"""
+    """Test land-sea-aware regridding when target domain is bigger than source domain"""
 
     # set up source cube, target cube and land-sea mask cube
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data_same_domain()

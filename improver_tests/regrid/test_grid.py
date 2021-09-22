@@ -156,7 +156,6 @@ def test_ensure_ascending_coord():
     lat_coord = lat_lon_cube.coord("latitude").points
     lat_lon_cube.coord("longitude").points = lon_coord[::-1]
     lat_lon_cube.coord("latitude").points = lat_coord[::-1]
-    print(lat_lon_cube.coord("longitude").points)
     lat_lon_cube = ensure_ascending_coord(lat_lon_cube)
 
     np.testing.assert_allclose(lat_lon_cube.coord("latitude").points, lat_coord)
