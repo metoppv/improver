@@ -34,7 +34,6 @@ module.
 
 """
 import datetime
-import importlib
 import unittest
 
 import iris

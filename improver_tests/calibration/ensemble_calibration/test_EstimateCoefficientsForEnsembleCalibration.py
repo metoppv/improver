@@ -35,7 +35,6 @@ class.
 
 """
 import datetime
-import importlib
 import unittest
 from functools import partial
 
