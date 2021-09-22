@@ -142,19 +142,26 @@ def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
 
 
 def break_time_point(cape_cube, precip_cube):
+    """Modifies precip_cube time points to be incremented by 1 second and
+    returns the error message this will trigger"""
     precip_cube.coord("time").points = precip_cube.coord("time").points + 1
     return (
-        r"CAPE cube time .* should be valid one hour earlier than precip cube time .*"
+        r"CAPE cube time .* should be valid one hour earlier than "
+        r"precipitation_rate_max cube time .*"
     )
 
 
 def break_time_bound(cape_cube, precip_cube):
+    """Modifies lower bound on precip_cube time coord to be incremented by 1 second and
+    returns the error message this will trigger"""
     bounds = precip_cube.coord("time").bounds
     precip_cube.coord("time").bounds = (bounds[0][0] + 1, bounds[0][1])
-    return r"Precip cube time window must be one hour, not .*"
+    return r"Precipitation_rate_max cube time window must be one hour, not .*"
 
 
 def break_reference_time(cape_cube, precip_cube):
+    """Modifies precip_cube forecast_reference_time points to be incremented by 1 second
+    and returns the error message this will trigger"""
     precip_cube.coord("forecast_reference_time").points = (
         precip_cube.coord("forecast_reference_time").points + 1
     )
@@ -162,6 +169,8 @@ def break_reference_time(cape_cube, precip_cube):
 
 
 def break_latitude_point(cape_cube, precip_cube):
+    """Modifies the first latitude point on the precip_cube (adds one degree)
+    and returns the error message this will trigger"""
     points = list(precip_cube.coord("latitude").points)
     points[0] = points[0] + 1
     precip_cube.coord("latitude").points = points
@@ -169,16 +178,20 @@ def break_latitude_point(cape_cube, precip_cube):
 
 
 def break_units(cape_cube, precip_cube):
+    """Modifies the units of the precip_cube to something incompatible with "mm h-1"
+    and returns the error message this will trigger"""
     precip_cube.units = "m"
     return r"Unable to convert from 'Unit\('m'\)' to 'Unit\('mm h-1'\)'."
 
 
 def break_precip_name(cape_cube, precip_cube):
+    """Modifies the name of precip_cube and returns the error message this will trigger"""
     precip_cube.rename("precipitation_rate")
     return "No cube named precipitation_rate_max found in .*"
 
 
 def break_cape_name(cape_cube, precip_cube):
+    """Modifies the name of cape_cube and returns the error message this will trigger"""
     cape_cube.rename("CAPE")
     return "No cube named atmosphere_convective_available_potential_energy found in .*"
 

@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.threshold import LatitudeThreshold
+from improver.threshold import LatitudeDependentThreshold
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.rescale import rescale
 
@@ -68,60 +68,6 @@ class LightningFromCapePrecip(PostProcessingPlugin):
     +---------------------------+------------+---------------------+
 
     """
-
-    def process(self, cubes: CubeList, model_id_attr: str = None) -> Cube:
-        """
-        From the supplied CAPE and precipitation-rate cubes, calculate a probability
-        of lightning cube.
-
-        Args:
-            cubes:
-                Cubes of CAPE and Precipitation rate.
-            model_id_attr:
-                The name of the dataset attribute to be used to identify the source
-                model when blending data from different models.
-
-        Returns:
-            Cube of lightning data
-
-        Raises:
-            ValueError:
-                If one of the cubes is not found or doesn't match the other
-        """
-        cape, precip = self._get_inputs(cubes)
-
-        cape_true = LatitudeThreshold(
-            lambda lat: latitude_to_threshold(lat, midlatitude=350.0, tropics=500.0),
-            threshold_units="J kg-1",
-            comparison_operator=">",
-        )(cape)
-
-        precip_true = LatitudeThreshold(
-            lambda lat: latitude_to_threshold(lat, midlatitude=1.0, tropics=4.0),
-            threshold_units="mm h-1",
-            comparison_operator=">",
-        )(precip)
-
-        data = cape_true.data * precip_true.data
-
-        cube = create_new_diagnostic_cube(
-            name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity"
-            "_above_threshold",
-            units="1",
-            template_cube=precip,
-            data=data.astype(FLOAT_DTYPE),
-            mandatory_attributes=generate_mandatory_attributes(
-                cubes, model_id_attr=model_id_attr
-            ),
-        )
-
-        coord = DimCoord(np.array([0], dtype=FLOAT_DTYPE), units="s-1",)
-        coord.rename("number_of_lightning_flashes_per_unit_area")
-        coord.var_name = "threshold"
-        coord.attributes.update({"spp__relative_to_threshold": "greater_than"})
-        cube.add_aux_coord(coord)
-
-        return cube
 
     @staticmethod
     def _get_inputs(cubes: CubeList) -> Tuple[Cube, Cube]:
@@ -157,11 +103,12 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         if cape_time.point + timedelta(hours=1) != precip_time.point:
             raise ValueError(
                 f"CAPE cube time ({cape_time.point}) should be valid one hour earlier "
-                f"than precip cube time ({precip_time.point})."
+                f"than precipitation_rate_max cube time ({precip_time.point})."
             )
         if np.diff(precip_time.bound) != timedelta(hours=1):
             raise ValueError(
-                f"Precip cube time window must be one hour, not {np.diff(precip_time.bound)}."
+                f"Precipitation_rate_max cube time window must be one hour, "
+                f"not {np.diff(precip_time.bound)}."
             )
         if cape.coord("forecast_reference_time") != precip.coord(
             "forecast_reference_time"
@@ -173,14 +120,80 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             raise ValueError("Supplied cubes do not have the same spatial coordinates")
         return cape, precip
 
+    def process(self, cubes: CubeList, model_id_attr: str = None) -> Cube:
+        """
+        From the supplied CAPE and precipitation-rate cubes, calculate a probability
+        of lightning cube.
+
+        Args:
+            cubes:
+                Cubes of CAPE and Precipitation rate.
+            model_id_attr:
+                The name of the dataset attribute to be used to identify the source
+                model when blending data from different models.
+
+        Returns:
+            Cube of lightning data
+
+        Raises:
+            ValueError:
+                If one of the cubes is not found or doesn't match the other
+        """
+        cape, precip = self._get_inputs(cubes)
+
+        cape_true = LatitudeDependentThreshold(
+            lambda lat: latitude_to_threshold(lat, midlatitude=350.0, tropics=500.0),
+            threshold_units="J kg-1", comparison_operator=">")(cape)
+
+        precip_true = LatitudeDependentThreshold(
+            lambda lat: latitude_to_threshold(lat, midlatitude=1.0, tropics=4.0),
+            threshold_units="mm h-1", comparison_operator=">")(precip)
+
+        data = cape_true.data * precip_true.data
+
+        cube = create_new_diagnostic_cube(
+            name="probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity"
+            "_above_threshold",
+            units="1",
+            template_cube=precip,
+            data=data.astype(FLOAT_DTYPE),
+            mandatory_attributes=generate_mandatory_attributes(
+                cubes, model_id_attr=model_id_attr
+            ),
+        )
+
+        coord = DimCoord(
+            np.array([0], dtype=FLOAT_DTYPE),
+            units="s-1",
+            long_name="number_of_lightning_flashes_per_unit_area",
+            var_name="threshold",
+            attributes={"spp__relative_to_threshold": "greater_than"},
+        )
+        cube.add_aux_coord(coord)
+
+        return cube
+
 
 def latitude_to_threshold(
-    latitude: np.ndarray, midlatitude: float = 1.0, tropics: float = 4.0,
+    latitude: np.ndarray, midlatitude: float, tropics: float,
 ) -> np.ndarray:
     """
-    Below 10 degrees, returns tropics
-    Above 50 degrees, returns midlatitude
-    Varies linearly in between
+    Rescale a latitude range into a range of threshold values suitable for
+    thresholding a different diagnostic. This is based on the value provided
+    for that diagnostic at midlatitude (more than 50 degrees from the equator)
+    and in the tropics (closer than 10 degrees from the equator). Varies
+    linearly in between.
+
+    Args:
+        latitude:
+            An array of latitude points (e.g. cube.coord("latitude").points)
+        midlatitude:
+            The threshold value to return above 50N or below 50S.
+        tropics:
+            The threshold value to return below 10N or above 10S.
+
+    Returns:
+        An array of thresholds, one for each latitude point
     """
     return np.where(
         latitude > 0,

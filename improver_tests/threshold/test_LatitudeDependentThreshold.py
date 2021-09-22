@@ -40,7 +40,7 @@ from iris.tests import IrisTest
 
 from improver.lightning import latitude_to_threshold
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.threshold import LatitudeThreshold as Threshold
+from improver.threshold import LatitudeDependentThreshold as Threshold
 
 
 class Test__init(IrisTest):
@@ -70,9 +70,7 @@ class Test__add_latitude_threshold_coord(IrisTest):
     def test_basic(self):
         """Test a 1D threshold coordinate is created"""
         expected_points = self.thresholds.copy()
-        self.plugin._add_latitude_threshold_coord(
-            self.cube, self.thresholds, self.cube.units
-        )
+        self.plugin._add_latitude_threshold_coord(self.cube, self.thresholds)
         self.assertEqual(self.cube.ndim, 2)
         self.assertIn(
             "air_temperature",
@@ -90,9 +88,7 @@ class Test__add_latitude_threshold_coord(IrisTest):
         """Test coordinate is created with non-standard diagnostic name"""
         self.cube.rename("sky_temperature")
         self.plugin.threshold_coord_name = self.cube.name()
-        self.plugin._add_latitude_threshold_coord(
-            self.cube, self.thresholds, self.cube.units
-        )
+        self.plugin._add_latitude_threshold_coord(self.cube, self.thresholds)
         self.assertIn(
             "sky_temperature",
             [coord.long_name for coord in self.cube.coords(dim_coords=False)],
@@ -102,29 +98,7 @@ class Test__add_latitude_threshold_coord(IrisTest):
         """Test method catches ValueErrors unrelated to name, by passing it a
         2D array of values where 1D is required"""
         with self.assertRaises(ValueError):
-            self.plugin._add_latitude_threshold_coord(
-                self.cube, np.ones((3, 3)), self.cube.units
-            )
-
-    def test_units(self):
-        """Test that the units are converted if different to cube.units"""
-        expected_points = self.thresholds.copy()
-        self.cube.convert_units("Celsius")
-        self.plugin._add_latitude_threshold_coord(
-            self.cube, self.thresholds - 273.15, "K"
-        )
-        self.assertEqual(self.cube.ndim, 2)
-        self.assertIn(
-            "air_temperature",
-            [coord.standard_name for coord in self.cube.coords(dim_coords=False)],
-        )
-        threshold_coord = self.cube.coord("air_temperature")
-        self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertArrayAlmostEqual(threshold_coord.points, expected_points, decimal=4)
-        self.assertEqual(threshold_coord.units, "K")
-        self.assertEqual(
-            self.cube.coord_dims("latitude"), self.cube.coord_dims("air_temperature")
-        )
+            self.plugin._add_latitude_threshold_coord(self.cube, np.ones((3, 3)))
 
 
 class Test_process(IrisTest):
@@ -306,6 +280,17 @@ class Test_process(IrisTest):
         )
         result = plugin(self.cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
+        expected_points = (
+            plugin.threshold_function(self.cube.coord("latitude").points) / 1000
+        )
+        expected_coord = AuxCoord(
+            np.array(expected_points, dtype=np.float32),
+            standard_name=self.cube.name(),
+            var_name="threshold",
+            units=self.cube.units,
+            attributes={"spp__relative_to_threshold": "greater_than"},
+        )
+        self.assertEqual(result.coord(self.cube.name()), expected_coord)
 
     def test_threshold_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
@@ -313,16 +298,6 @@ class Test_process(IrisTest):
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin(self.cube)
-
-    def test_each_threshold_func(self):
-        """Test user supplied func is applied on each threshold cube."""
-        new_attr = {"new_attribute": "narwhal"}
-        plugin = Threshold(
-            lambda lat: latitude_to_threshold(lat, midlatitude=1e-6, tropics=0.5),
-            each_threshold_func=lambda cube: cube.attributes.update(new_attr) or cube,
-        )
-        result = plugin(self.cube)
-        self.assertTrue("new_attribute" in result.attributes)
 
     def test_cell_method_updates(self):
         """Test plugin adds correct information to cell methods"""
