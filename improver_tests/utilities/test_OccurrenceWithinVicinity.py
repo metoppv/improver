@@ -222,6 +222,17 @@ def test_with_land_mask_and_mask(cube, land_mask_cube):
     assert np.allclose(result.data.mask, mask)
 
 
+def test_with_invalid_land_mask(land_mask_cube):
+    """Test that a land mask is used correctly."""
+    bad_mask_cube = land_mask_cube.copy()
+    bad_mask_cube.rename("kittens")
+    with pytest.raises(
+        ValueError,
+        match="Expected land_mask_cube to be called land_binary_mask, not kittens",
+    ):
+        OccurrenceWithinVicinity(DISTANCE, land_mask_cube=bad_mask_cube)
+
+
 @pytest.fixture(name="cube_with_realizations")
 def cube_with_realizations_fixture() -> Cube:
     return set_up_variable_cube(
