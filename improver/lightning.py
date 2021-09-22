@@ -143,11 +143,15 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
         cape_true = LatitudeDependentThreshold(
             lambda lat: latitude_to_threshold(lat, midlatitude=350.0, tropics=500.0),
-            threshold_units="J kg-1", comparison_operator=">")(cape)
+            threshold_units="J kg-1",
+            comparison_operator=">",
+        )(cape)
 
         precip_true = LatitudeDependentThreshold(
             lambda lat: latitude_to_threshold(lat, midlatitude=1.0, tropics=4.0),
-            threshold_units="mm h-1", comparison_operator=">")(precip)
+            threshold_units="mm h-1",
+            comparison_operator=">",
+        )(precip)
 
         data = cape_true.data * precip_true.data
 
