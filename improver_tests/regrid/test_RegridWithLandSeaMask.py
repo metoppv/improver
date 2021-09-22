@@ -41,6 +41,7 @@ from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.pad_spatial import pad_cube_with_halo
 
 
 def modify_cube_coordinate_value(cube, coord_x, coord_y):
@@ -334,3 +335,87 @@ def test_regrid_bilinear_with_mask_2():
     np.testing.assert_allclose(
         regrid_bilinear_with_mask.data, expected_results, atol=1e-3
     )
+
+
+def test_target_domain_bigger_than_source_domain_wo_mask():
+    """Test various regridding options when target domain is bigger than source domain"""
+
+    # set up source cube, target cube and land-sea mask cube
+    cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
+
+    # add a circle of grid points so that output doamin is much bigger than input domain
+    width_x, width_y = 2, 4  # lon,lat
+    cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
+
+    # test nearest-2 regridding
+    regrid_nearest = RegridLandSea(regrid_mode="nearest-2",)(cube_in, cube_out_mask)
+    regrid_nearest_pad = RegridLandSea(regrid_mode="nearest-2",)(
+        cube_in, cube_out_mask_pad
+    )
+
+    np.testing.assert_allclose(
+        regrid_nearest.data, regrid_nearest_pad.data[4:11, 2:11], atol=1e-5
+    )
+    assert np.all(np.isnan(regrid_nearest_pad.data[11:15]))
+
+    # test bilinear-2 regridding
+    regrid_bilinear = RegridLandSea(regrid_mode="bilinear-2",)(cube_in, cube_out_mask)
+    regrid_bilinear_pad = RegridLandSea(regrid_mode="bilinear-2",)(
+        cube_in, cube_out_mask_pad
+    )
+
+    np.testing.assert_allclose(
+        regrid_bilinear.data, regrid_bilinear_pad.data[4:11, 2:11], atol=1e-5
+    )
+    assert np.all(np.isnan(regrid_bilinear_pad.data[11:15]))
+
+
+def test_target_domain_bigger_than_source_domain_wi_mask():
+    """Test various regridding options when target domain is bigger than source domain"""
+
+    # set up source cube, target cube and land-sea mask cube
+    cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data_same_domain()
+
+    # add a circle of grid points so that output doamin is much bigger than input domain
+    width_x, width_y = 2, 4  # lon,lat
+    cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
+
+    # test nearest-with-mask-2 regridding
+    regrid_nearest_with_mask = RegridLandSea(
+        regrid_mode="nearest-with-mask-2",
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask)
+
+    regrid_nearest_with_mask_pad = RegridLandSea(
+        regrid_mode="nearest-with-mask-2",
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask_pad)
+
+    np.testing.assert_allclose(
+        regrid_nearest_with_mask.data,
+        regrid_nearest_with_mask_pad.data[4:11, 2:11],
+        atol=1e-5,
+    )
+    assert np.all(np.isnan(regrid_nearest_with_mask_pad.data[11:15]))
+
+    # test bilinear-with-mask-2 regridding
+    regrid_bilinear_with_mask = RegridLandSea(
+        regrid_mode="bilinear-with-mask-2",
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask)
+
+    regrid_bilinear_with_mask_pad = RegridLandSea(
+        regrid_mode="bilinear-with-mask-2",
+        landmask=cube_in_mask,
+        landmask_vicinity=250000000,
+    )(cube_in, cube_out_mask_pad)
+
+    np.testing.assert_allclose(
+        regrid_bilinear_with_mask.data,
+        regrid_bilinear_with_mask_pad.data[4:11, 2:11],
+        atol=1e-5,
+    )
+    assert np.all(np.isnan(regrid_bilinear_with_mask_pad.data[11:15]))
