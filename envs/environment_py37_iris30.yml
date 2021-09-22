@@ -7,7 +7,7 @@ channels:
 dependencies:
   - python=3.7
   # Required
-  - cartopy
+  - cartopy=0.19
   - cftime<1.5
   - cf-units=2.1.5
   - clize
@@ -21,10 +21,10 @@ dependencies:
   - scipy=1.6
   - sigtools
   - sphinx
+  - statsmodels
   # Optional
   - numba
   - pysteps=1.4.1
-  - statsmodels
   - timezonefinder=4.1.0
   # Development
   - astroid
