@@ -42,6 +42,7 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
+import statsmodels.api as sm
 from cf_units import Unit
 from iris.coords import Coord
 from iris.cube import Cube, CubeList
@@ -50,7 +51,6 @@ from numpy import ndarray
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
-import statsmodels.api as sm
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (

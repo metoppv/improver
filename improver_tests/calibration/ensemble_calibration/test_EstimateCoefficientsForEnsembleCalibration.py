@@ -53,7 +53,6 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
-
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
     "Minimisation did not result in convergence",  # From calibration code
@@ -1169,8 +1168,7 @@ class Test_process(
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data,
-                self.expected_realizations_each_site[cube.name()],
+                cube.data, self.expected_realizations_each_site[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
