@@ -146,12 +146,15 @@ def test_collapse_realization_masked_data(tmp_path):
         ([], "kgo.nc"),
         (["--collapse-coord", "realization"], "kgo_collapsed.nc"),
         (
-            ["--land-mask", acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc"],
+            [
+                "--land-sea-mask",
+                acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+            ],
             "kgo_landmask.nc",
         ),
         (
             [
-                "--land-mask",
+                "--land-sea-mask",
                 acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
                 "--collapse-coord",
                 "realization",
@@ -212,7 +215,7 @@ def test_landmask_without_vicinity():
         input_path,
         "--threshold-values",
         "0.03",
-        "--land-mask",
+        "--land-sea-mask",
         acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
     ]
     with pytest.raises(

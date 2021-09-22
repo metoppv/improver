@@ -46,7 +46,7 @@ def process(
     fuzzy_factor: float = None,
     collapse_coord: str = None,
     vicinity: float = None,
-    land_mask: cli.inputcube = None,
+    land_sea_mask: cli.inputcube = None,
 ):
     """Module to apply thresholding to a parameter dataset.
 
@@ -97,7 +97,7 @@ def process(
         vicinity (float):
             Distance in metres used to define the vicinity within which to
             search for an occurrence
-        land_mask (Cube):
+        land_sea_mask (Cube):
             Cube describing land and sea points. Restricts in-vicinity processing
             to only include points of a like mask value.
 
@@ -144,9 +144,9 @@ def process(
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         each_threshold_func_list.append(
-            OccurrenceWithinVicinity(vicinity, land_mask_cube=land_mask)
+            OccurrenceWithinVicinity(vicinity, land_mask_cube=land_sea_mask)
         )
-    elif land_mask:
+    elif land_sea_mask:
         raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
 
     if collapse_coord == "realization":
