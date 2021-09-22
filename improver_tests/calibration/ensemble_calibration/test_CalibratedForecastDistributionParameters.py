@@ -101,7 +101,8 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "norm", desired_units="Celsius", predictor="realizations"
         )
         self.coeffs_from_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_norm, self.historic_temperature_forecast_cube,
+            self.expected_realizations_norm,
+            self.historic_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
@@ -271,7 +272,9 @@ class Test__calculate_location_parameter_from_mean(
             location_parameter, self.expected_loc_param_mean
         )
         assert_array_almost_equal(
-            location_parameter, self.expected_loc_param_realizations, decimal=0,
+            location_parameter,
+            self.expected_loc_param_realizations,
+            decimal=0,
         )
 
 
