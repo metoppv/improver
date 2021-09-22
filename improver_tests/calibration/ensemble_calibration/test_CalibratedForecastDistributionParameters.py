@@ -63,9 +63,8 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             "Collapsing a non-contiguous coordinate.",
             "invalid escape sequence",
             "can't resolve package from",
-            "The statsmodels module cannot be imported",
         ],
-        warning_types=[UserWarning, DeprecationWarning, ImportWarning, ImportWarning],
+        warning_types=[UserWarning, DeprecationWarning, ImportWarning],
     )
     def setUp(self):
         """Set up coefficients cubes for when either the ensemble mean or the
@@ -97,30 +96,19 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
-        # predictor and the coefficients have been estimated using statsmodels.
+        # predictor.
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", desired_units="Celsius", predictor="realizations"
         )
-        self.coeffs_from_statsmodels_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_norm_statsmodels,
+        self.coeffs_from_realizations = estimator.create_coefficients_cubelist(
+            self.expected_realizations_norm,
             self.historic_temperature_forecast_cube,
         )
 
         # Set up a coefficients cube when using the ensemble realization as the
-        # predictor and the coefficients have been estimated without using
-        # statsmodels.
-        estimator = EstimateCoefficientsForEnsembleCalibration(
-            "norm", desired_units="Celsius", predictor="realizations"
-        )
-        self.coeffs_from_no_statsmodels_realizations = estimator.create_coefficients_cubelist(
-            self.expected_realizations_norm_no_statsmodels,
-            self.historic_temperature_forecast_cube,
-        )
-
-        # Set up a coefficients cube when using the ensemble realization as the
-        # predictor and the coefficients have been estimated using statsmodels.
+        # predictor.
         expected_realizations_each_site = np.vstack(
-            list(self.expected_realizations_each_site_statsmodels.values())
+            list(self.expected_realizations_each_site.values())
         )
         estimator = EstimateCoefficientsForEnsembleCalibration(
             "norm", predictor="realizations", point_by_point=True
@@ -146,19 +134,11 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             ],
             dtype=np.float32,
         )
-        self.expected_loc_param_statsmodels_realizations = np.array(
+        self.expected_loc_param_realizations = np.array(
             [
                 [274.388, 275.3053, 275.4492],
                 [277.1295, 277.3866, 278.4672],
                 [280.2007, 280.3929, 281.2602],
-            ],
-            dtype=np.float32,
-        )
-        self.expected_loc_param_no_statsmodels_realizations = np.array(
-            [
-                [273.9595, 274.9872, 275.4302],
-                [277.0191, 277.6373, 278.6069],
-                [279.9651, 280.1437, 281.4046],
             ],
             dtype=np.float32,
         )
@@ -293,12 +273,7 @@ class Test__calculate_location_parameter_from_mean(
         )
         assert_array_almost_equal(
             location_parameter,
-            self.expected_loc_param_statsmodels_realizations,
-            decimal=0,
-        )
-        assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_no_statsmodels_realizations,
+            self.expected_loc_param_realizations,
             decimal=0,
         )
 
@@ -318,49 +293,20 @@ class Test__calculate_location_parameter_from_realizations(
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_with_statsmodels(self):
+    def test_basic(self):
         """Test that the expected values for the location parameter are
-        calculated when using the ensemble realizations with statsmodels.
-        These expected values are compared to the results when using the
-        ensemble mean and when statsmodels is not used to ensure that the
-        results are similar."""
-        self.plugin.coefficients_cubelist = self.coeffs_from_statsmodels_realizations
+        calculated when using the ensemble realizations. These expected
+        values are compared to the results when using the ensemble mean to
+        ensure that the results are similar."""
+        self.plugin.coefficients_cubelist = self.coeffs_from_realizations
         location_parameter = (
             self.plugin._calculate_location_parameter_from_realizations()
         )
         self.assertCalibratedVariablesAlmostEqual(
-            location_parameter, self.expected_loc_param_statsmodels_realizations
+            location_parameter, self.expected_loc_param_realizations
         )
         assert_array_almost_equal(
             location_parameter, self.expected_loc_param_mean, decimal=0
-        )
-        assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_no_statsmodels_realizations,
-            decimal=0,
-        )
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_without_statsmodels(self):
-        """Test that the expected values for the location parameter are
-        calculated when using the ensemble realizations without statsmodels.
-        These expected values are compared to the results when using the
-        ensemble mean and when statsmodels is used to ensure that the results
-        are similar."""
-        self.plugin.coefficients_cubelist = self.coeffs_from_no_statsmodels_realizations
-        location_parameter = (
-            self.plugin._calculate_location_parameter_from_realizations()
-        )
-        self.assertCalibratedVariablesAlmostEqual(
-            location_parameter, self.expected_loc_param_no_statsmodels_realizations
-        )
-        assert_array_almost_equal(
-            location_parameter, self.expected_loc_param_mean, decimal=0
-        )
-        assert_array_almost_equal(
-            location_parameter,
-            self.expected_loc_param_statsmodels_realizations,
-            decimal=0,
         )
 
 

@@ -353,14 +353,3 @@ def check_forecast_consistency(forecasts: Cube) -> None:
     if len(forecasts.coord("forecast_period").points) != 1:
         msg = "Forecasts have been provided with differing forecast periods {}"
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
-
-
-def statsmodels_available() -> bool:
-    """True if statsmodels library is importable.
-
-    Returns:
-        If True, statsmodels is available, otherwise, False.
-    """
-    if importlib.util.find_spec("statsmodels"):
-        return True
-    return False

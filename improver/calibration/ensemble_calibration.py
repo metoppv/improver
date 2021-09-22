@@ -50,6 +50,7 @@ from numpy import ndarray
 from scipy import stats
 from scipy.optimize import minimize
 from scipy.stats import norm
+import statsmodels.api as sm
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
@@ -61,7 +62,6 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
-    statsmodels_available,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -1002,9 +1002,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if predictor.lower() == "mean" and default_initial_guess:
             initial_guess = [0, 1, 0, 1]
-        elif predictor.lower() == "realizations" and (
-            default_initial_guess or not statsmodels_available()
-        ):
+        elif predictor.lower() == "realizations" and default_initial_guess:
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
@@ -1025,7 +1023,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     )
                 initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
-                import statsmodels.api as sm
 
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
                     forecast_predictor, preserve_leading_dimension=True
