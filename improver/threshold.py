@@ -505,9 +505,6 @@ class LatitudeDependentThreshold(BasicThreshold):
         self._add_latitude_threshold_coord(cube, threshold_over_latitude)
         cube.coord(var_name="threshold").convert_units(input_cube.units)
 
-        for func in self.each_threshold_func:
-            cube = func(cube)
-
         self._update_metadata(cube)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
 
