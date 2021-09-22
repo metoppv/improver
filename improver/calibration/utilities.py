@@ -33,7 +33,6 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-import importlib
 from typing import Set, Tuple, Union
 
 import iris
