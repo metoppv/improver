@@ -419,3 +419,34 @@ def test_target_domain_bigger_than_source_domain_wi_mask():
         atol=1e-5,
     )
     assert np.all(np.isnan(regrid_bilinear_with_mask_pad.data[11:15]))
+
+
+def test_target_domain_bigger_than_source_domain_masked_data():
+    """Test cases with masked data of input cube, output cube's data should be masked """
+
+    # set up source cube, target cube and land-sea mask cube
+    cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
+
+    # add a circle of grid points so that output doamin is much bigger than input domain
+    width_x, width_y = 2, 4  # lon,lat
+    cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
+
+    # test bilinear-2 regridding
+    regrid_bilinear_pad = RegridLandSea(regrid_mode="bilinear-2",)(
+        cube_in, cube_out_mask_pad
+    )
+
+    # consider masked data case
+    cube_in_masked_data = np.ma.masked_array(cube_in.data, mask=False)
+    cube_in.data = cube_in_masked_data
+    regrid_bilinear_pad_masked_data = RegridLandSea(regrid_mode="bilinear-2",)(
+        cube_in, cube_out_mask_pad
+    )
+
+    np.testing.assert_allclose(
+        regrid_bilinear_pad_masked_data.data.data[4:11, 2:11],
+        regrid_bilinear_pad.data[4:11, 2:11],
+        atol=1e-5,
+    )
+    isinstance(regrid_bilinear_pad.data, np.ndarray)
+    isinstance(regrid_bilinear_pad_masked_data.data, np.ma.MaskedArray)
