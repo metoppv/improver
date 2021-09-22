@@ -222,8 +222,8 @@ def test_with_land_mask_and_mask(cube, land_mask_cube):
     assert np.allclose(result.data.mask, mask)
 
 
-def test_with_invalid_land_mask(land_mask_cube):
-    """Test that a land mask is used correctly."""
+def test_with_invalid_land_mask_name(land_mask_cube):
+    """Test that a mis-named land mask is rejected correctly."""
     bad_mask_cube = land_mask_cube.copy()
     bad_mask_cube.rename("kittens")
     with pytest.raises(
@@ -231,6 +231,19 @@ def test_with_invalid_land_mask(land_mask_cube):
         match="Expected land_mask_cube to be called land_binary_mask, not kittens",
     ):
         OccurrenceWithinVicinity(DISTANCE, land_mask_cube=bad_mask_cube)
+
+
+def test_with_invalid_land_mask_coords(cube, land_mask_cube):
+    """Test that a spatially mis-matched land mask is rejected correctly."""
+    bad_mask_cube = land_mask_cube.copy()
+    bad_points = np.array(bad_mask_cube.coord(axis="x").points)
+    bad_points[0] += 1
+    bad_mask_cube.coord(axis="x").points = bad_points
+    with pytest.raises(
+        ValueError,
+        match="Supplied cube do not have the same spatial coordinates and land mask",
+    ):
+        OccurrenceWithinVicinity(DISTANCE, land_mask_cube=bad_mask_cube)(cube)
 
 
 @pytest.fixture(name="cube_with_realizations")
