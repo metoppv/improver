@@ -55,6 +55,6 @@ def test_basic(tmp_path, grid):
     timezone_path = kgo_dir / "timezone_mask.nc"
     local_time = "20201203T0000"
     output_path = tmp_path / "output.nc"
-    args = [timezone_path, local_time, input_path, "--output", output_path]
+    args = [local_time, input_path, timezone_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
