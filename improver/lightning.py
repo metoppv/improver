@@ -168,7 +168,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
         coord = DimCoord(
             np.array([0], dtype=FLOAT_DTYPE),
-            units="s-1",
+            units="m-2",
             long_name="number_of_lightning_flashes_per_unit_area",
             var_name="threshold",
             attributes={"spp__relative_to_threshold": "greater_than"},

@@ -102,7 +102,7 @@ def expected_cube_fixture() -> Cube:
         data,
         thresholds=[0.0],
         variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
-        threshold_units="s-1",
+        threshold_units="m-2",
         time=datetime(2017, 11, 10, 5, 0),
         time_bounds=(datetime(2017, 11, 10, 4, 0), datetime(2017, 11, 10, 5, 0)),
         attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
