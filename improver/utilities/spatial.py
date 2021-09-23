@@ -401,8 +401,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Distance in metres used to define the vicinity within which to
                 search for an occurrence.
             land_mask_cube:
-                Cube describing land and sea points. Restricts in-vicinity processing
-                to only include points of a like mask value.
+                Binary land-sea mask data. True for land-points, False for sea.
+                Restricts in-vicinity processing to only include points of a
+                like mask value.
         """
         self.distance = distance
         if land_mask_cube:

@@ -98,8 +98,9 @@ def process(
             Distance in metres used to define the vicinity within which to
             search for an occurrence
         land_sea_mask (Cube):
-            Cube describing land and sea points. Restricts in-vicinity processing
-            to only include points of a like mask value.
+            Binary land-sea mask data. True for land-points, False for sea.
+            Restricts in-vicinity processing to only include points of a
+            like mask value.
 
     Returns:
         iris.cube.Cube:
