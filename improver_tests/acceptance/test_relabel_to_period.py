@@ -47,6 +47,19 @@ def test_relabel_to_period(tmp_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "3", "--output", output_path]
+    args = [input_path, "--period", "3", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_no_period(tmp_path):
+    """
+    Test the diagnostic remains unchanged, if no period supplied.
+    """
+    kgo_dir = acc.kgo_root() / "relabel_to_period/"
+    kgo_path = kgo_dir / "input.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

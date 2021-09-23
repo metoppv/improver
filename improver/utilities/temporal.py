@@ -282,7 +282,7 @@ def extract_nearest_time_point(
     return cube
 
 
-def relabel_to_period(cube: Cube, period: int):
+def relabel_to_period(cube: Cube, period: Optional[int] = None):
     """Add bounds to the forecast period and time coordinates on a cube.
     Note that any existing bounds will be overwritten.
 
@@ -294,8 +294,11 @@ def relabel_to_period(cube: Cube, period: int):
             The period in hours.
 
     Returns:
-        Cube with metadata updated to represent a period.
+        Cube with metadata updated to represent a period, if a period is supplied.
     """
+    if not period:
+        return cube
+
     for coord in ["forecast_period", "time"]:
         cube.coord(coord).bounds = np.array(
             [cube.coord(coord).points[0] - period * 3600, cube.coord(coord).points[0]],

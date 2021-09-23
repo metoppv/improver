@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, period: int):
+def process(cube: cli.inputcube, *, period: int = None):
     """Relabel a diagnostic as a period diagnostic.
 
     Modify an existing diagnostic to represent a period. This may be

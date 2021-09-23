@@ -483,9 +483,16 @@ class Test_relabel_to_period(unittest.TestCase):
             [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube_with_bounds, 3)
-        self.assertIsInstance(result, Cube)
         self.assertEqual(result.coord("time"), expected_time)
         self.assertEqual(result.coord("forecast_period"), expected_fp)
+
+    def test_no_period(self):
+        """Test bounds remain unchanged if no period is supplied."""
+        result = relabel_to_period(self.cube)
+        self.assertEqual(result.coord("time"), self.cube.coord("time"))
+        self.assertEqual(
+            result.coord("forecast_period"), self.cube.coord("forecast_period")
+        )
 
 
 if __name__ == "__main__":
