@@ -1528,24 +1528,59 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Returns:
             Location parameter calculated using the ensemble mean as the
             predictor.
         """
-        forecast_predictor = collapsed(
-            self.current_forecast, "realization", iris.analysis.MEAN
+        forecast_predictors = iris.cube.CubeList()
+        forecast_predictors.append(
+            collapsed(self.current_forecast, "realization", iris.analysis.MEAN)
         )
+        if self.additional_fields:
+            forecast_predictors.extend(self.additional_fields)
+
+        fp_names = [fp.name() for fp in forecast_predictors]
+        if len(forecast_predictors) != len(
+            self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+            .coord("predictor_index")
+            .points
+        ):
+            n_coord_points = len(
+                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+                .coord("predictor_index")
+                .points
+            )
+            coord_names = (
+                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+                .coord("predictor_name")
+                .points
+            )
+            msg = (
+                "The number of forecast predictors must equal the number of "
+                "beta coefficients in order to create a calibrated forecast. "
+                f"Number of predictor cubes = {len(forecast_predictors)}: {fp_names}, "
+                f"Number of predictor coords = {n_coord_points}: {coord_names}"
+            )
+            raise ValueError(msg)
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
-        location_parameter = (
-            self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data
-            + self.coefficients_cubelist.extract_cube("emos_coefficient_beta").data
-            * forecast_predictor.data
-        ).astype(np.float32)
+        location_parameter = np.zeros(forecast_predictors[0].shape)
+        for fp in forecast_predictors:
+            constr = iris.Constraint(predictor_name=fp.name())
+            location_parameter += (
+                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+                .extract(constr)
+                .data
+                * fp.data
+            )
+        location_parameter += self.coefficients_cubelist.extract_cube(
+            "emos_coefficient_alpha"
+        ).data
+        location_parameter = location_parameter.astype(np.float32)
 
         return location_parameter
 
@@ -1554,8 +1589,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Returns:
             Location parameter calculated using the ensemble realizations
@@ -1567,7 +1602,11 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # number of ensemble realizations. In this case, b = beta^2.
         beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
         beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
-        beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
+        beta_values = (
+            np.atleast_2d(np.squeeze(beta_values.T))
+            if beta_cube.data.ndim != 1
+            else beta_values
+        )
 
         a_and_b = np.hstack(
             (
@@ -1598,8 +1637,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Returns:
             Scale parameter for defining the distribution of the calibrated
@@ -1608,6 +1647,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         forecast_var = self.current_forecast.collapsed(
             "realization", iris.analysis.VARIANCE
         )
+
         # Calculating the scale parameter, based on the raw variance S^2,
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
@@ -1661,6 +1701,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self,
         current_forecast: Cube,
         coefficients_cubelist: CubeList,
+        additional_fields: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
     ) -> Tuple[Cube, Cube]:
         """
@@ -1675,6 +1716,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 CubeList of EMOS coefficients where each cube within the
                 cubelist is for a separate EMOS coefficient e.g. alpha, beta,
                 gamma, delta.
+            additional_fields:
+                Additional fields to be used as forecast predictors.
             landsea_mask:
                 The optional cube containing a land-sea mask. If provided sea
                 points will be masked in the output cube.
@@ -1694,6 +1737,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
               larger scale parameter will result in a broader PDF.
         """
         self.current_forecast = current_forecast
+        self.additional_fields = additional_fields
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
@@ -1907,6 +1951,7 @@ class ApplyEMOS(PostProcessingPlugin):
         self,
         forecast: Cube,
         coefficients: CubeList,
+        additional_fields: Optional[CubeList] = None,
         land_sea_mask: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
@@ -1922,6 +1967,8 @@ class ApplyEMOS(PostProcessingPlugin):
                 realizations
             coefficients:
                 EMOS coefficients
+            additional_fields:
+                Additional fields to be used as forecast predictors.
             land_sea_mask:
                 Land sea mask where a value of "1" represents land points and
                 "0" represents sea.  If set, allows calibration of land points
@@ -1958,7 +2005,10 @@ class ApplyEMOS(PostProcessingPlugin):
             predictor=predictor
         )
         location_parameter, scale_parameter = calibration_plugin(
-            forecast_as_realizations, coefficients, landsea_mask=land_sea_mask
+            forecast_as_realizations,
+            coefficients,
+            additional_fields=additional_fields,
+            landsea_mask=land_sea_mask,
         )
 
         self.distribution = {
