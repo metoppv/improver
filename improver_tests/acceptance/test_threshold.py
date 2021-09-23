@@ -146,7 +146,7 @@ def test_collapse_realization_masked_data(tmp_path):
         ([], "kgo.nc"),
         (["--collapse-coord", "realization"], "kgo_collapsed.nc"),
         (
-            [acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",],
+            [acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc"],
             "kgo_landmask.nc",
         ),
         (
