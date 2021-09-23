@@ -41,114 +41,57 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic thresholding"""
-    kgo_dir = acc.kgo_root() / "threshold/basic"
+@pytest.mark.parametrize(
+    "extra_args,kgo_subdir",
+    (
+        (["--threshold-values", "280"], "basic"),
+        (
+            ["--threshold-values", "280", "--comparison-operator", "<="],
+            "below_threshold",
+        ),
+        (["--threshold-values", "270,280,290"], "multiple_thresholds"),
+        (
+            ["--threshold-values", "6.85", "--threshold-units", "celsius"],
+            "threshold_units",
+        ),
+        (["--threshold-values", "280", "--fuzzy-factor", "0.99"], "fuzzy_factor"),
+        (
+            [
+                "--threshold-config",
+                acc.kgo_root() / "threshold" / "fuzzy_bounds" / "threshold_config.json",
+            ],
+            "fuzzy_factor",
+        ),
+        (
+            [
+                "--threshold-values",
+                "6.85",
+                "--threshold-units",
+                "celsius",
+                "--fuzzy-factor",
+                "0.2",
+            ],
+            "threshold_units_fuzzy_factor",
+        ),
+        (
+            [
+                "--threshold-config",
+                acc.kgo_root() / "threshold" / "json" / "threshold_config.json",
+            ],
+            "basic",
+        ),
+    ),
+)
+def test_args(tmp_path, extra_args, kgo_subdir):
+    """Test thresholding with different argument combinations using temperature data"""
+    cli_dir = acc.kgo_root() / "threshold"
+    kgo_dir = cli_dir / kgo_subdir
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
+    input_path = cli_dir / "basic" / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--threshold-values", "280"]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_below_threshold(tmp_path):
-    """Test thresholding with specified operator"""
-    kgo_dir = acc.kgo_root() / "threshold/below_threshold"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../basic/input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--output",
-        output_path,
-        "--threshold-values",
-        "280",
-        "--comparison-operator",
-        "<=",
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_multiple_thresholds(tmp_path):
-    """Test thresholding with multiple thresholds"""
-    kgo_dir = acc.kgo_root() / "threshold/multiple_thresholds"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../basic/input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--threshold-values", "270,280,290"]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_threshold_units(tmp_path):
-    """Test thresholding with specified units"""
-    kgo_dir = acc.kgo_root() / "threshold/threshold_units"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../basic/input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--output",
-        output_path,
-        "--threshold-values",
-        "6.85",
-        "--threshold-units",
-        "celsius",
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_fuzzy_factor(tmp_path):
-    """Test thresholding with fuzzy factor"""
-    kgo_dir = acc.kgo_root() / "threshold/fuzzy_factor"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../basic/input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--output",
-        output_path,
-        "--threshold-values",
-        "280",
-        "--fuzzy-factor",
-        "0.99",
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_fuzzy_bounds(tmp_path):
-    """Test thresholding with fuzzy bounds configuration file"""
-    kgo_dir = acc.kgo_root() / "threshold/fuzzy_factor"
-    kgo_path = kgo_dir / "kgo.nc"
-    threshold_path = kgo_dir / "../fuzzy_bounds/threshold_config.json"
-    input_path = kgo_dir / "../basic/input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", output_path, "--threshold-config", threshold_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_threshold_units_fuzzy(tmp_path):
-    """Test thresholding with specified units and fuzzy factor"""
-    kgo_dir = acc.kgo_root() / "threshold/threshold_units_fuzzy_factor"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "../basic/input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--output",
-        output_path,
-        "--threshold-values",
-        "6.85",
-        "--threshold-units",
-        "celsius",
-        "--fuzzy-factor",
-        "0.2",
-    ]
+    args = [input_path, "--output", output_path]
+    if extra_args:
+        args += extra_args
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -197,10 +140,33 @@ def test_collapse_realization_masked_data(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_vicinity(tmp_path):
+@pytest.mark.parametrize(
+    "extra_args,kgo",
+    (
+        ([], "kgo.nc"),
+        (["--collapse-coord", "realization"], "kgo_collapsed.nc"),
+        (
+            [
+                "--land-sea-mask",
+                acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+            ],
+            "kgo_landmask.nc",
+        ),
+        (
+            [
+                "--land-sea-mask",
+                acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+                "--collapse-coord",
+                "realization",
+            ],
+            "kgo_landmask_collapsed.nc",
+        ),
+    ),
+)
+def test_vicinity(tmp_path, extra_args, kgo):
     """Test thresholding with vicinity"""
     kgo_dir = acc.kgo_root() / "threshold/vicinity"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / kgo
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -214,28 +180,8 @@ def test_vicinity(tmp_path):
         "--vicinity",
         "10000",
     ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_vicinity_collapse(tmp_path):
-    """Test thresholding with vicinity and collapse"""
-    kgo_dir = acc.kgo_root() / "threshold/vicinity"
-    kgo_path = kgo_dir / "kgo_collapsed.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--output",
-        output_path,
-        "--threshold-values",
-        "0.03,0.1,1.0",
-        "--threshold-units",
-        "mm hr-1",
-        "--vicinity",
-        "10000",
-        "--collapse-coord=realization",
-    ]
+    if extra_args:
+        args += extra_args
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -261,13 +207,18 @@ def test_vicinity_masked(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_threshold_config(tmp_path):
-    """Test basic thresholding using configuration file"""
-    kgo_dir = acc.kgo_root() / "threshold/basic"
-    kgo_path = kgo_dir / "kgo.nc"
+def test_landmask_without_vicinity():
+    """Test supplying a land-mask triggers an error"""
+    kgo_dir = acc.kgo_root() / "threshold/vicinity"
     input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    config_path = kgo_dir / "../json/threshold_config.json"
-    args = [input_path, "--output", output_path, "--threshold-config", config_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    args = [
+        input_path,
+        "--threshold-values",
+        "0.03",
+        "--land-sea-mask",
+        acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+    ]
+    with pytest.raises(
+        ValueError, match="Cannot apply land-mask cube without in-vicinity processing"
+    ):
+        run_cli(args)
