@@ -33,7 +33,7 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-from typing import List, Set, Tuple, Union
+from typing import List, Optional, Set, Tuple, Union
 
 import iris
 import numpy as np
@@ -79,31 +79,33 @@ def convert_cube_data_to_2d(
 
 
 def flatten_ignoring_masked_data(
-    data_array: Union[MaskedArray, ndarray], preserve_leading_dimension: bool = False
+    data_array: Union[MaskedArray, ndarray],
+    num_of_leading_dimensions_to_preserve: Optional[int] = 0,
 ) -> ndarray:
     """
     Flatten an array, selecting only valid data if the array is masked. There
-    is also the option to reshape the resulting array so it has the same
-    leading dimension as the input array, but the other dimensions of the
-    array are flattened. It is assumed that each of the slices
-    along the leading dimension are masked in the same way. This functionality
-    is used in EstimateCoefficientsForEnsembleCalibration when realizations
-    are used as predictors.
+    is also the option to reshape the resulting array so that the requested
+    number of leading dimensions are flattened along the first dimension with
+    other non-leading dimensions flattened along the second dimension.
+    It is assumed that each of the slices along the leading dimension are
+    masked in the same way. This functionality is used in
+    EstimateCoefficientsForEnsembleCalibration when realizations are used
+    as predictors.
 
     Args:
         data_array:
             An array or masked array to be flattened. If it is masked and the
             leading dimension is preserved the mask must be the same for every
             slice along the leading dimension.
-        preserve_leading_dimension:
-            Default False.
-            If True the flattened array is reshaped so it has the same leading
-            dimension as the input array. If False the returned array is 1D.
+        num_of_leading_dimensions_to_preserve:
+            Default zero. A positive non-zero integer represents the number
+            of leading dimensions to flatten into the first dimension with
+            other non-leading dimensions flattened along the second dimension.
+            If this is zero, a 1D flattened array is returned.
 
     Returns:
         A flattened array containing only valid data. Either 1D or, if
-        preserving the leading dimension 2D. In the latter case the
-        leading dimension is the same as the input data_array.
+        preserving the leading dimensions, 2D.
 
     Raises:
         ValueError: If preserving the leading dimension and the mask on the
@@ -128,10 +130,11 @@ def flatten_ignoring_masked_data(
         result = data_array[~data_array.mask]
     else:
         result = data_array.flatten()
-    if preserve_leading_dimension:
-        # Reshape back to give the same leading dimension in the array. The 2nd
-        # dimension is inferred through the use of -1.
-        final_shape = (data_array.shape[0], -1)
+    if num_of_leading_dimensions_to_preserve:
+        final_shape = (
+            np.prod(data_array.shape[:num_of_leading_dimensions_to_preserve]),
+            -1,
+        )
         result = result.reshape(final_shape)
     return result
 
