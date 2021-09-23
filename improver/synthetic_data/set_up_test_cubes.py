@@ -614,14 +614,11 @@ def add_coordinate(
     cubes = iris.cube.CubeList([])
     for val in coord_points:
         temp_cube = cube.copy()
-        temp_cube.add_aux_coord(
-            DimCoord(
-                np.array([val], dtype=dtype),
-                long_name=coord_name,
-                units=coord_units,
-                attributes=attributes,
-            )
+        coord = DimCoord(
+            np.array([val], dtype=dtype), units=coord_units, attributes=attributes,
         )
+        coord.rename(coord_name)
+        temp_cube.add_aux_coord(coord)
 
         # recalculate forecast period if time or frt have been updated
         if (

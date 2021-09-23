@@ -68,26 +68,30 @@ def rescale(
     Returns:
         Output array of scaled data. Has same shape as data.
     """
-    data_min = np.min(data) if data_range is None else data_range[0]
-    data_max = np.max(data) if data_range is None else data_range[1]
-    scale_min = scale_range[0]
-    scale_max = scale_range[1]
+    data_left = np.min(data) if data_range is None else data_range[0]
+    data_right = np.max(data) if data_range is None else data_range[1]
+    scale_left = scale_range[0]
+    scale_right = scale_range[1]
     # Range check
-    if data_min == data_max:
+    if data_left == data_right:
         raise ValueError(
-            "Cannot rescale a zero input range ({} -> {})".format(data_min, data_max)
+            "Cannot rescale a zero input range ({} -> {})".format(data_left, data_right)
         )
 
-    if scale_min == scale_max:
+    if scale_left == scale_right:
         raise ValueError(
-            "Cannot rescale a zero output range ({} -> {})".format(scale_min, scale_max)
+            "Cannot rescale a zero output range ({} -> {})".format(
+                scale_left, scale_right
+            )
         )
 
     result = (
-        (data - data_min) * (scale_max - scale_min) / (data_max - data_min)
-    ) + scale_min
+        (data - data_left) * (scale_right - scale_left) / (data_right - data_left)
+    ) + scale_left
     if clip:
-        result = np.clip(result, scale_min, scale_max)
+        result = np.clip(
+            result, min(scale_left, scale_right), max(scale_left, scale_right)
+        )
     return result
 
 
