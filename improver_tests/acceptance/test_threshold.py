@@ -146,15 +146,11 @@ def test_collapse_realization_masked_data(tmp_path):
         ([], "kgo.nc"),
         (["--collapse-coord", "realization"], "kgo_collapsed.nc"),
         (
-            [
-                "--land-sea-mask",
-                acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
-            ],
+            [acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",],
             "kgo_landmask.nc",
         ),
         (
             [
-                "--land-sea-mask",
                 acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
                 "--collapse-coord",
                 "realization",
@@ -169,8 +165,10 @@ def test_vicinity(tmp_path, extra_args, kgo):
     kgo_path = kgo_dir / kgo
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
+    args = [input_path]
+    if extra_args:
+        args += extra_args
+    args += [
         "--output",
         output_path,
         "--threshold-values",
@@ -180,8 +178,6 @@ def test_vicinity(tmp_path, extra_args, kgo):
         "--vicinity",
         "10000",
     ]
-    if extra_args:
-        args += extra_args
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -213,10 +209,9 @@ def test_landmask_without_vicinity():
     input_path = kgo_dir / "input.nc"
     args = [
         input_path,
+        acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
         "--threshold-values",
         "0.03",
-        "--land-sea-mask",
-        acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
     ]
     with pytest.raises(
         ValueError, match="Cannot apply land-mask cube without in-vicinity processing"

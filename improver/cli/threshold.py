@@ -38,6 +38,7 @@ from improver import cli
 @cli.with_output
 def process(
     cube: cli.inputcube,
+    land_sea_mask: cli.inputcube = None,
     *,
     threshold_values: cli.comma_separated_list = None,
     threshold_config: cli.inputjson = None,
@@ -46,7 +47,6 @@ def process(
     fuzzy_factor: float = None,
     collapse_coord: str = None,
     vicinity: float = None,
-    land_sea_mask: cli.inputcube = None,
 ):
     """Module to apply thresholding to a parameter dataset.
 
