@@ -39,7 +39,9 @@ from improver import cli
 def process(cube: cli.inputcube, *, period: int = None):
     """Relabel a diagnostic as a period diagnostic.
 
-    Modify an existing diagnostic to represent a period. This may be
+    Modify an existing diagnostic to represent a period. This will either
+    relabel an instantaneous diagnostic to be a period diagnostic, or
+    modify a period diagnostic to have a different period. This may be
     useful when trying to combine instantaneous and period diagnostics.
 
     Args:
@@ -51,7 +53,7 @@ def process(cube: cli.inputcube, *, period: int = None):
 
     Returns:
         iris.cube.Cube:
-            Cube with metadata updated to represent a period.
+            Cube with metadata updated to represent the required period.
 
     """
     from improver.utilities.temporal import relabel_to_period

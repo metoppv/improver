@@ -487,12 +487,16 @@ class Test_relabel_to_period(unittest.TestCase):
         self.assertEqual(result.coord("forecast_period"), expected_fp)
 
     def test_no_period(self):
-        """Test bounds remain unchanged if no period is supplied."""
-        result = relabel_to_period(self.cube)
-        self.assertEqual(result.coord("time"), self.cube.coord("time"))
-        self.assertEqual(
-            result.coord("forecast_period"), self.cube.coord("forecast_period")
-        )
+        """Test error raised when no period supplied."""
+        msg = "A period must be specified when relabelling a diagnostic"
+        with self.assertRaisesRegex(ValueError, msg):
+            relabel_to_period(self.cube)
+
+    def test_zero_period(self):
+        """Test error raised when an invalid value for the period is supplied."""
+        msg = "Only periods of one hour or greater are supported"
+        with self.assertRaisesRegex(ValueError, msg):
+            relabel_to_period(self.cube, period=0)
 
 
 if __name__ == "__main__":
