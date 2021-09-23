@@ -46,7 +46,7 @@ from scipy.ndimage.filters import maximum_filter
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import create_new_diagnostic_cube
-from improver.utilities.cube_checker import check_cube_coordinates
+from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 
 
 def check_if_grid_is_equal_area(
@@ -392,7 +392,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
     """Calculate whether a phenomenon occurs within the specified distance."""
 
-    def __init__(self, distance: float) -> None:
+    def __init__(self, distance: float, land_mask_cube: Cube = None) -> None:
         """
         Initialise the class.
 
@@ -400,8 +400,22 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             distance:
                 Distance in metres used to define the vicinity within which to
                 search for an occurrence.
+            land_mask_cube:
+                Binary land-sea mask data. True for land-points, False for sea.
+                Restricts in-vicinity processing to only include points of a
+                like mask value.
         """
         self.distance = distance
+        if land_mask_cube:
+            if land_mask_cube.name() != "land_binary_mask":
+                raise ValueError(
+                    f"Expected land_mask_cube to be called land_binary_mask, "
+                    f"not {land_mask_cube.name()}"
+                )
+            self.land_mask = np.where(land_mask_cube.data >= 0.5, True, False)
+        else:
+            self.land_mask = None
+        self.land_mask_cube = land_mask_cube
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -415,6 +429,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         grid points within the vicinity are recorded as having an occurrence.
         For non-binary fields, if the vicinity of two occurrences overlap,
         the maximum value within the vicinity is chosen.
+        If a land-mask cube has been supplied, process land and sea points
+        separately.
 
         Args:
             cube:
@@ -438,9 +454,17 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         if np.ma.is_masked(cube.data):
             unmasked_cube_data = cube.data.data.copy()
             unmasked_cube_data[cube.data.mask] = -np.inf
-        # The following command finds the maximum value for each grid point
-        # from within a square of length "size"
-        max_data = maximum_filter(unmasked_cube_data, size=grid_cells)
+        if self.land_mask_cube:
+            max_data = np.empty_like(cube.data)
+            for match in (True, False):
+                matched_data = unmasked_cube_data.copy()
+                matched_data[self.land_mask != match] = -np.inf
+                matched_max_data = maximum_filter(matched_data, size=grid_cells)
+                max_data = np.where(self.land_mask == match, matched_max_data, max_data)
+        else:
+            # The following command finds the maximum value for each grid point
+            # from within a square of length "size"
+            max_data = maximum_filter(unmasked_cube_data, size=grid_cells)
         if np.ma.is_masked(cube.data):
             # Update only the unmasked values
             max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
@@ -461,7 +485,10 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             Cube containing the occurrences within a vicinity for each
             xy 2d slice, which have been merged back together.
         """
-
+        if self.land_mask_cube and not spatial_coords_match(cube, self.land_mask_cube):
+            raise ValueError(
+                "Supplied cube do not have the same spatial coordinates and land mask"
+            )
         max_cubes = CubeList([])
         for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
             max_cubes.append(self.maximum_within_vicinity(cube_slice))
