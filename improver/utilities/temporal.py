@@ -282,6 +282,41 @@ def extract_nearest_time_point(
     return cube
 
 
+def relabel_to_period(cube: Cube, period: Optional[int] = None):
+    """Add or replace bounds for the forecast period and time coordinates
+    on a cube.
+
+    Args:
+        cube:
+            The cube for a diagnostic that will be modified to represent the
+            required period.
+        period:
+            The period in hours.
+
+    Returns:
+        Cube with metadata updated to represent the specified period.
+    """
+    if period is None:
+        msg = (
+            "A period must be specified when relabelling a diagnostic "
+            "to have a particular period."
+        )
+        raise ValueError(msg)
+    elif period < 1:
+        msg = (
+            "Only periods of one hour or greater are supported. "
+            f"The period supplied was {period} hours."
+        )
+        raise ValueError(msg)
+
+    for coord in ["forecast_period", "time"]:
+        cube.coord(coord).bounds = np.array(
+            [cube.coord(coord).points[0] - period * 3600, cube.coord(coord).points[0]],
+            dtype=TIME_COORDS[coord].dtype,
+        )
+    return cube
+
+
 class TimezoneExtraction(PostProcessingPlugin):
     """Plugin to extract local time offsets"""
 

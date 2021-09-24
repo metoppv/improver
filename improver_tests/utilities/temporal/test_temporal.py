@@ -40,6 +40,7 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
@@ -53,6 +54,7 @@ from improver.utilities.temporal import (
     extract_cube_at_time,
     extract_nearest_time_point,
     iris_time_to_datetime,
+    relabel_to_period,
 )
 from improver.utilities.warnings_handler import ManageWarnings
 
@@ -425,6 +427,76 @@ class Test_extract_nearest_time_point(IrisTest):
             extract_nearest_time_point(
                 self.cube, time_point, time_name="forecast_period"
             )
+
+
+class Test_relabel_to_period(unittest.TestCase):
+
+    """Test relabel_to_period function."""
+
+    def setUp(self):
+        """Set up cubes for testing."""
+        self.cube = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            time=datetime(2017, 2, 17, 6, 0),
+            frt=datetime(2017, 2, 17, 3, 0),
+        )
+        self.cube_with_bounds = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32),
+            time=datetime(2017, 2, 17, 6, 0),
+            time_bounds=(datetime(2017, 2, 17, 5, 0), datetime(2017, 2, 17, 6, 0)),
+            frt=datetime(2017, 2, 17, 3, 0),
+        )
+
+    def test_basic(self):
+        """Test correct bounds present on time and forecast_period coordinates
+        for instantaneous input."""
+        expected_time = self.cube.coord("time").copy()
+        expected_time.bounds = np.array(
+            [
+                datetime_to_iris_time(datetime(2017, 2, 17, 5, 0)),
+                datetime_to_iris_time(datetime(2017, 2, 17, 6, 0)),
+            ],
+            dtype=TIME_COORDS["time"].dtype,
+        )
+        expected_fp = self.cube.coord("forecast_period").copy()
+        expected_fp.bounds = np.array(
+            [2 * 3600, 3 * 3600], TIME_COORDS["forecast_period"].dtype,
+        )
+        result = relabel_to_period(self.cube, 1)
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.coord("time"), expected_time)
+        self.assertEqual(result.coord("forecast_period"), expected_fp)
+
+    def test_input_period_diagnostic(self):
+        """Test correct bounds present on time and forecast_period coordinates
+        for an input period diagnostic."""
+        expected_time = self.cube.coord("time").copy()
+        expected_time.bounds = np.array(
+            [
+                datetime_to_iris_time(datetime(2017, 2, 17, 3, 0)),
+                datetime_to_iris_time(datetime(2017, 2, 17, 6, 0)),
+            ],
+            dtype=TIME_COORDS["time"].dtype,
+        )
+        expected_fp = self.cube.coord("forecast_period").copy()
+        expected_fp.bounds = np.array(
+            [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype,
+        )
+        result = relabel_to_period(self.cube_with_bounds, 3)
+        self.assertEqual(result.coord("time"), expected_time)
+        self.assertEqual(result.coord("forecast_period"), expected_fp)
+
+    def test_no_period(self):
+        """Test error raised when no period supplied."""
+        msg = "A period must be specified when relabelling a diagnostic"
+        with self.assertRaisesRegex(ValueError, msg):
+            relabel_to_period(self.cube)
+
+    def test_zero_period(self):
+        """Test error raised when an invalid value for the period is supplied."""
+        msg = "Only periods of one hour or greater are supported"
+        with self.assertRaisesRegex(ValueError, msg):
+            relabel_to_period(self.cube, period=0)
 
 
 if __name__ == "__main__":
