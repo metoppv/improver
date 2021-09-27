@@ -129,6 +129,19 @@ def test_basic(cape_cube, precip_cube, expected_cube):
     assert np.allclose(result.data, expected_cube.data)
 
 
+def test_3d_cubes(cape_cube, precip_cube, expected_cube):
+    """Run the plugin again with 3h cubes"""
+    cape_cube.coord("time").points = cape_cube.coord("time").points - 2 * 3600
+    bounds = precip_cube.coord("time").bounds
+    precip_cube.coord("time").bounds = (bounds[0][0] - 2 * 3600, bounds[0][1])
+    expected_cube.coord("time").bounds = (bounds[0][0] - 2 * 3600, bounds[0][1])
+    result = LightningFromCapePrecip()(CubeList([cape_cube, precip_cube]))
+    assert result.xml().splitlines(keepends=True) == expected_cube.xml().splitlines(
+        keepends=True
+    )
+    assert np.allclose(result.data, expected_cube.data)
+
+
 def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
     """Run the plugin with model_id_attr and check the result cube matches the expected_cube"""
     expected_cube.attributes["mosg__model_configuration"] = "gl_ens"
@@ -142,21 +155,18 @@ def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
 
 
 def break_time_point(cape_cube, precip_cube):
-    """Modifies precip_cube time points to be incremented by 1 second and
+    """Modifies cape_cube time points to be incremented by 1 second and
     returns the error message this will trigger"""
-    precip_cube.coord("time").points = precip_cube.coord("time").points + 1
-    return (
-        r"CAPE cube time .* should be valid one hour earlier than "
-        r"precipitation_rate_max cube time .*"
-    )
+    cape_cube.coord("time").points = cape_cube.coord("time").points + 1
+    return r"CAPE cube time .* should be valid at the precipitation_rate_max cube lower bound .*"
 
 
 def break_time_bound(cape_cube, precip_cube):
     """Modifies lower bound on precip_cube time coord to be incremented by 1 second and
     returns the error message this will trigger"""
     bounds = precip_cube.coord("time").bounds
-    precip_cube.coord("time").bounds = (bounds[0][0] + 1, bounds[0][1])
-    return r"Precipitation_rate_max cube time window must be one hour, not .*"
+    precip_cube.coord("time").bounds = (bounds[0][0], bounds[0][1] + 1)
+    return r"Precipitation_rate_max cube time window must be one or three hours, not .*"
 
 
 def break_reference_time(cape_cube, precip_cube):
