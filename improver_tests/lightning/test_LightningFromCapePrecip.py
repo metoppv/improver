@@ -143,7 +143,6 @@ def test_3h_cubes(cape_cube, precip_cube, expected_cube):
     assert np.allclose(result.data, expected_cube.data)
 
 
-
 def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
     """Run the plugin with model_id_attr and check the result cube matches the expected_cube"""
     expected_cube.attributes["mosg__model_configuration"] = "gl_ens"
