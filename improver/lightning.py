@@ -74,7 +74,8 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         """
         Separates CAPE and precipitation rate cubes and checks that the following
         match: forecast_reference_time, spatial coords, time-bound interval and
-        that CAPE time is exactly one hour older than precipitation rate time.
+        that CAPE time is at the lower bound of precipitation rate time.
+        The precipitation rate data must represent a period of 1 or 3 hours.
         """
         cape = cubes.extract(
             iris.Constraint(
@@ -100,14 +101,14 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             raise ValueError(f"No cube named precipitation_rate_max found in {cubes}")
         (cape_time,) = list(cape.coord("time").cells())
         (precip_time,) = list(precip.coord("time").cells())
-        if cape_time.point + timedelta(hours=1) != precip_time.point:
+        if cape_time.point != precip_time.bound[0]:
             raise ValueError(
-                f"CAPE cube time ({cape_time.point}) should be valid one hour earlier "
-                f"than precipitation_rate_max cube time ({precip_time.point})."
+                f"CAPE cube time ({cape_time.point}) should be valid at the "
+                f"precipitation_rate_max cube lower bound ({precip_time.bound[0]})."
             )
-        if np.diff(precip_time.bound) != timedelta(hours=1):
+        if np.diff(precip_time.bound) not in [timedelta(hours=1), timedelta(hours=3)]:
             raise ValueError(
-                f"Precipitation_rate_max cube time window must be one hour, "
+                f"Precipitation_rate_max cube time window must be one or three hours, "
                 f"not {np.diff(precip_time.bound)}."
             )
         if cape.coord("forecast_reference_time") != precip.coord(
