@@ -994,6 +994,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             Order of coefficients is [alpha, beta, gamma, delta].
         """
         import statsmodels.api as sm
+
         default_initial_guess = (
             self.use_default_initial_guess
             or np.any(np.isnan(truths))
