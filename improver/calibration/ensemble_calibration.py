@@ -42,7 +42,6 @@ from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
-import statsmodels.api as sm
 from cf_units import Unit
 from iris.coords import Coord
 from iris.cube import Cube, CubeList
@@ -994,6 +993,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             List of coefficients to be used as initial guess.
             Order of coefficients is [alpha, beta, gamma, delta].
         """
+        import statsmodels.api as sm
         default_initial_guess = (
             self.use_default_initial_guess
             or np.any(np.isnan(truths))
