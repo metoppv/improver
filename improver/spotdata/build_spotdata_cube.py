@@ -52,6 +52,7 @@ def build_spotdata_cube(
     unique_site_id: Optional[Union[List[str], ndarray]] = None,
     unique_site_id_key: Optional[str] = None,
     scalar_coords: Optional[List[AuxCoord]] = None,
+    auxilliary_coords: Optional[List[AuxCoord]] = None,
     neighbour_methods: Optional[List[str]] = None,
     grid_attributes: Optional[List[str]] = None,
     additional_dims: Optional[List[DimCoord]] = None,
@@ -99,6 +100,8 @@ def build_spotdata_cube(
             unique_site_id is in use.
         scalar_coords:
             Optional list of iris.coords.AuxCoord instances
+        auxilliary_coords:
+            Optional list of iris.coords.AuxCoord instances which are non-scalar.
         neighbour_methods:
             Optional list of neighbour method names, e.g. 'nearest'
         grid_attributes:
@@ -186,6 +189,11 @@ def build_spotdata_cube(
         coords.append(unique_id_coord)
     for coord in coords:
         aux_coords_and_dims.append((coord, current_dim))
+
+    # append non-scalar auxilliary coordinates
+    if auxilliary_coords:
+        for coord in auxilliary_coords:
+            aux_coords_and_dims.append((coord, current_dim))
 
     # create output cube
     spot_cube = iris.cube.Cube(

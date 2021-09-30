@@ -200,7 +200,7 @@ class Test_extract_coordinates(Test_SpotExtraction):
             plugin.extract_coordinates(self.neighbour_cube)
 
 
-class Test_extract_diagnostic_data(Test_SpotExtraction):
+class Test_extract_data(Test_SpotExtraction):
 
     """Test the extraction of data from the provided coordinates."""
 
@@ -208,7 +208,7 @@ class Test_extract_diagnostic_data(Test_SpotExtraction):
         """Test extraction of diagnostic data that is natively ordered xy."""
         plugin = SpotExtraction()
         expected = [0, 0, 12, 12]
-        result = plugin.extract_diagnostic_data(
+        result = plugin.extract_data(
             self.coordinate_cube, self.diagnostic_cube_xy
         )
         self.assertArrayEqual(result, expected)
@@ -218,7 +218,7 @@ class Test_extract_diagnostic_data(Test_SpotExtraction):
         This will be reordered before extraction to become xy."""
         plugin = SpotExtraction()
         expected = [0, 0, 12, 12]
-        result = plugin.extract_diagnostic_data(
+        result = plugin.extract_data(
             self.coordinate_cube, self.diagnostic_cube_yx
         )
         self.assertArrayEqual(result, expected)

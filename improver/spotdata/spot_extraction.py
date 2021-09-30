@@ -114,25 +114,31 @@ class SpotExtraction(BasePlugin):
         )
 
     @staticmethod
-    def extract_diagnostic_data(
-        coordinate_cube: Cube, diagnostic_cube: Cube
-    ) -> ndarray:
+    def extract_data(
+        coordinate_cube: Cube, diagnostic_cube: Cube, coordinate: Optional[str] = None
+    ) -> Union[ndarray, List[Union[ndarray, None]]]:
         """
         Extracts diagnostic data from the desired grid points in the diagnostic
-        cube. The neighbour finding routine that produces the coordinate cube
-        works in x-y order. As such, the diagnostic cube is changed to match
-        before the indices are used to extract data.
+        cube. The coordinate order is enforced to ensure the correct indices
+        are used when extracting data.
 
         Args:
             coordinate_cube:
                 A cube containing the x and y grid coordinates for the grid
-                point neighbours.
+                point neighbours to spot sites.
             diagnostic_cube:
                 A cube of diagnostic data from which spot data is being taken.
+            coordinate:
+                An optional string that specifies a 2-dimensional coordinate
+                from which to extract data, rather than from the default
+                diagnostic data. This will also check for bounds and return
+                these as well.
 
         Returns:
             An array of diagnostic values at the grid coordinates found
-            within the coordinate cube.
+            within the coordinate cube. Or, if extracting from a coordinate
+            a list containing an array of coordinate and bound values, with the
+            later instead being None if no bounds exist.
         """
         enforce_coordinate_ordering(
             diagnostic_cube,
@@ -144,7 +150,21 @@ class SpotExtraction(BasePlugin):
         )
 
         x_indices, y_indices = coordinate_cube.data
-        return diagnostic_cube.data[..., y_indices, x_indices]
+
+        # Handle extraction from 2-dimensional coordinates.
+        if coordinate:
+            coord_data = []
+            coord = diagnostic_cube.coord(coordinate)
+            coord_data.append(coord.points[..., y_indices, x_indices])
+            if coord.has_bounds():
+                coord_data.append(coord.bounds[..., y_indices, x_indices, :])
+            else:
+                coord_data.append(None)
+            return coord_data
+
+        # Or simply extract diagnostic data
+        data = diagnostic_cube.data
+        return data[..., y_indices, x_indices]
 
     @staticmethod
     def check_for_unique_id(neighbour_cube: Cube) -> Optional[Tuple[ndarray, str]]:
@@ -171,6 +191,41 @@ class SpotExtraction(BasePlugin):
         else:
             return (unique_id_coord.points, unique_id_coord.name())
 
+    def get_aux_coords(
+        self, coordinate_cube: Cube, diagnostic_cube: Cube
+    ) -> Tuple[List[AuxCoord]]:
+        """
+        Extract scalar and non-scalar auxilliary coordinates from the diagnostic
+        cube. Multi-dimensional auxilliary coordinates have the relevant points
+        and bounds extracted for each site and a 1-dimensional coordinate is
+        constructed that can be associated with the spot-index coordinate.
+
+        Args:
+            coordinate_cube:
+                A cube containing the x and y grid coordinates for the grid
+                point neighbours to spot sites.
+            diagnostic_cube:
+                The cube from which auxilliary coordinates will be taken.
+
+        Returns:
+            - list of scalar coordinates
+            - list of non-scalar, multi-dimensional coordinates reshaped into
+              1-dimensional coordinates.
+        """
+        scalar_coords = []
+        nonscalar_coords = []
+        for coord in diagnostic_cube.aux_coords:
+            if coord.ndim > 1:
+                coord_points, coord_bounds = self.extract_data(
+                    coordinate_cube, diagnostic_cube, coordinate=coord.name()
+                )
+                nonscalar_coords.append(
+                    coord.copy(points=coord_points, bounds=coord_bounds)
+                )
+            elif coord.points.size == 1:
+                scalar_coords.append(coord)
+        return scalar_coords, nonscalar_coords
+
     @staticmethod
     def build_diagnostic_cube(
         neighbour_cube: Cube,
@@ -178,6 +233,7 @@ class SpotExtraction(BasePlugin):
         spot_values: ndarray,
         additional_dims: Optional[List[DimCoord]] = None,
         scalar_coords: Optional[List[AuxCoord]] = None,
+        auxilliary_coords: Optional[List[AuxCoord]] = None,
         unique_site_id: Optional[Union[List[str], ndarray]] = None,
         unique_site_id_key: Optional[str] = None,
     ) -> Cube:
@@ -200,6 +256,8 @@ class SpotExtraction(BasePlugin):
             scalar_coords:
                 Optional list containing iris.coord.AuxCoords with all scalar coordinates
                 relevant for the spot sites.
+            auxilliary_coords:
+                Optional list containing iris.coords.AuxCoords which are non-scalar.
             unique_site_id:
                 Optional list of 8-digit unique site identifiers.
             unique_site_id_key:
@@ -220,6 +278,7 @@ class SpotExtraction(BasePlugin):
             unique_site_id=unique_site_id,
             unique_site_id_key=unique_site_id_key,
             scalar_coords=scalar_coords,
+            auxilliary_coords=auxilliary_coords,
             additional_dims=additional_dims,
         )
         return spot_diagnostic_cube
@@ -267,18 +326,22 @@ class SpotExtraction(BasePlugin):
 
         coordinate_cube = self.extract_coordinates(neighbour_cube)
 
-        spot_values = self.extract_diagnostic_data(coordinate_cube, diagnostic_cube)
+        spot_values = self.extract_data(coordinate_cube, diagnostic_cube)
 
         additional_dims = None
         if len(spot_values.shape) > 1:
             additional_dims = np.flip(diagnostic_cube.dim_coords)[2:]
 
-        scalar_coords = diagnostic_cube.aux_coords
+        scalar_coords, nonscalar_coords = self.get_aux_coords(
+            coordinate_cube, diagnostic_cube
+        )
+
         spotdata_cube = self.build_diagnostic_cube(
             neighbour_cube,
             diagnostic_cube,
             spot_values,
             scalar_coords=scalar_coords,
+            auxilliary_coords=nonscalar_coords,
             additional_dims=additional_dims,
             unique_site_id=unique_site_id,
             unique_site_id_key=unique_site_id_key,
