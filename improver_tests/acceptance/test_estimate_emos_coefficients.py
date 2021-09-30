@@ -44,6 +44,8 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+pytest.importorskip("statsmodels")
+
 # The EMOS estimation tolerance is defined in units of the variable being
 # calibrated - not in terms of the EMOS coefficients produced by
 # estimate-emos-coefficients and compared against KGOs here.

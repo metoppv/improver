@@ -40,6 +40,7 @@ from functools import partial
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import (
@@ -479,6 +480,7 @@ class Test_compute_initial_guess(IrisTest):
         halo surrounding the original data.
         Set up expected results for different situations.
         """
+        pytest.importorskip("statsmodels")
         self.distribution = "norm"
         self.desired_units = "degreesC"
         self.predictor = "mean"
@@ -812,6 +814,7 @@ class Test_process(
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up multiple cubes for testing."""
+        pytest.importorskip("statsmodels")
         super().setUp()
         self.distribution = "norm"
 
