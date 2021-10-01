@@ -133,10 +133,6 @@ def basic_indexes(
     lat_max_equal = np.isclose(lat_max_in, lat_max_out)
     lon_max_equal = np.isclose(lon_max_in, lon_max_out)
 
-    # debug code only
-    lat_min_in, lon_min_in = in_latlons.min(axis=0)
-    lat_min_out, lon_min_out = out_latlons.min(axis=0)
-
     if lat_max_equal or lon_max_equal:
         indexes = adjust_boundary_indexes(
             in_lons_size,

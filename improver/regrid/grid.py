@@ -113,6 +113,7 @@ def latlon_names(cube: Cube) -> Tuple[str, str]:
     Args:
         cube:
             Input cube.
+
     Returns:
         - Name of latitude dimension of cube.
         - Name of longitude dimension of cube.
@@ -414,9 +415,10 @@ def group_target_points_with_source_domain(
 
     Args:
         cube_in:
-            Source cube .
+            Source cube.
         out_latlons:
             Target points's latitude-longitudes.
+
     Returns:
         - Index array of target points outside input domain.
         - Index array of target points inside input domain.
@@ -461,6 +463,7 @@ def mask_target_points_outside_source_domain(
             Index array of target points inside input domain.
         regrid_result:
             Array of regridded result in (lat*lon,....) or (projy*projx,...).
+
     Returns:
         Array of regridded result in (lat*lon,....) or (projy*projx,...).
     """

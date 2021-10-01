@@ -376,7 +376,7 @@ def test_target_domain_bigger_than_source_domain_wi_mask():
     # set up source cube, target cube and land-sea mask cube
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data_same_domain()
 
-    # add a circle of grid points so that output doamin is much bigger than input domain
+    # add a circle of grid points so that output domain is much bigger than input domain
     width_x, width_y = 2, 4  # lon,lat
     cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
 
@@ -427,7 +427,7 @@ def test_target_domain_bigger_than_source_domain_masked_data():
     # set up source cube, target cube and land-sea mask cube
     cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
 
-    # add a circle of grid points so that output doamin is much bigger than input domain
+    # add a circle of grid points so that output domain is much bigger than input domain
     width_x, width_y = 2, 4  # lon,lat
     cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
 

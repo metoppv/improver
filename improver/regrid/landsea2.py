@@ -158,7 +158,7 @@ class RegridWithLandSeaMask(BasePlugin):
             inside_input_domain_index,
         ) = group_target_points_with_source_domain(cube_in, out_latlons)
 
-        # exclude our-of-input-domain target point here
+        # exclude out-of-input-domain target point here
         if len(outside_input_domain_index) > 0:
             out_latlons = out_latlons[inside_input_domain_index]
 
