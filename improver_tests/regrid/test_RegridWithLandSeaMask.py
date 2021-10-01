@@ -36,6 +36,7 @@
 # not using "set_up_variable_cube" because of different spacing at lat/lon
 
 import numpy as np
+import pytest
 
 from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
@@ -337,41 +338,11 @@ def test_regrid_bilinear_with_mask_2():
     )
 
 
-def test_target_domain_bigger_than_source_domain_wo_mask():
-    """Test nearest and bilinear regridding when target domain is bigger than source domain"""
-
-    # set up source cube, target cube and land-sea mask cube
-    cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
-
-    # add a circle of grid points so that output doamin is much bigger than input domain
-    width_x, width_y = 2, 4  # lon,lat
-    cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
-
-    # test nearest-2 regridding
-    regrid_nearest = RegridLandSea(regrid_mode="nearest-2",)(cube_in, cube_out_mask)
-    regrid_nearest_pad = RegridLandSea(regrid_mode="nearest-2",)(
-        cube_in, cube_out_mask_pad
-    )
-
-    np.testing.assert_allclose(
-        regrid_nearest.data, regrid_nearest_pad.data[4:11, 2:11], atol=1e-5
-    )
-    assert np.all(np.isnan(regrid_nearest_pad.data[11:15]))
-
-    # test bilinear-2 regridding
-    regrid_bilinear = RegridLandSea(regrid_mode="bilinear-2",)(cube_in, cube_out_mask)
-    regrid_bilinear_pad = RegridLandSea(regrid_mode="bilinear-2",)(
-        cube_in, cube_out_mask_pad
-    )
-
-    np.testing.assert_allclose(
-        regrid_bilinear.data, regrid_bilinear_pad.data[4:11, 2:11], atol=1e-5
-    )
-    assert np.all(np.isnan(regrid_bilinear_pad.data[11:15]))
-
-
-def test_target_domain_bigger_than_source_domain_wi_mask():
-    """Test land-sea-aware regridding when target domain is bigger than source domain"""
+@pytest.mark.parametrize("regridder", ("nearest", "bilinear"))
+@pytest.mark.parametrize("landmask", (True, False))
+@pytest.mark.parametrize("maskedinput", (True, False))
+def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinput):
+    """Test regridding when target domain is bigger than source domain"""
 
     # set up source cube, target cube and land-sea mask cube
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data_same_domain()
@@ -380,73 +351,48 @@ def test_target_domain_bigger_than_source_domain_wi_mask():
     width_x, width_y = 2, 4  # lon,lat
     cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
 
-    # test nearest-with-mask-2 regridding
-    regrid_nearest_with_mask = RegridLandSea(
-        regrid_mode="nearest-with-mask-2",
-        landmask=cube_in_mask,
-        landmask_vicinity=250000000,
+    if landmask:
+        with_mask = "-with-mask"
+    else:
+        with_mask = ""
+        cube_in_mask = None
+    regrid_mode = f"{regridder}{with_mask}-2"
+
+    if maskedinput:
+        # convert the input data to a masked array with no values covered by the mask
+        cube_in_masked_data = np.ma.masked_array(cube_in.data, mask=False)
+        cube_in.data = cube_in_masked_data
+
+    # run the regridding
+    regrid_out = RegridLandSea(
+        regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000,
     )(cube_in, cube_out_mask)
 
-    regrid_nearest_with_mask_pad = RegridLandSea(
-        regrid_mode="nearest-with-mask-2",
-        landmask=cube_in_mask,
-        landmask_vicinity=250000000,
+    regrid_out_pad = RegridLandSea(
+        regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000,
     )(cube_in, cube_out_mask_pad)
 
+    # check that results inside the padding matches the same regridding without padding
     np.testing.assert_allclose(
-        regrid_nearest_with_mask.data,
-        regrid_nearest_with_mask_pad.data[4:11, 2:11],
-        atol=1e-5,
-    )
-    assert np.all(np.isnan(regrid_nearest_with_mask_pad.data[11:15]))
-
-    # test bilinear-with-mask-2 regridding
-    regrid_bilinear_with_mask = RegridLandSea(
-        regrid_mode="bilinear-with-mask-2",
-        landmask=cube_in_mask,
-        landmask_vicinity=250000000,
-    )(cube_in, cube_out_mask)
-
-    regrid_bilinear_with_mask_pad = RegridLandSea(
-        regrid_mode="bilinear-with-mask-2",
-        landmask=cube_in_mask,
-        landmask_vicinity=250000000,
-    )(cube_in, cube_out_mask_pad)
-
-    np.testing.assert_allclose(
-        regrid_bilinear_with_mask.data,
-        regrid_bilinear_with_mask_pad.data[4:11, 2:11],
-        atol=1e-5,
-    )
-    assert np.all(np.isnan(regrid_bilinear_with_mask_pad.data[11:15]))
-
-
-def test_target_domain_bigger_than_source_domain_masked_data():
-    """Test cases with masked data of input cube, output cube's data should be masked """
-
-    # set up source cube, target cube and land-sea mask cube
-    cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
-
-    # add a circle of grid points so that output domain is much bigger than input domain
-    width_x, width_y = 2, 4  # lon,lat
-    cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
-
-    # test bilinear-2 regridding
-    regrid_bilinear_pad = RegridLandSea(regrid_mode="bilinear-2",)(
-        cube_in, cube_out_mask_pad
+        regrid_out.data, regrid_out_pad.data[width_y:-width_y, width_x:-width_x],
     )
 
-    # consider masked data case
-    cube_in_masked_data = np.ma.masked_array(cube_in.data, mask=False)
-    cube_in.data = cube_in_masked_data
-    regrid_bilinear_pad_masked_data = RegridLandSea(regrid_mode="bilinear-2",)(
-        cube_in, cube_out_mask_pad
-    )
-
-    np.testing.assert_allclose(
-        regrid_bilinear_pad_masked_data.data.data[4:11, 2:11],
-        regrid_bilinear_pad.data[4:11, 2:11],
-        atol=1e-5,
-    )
-    isinstance(regrid_bilinear_pad.data, np.ndarray)
-    isinstance(regrid_bilinear_pad_masked_data.data, np.ma.MaskedArray)
+    # check results in the padded area
+    # NOTE: there is an extra column with values in the X dimension compared to
+    # the assert_allclose checking the data above
+    if maskedinput:
+        # masked array input should result in masked array output
+        assert hasattr(regrid_out_pad.data, "mask")
+        regrid_out_pad.data.mask[width_y:-width_y, width_x - 1 : -width_x] = True
+        np.testing.assert_array_equal(
+            regrid_out_pad.data.mask,
+            np.full_like(regrid_out_pad.data, True, dtype=np.bool),
+        )
+    else:
+        assert not hasattr(regrid_out_pad.data, "mask")
+        # fill the area inside the padding with NaNs
+        regrid_out_pad.data[width_y:-width_y, width_x - 1 : -width_x] = np.nan
+        # this should result in the whole grid being NaN
+        np.testing.assert_array_equal(
+            regrid_out_pad.data, np.full_like(regrid_out_pad.data, np.nan)
+        )
