@@ -15,6 +15,7 @@ dependencies:
   - iris=3.0
   - netCDF4
   - numpy<1.21
+  - pandas
   - python-dateutil
   - python-stratify
   - pytz=2020.5
@@ -22,6 +23,7 @@ dependencies:
   - sigtools
   - sphinx
   # Optional
+  - fastparquet
   - numba
   - pysteps=1.4.1
   - statsmodels
