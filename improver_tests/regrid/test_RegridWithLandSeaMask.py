@@ -108,7 +108,7 @@ def define_source_target_grid_data_same_domain():
 
     # target (output) grid
     out_lats = np.linspace(0, 15, 7)
-    out_lons = np.linspace(5, 40, 9)
+    out_lons = np.linspace(0, 40, 9)
 
     # assume a set of nwp data
     data = np.arange(20).reshape(4, 5).astype(np.float32)
@@ -383,7 +383,7 @@ def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinpu
     if maskedinput:
         # masked array input should result in masked array output
         assert hasattr(regrid_out_pad.data, "mask")
-        regrid_out_pad.data.mask[width_y:-width_y, width_x - 1 : -width_x] = True
+        regrid_out_pad.data.mask[width_y:-width_y, width_x:-width_x] = True
         np.testing.assert_array_equal(
             regrid_out_pad.data.mask,
             np.full_like(regrid_out_pad.data, True, dtype=np.bool),
@@ -391,7 +391,7 @@ def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinpu
     else:
         assert not hasattr(regrid_out_pad.data, "mask")
         # fill the area inside the padding with NaNs
-        regrid_out_pad.data[width_y:-width_y, width_x - 1 : -width_x] = np.nan
+        regrid_out_pad.data[width_y:-width_y, width_x:-width_x] = np.nan
         # this should result in the whole grid being NaN
         np.testing.assert_array_equal(
             regrid_out_pad.data, np.full_like(regrid_out_pad.data, np.nan)

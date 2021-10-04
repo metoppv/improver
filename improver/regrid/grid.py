@@ -472,10 +472,9 @@ def mask_target_points_outside_source_domain(
     output_shape = [total_out_point_num] + list(regrid_result.shape[1:])
     if isinstance(regrid_result, np.ma.MaskedArray):
         output = np.ma.zeros(output_shape, dtype=np.float32)
-        output.mask = np.zeros(output_shape, dtype=bool)
+        output.mask = np.full(output_shape, True, dtype=bool)
         output.mask[inside_input_domain_index] = regrid_result.mask
         output.data[inside_input_domain_index] = regrid_result.data
-        output.mask[outside_input_domain_index] = True
     else:
         output = np.zeros(output_shape, dtype=np.float32)
         output[inside_input_domain_index] = regrid_result
