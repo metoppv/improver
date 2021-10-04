@@ -206,9 +206,7 @@ html_static_path = ["../_static"]
 # Added to apply correction css from _static that ensures text in tables
 # wraps. This prevents tables from becoming very wide which necessitates
 # scroll bars.
-html_context = {
-    "css_files": ["_static/theme_overrides.css"],  # override wide tables in RTD theme
-}
+html_css_files = ["theme_overrides.css"]  # override wide tables in RTD theme
 
 # Add any extra paths that contain custom files (such as robots.txt or
 # .htaccess) here, relative to this directory. These files are copied
