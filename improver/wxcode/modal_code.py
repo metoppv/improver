@@ -67,7 +67,7 @@ class ModalWeatherCode(BasePlugin):
     """
 
     @staticmethod
-    def unify_day_and_night(cube):
+    def unify_day_and_night(cube: Cube):
         """Remove distinction between day and night codes so they can each
         contribute when calculating the modal code. The cube of weather
         codes is modified in place with all night codes made into their
@@ -81,13 +81,15 @@ class ModalWeatherCode(BasePlugin):
             cube.data[cube.data == code] += 1
 
     @staticmethod
-    def group_codes(modal, cube):
+    def group_codes(modal: Cube, cube: Cube):
         """In instances where the mode returned is not significant, i.e. the
         weather code chosen occurs infrequently in the period, the codes can be
         grouped to yield a more definitive period code. Given the uncertainty
         the least significant weather type (lowest number in a group that is
         found in the data) is used to replace the other data values that belong
         to that group prior to recalculating the modal code.
+
+        The modal code is modified in place.
 
         Args:
             modal:
@@ -112,7 +114,7 @@ class ModalWeatherCode(BasePlugin):
             modal.data[y, x] = CODE_MAX - mode_result
 
     @staticmethod
-    def mode_aggregator(data: ndarray, axis: int):
+    def mode_aggregator(data: ndarray, axis: int) -> ndarray:
         """An aggregator for use with iris to calculate the mode along the
         specified axis. If the modal value selected comprises less than 10%
         of data along the dimension being collapsed, the value is set to the
@@ -141,7 +143,7 @@ class ModalWeatherCode(BasePlugin):
         )
         return CODE_MAX - np.squeeze(mode_result)
 
-    def process(self, cubes: Union[CubeList, List[Cube]]):
+    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
         """Calculate the modal weather code, with handling for edge cases.
 
         Args:
