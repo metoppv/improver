@@ -55,6 +55,8 @@ from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
+    "invalid escape sequence",  # Originating from statsmodels
+    "can't resolve package from",  # Originating from statsmodels
     "Minimisation did not result in convergence",  # From calibration code
     "The final iteration resulted in",  # From calibration code
     "Invalid value encountered in",  # From calculating percentage change in
@@ -62,6 +64,8 @@ IGNORED_MESSAGES = [
 ]
 WARNING_TYPES = [
     UserWarning,
+    DeprecationWarning,
+    ImportWarning,
     UserWarning,
     UserWarning,
     RuntimeWarning,
