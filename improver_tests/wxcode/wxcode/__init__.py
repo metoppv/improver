@@ -35,10 +35,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.wxcode.utilities import weather_code_attributes
 
 

@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing a plugin to calculate the modal weather code in a period."""
 
-from typing import List, Union
-
 import numpy as np
 from iris.analysis import Aggregator
 from iris.cube import Cube, CubeList
@@ -46,7 +44,7 @@ from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 CODE_MAX = 100
 UNSET_CODE_INDICATOR = -99
 
-# @dataclass
+
 class ModalWeatherCode(BasePlugin):
     """Plugin that returns the modal code over the period spanned by the
     input data. In cases of a tie in the mode values, scipy returns the smaller
@@ -65,6 +63,10 @@ class ModalWeatherCode(BasePlugin):
     a suitable weather code (e.g. a rain shower if the codes include a mix of
     rain showers and dynamic rain) by providing a more robust mode.
     """
+
+    def __init__(self):
+        """Create an aggregator instance for reuse"""
+        self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
 
     @staticmethod
     def unify_day_and_night(cube: Cube):
@@ -100,7 +102,7 @@ class ModalWeatherCode(BasePlugin):
                 The original input data. Data relating to unset points will be
                 grouped and the mode recalculated."""
 
-        undecided_points = zip(*np.where(modal.data == UNSET_CODE_INDICATOR))
+        undecided_points = np.argwhere(modal.data == UNSET_CODE_INDICATOR)
 
         for y, x in undecided_points:
             data = cube.data[:, y, x].copy()
@@ -108,8 +110,7 @@ class ModalWeatherCode(BasePlugin):
             for _, codes in GROUPED_CODES.items():
                 default_code = sorted([code for code in data if code in codes])
                 if default_code:
-                    for code in codes:
-                        data[data == code] = default_code[0]
+                    data[np.isin(data, codes)] = default_code[0]
             mode_result, counts = stats.mode(CODE_MAX - data)
             modal.data[y, x] = CODE_MAX - mode_result
 
@@ -143,7 +144,7 @@ class ModalWeatherCode(BasePlugin):
         )
         return CODE_MAX - np.squeeze(mode_result)
 
-    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
+    def process(self, cubes: CubeList) -> Cube:
         """Calculate the modal weather code, with handling for edge cases.
 
         Args:
@@ -164,8 +165,7 @@ class ModalWeatherCode(BasePlugin):
         cube = MergeCubes()(cubes)
         self.unify_day_and_night(cube)
 
-        mode_aggregator = Aggregator("mode", self.mode_aggregator)
-        result = cube.collapsed("time", mode_aggregator)
+        result = cube.collapsed("time", self.aggregator_instance)
         result.coord("time").points = result.coord("time").bounds[0][-1]
 
         # Handle any unset points where it was hard to determine a suitable mode
