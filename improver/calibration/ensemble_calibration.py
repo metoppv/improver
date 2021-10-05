@@ -38,6 +38,7 @@ Statistics (EMOS).
 
 """
 import warnings
+from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
@@ -61,6 +62,7 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
+    reshape_forecast_predictors,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -226,13 +228,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         return optimised_coeffs
 
+    @staticmethod
     def _set_float64_precision(
-        self,
         initial_guess: Union[List[float], ndarray],
-        forecast_predictor_data: ndarray,
-        truth_data: ndarray,
-        forecast_var_data: ndarray,
-    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, float]:
+        forecast_predictors: CubeList,
+        forecast_var: Cube,
+        truth: Cube,
+    ) -> Tuple[ndarray, CubeList, Cube, Cube, float]:
         """Set values to float64 precision and define a square root of pi
         variable for later usage. The increased precision is need for stable
         coefficient calculation.
@@ -249,19 +251,61 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             as well as defining a square root of pi variable with float64
             precision.
         """
-        return (
-            np.array(initial_guess, dtype=np.float64),
-            forecast_predictor_data.astype(np.float64),
-            truth_data.astype(np.float64),
-            forecast_var_data.astype(np.float64),
-            np.sqrt(np.pi).astype(np.float64),
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        for index in range(len(forecast_predictors)):
+            forecast_predictors[index].data = forecast_predictors[index].data.astype(
+                np.float64
+            )
+        forecast_var.data = forecast_var.data.astype(np.float64)
+        truth.data = truth.data.astype(np.float64)
+        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
+        return (initial_guess, forecast_predictors, forecast_var, truth, sqrt_pi)
+
+    @staticmethod
+    def _prepare_forecasts(
+        forecast_predictors: CubeList,
+        predictor: str,
+        constr: Optional[iris.Constraint] = None,
+    ) -> np.ndarray:
+        """Prepare forecasts for minimisation by flattening and reshaping.
+
+        Args:
+            forecast_predictors:
+                The forecast predictors to be reshaped.
+            predictor:
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
+            constr:
+                A constraint for selecting the required forecast predictor.
+
+        Returns:
+            Reshaped array with a first dimension representing the flattened
+            spatiotemporal dimensions and an optional second dimension for
+            flattened non-spatiotemporal dimensions (e.g. realizations).
+        """
+        preserve_leading_dimension = (
+            True if predictor.lower() == "realizations" else False
         )
+        partial_func = partial(
+            flatten_ignoring_masked_data,
+            preserve_leading_dimension=preserve_leading_dimension,
+        )
+        forecast_predictor_data = reshape_forecast_predictors(
+            forecast_predictors, constr=constr, func=partial_func
+        )
+        if len(forecast_predictors) > 1:
+            forecast_predictor_data = np.ma.vstack(forecast_predictor_data)
+        else:
+            (forecast_predictor_data,) = forecast_predictor_data
+        return forecast_predictor_data
 
     def _process_points_independently(
         self,
         minimisation_function: Callable,
         initial_guess: Union[List[float], ndarray],
-        forecast_predictor: Cube,
+        forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
         predictor: str,
@@ -287,54 +331,77 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         """
         (
             initial_guess,
-            forecast_predictor.data,
-            forecast_var.data,
-            truth.data,
+            forecast_predictors,
+            forecast_var,
+            truth,
             sqrt_pi,
         ) = self._set_float64_precision(
-            initial_guess, forecast_predictor.data, forecast_var.data, truth.data
+            initial_guess, forecast_predictors, forecast_var, truth
         )
 
+        fp_template = forecast_predictors[0]
         sindex = [
-            forecast_predictor.coord(axis="y"),
-            forecast_predictor.coord(axis="x"),
+            fp_template.coord(axis="y"),
+            fp_template.coord(axis="x"),
         ]
 
+        y_name = truth.coord(axis="y").name()
+        x_name = truth.coord(axis="x").name()
+
         optimised_coeffs = []
-        for index, (fp_slice, truth_slice, fv_slice) in enumerate(
-            zip(
-                forecast_predictor.slices_over(sindex),
-                truth.slices_over(sindex),
-                forecast_var.slices_over(sindex),
-            )
+        for index, (truth_slice, fv_slice) in enumerate(
+            zip(truth.slices_over(sindex), forecast_var.slices_over(sindex))
         ):
-            optimised_coeffs.append(
-                self._minimise_caller(
-                    minimisation_function,
-                    initial_guess[index],
-                    fp_slice.data.T,
-                    truth_slice.data,
-                    fv_slice.data,
-                    sqrt_pi,
-                    predictor,
-                ).x.astype(np.float32)
+            # For site forecasts, with a wmo_id coordinate, the WMO ID is
+            # more reliable as the specific x and y location of a site can
+            # be subject to change.
+            if truth_slice.coords("wmo_id"):
+                constr = iris.Constraint(wmo_id=truth_slice.coord("wmo_id").points)
+            else:
+                constr = iris.Constraint(
+                    coord_values={
+                        y_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                        ),
+                        x_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                        ),
+                    }
+                )
+
+            forecast_predictor_data = self._prepare_forecasts(
+                forecast_predictors, predictor, constr
             )
 
-        y_coord = forecast_predictor.coord(axis="y")
-        x_coord = forecast_predictor.coord(axis="x")
+            if all(np.isnan(truth_slice.data)):
+                optimised_coeffs.append(
+                    np.array(initial_guess[index], dtype=np.float32)
+                )
+            else:
+                optimised_coeffs.append(
+                    self._minimise_caller(
+                        minimisation_function,
+                        initial_guess[index],
+                        forecast_predictor_data.T,
+                        truth_slice.data,
+                        fv_slice.data,
+                        sqrt_pi,
+                        predictor,
+                    ).x.astype(np.float32)
+                )
+        y_coord = fp_template.coord(axis="y")
+        x_coord = fp_template.coord(axis="x")
 
-        if forecast_predictor.coord_dims(y_coord) == forecast_predictor.coord_dims(
-            x_coord
-        ):
+        if fp_template.coord_dims(y_coord) == fp_template.coord_dims(x_coord):
             return np.array(np.transpose(optimised_coeffs)).reshape(
-                (len(initial_guess[0]), len(forecast_predictor.coord(axis="y").points),)
+                (len(initial_guess[0]), len(fp_template.coord(axis="y").points),)
             )
         else:
             return np.array(np.transpose(optimised_coeffs)).reshape(
                 (
                     len(initial_guess[0]),
-                    len(forecast_predictor.coord(axis="y").points),
-                    len(forecast_predictor.coord(axis="x").points),
+                    len(fp_template.coord(axis="y").points),
+                    len(fp_template.coord(axis="x").points),
                 )
             )
 
@@ -342,7 +409,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         self,
         minimisation_function: Callable,
         initial_guess: Union[List[float], ndarray],
-        forecast_predictor: Cube,
+        forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
         predictor: str,
@@ -362,39 +429,32 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Returns:
             The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
         """
+        (
+            initial_guess,
+            forecast_predictors,
+            forecast_var,
+            truth,
+            sqrt_pi,
+        ) = self._set_float64_precision(
+            initial_guess, forecast_predictors, forecast_var, truth
+        )
+
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
-        if predictor.lower() == "mean":
-            forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data
-            )
-        elif predictor.lower() == "realizations":
-            # Need to transpose this array so there are columns for each
-            # ensemble member rather than rows.
-            forecast_predictor_data = flatten_ignoring_masked_data(
-                forecast_predictor.data, preserve_leading_dimension=True
-            ).T
-        (
-            initial_guess,
-            forecast_predictor_data,
-            forecast_var_data,
-            truth_data,
-            sqrt_pi,
-        ) = self._set_float64_precision(
-            initial_guess, forecast_predictor_data, forecast_var_data, truth_data
+        forecast_predictor_data = self._prepare_forecasts(
+            forecast_predictors, predictor
         )
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
             initial_guess,
-            forecast_predictor_data,
+            forecast_predictor_data.T,
             truth_data,
             forecast_var_data,
             sqrt_pi,
             predictor,
         )
-
         if not optimised_coeffs.success:
             msg = (
                 "Minimisation did not result in convergence after "
@@ -409,7 +469,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     def process(
         self,
         initial_guess: List[float],
-        forecast_predictor: Cube,
+        forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
         predictor: str,
@@ -419,16 +479,18 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Function to pass a given function to the scipy minimize
         function to estimate optimised values for the coefficients.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Args:
             initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
-            forecast_predictor:
-                Cube containing the fields to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+            forecast_predictors:
+                CubeList containing the fields to be used as the predictor.
+                These will include the ensemble mean or realizations of the
+                predictand variable and additional static predictors,
+                as required.
             truth:
                 Cube containing the field, which will be used as truth.
             forecast_var:
@@ -471,13 +533,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         check_predictor(predictor)
 
         if predictor.lower() == "realizations":
-            enforce_coordinate_ordering(forecast_predictor, "realization")
+            for forecast_predictor in forecast_predictors:
+                enforce_coordinate_ordering(forecast_predictor, "realization")
 
         if self.point_by_point:
             optimised_coeffs = self._process_points_independently(
                 minimisation_function,
                 initial_guess,
-                forecast_predictor,
+                forecast_predictors,
                 truth,
                 forecast_var,
                 predictor,
@@ -486,11 +549,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             optimised_coeffs = self._process_points_together(
                 minimisation_function,
                 initial_guess,
-                forecast_predictor,
+                forecast_predictors,
                 truth,
                 forecast_var,
                 predictor,
             )
+
         return optimised_coeffs
 
     def calculate_normal_crps(
@@ -516,8 +580,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor:
-                Data to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+                Data to be used as the predictor, either the ensemble mean
+                or the ensemble realizations.
             truth:
                 Data to be used as truth.
             forecast_var:
@@ -534,17 +598,18 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
         """
+        aa, bb, gamma, delta = (
+            initial_guess[0],
+            initial_guess[1:-2],
+            initial_guess[-2],
+            initial_guess[-1],
+        )
+
         if predictor.lower() == "mean":
-            a, b, gamma, delta = initial_guess
-            a_b = np.array([a, b], dtype=np.float64)
+            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
         elif predictor.lower() == "realizations":
-            a, b, gamma, delta = (
-                initial_guess[0],
-                initial_guess[1:-2] * initial_guess[1:-2],
-                initial_guess[-2],
-                initial_guess[-1],
-            )
-            a_b = np.array([a] + b.tolist(), dtype=np.float64)
+            bb = bb * bb
+            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
 
         new_col = np.ones(truth.shape, dtype=np.float32)
         all_data = np.column_stack((new_col, forecast_predictor))
@@ -586,8 +651,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor:
-                Data to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+                Data to be used as the predictor, either the ensemble mean
+                or the ensemble realizations.
             truth:
                 Data to be used as truth.
             forecast_var:
@@ -1133,7 +1198,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         # Calculate coefficients if there are no nans in the initial guess.
         optimised_coeffs = self.minimiser(
             initial_guess,
-            forecast_predictor,
+            CubeList([forecast_predictor]),
             truths,
             forecast_var,
             self.predictor,

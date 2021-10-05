@@ -32,12 +32,12 @@
 Unit tests for the
 `ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers`
 class.
-
 """
 import unittest
 
 import iris
 import numpy as np
+from iris.cube import CubeList
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import (
@@ -77,11 +77,15 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         """Set up expected inputs."""
         super().setUp()
         # Set up cubes and associated data arrays for temperature.
-        self.forecast_predictor_mean = self.historic_temperature_forecast_cube.collapsed(
-            "realization", iris.analysis.MEAN
+        self.forecast_predictor_mean = CubeList(
+            [
+                self.historic_temperature_forecast_cube.collapsed(
+                    "realization", iris.analysis.MEAN
+                )
+            ]
         )
-        self.forecast_predictor_realizations = (
-            self.historic_temperature_forecast_cube.copy()
+        self.forecast_predictor_realizations = CubeList(
+            [(self.historic_temperature_forecast_cube.copy())]
         )
         self.forecast_variance = self.historic_temperature_forecast_cube.collapsed(
             "realization", iris.analysis.VARIANCE
@@ -89,8 +93,8 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         self.truth = self.historic_temperature_forecast_cube.collapsed(
             "realization", iris.analysis.MAX
         )
-        self.forecast_predictor_data = self.forecast_predictor_mean.data.flatten().astype(
-            np.float64
+        self.forecast_predictor_data = (
+            self.forecast_predictor_mean[0].data.flatten().astype(np.float64)
         )
         self.forecast_predictor_data_realizations = convert_cube_data_to_2d(
             self.historic_temperature_forecast_cube.copy()
@@ -506,7 +510,7 @@ class Test_process_normal_distribution(
         plugin = Plugin(tolerance=self.tolerance, point_by_point=True)
         result = plugin.process(
             initial_guess,
-            forecast_spot_cube,
+            CubeList([forecast_spot_cube]),
             self.truth_spot_cube,
             forecast_var_spot_cube,
             predictor,
@@ -621,6 +625,50 @@ class Test_process_normal_distribution(
         self.assertTrue(any(warning_msg_min in str(item) for item in warning_list))
         self.assertTrue(any(warning_msg_iter in str(item) for item in warning_list))
 
+    @ManageWarnings(
+        ignored_messages=[
+            "Collapsing a non-contiguous coordinate.",
+            "Minimisation did not result in convergence",
+            "divide by zero encountered in",
+        ],
+        warning_types=[UserWarning, UserWarning, RuntimeWarning],
+    )
+    def test_point_by_point_with_nans(self):
+        """
+        Test that the expected coefficients are generated when the ensemble
+        mean is the predictor for a normal distribution and coefficients are
+        calculated independently at each grid point with one grid point
+        having NaN values for the truth.
+        """
+        predictor = "mean"
+        distribution = "norm"
+
+        initial_guess = np.broadcast_to(
+            self.initial_guess_for_mean,
+            (
+                len(self.truth.coord(axis="y").points)
+                * len(self.truth.coord(axis="x").points),
+                len(self.initial_guess_for_mean),
+            ),
+        )
+
+        self.truth.data[:, 0, 0] = np.nan
+        plugin = Plugin(tolerance=self.tolerance, point_by_point=True)
+        result = plugin.process(
+            initial_guess,
+            self.forecast_predictor_mean,
+            self.truth,
+            self.forecast_variance,
+            predictor,
+            distribution,
+        )
+        self.expected_mean_coefficients_point_by_point[
+            :, 0, 0
+        ] = self.initial_guess_for_mean
+        self.assertEMOSCoefficientsAlmostEqual(
+            result, self.expected_mean_coefficients_point_by_point
+        )
+
 
 class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
 
@@ -634,11 +682,15 @@ class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
         """Set up expected inputs."""
         super().setUp()
         # Set up cubes and associated data arrays for wind speed.
-        self.forecast_predictor_mean = self.historic_wind_speed_forecast_cube.collapsed(
-            "realization", iris.analysis.MEAN
+        self.forecast_predictor_mean = CubeList(
+            [
+                self.historic_wind_speed_forecast_cube.collapsed(
+                    "realization", iris.analysis.MEAN
+                )
+            ]
         )
-        self.forecast_predictor_realizations = (
-            self.historic_wind_speed_forecast_cube.copy()
+        self.forecast_predictor_realizations = CubeList(
+            [(self.historic_wind_speed_forecast_cube.copy())]
         )
         self.forecast_variance = self.historic_wind_speed_forecast_cube.collapsed(
             "realization", iris.analysis.VARIANCE
@@ -646,8 +698,8 @@ class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
         self.truth = self.historic_wind_speed_forecast_cube.collapsed(
             "realization", iris.analysis.MAX
         )
-        self.forecast_predictor_data = self.forecast_predictor_mean.data.flatten().astype(
-            np.float64
+        self.forecast_predictor_data = (
+            self.forecast_predictor_mean[0].data.flatten().astype(np.float64)
         )
         self.forecast_predictor_data_realizations = convert_cube_data_to_2d(
             self.historic_wind_speed_forecast_cube.copy()

@@ -38,6 +38,7 @@ import unittest
 
 import iris
 import numpy as np
+from iris.cube import CubeList
 from iris.tests import IrisTest
 from iris.util import squeeze
 from numpy.testing import assert_array_equal
@@ -52,6 +53,7 @@ from improver.calibration.utilities import (
     forecast_coords_match,
     get_frt_hours,
     merge_land_and_sea,
+    reshape_forecast_predictors,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -652,6 +654,76 @@ class Test_check_forecast_consistency(IrisTest):
 
         with self.assertRaisesRegex(ValueError, msg):
             check_forecast_consistency(forecasts)
+
+
+class Test_reshape_forecast_predictors(IrisTest):
+
+    """Test the reshape_forecast_predictors function."""
+
+    def setUp(self):
+        """Set-up cubes for testing."""
+        frts = [
+            datetime.datetime(2017, 11, 10, 1, 0),
+            datetime.datetime(2017, 11, 11, 1, 0),
+            datetime.datetime(2017, 11, 12, 1, 0),
+        ]
+        forecast_cubes = CubeList()
+        for frt in frts:
+            forecast_cubes.append(
+                set_up_variable_cube(
+                    np.ones((2, 3, 3), dtype=np.float32),
+                    frt=frt,
+                    time=frt + datetime.timedelta(hours=3),
+                )
+            )
+        self.forecast = forecast_cubes.merge_cube()
+        self.forecast.transpose([1, 0, 2, 3])
+
+        self.altitude = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
+        )
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            self.altitude.remove_coord(coord)
+
+        self.expected_forecast = self.forecast.data.shape
+        self.expected_altitude = (
+            len(self.forecast.coord("time").points),
+        ) + self.altitude.shape
+
+    def test_one_forecast_predictor(self):
+        """Test reshaping one forecast predictor"""
+        self.forecast_predictors = iris.cube.CubeList([self.forecast])
+        results = reshape_forecast_predictors(self.forecast_predictors)
+        self.assertEqual(len(results), 1)
+        self.assertTupleEqual(results[0].shape, self.expected_forecast)
+        self.assertArrayEqual(results[0], self.forecast.data)
+
+    def test_two_forecast_predictors(self):
+        """Test reshaping two forecast predictors, where one is a static predictor."""
+        self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
+        results = reshape_forecast_predictors(self.forecast_predictors)
+        self.assertEqual(len(results), 2)
+        self.assertTupleEqual(results[0].shape, self.expected_forecast)
+        self.assertTupleEqual(results[1].shape, self.expected_altitude)
+
+    def test_constr(self):
+        """Test reshaping two forecast predictors when passing a constraint."""
+        self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
+        constr = iris.Constraint(
+            latitude=self.forecast.coord("latitude").points[0]
+        ) & iris.Constraint(longitude=self.forecast.coord("longitude").points[0])
+        results = reshape_forecast_predictors(self.forecast_predictors, constr=constr)
+        self.assertTupleEqual(results[0].shape, self.expected_forecast[:2])
+        self.assertTupleEqual(results[1].shape, self.expected_altitude[:1])
+
+    def test_func(self):
+        """Test reshaping two forecast predictors when passing a function."""
+        self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
+        results = reshape_forecast_predictors(
+            self.forecast_predictors, func=lambda x: np.expand_dims(x, 0)
+        )
+        self.assertTupleEqual(results[0].shape, (1,) + self.expected_forecast)
+        self.assertTupleEqual(results[1].shape, (1,) + self.expected_altitude)
 
 
 if __name__ == "__main__":
