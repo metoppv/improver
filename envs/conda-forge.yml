@@ -1,0 +1,26 @@
+# This environment is intended to match the conda-forge improver-feedstock at
+# https://github.com/conda-forge/improver-feedstock
+# If it is changed, the feedstock repository should also be updated.
+# This environment should avoid dependencies which are optional in the IMPROVER
+# code, but with restricted versions to allow all tests to pass when those
+# dependencies are installed.
+name: improver_latest
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  # Included in improver-feedstock requirements
+  - cartopy<0.20
+  - cftime<1.5
+  - cf-units=2.1.5
+  - clize
+  - dask
+  - iris>=3.0,<3.1
+  - netCDF4
+  - numpy<1.21
+  - scipy
+  - sigtools
+  - sphinx
+  # Additional libraries to run tests, not included in improver-feedstock
+  - pytest
+  - filelock
