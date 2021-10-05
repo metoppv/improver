@@ -147,15 +147,17 @@ def test_flatten_spatial_dimensions(request, fixture_name):
         np.testing.assert_equal(flat[0:2, :], [[1, 21, 41], [2, 22, 42]])
 
 
-def test_ensure_ascending_coord():
+@pytest.mark.parametrize("flip", (True, False))
+def test_ensure_ascending_coord(flip):
     """Test the ensure_ascending_coord function"""
 
     """Set up a lat/lon cube"""
     lat_lon_cube = set_up_variable_cube(np.ones((5, 5), dtype=np.float32))
     lon_coord = lat_lon_cube.coord("longitude").points
     lat_coord = lat_lon_cube.coord("latitude").points
-    lat_lon_cube.coord("longitude").points = lon_coord[::-1]
-    lat_lon_cube.coord("latitude").points = lat_coord[::-1]
+    if flip:
+        lat_lon_cube.coord("longitude").points = lon_coord[::-1]
+        lat_lon_cube.coord("latitude").points = lat_coord[::-1]
     lat_lon_cube = ensure_ascending_coord(lat_lon_cube)
 
     np.testing.assert_allclose(lat_lon_cube.coord("latitude").points, lat_coord)
