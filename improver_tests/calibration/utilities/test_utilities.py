@@ -706,25 +706,6 @@ class Test_reshape_forecast_predictors(IrisTest):
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
         self.assertTupleEqual(results[1].shape, self.expected_altitude)
 
-    def test_constr(self):
-        """Test reshaping two forecast predictors when passing a constraint."""
-        self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        constr = iris.Constraint(
-            latitude=self.forecast.coord("latitude").points[0]
-        ) & iris.Constraint(longitude=self.forecast.coord("longitude").points[0])
-        results = reshape_forecast_predictors(self.forecast_predictors, constr=constr)
-        self.assertTupleEqual(results[0].shape, self.expected_forecast[:2])
-        self.assertTupleEqual(results[1].shape, self.expected_altitude[:1])
-
-    def test_func(self):
-        """Test reshaping two forecast predictors when passing a function."""
-        self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        results = reshape_forecast_predictors(
-            self.forecast_predictors, func=lambda x: np.expand_dims(x, 0)
-        )
-        self.assertTupleEqual(results[0].shape, (1,) + self.expected_forecast)
-        self.assertTupleEqual(results[1].shape, (1,) + self.expected_altitude)
-
 
 if __name__ == "__main__":
     unittest.main()

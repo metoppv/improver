@@ -33,7 +33,7 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-from typing import Callable, List, Optional, Set, Tuple, Union
+from typing import List, Set, Tuple, Union
 
 import iris
 import numpy as np
@@ -354,11 +354,7 @@ def check_forecast_consistency(forecasts: Cube) -> None:
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
 
 
-def reshape_forecast_predictors(
-    forecast_predictors: CubeList,
-    constr: Optional[iris.Constraint] = None,
-    func: Optional[Callable] = lambda x: x,
-) -> List[ndarray]:
+def reshape_forecast_predictors(forecast_predictors: CubeList) -> List[ndarray]:
     """Reshape forecast predictors without a time by broadcasting to the required shape.
 
     Args:
@@ -378,13 +374,10 @@ def reshape_forecast_predictors(
         if fp_cube.coords("time", dim_coords=True)
     ]
     for fp_cube in forecast_predictors:
-        if constr:
-            fp_cube = fp_cube.extract(constr)
-
         fp_data = fp_cube.data
         if not fp_cube.coords("time"):
             # Broadcast static predictors to the required shape.
             fp_data = np.broadcast_to(fp_data, tuple(num_times) + fp_data.shape)
 
-        reshaped_forecast_predictors.append(func(fp_data))
+        reshaped_forecast_predictors.append(fp_data)
     return reshaped_forecast_predictors

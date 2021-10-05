@@ -38,7 +38,6 @@ Statistics (EMOS).
 
 """
 import warnings
-from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
@@ -263,9 +262,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     @staticmethod
     def _prepare_forecasts(
-        forecast_predictors: CubeList,
-        predictor: str,
-        constr: Optional[iris.Constraint] = None,
+        forecast_predictors: CubeList, predictor: str,
     ) -> np.ndarray:
         """Prepare forecasts for minimisation by flattening and reshaping.
 
@@ -288,17 +285,19 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         preserve_leading_dimension = (
             True if predictor.lower() == "realizations" else False
         )
-        partial_func = partial(
-            flatten_ignoring_masked_data,
-            preserve_leading_dimension=preserve_leading_dimension,
-        )
-        forecast_predictor_data = reshape_forecast_predictors(
-            forecast_predictors, constr=constr, func=partial_func
-        )
+        forecast_predictors = reshape_forecast_predictors(forecast_predictors)
+        flattened_forecast_predictors = []
+        for fp_data in forecast_predictors:
+            flattened_forecast_predictors.append(
+                flatten_ignoring_masked_data(
+                    fp_data, preserve_leading_dimension=preserve_leading_dimension,
+                )
+            )
+
         if len(forecast_predictors) > 1:
-            forecast_predictor_data = np.ma.vstack(forecast_predictor_data)
+            forecast_predictor_data = np.ma.vstack(flattened_forecast_predictors)
         else:
-            (forecast_predictor_data,) = forecast_predictor_data
+            (forecast_predictor_data,) = flattened_forecast_predictors
         return forecast_predictor_data
 
     def _process_points_independently(
@@ -352,25 +351,20 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         for index, (truth_slice, fv_slice) in enumerate(
             zip(truth.slices_over(sindex), forecast_var.slices_over(sindex))
         ):
-            # For site forecasts, with a wmo_id coordinate, the WMO ID is
-            # more reliable as the specific x and y location of a site can
-            # be subject to change.
-            if truth_slice.coords("wmo_id"):
-                constr = iris.Constraint(wmo_id=truth_slice.coord("wmo_id").points)
-            else:
-                constr = iris.Constraint(
-                    coord_values={
-                        y_name: lambda cell: any(
-                            np.isclose(cell.point, truth_slice.coord(axis="y").points)
-                        ),
-                        x_name: lambda cell: any(
-                            np.isclose(cell.point, truth_slice.coord(axis="x").points)
-                        ),
-                    }
-                )
-
+            # Extract forecast predictor cubelist to match truth and variance cubes
+            constr = iris.Constraint(
+                coord_values={
+                    y_name: lambda cell: any(
+                        np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                    ),
+                    x_name: lambda cell: any(
+                        np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                    ),
+                }
+            )
+            forecast_predictors_slice = forecast_predictors.extract(constr)
             forecast_predictor_data = self._prepare_forecasts(
-                forecast_predictors, predictor, constr
+                forecast_predictors_slice, predictor
             )
 
             if all(np.isnan(truth_slice.data)):
