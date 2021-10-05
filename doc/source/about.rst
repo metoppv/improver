@@ -56,8 +56,9 @@ IMPROVER does not currently include installation functionality (e.g. setup.py). 
 
     git clone https://github.com/metoppv/improver.git <local directory>
 
-The list of dependencies can be found in the environment YAML files under:
-https://github.com/metoppv/improver/blob/master/envs/
+The list of dependencies can be found in the `environment.yml`_ file.
+
+.. _environment.yml: https://github.com/metoppv/improver/blob/master/environment.yml
 
 Example use of a CLI
 ====================
@@ -81,7 +82,7 @@ This simple example covers one step in a processing chain. Additional informatio
 
 The current list of CLIs can be `found here`_.
 
-.. _found here: https://improver.readthedocs.io/en/latest/improver.cli.html
+.. _found here: improver.cli.html
 
 Sample data for testing CLIs
 ============================
