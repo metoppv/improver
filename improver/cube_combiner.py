@@ -31,7 +31,7 @@
 """Module containing plugins for combining cubes"""
 
 from operator import eq
-from typing import Callable, List, Union
+from typing import Callable, List, Tuple, Union
 
 import iris
 import numpy as np
@@ -288,8 +288,10 @@ class CubeMultiplier(CubeCombiner):
 
     @staticmethod
     def _update_cell_methods(
-        cell_methods: List, diagnostic_name: str, new_diagnostic_name: str
-    ) -> List:
+        cell_methods: Tuple[CellMethod],
+        probabilistic_name: str,
+        new_diagnostic_name: str,
+    ) -> List[CellMethod]:
         """
         Update any cell methods that include a comment that refers to the
         diagnostic name to refer instead to the new diagnostic name. Those cell
@@ -300,22 +302,19 @@ class CubeMultiplier(CubeCombiner):
             cell_methods:
                 The cell methods found on the cube that is being used as the
                 metadata template.
-            diagnostic_name:
-                The full name of the metadata template cube. This will be
-                stripped of any probability and vicinity components to provide
-                the base name to look for in the cell methods.
+            probabilistic_name:
+                The full name of the metadata template cube.
             new_diagnostic_name:
                 The new diagnostic name to use in the modified cell methods.
 
         Returns:
             A list of modified cell methods to replace the originals.
         """
-        try:
-            diagnostic_name = get_threshold_coord_name_from_probability_name(
-                diagnostic_name
-            )
-        except ValueError:
-            pass
+
+        # strip probability and vicinity components to provide the diagnostic name
+        diagnostic_name = get_threshold_coord_name_from_probability_name(
+            probabilistic_name
+        )
 
         new_cell_methods = []
         for cell_method in cell_methods:
@@ -333,6 +332,8 @@ class CubeMultiplier(CubeCombiner):
                             comments=f"of {new_diagnostic_name}",
                         )
                     )
+                else:
+                    new_cell_methods.append(cell_method)
         return new_cell_methods
 
     def process(
@@ -377,11 +378,12 @@ class CubeMultiplier(CubeCombiner):
         result = self._combine_cube_data(cube_list)
 
         # Used for renaming the threshold coordinate and modifying cell methods
-        # where neccessary; excludes the in_vicinity component.
+        # where necessary; excludes the in_vicinity component.
         new_base_name = new_diagnostic_name.replace("_in_vicinity", "")
 
+        probabilistic_name = cube_list[0].name()
+
         if broadcast_to_threshold:
-            probabilistic_name = cube_list[0].name()
             diagnostic_name = get_diagnostic_cube_name_from_probability_name(
                 probabilistic_name
             )
@@ -399,7 +401,7 @@ class CubeMultiplier(CubeCombiner):
         cell_methods = cube_list[0].cell_methods
         if cell_methods:
             result.cell_methods = self._update_cell_methods(
-                cell_methods, cube_list[0].name(), new_base_name
+                cell_methods, probabilistic_name, new_base_name
             )
 
         result.rename(new_diagnostic_name)

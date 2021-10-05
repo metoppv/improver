@@ -176,8 +176,11 @@ class Test_process(MultiplierTest):
         agnostic unchanged."""
 
         cell_methods = list(self.cube.cell_methods)
-        additional_cell_method = CellMethod("sum", coords="longitude")
-        cell_methods.append(additional_cell_method)
+        additional_cell_method_1 = CellMethod("sum", coords="longitude")
+        additional_cell_method_2 = CellMethod(
+            "sum", coords="latitude", comments="Kittens are great"
+        )
+        cell_methods.extend([additional_cell_method_1, additional_cell_method_2])
 
         self.cube.cell_methods = cell_methods
         cubelist = iris.cube.CubeList([self.cube, self.multiplier])
@@ -185,7 +188,8 @@ class Test_process(MultiplierTest):
         new_cube_name = "new_cube_name"
         expected = [
             CellMethod("sum", coords="time", comments=f"of {new_cube_name}"),
-            additional_cell_method,
+            additional_cell_method_1,
+            additional_cell_method_2,
         ]
 
         result = CubeMultiplier()(cubelist, new_cube_name, broadcast_to_threshold=True)
