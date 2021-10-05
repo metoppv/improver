@@ -505,7 +505,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             is True, then the leading dimension of the numpy array is
             the length of the spatial dimensions within the forecast and
             truth cubes. Each set of coefficients are appropriate for a
-            particular point.
+            particular point. If realizations or static additional predictors
+            are provided, then multiple values for beta will be generated.
+
 
         Raises:
             KeyError: If the distribution is not supported.
@@ -575,7 +577,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor:
                 Data to be used as the predictor, either the ensemble mean
-                or the ensemble realizations.
+                or the ensemble realizations of the predictand variable and
+                additional static predictors, as required.
             truth:
                 Data to be used as truth.
             forecast_var:
@@ -646,7 +649,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 Order of coefficients is [alpha, beta, gamma, delta].
             forecast_predictor:
                 Data to be used as the predictor, either the ensemble mean
-                or the ensemble realizations.
+                or the ensemble realizations of the predictand variable and
+                additional static predictors, as required.
             truth:
                 Data to be used as truth.
             forecast_var:
@@ -663,23 +667,22 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
         """
+        aa, bb, gamma, delta = (
+            initial_guess[0],
+            initial_guess[1:-2],
+            initial_guess[-2],
+            initial_guess[-1],
+        )
+
         if predictor.lower() == "mean":
-            a, b, gamma, delta = initial_guess
-            mu = (forecast_predictor * b) + a
-
+            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
         elif predictor.lower() == "realizations":
-            a, b, gamma, delta = (
-                initial_guess[0],
-                initial_guess[1:-2] * initial_guess[1:-2],
-                initial_guess[-2],
-                initial_guess[-1],
-            )
-            a_b = np.array([a] + b.tolist(), dtype=np.float64)
+            bb = bb * bb
+            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
 
-            new_col = np.ones(truth.shape, dtype=np.float32)
-            all_data = np.column_stack((new_col, forecast_predictor))
-            mu = np.dot(all_data, a_b)
-
+        new_col = np.ones(truth.shape, dtype=np.float32)
+        all_data = np.column_stack((new_col, forecast_predictor))
+        mu = np.dot(all_data, a_b)
         sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
         xz = (truth - mu) / sigma
         normal_cdf = norm.cdf(xz)
