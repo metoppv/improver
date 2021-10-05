@@ -354,18 +354,16 @@ def check_forecast_consistency(forecasts: Cube) -> None:
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
 
 
-def reshape_forecast_predictors(forecast_predictors: CubeList) -> List[ndarray]:
-    """Reshape forecast predictors without a time by broadcasting to the required shape.
+def consistent_forecast_predictor_shape(forecast_predictors: CubeList) -> List[ndarray]:
+    """Ensure that static forecast predictors without a time are broadcast to the required shape.
 
     Args:
         forecast_predictors:
             The forecast predictors to be reshaped.
-        constr:
-            A constraint for selecting the required forecast predictor.
 
     Returns:
        Consistently-shaped forecast predictors where static forecast predictors
-       have been reshaped to account for a time dimensions.
+       have been broadcast to account for a time dimension.
     """
     reshaped_forecast_predictors = []
     num_times = [

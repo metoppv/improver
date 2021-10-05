@@ -55,13 +55,13 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
     check_forecast_consistency,
     check_predictor,
+    consistent_forecast_predictor_shape,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
-    reshape_forecast_predictors,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -264,7 +264,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     def _prepare_forecasts(
         forecast_predictors: CubeList, predictor: str,
     ) -> np.ndarray:
-        """Prepare forecasts for minimisation by flattening and reshaping.
+        """Prepare forecasts are a consistent shape for minimisation by
+        broadcasting static predictors along the time dimension and
+        flattening the spatiotemporal dimensions.
 
         Args:
             forecast_predictors:
@@ -274,8 +276,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            constr:
-                A constraint for selecting the required forecast predictor.
 
         Returns:
             Reshaped array with a first dimension representing the flattened
@@ -285,7 +285,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         preserve_leading_dimension = (
             True if predictor.lower() == "realizations" else False
         )
-        forecast_predictors = reshape_forecast_predictors(forecast_predictors)
+        forecast_predictors = consistent_forecast_predictor_shape(forecast_predictors)
         flattened_forecast_predictors = []
         for fp_data in forecast_predictors:
             flattened_forecast_predictors.append(

@@ -46,6 +46,7 @@ from numpy.testing import assert_array_equal
 from improver.calibration.utilities import (
     check_forecast_consistency,
     check_predictor,
+    consistent_forecast_predictor_shape,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,
@@ -53,7 +54,6 @@ from improver.calibration.utilities import (
     forecast_coords_match,
     get_frt_hours,
     merge_land_and_sea,
-    reshape_forecast_predictors,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.synthetic_data.set_up_test_cubes import (
@@ -656,9 +656,9 @@ class Test_check_forecast_consistency(IrisTest):
             check_forecast_consistency(forecasts)
 
 
-class Test_reshape_forecast_predictors(IrisTest):
+class Test_consistent_forecast_predictor_shape(IrisTest):
 
-    """Test the reshape_forecast_predictors function."""
+    """Test the consistent_forecast_predictor_shape function."""
 
     def setUp(self):
         """Set-up cubes for testing."""
@@ -691,17 +691,17 @@ class Test_reshape_forecast_predictors(IrisTest):
         ) + self.altitude.shape
 
     def test_one_forecast_predictor(self):
-        """Test reshaping one forecast predictor"""
+        """Test handling one forecast predictor"""
         self.forecast_predictors = iris.cube.CubeList([self.forecast])
-        results = reshape_forecast_predictors(self.forecast_predictors)
+        results = consistent_forecast_predictor_shape(self.forecast_predictors)
         self.assertEqual(len(results), 1)
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
         self.assertArrayEqual(results[0], self.forecast.data)
 
     def test_two_forecast_predictors(self):
-        """Test reshaping two forecast predictors, where one is a static predictor."""
+        """Test handling two forecast predictors, where one is a static predictor."""
         self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        results = reshape_forecast_predictors(self.forecast_predictors)
+        results = consistent_forecast_predictor_shape(self.forecast_predictors)
         self.assertEqual(len(results), 2)
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
         self.assertTupleEqual(results[1].shape, self.expected_altitude)
