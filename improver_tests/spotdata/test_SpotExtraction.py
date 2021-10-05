@@ -102,12 +102,7 @@ class Test_SpotExtraction(IrisTest):
         )
 
         times = np.array([time + timedelta(hours=i) for i in range(-3, 2)])
-        bounds = np.array(
-            [
-                [time - timedelta(hours=0.5), time + timedelta(hours=0.5)]
-                for time in times
-            ]
-        )
+        bounds = np.array([[time - timedelta(hours=1), time] for time in times])
         times = np.broadcast_to(times, (5, 5))
         bounds = np.broadcast_to(bounds, (5, 5, 2))
 
@@ -125,10 +120,10 @@ class Test_SpotExtraction(IrisTest):
             ],
             "time",
             bounds=[
-                [dt(2020, 6, 15, 8, 30), dt(2020, 6, 15, 9, 30)],
-                [dt(2020, 6, 15, 8, 30), dt(2020, 6, 15, 9, 30)],
-                [dt(2020, 6, 15, 10, 30), dt(2020, 6, 15, 11, 30)],
-                [dt(2020, 6, 15, 10, 30), dt(2020, 6, 15, 11, 30)],
+                [dt(2020, 6, 15, 8, 0), dt(2020, 6, 15, 9, 0)],
+                [dt(2020, 6, 15, 8, 0), dt(2020, 6, 15, 9, 0)],
+                [dt(2020, 6, 15, 10, 0), dt(2020, 6, 15, 11, 0)],
+                [dt(2020, 6, 15, 10, 0), dt(2020, 6, 15, 11, 0)],
             ],
         )
 
@@ -257,7 +252,7 @@ class Test_extract_data(Test_SpotExtraction):
         self.assertArrayEqual(result, expected)
 
     def test_coordinate_with_bounds_extraction(self):
-        """Test extraction of coordinate data for a 2-dimensional auxilliary
+        """Test extraction of coordinate data for a 2-dimensional auxiliary
         coordinate. In this case the coordinate has bounds."""
         plugin = SpotExtraction()
 
@@ -271,7 +266,7 @@ class Test_extract_data(Test_SpotExtraction):
         self.assertArrayEqual(bounds, expected_bounds)
 
     def test_coordinate_without_bounds_extraction(self):
-        """Test extraction of coordinate data for a 2-dimensional auxilliary
+        """Test extraction of coordinate data for a 2-dimensional auxiliary
         coordinate. In this case the coordinate has no bounds."""
         plugin = SpotExtraction()
 
@@ -310,11 +305,11 @@ class Test_check_for_unique_id(Test_SpotExtraction):
 
 class Test_get_aux_coords(Test_SpotExtraction):
 
-    """Test the extraction of scalar and non-scalar auxilliary coordinates
+    """Test the extraction of scalar and non-scalar auxiliary coordinates
     from a cube."""
 
     def test_only_scalar_coords(self):
-        """Test with an input cube containing only scalar auxilliary
+        """Test with an input cube containing only scalar auxiliary
         coordinates."""
         plugin = SpotExtraction()
 
@@ -327,7 +322,7 @@ class Test_get_aux_coords(Test_SpotExtraction):
         self.assertArrayEqual(nonscalar, expected_nonscalar)
 
     def test_scalar_and_nonscalar_coords(self):
-        """Test with an input cube containing scalar and nonscalar auxilliary
+        """Test with an input cube containing scalar and nonscalar auxiliary
         coordinates. The returned non-scalar coordinate is a 1D representation
         of the 2D non-scalar input coordinate at spot sites."""
         plugin = SpotExtraction()
@@ -347,7 +342,7 @@ class Test_get_aux_coords(Test_SpotExtraction):
         self.assertArrayEqual(nonscalar, expected_nonscalar)
 
     def test_multiple_nonscalar_coords(self):
-        """Test with an input cube containing multiple nonscalar auxilliary
+        """Test with an input cube containing multiple nonscalar auxiliary
         coordinates. The returned non-scalar coordinates are 1D representations
         of the 2D non-scalar input coordinates at spot sites."""
         plugin = SpotExtraction()
@@ -379,7 +374,7 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
             spot_values,
             unique_site_id=self.unique_site_id,
             unique_site_id_key=self.unique_site_id_key,
-            auxilliary_coords=[self.expected_spot_time_coord],
+            auxiliary_coords=[self.expected_spot_time_coord],
         )
         self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
         self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
@@ -489,7 +484,7 @@ class Test_process(Test_SpotExtraction):
         self.assertEqual(result.cell_methods, self.cell_methods)
 
     def test_2d_aux_coords(self):
-        """Test 2D auxilliray coordinates from the gridded input cube are
+        """Test 2D auxiliary coordinates from the gridded input cube are
         retained as 1D coordinates associated with the spot-index on the
         spotdata cube."""
         plugin = SpotExtraction()

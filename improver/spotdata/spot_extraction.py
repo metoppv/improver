@@ -163,8 +163,7 @@ class SpotExtraction(BasePlugin):
             return coord_data
 
         # Or simply extract diagnostic data
-        data = diagnostic_cube.data
-        return data[..., y_indices, x_indices]
+        return diagnostic_cube.data[..., y_indices, x_indices]
 
     @staticmethod
     def check_for_unique_id(neighbour_cube: Cube) -> Optional[Tuple[ndarray, str]]:
@@ -195,8 +194,8 @@ class SpotExtraction(BasePlugin):
         self, coordinate_cube: Cube, diagnostic_cube: Cube
     ) -> Tuple[List[AuxCoord]]:
         """
-        Extract scalar and non-scalar auxilliary coordinates from the diagnostic
-        cube. Multi-dimensional auxilliary coordinates have the relevant points
+        Extract scalar and non-scalar auxiliary coordinates from the diagnostic
+        cube. Multi-dimensional auxiliary coordinates have the relevant points
         and bounds extracted for each site and a 1-dimensional coordinate is
         constructed that can be associated with the spot-index coordinate.
 
@@ -205,7 +204,7 @@ class SpotExtraction(BasePlugin):
                 A cube containing the x and y grid coordinates for the grid
                 point neighbours to spot sites.
             diagnostic_cube:
-                The cube from which auxilliary coordinates will be taken.
+                The cube from which auxiliary coordinates will be taken.
 
         Returns:
             - list of scalar coordinates
@@ -233,7 +232,7 @@ class SpotExtraction(BasePlugin):
         spot_values: ndarray,
         additional_dims: Optional[List[DimCoord]] = None,
         scalar_coords: Optional[List[AuxCoord]] = None,
-        auxilliary_coords: Optional[List[AuxCoord]] = None,
+        auxiliary_coords: Optional[List[AuxCoord]] = None,
         unique_site_id: Optional[Union[List[str], ndarray]] = None,
         unique_site_id_key: Optional[str] = None,
     ) -> Cube:
@@ -256,7 +255,7 @@ class SpotExtraction(BasePlugin):
             scalar_coords:
                 Optional list containing iris.coord.AuxCoords with all scalar coordinates
                 relevant for the spot sites.
-            auxilliary_coords:
+            auxiliary_coords:
                 Optional list containing iris.coords.AuxCoords which are non-scalar.
             unique_site_id:
                 Optional list of 8-digit unique site identifiers.
@@ -278,7 +277,7 @@ class SpotExtraction(BasePlugin):
             unique_site_id=unique_site_id,
             unique_site_id_key=unique_site_id_key,
             scalar_coords=scalar_coords,
-            auxilliary_coords=auxilliary_coords,
+            auxiliary_coords=auxiliary_coords,
             additional_dims=additional_dims,
         )
         return spot_diagnostic_cube
@@ -341,7 +340,7 @@ class SpotExtraction(BasePlugin):
             diagnostic_cube,
             spot_values,
             scalar_coords=scalar_coords,
-            auxilliary_coords=nonscalar_coords,
+            auxiliary_coords=nonscalar_coords,
             additional_dims=additional_dims,
             unique_site_id=unique_site_id,
             unique_site_id_key=unique_site_id_key,

@@ -212,7 +212,7 @@ class Test_build_spotdata_cube(IrisTest):
 
     def test_non_scalar_coords(self):
         """Test additional non-scalar coordinates, specifically multi-dimensional
-        auxilliary coordinates like time for local-timezone products that have
+        auxiliary coordinates like time for local-timezone products that have
         been reshaped into 1-dimensional coordinates that should be associated
         with the spot-index coordinate."""
         times = np.array([datetime(2015, 11, 23, i, 0) for i in range(0, 4)])
@@ -222,7 +222,7 @@ class Test_build_spotdata_cube(IrisTest):
         result = build_spotdata_cube(
             data,
             *self.args,
-            auxilliary_coords=[time_coord],
+            auxiliary_coords=[time_coord],
             neighbour_methods=self.neighbour_methods,
         )
         self.assertArrayEqual(result.coord("time").points, times)

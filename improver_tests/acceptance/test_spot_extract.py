@@ -515,6 +515,8 @@ def test_local_timezone_extraction(tmp_path):
     args = [
         neighbour_path,
         diag_path,
+        "--new-title",
+        "MOGREPS-G Spot Values",
         "--output",
         output_path,
     ]
