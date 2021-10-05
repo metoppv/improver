@@ -44,6 +44,8 @@ from scipy import stats
 
 from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
+import improver.ensemble_copula_coupling._scipy_continuous_distns as \
+    scipy_cont_distns
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
     concatenate_2d_array_with_2d_array_endpoints,
@@ -727,14 +729,18 @@ calculate_truncated_normal_crps`,
                 a lower bound of zero should be [0, np.inf].
 
         """
-        try:
-            self.distribution = getattr(stats, distribution)
-        except AttributeError as err:
-            msg = (
-                "The distribution requested {} is not a valid distribution "
-                "in scipy.stats. {}".format(distribution, err)
-            )
-            raise AttributeError(msg)
+        if distribution is "truncnorm":
+            # Use scipy v1.3.3 truncnorm
+            self.distribution = scipy_cont_distns.truncnorm
+        else:
+            try:
+                self.distribution = getattr(stats, distribution)
+            except AttributeError as err:
+                msg = (
+                    "The distribution requested {} is not a valid distribution "
+                    "in scipy.stats. {}".format(distribution, err)
+                )
+                raise AttributeError(msg)
 
         if shape_parameters is None:
             if self.distribution.name == "truncnorm":

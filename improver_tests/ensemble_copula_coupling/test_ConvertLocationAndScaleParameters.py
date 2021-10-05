@@ -37,6 +37,8 @@ import numpy as np
 from iris.tests import IrisTest
 from scipy import stats
 
+import improver.ensemble_copula_coupling._scipy_continuous_distns as \
+    scipy_cont_distns
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParameters as Plugin,
 )
@@ -55,7 +57,7 @@ class Test__init__(IrisTest):
     def test_valid_distribution_with_shape_parameters(self):
         """Test for a valid distribution with shape parameters."""
         plugin = Plugin(distribution="truncnorm", shape_parameters=[0, np.inf])
-        self.assertEqual(plugin.distribution, stats.truncnorm)
+        self.assertEqual(plugin.distribution, scipy_cont_distns.truncnorm)
         self.assertEqual(plugin.shape_parameters, [0, np.inf])
 
     def test_error_shape_parameters_required(self):
