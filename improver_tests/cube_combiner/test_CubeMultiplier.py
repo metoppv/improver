@@ -35,6 +35,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
+from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
@@ -43,7 +44,32 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver_tests.cube_combiner.test_CubeCombiner import CombinerTest
 
 
-class Test_process(CombinerTest):
+class MultiplierTest(CombinerTest):
+    """Add specific test cubes for testing the Multiplier functionality."""
+
+    def setUp(self):
+        """Set-up the plugin for testing."""
+        super().setUp()
+        self.cube = self.cube4.copy()
+        cell_methods = [
+            CellMethod(
+                "sum",
+                coords="time",
+                comments="of lwe_thickness_of_precipitation_amount",
+            ),
+        ]
+        self.cube.cell_methods = cell_methods
+
+        self.multiplier = self.cube4[:, 0, ...].copy(
+            data=np.ones_like(self.cube4[:, 0, ...].data)
+        )
+        self.threshold_aux = self.multiplier.coord(
+            "lwe_thickness_of_precipitation_amount"
+        )
+        self.multiplier.remove_coord("lwe_thickness_of_precipitation_amount")
+
+
+class Test_process(MultiplierTest):
     """Test process method of CubeMultiplier"""
 
     def test_broadcast_coord(self):
@@ -51,10 +77,7 @@ class Test_process(CombinerTest):
         Using the broadcast_to_coords argument including a value of "threshold"
         will result in the returned cube maintaining the probabilistic elements
         of the name of the first input cube."""
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cube.remove_coord("lwe_thickness_of_precipitation_amount")
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
         input_copy = deepcopy(cubelist)
         result = CubeMultiplier()(
             cubelist, "new_cube_name", broadcast_to_threshold=True
@@ -62,7 +85,7 @@ class Test_process(CombinerTest):
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
-        self.assertArrayAlmostEqual(result.data, self.cube4.data)
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
         self.assertCubeListEqual(input_copy, cubelist)
 
     def test_vicinity_names(self):
@@ -70,11 +93,8 @@ class Test_process(CombinerTest):
         vicinity diagnostic"""
         input = "lwe_thickness_of_precipitation_amount_in_vicinity"
         output = "thickness_of_rainfall_amount_in_vicinity"
-        self.cube4.rename(f"probability_of_{input}_above_threshold")
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cube.remove_coord("lwe_thickness_of_precipitation_amount")
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        self.cube.rename(f"probability_of_{input}_above_threshold")
+        cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
         result = CubeMultiplier()(cubelist, output, broadcast_to_threshold=True)
         self.assertEqual(result.name(), f"probability_of_{output}_above_threshold")
         self.assertEqual(
@@ -84,10 +104,7 @@ class Test_process(CombinerTest):
     def test_error_broadcast_coord_not_found(self):
         """Test that plugin throws an error if asked to broadcast to a threshold coord
         that is not present on the first cube"""
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cube.remove_coord("lwe_thickness_of_precipitation_amount")
-        cubelist = iris.cube.CubeList([cube, self.cube4.copy()])
+        cubelist = iris.cube.CubeList([self.multiplier, self.cube.copy()])
         msg = (
             r"Cannot find coord threshold in "
             r"<iris 'Cube' of "
@@ -100,9 +117,8 @@ class Test_process(CombinerTest):
     def test_error_broadcast_coord_is_auxcoord(self):
         """Test that plugin throws an error if asked to broadcast to a threshold coord
         that already exists on later cubes"""
-        cube = self.cube4[:, 0, ...].copy()
-        cube.data = np.ones_like(cube.data)
-        cubelist = iris.cube.CubeList([self.cube4.copy(), cube])
+        self.multiplier.add_aux_coord(self.threshold_aux)
+        cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
         msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
         with self.assertRaisesRegex(TypeError, msg):
             CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_threshold=True)
@@ -143,6 +159,41 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube1])
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, "new_cube_name")
+
+    def test_update_cell_methods(self):
+        """Test that plugin updates cell methods where required when a new
+        diagnostic name is provided."""
+        cubelist = iris.cube.CubeList([self.cube, self.multiplier])
+
+        new_cube_name = "new_cube_name"
+        expected = CellMethod("sum", coords="time", comments=f"of {new_cube_name}")
+
+        result = CubeMultiplier()(cubelist, new_cube_name, broadcast_to_threshold=True)
+        self.assertEqual(result.cell_methods[0], expected)
+
+    def test_unmodified_cell_methods(self):
+        """Test that plugin leaves cell methods that are diagnostic name
+        agnostic unchanged."""
+
+        cell_methods = list(self.cube.cell_methods)
+        additional_cell_method_1 = CellMethod("sum", coords="longitude")
+        additional_cell_method_2 = CellMethod(
+            "sum", coords="latitude", comments="Kittens are great"
+        )
+        cell_methods.extend([additional_cell_method_1, additional_cell_method_2])
+
+        self.cube.cell_methods = cell_methods
+        cubelist = iris.cube.CubeList([self.cube, self.multiplier])
+
+        new_cube_name = "new_cube_name"
+        expected = [
+            CellMethod("sum", coords="time", comments=f"of {new_cube_name}"),
+            additional_cell_method_1,
+            additional_cell_method_2,
+        ]
+
+        result = CubeMultiplier()(cubelist, new_cube_name, broadcast_to_threshold=True)
+        self.assertArrayEqual(result.cell_methods, expected)
 
 
 if __name__ == "__main__":

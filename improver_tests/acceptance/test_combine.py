@@ -112,3 +112,25 @@ def test_combine_broadcast(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_cell_methods(tmp_path):
+    """Test cell method comments are updated for multiplication"""
+    kgo_dir = acc.kgo_root() / "combine/cellmethods"
+    kgo_path = kgo_dir / "kgo.nc"
+    precipaccum = kgo_dir / "precipitation_accumulation-PT01H.nc"
+    precipphase = kgo_dir / "precipitation_is_snow.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        precipaccum,
+        precipphase,
+        "--operation",
+        "multiply",
+        "--broadcast-to-threshold",
+        "--new-name",
+        "lwe_thickness_of_snowfall_amount",
+        "--output",
+        f"{output_path}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
