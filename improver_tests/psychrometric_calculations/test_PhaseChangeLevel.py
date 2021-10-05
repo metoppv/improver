@@ -37,6 +37,7 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import CubeList
 from iris.tests import IrisTest
+import pytest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     PhaseChangeLevel,
@@ -109,6 +110,7 @@ class Test_find_falling_level(IrisTest):
 
     def setUp(self):
         """Set up arrays."""
+        pytest.importorskip("stratify")
         self.wb_int_data = np.array(
             [
                 [[80.0, 80.0], [70.0, 50.0]],
@@ -449,7 +451,7 @@ class Test_process(IrisTest):
         """Set up orography and land-sea mask cubes. Also create temperature,
         pressure, and relative humidity cubes that contain multiple height
         levels."""
-
+        pytest.importorskip("stratify")
         self.setup_cubes_for_process()
 
     def setup_cubes_for_process(self, spatial_grid="equalarea"):
