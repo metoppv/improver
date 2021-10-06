@@ -40,7 +40,6 @@ import shutil
 import pytest
 
 from improver import cli
-from improver.calibration.utilities import statsmodels_available
 from improver.constants import DEFAULT_TOLERANCE
 from improver.utilities.compare import compare_netcdfs
 
@@ -363,13 +362,3 @@ def compare(
 
 # Pytest decorator to skip tests if KGO is not available for use
 skip_if_kgo_missing = pytest.mark.skipif(not kgo_exists(), reason="KGO files required")
-
-# Pytest decorator to skip tests if statsmodels is available
-skip_if_statsmodels = pytest.mark.skipif(
-    statsmodels_available(), reason="statsmodels library is available"
-)
-
-# Pytest decorator to skip tests if statsmodels is not available
-skip_if_no_statsmodels = pytest.mark.skipif(
-    not statsmodels_available(), reason="statsmodels library is not available"
-)
