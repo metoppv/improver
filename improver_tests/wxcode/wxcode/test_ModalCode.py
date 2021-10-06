@@ -38,6 +38,8 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.wxcode.modal_code import ModalWeatherCode
 
 from . import set_up_wxcube
@@ -46,7 +48,7 @@ START_TIME = dt(2020, 6, 15, 7)
 
 
 @pytest.fixture(name="wxcode_series")
-def wxcode_series_fixture(data) -> Cube:
+def wxcode_series_fixture(data, cube_type) -> Cube:
     """Generate a time series of weather code cubes for combination to create
     a period representative code."""
 
@@ -61,13 +63,35 @@ def wxcode_series_fixture(data) -> Cube:
         wxdata = np.ones((2, 2), dtype=np.int8)
         wxdata[0, 0] = data[i]
 
-        wxcubes.append(
-            set_up_wxcube(data=wxdata, time=wxtime, time_bounds=wxbounds, frt=wxfrt)
-        )
-
+        if cube_type == "gridded":
+            wxcubes.append(
+                set_up_wxcube(data=wxdata, time=wxtime, time_bounds=wxbounds, frt=wxfrt)
+            )
+        else:
+            time_coord = construct_scalar_time_coords(wxtime, wxbounds, wxfrt)
+            time_coord = [crd[0] for crd in time_coord]
+            latitudes = np.array([50, 52, 54, 56])
+            longitudes = np.array([-4, -2, 0, 2])
+            altitudes = wmo_ids = unique_site_id = np.arange(4)
+            unique_site_id_key = "met_office_site_id"
+            wxcubes.append(
+                build_spotdata_cube(
+                    wxdata.flatten(),
+                    "weather_code",
+                    1,
+                    altitudes,
+                    latitudes,
+                    longitudes,
+                    wmo_ids,
+                    unique_site_id=unique_site_id,
+                    unique_site_id_key=unique_site_id_key,
+                    scalar_coords=time_coord,
+                )
+            )
     return wxcubes
 
 
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -104,10 +128,10 @@ def wxcode_series_fixture(data) -> Cube:
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
     result = ModalWeatherCode()(wxcode_series)
-    assert result.data[0, 0] == expected
+    assert result.data.flatten()[0] == expected
 
 
-@pytest.mark.parametrize("data", [np.ones((12))])
+@pytest.mark.parametrize("data, cube_type", [(np.ones((12)), "gridded")])
 def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the

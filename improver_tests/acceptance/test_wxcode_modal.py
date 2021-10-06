@@ -40,11 +40,61 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.slow
-def test_basic(tmp_path):
-    """Test basic wxcode modal calculation"""
-    kgo_dir = acc.kgo_root() / "wxcode-modal"
-    kgo_path = kgo_dir / "outputs" / "full_day_kgo.nc"
-    input_paths = (kgo_dir / "inputs").glob("20201209*.nc")
+def test_gridded(tmp_path):
+    """Test gridded wxcode modal calculation"""
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / "gridded_input"
+    kgo_path = kgo_dir / "gridded_kgo.nc"
+    input_paths = (kgo_dir).glob("20201209*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_grid_ties(tmp_path):
+    """Test gridded input that is engineered to require use of the grouping
+    method to resolve ties."""
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / "gridded_ties"
+    kgo_path = kgo_dir / "gridded_ties_kgo.nc"
+    input_paths = (kgo_dir).glob("20201209*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_spot(tmp_path):
+    """Test spot wxcode modal calculation"""
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / "spot_input"
+    kgo_path = kgo_dir / "spot_kgo.nc"
+    input_paths = (kgo_dir).glob("20201209*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_spot_ties(tmp_path):
+    """Test spot input that is engineered to require use of the grouping method
+    to resolve ties."""
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / "spot_ties"
+    kgo_path = kgo_dir / "spot_ties_kgo.nc"
+    input_paths = (kgo_dir).glob("20201209*.nc")
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
