@@ -38,12 +38,10 @@ Statistics (EMOS).
 
 """
 import warnings
-from functools import partial
 from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
-import statsmodels.api as sm
 from cf_units import Unit
 from iris.coords import Coord
 from iris.cube import Cube, CubeList
@@ -63,7 +61,6 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
-    reshape_forecast_predictors,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -294,7 +291,8 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         for fp_data in forecast_predictors:
             flattened_forecast_predictors.append(
                 flatten_ignoring_masked_data(
-                    fp_data, num_of_leading_dimension_to_preserve=num_of_leading_dimensions_to_preserve,
+                    fp_data,
+                    num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
                 )
             )
 
@@ -1219,28 +1217,19 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
             initial_guess = []
             for truth_slice in truths.slices_over(index):
-                # For site forecasts, with a wmo_id coordinate, the WMO ID is
-                # more reliable as the specific x and y location of a site can
-                # be subject to change.
-                if truth_slice.coords("wmo_id"):
-                    constr = iris.Constraint(wmo_id=truth_slice.coord("wmo_id").points)
-                else:
-                    constr = iris.Constraint(
-                        coord_values={
-                            y_name: lambda cell: any(
-                                np.isclose(
-                                    cell.point, truth_slice.coord(axis="y").points
-                                )
-                            ),
-                            x_name: lambda cell: any(
-                                np.isclose(
-                                    cell.point, truth_slice.coord(axis="x").points
-                                )
-                            ),
-                        }
-                    )
+                constr = iris.Constraint(
+                    coord_values={
+                        y_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                        ),
+                        x_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                        ),
+                    }
+                )
+                forecast_predictors_slice = forecast_predictors.extract(constr)
                 forecast_predictors_data = np.ma.stack(
-                    reshape_forecast_predictors(forecast_predictors, constr=constr)
+                    consistent_forecast_predictor_shape(forecast_predictors_slice)
                 )
                 initial_guess.append(
                     self.compute_initial_guess(
@@ -1254,7 +1243,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         else:
             # Computing initial guess for EMOS coefficients
             forecast_predictor_data = np.ma.stack(
-                reshape_forecast_predictors(forecast_predictors)
+                consistent_forecast_predictor_shape(forecast_predictors)
             )
             initial_guess = self.compute_initial_guess(
                 truths.data,
