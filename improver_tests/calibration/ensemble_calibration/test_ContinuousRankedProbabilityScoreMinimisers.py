@@ -1144,7 +1144,7 @@ class Test_process_truncated_normal_distribution(
         ],
         warning_types=[UserWarning, UserWarning, RuntimeWarning],
     )
-    def test_mean_predictor_sites_additional_predictor(self):
+    def test_mean_predictor_additional_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected
         coefficients. The ensemble mean and altitude are the predictors.
