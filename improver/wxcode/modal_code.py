@@ -86,12 +86,12 @@ class ModalWeatherCode(BasePlugin):
     def group_codes(modal: Cube, cube: Cube):
         """In instances where the mode returned is not significant, i.e. the
         weather code chosen occurs infrequently in the period, the codes can be
-        grouped to yield a more definitive period code. Given the uncertainty
+        grouped to yield a more definitive period code. Given the uncertainty,
         the least significant weather type (lowest number in a group that is
         found in the data) is used to replace the other data values that belong
         to that group prior to recalculating the modal code.
 
-        The modal code is modified in place.
+        The modal cube is modified in place.
 
         Args:
             modal:
