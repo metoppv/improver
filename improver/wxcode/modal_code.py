@@ -31,6 +31,7 @@
 """Module containing a plugin to calculate the modal weather code in a period."""
 
 import numpy as np
+from datetime import datetime, time
 from iris.analysis import Aggregator
 from iris.cube import Cube, CubeList
 from numpy import ndarray
@@ -69,7 +70,7 @@ class ModalWeatherCode(BasePlugin):
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
 
     @staticmethod
-    def unify_day_and_night(cube: Cube):
+    def _unify_day_and_night(cube: Cube):
         """Remove distinction between day and night codes so they can each
         contribute when calculating the modal code. The cube of weather
         codes is modified in place with all night codes made into their
@@ -83,7 +84,23 @@ class ModalWeatherCode(BasePlugin):
             cube.data[cube.data == code] += 1
 
     @staticmethod
-    def group_codes(modal: Cube, cube: Cube):
+    def _set_day_night(cube: Cube):
+        """If the period covered by the resulting modal code output is
+        predominantly night then any codes that have a night-specific value
+        should be updated to this value. The cube is updated in place.
+
+        Args:
+            A cube of weather codes.
+        """
+        validity_time = cube.coord("time").cell(0)[0]
+        bounds_start, bounds_end = cube.coord("time").cell(0)[1]
+        midnight = datetime.combine(validity_time.date(), time(0))
+
+        if bounds_start < midnight < bounds_end:
+            cube.data[np.isin(cube.data, DAYNIGHT_CODES)] -= 1
+
+    @staticmethod
+    def _group_codes(modal: Cube, cube: Cube):
         """In instances where the mode returned is not significant, i.e. the
         weather code chosen occurs infrequently in the period, the codes can be
         grouped to yield a more definitive period code. Given the uncertainty,
@@ -163,13 +180,17 @@ class ModalWeatherCode(BasePlugin):
             return cubes[0]
 
         cube = MergeCubes()(cubes)
-        self.unify_day_and_night(cube)
+        self._unify_day_and_night(cube)
 
         result = cube.collapsed("time", self.aggregator_instance)
         result.coord("time").points = result.coord("time").bounds[0][-1]
 
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == UNSET_CODE_INDICATOR).any():
-            self.group_codes(result, cube)
+            self._group_codes(result, cube)
+
+        # Determine whether this period is day or night and modify weather
+        # codes as appropriate.
+        self._set_day_night(result)
 
         return result

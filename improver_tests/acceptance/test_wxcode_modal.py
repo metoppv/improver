@@ -103,3 +103,20 @@ def test_spot_ties(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_spot_night(tmp_path):
+    """Test period modal spot outputs are converted to night symbols if the
+    period includes midnight."""
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / "spot_night"
+    kgo_path = kgo_dir / "spot_night_kgo.nc"
+    input_paths = (kgo_dir).glob("202012*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

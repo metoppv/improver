@@ -95,7 +95,7 @@ def wxcode_series_fixture(data, cube_type) -> Cube:
 @pytest.mark.parametrize(
     "data, expected",
     (
-        # Sunny day (1), one rain code (15)that is in the minority, expect sun
+        # Sunny day (1), one rain code (15) that is in the minority, expect sun
         # code.
         ([1, 1, 1, 15], 1),
         # Short period with an equal split. The most significant weather
