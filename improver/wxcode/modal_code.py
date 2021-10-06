@@ -87,16 +87,17 @@ class ModalWeatherCode(BasePlugin):
     def _set_day_night(cube: Cube):
         """If the period covered by the resulting modal code output is
         predominantly night then any codes that have a night-specific value
-        should be updated to this value. The cube is updated in place.
+        should be updated to this value. This is tested by checking whether the
+        midpoint of the time bounds is closer to midnight than midday.
+        The cube is updated in place.
 
         Args:
             A cube of weather codes.
         """
-        validity_time = cube.coord("time").cell(0)[0]
         bounds_start, bounds_end = cube.coord("time").cell(0)[1]
-        midnight = datetime.combine(validity_time.date(), time(0))
+        bounds_midpoint = bounds_start + (bounds_end - bounds_start) / 2
 
-        if bounds_start < midnight < bounds_end:
+        if abs(bounds_midpoint.hour - 12) > 6:
             cube.data[np.isin(cube.data, DAYNIGHT_CODES)] -= 1
 
     @staticmethod
