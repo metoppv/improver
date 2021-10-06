@@ -281,10 +281,26 @@ def merge_land_and_sea(calibrated_land_only: Cube, uncalibrated: Cube) -> None:
         calibrated_land_only.data = new_data
 
 
+def floor_fp(cube: Cube) -> np.ndarray:
+    """Floor the forecast period points to the nearest hour.
+
+    Args:
+        cube:
+            Cube with a forecast_period coordinates.
+
+    Returns:
+        The forecast period points floored to the nearest hour.
+    """
+    hour_in_secs = 3600
+    return np.floor(cube.coord("forecast_period").points / hour_in_secs)
+
+
 def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     """
-    Determine if two cubes have equivalent forecast_periods and that the hours
-    of the forecast_reference_time coordinates match. Only the point of the
+    Determine if two cubes have equivalent forecast_periods and
+    forecast_reference_time coordinates with an accepted leniency.
+    The forecast period is floored to the nearest hour to enable 15 minute
+    Only the point of the
     forecast reference time coordinate is checked to ensure that a calibration
     / coefficient cube matches the forecast cube, as appropriate.
 
@@ -298,8 +314,8 @@ def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
         ValueError: The two cubes are not equivalent.
     """
     mismatches = []
-    if first_cube.coord("forecast_period") != second_cube.coord("forecast_period"):
-        mismatches.append("forecast_period")
+    if floor_fp(first_cube) != floor_fp(second_cube):
+        mismatches.append("forecast_period hours")
 
     if get_frt_hours(first_cube.coord("forecast_reference_time")) != get_frt_hours(
         second_cube.coord("forecast_reference_time")

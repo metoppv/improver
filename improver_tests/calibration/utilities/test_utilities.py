@@ -542,6 +542,24 @@ class Test_forecast_coords_match(IrisTest):
         """Test returns None when cubes time coordinates match."""
         self.assertIsNone(forecast_coords_match(self.ref_cube, self.ref_cube.copy()))
 
+    def test_match_15_minute_offset(self):
+        """Test returns None when cubes time coordinates match with an
+        allowed leniency for a 15 minute offset."""
+        offset_cube = self.ref_cube.copy()
+        mins_15_to_secs = 900
+        offset_cube.coord("forecast_period").points = offset_cube.coord("forecast_period").points + mins_15_to_secs
+        offset_cube.coord("forecast_reference_time").points = offset_cube.coord("forecast_reference_time").points + mins_15_to_secs
+        self.assertIsNone(forecast_coords_match(self.ref_cube, offset_cube))
+
+    def test_match_45_minute_offset(self):
+        """Test returns None when cubes time coordinates match with an
+        allowed leniency for a 45 minute offset."""
+        offset_cube = self.ref_cube.copy()
+        mins_45_to_secs = 2700
+        offset_cube.coord("forecast_period").points = offset_cube.coord("forecast_period").points + mins_45_to_secs
+        offset_cube.coord("forecast_reference_time").points = offset_cube.coord("forecast_reference_time").points + mins_45_to_secs
+        self.assertIsNone(forecast_coords_match(self.ref_cube, offset_cube))
+
     def test_forecast_period_mismatch(self):
         """Test an error is raised when the forecast period mismatches."""
         self.adjusted_cube = set_up_variable_cube(
