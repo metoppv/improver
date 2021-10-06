@@ -31,7 +31,6 @@
 """Module containing a plugin to calculate the modal weather code in a period."""
 
 import numpy as np
-from datetime import datetime, time
 from iris.analysis import Aggregator
 from iris.cube import Cube, CubeList
 from numpy import ndarray

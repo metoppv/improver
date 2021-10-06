@@ -120,3 +120,14 @@ def test_spot_night(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_no_input(tmp_path):
+    """Test an exceptions is raised by the CLI if no cubes are provided."""
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(RuntimeError, match="Not enough input arguments*"):
+        run_cli(args)
