@@ -316,20 +316,22 @@ class Test_process(IrisTest):
     def test_null_percentiles_frt_fp_mismatch(self):
         """Test effect of "neutral" emos coefficients in percentile space
         where the forecast is 15 minutes ahead of the coefficients in terms
-        of the forecast period and forecast reference time."""
+        of the forecast reference time."""
         percentiles = self.percentiles.copy()
         mins_15_to_secs = 900
-        percentiles.coord("forecast_reference_time").points = percentiles.coord("forecast_reference_time").points + mins_15_to_secs
-        percentiles.coord("forecast_period").points = percentiles.coord("forecast_period").points + mins_15_to_secs
+        percentiles.coord("forecast_reference_time").points = (
+            percentiles.coord("forecast_reference_time").points + mins_15_to_secs
+        )
+        percentiles.coord("forecast_period").points = (
+            percentiles.coord("forecast_period").points - mins_15_to_secs
+        )
         expected_frt = percentiles.coord("forecast_reference_time").points
         expected_fp = percentiles.coord("forecast_period").points
         result = ApplyEMOS()(percentiles, self.coefficients, realizations_count=3)
         self.assertAlmostEqual(
             result.coord("forecast_reference_time").points, expected_frt
         )
-        self.assertAlmostEqual(
-            result.coord("forecast_period").points, expected_fp
-        )
+        self.assertAlmostEqual(result.coord("forecast_period").points, expected_fp)
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution
