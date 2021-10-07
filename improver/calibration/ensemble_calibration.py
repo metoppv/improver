@@ -410,8 +410,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
+                If "realizations" is provided, the leading dimension of the
+                data within the forecast predictor cubelist is preserved,
+                whilst other dimensions are flattened.
 
         Returns:
             Reshaped array with a first dimension representing the flattened
