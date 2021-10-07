@@ -34,7 +34,6 @@ plugins.
 
 """
 
-import importlib
 import warnings
 from typing import List, Optional, Union
 

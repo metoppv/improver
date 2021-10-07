@@ -32,6 +32,7 @@
 Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
+import importlib
 import unittest
 from datetime import datetime
 from unittest.case import skipIf
