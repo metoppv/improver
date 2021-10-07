@@ -108,6 +108,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def __init__(
         self,
+        predictor: str,
         tolerance: float = 0.02,
         max_iterations: int = 1000,
         point_by_point: bool = False,
@@ -117,6 +118,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Ranked Probability Score (CRPS).
 
         Args:
+            predictor:
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
             tolerance:
                 The tolerance for the Continuous Ranked Probability
                 Score (CRPS) calculated by the minimisation. The CRPS is in
@@ -146,18 +152,18 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             "norm": self.calculate_normal_crps,
             "truncnorm": self.calculate_truncated_normal_crps,
         }
+        self.predictor = check_predictor(predictor)
         self.tolerance = tolerance
         # Maximum iterations for minimisation using Nelder-Mead.
         self.max_iterations = max_iterations
         self.point_by_point = point_by_point
 
-    @staticmethod
     def _normal_crps_preparation(
+        self,
         initial_guess: ndarray,
         forecast_predictor: ndarray,
         truth: ndarray,
         forecast_var: ndarray,
-        predictor: str,
     ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]:
         """
         Prepare for the CRPS calculation by computing estimates for the
@@ -184,9 +190,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             initial_guess[-1],
         )
 
-        if predictor == "mean":
+        if self.predictor == "mean":
             a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
-        elif predictor == "realizations":
+        elif self.predictor == "realizations":
             bb = bb * bb
             a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
 
@@ -206,7 +212,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         truth: ndarray,
         forecast_var: ndarray,
         sqrt_pi: float,
-        predictor: str,
     ) -> float:
         """
         Calculate the CRPS for a normal distribution.
@@ -234,18 +239,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 Ensemble variance data.
             sqrt_pi:
                 Square root of Pi
-            predictor:
-                String to specify the form of the predictor used to calculate
-                the location parameter when estimating the EMOS coefficients.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
 
         Returns:
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
         """
         mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
-            initial_guess, forecast_predictor, truth, forecast_var, predictor
+            initial_guess, forecast_predictor, truth, forecast_var
         )
         if np.isfinite(np.min(mu / sigma)):
             result = np.nanmean(
@@ -262,7 +262,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         truth: ndarray,
         forecast_var: ndarray,
         sqrt_pi: float,
-        predictor: str,
     ) -> float:
         """
         Calculate the CRPS for a truncated normal distribution with zero
@@ -292,18 +291,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 Ensemble variance data.
             sqrt_pi:
                 Square root of Pi
-            predictor:
-                String to specify the form of the predictor used to calculate
-                the location parameter when estimating the EMOS coefficients.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
 
         Returns:
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
         """
         mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
-            initial_guess, forecast_predictor, truth, forecast_var, predictor
+            initial_guess, forecast_predictor, truth, forecast_var
         )
         x0 = mu / sigma
         normal_cdf_0 = norm.cdf(x0)
@@ -364,7 +358,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         truth_data: ndarray,
         forecast_var_data: ndarray,
         sqrt_pi: float,
-        predictor: str,
     ) -> OptimizeResult:
         """Call scipy minimize with the options provided.
 
@@ -376,7 +369,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_var
             sqrt_pi:
                 Square root of pi for minimisation.
-            predictor
 
         Return:
             A single set of coefficients with the order [alpha, beta, gamma, delta].
@@ -384,13 +376,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         optimised_coeffs = minimize(
             minimisation_function,
             initial_guess,
-            args=(
-                forecast_predictor_data,
-                truth_data,
-                forecast_var_data,
-                sqrt_pi,
-                predictor,
-            ),
+            args=(forecast_predictor_data, truth_data, forecast_var_data, sqrt_pi,),
             method="Nelder-Mead",
             tol=self.tolerance,
             options={"maxiter": self.max_iterations, "return_all": True},
@@ -398,8 +384,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         return optimised_coeffs
 
-    @staticmethod
-    def _prepare_forecasts(forecast_predictors: CubeList, predictor: str,) -> ndarray:
+    def _prepare_forecasts(self, forecast_predictors: CubeList) -> ndarray:
         """Prepare forecasts to be a consistent shape for minimisation by
         broadcasting static predictors along the time dimension and
         flattening the spatiotemporal dimensions.
@@ -407,19 +392,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         Args:
             forecast_predictors:
                 The forecast predictors to be reshaped.
-            predictor:
-                String to specify the form of the predictor used to calculate
-                the location parameter when estimating the EMOS coefficients.
-                If "realizations" is provided, the leading dimension of the
-                data within the forecast predictor cubelist is preserved,
-                whilst other dimensions are flattened.
 
         Returns:
             Reshaped array with a first dimension representing the flattened
             spatiotemporal dimensions and an optional second dimension for
             flattened non-spatiotemporal dimensions (e.g. realizations).
         """
-        preserve_leading_dimension = predictor == "realizations"
+        preserve_leading_dimension = self.predictor == "realizations"
 
         forecast_predictors = broadcast_data_to_time_coord(forecast_predictors)
         flattened_forecast_predictors = []
@@ -444,7 +423,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         truth: Cube,
         forecast_var: Cube,
         sqrt_pi: float,
-        predictor: str,
     ) -> ndarray:
         """Minimise each point along the spatial dimensions independently to
         create a set of coefficients for each point. The coefficients returned
@@ -459,7 +437,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             truth
             forecast_var
             sqrt_pi
-            predictor
 
         Returns:
             Separate optimised coefficients for each point. The shape of the
@@ -494,9 +471,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 }
             )
             forecast_predictors_slice = forecast_predictors.extract(constr)
-            forecast_predictor_data = self._prepare_forecasts(
-                forecast_predictors_slice, predictor
-            )
+            forecast_predictor_data = self._prepare_forecasts(forecast_predictors_slice)
 
             if all(np.isnan(truth_slice.data)):
                 optimised_coeffs.append(
@@ -511,7 +486,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                         truth_slice.data,
                         fv_slice.data,
                         sqrt_pi,
-                        predictor,
                     ).x.astype(np.float32)
                 )
 
@@ -538,7 +512,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         truth: Cube,
         forecast_var: Cube,
         sqrt_pi: float,
-        predictor: str,
     ) -> ndarray:
         """Minimise all points together in one minimisation to create a single
         set of coefficients.
@@ -551,7 +524,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             truth
             forecast_var
             sqrt_pi
-            predictor
 
         Returns:
             The optimised coefficients.
@@ -563,9 +535,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
-        forecast_predictor_data = self._prepare_forecasts(
-            forecast_predictors, predictor
-        )
+        forecast_predictor_data = self._prepare_forecasts(forecast_predictors)
 
         optimised_coeffs = self._minimise_caller(
             minimisation_function,
@@ -574,7 +544,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             truth_data,
             forecast_var_data,
             sqrt_pi,
-            predictor,
         )
         if not optimised_coeffs.success:
             msg = (
@@ -593,7 +562,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
-        predictor: str,
         distribution: str,
     ) -> ndarray:
         """
@@ -619,11 +587,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 Cube containing the field, which will be used as truth.
             forecast_var:
                 Cube containing the field containing the ensemble variance.
-            predictor:
-                String to specify the form of the predictor used to calculate
-                the location parameter when estimating the EMOS coefficients.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
             distribution:
                 String used to access the appropriate function for use in the
                 minimisation within self.minimisation_dict.
@@ -655,7 +618,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
             raise KeyError(msg)
 
-        if check_predictor(predictor) == "realizations":
+        if self.predictor == "realizations":
             for forecast_predictor in forecast_predictors:
                 enforce_coordinate_ordering(forecast_predictor, "realization")
 
@@ -679,7 +642,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 truth,
                 forecast_var,
                 sqrt_pi,
-                predictor,
             )
         else:
             optimised_coeffs = self._process_points_together(
@@ -689,7 +651,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 truth,
                 forecast_var,
                 sqrt_pi,
-                predictor,
             )
 
         return optimised_coeffs
@@ -767,13 +728,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.distribution = distribution
         self.point_by_point = point_by_point
         self.use_default_initial_guess = use_default_initial_guess
-        self._validate_distribution()
-        self.desired_units = desired_units
         # Ensure predictor is valid.
         self.predictor = check_predictor(predictor)
+        self._validate_distribution()
+        self.desired_units = desired_units
         self.tolerance = tolerance
         self.max_iterations = max_iterations
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
+            self.predictor,
             tolerance=self.tolerance,
             max_iterations=self.max_iterations,
             point_by_point=self.point_by_point,
@@ -789,9 +751,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Raises:
             ValueError: If the distribution requested is not supported.
         """
-        valid_distributions = (
-            ContinuousRankedProbabilityScoreMinimisers().minimisation_dict.keys()
-        )
+        valid_distributions = ContinuousRankedProbabilityScoreMinimisers(
+            self.predictor
+        ).minimisation_dict.keys()
         if self.distribution not in valid_distributions:
             msg = (
                 "Given distribution {} not available. Available "
@@ -1193,7 +1155,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             CubeList([forecast_predictor]),
             truths,
             forecast_var,
-            self.predictor,
             self.distribution.lower(),
         )
         coefficients_cubelist = self.create_coefficients_cubelist(
