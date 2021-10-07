@@ -151,6 +151,177 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         self.max_iterations = max_iterations
         self.point_by_point = point_by_point
 
+    @staticmethod
+    def _normal_crps_preparation(
+        initial_guess: ndarray,
+        forecast_predictor: ndarray,
+        truth: ndarray,
+        forecast_var: ndarray,
+        predictor: str,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]:
+        """
+        Prepare for the CRPS calculation by computing estimates for the
+        location parameter (mu), scale parameter (sigma),
+        normalised prediction error (xz) and the corresponding CDF and PDF,
+        assuming a normal distribution.
+
+        Args:
+            initial_guess
+            forecast_predictor
+            truth
+            forecast_var
+            predictor
+
+        Returns:
+            The location parameter (mu), scale parameter (sigma),
+            normalised prediction error (xz) and the corresponding CDF and PDF,
+            assuming a normal distribution.
+        """
+        aa, bb, gamma, delta = (
+            initial_guess[0],
+            initial_guess[1:-2],
+            initial_guess[-2],
+            initial_guess[-1],
+        )
+
+        if predictor == "mean":
+            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
+        elif predictor == "realizations":
+            bb = bb * bb
+            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
+
+        new_col = np.ones(truth.shape, dtype=np.float32)
+        all_data = np.column_stack((new_col, forecast_predictor))
+        mu = np.dot(all_data, a_b)
+        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
+        xz = (truth - mu) / sigma
+        normal_cdf = norm.cdf(xz)
+        normal_pdf = norm.pdf(xz)
+        return mu, sigma, xz, normal_cdf, normal_pdf
+
+    def calculate_normal_crps(
+        self,
+        initial_guess: ndarray,
+        forecast_predictor: ndarray,
+        truth: ndarray,
+        forecast_var: ndarray,
+        sqrt_pi: float,
+        predictor: str,
+    ) -> float:
+        """
+        Calculate the CRPS for a normal distribution.
+
+        Scientific Reference:
+        Gneiting, T. et al., 2005.
+        Calibrated Probabilistic Forecasting Using Ensemble Model Output
+        Statistics and Minimum CRPS Estimation.
+        Monthly Weather Review, 133(5), pp.1098-1118.
+
+        Args:
+            initial_guess:
+                List of optimised coefficients.
+                Order of coefficients is [alpha, beta, gamma, delta].
+                Multiple beta values can be provided if either realizations
+                are provided as the predictor, or if additional predictors
+                are provided.
+            forecast_predictor:
+                Data to be used as the predictor, either the ensemble mean
+                or the ensemble realizations of the predictand variable and
+                additional static predictors, as required.
+            truth:
+                Data to be used as truth.
+            forecast_var:
+                Ensemble variance data.
+            sqrt_pi:
+                Square root of Pi
+            predictor:
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
+
+        Returns:
+            CRPS for the current set of coefficients. This CRPS is a mean
+            value across all points.
+        """
+        mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
+            initial_guess, forecast_predictor, truth, forecast_var, predictor
+        )
+        if np.isfinite(np.min(mu / sigma)):
+            result = np.nanmean(
+                sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi)
+            )
+        else:
+            result = self.BAD_VALUE
+        return result
+
+    def calculate_truncated_normal_crps(
+        self,
+        initial_guess: ndarray,
+        forecast_predictor: ndarray,
+        truth: ndarray,
+        forecast_var: ndarray,
+        sqrt_pi: float,
+        predictor: str,
+    ) -> float:
+        """
+        Calculate the CRPS for a truncated normal distribution with zero
+        as the lower bound.
+
+        Scientific Reference:
+        Thorarinsdottir, T.L. & Gneiting, T., 2010.
+        Probabilistic forecasts of wind speed: Ensemble model
+        output statistics by using heteroscedastic censored regression.
+        Journal of the Royal Statistical Society.
+        Series A: Statistics in Society, 173(2), pp.371-388.
+
+        Args:
+            initial_guess:
+                List of optimised coefficients.
+                Order of coefficients is [alpha, beta, gamma, delta].
+                Multiple beta values can be provided if either realizations
+                are provided as the predictor, or if additional predictors
+                are provided.
+            forecast_predictor:
+                Data to be used as the predictor, either the ensemble mean
+                or the ensemble realizations of the predictand variable and
+                additional static predictors, as required.
+            truth:
+                Data to be used as truth.
+            forecast_var:
+                Ensemble variance data.
+            sqrt_pi:
+                Square root of Pi
+            predictor:
+                String to specify the form of the predictor used to calculate
+                the location parameter when estimating the EMOS coefficients.
+                Currently the ensemble mean ("mean") and the ensemble
+                realizations ("realizations") are supported as the predictors.
+
+        Returns:
+            CRPS for the current set of coefficients. This CRPS is a mean
+            value across all points.
+        """
+        mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
+            initial_guess, forecast_predictor, truth, forecast_var, predictor
+        )
+        x0 = mu / sigma
+        normal_cdf_0 = norm.cdf(x0)
+        normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
+
+        if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
+            result = np.nanmean(
+                (sigma / (normal_cdf_0 * normal_cdf_0))
+                * (
+                    xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2)
+                    + 2 * normal_pdf * normal_cdf_0
+                    - normal_cdf_root_two / sqrt_pi
+                )
+            )
+        else:
+            result = self.BAD_VALUE
+        return result
+
     def _calculate_percentage_change_in_last_iteration(
         self, allvecs: List[ndarray]
     ) -> None:
@@ -228,9 +399,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         return optimised_coeffs
 
     @staticmethod
-    def _prepare_forecasts(
-        forecast_predictors: CubeList, predictor: str,
-    ) -> ndarray:
+    def _prepare_forecasts(forecast_predictors: CubeList, predictor: str,) -> ndarray:
         """Prepare forecasts to be a consistent shape for minimisation by
         broadcasting static predictors along the time dimension and
         flattening the spatiotemporal dimensions.
@@ -523,177 +692,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
 
         return optimised_coeffs
-
-    @staticmethod
-    def _normal_crps_preparation(
-        initial_guess: ndarray,
-        forecast_predictor: ndarray,
-        truth: ndarray,
-        forecast_var: ndarray,
-        predictor: str,
-    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]:
-        """
-        Prepare for the CRPS calculation by computing estimates for the
-        location parameter (mu), scale parameter (sigma),
-        normalised prediction error (xz) and the corresponding CDF and PDF,
-        assuming a normal distribution.
-
-        Args:
-            initial_guess
-            forecast_predictor
-            truth
-            forecast_var
-            predictor
-
-        Returns:
-            The location parameter (mu), scale parameter (sigma),
-            normalised prediction error (xz) and the corresponding CDF and PDF,
-            assuming a normal distribution.
-        """
-        aa, bb, gamma, delta = (
-            initial_guess[0],
-            initial_guess[1:-2],
-            initial_guess[-2],
-            initial_guess[-1],
-        )
-
-        if predictor == "mean":
-            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
-        elif predictor == "realizations":
-            bb = bb * bb
-            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
-
-        new_col = np.ones(truth.shape, dtype=np.float32)
-        all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, a_b)
-        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
-        xz = (truth - mu) / sigma
-        normal_cdf = norm.cdf(xz)
-        normal_pdf = norm.pdf(xz)
-        return mu, sigma, xz, normal_cdf, normal_pdf
-
-    def calculate_normal_crps(
-        self,
-        initial_guess: ndarray,
-        forecast_predictor: ndarray,
-        truth: ndarray,
-        forecast_var: ndarray,
-        sqrt_pi: float,
-        predictor: str,
-    ) -> float:
-        """
-        Calculate the CRPS for a normal distribution.
-
-        Scientific Reference:
-        Gneiting, T. et al., 2005.
-        Calibrated Probabilistic Forecasting Using Ensemble Model Output
-        Statistics and Minimum CRPS Estimation.
-        Monthly Weather Review, 133(5), pp.1098-1118.
-
-        Args:
-            initial_guess:
-                List of optimised coefficients.
-                Order of coefficients is [alpha, beta, gamma, delta].
-                Multiple beta values can be provided if either realizations
-                are provided as the predictor, or if additional predictors
-                are provided.
-            forecast_predictor:
-                Data to be used as the predictor, either the ensemble mean
-                or the ensemble realizations of the predictand variable and
-                additional static predictors, as required.
-            truth:
-                Data to be used as truth.
-            forecast_var:
-                Ensemble variance data.
-            sqrt_pi:
-                Square root of Pi
-            predictor:
-                String to specify the form of the predictor used to calculate
-                the location parameter when estimating the EMOS coefficients.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
-
-        Returns:
-            CRPS for the current set of coefficients. This CRPS is a mean
-            value across all points.
-        """
-        mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
-            initial_guess, forecast_predictor, truth, forecast_var, predictor
-        )
-        if np.isfinite(np.min(mu / sigma)):
-            result = np.nanmean(
-                sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi)
-            )
-        else:
-            result = self.BAD_VALUE
-        return result
-
-    def calculate_truncated_normal_crps(
-        self,
-        initial_guess: ndarray,
-        forecast_predictor: ndarray,
-        truth: ndarray,
-        forecast_var: ndarray,
-        sqrt_pi: float,
-        predictor: str,
-    ) -> float:
-        """
-        Calculate the CRPS for a truncated normal distribution with zero
-        as the lower bound.
-
-        Scientific Reference:
-        Thorarinsdottir, T.L. & Gneiting, T., 2010.
-        Probabilistic forecasts of wind speed: Ensemble model
-        output statistics by using heteroscedastic censored regression.
-        Journal of the Royal Statistical Society.
-        Series A: Statistics in Society, 173(2), pp.371-388.
-
-        Args:
-            initial_guess:
-                List of optimised coefficients.
-                Order of coefficients is [alpha, beta, gamma, delta].
-                Multiple beta values can be provided if either realizations
-                are provided as the predictor, or if additional predictors
-                are provided.
-            forecast_predictor:
-                Data to be used as the predictor, either the ensemble mean
-                or the ensemble realizations of the predictand variable and
-                additional static predictors, as required.
-            truth:
-                Data to be used as truth.
-            forecast_var:
-                Ensemble variance data.
-            sqrt_pi:
-                Square root of Pi
-            predictor:
-                String to specify the form of the predictor used to calculate
-                the location parameter when estimating the EMOS coefficients.
-                Currently the ensemble mean ("mean") and the ensemble
-                realizations ("realizations") are supported as the predictors.
-
-        Returns:
-            CRPS for the current set of coefficients. This CRPS is a mean
-            value across all points.
-        """
-        mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
-            initial_guess, forecast_predictor, truth, forecast_var, predictor
-        )
-        x0 = mu / sigma
-        normal_cdf_0 = norm.cdf(x0)
-        normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
-
-        if np.isfinite(np.min(mu / sigma)) or (np.min(mu / sigma) >= -3):
-            result = np.nanmean(
-                (sigma / (normal_cdf_0 * normal_cdf_0))
-                * (
-                    xz * normal_cdf_0 * (2 * normal_cdf + normal_cdf_0 - 2)
-                    + 2 * normal_pdf * normal_cdf_0
-                    - normal_cdf_root_two / sqrt_pi
-                )
-            )
-        else:
-            result = self.BAD_VALUE
-        return result
 
 
 class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
