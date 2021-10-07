@@ -444,7 +444,7 @@ class TestInterpolateMultipleRows(IrisTest):
         with self.assertWarns(Warning, match="numba"):
             from improver.ensemble_copula_coupling.utilities import (
                 interpolate_multiple_rows,
-            )
+            )  # noqa: F401
 
 
 if __name__ == "__main__":
