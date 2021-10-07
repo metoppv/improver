@@ -375,6 +375,27 @@ class Test_process(IrisTest):
             np.mean(result.data), self.null_percentiles_expected_mean
         )
 
+    def test_alternative_percentiles(self):
+        """Test that the calibrated forecast is at a specified set of
+        percentiles."""
+        alternative_percentiles = [25, 50, 75]
+        result = ApplyEMOS(percentiles=alternative_percentiles)(
+            self.percentiles, self.coefficients, realizations_count=3
+        )
+        self.assertArrayEqual(
+            result.coord("percentile").points, alternative_percentiles
+        )
+
+    def test_alternative_string_percentiles(self):
+        """Test that the calibrated forecast is at a specified set of
+        percentiles where the input percentiles are strings."""
+        alternative_percentiles = ["25", "50", "75"]
+        expected_percentiles = list(map(float, alternative_percentiles))
+        result = ApplyEMOS(percentiles=alternative_percentiles)(
+            self.percentiles, self.coefficients, realizations_count=3
+        )
+        self.assertArrayEqual(result.coord("percentile").points, expected_percentiles)
+
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution
         attributes are provided within the coefficients cubelist."""

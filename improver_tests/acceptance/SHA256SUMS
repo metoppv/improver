@@ -2,6 +2,7 @@
 a6a84d0142796e4b9ca7bd3f0ad78586ea77684f5df02732fdda2ab54233cbb6  ./aggregate-reliability-tables/basic/multiple_tables_kgo.nc
 c0c38c5b1ba16fd5f7310b6d2ee0ab9d8b6bcdb3b23c8475193eefae1eb14a17  ./aggregate-reliability-tables/basic/reliability_table.nc
 9eeda326cdc66d93e591c87e9f7ceb17cea329397169fb0518f50da3bf4dc61f  ./aggregate-reliability-tables/basic/reliability_table_2.nc
+52b02f4c6e4adc604d4961ce87b4ada5985d07eac1d3c703cbab985de223228f  ./apply-emos-coefficients/alternative_percentiles/kgo.nc
 ff3a00a16fa94697d6e529a6f98384e4602f70a7d6ce26669c3947c8ac2e6f7e  ./apply-emos-coefficients/land_sea/landmask.nc
 bee125371a9db4c80fb7f8d1b0644a2710903aad27023b5939331f7ec5f3b617  ./apply-emos-coefficients/land_sea/percentiles_kgo.nc
 7f5cabc9b5de4c13aebf833d5372159edf1deafd19bba8721318b889a09b407f  ./apply-emos-coefficients/land_sea/probabilities_kgo.nc
