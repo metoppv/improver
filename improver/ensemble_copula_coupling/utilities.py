@@ -304,7 +304,7 @@ except ImportError:
 
 def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarray):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
-    
+
     Args:
         x: 1-d array
         xp: n * m array, each row must be in non-decreasing order
@@ -316,10 +316,8 @@ def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarra
 
 
 try:
-    import numba
-
+    import numba # noqa: F401
     from improver.ensemble_copula_coupling.numba_utilities import fast_interp
-
     interpolate_multiple_rows = fast_interp
 except ImportError:
     warnings.warn(
