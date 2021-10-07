@@ -50,6 +50,7 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
+    interpolate_multiple_rows,
     restore_non_percentile_dimensions,
     slow_interp,
 )
@@ -428,6 +429,22 @@ class TestInterpolateMultipleRows(IrisTest):
         result_fast = np.empty((self.xp.shape[0], len(self.x)))
         fast_interp(self.x, self.xp, self.fp, result_fast)
         np.testing.assert_allclose(result_slow, result_fast)
+
+    def test_slow_vs_multi(self):
+        """Test that slow interp gives same result as interpolate_multiple_rows."""
+        result_slow = np.empty((self.xp.shape[0], len(self.x)))
+        slow_interp(self.x, self.xp, self.fp, result_slow)
+        result_multiple = np.empty((self.xp.shape[0], len(self.x)))
+        interpolate_multiple_rows(self.x, self.xp, self.fp, result_multiple)
+        np.testing.assert_allclose(result_slow, result_multiple)
+
+    @skipIf(numba_installed, "numba is installed")
+    def test_warning(self):
+        result_multiple = np.empty((self.xp.shape[0], len(self.x)))
+        with self.assertWarns(Warning, match="numba"):
+            from improver.ensemble_copula_coupling.utilities import (
+                interpolate_multiple_rows,
+            )
 
 
 if __name__ == "__main__":
