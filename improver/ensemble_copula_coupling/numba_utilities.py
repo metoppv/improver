@@ -1,7 +1,7 @@
 import os
 
-from numba import config, njit, prange, set_num_threads
 import numpy as np
+from numba import config, njit, prange, set_num_threads
 
 config.THREADING_LAYER = 'omp'
 if 'OMP_NUM_THREADS' in os.environ:
