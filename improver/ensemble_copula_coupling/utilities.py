@@ -319,6 +319,7 @@ try:
     import numba  # noqa: F401
 
     from improver.ensemble_copula_coupling.numba_utilities import fast_interp
+
     interpolate_multiple_rows = fast_interp
 except ImportError:
     warnings.warn(

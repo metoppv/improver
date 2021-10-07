@@ -3,9 +3,10 @@ import os
 import numpy as np
 from numba import config, njit, prange, set_num_threads
 
-config.THREADING_LAYER = 'omp'
-if 'OMP_NUM_THREADS' in os.environ:
-    set_num_threads(int(os.environ['OMP_NUM_THREADS']))
+config.THREADING_LAYER = "omp"
+if "OMP_NUM_THREADS" in os.environ:
+    set_num_threads(int(os.environ["OMP_NUM_THREADS"]))
+
 
 @njit(parallel=True)
 def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarray):
@@ -62,9 +63,9 @@ def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarra
             elif ind == max_ind:
                 result[i, j] = max_val
             else:
-                if recalculate or not(x_ordered):
+                if recalculate or not (x_ordered):
                     intercept = fp[ind - 1]
-                    x_lower =  xp[i, ind - 1]
+                    x_lower = xp[i, ind - 1]
                     h_diff = xp[i, ind] - x_lower
                     if h_diff < 1e-15:
                         # avoid division by very small values for numerical stability
