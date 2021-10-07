@@ -1185,7 +1185,8 @@ class Test_process(
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
-
+        import pdb
+        pdb.set_trace()
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data).flatten() for cube in result]),
             self.expected_realizations_norm,

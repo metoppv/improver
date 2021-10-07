@@ -897,6 +897,46 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ]
         return template_dims, spatial_associated_coords
 
+    @staticmethod
+    def _add_predictor_coords(
+        template_cube: Cube, forecast_predictors: CubeList
+    ) -> Cube:
+        """Add predictor index and predictor name coordinates to the
+        beta coefficient template cube to support the use of additional
+        predictors.
+
+        Args:
+            template_cube:
+                A template cube for storing the optimised beta
+                coefficients.
+            forecast_predictors
+                CubeList where each cube contains a separate forecast
+                predictor
+
+        Returns:
+            A cube with the predictor_index and predictor_name
+            coordinates added.
+        """
+        template_cubes = iris.cube.CubeList()
+        fp_names = []
+        for index, fp in enumerate(forecast_predictors):
+            template_cube_copy = template_cube.copy()
+            predictor_index = iris.coords.DimCoord(
+                np.array(index, dtype=np.int32), long_name="predictor_index", units="1",
+            )
+            template_cube_copy.add_aux_coord(predictor_index)
+            template_cube_copy = iris.util.new_axis(template_cube_copy, predictor_index)
+            template_cubes.append(template_cube_copy)
+            fp_names.append(fp.name())
+        template_cube = template_cubes.concatenate_cube()
+        predictor_name = iris.coords.AuxCoord(
+            fp_names, long_name="predictor_name", units="no_unit"
+        )
+        template_cube.add_aux_coord(
+            predictor_name, data_dims=template_cube.coord_dims("predictor_index"),
+        )
+        return template_cube
+
     def _create_cubelist(
         self,
         optimised_coeffs: ndarray,
@@ -940,28 +980,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             template_cube = next(historic_forecasts.slices(used_dims))
 
             if "beta" == coeff_name:
-                template_cubes = iris.cube.CubeList()
-                fp_names = []
-                for index, fp in enumerate(forecast_predictors):
-                    template_cube_copy = template_cube.copy()
-                    predictor_index = iris.coords.DimCoord(
-                        np.array(index, dtype=np.int32),
-                        long_name="predictor_index",
-                        units="1",
-                    )
-                    template_cube_copy.add_aux_coord(predictor_index)
-                    template_cube_copy = iris.util.new_axis(
-                        template_cube_copy, predictor_index
-                    )
-                    template_cubes.append(template_cube_copy)
-                    fp_names.append(fp.name())
-                template_cube = template_cubes.concatenate_cube()
-                predictor_name = iris.coords.AuxCoord(
-                    fp_names, long_name="predictor_name", units="no_unit"
-                )
-                template_cube.add_aux_coord(
-                    predictor_name,
-                    data_dims=template_cube.coord_dims("predictor_index"),
+                template_cube = self._add_predictor_coords(
+                    template_cube, forecast_predictors
                 )
                 replacements += ["predictor_index", "predictor_name"]
 
@@ -1127,6 +1147,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         elif not self.use_default_initial_guess:
             truths_flattened = flatten_ignoring_masked_data(truths)
 
+            # Always preserve the first leading dimension over
+            # additional predictors. If using realizations as the predictor,
+            # preserve both the additional predictor and realization
+            # dimensions.
             num_of_leading_dimensions_to_preserve = 1
             if predictor.lower() == "realizations":
                 num_of_leading_dimensions_to_preserve = 2
