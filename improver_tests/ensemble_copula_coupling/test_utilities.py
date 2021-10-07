@@ -32,8 +32,10 @@
 Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
+import importlib
 import unittest
 from datetime import datetime
+from unittest.case import skipIf
 
 import numpy as np
 from cf_units import Unit
@@ -49,6 +51,7 @@ from improver.ensemble_copula_coupling.utilities import (
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
     restore_non_percentile_dimensions,
+    slow_interp,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -396,6 +399,35 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             1,
         )
         self.assertArrayAlmostEqual(reshaped_array, expected)
+
+
+numba_installed = True
+try:
+    importlib.util.find_spec("numba")
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp
+except ImportError:
+    numba_installed = False
+
+
+class TestInterpolateMultipleRows(IrisTest):
+
+    """Test interpolate_multiple_rows"""
+
+    def setUp(self):
+        """Set up arrays."""
+        np.random.seed(0)
+        self.x = np.arange(0, 1, 0.01)
+        self.xp = np.sort(np.random.random_sample((100, 100)), axis=1)
+        self.fp = np.arange(0, 100, 1).astype(float)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_fast(self):
+        """Test that slow and fast versions give same result"""
+        result_slow = np.empty((self.xp.shape[0], len(self.x)))
+        slow_interp(self.x, self.xp, self.fp, result_slow)
+        result_fast = np.empty((self.xp.shape[0], len(self.x)))
+        fast_interp(self.x, self.xp, self.fp, result_fast)
+        np.testing.assert_allclose(result_slow, result_fast)
 
 
 if __name__ == "__main__":

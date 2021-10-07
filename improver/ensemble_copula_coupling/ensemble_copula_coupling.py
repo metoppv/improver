@@ -50,6 +50,7 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
+    interpolate_multiple_rows,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
@@ -561,14 +562,15 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         )
 
         forecast_at_percentiles = np.empty(
-            (len(percentiles), probabilities_for_cdf.shape[0]), dtype=np.float32
+            (probabilities_for_cdf.shape[0], len(percentiles)), dtype=np.float32
         )
-        for index in range(probabilities_for_cdf.shape[0]):
-            forecast_at_percentiles[:, index] = np.interp(
-                percentiles_as_fractions,
-                probabilities_for_cdf[index, :],
-                threshold_points,
-            )
+        interpolate_multiple_rows(
+            percentiles_as_fractions,
+            probabilities_for_cdf,
+            threshold_points,
+            forecast_at_percentiles,
+        )
+        forecast_at_percentiles = forecast_at_percentiles.transpose()
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.

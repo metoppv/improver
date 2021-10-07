@@ -34,6 +34,8 @@ plugins.
 
 """
 
+import importlib
+import warnings
 from typing import List, Optional, Union
 
 import cf_units as unit
@@ -289,3 +291,38 @@ def restore_non_percentile_dimensions(
     if n_percentiles > 1:
         shape_to_reshape_to = [n_percentiles] + shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)
+
+
+try:
+    importlib.util.find_spec("numba")
+except ImportError:
+    warnings.warn(
+        "Module numba unavailable. Note that GenerateTimezoneMask is"
+        " very slow in the absence of numba."
+    )
+
+
+def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarray):
+    """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
+    
+    Args:
+        x: 1-d array
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-d array with length m
+        result: n * len(x) array for output
+    """
+    for i in range(xp.shape[0]):
+        result[i] = np.interp(x, xp[i, :], fp)
+
+
+try:
+    import numba
+
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp
+
+    interpolate_multiple_rows = fast_interp
+except ImportError:
+    warnings.warn(
+        "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
+    )
+    interpolate_multiple_rows = slow_interp
