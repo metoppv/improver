@@ -232,55 +232,6 @@ class Test_extract_coordinates(Test_SpotExtraction):
             plugin.extract_coordinates(self.neighbour_cube)
 
 
-class Test_extract_data(Test_SpotExtraction):
-
-    """Test the extraction of data from the provided coordinates."""
-
-    def test_xy_ordered_cube(self):
-        """Test extraction of diagnostic data that is natively ordered xy.
-        This will be reordered before extraction to become yx."""
-        plugin = SpotExtraction()
-        expected = [0, 0, 12, 12]
-        result = plugin.extract_data(self.coordinate_cube, self.diagnostic_cube_xy)
-        self.assertArrayEqual(result, expected)
-
-    def test_yx_ordered_cube(self):
-        """Test extraction of diagnostic data that is natively ordered yx."""
-        plugin = SpotExtraction()
-        expected = [0, 0, 12, 12]
-        result = plugin.extract_data(self.coordinate_cube, self.diagnostic_cube_yx)
-        self.assertArrayEqual(result, expected)
-
-    def test_coordinate_with_bounds_extraction(self):
-        """Test extraction of coordinate data for a 2-dimensional auxiliary
-        coordinate. In this case the coordinate has bounds."""
-        plugin = SpotExtraction()
-
-        expected_points = self.expected_spot_time_coord.points
-        expected_bounds = self.expected_spot_time_coord.bounds
-
-        points, bounds = plugin.extract_data(
-            self.coordinate_cube, self.diagnostic_cube_2d_time, coordinate="time"
-        )
-        self.assertArrayEqual(points, expected_points)
-        self.assertArrayEqual(bounds, expected_bounds)
-
-    def test_coordinate_without_bounds_extraction(self):
-        """Test extraction of coordinate data for a 2-dimensional auxiliary
-        coordinate. In this case the coordinate has no bounds."""
-        plugin = SpotExtraction()
-
-        expected_points = self.expected_spot_time_coord.points
-        expected_bounds = None
-
-        self.diagnostic_cube_2d_time.coord("time").bounds = None
-        points, bounds = plugin.extract_data(
-            self.coordinate_cube, self.diagnostic_cube_2d_time, coordinate="time"
-        )
-        self.assertArrayEqual(points, expected_points)
-        self.assertArrayEqual(bounds, expected_bounds)
-
-
 class Test_check_for_unique_id(Test_SpotExtraction):
 
     """Test identification of unique site ID coordinates from coordinate
@@ -315,8 +266,9 @@ class Test_get_aux_coords(Test_SpotExtraction):
 
         expected_scalar = self.diagnostic_cube_yx.aux_coords
         expected_nonscalar = []
+        x_indices, y_indices = self.coordinate_cube.data
         scalar, nonscalar = plugin.get_aux_coords(
-            self.coordinate_cube, self.diagnostic_cube_yx
+            self.diagnostic_cube_yx, x_indices, y_indices
         )
         self.assertArrayEqual(scalar, expected_scalar)
         self.assertArrayEqual(nonscalar, expected_nonscalar)
@@ -328,15 +280,16 @@ class Test_get_aux_coords(Test_SpotExtraction):
         plugin = SpotExtraction()
 
         expected_scalar = [
-            crd
-            for crd in self.diagnostic_cube_2d_time.aux_coords
-            if crd.name()
+            coord
+            for coord in self.diagnostic_cube_2d_time.aux_coords
+            if coord.name()
             in ["time_in_local_timezone", "forecast_reference_time", "forecast_period"]
         ]
         expected_nonscalar = [self.expected_spot_time_coord]
+        x_indices, y_indices = self.coordinate_cube.data
 
         scalar, nonscalar = plugin.get_aux_coords(
-            self.coordinate_cube, self.diagnostic_cube_2d_time
+            self.diagnostic_cube_2d_time, x_indices, y_indices
         )
         self.assertArrayEqual(scalar, expected_scalar)
         self.assertArrayEqual(nonscalar, expected_nonscalar)
@@ -353,11 +306,48 @@ class Test_get_aux_coords(Test_SpotExtraction):
         additional_expected = self.expected_spot_time_coord.copy()
         additional_expected.rename("kittens")
         expected_nonscalar = [additional_expected, self.expected_spot_time_coord]
+        x_indices, y_indices = self.coordinate_cube.data
 
         _, nonscalar = plugin.get_aux_coords(
-            self.coordinate_cube, self.diagnostic_cube_2d_time
+            self.diagnostic_cube_2d_time, x_indices, y_indices
         )
         self.assertArrayEqual(nonscalar, expected_nonscalar)
+
+
+class Test_get_coordinate_data(Test_SpotExtraction):
+
+    """Test the extraction of data from the provided coordinates."""
+
+    def test_coordinate_with_bounds_extraction(self):
+        """Test extraction of coordinate data for a 2-dimensional auxiliary
+        coordinate. In this case the coordinate has bounds."""
+        plugin = SpotExtraction()
+
+        expected_points = self.expected_spot_time_coord.points
+        expected_bounds = self.expected_spot_time_coord.bounds
+        x_indices, y_indices = self.coordinate_cube.data
+
+        points, bounds = plugin.get_coordinate_data(
+            self.diagnostic_cube_2d_time, x_indices, y_indices, coordinate="time"
+        )
+        self.assertArrayEqual(points, expected_points)
+        self.assertArrayEqual(bounds, expected_bounds)
+
+    def test_coordinate_without_bounds_extraction(self):
+        """Test extraction of coordinate data for a 2-dimensional auxiliary
+        coordinate. In this case the coordinate has no bounds."""
+        plugin = SpotExtraction()
+
+        expected_points = self.expected_spot_time_coord.points
+        expected_bounds = None
+        x_indices, y_indices = self.coordinate_cube.data
+
+        self.diagnostic_cube_2d_time.coord("time").bounds = None
+        points, bounds = plugin.get_coordinate_data(
+            self.diagnostic_cube_2d_time, x_indices, y_indices, coordinate="time"
+        )
+        self.assertArrayEqual(points, expected_points)
+        self.assertArrayEqual(bounds, expected_bounds)
 
 
 class Test_build_diagnostic_cube(Test_SpotExtraction):
@@ -504,6 +494,13 @@ class Test_process(Test_SpotExtraction):
             UNIQUE_ID_ATTRIBUTE,
             [att for att in result.coord(self.unique_site_id_key).attributes],
         )
+
+    def test_yx_ordered_cube(self):
+        """Test extraction of diagnostic data that is natively ordered yx."""
+        plugin = SpotExtraction()
+        expected = [0, 0, 12, 12]
+        result = plugin.process(self.coordinate_cube, self.diagnostic_cube_yx)
+        self.assertArrayEqual(result.data, expected)
 
 
 if __name__ == "__main__":
