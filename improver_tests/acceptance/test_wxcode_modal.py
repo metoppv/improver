@@ -39,78 +39,22 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+@pytest.mark.parametrize(
+    "test_path",
+    ["gridded_input", "spot_input", "gridded_ties", "spot_ties", "spot_night"],
+)
 @pytest.mark.slow
-def test_gridded(tmp_path):
-    """Test gridded wxcode modal calculation"""
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / "gridded_input"
-    kgo_path = kgo_dir / "gridded_kgo.nc"
-    input_paths = (kgo_dir).glob("20201209*.nc")
-    output_path = tmp_path / "output.nc"
-    args = [
-        *input_paths,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+def test_expected(tmp_path, test_path):
+    """Test wxcode modal calculation returns the expected results. The tests
+    are:
 
-
-@pytest.mark.slow
-def test_grid_ties(tmp_path):
-    """Test gridded input that is engineered to require use of the grouping
-    method to resolve ties."""
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / "gridded_ties"
-    kgo_path = kgo_dir / "gridded_ties_kgo.nc"
-    input_paths = (kgo_dir).glob("20201209*.nc")
-    output_path = tmp_path / "output.nc"
-    args = [
-        *input_paths,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_spot(tmp_path):
-    """Test spot wxcode modal calculation"""
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / "spot_input"
-    kgo_path = kgo_dir / "spot_kgo.nc"
-    input_paths = (kgo_dir).glob("20201209*.nc")
-    output_path = tmp_path / "output.nc"
-    args = [
-        *input_paths,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_spot_ties(tmp_path):
-    """Test spot input that is engineered to require use of the grouping method
-    to resolve ties."""
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / "spot_ties"
-    kgo_path = kgo_dir / "spot_ties_kgo.nc"
-    input_paths = (kgo_dir).glob("20201209*.nc")
-    output_path = tmp_path / "output.nc"
-    args = [
-        *input_paths,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_spot_night(tmp_path):
-    """Test period modal spot outputs are converted to night symbols if the
-    period includes midnight."""
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / "spot_night"
-    kgo_path = kgo_dir / "spot_night_kgo.nc"
+        - simple gridded / spot data input
+        - gridded / spot data input engineered to provide many ties that are
+          solved using grouping
+        - a night-time code test using spot data
+         """
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
+    kgo_path = kgo_dir / "kgo.nc"
     input_paths = (kgo_dir).glob("202012*.nc")
     output_path = tmp_path / "output.nc"
     args = [
