@@ -39,11 +39,43 @@ import numpy as np
 import scipy.special as sc
 from scipy.stats._distn_infrastructure import rv_continuous
 
-
 # ============================================================================
 # |                        Copyright SciPy                                   |
 # | Code from this point unto the termination banner is copyright SciPy.     |
-# | License details can be found at scipy.org/scipylib/license.html          |
+# |                                                                          |
+# | Copyright © 2001, 2002 Enthought, Inc.                                   |
+# | All rights reserved.                                                     |
+# |                                                                          |
+# | Copyright © 2003-2019 SciPy Developers.                                  |
+# | All rights reserved.                                                     |
+# |                                                                          |
+# | Redistribution and use in source and binary forms, with or without       |
+# | modification, are permitted provided that the following conditions are   |
+# | met:                                                                     |
+# |                                                                          |
+# | Redistributions of source code must retain the above copyright notice,   |
+# | this list of conditions and the following disclaimer.                    |
+# |                                                                          |
+# | - Redistributions in binary form must reproduce the above copyright      |
+# |   notice, this list of conditions and the following disclaimer in the    |
+# |   documentation and/or other materials provided with the distribution.   |
+# | - Neither the name of Enthought nor the names of the SciPy Developers    |
+# |   may be used to endorse or promote products derived from this software  |
+# |   without specific prior written permission.                             |
+# |                                                                          |
+# | THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS      |
+# | “AS IS” AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT        |
+# | LIMITED TO, THE IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A  |
+# | PARTICULAR PURPOSE ARE DISCLAIMED. IN NO EVENT SHALL THE REGENTS OR      |
+# | CONTRIBUTORS BE LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL,    |
+# | EXEMPLARY, OR CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO,      |
+# | PROCUREMENT OF SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR       |
+# | PROFITS; OR BUSINESS INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF   |
+# | LIABILITY, WHETHER IN CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING     |
+# | NEGLIGENCE OR OTHERWISE) ARISING IN ANY WAY OUT OF THE USE OF THIS       |
+# | SOFTWARE, EVEN IF ADVISED OF THE POSSIBILITY OF SUCH DAMAGE.             |
+# |                                                                          |
+# | Further details can be found at scipy.org/scipylib/license.html          |
 # ============================================================================
 
 # Source: https://github.com/scipy/scipy/blob/v1.3.3/scipy/stats/_continuous_\
@@ -58,21 +90,16 @@ except AttributeError:
     float_power = np.power
 
 
-## Normal distribution
-
-# loc = mu, scale = std
-# Keep these implementations out of the class definition so they can be reused
-# by other distributions.
-_norm_pdf_C = np.sqrt(2*np.pi)
+_norm_pdf_C = np.sqrt(2 * np.pi)
 _norm_pdf_logC = np.log(_norm_pdf_C)
 
 
 def _norm_pdf(x):
-    return np.exp(-x**2/2.0) / _norm_pdf_C
+    return np.exp(-(x ** 2) / 2.0) / _norm_pdf_C
 
 
 def _norm_logpdf(x):
-    return -x**2 / 2.0 - _norm_pdf_logC
+    return -(x ** 2) / 2.0 - _norm_pdf_logC
 
 
 def _norm_cdf(x):
@@ -120,6 +147,7 @@ class truncnorm_gen(rv_continuous):
     %(example)s
 
     """
+
     def _argcheck(self, a, b):
         return a < b
 
@@ -132,7 +160,7 @@ class truncnorm_gen(rv_continuous):
         _sb = _norm_sf(b)
         _sa = _norm_sf(a)
         _delta = np.where(a > 0, _sa - _sb, _nb - _na)
-        with np.errstate(divide='ignore'):
+        with np.errstate(divide="ignore"):
             return _na, _nb, _sa, _sb, _delta, np.log(_delta)
 
     def _pdf(self, x, a, b):
@@ -154,9 +182,11 @@ class truncnorm_gen(rv_continuous):
         # XXX Use _lazywhere...
         ans = self._get_norms(a, b)
         _na, _nb, _sa, _sb = ans[:4]
-        ppf = np.where(a > 0,
-                       _norm_isf(q*_sb + _sa*(1.0-q)),
-                       _norm_ppf(q*_nb + _na*(1.0-q)))
+        ppf = np.where(
+            a > 0,
+            _norm_isf(q * _sb + _sa * (1.0 - q)),
+            _norm_ppf(q * _nb + _na * (1.0 - q)),
+        )
         return ppf
 
     def _stats(self, a, b):
@@ -164,12 +194,12 @@ class truncnorm_gen(rv_continuous):
         nA, nB = ans[:2]
         d = nB - nA
         pA, pB = _norm_pdf(a), _norm_pdf(b)
-        mu = (pA - pB) / d   # correction sign
-        mu2 = 1 + (a*pA - b*pB) / d - mu*mu
+        mu = (pA - pB) / d  # correction sign
+        mu2 = 1 + (a * pA - b * pB) / d - mu * mu
         return mu, mu2, None, None
 
 
-truncnorm = truncnorm_gen(name='truncnorm')
+truncnorm = truncnorm_gen(name="truncnorm")
 
 
 # ============================================================================

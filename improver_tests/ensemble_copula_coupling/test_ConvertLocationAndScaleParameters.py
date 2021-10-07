@@ -37,8 +37,7 @@ import numpy as np
 from iris.tests import IrisTest
 from scipy import stats
 
-import improver.ensemble_copula_coupling._scipy_continuous_distns as \
-    scipy_cont_distns
+import improver.ensemble_copula_coupling._scipy_continuous_distns as scipy_cont_distns
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParameters as Plugin,
 )
