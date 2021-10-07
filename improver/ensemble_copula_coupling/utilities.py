@@ -316,7 +316,7 @@ def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarra
 
 
 try:
-    import numba # noqa: F401
+    import numba  # noqa: F401
     from improver.ensemble_copula_coupling.numba_utilities import fast_interp
     interpolate_multiple_rows = fast_interp
 except ImportError:
