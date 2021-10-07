@@ -436,11 +436,10 @@ class TestInterpolateMultipleRows(IrisTest):
         slow_interp(self.x, self.xp, self.fp, result_slow)
         result_multiple = np.empty((self.xp.shape[0], len(self.x)))
         interpolate_multiple_rows(self.x, self.xp, self.fp, result_multiple)
-        np.testing.assert_allclose(result_slow, result_multiple)  # noqa: F841
+        np.testing.assert_allclose(result_slow, result_multiple)
 
     @skipIf(numba_installed, "numba is installed")
     def test_warning(self):
-        result_multiple = np.empty((self.xp.shape[0], len(self.x)))
         with self.assertWarns(Warning, match="numba"):
             from improver.ensemble_copula_coupling.utilities import (  # noqa: F401
                 interpolate_multiple_rows,
