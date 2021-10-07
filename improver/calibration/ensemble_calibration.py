@@ -38,7 +38,7 @@ Statistics (EMOS).
 
 """
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -1261,9 +1261,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if not (historic_forecasts and truths):
             raise ValueError("historic_forecasts and truths cubes must be provided.")
-
-        # Ensure predictor is valid.
-        predictor = check_predictor(self.predictor)
 
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths

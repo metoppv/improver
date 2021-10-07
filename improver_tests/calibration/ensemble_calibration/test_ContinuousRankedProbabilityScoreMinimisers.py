@@ -247,7 +247,7 @@ class Test_process_normal_distribution(
             [-0.0003, 1.0013, 0.0012, 0.5945], dtype=np.float32
         )
         self.expected_realizations_coefficients = np.array(
-            [0.0254, 0.4349, 0.39, 0.8122, -0.0016, 0.2724,], dtype=np.float32
+            [0.0254, 0.4349, 0.39, 0.8122, -0.0016, 0.2724], dtype=np.float32
         )
         self.expected_mean_coefficients_point_by_point = np.array(
             [
@@ -322,7 +322,7 @@ class Test_process_normal_distribution(
         )
 
         self.expected_mean_coefficients_additional_predictor = np.array(
-            [-0.0066, 1.0036, 0.0001, 0.0066, 0,], dtype=np.float32
+            [-0.0066, 1.0036, 0.0001, 0.0066, 0], dtype=np.float32
         )
         self.expected_point_by_point_sites_additional_predictor = np.array(
             [
@@ -902,7 +902,7 @@ class Test_process_truncated_normal_distribution(
             [0.3958, 0.9854, -0.0, 0.621], dtype=np.float32
         )
         self.expected_realizations_coefficients = np.array(
-            [0.1898, -0.1558, 0.4452, 0.8877, -0.1331, -0.0002,], np.float32
+            [0.1898, -0.1558, 0.4452, 0.8877, -0.1331, -0.0002], np.float32
         )
         self.expected_additional_predictors = np.array(
             [0.0014, 0.9084, 0.0279, -0.0021, 0.8591], dtype=np.float32
