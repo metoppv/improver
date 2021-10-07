@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -28,33 +29,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the map-to-timezones CLI."""
+"""CLI to relabel a diagnostic as a period diagnostic."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
-
-GRIDS = ["uk", "global"]
+from improver import cli
 
 
-@pytest.mark.parametrize("grid", GRIDS)
-def test_basic(tmp_path, grid):
-    """Test collapsing multiple input times into a single local-time output. For global,
-    timezone_mask.nc is a copy of generate-timezone-mask-ancillary/global/grouped_kgo.nc
-    which has 2 time-zones (-6 and +6), so only 2 input files required.
-    For UK, there are 4 timezones (-2 to +1)."""
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube, *, period: int = None):
+    """Relabel a diagnostic as a period diagnostic.
 
-    kgo_dir = acc.kgo_root() / f"map-to-timezones/{grid}/"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input_*.nc"
-    timezone_path = kgo_dir / "timezone_mask.nc"
-    local_time = "20201203T0000"
-    output_path = tmp_path / "output.nc"
-    args = [local_time, input_path, timezone_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Modify an existing diagnostic to represent a period. This will either
+    relabel an instantaneous diagnostic to be a period diagnostic, or
+    modify a period diagnostic to have a different period. This may be
+    useful when trying to combine instantaneous and period diagnostics.
+
+    Args:
+        cube (iris.cube.Cube):
+            The cube for a diagnostic that will be modified to represent the
+            required period.
+        period (int):
+            The period in hours.
+
+    Returns:
+        iris.cube.Cube:
+            Cube with metadata updated to represent the required period.
+
+    """
+    from improver.utilities.temporal import relabel_to_period
+
+    return relabel_to_period(cube, period)

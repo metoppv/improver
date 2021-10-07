@@ -35,12 +35,12 @@ class.
 
 """
 import datetime
-import importlib
 import unittest
 from functools import partial
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import (
@@ -53,14 +53,6 @@ from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
-try:
-    importlib.import_module("statsmodels")
-except (ModuleNotFoundError, ImportError):
-    STATSMODELS_FOUND = False
-else:
-    STATSMODELS_FOUND = True
-
-
 IGNORED_MESSAGES = [
     "Collapsing a non-contiguous coordinate",  # Originating from Iris
     "invalid escape sequence",  # Originating from statsmodels
@@ -69,7 +61,6 @@ IGNORED_MESSAGES = [
     "The final iteration resulted in",  # From calibration code
     "Invalid value encountered in",  # From calculating percentage change in
     # calibration code
-    "The statsmodels module cannot be imported",
 ]
 WARNING_TYPES = [
     UserWarning,
@@ -78,7 +69,6 @@ WARNING_TYPES = [
     UserWarning,
     UserWarning,
     RuntimeWarning,
-    ImportWarning,
 ]
 
 
@@ -101,17 +91,11 @@ class SetupExpectedCoefficients(IrisTest):
             [-0.6381, 0.9904, -0.0, 1.1979], dtype=np.float32
         )
 
-        self.expected_realizations_norm_statsmodels = np.array(
+        self.expected_realizations_norm = np.array(
             [-0.0637, 0.0546, 0.2236, 0.9718, -0.0001, 0.944], dtype=np.float32
         )
-        self.expected_realizations_norm_no_statsmodels = np.array(
-            [0.013, 0.2281, 0.5815, 0.7792, 0.0032, 0.2951], dtype=np.float32
-        )
-        self.expected_realizations_truncnorm_statsmodels = np.array(
+        self.expected_realizations_truncnorm = np.array(
             [-0.6989, -0.4923, 0.3968, 0.7732, 0.0001, 1.0787], dtype=np.float32
-        )
-        self.expected_realizations_truncnorm_no_statsmodels = np.array(
-            [-0.6989, 0.4911, 0.3974, 0.7736, -0.0092, 1.078], dtype=np.float32
         )
         self.expected_mean_pred_each_grid_point = {
             "emos_coefficient_alpha": np.array(
@@ -205,21 +189,13 @@ class SetupExpectedCoefficients(IrisTest):
             "emos_coefficient_gamma": np.array([0.0, 0.0, 0.0, 0.0]),
             "emos_coefficient_delta": np.array([1.1899, 1.1765, 1.1767, 1.1899]),
         }
-        self.expected_realizations_each_site_statsmodels = {
+        self.expected_realizations_each_site = {
             "emos_coefficient_alpha": np.array([0.8126, 0.8126, 0.8126, 0.8126]),
             "emos_coefficient_beta": np.array(
                 [[0.8166, 0.8166, 0.8166, 0.8166], [0.5778, 0.5778, 0.5778, 0.5778]]
             ),
             "emos_coefficient_gamma": np.array([0.0005, 0.0005, 0.0005, 0.0005]),
             "emos_coefficient_delta": np.array([0.2673, 0.2673, 0.2673, 0.2673]),
-        }
-        self.expected_realizations_each_site_no_statsmodels = {
-            "emos_coefficient_alpha": np.array([0.0, 0.0, 0.0, 0.0]),
-            "emos_coefficient_beta": np.array(
-                [[0.7164, 0.7164, 0.7164, 0.7164], [0.7003, 0.7003, 0.7003, 0.7003]]
-            ),
-            "emos_coefficient_gamma": np.array([0.0002, 0.0002, 0.0002, 0.0002]),
-            "emos_coefficient_delta": np.array([0.9799, 0.9799, 0.9799, 0.98]),
         }
 
 
@@ -508,6 +484,7 @@ class Test_compute_initial_guess(IrisTest):
         halo surrounding the original data.
         Set up expected results for different situations.
         """
+        pytest.importorskip("statsmodels")
         self.distribution = "norm"
         self.desired_units = "degreesC"
         self.predictor = "mean"
@@ -668,7 +645,6 @@ class Test_compute_initial_guess(IrisTest):
             self.expected_mean_pred_compute_initial_guess, result
         )
 
-    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_realizations_predictor_estimate_coefficients(self):
         """
@@ -725,7 +701,6 @@ class Test_compute_initial_guess(IrisTest):
             self.expected_mean_pred_compute_initial_guess, result
         )
 
-    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_realizations_predictor_estimate_coefficients_masked_halo(self):
         """
@@ -843,6 +818,7 @@ class Test_process(
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up multiple cubes for testing."""
+        pytest.importorskip("statsmodels")
         super().setUp()
         self.distribution = "norm"
 
@@ -1080,9 +1056,8 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_norm_realizations_statsmodels(self):
+    def test_coefficients_norm_realizations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a normal distribution where the
@@ -1096,37 +1071,14 @@ class Test_process(
 
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_norm_statsmodels,
+            self.expected_realizations_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_norm_realizations_no_statsmodels(self):
-        """Ensure that the values for the optimised_coefficients match the
-        expected values, and the coefficient names also match
-        expected values for a normal distribution where the
-        realizations are used as the predictor.
-        """
-        predictor = "realizations"
-
-        plugin = self.plugin(self.distribution, predictor=predictor)
-        result = plugin.process(
-            self.historic_temperature_forecast_cube, self.temperature_truth_cube
-        )
-        self.assertEMOSCoefficientsAlmostEqual(
-            np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_norm_no_statsmodels,
-        )
-        self.assertArrayEqual(
-            [cube.name() for cube in result], self.expected_coeff_names
-        )
-
-    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_truncnorm_realizations_statsmodels(self):
+    def test_coefficients_truncnorm_realizations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
         expected values for a truncated normal distribution where the
@@ -1140,29 +1092,7 @@ class Test_process(
         )
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_truncnorm_statsmodels,
-        )
-        self.assertArrayEqual(
-            [cube.name() for cube in result], self.expected_coeff_names
-        )
-
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_coefficients_truncnorm_realizations_no_statsmodels(self):
-        """Ensure that the values for the optimised_coefficients match the
-        expected values, and the coefficient names also match
-        expected values for a truncated normal distribution where the
-        realizations are used as the predictor."""
-        distribution = "truncnorm"
-        predictor = "realizations"
-
-        plugin = self.plugin(distribution, predictor=predictor)
-        result = plugin.process(
-            self.historic_wind_speed_forecast_cube, self.wind_speed_truth_cube
-        )
-        self.assertEMOSCoefficientsAlmostEqual(
-            np.concatenate([np.atleast_1d(cube.data) for cube in result]),
-            self.expected_realizations_truncnorm_no_statsmodels,
+            self.expected_realizations_truncnorm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1226,9 +1156,8 @@ class Test_process(
                 [c.name() for c in cube.coords(dim_coords=True)], ["spot_index"],
             )
 
-    @unittest.skipIf(STATSMODELS_FOUND is False, "statsmodels module not available.")
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_point_by_point_sites_realizations_statsmodels(self):
+    def test_point_by_point_sites_realizations(self):
         """Test computing coefficients independently for each site location
         (initial guess and minimising) using realizations as the predictor
         returns the expected coefficients and associated metadata."""
@@ -1245,36 +1174,7 @@ class Test_process(
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data,
-                self.expected_realizations_each_site_statsmodels[cube.name()],
-            )
-            self.assertIn(cube.name(), self.expected_coeff_names)
-            self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()],
-            )
-
-    @unittest.skipIf(STATSMODELS_FOUND is True, "statsmodels module is available.")
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_point_by_point_sites_realizations_no_statsmodels(self):
-        """Test computing coefficients independently for each site location
-        (initial guess and minimising) using realizations as the predictor
-        returns the expected coefficients and associated metadata."""
-        expected_dim_coords = {
-            "emos_coefficient_alpha": ["spot_index"],
-            "emos_coefficient_beta": ["realization", "spot_index"],
-            "emos_coefficient_gamma": ["spot_index"],
-            "emos_coefficient_delta": ["spot_index"],
-        }
-
-        plugin = self.plugin(
-            self.distribution, predictor="realizations", point_by_point=True
-        )
-        result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
-        for cube in result:
-            self.assertEMOSCoefficientsAlmostEqual(
-                cube.data,
-                self.expected_realizations_each_site_no_statsmodels[cube.name()],
+                cube.data, self.expected_realizations_each_site[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(

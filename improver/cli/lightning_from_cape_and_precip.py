@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -28,33 +29,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the map-to-timezones CLI."""
+"""Script to apply latitude-dependent thresholding to a parameter dataset."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
-
-GRIDS = ["uk", "global"]
+from improver import cli
 
 
-@pytest.mark.parametrize("grid", GRIDS)
-def test_basic(tmp_path, grid):
-    """Test collapsing multiple input times into a single local-time output. For global,
-    timezone_mask.nc is a copy of generate-timezone-mask-ancillary/global/grouped_kgo.nc
-    which has 2 time-zones (-6 and +6), so only 2 input files required.
-    For UK, there are 4 timezones (-2 to +1)."""
+@cli.clizefy
+@cli.with_output
+def process(
+    *cubes: cli.inputcube, model_id_attr: str = None,
+):
+    """
+    Apply latitude-dependent thresholds to CAPE and precipitation rate to derive a
+    probability-of-lightning cube.
+    Does not collapse a realization coordinate.
 
-    kgo_dir = acc.kgo_root() / f"map-to-timezones/{grid}/"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input_*.nc"
-    timezone_path = kgo_dir / "timezone_mask.nc"
-    local_time = "20201203T0000"
-    output_path = tmp_path / "output.nc"
-    args = [local_time, input_path, timezone_path, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Args:
+        cubes (list of iris.cube.Cube):
+            A cube to be processed.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
+
+    Returns:
+        iris.cube.Cube:
+            Cube of probabilities of lightning relative to a zero rate thresholds
+    """
+    from iris.cube import CubeList
+
+    from improver.lightning import LightningFromCapePrecip
+
+    result = LightningFromCapePrecip()(CubeList(cubes), model_id_attr=model_id_attr)
+
+    return result

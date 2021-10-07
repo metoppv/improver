@@ -44,6 +44,8 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+pytest.importorskip("statsmodels")
+
 # The EMOS estimation tolerance is defined in units of the variable being
 # calibrated - not in terms of the EMOS coefficients produced by
 # estimate-emos-coefficients and compared against KGOs here.
@@ -175,42 +177,10 @@ def test_units(tmp_path):
     )
 
 
-@pytest.mark.slow
-@acc.skip_if_statsmodels
-def test_using_realizations_as_predictor_no_sm(tmp_path):
+def test_using_realizations_as_predictor(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "normal/realizations/without_statsmodels_kgo.nc"
-    history_path = kgo_dir / "normal/history/*.nc"
-    truth_path = kgo_dir / "normal/truth/*.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--distribution",
-        "norm",
-        "--truth-attribute",
-        "mosg__model_configuration=uk_det",
-        "--predictor",
-        "realizations",
-        "--max-iterations",
-        "150",
-        "--tolerance",
-        EST_EMOS_TOL,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
-    )
-
-
-@acc.skip_if_no_statsmodels
-def test_using_realizations_as_predictor_sm(tmp_path):
-    """Test using non-default predictor realizations"""
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
-    kgo_path = kgo_dir / "normal/realizations/with_statsmodels_kgo.nc"
+    kgo_path = kgo_dir / "normal/realizations/kgo.nc"
     history_path = kgo_dir / "normal/history/*.nc"
     truth_path = kgo_dir / "normal/truth/*.nc"
     output_path = tmp_path / "output.nc"
@@ -298,7 +268,6 @@ def test_normal_point_by_point_sites(tmp_path):
 
 
 @pytest.mark.slow
-@acc.skip_if_statsmodels
 def test_normal_realizations_point_by_point_sites(tmp_path):
     """
     Test estimate-emos-coefficients for diagnostic with assumed

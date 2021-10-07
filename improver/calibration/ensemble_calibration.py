@@ -61,7 +61,6 @@ from improver.calibration.utilities import (
     flatten_ignoring_masked_data,
     forecast_coords_match,
     merge_land_and_sea,
-    statsmodels_available,
 )
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles,
@@ -994,6 +993,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             List of coefficients to be used as initial guess.
             Order of coefficients is [alpha, beta, gamma, delta].
         """
+        import statsmodels.api as sm
+
         default_initial_guess = (
             self.use_default_initial_guess
             or np.any(np.isnan(truths))
@@ -1002,9 +1003,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if predictor.lower() == "mean" and default_initial_guess:
             initial_guess = [0, 1, 0, 1]
-        elif predictor.lower() == "realizations" and (
-            default_initial_guess or not statsmodels_available()
-        ):
+        elif predictor.lower() == "realizations" and default_initial_guess:
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
@@ -1025,7 +1024,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     )
                 initial_guess = [intercept, gradient, 0, 1]
             elif predictor.lower() == "realizations":
-                import statsmodels.api as sm
 
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
                     forecast_predictor, preserve_leading_dimension=True

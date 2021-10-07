@@ -96,6 +96,16 @@ class Test_rescale(IrisTest):
         )
         self.assertArrayAlmostEqual(result, expected)
 
+    def test_inverted_clip(self):
+        """Test that the method clips values when the range minimum is not first"""
+        expected = self.cube.data.copy()
+        expected[...] = 108.0
+        expected[0, 7, 7] = 100.0
+        result = rescale(
+            self.cube.data, data_range=(1.2, 0.2), scale_range=(110.0, 100.0), clip=True
+        )
+        self.assertArrayAlmostEqual(result, expected)
+
 
 class Test_apply_double_scaling(IrisTest):
 

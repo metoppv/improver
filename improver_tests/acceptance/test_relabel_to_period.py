@@ -28,33 +28,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the map-to-timezones CLI."""
+"""Tests for the relabel_to_period CLI."""
 
 import pytest
 
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-GRIDS = ["uk", "global"]
 
-
-@pytest.mark.parametrize("grid", GRIDS)
-def test_basic(tmp_path, grid):
-    """Test collapsing multiple input times into a single local-time output. For global,
-    timezone_mask.nc is a copy of generate-timezone-mask-ancillary/global/grouped_kgo.nc
-    which has 2 time-zones (-6 and +6), so only 2 input files required.
-    For UK, there are 4 timezones (-2 to +1)."""
-
-    kgo_dir = acc.kgo_root() / f"map-to-timezones/{grid}/"
+def test_relabel_to_period(tmp_path):
+    """
+    Test relabeling a diagnostic as a period diagnostic.
+    """
+    kgo_dir = acc.kgo_root() / "relabel_to_period/"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input_*.nc"
-    timezone_path = kgo_dir / "timezone_mask.nc"
-    local_time = "20201203T0000"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [local_time, input_path, timezone_path, "--output", output_path]
+    args = [input_path, "--period", "3", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

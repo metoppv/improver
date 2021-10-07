@@ -28,33 +28,34 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the map-to-timezones CLI."""
+"""Tests for the lightning_from_cape_and_precip CLI"""
 
 import pytest
 
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-GRIDS = ["uk", "global"]
 
-
-@pytest.mark.parametrize("grid", GRIDS)
-def test_basic(tmp_path, grid):
-    """Test collapsing multiple input times into a single local-time output. For global,
-    timezone_mask.nc is a copy of generate-timezone-mask-ancillary/global/grouped_kgo.nc
-    which has 2 time-zones (-6 and +6), so only 2 input files required.
-    For UK, there are 4 timezones (-2 to +1)."""
-
-    kgo_dir = acc.kgo_root() / f"map-to-timezones/{grid}/"
+@pytest.mark.parametrize("with_model_attr", (True, False))
+def test_basic(tmp_path, with_model_attr):
+    """Test basic invocation"""
+    kgo_dir = acc.kgo_root() / "lightning-from-cape-and-precip"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input_*.nc"
-    timezone_path = kgo_dir / "timezone_mask.nc"
-    local_time = "20201203T0000"
+    cape_path = kgo_dir / "cape.nc"
+    precipitation_path = kgo_dir / "precipitation_rate.nc"
     output_path = tmp_path / "output.nc"
-    args = [local_time, input_path, timezone_path, "--output", output_path]
+    args = [
+        cape_path,
+        precipitation_path,
+        "--output",
+        f"{output_path}",
+    ]
+    if with_model_attr:
+        args.append("--model-id-attr=mosg__model_configuration")
+        kgo_path = kgo_dir / "kgo_with_model_config.nc"
+
     run_cli(args)
     acc.compare(output_path, kgo_path)
