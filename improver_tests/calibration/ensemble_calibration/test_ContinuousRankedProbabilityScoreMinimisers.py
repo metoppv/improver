@@ -123,29 +123,18 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         )
         self.truth_data = self.truth.data.flatten().astype(np.float64)
 
+        spatial_product = np.prod(self.truth.shape[-2:])
         self.initial_guess_spot_mean = np.broadcast_to(
             self.initial_guess_for_mean,
-            (
-                len(self.truth.coord(axis="y").points)
-                * len(self.truth.coord(axis="x").points),
-                len(self.initial_guess_for_mean),
-            ),
+            (spatial_product, len(self.initial_guess_for_mean),),
         )
         self.initial_guess_spot_realizations = np.broadcast_to(
             self.initial_guess_for_realization,
-            (
-                len(self.truth.coord(axis="y").points)
-                * len(self.truth.coord(axis="x").points),
-                len(self.initial_guess_for_realization),
-            ),
+            (spatial_product, len(self.initial_guess_for_realization),),
         )
         self.ig_spot_mean_additional_predictor = np.broadcast_to(
             self.initial_guess_mean_additional_predictor,
-            (
-                len(self.truth.coord(axis="y").points)
-                * len(self.truth.coord(axis="x").points),
-                len(self.initial_guess_mean_additional_predictor),
-            ),
+            (spatial_product, len(self.initial_guess_mean_additional_predictor),),
         )
 
 
@@ -254,15 +243,12 @@ class Test_process_normal_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [-0.0003, 1.0013, 0.0012, 0.5945]
-        self.expected_realizations_coefficients = [
-            0.0254,
-            0.4349,
-            0.39,
-            0.8122,
-            -0.0016,
-            0.2724,
-        ]
+        self.expected_mean_coefficients = np.array(
+            [-0.0003, 1.0013, 0.0012, 0.5945], dtype=np.float32
+        )
+        self.expected_realizations_coefficients = np.array(
+            [0.0254, 0.4349, 0.39, 0.8122, -0.0016, 0.2724,], dtype=np.float32
+        )
         self.expected_mean_coefficients_point_by_point = np.array(
             [
                 [
@@ -335,13 +321,9 @@ class Test_process_normal_distribution(
             dtype=np.float32,
         )
 
-        self.expected_mean_coefficients_additional_predictor = [
-            -0.0066,
-            1.0036,
-            0.0001,
-            0.0066,
-            0,
-        ]
+        self.expected_mean_coefficients_additional_predictor = np.array(
+            [-0.0066, 1.0036, 0.0001, 0.0066, 0,], dtype=np.float32
+        )
         self.expected_point_by_point_sites_additional_predictor = np.array(
             [
                 [-0.0064, -0.0119, -0.0011, 0.002],
@@ -916,16 +898,15 @@ class Test_process_truncated_normal_distribution(
         super().setUp()
         self.tolerance = 1e-4
         self.plugin = Plugin(tolerance=self.tolerance)
-        self.expected_mean_coefficients = [0.3958, 0.9854, -0.0, 0.621]
-        self.expected_realizations_coefficients = [
-            0.1898,
-            -0.1558,
-            0.4452,
-            0.8877,
-            -0.1331,
-            -0.0002,
-        ]
-        self.expected_additional_predictors = [0.0014, 0.9084, 0.0279, -0.0021, 0.8591]
+        self.expected_mean_coefficients = np.array(
+            [0.3958, 0.9854, -0.0, 0.621], dtype=np.float32
+        )
+        self.expected_realizations_coefficients = np.array(
+            [0.1898, -0.1558, 0.4452, 0.8877, -0.1331, -0.0002,], np.float32
+        )
+        self.expected_additional_predictors = np.array(
+            [0.0014, 0.9084, 0.0279, -0.0021, 0.8591], dtype=np.float32
+        )
 
     @ManageWarnings(
         ignored_messages=[

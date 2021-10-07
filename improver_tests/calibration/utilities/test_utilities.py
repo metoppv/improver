@@ -44,9 +44,9 @@ from iris.util import squeeze
 from numpy.testing import assert_array_equal
 
 from improver.calibration.utilities import (
+    broadcast_data_to_time_coord,
     check_forecast_consistency,
     check_predictor,
-    consistent_forecast_predictor_shape,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,
@@ -255,27 +255,29 @@ class Test_flatten_ignoring_masked_data(IrisTest):
             )
 
 
-class Test_check_predictor(IrisTest):
+class Test_check_predictor(unittest.TestCase):
 
     """
     Test to check the predictor.
     """
 
-    @staticmethod
-    def test_mean():
+    def test_mean(self):
         """
-        Test that the utility does not raise an exception when
-        predictor = "mean".
+        Test that the result is lowercase and an exception
+        is not raised when predictor = "mean".
         """
-        check_predictor("mean")
+        expected = "mean"
+        result = check_predictor("mean")
+        self.assertEqual(result, expected)
 
-    @staticmethod
-    def test_realizations():
+    def test_realizations(self):
         """
-        Test that the utility does not raise an exception when
-        predictor = "realizations".
+        Test that the result is lowercase and an exception
+        is not raised when predictor = "realizations".
         """
-        check_predictor("realizations")
+        expected = "realizations"
+        result = check_predictor("realizations")
+        self.assertEqual(result, expected)
 
     def test_invalid_predictor(self):
         """
@@ -286,6 +288,14 @@ class Test_check_predictor(IrisTest):
         msg = "The requested value for the predictor"
         with self.assertRaisesRegex(ValueError, msg):
             check_predictor("foo")
+
+    def test_lowercasing(self):
+        """
+        Test that the result has been lowercased.
+        """
+        expected = "mean"
+        result = check_predictor("MeaN")
+        self.assertEqual(result, expected)
 
 
 class Test__filter_non_matching_cubes(SetupCubes):
@@ -656,9 +666,9 @@ class Test_check_forecast_consistency(IrisTest):
             check_forecast_consistency(forecasts)
 
 
-class Test_consistent_forecast_predictor_shape(IrisTest):
+class Test_broadcast_data_to_time_coord(IrisTest):
 
-    """Test the consistent_forecast_predictor_shape function."""
+    """Test the broadcast_data_to_time_coord function."""
 
     def setUp(self):
         """Set-up cubes for testing."""
@@ -693,7 +703,7 @@ class Test_consistent_forecast_predictor_shape(IrisTest):
     def test_one_forecast_predictor(self):
         """Test handling one forecast predictor"""
         self.forecast_predictors = iris.cube.CubeList([self.forecast])
-        results = consistent_forecast_predictor_shape(self.forecast_predictors)
+        results = broadcast_data_to_time_coord(self.forecast_predictors)
         self.assertEqual(len(results), 1)
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
         self.assertArrayEqual(results[0], self.forecast.data)
@@ -701,7 +711,7 @@ class Test_consistent_forecast_predictor_shape(IrisTest):
     def test_two_forecast_predictors(self):
         """Test handling two forecast predictors, where one is a static predictor."""
         self.forecast_predictors = iris.cube.CubeList([self.forecast, self.altitude])
-        results = consistent_forecast_predictor_shape(self.forecast_predictors)
+        results = broadcast_data_to_time_coord(self.forecast_predictors)
         self.assertEqual(len(results), 2)
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
         self.assertTupleEqual(results[1].shape, self.expected_altitude)

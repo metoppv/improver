@@ -38,7 +38,7 @@ Statistics (EMOS).
 
 """
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import iris
 import numpy as np
@@ -48,14 +48,14 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from scipy import stats
-from scipy.optimize import minimize
+from scipy.optimize import OptimizeResult, minimize
 from scipy.stats import norm
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
+    broadcast_data_to_time_coord,
     check_forecast_consistency,
     check_predictor,
-    consistent_forecast_predictor_shape,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,
@@ -188,13 +188,13 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     def _minimise_caller(
         self,
         minimisation_function: Callable,
-        initial_guess: Union[List[float], ndarray],
+        initial_guess: ndarray,
         forecast_predictor_data: ndarray,
         truth_data: ndarray,
         forecast_var_data: ndarray,
         sqrt_pi: float,
         predictor: str,
-    ) -> ndarray:
+    ) -> OptimizeResult:
         """Call scipy minimize with the options provided.
 
         Args:
@@ -228,43 +228,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         return optimised_coeffs
 
     @staticmethod
-    def _set_float64_precision(
-        initial_guess: Union[List[float], ndarray],
-        forecast_predictors: CubeList,
-        forecast_var: Cube,
-        truth: Cube,
-    ) -> Tuple[ndarray, CubeList, Cube, Cube, float]:
-        """Set values to float64 precision and define a square root of pi
-        variable for later usage. The increased precision is need for stable
-        coefficient calculation.
-
-        Args:
-            initial_guess
-            forecast_predictor_data
-            truth_data
-            forecast_var_data
-
-        Returns:
-            Tuple containing the initial guess, forecast predictor, truth
-            and forecast variance that have been set to float64 precision
-            as well as defining a square root of pi variable with float64
-            precision.
-        """
-        initial_guess = np.array(initial_guess, dtype=np.float64)
-        for index in range(len(forecast_predictors)):
-            forecast_predictors[index].data = forecast_predictors[index].data.astype(
-                np.float64
-            )
-        forecast_var.data = forecast_var.data.astype(np.float64)
-        truth.data = truth.data.astype(np.float64)
-        sqrt_pi = np.sqrt(np.pi).astype(np.float64)
-        return (initial_guess, forecast_predictors, forecast_var, truth, sqrt_pi)
-
-    @staticmethod
     def _prepare_forecasts(
         forecast_predictors: CubeList, predictor: str,
-    ) -> np.ndarray:
-        """Prepare forecasts are a consistent shape for minimisation by
+    ) -> ndarray:
+        """Prepare forecasts to be a consistent shape for minimisation by
         broadcasting static predictors along the time dimension and
         flattening the spatiotemporal dimensions.
 
@@ -282,10 +249,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             spatiotemporal dimensions and an optional second dimension for
             flattened non-spatiotemporal dimensions (e.g. realizations).
         """
-        preserve_leading_dimension = (
-            True if predictor.lower() == "realizations" else False
-        )
-        forecast_predictors = consistent_forecast_predictor_shape(forecast_predictors)
+        preserve_leading_dimension = predictor == "realizations"
+
+        forecast_predictors = broadcast_data_to_time_coord(forecast_predictors)
         flattened_forecast_predictors = []
         for fp_data in forecast_predictors:
             flattened_forecast_predictors.append(
@@ -303,10 +269,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     def _process_points_independently(
         self,
         minimisation_function: Callable,
-        initial_guess: Union[List[float], ndarray],
+        initial_guess: ndarray,
         forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
+        sqrt_pi: float,
         predictor: str,
     ) -> ndarray:
         """Minimise each point along the spatial dimensions independently to
@@ -321,23 +288,17 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_predictor
             truth
             forecast_var
+            sqrt_pi
             predictor
 
         Returns:
             Separate optimised coefficients for each point. The shape of the
             coefficients array is (number of coefficients, length of spatial dimensions).
             Order of coefficients is [alpha, beta, gamma, delta].
+            Multiple beta values can be provided if either realizations
+            are provided as the predictor, or if additional predictors
+            are provided.
         """
-        (
-            initial_guess,
-            forecast_predictors,
-            forecast_var,
-            truth,
-            sqrt_pi,
-        ) = self._set_float64_precision(
-            initial_guess, forecast_predictors, forecast_var, truth
-        )
-
         fp_template = forecast_predictors[0]
         sindex = [
             fp_template.coord(axis="y"),
@@ -383,15 +344,15 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                         predictor,
                     ).x.astype(np.float32)
                 )
+
         y_coord = fp_template.coord(axis="y")
         x_coord = fp_template.coord(axis="x")
-
         if fp_template.coord_dims(y_coord) == fp_template.coord_dims(x_coord):
-            return np.array(np.transpose(optimised_coeffs)).reshape(
+            return np.transpose(np.array(optimised_coeffs)).reshape(
                 (len(initial_guess[0]), len(fp_template.coord(axis="y").points),)
             )
         else:
-            return np.array(np.transpose(optimised_coeffs)).reshape(
+            return np.transpose(np.array(optimised_coeffs)).reshape(
                 (
                     len(initial_guess[0]),
                     len(fp_template.coord(axis="y").points),
@@ -402,10 +363,11 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     def _process_points_together(
         self,
         minimisation_function: Callable,
-        initial_guess: Union[List[float], ndarray],
+        initial_guess: ndarray,
         forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
+        sqrt_pi: float,
         predictor: str,
     ) -> ndarray:
         """Minimise all points together in one minimisation to create a single
@@ -418,21 +380,16 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             forecast_predictor
             truth
             forecast_var
+            sqrt_pi
             predictor
 
         Returns:
-            The optimised coefficients. Order of coefficients is [alpha, beta, gamma, delta].
+            The optimised coefficients.
+            Order of coefficients is [alpha, beta, gamma, delta].
+            Multiple beta values can be returned if either realizations
+            are provided as the predictor, or if additional predictors
+            are provided.
         """
-        (
-            initial_guess,
-            forecast_predictors,
-            forecast_var,
-            truth,
-            sqrt_pi,
-        ) = self._set_float64_precision(
-            initial_guess, forecast_predictors, forecast_var, truth
-        )
-
         # Flatten the data arrays and remove any missing data.
         truth_data = flatten_ignoring_masked_data(truth.data)
         forecast_var_data = flatten_ignoring_masked_data(forecast_var.data)
@@ -462,7 +419,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def process(
         self,
-        initial_guess: List[float],
+        initial_guess: ndarray,
         forecast_predictors: CubeList,
         truth: Cube,
         forecast_var: Cube,
@@ -480,6 +437,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
+                Multiple beta values can be provided if either realizations
+                are provided as the predictor, or if additional predictors
+                are provided.
             forecast_predictors:
                 CubeList containing the fields to be used as the predictor.
                 These will include the ensemble mean or realizations of the
@@ -525,12 +485,21 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             )
             raise KeyError(msg)
 
-        # Ensure predictor is valid.
-        check_predictor(predictor)
-
-        if predictor.lower() == "realizations":
+        if check_predictor(predictor) == "realizations":
             for forecast_predictor in forecast_predictors:
                 enforce_coordinate_ordering(forecast_predictor, "realization")
+
+        # Set values to float64 precision. The increased precision is need for stable
+        # coefficient calculation.
+        initial_guess = np.array(initial_guess, dtype=np.float64)
+        for index in range(len(forecast_predictors)):
+            forecast_predictors[index].data = forecast_predictors[index].data.astype(
+                np.float64
+            )
+        forecast_var.data = forecast_var.data.astype(np.float64)
+        truth.data = truth.data.astype(np.float64)
+
+        sqrt_pi = np.sqrt(np.pi)
 
         if self.point_by_point:
             optimised_coeffs = self._process_points_independently(
@@ -539,6 +508,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 forecast_predictors,
                 truth,
                 forecast_var,
+                sqrt_pi,
                 predictor,
             )
         else:
@@ -548,14 +518,63 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 forecast_predictors,
                 truth,
                 forecast_var,
+                sqrt_pi,
                 predictor,
             )
 
         return optimised_coeffs
 
+    @staticmethod
+    def _normal_crps_preparation(
+        initial_guess: ndarray,
+        forecast_predictor: ndarray,
+        truth: ndarray,
+        forecast_var: ndarray,
+        predictor: str,
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray, ndarray]:
+        """
+        Prepare for the CRPS calculation by computing estimates for the
+        location parameter (mu), scale parameter (sigma),
+        normalised prediction error (xz) and the corresponding CDF and PDF,
+        assuming a normal distribution.
+
+        Args:
+            initial_guess
+            forecast_predictor
+            truth
+            forecast_var
+            predictor
+
+        Returns:
+            The location parameter (mu), scale parameter (sigma),
+            normalised prediction error (xz) and the corresponding CDF and PDF,
+            assuming a normal distribution.
+        """
+        aa, bb, gamma, delta = (
+            initial_guess[0],
+            initial_guess[1:-2],
+            initial_guess[-2],
+            initial_guess[-1],
+        )
+
+        if predictor == "mean":
+            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
+        elif predictor == "realizations":
+            bb = bb * bb
+            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
+
+        new_col = np.ones(truth.shape, dtype=np.float32)
+        all_data = np.column_stack((new_col, forecast_predictor))
+        mu = np.dot(all_data, a_b)
+        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
+        xz = (truth - mu) / sigma
+        normal_cdf = norm.cdf(xz)
+        normal_pdf = norm.pdf(xz)
+        return mu, sigma, xz, normal_cdf, normal_pdf
+
     def calculate_normal_crps(
         self,
-        initial_guess: List[float],
+        initial_guess: ndarray,
         forecast_predictor: ndarray,
         truth: ndarray,
         forecast_var: ndarray,
@@ -575,6 +594,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
+                Multiple beta values can be provided if either realizations
+                are provided as the predictor, or if additional predictors
+                are provided.
             forecast_predictor:
                 Data to be used as the predictor, either the ensemble mean
                 or the ensemble realizations of the predictand variable and
@@ -595,26 +617,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
         """
-        aa, bb, gamma, delta = (
-            initial_guess[0],
-            initial_guess[1:-2],
-            initial_guess[-2],
-            initial_guess[-1],
+        mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
+            initial_guess, forecast_predictor, truth, forecast_var, predictor
         )
-
-        if predictor.lower() == "mean":
-            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
-        elif predictor.lower() == "realizations":
-            bb = bb * bb
-            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
-
-        new_col = np.ones(truth.shape, dtype=np.float32)
-        all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, a_b)
-        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
-        xz = (truth - mu) / sigma
-        normal_cdf = norm.cdf(xz)
-        normal_pdf = norm.pdf(xz)
         if np.isfinite(np.min(mu / sigma)):
             result = np.nanmean(
                 sigma * (xz * (2 * normal_cdf - 1) + 2 * normal_pdf - 1 / sqrt_pi)
@@ -625,7 +630,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
     def calculate_truncated_normal_crps(
         self,
-        initial_guess: List[float],
+        initial_guess: ndarray,
         forecast_predictor: ndarray,
         truth: ndarray,
         forecast_var: ndarray,
@@ -647,6 +652,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             initial_guess:
                 List of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
+                Multiple beta values can be provided if either realizations
+                are provided as the predictor, or if additional predictors
+                are provided.
             forecast_predictor:
                 Data to be used as the predictor, either the ensemble mean
                 or the ensemble realizations of the predictand variable and
@@ -667,26 +675,9 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             CRPS for the current set of coefficients. This CRPS is a mean
             value across all points.
         """
-        aa, bb, gamma, delta = (
-            initial_guess[0],
-            initial_guess[1:-2],
-            initial_guess[-2],
-            initial_guess[-1],
+        mu, sigma, xz, normal_cdf, normal_pdf = self._normal_crps_preparation(
+            initial_guess, forecast_predictor, truth, forecast_var, predictor
         )
-
-        if predictor.lower() == "mean":
-            a_b = np.array([aa, *np.atleast_1d(bb)], dtype=np.float64)
-        elif predictor.lower() == "realizations":
-            bb = bb * bb
-            a_b = np.array([aa] + bb.tolist(), dtype=np.float64)
-
-        new_col = np.ones(truth.shape, dtype=np.float32)
-        all_data = np.column_stack((new_col, forecast_predictor))
-        mu = np.dot(all_data, a_b)
-        sigma = np.sqrt(gamma * gamma + delta * delta * forecast_var)
-        xz = (truth - mu) / sigma
-        normal_cdf = norm.cdf(xz)
-        normal_pdf = norm.pdf(xz)
         x0 = mu / sigma
         normal_cdf_0 = norm.cdf(x0)
         normal_cdf_root_two = norm.cdf(np.sqrt(2) * x0)
@@ -780,8 +771,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self._validate_distribution()
         self.desired_units = desired_units
         # Ensure predictor is valid.
-        check_predictor(predictor)
-        self.predictor = predictor
+        self.predictor = check_predictor(predictor)
         self.tolerance = tolerance
         self.max_iterations = max_iterations
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
@@ -927,7 +917,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         for optimised_coeff, coeff_name in zip(optimised_coeffs, self.coeff_names):
             used_dims = template_dims.copy()
             replacements = coords_to_replace_names.copy()
-            if self.predictor.lower() == "realizations" and "beta" == coeff_name:
+            if self.predictor == "realizations" and "beta" == coeff_name:
                 used_dims = ["realization"] + used_dims
                 replacements += ["realization"]
             template_cube = next(historic_forecasts.slices(used_dims))
@@ -968,6 +958,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             optimised_coeffs:
                 Array or list of optimised coefficients.
                 Order of coefficients is [alpha, beta, gamma, delta].
+                Multiple beta values can be provided if either realizations
+                are provided as the predictor, or if additional predictors
+                are provided.
             historic_forecasts:
                 Historic forecasts from the training dataset.
 
@@ -981,7 +974,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ValueError: If the number of coefficients in the optimised_coeffs
                 does not match the expected number.
         """
-        if self.predictor.lower() == "realizations":
+        if self.predictor == "realizations":
             optimised_coeffs = [
                 optimised_coeffs[0],
                 optimised_coeffs[1:-2],
@@ -1054,6 +1047,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Returns:
             List of coefficients to be used as initial guess.
             Order of coefficients is [alpha, beta, gamma, delta].
+            Multiple beta values can be provided if either realizations
+            are provided as the predictor, or if additional predictors
+            are provided.
         """
         import statsmodels.api as sm
 
@@ -1063,16 +1059,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             or np.any(np.isnan(forecast_predictor))
         )
 
-        if predictor.lower() == "mean" and default_initial_guess:
+        if predictor == "mean" and default_initial_guess:
             initial_guess = [0, 1, 0, 1]
-        elif predictor.lower() == "realizations" and default_initial_guess:
+        elif predictor == "realizations" and default_initial_guess:
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
             ).tolist()
             initial_guess = [0] + initial_beta + [0, 1]
         elif not self.use_default_initial_guess:
             truths_flattened = flatten_ignoring_masked_data(truths)
-            if predictor.lower() == "mean":
+            if predictor == "mean":
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
                     forecast_predictor
                 )
@@ -1085,7 +1081,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                         forecast_predictor_flattened, truths_flattened
                     )
                 initial_guess = [intercept, gradient, 0, 1]
-            elif predictor.lower() == "realizations":
+            elif predictor == "realizations":
 
                 forecast_predictor_flattened = flatten_ignoring_masked_data(
                     forecast_predictor, preserve_leading_dimension=True
@@ -1269,7 +1265,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             raise ValueError("historic_forecasts and truths cubes must be provided.")
 
         # Ensure predictor is valid.
-        check_predictor(self.predictor)
+        predictor = check_predictor(self.predictor)
 
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths
@@ -1289,11 +1285,11 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             raise ValueError(msg)
 
         number_of_realizations = None
-        if self.predictor.lower() == "mean":
+        if self.predictor == "mean":
             forecast_predictor = collapsed(
                 historic_forecasts, "realization", iris.analysis.MEAN
             )
-        elif self.predictor.lower() == "realizations":
+        elif self.predictor == "realizations":
             forecast_predictor = historic_forecasts
             number_of_realizations = len(forecast_predictor.coord("realization").points)
             enforce_coordinate_ordering(forecast_predictor, "realization")
@@ -1339,8 +1335,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
         """
-        check_predictor(predictor)
-        self.predictor = predictor
+        self.predictor = check_predictor(predictor)
 
         self.coefficients_cubelist = None
         self.current_forecast = None
@@ -1581,7 +1576,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             forecast_coords_match(cube, current_forecast)
         self._spatial_domain_match()
 
-        if self.predictor.lower() == "mean":
+        if self.predictor == "mean":
             location_parameter = self._calculate_location_parameter_from_mean()
         else:
             location_parameter = self._calculate_location_parameter_from_realizations()

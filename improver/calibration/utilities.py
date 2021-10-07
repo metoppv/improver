@@ -136,11 +136,11 @@ def flatten_ignoring_masked_data(
     return result
 
 
-def check_predictor(predictor: str) -> None:
+def check_predictor(predictor: str) -> str:
     """
     Check the predictor at the start of the process methods in relevant
     ensemble calibration plugins, to avoid having to check and raise an error
-    later.
+    later. Also, lowercase the string.
 
     Args:
         predictor:
@@ -148,6 +148,9 @@ def check_predictor(predictor: str) -> None:
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
+
+    Returns:
+        The predictor string in lowercase.
 
     Raises:
         ValueError: If the predictor is not valid.
@@ -158,6 +161,7 @@ def check_predictor(predictor: str) -> None:
             "value. Accepted values are 'mean' or 'realizations'"
         ).format(predictor.lower())
         raise ValueError(msg)
+    return predictor.lower()
 
 
 def filter_non_matching_cubes(
@@ -354,28 +358,34 @@ def check_forecast_consistency(forecasts: Cube) -> None:
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
 
 
-def consistent_forecast_predictor_shape(forecast_predictors: CubeList) -> List[ndarray]:
-    """Ensure that static forecast predictors without a time are broadcast to the required shape.
+def broadcast_data_to_time_coord(cubelist: CubeList) -> List[ndarray]:
+    """Ensure that the data from all cubes within a cubelist is of the required shape
+    by broadcasting the data from cubes without a time coordinate along the time
+    dimension taken from other input cubes that do have a time coordinate.
 
     Args:
-        forecast_predictors:
-            The forecast predictors to be reshaped.
+        cubelist:
+            The cubelist from which the data will be extracted and broadcast along
+            the time dimension as required.
 
     Returns:
-       Consistently-shaped forecast predictors where static forecast predictors
-       have been broadcast to account for a time dimension.
+       The data taken from cubes within a cubelist where cubes without a
+       time coordinate have had their data broadcast along the time dimension
+       (with this time dimension provided by other input cubes with a time
+       dimension) to ensure that the data within each numpy array within the
+       output list has the same shape.
     """
-    reshaped_forecast_predictors = []
-    num_times = [
-        len(fp_cube.coord("time").points)
-        for fp_cube in forecast_predictors
-        if fp_cube.coords("time", dim_coords=True)
+    broadcasted_data = []
+    (num_times,) = [
+        len(cube.coord("time").points)
+        for cube in cubelist
+        if cube.coords("time", dim_coords=True)
     ]
-    for fp_cube in forecast_predictors:
-        fp_data = fp_cube.data
-        if not fp_cube.coords("time"):
-            # Broadcast static predictors to the required shape.
-            fp_data = np.broadcast_to(fp_data, tuple(num_times) + fp_data.shape)
+    for cube in cubelist:
+        data = cube.data
+        if not cube.coords("time"):
+            # Broadcast data from cube along a time dimension.
+            data = np.broadcast_to(data, (num_times,) + data.shape)
 
-        reshaped_forecast_predictors.append(fp_data)
-    return reshaped_forecast_predictors
+        broadcasted_data.append(data)
+    return broadcasted_data
