@@ -440,7 +440,7 @@ class TestInterpolateMultipleRows(IrisTest):
 
     @skipIf(numba_installed, "numba is installed")
     def test_warning(self):
-        with self.assertWarns(Warning, match="numba"):
+        with self.assertWarns(Warning, msg="numba"):
             from improver.ensemble_copula_coupling.utilities import (  # noqa: F401
                 interpolate_multiple_rows,
             )
