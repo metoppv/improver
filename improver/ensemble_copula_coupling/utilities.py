@@ -293,15 +293,6 @@ def restore_non_percentile_dimensions(
     return array_to_reshape.reshape(shape_to_reshape_to)
 
 
-try:
-    importlib.util.find_spec("numba")
-except ImportError:
-    warnings.warn(
-        "Module numba unavailable. Note that GenerateTimezoneMask is"
-        " very slow in the absence of numba."
-    )
-
-
 def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarray):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
 
