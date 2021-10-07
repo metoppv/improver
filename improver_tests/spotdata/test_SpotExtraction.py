@@ -39,11 +39,15 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    _create_time_point,
+    set_up_variable_cube,
+)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -102,29 +106,36 @@ class Test_SpotExtraction(IrisTest):
         )
 
         times = np.array([time + timedelta(hours=i) for i in range(-3, 2)])
-        bounds = np.array([[time - timedelta(hours=1), time] for time in times])
-        times = np.broadcast_to(times, (5, 5))
-        bounds = np.broadcast_to(bounds, (5, 5, 2))
 
-        self.time_aux_coord = iris.coords.AuxCoord(times, "time", bounds=bounds)
+        # Create as int64 values
+        time_points = np.array([_create_time_point(time) for time in times])
+        bounds = np.array(
+            [
+                [
+                    _create_time_point(time - timedelta(hours=1)),
+                    _create_time_point(time),
+                ]
+                for time in times
+            ]
+        )
+        # Broadcast the times to a 2-dimensional grid that matches the diagnostic
+        # data grid
+        time_points = np.broadcast_to(time_points, (5, 5))
+        bounds = np.broadcast_to(bounds, (5, 5, 2))
+        # Create a 2-dimensional auxiliary time coordinate
+        self.time_aux_coord = iris.coords.AuxCoord(
+            time_points, "time", bounds=bounds, units=TIME_COORDS["time"].units
+        )
+
         diagnostic_cube_2d_time = diagnostic_cube_yx.copy()
         diagnostic_cube_2d_time.coord("time").rename("time_in_local_timezone")
         diagnostic_cube_2d_time.add_aux_coord(self.time_aux_coord, data_dims=(0, 1))
 
-        self.expected_spot_time_coord = iris.coords.AuxCoord(
-            [
-                dt(2020, 6, 15, 9, 0),
-                dt(2020, 6, 15, 9, 0),
-                dt(2020, 6, 15, 11, 0),
-                dt(2020, 6, 15, 11, 0),
-            ],
-            "time",
-            bounds=[
-                [dt(2020, 6, 15, 8, 0), dt(2020, 6, 15, 9, 0)],
-                [dt(2020, 6, 15, 8, 0), dt(2020, 6, 15, 9, 0)],
-                [dt(2020, 6, 15, 10, 0), dt(2020, 6, 15, 11, 0)],
-                [dt(2020, 6, 15, 10, 0), dt(2020, 6, 15, 11, 0)],
-            ],
+        expected_indices = [[0, 0], [0, 0], [2, 2], [2, 2]]
+        points = [self.time_aux_coord.points[y, x] for y, x in expected_indices]
+        bounds = [self.time_aux_coord.bounds[y, x] for y, x in expected_indices]
+        self.expected_spot_time_coord = self.time_aux_coord.copy(
+            points=points, bounds=bounds
         )
 
         diagnostic_cube_hash = create_coordinate_hash(diagnostic_cube_yx)
