@@ -210,6 +210,24 @@ class Test_build_spotdata_cube(IrisTest):
         )
         self.assertEqual(result.coord("forecast_period").points[0], fp_coord.points[0])
 
+    def test_non_scalar_coords(self):
+        """Test additional non-scalar coordinates, specifically multi-dimensional
+        auxiliary coordinates like time for local-timezone products that have
+        been reshaped into 1-dimensional coordinates that should be associated
+        with the spot-index coordinate."""
+        times = np.array([datetime(2015, 11, 23, i, 0) for i in range(0, 4)])
+        time_coord = iris.coords.AuxCoord(times, "time")
+
+        data = np.ones((2, 4), dtype=np.float32)
+        result = build_spotdata_cube(
+            data,
+            *self.args,
+            auxiliary_coords=[time_coord],
+            neighbour_methods=self.neighbour_methods,
+        )
+        self.assertArrayEqual(result.coord("time").points, times)
+        self.assertEqual(result.coord_dims("time"), result.coord_dims("spot_index"))
+
     def test_renaming_to_set_standard_name(self):
         """Test that CF standard names are set as such in the returned cube,
         whilst non-standard names remain as the long_name."""
