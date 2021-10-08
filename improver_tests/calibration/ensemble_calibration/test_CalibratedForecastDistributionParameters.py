@@ -195,13 +195,6 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             dtype=np.float32,
         )
 
-        self.expected_loc_param_realizations_sites_alt = np.array(
-            [277.757, 277.4573, 277.5572, 277.2575], dtype=np.float32,
-        )
-        self.expected_scale_param_realizations_sites_alt = np.array(
-            [0.518256, 0.518256, 0.518256, 0.518256], dtype=np.float32,
-        )
-
         # Create output cubes with the expected data.
         self.expected_loc_param_mean_cube = set_up_variable_cube(
             self.expected_loc_param_mean,
@@ -327,6 +320,15 @@ class Test__calculate_location_parameter_from_mean(
         assert_array_almost_equal(
             location_parameter, self.expected_loc_param_realizations, decimal=0,
         )
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_missing_additional_predictor(self):
+        """Test that an error is raised if an additional predictor is expected
+        based on the contents of the coefficients cube."""
+        self.plugin.coefficients_cubelist = self.coeffs_from_mean_alt
+        msg = "The number of forecast predictors must equal the number"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin._calculate_location_parameter_from_mean()
 
 
 class Test__calculate_location_parameter_from_realizations(
@@ -493,8 +495,8 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_with_additional_predictor(self):
-        """An example end-to-end calculation. This repeats the test elements
-        above but all grouped together."""
+        """Test that the expected calibrated forecast is generated, if an
+        additional predictor is provided."""
         calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
             self.current_temperature_forecast_cube,
             self.coeffs_from_mean_alt,
@@ -508,16 +510,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
             calibrated_forecast_var.data, self.expected_scale_param_mean_alt
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
-
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
-    def test_end_to_end_missing_additional_predictor(self):
-        """An example end-to-end calculation. This repeats the test elements
-        above but all grouped together."""
-        msg = "The number of forecast predictors must equal the number"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(
-                self.current_temperature_forecast_cube, self.coeffs_from_mean_alt
-            )
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_with_mask(self):

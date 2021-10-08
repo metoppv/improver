@@ -578,7 +578,22 @@ class Test_compute_initial_guess(IrisTest):
         cube = _create_multi_date_cube(data)
 
         self.hist_fcast_pred_mean = cube.collapsed("realization", iris.analysis.MEAN)
+        self.hist_fcast_pred_mean_data = np.expand_dims(
+            self.hist_fcast_pred_mean.data, axis=0
+        )
+
+        # Altitude data input for additional predictor tests.
+        self.altitude_data = np.broadcast_to(
+            np.reshape(np.arange(0, 45, 5), (3, 3)), (2, 3, 3)
+        )
+        self.additional_predictors = np.stack(
+            [self.hist_fcast_pred_mean.data, self.altitude_data]
+        )
+
         self.hist_fcast_pred_realizations = cube.copy()
+        self.hist_fcast_pred_realizations_data = np.expand_dims(
+            self.hist_fcast_pred_realizations.data, axis=0
+        )
         self.truth = cube.collapsed("realization", iris.analysis.MAX)
         # Set up a version of the same cube but with a masked halo surrounding
         # the original data.
@@ -620,6 +635,9 @@ class Test_compute_initial_guess(IrisTest):
         self.hist_fcast_pred_mean_mhalo.data = self.hist_fcast_pred_mean_mhalo.data.astype(
             np.float32
         )
+        self.hist_fcast_pred_mean_mhalo_data = np.expand_dims(
+            self.hist_fcast_pred_mean_mhalo.data, axis=0
+        )
         self.hist_fcast_pred_realizations_mhalo = cube.copy()
         self.truth_mhalo = cube.collapsed("realization", iris.analysis.MAX)
         self.truth_mhalo.data = self.truth_mhalo.data.astype(np.float32)
@@ -630,8 +648,11 @@ class Test_compute_initial_guess(IrisTest):
         self.expected_mean_pred_default_initial_guess = np.array(
             [0, 1, 0, 1], dtype=np.float32
         )
-        self.expected_multiple_predictors = np.array(
+        self.expected_multiple_predictors_default = np.array(
             [0, 0.5, 0.5, 0, 1], dtype=np.float32
+        )
+        self.expected_multiple_predictors_nondefault = np.array(
+            [0.0037, 1.0036, -0.0007, 0.0, 1.0], dtype=np.float32
         )
         self.expected_realizations_pred_default_initial_guess = np.array(
             [
@@ -669,7 +690,7 @@ class Test_compute_initial_guess(IrisTest):
 
         result = plugin.compute_initial_guess(
             self.truth.data,
-            np.expand_dims(self.hist_fcast_pred_mean.data, axis=0),
+            self.hist_fcast_pred_mean_data,
             self.predictor,
             self.no_of_forecast_predictors,
             None,
@@ -697,7 +718,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         result = plugin.compute_initial_guess(
             self.truth.data,
-            np.expand_dims(self.hist_fcast_pred_realizations.data, axis=0),
+            self.hist_fcast_pred_realizations_data,
             predictor,
             self.no_of_forecast_predictors,
             self.no_of_realizations,
@@ -725,7 +746,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         result = plugin.compute_initial_guess(
             self.truth.data,
-            np.expand_dims(self.hist_fcast_pred_mean.data, 0),
+            self.hist_fcast_pred_mean_data,
             self.predictor,
             self.no_of_forecast_predictors,
             None,
@@ -784,7 +805,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         result = plugin.compute_initial_guess(
             self.truth_mhalo.data,
-            np.expand_dims(self.hist_fcast_pred_mean_mhalo.data, axis=0),
+            self.hist_fcast_pred_mean_mhalo_data,
             self.predictor,
             self.no_of_forecast_predictors,
             None,
@@ -826,7 +847,7 @@ class Test_compute_initial_guess(IrisTest):
         )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
-    def test_basic_mean_predictor_multiple_forecast_predictors(self):
+    def test_mean_predictor_multiple_forecast_predictors_default(self):
         """
         Test that the plugin returns the expected values for the initial guess
         for the calibration coefficients, when the ensemble mean is used
@@ -841,13 +862,39 @@ class Test_compute_initial_guess(IrisTest):
         no_of_forecast_predictors = 2
         result = plugin.compute_initial_guess(
             self.truth.data,
-            np.expand_dims(self.hist_fcast_pred_mean.data, 0),
+            self.additional_predictors,
             self.predictor,
             no_of_forecast_predictors,
             None,
         )
         self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, self.expected_multiple_predictors)
+        self.assertArrayAlmostEqual(result, self.expected_multiple_predictors_default)
+
+    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
+    def test_mean_predictor_multiple_forecast_predictors_nondefault(self):
+        """
+        Test that the plugin returns the expected values for the initial guess
+        for the calibration coefficients, when the ensemble mean is used
+        as the predictor. As coefficients are not estimated using a
+        linear model, the default values for the initial guess are used.
+        """
+        plugin = Plugin(
+            self.distribution,
+            use_default_initial_guess=False,
+            desired_units=self.desired_units,
+        )
+        no_of_forecast_predictors = 2
+        result = plugin.compute_initial_guess(
+            self.truth.data,
+            self.additional_predictors,
+            self.predictor,
+            no_of_forecast_predictors,
+            None,
+        )
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(
+            result, self.expected_multiple_predictors_nondefault, decimal=4
+        )
 
 
 class Test_mask_cube(SetupCubes):
@@ -1185,8 +1232,7 @@ class Test_process(
         result = plugin.process(
             self.historic_temperature_forecast_cube, self.temperature_truth_cube
         )
-        import pdb
-        pdb.set_trace()
+
         self.assertEMOSCoefficientsAlmostEqual(
             np.concatenate([np.atleast_1d(cube.data).flatten() for cube in result]),
             self.expected_realizations_norm,

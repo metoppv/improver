@@ -1379,25 +1379,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     "of realizations as the predictor is not supported."
                 )
                 raise NotImplementedError(msg)
+            disallowed_coords = [
+                "forecast_period",
+                "forecast_reference_time",
+                "realization",
+            ]
             for af_cube in additional_fields:
-                if any(
-                    [
-                        af_cube.coords(c)
-                        for c in [
-                            "forecast_period",
-                            "forecast_reference_time",
-                            "realization",
-                        ]
-                    ]
-                ):
+                if any([af_cube.coords(c) for c in disallowed_coords]):
                     coords = [
-                        af_cube.coord(cn)
-                        for cn in [
-                            "forecast_period",
-                            "forecast_reference_time",
-                            "realization",
-                        ]
-                        if af_cube.coords(cn)
+                        af_cube.coord(c) for c in disallowed_coords if af_cube.coords(c)
                     ]
                     msg = (
                         "Only static additional predictors are supported. "
