@@ -47,7 +47,6 @@ from improver.calibration.utilities import (
     broadcast_data_to_time_coord,
     check_forecast_consistency,
     check_predictor,
-    consistent_forecast_predictor_shape,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,

@@ -55,7 +55,6 @@ from improver.calibration.utilities import (
     broadcast_data_to_time_coord,
     check_forecast_consistency,
     check_predictor,
-    consistent_forecast_predictor_shape,
     convert_cube_data_to_2d,
     create_unified_frt_coord,
     filter_non_matching_cubes,
@@ -399,14 +398,17 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             spatiotemporal dimensions and an optional second dimension for
             flattened non-spatiotemporal dimensions (e.g. realizations).
         """
-        preserve_leading_dimension = self.predictor == "realizations"
+        num_of_leading_dimensions_to_preserve = np.int32(
+            self.predictor == "realizations"
+        )
 
         forecast_predictors = broadcast_data_to_time_coord(forecast_predictors)
         flattened_forecast_predictors = []
         for fp_data in forecast_predictors:
             flattened_forecast_predictors.append(
                 flatten_ignoring_masked_data(
-                    fp_data, preserve_leading_dimension=preserve_leading_dimension,
+                    fp_data,
+                    num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
                 )
             )
 
@@ -1207,7 +1209,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 )
                 forecast_predictors_slice = forecast_predictors.extract(constr)
                 forecast_predictors_data = np.ma.stack(
-                    consistent_forecast_predictor_shape(forecast_predictors_slice)
+                    broadcast_data_to_time_coord(forecast_predictors_slice)
                 )
                 initial_guess.append(
                     self.compute_initial_guess(
@@ -1221,7 +1223,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         else:
             # Computing initial guess for EMOS coefficients
             forecast_predictor_data = np.ma.stack(
-                consistent_forecast_predictor_shape(forecast_predictors)
+                broadcast_data_to_time_coord(forecast_predictors)
             )
             initial_guess = self.compute_initial_guess(
                 truths.data,
