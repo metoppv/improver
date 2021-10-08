@@ -332,6 +332,10 @@ class Test_process(IrisTest):
             result.coord("forecast_reference_time").points, expected_frt
         )
         self.assertAlmostEqual(result.coord("forecast_period").points, expected_fp)
+        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        self.assertAlmostEqual(
+            np.mean(result.data), self.null_percentiles_expected_mean
+        )
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution

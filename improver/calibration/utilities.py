@@ -292,15 +292,16 @@ def _ceiling_fp(cube: Cube) -> np.ndarray:
         The forecast period points after computing the ceiling to the
         nearest hour.
     """
-    hour_in_secs = 3600
-    return np.ceil(cube.coord("forecast_period").points / hour_in_secs)
+    coord = cube.coord("forecast_period").copy()
+    coord.convert_units("hours")
+    return np.ceil(coord.points)
 
 
 def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     """
     Determine if two cubes have equivalent forecast_periods and
     forecast_reference_time coordinates with an accepted leniency.
-    The ceiling of the forecast period to the nearest hour is computed to
+    The forecast period is rounded up to the nearest hour to
     support calibrating subhourly forecasts with coefficients taken from on
     the hour. For forecast reference time, only the hour is checked.
 
@@ -315,7 +316,7 @@ def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     """
     mismatches = []
     if _ceiling_fp(first_cube) != _ceiling_fp(second_cube):
-        mismatches.append("forecast_period hours")
+        mismatches.append("rounded forecast_period hours")
 
     if get_frt_hours(first_cube.coord("forecast_reference_time")) != get_frt_hours(
         second_cube.coord("forecast_reference_time")

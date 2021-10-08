@@ -1309,7 +1309,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
     def _spatial_domain_match(self) -> None:
         """
         Check that the domain of the current forecast and coefficients cube
-        match of gridded forecast. For spot forecasts, the spatial domain check
+        match for gridded forecasts. For spot forecasts, the spatial domain check
         is skipped.
 
         Raises:
