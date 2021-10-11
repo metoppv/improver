@@ -282,15 +282,15 @@ def merge_land_and_sea(calibrated_land_only: Cube, uncalibrated: Cube) -> None:
 
 
 def _ceiling_fp(cube: Cube) -> np.ndarray:
-    """Find the ceiling of the forecast period points to the nearest hour.
+    """Find the forecast period points rounded up to the next hour.
 
     Args:
         cube:
             Cube with a forecast_period coordinate.
 
     Returns:
-        The forecast period points after computing the ceiling to the
-        nearest hour.
+        The forecast period points in units of hours after
+        rounding the points up to the next hour.
     """
     coord = cube.coord("forecast_period").copy()
     coord.convert_units("hours")
@@ -301,7 +301,7 @@ def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     """
     Determine if two cubes have equivalent forecast_periods and
     forecast_reference_time coordinates with an accepted leniency.
-    The forecast period is rounded up to the nearest hour to
+    The forecast period is rounded up to the next hour to
     support calibrating subhourly forecasts with coefficients taken from on
     the hour. For forecast reference time, only the hour is checked.
 
