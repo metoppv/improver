@@ -124,11 +124,13 @@ class SpatiallyVaryingWeightsFromMask(BasePlugin):
             return cube_to_collapse
 
         # Check mask does not vary over additional dimensions
+        cube_to_collapse.data
         slices = cube_to_collapse.slices(coords_to_slice_over)
         first_slice = next(slices)
         if np.ma.is_masked(first_slice.data):
             first_mask = first_slice.data.mask
             for cube_slice in slices:
+                print("comparison")
                 if not np.all(cube_slice.data.mask == first_mask):
                     message = (
                         "The mask on the input cube can only vary along the "
