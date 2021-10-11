@@ -33,7 +33,7 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-from typing import List, Optional, Set, Tuple, Union
+from typing import List, Set, Tuple, Union
 
 import iris
 import numpy as np
@@ -104,7 +104,7 @@ def flatten_ignoring_masked_data(
         A flattened array containing only valid data. Either 1D or, if
         preserving the leading dimension 2D. In the latter case the
         leading dimension is the same as the input data_array.
-        
+
     Raises:
         ValueError: If preserving the leading dimension and the mask on the
                     input array is not the same for every slice along the
