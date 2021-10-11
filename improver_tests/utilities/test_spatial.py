@@ -188,6 +188,16 @@ class Test_calculate_grid_spacing_without_tolerance(GridSpacingTest):
         result = calculate_grid_spacing(self.cube, self.unit)
         self.assertAlmostEqual(result, self.spacing)
 
+    def test_negative_x(self):
+        """Test positive answer is returned from a negative-striding x-axis"""
+        result = calculate_grid_spacing(self.cube[..., ::-1], self.unit, axis="x")
+        self.assertAlmostEqual(result, self.spacing)
+
+    def test_negative_y(self):
+        """Test positive answer is returned from a negative-striding y-axis"""
+        result = calculate_grid_spacing(self.cube[..., ::-1, :], self.unit, axis="y")
+        self.assertAlmostEqual(result, self.spacing)
+
     def test_units(self):
         """Test correct answer is returned for coordinates in km"""
         for axis in ["x", "y"]:
