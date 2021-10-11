@@ -163,6 +163,9 @@ def load_parquet(
     Returns:
         Pandas DataFrame that has been loaded from the input filepath given
         the filters provided.
+
+    Raises:
+        IOError: If the filtered pandas dataframe is empty, raise an IOError.
     """
     if filters is None:
         filters = []
