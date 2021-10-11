@@ -1339,7 +1339,8 @@ class EnsembleReordering(BasePlugin):
         Returns:
             Cube containing the new ensemble realizations where all points
             within the dataset have been reordered in comparison to the
-            input percentiles.
+            input percentiles. This cube contains the same ensemble
+            realization numbers as the raw forecast.
         """
 
         percentile_coord_name = find_percentile_coordinate(
@@ -1359,7 +1360,8 @@ class EnsembleReordering(BasePlugin):
         )
         plugin = RebadgePercentilesAsRealizations()
         post_processed_forecast_realizations = plugin(
-            post_processed_forecast_realizations
+            post_processed_forecast_realizations,
+            ensemble_realization_numbers=raw_forecast.coord("realization").points,
         )
 
         enforce_coordinate_ordering(post_processed_forecast_realizations, "realization")

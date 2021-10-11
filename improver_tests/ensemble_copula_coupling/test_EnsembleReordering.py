@@ -387,10 +387,12 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """
-        Create a raw and calibrated cube with with forecast_reference_time and
-        forecast_period coordinates.
+        Create a raw realization forecast with a fixed set of realization
+        numbers and a percentile cube following ensemble reordering.
         """
-        self.raw_cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
+        self.raw_cube = set_up_variable_cube(
+            ECC_TEMPERATURE_REALIZATIONS, realizations=[10, 11, 12]
+        )
         self.post_processed_percentiles = set_up_percentile_cube(
             np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
             np.array([10, 50, 90], dtype=np.float32),
@@ -400,14 +402,16 @@ class Test_process(IrisTest):
     def test_basic(self):
         """
         Test that the plugin returns an iris.cube.Cube, the cube has a
-        realization coordinate and is correctly re-ordered to match the source
-        realizations.
+        realization coordinate with specific realization numbers and is
+        correctly re-ordered to match the source realizations.
         """
         expected_data = self.raw_cube.data.copy()
         result = Plugin().process(self.post_processed_percentiles, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
-        self.assertArrayEqual(result.coord("realization").points, [0, 1, 2])
+        self.assertEqual(
+            result.coord("realization"), self.raw_cube.coord("realization")
+        )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])

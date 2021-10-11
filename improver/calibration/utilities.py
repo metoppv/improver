@@ -33,12 +33,12 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
-from typing import Set, Tuple, Union
+from typing import List, Set, Tuple, Union
 
 import iris
 import numpy as np
 from iris.coords import DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
@@ -136,11 +136,11 @@ def flatten_ignoring_masked_data(
     return result
 
 
-def check_predictor(predictor: str) -> None:
+def check_predictor(predictor: str) -> str:
     """
     Check the predictor at the start of the process methods in relevant
     ensemble calibration plugins, to avoid having to check and raise an error
-    later.
+    later. Also, lowercase the string.
 
     Args:
         predictor:
@@ -148,6 +148,9 @@ def check_predictor(predictor: str) -> None:
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
+
+    Returns:
+        The predictor string in lowercase.
 
     Raises:
         ValueError: If the predictor is not valid.
@@ -158,6 +161,7 @@ def check_predictor(predictor: str) -> None:
             "value. Accepted values are 'mean' or 'realizations'"
         ).format(predictor.lower())
         raise ValueError(msg)
+    return predictor.lower()
 
 
 def filter_non_matching_cubes(
@@ -369,3 +373,36 @@ def check_forecast_consistency(forecasts: Cube) -> None:
     if len(forecasts.coord("forecast_period").points) != 1:
         msg = "Forecasts have been provided with differing forecast periods {}"
         raise ValueError(msg.format(forecasts.coord("forecast_period").points))
+
+
+def broadcast_data_to_time_coord(cubelist: CubeList) -> List[ndarray]:
+    """Ensure that the data from all cubes within a cubelist is of the required shape
+    by broadcasting the data from cubes without a time coordinate along the time
+    dimension taken from other input cubes that do have a time coordinate.
+
+    Args:
+        cubelist:
+            The cubelist from which the data will be extracted and broadcast along
+            the time dimension as required.
+
+    Returns:
+       The data taken from cubes within a cubelist where cubes without a
+       time coordinate have had their data broadcast along the time dimension
+       (with this time dimension provided by other input cubes with a time
+       dimension) to ensure that the data within each numpy array within the
+       output list has the same shape.
+    """
+    broadcasted_data = []
+    (num_times,) = [
+        len(cube.coord("time").points)
+        for cube in cubelist
+        if cube.coords("time", dim_coords=True)
+    ]
+    for cube in cubelist:
+        data = cube.data
+        if not cube.coords("time"):
+            # Broadcast data from cube along a time dimension.
+            data = np.broadcast_to(data, (num_times,) + data.shape)
+
+        broadcasted_data.append(data)
+    return broadcasted_data

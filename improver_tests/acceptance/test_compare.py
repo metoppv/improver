@@ -67,7 +67,7 @@ def test_different(capsys):
 def test_ignored_attributes(capsys):
     """Ensure attribute differences are not reported if explicity excluded."""
     kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "spot-extract/inputs/all_methods_uk.nc"
+    a_file = kgo_dir / "spot-extract/inputs/all_methods_uk_unique_ids.nc"
     b_file = kgo_dir / "spot-extract/inputs/all_methods_global.nc"
     args = [a_file, b_file, "--ignored-attributes=model_grid_hash"]
     run_cli(args)
