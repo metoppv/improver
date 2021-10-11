@@ -80,7 +80,8 @@ def calculate_grid_spacing(
     cube: Cube, units: Union[Unit, str], axis: str = "x", rtol: float = 1.0e-5
 ) -> float:
     """
-    Returns the grid spacing of a given spatial axis
+    Returns the grid spacing of a given spatial axis. This will be positive for
+    axes that stride negatively.
 
     Args:
         cube:
@@ -100,7 +101,7 @@ def calculate_grid_spacing(
     """
     coord = cube.coord(axis=axis).copy()
     coord.convert_units(units)
-    diffs = np.diff(coord.points)
+    diffs = np.abs(np.diff(coord.points))
     diffs_mean = np.mean(diffs)
 
     if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
