@@ -777,7 +777,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         result = plugin.compute_initial_guess(
             self.truth.data,
-            np.expand_dims(forecast_predictor.data, axis=0),
+            forecast_predictor.data,
             predictor,
             self.no_of_forecast_predictors,
             self.no_of_realizations,
@@ -837,7 +837,7 @@ class Test_compute_initial_guess(IrisTest):
         )
         result = plugin.compute_initial_guess(
             self.truth_mhalo.data,
-            np.expand_dims(forecast_predictor.data, 0),
+            forecast_predictor.data,
             predictor,
             self.no_of_forecast_predictors,
             self.no_of_realizations,
