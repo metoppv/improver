@@ -158,12 +158,14 @@ def load_parquet(
             Filepath that will be loaded into a single pandas DataFrame.
         filters:
             Filter to restrict the contents of parquet file loaded.
-            For example: [('diag', '==', 'wind_speed_at_10m')].
+            For example: [('diagnostic', '==', 'wind_speed_at_10m')].
 
     Returns:
         Pandas DataFrame that has been loaded from the input filepath given
         the filters provided.
     """
+    if filters is None:
+        filters = []
     df = pd.read_parquet(filepath, filters=filters)
     if df.empty:
         msg = (

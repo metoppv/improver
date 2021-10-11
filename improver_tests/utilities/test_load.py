@@ -31,8 +31,10 @@
 """Unit tests for loading functionality."""
 
 import os
+import shutil
 import unittest
 from datetime import datetime
+from pathlib import Path
 from tempfile import mkdtemp
 
 import iris
@@ -448,7 +450,7 @@ class Test_load_parquet(unittest.TestCase):
     def setUp(self):
         """Set-up tests."""
         pytest.importorskip("fastparquet")
-        self.directory = mkdtemp()
+        self.directory = Path(mkdtemp())
 
         data = np.array([6.8, 2.7, 21.2], dtype=np.float32)
         self.truth_data = np.tile(data, 3)
@@ -475,10 +477,17 @@ class Test_load_parquet(unittest.TestCase):
 
         self.df = pd.DataFrame(df_dict)
         self.df = self.df.sort_values(by=["wmo_id"]).reset_index(drop=True)
-        self.filepath = os.path.join(self.directory, "temp.parquet")
-        self.partitioned_filepath = os.path.join(self.directory, "partition.parquet")
-        self.df.to_parquet(self.filepath)
-        self.df.to_parquet(self.partitioned_filepath, partition_cols="wmo_id")
+        self.filepath = self.directory / "temp.parquet"
+        self.partitioned_filepath = self.directory / "partition.parquet"
+        self.df.to_parquet(self.filepath, compression=None)
+        self.df.to_parquet(
+            self.partitioned_filepath, partition_cols="wmo_id", compression=None
+        )
+
+    def tearDown(self):
+        """Remove temporary files and directories created for testing."""
+        self.filepath.unlink()
+        shutil.rmtree(self.partitioned_filepath)
 
     def test_basic(self):
         """Test loading a parquet file."""
@@ -494,7 +503,7 @@ class Test_load_parquet(unittest.TestCase):
         pd.testing.assert_frame_equal(result, expected_df)
 
     def test_empty_filter(self):
-        """Test loading a parquet file with a filter where only an empty
+        """Test loading a parquet file with a filter when only an empty
         dataframe is loaded."""
         filters = [("wmo_id", "==", "03005")]
         msg = "does not contain the requested contents"
