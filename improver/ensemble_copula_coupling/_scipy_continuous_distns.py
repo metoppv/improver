@@ -82,14 +82,6 @@ from scipy.stats._distn_infrastructure import rv_continuous
 # distns.py
 
 
-# In numpy 1.12 and above, np.power refuses to raise integers to negative
-# powers, and `np.float_power` is a new replacement.
-try:
-    float_power = np.float_power
-except AttributeError:
-    float_power = np.power
-
-
 _norm_pdf_C = np.sqrt(2 * np.pi)
 _norm_pdf_logC = np.log(_norm_pdf_C)
 
@@ -106,20 +98,12 @@ def _norm_cdf(x):
     return sc.ndtr(x)
 
 
-def _norm_logcdf(x):
-    return sc.log_ndtr(x)
-
-
 def _norm_ppf(q):
     return sc.ndtri(q)
 
 
 def _norm_sf(x):
     return _norm_cdf(-x)
-
-
-def _norm_logsf(x):
-    return _norm_logcdf(-x)
 
 
 def _norm_isf(q):
@@ -188,15 +172,6 @@ class truncnorm_gen(rv_continuous):
             _norm_ppf(q * _nb + _na * (1.0 - q)),
         )
         return ppf
-
-    def _stats(self, a, b):
-        ans = self._get_norms(a, b)
-        nA, nB = ans[:2]
-        d = nB - nA
-        pA, pB = _norm_pdf(a), _norm_pdf(b)
-        mu = (pA - pB) / d  # correction sign
-        mu2 = 1 + (a * pA - b * pB) / d - mu * mu
-        return mu, mu2, None, None
 
 
 truncnorm = truncnorm_gen(name="truncnorm")
