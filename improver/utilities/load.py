@@ -30,9 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
-from typing import List, Optional, Union
+from typing import List, Optional, Tuple, Union
 
 import iris
+import pandas as pd
 from iris import Constraint
 from iris.cube import Cube, CubeList
 
@@ -145,3 +146,29 @@ def load_cube(
     else:
         cube = MergeCubes()(cubes)
     return cube
+
+
+def load_parquet(
+    filepath: str, filters: Optional[List[Tuple[str, str, str]]] = None
+) -> pd.DataFrame:
+    """Load the filepath provided to a parquet file into a pandas DataFrame.
+
+    Args:
+        filepath:
+            Filepath that will be loaded into a single pandas DataFrame.
+        filters:
+            Filter to restrict the contents of parquet file loaded.
+            For example: [('diag', '==', 'wind_speed_at_10m')].
+
+    Returns:
+        Pandas DataFrame that has been loaded from the input filepath given
+        the filters provided.
+    """
+    df = pd.read_parquet(filepath, filters=filters)
+    if df.empty:
+        msg = (
+            f"The requested filepath {filepath} does not contain the "
+            f"requested contents: {filters}"
+        )
+        raise IOError(msg)
+    return df
