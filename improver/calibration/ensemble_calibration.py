@@ -398,17 +398,14 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             spatiotemporal dimensions and an optional second dimension for
             flattened non-spatiotemporal dimensions (e.g. realizations).
         """
-        num_of_leading_dimensions_to_preserve = np.int32(
-            self.predictor == "realizations"
-        )
+        preserve_leading_dimension = self.predictor == "realizations"
 
         forecast_predictors = broadcast_data_to_time_coord(forecast_predictors)
         flattened_forecast_predictors = []
         for fp_data in forecast_predictors:
             flattened_forecast_predictors.append(
                 flatten_ignoring_masked_data(
-                    fp_data,
-                    num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
+                    fp_data, preserve_leading_dimension=preserve_leading_dimension
                 )
             )
 
@@ -1102,18 +1099,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             initial_guess = [0] + initial_beta + [0, 1]
         elif not self.use_default_initial_guess:
             truths_flattened = flatten_ignoring_masked_data(truths)
-
-            # Always preserve the first leading dimension over
-            # additional predictors. If using realizations as the predictor,
-            # preserve both the additional predictor and realization
-            # dimensions.
-            num_of_leading_dimensions_to_preserve = 1
-            if predictor.lower() == "realizations":
-                num_of_leading_dimensions_to_preserve = 2
-
             forecast_predictor_flattened = flatten_ignoring_masked_data(
-                forecast_predictor,
-                num_of_leading_dimensions_to_preserve=num_of_leading_dimensions_to_preserve,
+                forecast_predictor, preserve_leading_dimension=True
             )
             val = sm.add_constant(
                 forecast_predictor_flattened.T, has_constant="add"
@@ -1208,9 +1195,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                     }
                 )
                 forecast_predictors_slice = forecast_predictors.extract(constr)
-                forecast_predictors_data = np.ma.stack(
-                    broadcast_data_to_time_coord(forecast_predictors_slice)
-                )
+                if self.predictor == "realizations":
+                    forecast_predictors_data = forecast_predictors_slice[0].data
+                else:
+                    # If using mean as predictor, stack to produce one array where
+                    # the leading dimension represents the number of predictors.
+                    forecast_predictors_data = np.ma.stack(
+                        broadcast_data_to_time_coord(forecast_predictors_slice)
+                    )
+
                 initial_guess.append(
                     self.compute_initial_guess(
                         truth_slice.data,
@@ -1222,9 +1215,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 )
         else:
             # Computing initial guess for EMOS coefficients
-            forecast_predictor_data = np.ma.stack(
-                broadcast_data_to_time_coord(forecast_predictors)
-            )
+            if self.predictor == "realizations":
+                forecast_predictor_data = forecast_predictors[0].data
+            else:
+                # If using mean as predictor, stack to produce one array where
+                # the leading dimension represents the number of predictors.
+                forecast_predictor_data = np.ma.stack(
+                    broadcast_data_to_time_coord(forecast_predictors)
+                )
             initial_guess = self.compute_initial_guess(
                 truths.data,
                 forecast_predictor_data,

@@ -159,9 +159,6 @@ class Test_flatten_ignoring_masked_data(IrisTest):
             ],
             dtype=np.float32,
         )
-        self.big_data_array = np.broadcast_to(
-            self.data_array, (2,) + self.data_array.shape
-        )
         self.mask = np.array(
             [
                 [[True, False, True, True], [True, False, True, True]],
@@ -169,7 +166,6 @@ class Test_flatten_ignoring_masked_data(IrisTest):
                 [[True, False, True, True], [True, False, True, True]],
             ]
         )
-        self.big_mask = np.broadcast_to(self.mask, (2,) + self.mask.shape)
         self.expected_result_preserve_leading_dim = np.array(
             [
                 [0.0, 1.0, 2.0, 3.0, 4.0, 5.0, 6.0, 7.0],
@@ -177,9 +173,6 @@ class Test_flatten_ignoring_masked_data(IrisTest):
                 [16.0, 17.0, 18.0, 19.0, 20.0, 21.0, 22.0, 23.0],
             ],
             dtype=np.float32,
-        )
-        self.expected_result_preserve_multiple_leading_dims = np.tile(
-            self.expected_result_preserve_leading_dim, (2, 1)
         )
 
     def test_basic_not_masked(self):
@@ -197,46 +190,23 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
 
-    def test_basic_not_masked_preserve_leading_dim(self):
-        """Test a basic unmasked array, with num_of_leading_dimensions_to_preserve"""
+    def test_basic_not_masked_preserver_leading_dim(self):
+        """Test a basic unmasked array, with preserve_leading_dimension"""
         result = flatten_ignoring_masked_data(
-            self.data_array, num_of_leading_dimensions_to_preserve=1
+            self.data_array, preserve_leading_dimension=True
         )
         self.assertArrayAlmostEqual(result, self.expected_result_preserve_leading_dim)
         self.assertEqual(result.dtype, np.float32)
 
-    def test_basic_masked_preserve_leading_dim(self):
-        """Test a basic masked array, with num_of_leading_dimensions_to_preserve"""
+    def test_basic_masked_preserver_leading_dim(self):
+        """Test a basic masked array, with preserve_leading_dimension"""
 
         masked_data_array = np.ma.MaskedArray(self.data_array, self.mask)
         expected_result = np.array(
             [[1.0, 5.0], [9.0, 13.0], [17.0, 21.0]], dtype=np.float32
         )
         result = flatten_ignoring_masked_data(
-            masked_data_array, num_of_leading_dimensions_to_preserve=1
-        )
-        self.assertArrayAlmostEqual(result, expected_result)
-        self.assertEqual(result.dtype, np.float32)
-
-    def test_basic_not_masked_preserve_multiple_leading_dims(self):
-        """Test a larger unmasked array when preserving multple leading dimensions."""
-        result = flatten_ignoring_masked_data(
-            self.big_data_array, num_of_leading_dimensions_to_preserve=2
-        )
-        self.assertArrayAlmostEqual(
-            result, self.expected_result_preserve_multiple_leading_dims
-        )
-        self.assertEqual(result.dtype, np.float32)
-
-    def test_basic_masked_preserve_multiple_leading_dims(self):
-        """Test a basic masked array when preserving multiple leading dimensions."""
-
-        masked_data_array = np.ma.MaskedArray(self.big_data_array, self.big_mask)
-        expected_result = np.tile(
-            np.array([[1.0, 5.0], [9.0, 13.0], [17.0, 21.0]], dtype=np.float32), (2, 1)
-        )
-        result = flatten_ignoring_masked_data(
-            masked_data_array, num_of_leading_dimensions_to_preserve=2
+            masked_data_array, preserve_leading_dimension=True
         )
         self.assertArrayAlmostEqual(result, expected_result)
         self.assertEqual(result.dtype, np.float32)
@@ -263,7 +233,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
            This should give the same answer as the corresponding 3D array."""
         data_array = self.data_array.reshape((3, 2, 2, 2))
         result = flatten_ignoring_masked_data(
-            data_array, num_of_leading_dimensions_to_preserve=1
+            data_array, preserve_leading_dimension=True
         )
         self.assertArrayAlmostEqual(result, self.expected_result_preserve_leading_dim)
         self.assertEqual(result.dtype, np.float32)
@@ -281,7 +251,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
         expected_message = "The mask on the input array is not the same"
         with self.assertRaisesRegex(ValueError, expected_message):
             flatten_ignoring_masked_data(
-                masked_data_array, num_of_leading_dimensions_to_preserve=1
+                masked_data_array, preserve_leading_dimension=True
             )
 
 
