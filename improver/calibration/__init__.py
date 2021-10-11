@@ -188,7 +188,10 @@ def forecast_table_to_cube(
 
     Args:
         table:
-            DataFrame expected to contain the following columns: .
+            DataFrame expected to contain the following columns: forecast,
+            blend_time, forecast_period, forecast_reference_time, time,
+            wmo_id, percentile, diagnostic, latitude, longitude, period,
+            height, cf_name, units.
         date_range:
             Datetimes spanning the training period.
         forecast_period:
@@ -286,19 +289,35 @@ def forecast_table_to_cube(
             "available within the dataframe provided."
         )
         raise ValueError(msg)
-    forecast_cube = cubelist.merge_cube()
+    cube = cubelist.merge_cube()
 
-    return RebadgePercentilesAsRealizations()(forecast_cube)
+    return RebadgePercentilesAsRealizations()(cube)
 
 
-def truth_table_to_cube(table: DataFrame, date_range: DatetimeIndex) -> Cube:
+def truth_table_to_cube(
+    table: DataFrame,
+    date_range: DatetimeIndex,
+    period: float,
+    height: float,
+    cf_name: str,
+    units: str,
+) -> Cube:
     """Convert a truth table into an iris Cube.
 
     Args:
         table:
-            DataFrame expected to contain the following columns: .
+            DataFrame expected to contain the following columns: ob_value,
+            time, wmo_id, diagnostic, latitude, longitude and altitude.
         date_range:
             Datetimes spanning the training period.
+        period:
+            The period for defining the bounds on the time coordinate.
+        height:
+            The value of the height for defining a height coordinate.
+        cf_name:
+            The name of the resulting truth cube.
+        units:
+            The units of the resulting truth cube.
 
     Returns:
         Cube containing the truths from the training period.
@@ -315,9 +334,7 @@ def truth_table_to_cube(table: DataFrame, date_range: DatetimeIndex) -> Cube:
 
         # The following columns are expected to contain one unique value
         # per column.
-        expected_unique_cols = ["period", "height", "cf_name", "units", "diagnostic"]
-        for col in expected_unique_cols:
-            _unique_check(time_table, col)
+        _unique_check(time_table, "diagnostic")
 
         # Ensure that every WMO ID has an entry for a particular time.
         new_index = Index(table["wmo_id"].unique(), name="wmo_id")
@@ -325,7 +342,7 @@ def truth_table_to_cube(table: DataFrame, date_range: DatetimeIndex) -> Cube:
         # Fill the alt/lat/lon with the mode to ensure consistent coordinates
         # to support merging. Also fill other columns known to contain one
         # unique value. Columns containing entirely NaNs will return NaNs.
-        for col in ["altitude", "latitude", "longitude"] + expected_unique_cols:
+        for col in ["altitude", "latitude", "longitude", "diagnostic"]:
             time_table[col] = table.groupby(by="wmo_id", sort=False)[col].agg(
                 lambda x: pd.Series.mode(x, dropna=not table[col].isna().all())
             )
@@ -336,11 +353,11 @@ def truth_table_to_cube(table: DataFrame, date_range: DatetimeIndex) -> Cube:
         time_table = time_table.reset_index()
 
         time_point = np.datetime64(adate, "s")
-        if time_table["period"].isna().all():
+        if period is np.nan:
             time_bounds = None
         else:
             time_bounds = [
-                time_point - np.timedelta64(time_table["period"].values[0], "s"),
+                time_point - np.timedelta64(period, "s"),
                 time_point,
             ]
 
@@ -353,21 +370,19 @@ def truth_table_to_cube(table: DataFrame, date_range: DatetimeIndex) -> Cube:
             units=TIME_COORDS["time"].units,
         )
 
-        height_coord = iris.coords.AuxCoord(
-            time_table["height"].values[0], "height", units="m",
-        )
+        height_coord = iris.coords.AuxCoord(height, "height", units="m",)
 
-        forecast_cube = build_spotdata_cube(
+        cube = build_spotdata_cube(
             time_table["ob_value"].astype(np.float32),  # data
-            time_table["cf_name"].values[0],
-            time_table["units"].values[0],
+            cf_name,
+            units,
             time_table["altitude"],
             time_table["latitude"],
             time_table["longitude"],
             time_table["wmo_id"].values,
             scalar_coords=[time_coord, height_coord],
         )
-        cubelist.append(forecast_cube)
+        cubelist.append(cube)
 
     if not cubelist:
         msg = (
@@ -407,8 +422,8 @@ def _filter_forecasts_and_truths(forecast: Cube, truth: Cube) -> Tuple[Cube, Cub
 
 
 def forecast_and_truth_tables_to_cubes(
-    forecast: DataFrame,
-    truth: DataFrame,
+    forecast_table: DataFrame,
+    truth_table: DataFrame,
     cycletime: str,
     forecast_period: int,
     training_length: int,
@@ -416,9 +431,9 @@ def forecast_and_truth_tables_to_cubes(
     """Convert a truth table into an iris Cube.
 
     Args:
-        forecast:
+        forecast_table:
             DataFrame expected to contain the following columns: .
-        truth:
+        truth_table:
             DataFrame expected to contain the following columns: .
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
@@ -433,7 +448,14 @@ def forecast_and_truth_tables_to_cubes(
     date_range = _date_range_for_calibration(
         cycletime, forecast_period, training_length
     )
-    forecast = forecast_table_to_cube(forecast, date_range, forecast_period)
-    truth = truth_table_to_cube(truth, date_range)
-    forecast, truth = _filter_forecasts_and_truths(forecast, truth)
-    return forecast, truth
+    forecast_cube = forecast_table_to_cube(forecast_table, date_range, forecast_period)
+    truth_cube = truth_table_to_cube(
+        truth_table,
+        date_range,
+        period=forecast_table["period"].values[0],
+        height=forecast_table["height"].values[0],
+        cf_name=forecast_table["cf_name"].values[0],
+        units=forecast_table["units"].values[0],
+    )
+    forecast_cube, truth_cube = _filter_forecasts_and_truths(forecast_cube, truth_cube)
+    return forecast_cube, truth_cube

@@ -317,10 +317,6 @@ class Test_shared_dataframes(unittest.TestCase):
             "latitude": self.latitudes * 3,
             "longitude": self.longitudes * 3,
             "altitude": self.altitudes * 3,
-            "period": [self.period] * 9,
-            "height": [self.height] * 9,
-            "cf_name": [self.cf_name] * 9,
-            "units": [self.units] * 9,
         }
 
         self.truth_df = pd.DataFrame(df_dict)
@@ -452,7 +448,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
     """Test the forecast_table_to_cube function."""
 
     def setUp(self):
-        """Set-up forecast table for testing."""
+        """Set up for testing."""
         super().setUp()
 
     def test_three_day_training_period_diag(self):
@@ -506,19 +502,33 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
     """Test the truth_table_to_cube function."""
 
     def setUp(self):
+        """Set up for testing."""
         super().setUp()
 
     def test_three_day_training_period_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for a period diagnostic."""
-        result = truth_table_to_cube(self.truth_df, self.date_range)
+        result = truth_table_to_cube(
+            self.truth_df,
+            self.date_range,
+            self.period,
+            self.height,
+            self.cf_name,
+            self.units,
+        )
         self.assertEqual(result, self.expected_period_truth)
 
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
-        self.truth_df["period"] = np.nan
-        result = truth_table_to_cube(self.truth_df, self.date_range)
+        result = truth_table_to_cube(
+            self.truth_df,
+            self.date_range,
+            np.nan,
+            self.height,
+            self.cf_name,
+            self.units,
+        )
         self.assertEqual(result, self.expected_instantaneous_truth)
 
     def test_two_day_training(self):
@@ -528,7 +538,14 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         date_range = pd.date_range(
             end=self.validity_time, periods=int(training_length), freq="D"
         )
-        result = truth_table_to_cube(self.truth_df, date_range)
+        result = truth_table_to_cube(
+            self.truth_df,
+            date_range,
+            self.period,
+            self.height,
+            self.cf_name,
+            self.units,
+        )
         self.assertEqual(result, self.expected_period_truth[1:, :])
 
     def test_missing_observation(self):
@@ -536,7 +553,9 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         if an observation is missing at a particular time."""
         df = self.truth_df.head(-1)
         self.expected_period_truth.data[-1, -1] = np.nan
-        result = truth_table_to_cube(df, self.date_range)
+        result = truth_table_to_cube(
+            df, self.date_range, self.period, self.height, self.cf_name, self.units
+        )
         np.testing.assert_array_equal(result.data, self.expected_period_truth.data)
         for coord in ["altitude", "latitude", "longitude"]:
             self.assertEqual(
@@ -550,7 +569,9 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         df.at[0, "altitude"] = 45
         df.at[0, "latitude"] = 52
         df.at[0, "longitude"] = -12
-        result = truth_table_to_cube(df, self.date_range)
+        result = truth_table_to_cube(
+            df, self.date_range, self.period, self.height, self.cf_name, self.units
+        )
         self.assertEqual(result, self.expected_period_truth)
 
     def test_empty_table(self):
@@ -561,16 +582,25 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         )
         msg = "No entries matching these dates"
         with self.assertRaisesRegex(ValueError, msg):
-            truth_table_to_cube(self.truth_df, date_range)
+            truth_table_to_cube(
+                self.truth_df,
+                date_range,
+                self.period,
+                self.height,
+                self.cf_name,
+                self.units,
+            )
 
     def test_nonunique_values_in_column(self):
         """Test if there are multiple non-unique values in a column of the
         dataframe."""
         df = self.truth_df.copy()
-        df.at[0, "period"] = 7200
-        msg = "Multiple values provided for the period"
+        df.at[0, "diagnostic"] = "wind_speed_at_10m"
+        msg = "Multiple values provided for the diagnostic"
         with self.assertRaisesRegex(ValueError, msg):
-            truth_table_to_cube(df, self.date_range)
+            truth_table_to_cube(
+                df, self.date_range, self.period, self.height, self.cf_name, self.units
+            )
 
 
 class Test_forecast_and_truth_tables_to_cubes(
