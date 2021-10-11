@@ -409,7 +409,7 @@ class Test_process(IrisTest):
         result = Plugin().process(self.post_processed_percentiles, self.raw_cube)
         self.assertIsInstance(result, Cube)
         self.assertTrue(result.coords("realization"))
-        self.assertArrayEqual(result.coord("realization").points, [10, 11, 12])
+        self.assertEqual(result.coord("realization"), self.raw_cube.coord("realization"))
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
