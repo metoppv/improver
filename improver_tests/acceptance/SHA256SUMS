@@ -18,7 +18,7 @@ bd56f09033f7a37323e04be7b509e8e363eb2474c04fb8aa4fb5e3769acb81f7  ./apply-emos-c
 615ddb59a838024bb055b9cbbb44b7c18ce28d5734952777774980760e0f36fc  ./apply-emos-coefficients/rebadged_percentiles/input.nc
 0bc91af1e7003d696aa440a07d79e653bca566733cdf9bf525ca92cff821548f  ./apply-emos-coefficients/sites/input.nc
 b587f6f057d979eebef1c2351e86ba67b99caaa2b80d2792a73b6d8691dd8eeb  ./apply-emos-coefficients/sites/point_by_point/coefficients.nc
-63058f2579743ed2317cf0b461c1cc58fa02ccef846eb2bc96f6d7255b069ecd  ./apply-emos-coefficients/sites/point_by_point/kgo.nc
+833a703e14a02999a7d70e9a37ce199ab36a09b13b96f87295a0fb91739658ce  ./apply-emos-coefficients/sites/point_by_point/kgo.nc
 965a1f0565f9192d95eb01d0a61dc7bede6902f5e1a0481d92611e677841a139  ./apply-emos-coefficients/truncated_normal/input.nc
 feb2d93cf96b05889571bcb348dfbb4d60cfc1f3d9b7343dcf7d85cf34339746  ./apply-emos-coefficients/truncated_normal/kgo.nc
 32f112547dae560e966413b1e326564adac86fda349f1b4256ac1c5910b2d90a  ./apply-emos-coefficients/truncated_normal/truncated_normal_coefficients.nc
