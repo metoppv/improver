@@ -398,6 +398,7 @@ intersphinx_mapping = {
     "https://scitools.org.uk/cf-units/docs/latest/": None,
     "https://docs.scipy.org/doc/numpy/": None,
     "https://docs.scipy.org/doc/scipy/reference/": None,
+    "https://pandas.pydata.org/pandas-docs/dev/": None,
 }
 
 # Get napoleon to document constructor methods.
