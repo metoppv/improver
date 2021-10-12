@@ -38,6 +38,7 @@ import iris
 import numpy as np
 import pandas as pd
 from iris.cube import Cube, CubeList
+from numpy import timedelta64
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
@@ -228,7 +229,7 @@ def forecast_table_to_cube(
             time_bounds = None
             fp_bounds = None
         else:
-            period = np.timedelta64(time_table["period"].values[0], "s")
+            period = time_table["period"].values[0].astype("timedelta64[s]")
             time_bounds = [time_point - period, time_point]
             fp_bounds = [fp_point - period, fp_point]
 
@@ -297,7 +298,7 @@ def forecast_table_to_cube(
 def truth_table_to_cube(
     table: DataFrame,
     date_range: DatetimeIndex,
-    period: float,
+    period: timedelta64,
     height: float,
     cf_name: str,
     units: str,
@@ -357,7 +358,7 @@ def truth_table_to_cube(
             time_bounds = None
         else:
             time_bounds = [
-                time_point - np.timedelta64(period, "s"),
+                time_point - period.astype("timedelta64[s]"),
                 time_point,
             ]
 
