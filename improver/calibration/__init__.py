@@ -370,7 +370,8 @@ def truth_table_to_cube(
             else time_bounds,
             units=TIME_COORDS["time"].units,
         )
-
+        import pdb
+        pdb.set_trace()
         height_coord = iris.coords.AuxCoord(height, "height", units="m",)
 
         cube = build_spotdata_cube(
