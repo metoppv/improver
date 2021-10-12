@@ -510,7 +510,7 @@ class Test_shared_dataframes(unittest.TestCase):
         self.latitudes = [50, 60, 70]
         self.longitudes = [-10, 0, 10]
         self.altitudes = [10, 20, 30]
-        self.period = 3600
+        self.period = np.timedelta64(1, "h").astype("timedelta64[ns]")
         self.height = 1.5
         self.units = "Celsius"
 
@@ -579,7 +579,7 @@ class Test_constructed_forecast_cubes(Test_shared_dataframes):
                 "time",
                 bounds=[
                     t.astype(TIME_COORDS["time"].dtype)
-                    for t in [time - self.period, time]
+                    for t in [time - self.period.astype("timedelta64[s]"), time]
                 ],
                 units=TIME_COORDS["time"].units,
             )
@@ -590,7 +590,7 @@ class Test_constructed_forecast_cubes(Test_shared_dataframes):
                 "forecast_period",
                 bounds=[
                     f.astype(TIME_COORDS["forecast_period"].dtype)
-                    for f in [fp_point - self.period, fp_point]
+                    for f in [fp_point - self.period.astype("timedelta64[s]"), fp_point]
                 ],
                 units=TIME_COORDS["forecast_period"].units,
             )
@@ -650,7 +650,7 @@ class Test_constructed_truth_cubes(Test_shared_dataframes):
                 "time",
                 bounds=[
                     t.astype(TIME_COORDS["time"].dtype)
-                    for t in [time - self.period, time]
+                    for t in [time - self.period.astype("timedelta64[s]"), time]
                 ],
                 units=TIME_COORDS["time"].units,
             )
@@ -690,7 +690,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
-        self.forecast_df["period"] = np.nan
+        self.forecast_df["period"] = np.timedelta64("NaT", "ns")
         result = forecast_table_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
         )
@@ -752,7 +752,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         result = truth_table_to_cube(
             self.truth_df,
             self.date_range,
-            np.nan,
+            np.timedelta64("NaT", "ns"),
             self.height,
             self.cf_name,
             self.units,
