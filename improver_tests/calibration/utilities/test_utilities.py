@@ -549,7 +549,6 @@ class Test_forecast_coords_match(IrisTest):
             time=datetime.datetime(2017, 11, 10, 4, 0),
         )
         self.message = "The following coordinates of the two cubes do not match"
-        self.mins_15_to_secs = 900
 
     def test_match(self):
         """Test returns None when cubes time coordinates match."""
