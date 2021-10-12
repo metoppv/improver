@@ -480,7 +480,7 @@ def _chunker(seq, size):
     return (seq[pos : pos + size] for pos in range(0, len(seq), size))
 
 
-class Test_shared_dataframes(unittest.TestCase):
+class Test_shared_dataframes(ImproverTest):
 
     """A shared dataframe creation class."""
 
@@ -507,9 +507,9 @@ class Test_shared_dataframes(unittest.TestCase):
         self.percentiles = [25, 50.0, 75.0]
         diag = "air_temperature"
         self.cf_name = "air_temperature"
-        self.latitudes = [50, 60, 70]
-        self.longitudes = [-10, 0, 10]
-        self.altitudes = [10, 20, 30]
+        self.latitudes = [50.0, 60.0, 70.0]
+        self.longitudes = [-10.0, 0.0, 10.0]
+        self.altitudes = [10.0, 20.0, 30.0]
         self.period = np.timedelta64(1, "h").astype("timedelta64[ns]")
         self.height = 1.5
         self.units = "Celsius"
@@ -609,12 +609,12 @@ class Test_constructed_forecast_cubes(Test_shared_dataframes):
                     units=1,
                 )
                 cube = build_spotdata_cube(
-                    data_slice,
+                    data_slice.astype(np.float32),
                     self.cf_name,
                     self.units,
-                    self.altitudes,
-                    self.latitudes,
-                    self.longitudes,
+                    np.array(self.altitudes, dtype=np.float32),
+                    np.array(self.latitudes, dtype=np.float32),
+                    np.array(self.longitudes, dtype=np.float32),
                     wmo_id=self.wmo_ids,
                     scalar_coords=[
                         time_coord,
@@ -656,12 +656,12 @@ class Test_constructed_truth_cubes(Test_shared_dataframes):
             )
             cubes.append(
                 build_spotdata_cube(
-                    data_slice,
+                    data_slice.astype(np.float32),
                     self.cf_name,
                     self.units,
-                    self.altitudes,
-                    self.latitudes,
-                    self.longitudes,
+                    np.array(self.altitudes, dtype=np.float32),
+                    np.array(self.latitudes, dtype=np.float32),
+                    np.array(self.longitudes, dtype=np.float32),
                     wmo_id=self.wmo_ids,
                     scalar_coords=[time_coord, self.height_coord],
                 )
@@ -685,7 +685,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
         result = forecast_table_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
         )
-        self.assertEqual(result, self.expected_period_forecast)
+        self.assertCubeEqual(result, self.expected_period_forecast)
 
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
@@ -694,7 +694,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
         result = forecast_table_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
         )
-        self.assertEqual(result, self.expected_instantaneous_forecast)
+        self.assertCubeEqual(result, self.expected_instantaneous_forecast)
 
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
@@ -706,7 +706,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
         result = forecast_table_to_cube(
             self.forecast_df, date_range, self.forecast_period
         )
-        self.assertEqual(result, self.expected_period_forecast[:, 1:])
+        self.assertCubeEqual(result, self.expected_period_forecast[:, 1:])
 
     def test_empty_table(self):
         """Test if none of the required data is available in the dataframe."""
@@ -744,7 +744,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
             self.cf_name,
             self.units,
         )
-        self.assertEqual(result, self.expected_period_truth)
+        self.assertCubeEqual(result, self.expected_period_truth)
 
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
@@ -757,7 +757,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
             self.cf_name,
             self.units,
         )
-        self.assertEqual(result, self.expected_instantaneous_truth)
+        self.assertCubeEqual(result, self.expected_instantaneous_truth)
 
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
@@ -774,7 +774,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
             self.cf_name,
             self.units,
         )
-        self.assertEqual(result, self.expected_period_truth[1:, :])
+        self.assertCubeEqual(result, self.expected_period_truth[1:, :])
 
     def test_missing_observation(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
@@ -800,7 +800,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         result = truth_table_to_cube(
             df, self.date_range, self.period, self.height, self.cf_name, self.units
         )
-        self.assertEqual(result, self.expected_period_truth)
+        self.assertCubeEqual(result, self.expected_period_truth)
 
     def test_empty_table(self):
         """Test if none of the required data is available in the dataframe."""
@@ -852,9 +852,8 @@ class Test_forecast_and_truth_tables_to_cubes(
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        self.assertEqual(
-            result, (self.expected_period_forecast, self.expected_period_truth)
-        )
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
 
     def test_site_mismatch(self):
         """Test for a mismatch in the sites available as truths and forecasts."""
@@ -870,7 +869,8 @@ class Test_forecast_and_truth_tables_to_cubes(
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        self.assertEqual(result, (expected_forecast, expected_truth))
+        self.assertCubeEqual(result[0], expected_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
 
     def test_site_coord_mismatch(self):
         """Test for a mismatch in the location of a site between the truths
@@ -888,9 +888,8 @@ class Test_forecast_and_truth_tables_to_cubes(
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        self.assertEqual(
-            result, (self.expected_period_forecast, self.expected_period_truth)
-        )
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
 
 
 if __name__ == "__main__":
