@@ -62,14 +62,21 @@ COMPARE_EMOS_TOLERANCE = EST_EMOS_TOLERANCE * 10
 EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
+@pytest.mark.parametrize(
+    "distribution,diagnostic,kgo_name",
+    [
+        ("norm", "temperature_at_screen_level", "screen_temperature"),
+        ("truncnorm", "wind_speed_at_10m", "wind_speed"),
+    ],
+)
 @pytest.mark.slow
-def test_screen_temperature(tmp_path):
+def test_basic(tmp_path, distribution, diagnostic, kgo_name):
     """
     Test estimate-emos-coefficients-from-table with an example forecast and truth
-    table for screen temperature.
+    table for screen temperature and wind speed.
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / f"{kgo_name}_kgo.nc"
     history_path = kgo_dir / "forecast_table"
     truth_path = kgo_dir / "truth_table"
     output_path = tmp_path / "output.nc"
@@ -77,7 +84,7 @@ def test_screen_temperature(tmp_path):
         history_path,
         truth_path,
         "--diagnostic",
-        "temperature_at_screen_level",
+        diagnostic,
         "--cycletime",
         "20210805T2100Z",
         "--forecast-period",
@@ -85,77 +92,7 @@ def test_screen_temperature(tmp_path):
         "--training-length",
         "5",
         "--distribution",
-        "norm",
-        "--tolerance",
-        EST_EMOS_TOL,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(
-        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
-    )
-
-
-# @pytest.mark.slow
-# def test_daytime_max_temperature(tmp_path):
-#     """
-#     Test estimate-emos-coefficients-from-table with an example forecast and truth
-#     table for a period diagnostic.
-#     """
-#     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
-#     kgo_path = kgo_dir / "kgo.nc"
-#     history_path = kgo_dir / "forecast_table"
-#     truth_path = kgo_dir / "truth_table"
-#     output_path = tmp_path / "output.nc"
-#     args = [
-#         history_path,
-#         truth_path,
-#         "--diagnostic",
-#         "temperature_at_screen_level_max-daytime",
-#         "--cycletime",
-#         "20210815T0000Z",
-#         "--forecast-period",
-#         "60",
-#         "--training-length",
-#         "5",
-#         "--distribution",
-#         "norm",
-#         "--tolerance",
-#         EST_EMOS_TOL,
-#         "--output",
-#         output_path,
-#     ]
-#     run_cli(args)
-#     acc.compare(
-#         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
-#     )
-
-
-@pytest.mark.slow
-def test_wind_speed(tmp_path):
-    """
-    Test estimate-emos-coefficients-from-table with an example forecast and truth
-    table for wind speed.
-    """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
-    kgo_path = kgo_dir / "kgo.nc"
-    history_path = kgo_dir / "forecast_table"
-    truth_path = kgo_dir / "truth_table"
-    output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--diagnostic",
-        "wind_speed_at_10m",
-        "--cycletime",
-        "20210805T2100Z",
-        "--forecast-period",
-        "60",
-        "--training-length",
-        "5",
-        "--distribution",
-        "truncnorm",
+        distribution,
         "--tolerance",
         EST_EMOS_TOL,
         "--output",
