@@ -462,7 +462,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
-        self.forecast_df["period"] = np.nan
+        self.forecast_df["period"] = np.timedelta64("NaT", "ns")
         result = forecast_table_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
         )
@@ -524,7 +524,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         result = truth_table_to_cube(
             self.truth_df,
             self.date_range,
-            np.nan,
+            np.timedelta64("NaT", "ns"),
             self.height,
             self.cf_name,
             self.units,

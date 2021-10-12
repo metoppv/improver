@@ -354,7 +354,7 @@ def truth_table_to_cube(
         time_table = time_table.reset_index()
 
         time_point = np.datetime64(adate, "s")
-        if period is np.nan:
+        if np.isnat(period):
             time_bounds = None
         else:
             time_bounds = [
