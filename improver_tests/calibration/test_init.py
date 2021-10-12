@@ -282,7 +282,7 @@ class Test_shared_dataframes(unittest.TestCase):
         self.latitudes = [50, 60, 70]
         self.longitudes = [-10, 0, 10]
         self.altitudes = [10, 20, 30]
-        self.period = 3600
+        self.period = np.timedelta64(1, "h").astype("timedelta64[ns]")
         self.height = 1.5
         self.units = "Celsius"
 
@@ -351,7 +351,7 @@ class Test_constructed_forecast_cubes(Test_shared_dataframes):
                 "time",
                 bounds=[
                     t.astype(TIME_COORDS["time"].dtype)
-                    for t in [time - self.period, time]
+                    for t in [time - self.period.astype("timedelta64[s]"), time]
                 ],
                 units=TIME_COORDS["time"].units,
             )
@@ -362,7 +362,7 @@ class Test_constructed_forecast_cubes(Test_shared_dataframes):
                 "forecast_period",
                 bounds=[
                     f.astype(TIME_COORDS["forecast_period"].dtype)
-                    for f in [fp_point - self.period, fp_point]
+                    for f in [fp_point - self.period.astype("timedelta64[s]"), fp_point]
                 ],
                 units=TIME_COORDS["forecast_period"].units,
             )
@@ -422,7 +422,7 @@ class Test_constructed_truth_cubes(Test_shared_dataframes):
                 "time",
                 bounds=[
                     t.astype(TIME_COORDS["time"].dtype)
-                    for t in [time - self.period, time]
+                    for t in [time - self.period.astype("timedelta64[s]"), time]
                 ],
                 units=TIME_COORDS["time"].units,
             )
