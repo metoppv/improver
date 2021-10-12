@@ -63,16 +63,21 @@ def process(
     The estimated coefficients are output as a cube.
 
     Args:
-        cubes (list of iris.cube.Cube):
-            A list of cubes containing the historical forecasts and
-            corresponding truth used for calibration. They must have the same
-            cube name and will be separated based on the truth attribute.
-            Optionally this may also contain a single land-sea mask cube on the
-            same domain as the historic forecasts and truth (where land points
-            are set to one and sea points are set to zero).
+        forecast (pathlib.Path):
+            The path to a Parquet file containing the historical forecasts
+            to be used for calibration.The expected columns within the
+            Parquet file are: forecast, blend_time, forecast_period,
+            forecast_reference_time, time, wmo_id, percentile, diagnostic,
+            latitude, longitude, period, height, cf_name, units.
+        truth (pathlib.Path):
+            The path to a Parquet file containing the truths to be used
+            for calibration. The expected columns within the
+            Parquet file are: ob_value, time, wmo_id, diagnostic, latitude,
+            longitude and altitude.
         diagnostic (str):
             The name of the diagnostic to be calibrated within the forecast
-            and truth tables.
+            and truth tables. This name is used to filter the Parquet file
+            when reading from disk.
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z.
         forecast_period (int):
@@ -83,9 +88,6 @@ def process(
             The distribution that will be used for minimising the
             Continuous Ranked Probability Score when estimating the EMOS
             coefficients. This will be dependent upon the input phenomenon.
-        truth_attribute (str):
-            An attribute and its value in the format of "attribute=value",
-            which must be present on historical truth cubes.
         point_by_point (bool):
             If True, coefficients are calculated independently for each point
             within the input cube by creating an initial guess and minimising
