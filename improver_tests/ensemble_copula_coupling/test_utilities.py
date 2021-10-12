@@ -424,18 +424,14 @@ class TestInterpolateMultipleRows(IrisTest):
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast(self):
         """Test that slow and fast versions give same result"""
-        result_slow = np.empty((self.xp.shape[0], len(self.x)))
-        slow_interp(self.x, self.xp, self.fp, result_slow)
-        result_fast = np.empty((self.xp.shape[0], len(self.x)))
-        fast_interp(self.x, self.xp, self.fp, result_fast)
+        result_slow = slow_interp(self.x, self.xp, self.fp)
+        result_fast = fast_interp(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_fast)
 
     def test_slow_vs_multi(self):
         """Test that slow interp gives same result as interpolate_multiple_rows."""
-        result_slow = np.empty((self.xp.shape[0], len(self.x)))
-        slow_interp(self.x, self.xp, self.fp, result_slow)
-        result_multiple = np.empty((self.xp.shape[0], len(self.x)))
-        interpolate_multiple_rows(self.x, self.xp, self.fp, result_multiple)
+        result_slow = slow_interp(self.x, self.xp, self.fp)
+        result_multiple = interpolate_multiple_rows(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_multiple)
 
 

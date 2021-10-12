@@ -45,14 +45,14 @@ if "OMP_NUM_THREADS" in os.environ:
 
 
 @njit(parallel=True)
-def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarray):
+def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
-
     Args:
         x: 1-d array
         xp: n * m array, each row must be in non-decreasing order
         fp: 1-d array with length m
-        result: n * len(x) array for output
+    Returns:
+        n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
     """
     # check whether x is non-decreasing
     x_ordered = True
@@ -63,6 +63,7 @@ def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarra
     max_ind = xp.shape[1]
     min_val = fp[0]
     max_val = fp[max_ind - 1]
+    result = np.empty((xp.shape[0], len(x)))
     for i in prange(xp.shape[0]):
         ind = 0
         intercept = 0
@@ -80,19 +81,7 @@ def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarra
                     ind = ind + 1
                     recalculate = True
             else:
-                # binary search
-                left = 0
-                right = max_ind
-                while right - left > 1:
-                    mid = (left + right) // 2
-                    if xp[i, mid] < curr_x:
-                        left = mid
-                    else:
-                        right = mid
-                if xp[i, left] >= curr_x:
-                    ind = left
-                else:
-                    ind = right
+                ind = np.searchsorted(xp[i], curr_x)
             # linear interpolation
             if ind == 0:
                 result[i, j] = min_val
@@ -109,3 +98,4 @@ def fast_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarra
                     else:
                         slope = (fp[ind] - intercept) / h_diff
                 result[i, j] = intercept + (curr_x - x_lower) * slope
+    return result

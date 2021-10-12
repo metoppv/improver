@@ -561,14 +561,8 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             [x / 100.0 for x in percentiles], dtype=np.float32
         )
 
-        forecast_at_percentiles = np.empty(
-            (probabilities_for_cdf.shape[0], len(percentiles)), dtype=np.float32
-        )
-        interpolate_multiple_rows(
-            percentiles_as_fractions,
-            probabilities_for_cdf,
-            threshold_points,
-            forecast_at_percentiles,
+        forecast_at_percentiles = interpolate_multiple_rows(
+            percentiles_as_fractions, probabilities_for_cdf, threshold_points,
         )
         forecast_at_percentiles = forecast_at_percentiles.transpose()
 

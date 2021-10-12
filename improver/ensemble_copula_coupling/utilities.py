@@ -292,17 +292,20 @@ def restore_non_percentile_dimensions(
     return array_to_reshape.reshape(shape_to_reshape_to)
 
 
-def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray, result: np.ndarray):
+def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
 
     Args:
         x: 1-d array
         xp: n * m array, each row must be in non-decreasing order
         fp: 1-d array with length m
-        result: n * len(x) array for output
+    Returns:
+        n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
     """
+    result = np.empty((xp.shape[0], len(x)))
     for i in range(xp.shape[0]):
         result[i] = np.interp(x, xp[i, :], fp)
+    return result
 
 
 try:
