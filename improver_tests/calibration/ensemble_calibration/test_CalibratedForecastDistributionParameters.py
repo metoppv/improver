@@ -245,6 +245,12 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._spatial_domain_match()
 
+    def test_skipping_spot_forecast(self):
+        """Test passing a spot forecast. In this case, the spatial domain
+        is not checked."""
+        self.plugin.current_forecast = self.current_forecast_spot_cube
+        self.plugin._spatial_domain_match()
+
 
 class Test__calculate_location_parameter_from_mean(
     SetupCoefficientsCubes, EnsembleCalibrationAssertions
