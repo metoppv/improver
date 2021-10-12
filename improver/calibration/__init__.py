@@ -256,7 +256,9 @@ def forecast_table_to_cube(
         )
 
         height_coord = iris.coords.AuxCoord(
-            time_table["height"].values[0], "height", units="m",
+            np.array(time_table["height"].values[0], dtype=np.float32),
+            "height",
+            units="m",
         )
 
         for percentile in table["percentile"].unique():
@@ -371,7 +373,9 @@ def truth_table_to_cube(
             units=TIME_COORDS["time"].units,
         )
 
-        height_coord = iris.coords.AuxCoord(height, "height", units="m",)
+        height_coord = iris.coords.AuxCoord(
+            np.array(height, dtype=np.float32), "height", units="m",
+        )
 
         cube = build_spotdata_cube(
             time_table["ob_value"].astype(np.float32),  # data
