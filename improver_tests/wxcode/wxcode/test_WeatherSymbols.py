@@ -969,6 +969,57 @@ class Test_evaluate_condition_chain(Test_WXCode):
         self.assertArrayEqual(result, expected)
 
 
+class Test_remove_optional_missing(IrisTest):
+
+    """Test the rewriting of the decision tree on-the-fly to take into account
+    allowed missing diagnostics."""
+
+    def setUp(self):
+        """Setup a decision tree for testing."""
+        # self.tree = wxcode_decision_tree()
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+
+    def test_first_node(self):
+        """Test that if the first node, lightning, is missing, the start_node
+        progresses to its "if_diagnostic_missing" option."""
+
+        optional_missing = {'lightning': 'heavy_precipitation'}
+        target_node = self.plugin.queries["lightning"]["if_diagnostic_missing"]
+        expected = self.plugin.queries["lightning"][target_node]
+
+        self.plugin.remove_optional_missing(optional_missing)
+
+        self.assertEqual(self.plugin.start_node, expected)
+
+    def test_intermediate_node(self):
+        """Test that if a node other than the first node is missing, is gets
+        cut out of the possible paths through the decision tree. In this case
+        it means that the lightning "if_false" path skips "heavy_precipitation"
+        and instead targets its "if_diagnostic_missing" option, which is
+        "precipitation_in_vicinity"."""
+
+        optional_missing = {'heavy_precipitation': "precipitation_in_vicinity"}
+        target_node = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
+        expected = self.plugin.queries["heavy_precipitation"][target_node]
+
+        self.plugin.remove_optional_missing(optional_missing)
+
+        self.assertEqual(self.plugin.queries["lightning"]["if_false"], expected)
+
+    def test_sequential_nodes(self):
+        """Test that if the diagnostics for two nodes, that are both allowed to
+        be missing, are absent, the start node skips both of them."""
+
+        optional_missing = {'lightning': 'heavy_precipitation',
+                            'heavy_precipitation': "precipitation_in_vicinity"}
+        target_node = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
+        expected = self.plugin.queries["heavy_precipitation"][target_node]
+
+        self.plugin.remove_optional_missing(optional_missing)
+
+        self.assertEqual(self.plugin.start_node, expected)
+
+
 class Test_find_all_routes(IrisTest):
 
     """Test the find_all_routes method ."""
@@ -999,49 +1050,6 @@ class Test_find_all_routes(IrisTest):
             ["start_node", "success_1", "success_1_1", 1],
             ["start_node", "fail_0", "success_0_1", 1],
         ]
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_top_node(self):
-        """Test find_all_routes where omit node is top node."""
-        omit_nodes = {"start_node": "success_1"}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
-        )
-        expected_nodes = [["success_1", "success_1_1", 1]]
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_midtree(self):
-        """Test find_all_routes where omit node is mid tree."""
-        omit_nodes = {"success_1": "success_1_1"}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
-        )
-        expected_nodes = [
-            ["start_node", "success_1_1", 1],
-            ["start_node", "fail_0", "success_0_1", 1],
-        ]
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_blocked(self):
-        """Test find_all_routes where omitted node is no longer accessible."""
-        omit_nodes = {"fail_0": 3}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 5, omit_nodes=omit_nodes,
-        )
-        expected_nodes = []
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_multi(self):
-        """Test find_all_routes where multiple omitted nodes."""
-        omit_nodes = {"fail_0": 3, "success_1": "success_1_1"}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
-        )
-        expected_nodes = [["start_node", "success_1_1", 1]]
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 

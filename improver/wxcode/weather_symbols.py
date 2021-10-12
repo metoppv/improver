@@ -314,6 +314,7 @@ class WeatherSymbols(BasePlugin):
         inverted_combination = self._invert_comparator(
             condition["condition_combination"]
         )
+        # print("inverted", inverted_threshold, inverted_combination)
         return inverted_threshold, inverted_combination
 
     def create_condition_chain(self, test_conditions: Dict) -> List:
@@ -341,7 +342,7 @@ class WeatherSymbols(BasePlugin):
             test_conditions["probability_thresholds"],
             test_conditions["diagnostic_thresholds"],
         ):
-
+            # print(diagnostic, p_threshold, d_threshold)
             loop += 1
 
             if isinstance(diagnostic, list):
@@ -424,12 +425,37 @@ class WeatherSymbols(BasePlugin):
         constraint = iris.Constraint(name=diagnostic, **kw_dict)
         return constraint
 
+    def remove_optional_missing(self, optional_node_data_missing: Dict[str, Any]):
+        """
+        Some decision tree nodes are optional and have an "if_diagnostic_missing"
+        key to enable passage through the tree in the absence of the required
+        input diagnostic. This code modifies the tree in the following ways:
+
+           - Rewrites the decision tree to skip the missing nodes by connecting
+             nodes that proceed them to the node targetted by "if_diagnostic_missing"
+           - If the node(s) missing are those at the start of the decision
+             tree, the start_node is modified to find the first available node.
+
+        Args:
+            optional_node_data_missing:
+                Dictionary in which the key is the name of the missing node and
+                the corresponding value is the alternative target node.
+        """
+        for missing, alternative in optional_node_data_missing.items():
+            for node, query in self.queries.items():
+                if query["if_true"] == missing:
+                    query["if_true"] = alternative
+                if query["if_false"] == missing:
+                    query["if_false"] = alternative
+
+            if self.start_node == missing:
+                self.start_node = alternative
+
     @staticmethod
     def find_all_routes(
         graph: Dict,
         start: str,
         end: int,
-        omit_nodes: Optional[Dict] = None,
         route: Optional[List[str]] = None,
     ) -> List[str]:
         """
@@ -441,13 +467,9 @@ class WeatherSymbols(BasePlugin):
                 e.g. {<node_name>: [<if_true_name>, <if_false_name>]}
             start:
                 The node name of the tree root (currently always
-                heavy_precipitation).
+                lightning).
             end:
                 The weather symbol code to which we are tracing all routes.
-            omit_nodes:
-                A dictionary of (keyword) nodes names where the diagnostic
-                data is missing and (values) node associated with
-                if_diagnostic_missing.
             route:
                 A list of node names found so far.
 
@@ -462,13 +484,6 @@ class WeatherSymbols(BasePlugin):
         if route is None:
             route = []
 
-        if omit_nodes:
-            start_not_valid = True
-            while start_not_valid:
-                if start in omit_nodes:
-                    start = omit_nodes[start]
-                else:
-                    start_not_valid = False
         route = route + [start]
         if start == end:
             return [route]
@@ -479,7 +494,7 @@ class WeatherSymbols(BasePlugin):
         for node in graph[start]:
             if node not in route:
                 newroutes = WeatherSymbols.find_all_routes(
-                    graph, node, end, omit_nodes=omit_nodes, route=route
+                    graph, node, end, route=route
                 )
                 routes.extend(newroutes)
         return routes
@@ -656,6 +671,7 @@ class WeatherSymbols(BasePlugin):
             res = self.evaluate_condition_chain(cubes, item)
         else:
             condition, comparator, threshold = item
+            # print(item)
             res = self.compare_array_to_threshold(
                 self.evaluate_extract_expression(cubes, condition),
                 comparator,
@@ -666,6 +682,7 @@ class WeatherSymbols(BasePlugin):
                 new_res = self.evaluate_condition_chain(cubes, item)
             else:
                 condition, comparator, threshold = item
+                # print(item)
                 new_res = self.compare_array_to_threshold(
                     self.evaluate_extract_expression(cubes, condition),
                     comparator,
@@ -683,6 +700,7 @@ class WeatherSymbols(BasePlugin):
                     "but second element is not 'AND' or 'OR'.",
                 )
                 raise RuntimeError(msg)
+        # print(res)
         return res
 
     def process(self, cubes: CubeList) -> Cube:
@@ -699,6 +717,11 @@ class WeatherSymbols(BasePlugin):
         """
         # Check input cubes contain required data
         optional_node_data_missing = self.check_input_cubes(cubes)
+
+        # Reroute the decision tree around missing optional nodes
+        if optional_node_data_missing is not None:
+            self.remove_optional_missing(optional_node_data_missing)
+
         # Construct graph nodes dictionary
         graph = {
             key: [self.queries[key]["if_true"], self.queries[key]["if_false"]]
@@ -713,18 +736,16 @@ class WeatherSymbols(BasePlugin):
         # Create symbol cube
         symbols = self.create_symbol_cube(cubes)
         # Loop over possible symbols
-        for symbol_code in defined_symbols:
 
+        for symbol_code in defined_symbols:
             # In current decision tree
-            # start node is heavy_precipitation
+            # start node is lightning
             routes = self.find_all_routes(
                 graph,
                 self.start_node,
                 symbol_code,
-                omit_nodes=optional_node_data_missing,
             )
             # Loop over possible routes from root to leaf
-
             for route in routes:
                 conditions = []
                 for i_node in range(len(route) - 1):
@@ -736,6 +757,7 @@ class WeatherSymbols(BasePlugin):
                         next_node = symbol_code
 
                     if current["if_false"] == next_node:
+
                         (
                             current["threshold_condition"],
                             current["condition_combination"],
@@ -744,10 +766,15 @@ class WeatherSymbols(BasePlugin):
                     conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
 
+                # print(route)
+
                 # Set grid locations to suitable weather symbol
                 symbols.data[
                     np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
                 ] = symbol_code
+        #         print(symbol_code)
+        #         print(symbols.data)
+        # print(symbols.data)
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
         return symbols
