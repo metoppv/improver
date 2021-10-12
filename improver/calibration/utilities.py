@@ -285,12 +285,29 @@ def merge_land_and_sea(calibrated_land_only: Cube, uncalibrated: Cube) -> None:
         calibrated_land_only.data = new_data
 
 
+def _ceiling_fp(cube: Cube) -> np.ndarray:
+    """Find the forecast period points rounded up to the next hour.
+
+    Args:
+        cube:
+            Cube with a forecast_period coordinate.
+
+    Returns:
+        The forecast period points in units of hours after
+        rounding the points up to the next hour.
+    """
+    coord = cube.coord("forecast_period").copy()
+    coord.convert_units("hours")
+    return np.ceil(coord.points)
+
+
 def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
     """
-    Determine if two cubes have equivalent forecast_periods and that the hours
-    of the forecast_reference_time coordinates match. Only the point of the
-    forecast reference time coordinate is checked to ensure that a calibration
-    / coefficient cube matches the forecast cube, as appropriate.
+    Determine if two cubes have equivalent forecast_periods and
+    forecast_reference_time coordinates with an accepted leniency.
+    The forecast period is rounded up to the next hour to
+    support calibrating subhourly forecasts with coefficients taken from on
+    the hour. For forecast reference time, only the hour is checked.
 
     Args:
         first_cube:
@@ -302,8 +319,8 @@ def forecast_coords_match(first_cube: Cube, second_cube: Cube) -> None:
         ValueError: The two cubes are not equivalent.
     """
     mismatches = []
-    if first_cube.coord("forecast_period") != second_cube.coord("forecast_period"):
-        mismatches.append("forecast_period")
+    if _ceiling_fp(first_cube) != _ceiling_fp(second_cube):
+        mismatches.append("rounded forecast_period hours")
 
     if get_frt_hours(first_cube.coord("forecast_reference_time")) != get_frt_hours(
         second_cube.coord("forecast_reference_time")

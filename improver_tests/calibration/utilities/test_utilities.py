@@ -554,27 +554,49 @@ class Test_forecast_coords_match(IrisTest):
         """Test returns None when cubes time coordinates match."""
         self.assertIsNone(forecast_coords_match(self.ref_cube, self.ref_cube.copy()))
 
+    def test_15_minute_frt_offset_match(self):
+        """Test returns None when cubes time coordinates match with an
+        allowed leniency for a 15 minute offset."""
+        adjusted_cube = set_up_variable_cube(
+            self.data,
+            frt=datetime.datetime(2017, 11, 10, 1, 15),
+            time=datetime.datetime(2017, 11, 10, 4, 0),
+        )
+
+        self.assertIsNone(forecast_coords_match(self.ref_cube, adjusted_cube))
+
+    def test_45_minute_frt_offset_match(self):
+        """Test returns None when cubes time coordinates match with an
+        allowed leniency for a 45 minute offset."""
+        adjusted_cube = set_up_variable_cube(
+            self.data,
+            frt=datetime.datetime(2017, 11, 10, 1, 45),
+            time=datetime.datetime(2017, 11, 10, 4, 0),
+        )
+
+        self.assertIsNone(forecast_coords_match(self.ref_cube, adjusted_cube))
+
     def test_forecast_period_mismatch(self):
         """Test an error is raised when the forecast period mismatches."""
-        self.adjusted_cube = set_up_variable_cube(
+        adjusted_cube = set_up_variable_cube(
             self.data,
             frt=datetime.datetime(2017, 11, 10, 1, 0),
             time=datetime.datetime(2017, 11, 10, 5, 0),
         )
 
         with self.assertRaisesRegex(ValueError, self.message):
-            forecast_coords_match(self.ref_cube, self.adjusted_cube)
+            forecast_coords_match(self.ref_cube, adjusted_cube)
 
     def test_frt_hour_mismatch(self):
         """Test an error is raised when the forecast_reference_time mismatches"""
-        self.adjusted_cube = set_up_variable_cube(
+        adjusted_cube = set_up_variable_cube(
             self.data,
             frt=datetime.datetime(2017, 11, 10, 2, 0),
             time=datetime.datetime(2017, 11, 10, 5, 0),
         )
 
         with self.assertRaisesRegex(ValueError, self.message):
-            forecast_coords_match(self.ref_cube, self.adjusted_cube)
+            forecast_coords_match(self.ref_cube, adjusted_cube)
 
 
 class Test_get_frt_hours(IrisTest):

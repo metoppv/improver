@@ -1444,12 +1444,16 @@ class CalibratedForecastDistributionParameters(BasePlugin):
     def _spatial_domain_match(self) -> None:
         """
         Check that the domain of the current forecast and coefficients cube
-        match.
+        match for gridded forecasts. For spot forecasts, the spatial domain check
+        is skipped.
 
         Raises:
             ValueError: If the points or bounds of the specified axis of the
                 current_forecast and coefficients_cube do not match.
         """
+        # If spot data, skip the spatial domain check.
+        if self.current_forecast.coords("wmo_id"):
+            return
         msg = (
             "The points or bounds of the {} axis given by the current forecast {} "
             "do not match those given by the coefficients cube {}."

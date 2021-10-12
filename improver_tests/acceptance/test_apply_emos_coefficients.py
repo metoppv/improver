@@ -99,6 +99,27 @@ def test_normal_point_by_point_sites(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_normal_sites_subhourly(tmp_path):
+    """Test using a normal distribution for site forecasts that differ
+    in terms of spatial extent, forecast reference time and forecast period
+    from the coefficients."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/offset"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "offset_input.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_realizations_input_land_sea(tmp_path):
     """Test realizations as input with a land sea mask"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/land_sea"
