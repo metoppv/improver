@@ -269,10 +269,10 @@ def forecast_table_to_cube(
                 perc_table["forecast"].astype(np.float32),  # data
                 perc_table["cf_name"].values[0],
                 perc_table["units"].values[0],
-                perc_table["altitude"].astype(np.float32),  # altitude
-                perc_table["latitude"].astype(np.float32),  # latitude
-                perc_table["longitude"].astype(np.float32),  # longitude
-                perc_table["wmo_id"].values,
+                perc_table["altitude"].astype(np.float32),
+                perc_table["latitude"].astype(np.float32),
+                perc_table["longitude"].astype(np.float32),
+                perc_table["wmo_id"].values.astype("U5"),
                 scalar_coords=[
                     time_coord,
                     frt_coord,
@@ -377,10 +377,10 @@ def truth_table_to_cube(
             time_table["ob_value"].astype(np.float32),  # data
             cf_name,
             units,
-            time_table["altitude"],
-            time_table["latitude"],
-            time_table["longitude"],
-            time_table["wmo_id"].values,
+            time_table["altitude"].astype(np.float32),
+            time_table["latitude"].astype(np.float32),
+            time_table["longitude"].astype(np.float32),
+            time_table["wmo_id"].values.astype("U5"),
             scalar_coords=[time_coord, height_coord],
         )
         cubelist.append(cube)
