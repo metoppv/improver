@@ -310,7 +310,7 @@ class Test_process(IrisTest):
         )
         result = ApplyEMOS()(self.percentiles, coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
         self.assertNotAlmostEqual(np.mean(result.data), expected_mean)
 
     def test_invalid_attribute(self):
