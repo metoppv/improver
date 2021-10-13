@@ -47,7 +47,6 @@ from iris.coords import Coord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
-from scipy import stats
 from scipy.optimize import OptimizeResult, minimize
 from scipy.stats import norm
 
@@ -82,7 +81,6 @@ from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_o
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     """
     Minimise the Continuous Ranked Probability Score (CRPS)
-
     Calculate the optimised coefficients for minimising the CRPS based on
     assuming a particular probability distribution for the phenomenon being
     minimised.
@@ -90,7 +88,6 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     The number of coefficients that will be optimised depend upon the initial
     guess. The coefficients will be calculated either using all points provided
     or coefficients will be calculated separately for each point.
-
     Minimisation is performed using the Nelder-Mead algorithm for 200
     iterations to limit the computational expense.
     Note that the BFGS algorithm was initially trialled but had a bug
@@ -144,6 +141,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
                 If True, coefficients are calculated independently for each
                 point within the input cube by minimising each point
                 independently.
+
         """
         # Dictionary containing the functions that will be minimised,
         # depending upon the distribution requested. The names of these
@@ -332,6 +330,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         Warns:
             Warning: If a satisfactory minimisation has not been achieved.
+
         """
         last_iteration_percentage_change = (
             np.absolute((allvecs[-1] - allvecs[-2]) / allvecs[-2]) * 100
@@ -372,6 +371,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
 
         Return:
             A single set of coefficients with the order [alpha, beta, gamma, delta].
+
         """
         optimised_coeffs = minimize(
             minimisation_function,
@@ -405,7 +405,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         for fp_data in forecast_predictors:
             flattened_forecast_predictors.append(
                 flatten_ignoring_masked_data(
-                    fp_data, preserve_leading_dimension=preserve_leading_dimension,
+                    fp_data, preserve_leading_dimension=preserve_leading_dimension
                 )
             )
 
@@ -677,8 +677,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         Regression, calculates coefficients based on historical forecasts and
         applies the coefficients to the current forecast.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Args:
             distribution:
@@ -844,20 +844,63 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ]
         return template_dims, spatial_associated_coords
 
+    @staticmethod
+    def _add_predictor_coords(
+        template_cube: Cube, forecast_predictors: CubeList
+    ) -> Cube:
+        """Add predictor index and predictor name coordinates to the
+        beta coefficient template cube to support the use of additional
+        predictors.
+
+        Args:
+            template_cube:
+                A template cube for storing the optimised beta
+                coefficients.
+            forecast_predictors
+                CubeList where each cube contains a separate forecast
+                predictor
+
+        Returns:
+            A cube with the predictor_index and predictor_name
+            coordinates added. Single value dimension coordinates
+            are converted to non-dimension coordinates.
+        """
+        template_cubes = iris.cube.CubeList()
+        fp_names = []
+        for index, fp in enumerate(forecast_predictors):
+            template_cube_copy = template_cube.copy()
+            predictor_index = iris.coords.DimCoord(
+                np.array(index, dtype=np.int8), long_name="predictor_index", units="1",
+            )
+            template_cube_copy.add_aux_coord(predictor_index)
+            template_cube_copy = iris.util.new_axis(template_cube_copy, predictor_index)
+            template_cubes.append(template_cube_copy)
+            fp_names.append(fp.name())
+        template_cube = template_cubes.concatenate_cube()
+        predictor_name = iris.coords.AuxCoord(
+            fp_names, long_name="predictor_name", units="no_unit"
+        )
+        template_cube.add_aux_coord(
+            predictor_name, data_dims=template_cube.coord_dims("predictor_index"),
+        )
+        return iris.util.squeeze(template_cube)
+
     def _create_cubelist(
-        self, optimised_coeffs: ndarray, historic_forecasts: Cube
+        self,
+        optimised_coeffs: ndarray,
+        historic_forecasts: Cube,
+        forecast_predictors: CubeList,
     ) -> CubeList:
         """Create a cubelist by combining the optimised coefficients and the
         appropriate metadata. The units of the alpha and gamma coefficients
         match the units of the historic forecast. If the predictor is the
         realizations, then the beta coefficient cube contains a realization
         coordinate.
-
         Args:
             optimised_coeffs
             historic_forecasts:
                 Historic forecasts from the training dataset.
-
+            forecast_predictors
         Returns:
             CubeList constructed using the coefficients provided and using
             metadata from the historic_forecasts cube. Each cube within the
@@ -881,11 +924,23 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             if self.predictor == "realizations" and "beta" == coeff_name:
                 used_dims = ["realization"] + used_dims
                 replacements += ["realization"]
+
             template_cube = next(historic_forecasts.slices(used_dims))
+
+            if "beta" == coeff_name:
+                template_cube = self._add_predictor_coords(
+                    template_cube, forecast_predictors
+                )
+                optimised_coeff = np.reshape(optimised_coeff, template_cube.shape)
+                replacements += ["predictor_index", "predictor_name"]
+            else:
+                optimised_coeff = np.array(optimised_coeff)
 
             for coord in coords_to_replace:
                 template_cube.replace_coord(coord)
 
+            # Remove coordinates in the template cube that have not been replaced
+            # and therefore updated.
             for coord in set([c.name() for c in template_cube.coords()]) - set(
                 replacements
             ):
@@ -901,13 +956,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 template_cube,
                 generate_mandatory_attributes([historic_forecasts]),
                 optional_attributes=self._set_attributes(historic_forecasts),
-                data=np.array(optimised_coeff),
+                data=optimised_coeff,
             )
             cubelist.append(cube)
         return cubelist
 
     def create_coefficients_cubelist(
-        self, optimised_coeffs: Union[List[float], ndarray], historic_forecasts: Cube
+        self,
+        optimised_coeffs: Union[List[float], ndarray],
+        historic_forecasts: Cube,
+        forecast_predictors: CubeList,
     ) -> CubeList:
         """Create a cubelist for storing the coefficients computed using EMOS.
 
@@ -924,6 +982,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 are provided.
             historic_forecasts:
                 Historic forecasts from the training dataset.
+            forecast_predictors:
+                The predictors are the historic forecasts processed to be
+                either in the form of the ensemble mean or the ensemble
+                realizations and any additional predictors.
 
         Returns:
             CubeList constructed using the coefficients provided and using
@@ -935,7 +997,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             ValueError: If the number of coefficients in the optimised_coeffs
                 does not match the expected number.
         """
-        if self.predictor == "realizations":
+        if self.predictor == "realizations" or len(forecast_predictors) > 1:
             optimised_coeffs = [
                 optimised_coeffs[0],
                 optimised_coeffs[1:-2],
@@ -952,7 +1014,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             )
             raise ValueError(msg)
 
-        return self._create_cubelist(optimised_coeffs, historic_forecasts)
+        return self._create_cubelist(
+            optimised_coeffs, historic_forecasts, forecast_predictors
+        )
 
     def compute_initial_guess(
         self,
@@ -994,8 +1058,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             truths:
                 Array containing the truth fields.
             forecast_predictor:
-                Array containing the fields to be used as the predictor,
-                either the ensemble mean or the ensemble realizations.
+                The predictors are the historic forecasts processed to be
+                either in the form of the ensemble mean or the ensemble
+                realizations and any additional predictors.
             predictor:
                 String to specify the form of the predictor used to calculate
                 the location parameter when estimating the EMOS coefficients.
@@ -1021,7 +1086,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
 
         if predictor == "mean" and default_initial_guess:
-            initial_guess = [0, 1, 0, 1]
+            initial_beta = np.repeat(
+                1.0 / forecast_predictor.shape[0], forecast_predictor.shape[0]
+            ).tolist()
+            initial_guess = [0] + initial_beta + [0, 1]
         elif predictor == "realizations" and default_initial_guess:
             initial_beta = np.repeat(
                 np.sqrt(1.0 / number_of_realizations), number_of_realizations
@@ -1029,29 +1097,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             initial_guess = [0] + initial_beta + [0, 1]
         elif not self.use_default_initial_guess:
             truths_flattened = flatten_ignoring_masked_data(truths)
-            if predictor == "mean":
-                forecast_predictor_flattened = flatten_ignoring_masked_data(
-                    forecast_predictor
-                )
-                if (truths_flattened.size == 0) or (
-                    forecast_predictor_flattened.size == 0
-                ):
-                    gradient, intercept = [np.nan, np.nan]
-                else:
-                    gradient, intercept, _, _, _ = stats.linregress(
-                        forecast_predictor_flattened, truths_flattened
-                    )
-                initial_guess = [intercept, gradient, 0, 1]
-            elif predictor == "realizations":
-
-                forecast_predictor_flattened = flatten_ignoring_masked_data(
-                    forecast_predictor, preserve_leading_dimension=True
-                )
-                val = sm.add_constant(forecast_predictor_flattened.T)
-                est = sm.OLS(truths_flattened, val).fit()
-                intercept = est.params[0]
-                gradient = est.params[1:]
-                initial_guess = [intercept] + gradient.tolist() + [0, 1]
+            forecast_predictor_flattened = flatten_ignoring_masked_data(
+                forecast_predictor, preserve_leading_dimension=True
+            )
+            val = sm.add_constant(
+                forecast_predictor_flattened.T, has_constant="add"
+            ).astype(np.float64)
+            est = sm.OLS(truths_flattened.astype(np.float64), val).fit()
+            intercept = est.params[0].astype(np.float32)
+            gradient = est.params[1:].astype(np.float32)
+            initial_guess = [intercept] + gradient.tolist() + [0, 1]
 
         return np.array(initial_guess, dtype=np.float32)
 
@@ -1086,7 +1141,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self,
         truths: Cube,
         historic_forecasts: Cube,
-        forecast_predictor: Cube,
+        forecast_predictors: CubeList,
         forecast_var: Cube,
         number_of_realizations: Optional[int],
     ) -> CubeList:
@@ -1098,10 +1153,12 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             truths:
                 Truths from the training dataset.
             historic_forecasts:
-                Historic forecasts from the training dataset.
-            forecast_predictor:
-                Predictor of the forecast within the minimisation. This
-                is either the ensemble mean or the ensemble realizations.
+                Historic forecasts from the training dataset. These are used
+                as a template cube for creating the coefficient cube.
+            forecast_predictors:
+                The predictors are the historic forecasts processed to be
+                either in the form of the ensemble mean or the ensemble
+                realizations and any additional predictors.
             forecast_var:
                 Variance of the forecast for use in the minimisation.
             number_of_realizations:
@@ -1113,29 +1170,55 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             metadata from the historic_forecasts cube. Each cube within the
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
+
         """
         if self.point_by_point and not self.use_default_initial_guess:
-            index = [
-                forecast_predictor.coord(axis="y"),
-                forecast_predictor.coord(axis="x"),
-            ]
+            y_name = truths.coord(axis="y").name()
+            x_name = truths.coord(axis="x").name()
+
             initial_guess = []
-            for (truths_slice, fp_slice) in zip(
-                truths.slices_over(index), forecast_predictor.slices_over(index)
-            ):
+            for truth_slice in truths.slices_over([y_name, x_name]):
+                constr = iris.Constraint(
+                    coord_values={
+                        y_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(y_name).points)
+                        ),
+                        x_name: lambda cell: any(
+                            np.isclose(cell.point, truth_slice.coord(x_name).points)
+                        ),
+                    }
+                )
+                forecast_predictors_slice = forecast_predictors.extract(constr)
+                if self.predictor == "realizations":
+                    forecast_predictors_data = forecast_predictors_slice[0].data
+                else:
+                    # If using mean as predictor, stack to produce one array where
+                    # the leading dimension represents the number of predictors.
+                    forecast_predictors_data = np.ma.stack(
+                        broadcast_data_to_time_coord(forecast_predictors_slice)
+                    )
+
                 initial_guess.append(
                     self.compute_initial_guess(
-                        truths_slice.data,
-                        fp_slice.data,
+                        truth_slice.data,
+                        forecast_predictors_data,
                         self.predictor,
                         number_of_realizations,
                     )
                 )
         else:
             # Computing initial guess for EMOS coefficients
+            if self.predictor == "realizations":
+                forecast_predictor_data = forecast_predictors[0].data
+            else:
+                # If using mean as predictor, stack to produce one array where
+                # the leading dimension represents the number of predictors.
+                forecast_predictor_data = np.ma.stack(
+                    broadcast_data_to_time_coord(forecast_predictors)
+                )
             initial_guess = self.compute_initial_guess(
                 truths.data,
-                forecast_predictor.data,
+                forecast_predictor_data,
                 self.predictor,
                 number_of_realizations,
             )
@@ -1152,13 +1235,13 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         # Calculate coefficients if there are no nans in the initial guess.
         optimised_coeffs = self.minimiser(
             initial_guess,
-            CubeList([forecast_predictor]),
+            forecast_predictors,
             truths,
             forecast_var,
             self.distribution.lower(),
         )
         coefficients_cubelist = self.create_coefficients_cubelist(
-            optimised_coeffs, historic_forecasts
+            optimised_coeffs, historic_forecasts, forecast_predictors
         )
 
         return coefficients_cubelist
@@ -1167,6 +1250,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self,
         historic_forecasts: Cube,
         truths: Cube,
+        additional_fields: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
     ) -> CubeList:
         """
@@ -1196,6 +1280,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 Historic forecasts from the training dataset.
             truths:
                 Truths from the training dataset.
+            additional_fields:
+                Additional fields to use as supplementary predictors.
             landsea_mask:
                 The optional cube containing a land-sea mask. If provided, only
                 land points are used to calculate the coefficients. Within the
@@ -1228,6 +1314,29 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts, truths
         )
         check_forecast_consistency(historic_forecasts)
+        if additional_fields:
+            if self.predictor.lower() == "realizations":
+                msg = (
+                    "Currently the usage of additional fields with the use "
+                    "of realizations as the predictor is not supported."
+                )
+                raise NotImplementedError(msg)
+            disallowed_coords = [
+                "forecast_period",
+                "forecast_reference_time",
+                "realization",
+            ]
+            for cube in additional_fields:
+                if any([cube.coords(c) for c in disallowed_coords]):
+                    coords = [
+                        cube.coord(c) for c in disallowed_coords if cube.coords(c)
+                    ]
+                    msg = (
+                        "Only static additional predictors are supported. "
+                        f"The {cube.name()} cube provided contains {coords}."
+                    )
+                    raise ValueError(msg)
+
         # Make sure inputs have the same units.
         if self.desired_units:
             historic_forecasts.convert_units(self.desired_units)
@@ -1243,13 +1352,16 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         number_of_realizations = None
         if self.predictor == "mean":
-            forecast_predictor = collapsed(
-                historic_forecasts, "realization", iris.analysis.MEAN
+            forecast_predictors = iris.cube.CubeList(
+                [collapsed(historic_forecasts, "realization", iris.analysis.MEAN)]
             )
         elif self.predictor == "realizations":
-            forecast_predictor = historic_forecasts
-            number_of_realizations = len(forecast_predictor.coord("realization").points)
-            enforce_coordinate_ordering(forecast_predictor, "realization")
+            number_of_realizations = len(historic_forecasts.coord("realization").points)
+            enforce_coordinate_ordering(historic_forecasts, "realization")
+            forecast_predictors = iris.cube.CubeList([historic_forecasts])
+
+        if additional_fields:
+            forecast_predictors.extend(additional_fields)
 
         forecast_var = collapsed(
             historic_forecasts, "realization", iris.analysis.VARIANCE
@@ -1257,14 +1369,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         # If a landsea_mask is provided mask out the sea points
         if landsea_mask:
-            self.mask_cube(forecast_predictor, landsea_mask)
+            [self.mask_cube(fp, landsea_mask) for fp in forecast_predictors]
             self.mask_cube(forecast_var, landsea_mask)
             self.mask_cube(truths, landsea_mask)
 
         coefficients_cubelist = self.guess_and_minimise(
             truths,
             historic_forecasts,
-            forecast_predictor,
+            forecast_predictors,
             forecast_var,
             number_of_realizations,
         )
@@ -1296,6 +1408,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         self.coefficients_cubelist = None
         self.current_forecast = None
+        self.additional_fields = None
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -1363,24 +1476,43 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Function to calculate the location parameter when the ensemble mean at
         each grid point is the predictor.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Returns:
             Location parameter calculated using the ensemble mean as the
             predictor.
         """
-        forecast_predictor = collapsed(
-            self.current_forecast, "realization", iris.analysis.MEAN
+        forecast_predictors = iris.cube.CubeList(
+            [collapsed(self.current_forecast, "realization", iris.analysis.MEAN)]
         )
+        if self.additional_fields:
+            forecast_predictors.extend(self.additional_fields)
+
+        beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+
+        fp_names = [fp.name() for fp in forecast_predictors]
+        if len(forecast_predictors) != len(beta_cube.coord("predictor_index").points):
+            n_coord_points = len(beta_cube.coord("predictor_index").points)
+            coord_names = beta_cube.coord("predictor_name").points
+            msg = (
+                "The number of forecast predictors must equal the number of "
+                "beta coefficients in order to create a calibrated forecast. "
+                f"Number of predictor cubes = {len(forecast_predictors)}: {fp_names}, "
+                f"Number of predictor coords = {n_coord_points}: {coord_names}"
+            )
+            raise ValueError(msg)
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
-        location_parameter = (
-            self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data
-            + self.coefficients_cubelist.extract_cube("emos_coefficient_beta").data
-            * forecast_predictor.data
-        ).astype(np.float32)
+        location_parameter = np.zeros(forecast_predictors[0].shape)
+        for fp in forecast_predictors:
+            constr = iris.Constraint(predictor_name=fp.name())
+            location_parameter += beta_cube.extract(constr).data * fp.data
+        location_parameter += self.coefficients_cubelist.extract_cube(
+            "emos_coefficient_alpha"
+        ).data
+        location_parameter = location_parameter.astype(np.float32)
 
         return location_parameter
 
@@ -1389,8 +1521,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Function to calculate the location parameter when the ensemble
         realizations are the predictor.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Returns:
             Location parameter calculated using the ensemble realizations
@@ -1402,7 +1534,11 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # number of ensemble realizations. In this case, b = beta^2.
         beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
         beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
-        beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
+        beta_values = (
+            np.atleast_2d(np.squeeze(beta_values.T))
+            if beta_cube.data.ndim != 1
+            else beta_values
+        )
 
         a_and_b = np.hstack(
             (
@@ -1433,8 +1569,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         Calculation of the scale parameter using the ensemble variance
         adjusted using the gamma and delta coefficients calculated by EMOS.
 
-        Further information is available in the :mod:`module level docstring \
-<improver.calibration.ensemble_calibration>`.
+        Further information is available in the
+        :mod:`module level docstring <improver.calibration.ensemble_calibration>`.
 
         Returns:
             Scale parameter for defining the distribution of the calibrated
@@ -1443,6 +1579,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         forecast_var = self.current_forecast.collapsed(
             "realization", iris.analysis.VARIANCE
         )
+
         # Calculating the scale parameter, based on the raw variance S^2,
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
@@ -1496,6 +1633,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self,
         current_forecast: Cube,
         coefficients_cubelist: CubeList,
+        additional_fields: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
     ) -> Tuple[Cube, Cube]:
         """
@@ -1510,6 +1648,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 CubeList of EMOS coefficients where each cube within the
                 cubelist is for a separate EMOS coefficient e.g. alpha, beta,
                 gamma, delta.
+            additional_fields:
+                Additional fields to be used as forecast predictors.
             landsea_mask:
                 The optional cube containing a land-sea mask. If provided sea
                 points will be masked in the output cube.
@@ -1529,6 +1669,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
               larger scale parameter will result in a broader PDF.
         """
         self.current_forecast = current_forecast
+        self.additional_fields = additional_fields
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
@@ -1742,6 +1883,7 @@ class ApplyEMOS(PostProcessingPlugin):
         self,
         forecast: Cube,
         coefficients: CubeList,
+        additional_fields: Optional[CubeList] = None,
         land_sea_mask: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
@@ -1757,6 +1899,8 @@ class ApplyEMOS(PostProcessingPlugin):
                 realizations
             coefficients:
                 EMOS coefficients
+            additional_fields:
+                Additional fields to be used as forecast predictors.
             land_sea_mask:
                 Land sea mask where a value of "1" represents land points and
                 "0" represents sea.  If set, allows calibration of land points
@@ -1793,7 +1937,10 @@ class ApplyEMOS(PostProcessingPlugin):
             predictor=predictor
         )
         location_parameter, scale_parameter = calibration_plugin(
-            forecast_as_realizations, coefficients, landsea_mask=land_sea_mask
+            forecast_as_realizations,
+            coefficients,
+            additional_fields=additional_fields,
+            landsea_mask=land_sea_mask,
         )
 
         self.distribution = {
