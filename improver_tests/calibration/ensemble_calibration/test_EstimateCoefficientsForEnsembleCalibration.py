@@ -109,11 +109,9 @@ class SetupExpectedCoefficients(IrisTest):
             ),
             "emos_coefficient_beta": np.array(
                 [
-                    [
-                        [0.9999, 1.0001, 1.0006],
-                        [1.0008, 1.0003, 1.0],
-                        [1.0001, 1.0006, 1.0],
-                    ]
+                    [0.9999, 1.0001, 1.0006],
+                    [1.0008, 1.0003, 1.0],
+                    [1.0001, 1.0006, 1.0],
                 ]
             ),
             "emos_coefficient_gamma": np.array(
@@ -123,9 +121,7 @@ class SetupExpectedCoefficients(IrisTest):
                     [-0.0001, -0.0002, -0.0],
                 ]
             ),
-            "emos_coefficient_delta": np.array(
-                [[-0.0, 0.0, 0.0], [-0.0, 0.0, -0.0], [-0.0, 0.0, 0.0]]
-            ),
+            "emos_coefficient_delta": np.zeros((3, 3)),
         }
         self.expected_mean_pred_minimise_each_grid_point = {
             "emos_coefficient_alpha": np.array(
@@ -137,11 +133,9 @@ class SetupExpectedCoefficients(IrisTest):
             ),
             "emos_coefficient_beta": np.array(
                 [
-                    [
-                        [1.0002, 0.9999, 0.9972],
-                        [0.9977, 0.9975, 0.9973],
-                        [0.9984, 0.9979, 0.9972],
-                    ]
+                    [1.0002, 0.9999, 0.9972],
+                    [0.9977, 0.9975, 0.9973],
+                    [0.9984, 0.9979, 0.9972],
                 ]
             ),
             "emos_coefficient_gamma": np.array(
@@ -166,22 +160,20 @@ class SetupExpectedCoefficients(IrisTest):
             "emos_coefficient_beta": np.array(
                 [
                     [
-                        [
-                            [0.556, 0.5816, 0.6072],
-                            [0.507, 0.5596, 0.5519],
-                            [0.5918, 0.617, 0.5477],
-                        ],
-                        [
-                            [0.5584, 0.5818, 0.5585],
-                            [0.5751, 0.609, 0.6085],
-                            [0.5898, 0.5836, 0.5979],
-                        ],
-                        [
-                            [0.6156, 0.5685, 0.5627],
-                            [0.6401, 0.5598, 0.5678],
-                            [0.5481, 0.526, 0.5829],
-                        ],
-                    ]
+                        [0.556, 0.5816, 0.6072],
+                        [0.507, 0.5596, 0.5519],
+                        [0.5918, 0.617, 0.5477],
+                    ],
+                    [
+                        [0.5584, 0.5818, 0.5585],
+                        [0.5751, 0.609, 0.6085],
+                        [0.5898, 0.5836, 0.5979],
+                    ],
+                    [
+                        [0.6156, 0.5685, 0.5627],
+                        [0.6401, 0.5598, 0.5678],
+                        [0.5481, 0.526, 0.5829],
+                    ],
                 ]
             ),
             "emos_coefficient_gamma": np.array(
@@ -201,7 +193,7 @@ class SetupExpectedCoefficients(IrisTest):
         }
         self.expected_mean_pred_each_site = {
             "emos_coefficient_alpha": np.array([0.993, 0.993, 1.0014, 0.993]),
-            "emos_coefficient_beta": np.array([[1.0, 1.0, 1.0, 1.0]]),
+            "emos_coefficient_beta": np.array([1.0, 1.0, 1.0, 1.0]),
             "emos_coefficient_gamma": np.array([0.0, 0.0, 0.0, 0.0]),
             "emos_coefficient_delta": np.array([1.1899, 1.1899, 1.1897, 1.1899]),
         }
@@ -233,7 +225,7 @@ class SetupExpectedCoefficients(IrisTest):
         self.expected_realizations_each_site = {
             "emos_coefficient_alpha": np.array([0.8126, 0.8126, 0.8126, 0.8126]),
             "emos_coefficient_beta": np.array(
-                [[[0.8166, 0.8166, 0.8166, 0.8166], [0.5778, 0.5778, 0.5778, 0.5778]]]
+                [[0.8166, 0.8166, 0.8166, 0.8166], [0.5778, 0.5778, 0.5778, 0.5778]]
             ),
             "emos_coefficient_gamma": np.array([0.0005, 0.0005, 0.0005, 0.0005]),
             "emos_coefficient_delta": np.array([0.2673, 0.2673, 0.2673, 0.2673]),
@@ -564,7 +556,6 @@ class Test_compute_initial_guess(IrisTest):
         self.distribution = "norm"
         self.desired_units = "degreesC"
         self.predictor = "mean"
-        self.no_of_forecast_predictors = 1
         self.no_of_realizations = 3
         data = np.array(
             [
@@ -689,11 +680,7 @@ class Test_compute_initial_guess(IrisTest):
         )
 
         result = plugin.compute_initial_guess(
-            self.truth.data,
-            self.hist_fcast_pred_mean_data,
-            self.predictor,
-            self.no_of_forecast_predictors,
-            None,
+            self.truth.data, self.hist_fcast_pred_mean_data, self.predictor, None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -720,7 +707,6 @@ class Test_compute_initial_guess(IrisTest):
             self.truth.data,
             self.hist_fcast_pred_realizations_data,
             predictor,
-            self.no_of_forecast_predictors,
             self.no_of_realizations,
         )
         self.assertIsInstance(result, np.ndarray)
@@ -745,11 +731,7 @@ class Test_compute_initial_guess(IrisTest):
             desired_units=self.desired_units,
         )
         result = plugin.compute_initial_guess(
-            self.truth.data,
-            self.hist_fcast_pred_mean_data,
-            self.predictor,
-            self.no_of_forecast_predictors,
-            None,
+            self.truth.data, self.hist_fcast_pred_mean_data, self.predictor, None,
         )
 
         self.assertArrayAlmostEqual(
@@ -779,7 +761,6 @@ class Test_compute_initial_guess(IrisTest):
             self.truth.data,
             forecast_predictor.data,
             predictor,
-            self.no_of_forecast_predictors,
             self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
@@ -807,7 +788,6 @@ class Test_compute_initial_guess(IrisTest):
             self.truth_mhalo.data,
             self.hist_fcast_pred_mean_mhalo_data,
             self.predictor,
-            self.no_of_forecast_predictors,
             None,
         )
         self.assertArrayAlmostEqual(
@@ -839,7 +819,6 @@ class Test_compute_initial_guess(IrisTest):
             self.truth_mhalo.data,
             forecast_predictor.data,
             predictor,
-            self.no_of_forecast_predictors,
             self.no_of_realizations,
         )
         self.assertArrayAlmostEqual(
@@ -859,13 +838,8 @@ class Test_compute_initial_guess(IrisTest):
             use_default_initial_guess=True,
             desired_units=self.desired_units,
         )
-        no_of_forecast_predictors = 2
         result = plugin.compute_initial_guess(
-            self.truth.data,
-            self.additional_predictors,
-            self.predictor,
-            no_of_forecast_predictors,
-            None,
+            self.truth.data, self.additional_predictors, self.predictor, None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, self.expected_multiple_predictors_default)
@@ -883,13 +857,8 @@ class Test_compute_initial_guess(IrisTest):
             use_default_initial_guess=False,
             desired_units=self.desired_units,
         )
-        no_of_forecast_predictors = 2
         result = plugin.compute_initial_guess(
-            self.truth.data,
-            self.additional_predictors,
-            self.predictor,
-            no_of_forecast_predictors,
-            None,
+            self.truth.data, self.additional_predictors, self.predictor, None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -1266,12 +1235,7 @@ class Test_process(
     def test_point_by_point(self):
         """Test computing coefficients independently for each grid point (initial guess
         and minimising) returns the expected coefficients and associated metadata."""
-        expected_dim_coords = {
-            "emos_coefficient_alpha": ["latitude", "longitude"],
-            "emos_coefficient_beta": ["predictor_index", "latitude", "longitude"],
-            "emos_coefficient_gamma": ["latitude", "longitude"],
-            "emos_coefficient_delta": ["latitude", "longitude"],
-        }
+        expected_dim_coord = ["latitude", "longitude"]
 
         plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(
@@ -1283,31 +1247,27 @@ class Test_process(
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()],
+                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coord,
             )
+        beta_cube = result.extract_cube("emos_coefficient_beta")
+        self.assertArrayEqual(
+            beta_cube.coord("predictor_index").points, np.array([0], dtype=np.int8)
+        )
+        self.assertArrayEqual(
+            beta_cube.coord("predictor_name").points, ["air_temperature"]
+        )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_with_nans(self):
         """Test computing coefficients independently for each grid point (initial guess
         and minimising) returns the expected coefficients and associated metadata,
         if one grid point has a NaN value."""
-        expected_dim_coords = {
-            "emos_coefficient_alpha": ["latitude", "longitude"],
-            "emos_coefficient_beta": ["predictor_index", "latitude", "longitude"],
-            "emos_coefficient_gamma": ["latitude", "longitude"],
-            "emos_coefficient_delta": ["latitude", "longitude"],
-        }
+        expected_dim_coords = ["latitude", "longitude"]
 
         self.historic_temperature_forecast_cube.data[0, 0, 0, 0] = np.nan
         replacements = [0.0037, 1.0002, 0.0007, 0.0]
         for index, key in enumerate(self.expected_mean_pred_each_grid_point.keys()):
-            if "beta" in key:
-                self.expected_mean_pred_each_grid_point[key][0][0][0] = replacements[
-                    index
-                ]
-            else:
-                self.expected_mean_pred_each_grid_point[key][0][0] = replacements[index]
+            self.expected_mean_pred_each_grid_point[key][0][0] = replacements[index]
 
         plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(
@@ -1319,8 +1279,7 @@ class Test_process(
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()],
+                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1328,12 +1287,7 @@ class Test_process(
         """Test computing coefficients independently for each site location
         (initial guess and minimising) returns the expected coefficients and
         associated metadata."""
-        expected_dim_coords = {
-            "emos_coefficient_alpha": ["spot_index"],
-            "emos_coefficient_beta": ["predictor_index", "spot_index"],
-            "emos_coefficient_gamma": ["spot_index"],
-            "emos_coefficient_delta": ["spot_index"],
-        }
+        expected_dim_coords = ["spot_index"]
         plugin = self.plugin(self.distribution, point_by_point=True)
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
@@ -1342,8 +1296,7 @@ class Test_process(
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()],
+                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1353,7 +1306,7 @@ class Test_process(
         returns the expected coefficients and associated metadata."""
         expected_dim_coords = {
             "emos_coefficient_alpha": ["spot_index"],
-            "emos_coefficient_beta": ["predictor_index", "realization", "spot_index"],
+            "emos_coefficient_beta": ["realization", "spot_index"],
             "emos_coefficient_gamma": ["spot_index"],
             "emos_coefficient_delta": ["spot_index"],
         }
@@ -1389,12 +1342,8 @@ class Test_process(
     def test_point_by_point_default_initial_guess(self):
         """Test computing coefficients independently for each grid point
         (minimisation only) returns the expected coefficients and associated metadata."""
-        expected_dim_coords = {
-            "emos_coefficient_alpha": ["latitude", "longitude"],
-            "emos_coefficient_beta": ["predictor_index", "latitude", "longitude"],
-            "emos_coefficient_gamma": ["latitude", "longitude"],
-            "emos_coefficient_delta": ["latitude", "longitude"],
-        }
+        expected_dim_coords = ["latitude", "longitude"]
+
         plugin = self.plugin(
             self.distribution, point_by_point=True, use_default_initial_guess=True
         )
@@ -1408,8 +1357,7 @@ class Test_process(
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)],
-                expected_dim_coords[cube.name()],
+                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
             )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
@@ -1419,12 +1367,7 @@ class Test_process(
         when using the realizations as the predictor."""
         expected_dim_coords = {
             "emos_coefficient_alpha": ["latitude", "longitude"],
-            "emos_coefficient_beta": [
-                "predictor_index",
-                "realization",
-                "latitude",
-                "longitude",
-            ],
+            "emos_coefficient_beta": ["realization", "latitude", "longitude"],
             "emos_coefficient_gamma": ["latitude", "longitude"],
             "emos_coefficient_delta": ["latitude", "longitude"],
         }
@@ -1464,6 +1407,13 @@ class Test_process(
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
         )
+        beta_cube = result.extract_cube("emos_coefficient_beta")
+        self.assertArrayEqual(
+            beta_cube.coord("predictor_index").points, np.array([0, 1], dtype=np.int8)
+        )
+        self.assertArrayEqual(
+            beta_cube.coord("predictor_name").points, ["air_temperature", "altitude"]
+        )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_sites_point_by_point_with_additional_static_predictor(self):
@@ -1491,6 +1441,13 @@ class Test_process(
                 [c.name() for c in cube.coords(dim_coords=True)],
                 expected_dim_coords[cube.name()],
             )
+        beta_cube = result.extract_cube("emos_coefficient_beta")
+        self.assertArrayEqual(
+            beta_cube.coord("predictor_index").points, np.array([0, 1], dtype=np.int8)
+        )
+        self.assertArrayEqual(
+            beta_cube.coord("predictor_name").points, ["air_temperature", "altitude"]
+        )
 
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_additional_dynamic_predictor(self):

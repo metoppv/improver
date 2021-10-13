@@ -862,14 +862,15 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         Returns:
             A cube with the predictor_index and predictor_name
-            coordinates added.
+            coordinates added. Single value dimension coordinates
+            are converted to non-dimension coordinates.
         """
         template_cubes = iris.cube.CubeList()
         fp_names = []
         for index, fp in enumerate(forecast_predictors):
             template_cube_copy = template_cube.copy()
             predictor_index = iris.coords.DimCoord(
-                np.array(index, dtype=np.int32), long_name="predictor_index", units="1",
+                np.array(index, dtype=np.int8), long_name="predictor_index", units="1",
             )
             template_cube_copy.add_aux_coord(predictor_index)
             template_cube_copy = iris.util.new_axis(template_cube_copy, predictor_index)
@@ -882,7 +883,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         template_cube.add_aux_coord(
             predictor_name, data_dims=template_cube.coord_dims("predictor_index"),
         )
-        return template_cube
+        return iris.util.squeeze(template_cube)
 
     def _create_cubelist(
         self,
@@ -930,7 +931,10 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 template_cube = self._add_predictor_coords(
                     template_cube, forecast_predictors
                 )
+                optimised_coeff = np.reshape(optimised_coeff, template_cube.shape)
                 replacements += ["predictor_index", "predictor_name"]
+            else:
+                optimised_coeff = np.array(optimised_coeff)
 
             for coord in coords_to_replace:
                 template_cube.replace_coord(coord)
@@ -952,9 +956,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 template_cube,
                 generate_mandatory_attributes([historic_forecasts]),
                 optional_attributes=self._set_attributes(historic_forecasts),
-                data=np.reshape(optimised_coeff, template_cube.shape)
-                if "beta" == coeff_name
-                else np.array(optimised_coeff),
+                data=optimised_coeff,
             )
             cubelist.append(cube)
         return cubelist
@@ -1021,7 +1023,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         truths: ndarray,
         forecast_predictor: ndarray,
         predictor: str,
-        number_of_forecast_predictors: int,
         number_of_realizations: Optional[int],
     ) -> List[float]:
         """
@@ -1065,9 +1066,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            number_of_forecast_predictors:
-                Number of forecast predictors. This includes all additional
-                fields to include in the calibration.
             number_of_realizations:
                 Number of realizations within the forecast predictor. If no
                 realizations are present, this option is None.
@@ -1089,7 +1087,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         if predictor == "mean" and default_initial_guess:
             initial_beta = np.repeat(
-                1.0 / number_of_forecast_predictors, number_of_forecast_predictors
+                1.0 / forecast_predictor.shape[0], forecast_predictor.shape[0]
             ).tolist()
             initial_guess = [0] + initial_beta + [0, 1]
         elif predictor == "realizations" and default_initial_guess:
@@ -1175,22 +1173,18 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         """
         if self.point_by_point and not self.use_default_initial_guess:
-            index = [
-                truths.coord(axis="y"),
-                truths.coord(axis="x"),
-            ]
             y_name = truths.coord(axis="y").name()
             x_name = truths.coord(axis="x").name()
 
             initial_guess = []
-            for truth_slice in truths.slices_over(index):
+            for truth_slice in truths.slices_over([y_name, x_name]):
                 constr = iris.Constraint(
                     coord_values={
                         y_name: lambda cell: any(
-                            np.isclose(cell.point, truth_slice.coord(axis="y").points)
+                            np.isclose(cell.point, truth_slice.coord(y_name).points)
                         ),
                         x_name: lambda cell: any(
-                            np.isclose(cell.point, truth_slice.coord(axis="x").points)
+                            np.isclose(cell.point, truth_slice.coord(x_name).points)
                         ),
                     }
                 )
@@ -1209,7 +1203,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                         truth_slice.data,
                         forecast_predictors_data,
                         self.predictor,
-                        len(forecast_predictors),
                         number_of_realizations,
                     )
                 )
@@ -1227,7 +1220,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 truths.data,
                 forecast_predictor_data,
                 self.predictor,
-                len(forecast_predictors),
                 number_of_realizations,
             )
             if self.point_by_point:
@@ -1334,14 +1326,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 "forecast_reference_time",
                 "realization",
             ]
-            for af_cube in additional_fields:
-                if any([af_cube.coords(c) for c in disallowed_coords]):
+            for cube in additional_fields:
+                if any([cube.coords(c) for c in disallowed_coords]):
                     coords = [
-                        af_cube.coord(c) for c in disallowed_coords if af_cube.coords(c)
+                        cube.coord(c) for c in disallowed_coords if cube.coords(c)
                     ]
                     msg = (
                         "Only static additional predictors are supported. "
-                        f"The {af_cube.name()} cube provided contains {coords}."
+                        f"The {cube.name()} cube provided contains {coords}."
                     )
                     raise ValueError(msg)
 
@@ -1360,9 +1352,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
 
         number_of_realizations = None
         if self.predictor == "mean":
-            forecast_predictors = iris.cube.CubeList()
-            forecast_predictors.append(
-                collapsed(historic_forecasts, "realization", iris.analysis.MEAN)
+            forecast_predictors = iris.cube.CubeList(
+                [collapsed(historic_forecasts, "realization", iris.analysis.MEAN)]
             )
         elif self.predictor == "realizations":
             number_of_realizations = len(historic_forecasts.coord("realization").points)
@@ -1417,6 +1408,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         self.coefficients_cubelist = None
         self.current_forecast = None
+        self.additional_fields = None
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -1491,29 +1483,18 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             Location parameter calculated using the ensemble mean as the
             predictor.
         """
-        forecast_predictors = iris.cube.CubeList()
-        forecast_predictors.append(
-            collapsed(self.current_forecast, "realization", iris.analysis.MEAN)
+        forecast_predictors = iris.cube.CubeList(
+            [collapsed(self.current_forecast, "realization", iris.analysis.MEAN)]
         )
         if self.additional_fields:
             forecast_predictors.extend(self.additional_fields)
 
+        beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
+
         fp_names = [fp.name() for fp in forecast_predictors]
-        if len(forecast_predictors) != len(
-            self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
-            .coord("predictor_index")
-            .points
-        ):
-            n_coord_points = len(
-                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
-                .coord("predictor_index")
-                .points
-            )
-            coord_names = (
-                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
-                .coord("predictor_name")
-                .points
-            )
+        if len(forecast_predictors) != len(beta_cube.coord("predictor_index").points):
+            n_coord_points = len(beta_cube.coord("predictor_index").points)
+            coord_names = beta_cube.coord("predictor_name").points
             msg = (
                 "The number of forecast predictors must equal the number of "
                 "beta coefficients in order to create a calibrated forecast. "
@@ -1527,12 +1508,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         location_parameter = np.zeros(forecast_predictors[0].shape)
         for fp in forecast_predictors:
             constr = iris.Constraint(predictor_name=fp.name())
-            location_parameter += (
-                self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
-                .extract(constr)
-                .data
-                * fp.data
-            )
+            location_parameter += beta_cube.extract(constr).data * fp.data
         location_parameter += self.coefficients_cubelist.extract_cube(
             "emos_coefficient_alpha"
         ).data

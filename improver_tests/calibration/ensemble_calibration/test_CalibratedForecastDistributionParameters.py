@@ -311,7 +311,6 @@ class Test__calculate_location_parameter_from_mean(
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
-        self.plugin.additional_fields = None
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):

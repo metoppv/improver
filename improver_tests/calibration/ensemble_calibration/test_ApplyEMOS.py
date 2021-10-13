@@ -31,7 +31,7 @@
 """Unit tests for the `ensemble_calibration.ApplyEMOS` class."""
 
 import unittest
-from typing import Optional, Sequence, Union
+from typing import Sequence, Union
 
 import iris
 import numpy as np
@@ -51,8 +51,7 @@ def build_coefficients_cubelist(
     template: Cube,
     coeff_values: Union[Sequence, np.ndarray],
     forecast_predictors: CubeList,
-    predictor: Optional[str] = "mean",
-):
+) -> CubeList:
     """Make a cubelist of coefficients with expected metadata
 
     Args:
@@ -66,9 +65,6 @@ def build_coefficients_cubelist(
         forecast_predictors (iris.cube.CubeList):
             The forecast predictors used for constructing the coordinates
             required for the beta coefficient.
-        predictor (str):
-            Choice of predictor of location parameter. Either the ensemble mean
-            "mean" or ensemble realizations ("realizations") are supported.
 
     Returns:
         cubelist (iris.cube.CubeList) - The resulting EMOS
@@ -77,14 +73,6 @@ def build_coefficients_cubelist(
     """
     dim_coords_and_dims = []
     aux_coords_and_dims = []
-
-    if predictor.lower() == "realizations":
-        coeff_values = [
-            coeff_values[0],
-            coeff_values[1:-2],
-            coeff_values[-2],
-            coeff_values[-1],
-        ]
 
     # add spatial and temporal coords from forecast to be calibrated
     for coord in ["forecast_period", "forecast_reference_time"]:
@@ -107,7 +95,7 @@ def build_coefficients_cubelist(
 
     coeff_names = ["alpha", "beta", "gamma", "delta"]
     cubelist = iris.cube.CubeList([])
-    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):  #
+    for optimised_coeff, coeff_name in zip(coeff_values, coeff_names):
         modified_dim_coords_and_dims = dim_coords_and_dims.copy()
         modified_aux_coords_and_dims = aux_coords_and_dims.copy()
         coeff_units = "1"
@@ -125,10 +113,6 @@ def build_coefficients_cubelist(
                 fp_names, long_name="predictor_name", units="no_unit"
             )
             modified_aux_coords_and_dims.append((predictor_name, 0))
-        if predictor.lower() == "realizations" and coeff_name == "beta":
-            modified_dim_coords_and_dims.append(
-                (template.coord("realization").copy(), 1)
-            )
         cube = iris.cube.Cube(
             np.atleast_1d(optimised_coeff) if "beta" == coeff_name else optimised_coeff,
             long_name=f"emos_coefficient_{coeff_name}",
