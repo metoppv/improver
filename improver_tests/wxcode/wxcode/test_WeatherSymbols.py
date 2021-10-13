@@ -983,7 +983,7 @@ class Test_remove_optional_missing(IrisTest):
         """Test that if the first node, lightning, is missing, the start_node
         progresses to its "if_diagnostic_missing" option."""
 
-        optional_missing = {'lightning': 'heavy_precipitation'}
+        optional_missing = {"lightning": "heavy_precipitation"}
         target_node = self.plugin.queries["lightning"]["if_diagnostic_missing"]
         expected = self.plugin.queries["lightning"][target_node]
 
@@ -998,8 +998,10 @@ class Test_remove_optional_missing(IrisTest):
         and instead targets its "if_diagnostic_missing" option, which is
         "precipitation_in_vicinity"."""
 
-        optional_missing = {'heavy_precipitation': "precipitation_in_vicinity"}
-        target_node = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
+        optional_missing = {"heavy_precipitation": "precipitation_in_vicinity"}
+        target_node = self.plugin.queries["heavy_precipitation"][
+            "if_diagnostic_missing"
+        ]
         expected = self.plugin.queries["heavy_precipitation"][target_node]
 
         self.plugin.remove_optional_missing(optional_missing)
@@ -1010,9 +1012,13 @@ class Test_remove_optional_missing(IrisTest):
         """Test that if the diagnostics for two nodes, that are both allowed to
         be missing, are absent, the start node skips both of them."""
 
-        optional_missing = {'lightning': 'heavy_precipitation',
-                            'heavy_precipitation': "precipitation_in_vicinity"}
-        target_node = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
+        optional_missing = {
+            "lightning": "heavy_precipitation",
+            "heavy_precipitation": "precipitation_in_vicinity",
+        }
+        target_node = self.plugin.queries["heavy_precipitation"][
+            "if_diagnostic_missing"
+        ]
         expected = self.plugin.queries["heavy_precipitation"][target_node]
 
         self.plugin.remove_optional_missing(optional_missing)

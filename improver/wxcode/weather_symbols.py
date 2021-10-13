@@ -453,10 +453,7 @@ class WeatherSymbols(BasePlugin):
 
     @staticmethod
     def find_all_routes(
-        graph: Dict,
-        start: str,
-        end: int,
-        route: Optional[List[str]] = None,
+        graph: Dict, start: str, end: int, route: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -740,11 +737,7 @@ class WeatherSymbols(BasePlugin):
         for symbol_code in defined_symbols:
             # In current decision tree
             # start node is lightning
-            routes = self.find_all_routes(
-                graph,
-                self.start_node,
-                symbol_code,
-            )
+            routes = self.find_all_routes(graph, self.start_node, symbol_code,)
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
