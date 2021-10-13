@@ -430,7 +430,7 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
 
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast_unordered(self):
-        """Test that slow and fast versions give same result 
+        """Test that slow and fast versions give same result
         when x is not sorted."""
         shuffled_x = self.x.copy()
         np.random.shuffle(shuffled_x)
@@ -449,7 +449,7 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         np.testing.assert_allclose(result_slow, result_fast)
 
     def test_slow_vs_multi(self):
-        """Test that slow interp gives same result as 
+        """Test that slow interp gives same result as
         interpolate_multiple_rows_same_x."""
         result_slow = slow_interp_same_x(self.x, self.xp, self.fp)
         result_multiple = interpolate_multiple_rows_same_x(self.x, self.xp, self.fp)

@@ -33,9 +33,8 @@ This module defines the utilities required for Ensemble Copula Coupling
 plugins.
 
 """
-
-from typing import List, Optional, Union
 import warnings
+from typing import List, Optional, Union
 
 import cf_units as unit
 import iris
