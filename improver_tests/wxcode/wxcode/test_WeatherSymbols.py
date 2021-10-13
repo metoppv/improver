@@ -984,8 +984,8 @@ class Test_remove_optional_missing(IrisTest):
         progresses to its "if_diagnostic_missing" option."""
 
         optional_missing = {"lightning": "heavy_precipitation"}
-        target_node = self.plugin.queries["lightning"]["if_diagnostic_missing"]
-        expected = self.plugin.queries["lightning"][target_node]
+        target = self.plugin.queries["lightning"]["if_diagnostic_missing"]
+        expected = self.plugin.queries["lightning"][target]
 
         self.plugin.remove_optional_missing(optional_missing)
 
@@ -996,34 +996,67 @@ class Test_remove_optional_missing(IrisTest):
         cut out of the possible paths through the decision tree. In this case
         it means that the lightning "if_false" path skips "heavy_precipitation"
         and instead targets its "if_diagnostic_missing" option, which is
-        "precipitation_in_vicinity"."""
+        "heavy_precipitation_cloud"."""
 
-        optional_missing = {"heavy_precipitation": "precipitation_in_vicinity"}
-        target_node = self.plugin.queries["heavy_precipitation"][
-            "if_diagnostic_missing"
-        ]
-        expected = self.plugin.queries["heavy_precipitation"][target_node]
+        optional_missing = {"heavy_precipitation": "heavy_precipitation_cloud"}
+        target = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
+        expected = self.plugin.queries["heavy_precipitation"][target]
 
         self.plugin.remove_optional_missing(optional_missing)
 
         self.assertEqual(self.plugin.queries["lightning"]["if_false"], expected)
 
-    def test_sequential_nodes(self):
+    def test_sequential_missing_nodes(self):
         """Test that if the diagnostics for two nodes, that are both allowed to
         be missing, are absent, the start node skips both of them."""
 
         optional_missing = {
             "lightning": "heavy_precipitation",
-            "heavy_precipitation": "precipitation_in_vicinity",
+            "heavy_precipitation": "heavy_precipitation_cloud",
         }
-        target_node = self.plugin.queries["heavy_precipitation"][
-            "if_diagnostic_missing"
-        ]
-        expected = self.plugin.queries["heavy_precipitation"][target_node]
+        target = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
+        expected = self.plugin.queries["heavy_precipitation"][target]
 
         self.plugin.remove_optional_missing(optional_missing)
 
         self.assertEqual(self.plugin.start_node, expected)
+
+    def test_nonsequential_missing_nodes(self):
+        """Test that if the diagnostics for two non-sequential nodes, that are
+        both allowed to be missing, are absent, the tree is modified as
+        expected.
+
+        Route being tested is:
+
+           lighting -> heavy_precipitation -> heavy_precipitation_cloud
+        """
+
+        optional_missing = {
+            "lightning": "heavy_precipitation",
+            "heavy_precipitation_cloud": "heavy_snow_continuous",
+        }
+        # Start node should be that targetted by lightning
+        target = self.plugin.queries["lightning"]["if_diagnostic_missing"]
+        expected_start = self.plugin.queries["lightning"][target]
+        # Expected subsequent step from the resulting first node
+        target = self.plugin.queries["heavy_precipitation_cloud"][
+            "if_diagnostic_missing"
+        ]
+        expected_next = self.plugin.queries["heavy_precipitation_cloud"][target]
+
+        self.plugin.remove_optional_missing(optional_missing)
+
+        # Exract the node sandwiched by the missing nodes
+        test_node = self.plugin.queries[self.plugin.start_node]
+
+        # Check it has been made the first node
+        self.assertEqual(self.plugin.start_node, expected_start)
+        # Check it's "if_true" path that targetted "heavy_precipitation_cloud"
+        # now targets "heavy_snow_continuous"
+        self.assertEqual(test_node["if_true"], expected_next)
+        # Check the "if_false" path is unmodified as that target diagnostic
+        # is not missing
+        self.assertEqual(test_node["if_false"], "precipitation_in_vicinity")
 
 
 class Test_find_all_routes(IrisTest):
