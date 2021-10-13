@@ -423,7 +423,7 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
 
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast(self):
-        """Test that slow and fast versions give same result"""
+        """Test that slow and fast versions give same result."""
         result_slow = slow_interp_same_x(self.x, self.xp, self.fp)
         result_fast = fast_interp_same_x(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_fast)
