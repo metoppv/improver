@@ -423,22 +423,34 @@ class TestInterpolateMultipleRows(IrisTest):
 
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast(self):
-        """Test that slow and fast versions give same result"""
+        """Test that slow and fast versions give same result."""
         result_slow = slow_interp_same_y(self.x, self.xp, self.fp)
         result_fast = fast_interp_same_y(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_fast)
 
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast_unordered(self):
-        """Test that slow and fast versions give same result"""
+        """Test that slow and fast versions give same result 
+        when x is not sorted."""
         shuffled_x = self.x.copy()
         np.random.shuffle(shuffled_x)
         result_slow = slow_interp_same_y(shuffled_x, self.xp, self.fp)
         result_fast = fast_interp_same_y(shuffled_x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_fast)
 
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_fast_repeated(self):
+        """Test that slow and fast versions give same result when 
+        rows of xp contain repeats."""
+        xp_repeat = self.xp.copy()
+        xp_repeat[:, 51] = xp_repeat[:, 50]
+        result_slow = slow_interp_same_y(self.x, xp_repeat, self.fp)
+        result_fast = fast_interp_same_y(self.x, xp_repeat, self.fp)
+        np.testing.assert_allclose(result_slow, result_fast)
+
     def test_slow_vs_multi(self):
-        """Test that slow interp gives same result as interpolate_multiple_rows."""
+        """Test that slow interp gives same result as 
+        interpolate_multiple_rows_same_y."""
         result_slow = slow_interp_same_y(self.x, self.xp, self.fp)
         result_multiple = interpolate_multiple_rows_same_y(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_multiple)
