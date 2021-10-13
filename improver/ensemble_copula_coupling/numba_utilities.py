@@ -46,13 +46,13 @@ if "OMP_NUM_THREADS" in os.environ:
 @njit(parallel=True)
 def fast_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """For each row i of fp, do the equivalent of np.interp(x, xp, fp[i, :]).
-    
+
     Args:
         x: 1-D array
         xp: 1-D array, sorted in non-decreasing order
         fp: 2-D array with len(xp) columns
     Returns:
-        2-D array with shape (len(fp), len(x)), with each row i equal to 
+        2-D array with shape (len(fp), len(x)), with each row i equal to
             np.interp(x, xp, fp[i, :])
     """
     index = np.searchsorted(xp, x)
