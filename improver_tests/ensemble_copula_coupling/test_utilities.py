@@ -50,9 +50,9 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    interpolate_multiple_rows,
+    interpolate_multiple_rows_same_y,
     restore_non_percentile_dimensions,
-    slow_interp,
+    slow_interp_same_y,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -405,7 +405,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
 numba_installed = True
 try:
     importlib.util.find_spec("numba")
-    from improver.ensemble_copula_coupling.numba_utilities import fast_interp
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
 except ImportError:
     numba_installed = False
 
@@ -424,8 +424,8 @@ class TestInterpolateMultipleRows(IrisTest):
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast(self):
         """Test that slow and fast versions give same result"""
-        result_slow = slow_interp(self.x, self.xp, self.fp)
-        result_fast = fast_interp(self.x, self.xp, self.fp)
+        result_slow = slow_interp_same_y(self.x, self.xp, self.fp)
+        result_fast = fast_interp_same_y(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_fast)
 
     @skipIf(not (numba_installed), "numba not installed")
@@ -433,14 +433,14 @@ class TestInterpolateMultipleRows(IrisTest):
         """Test that slow and fast versions give same result"""
         shuffled_x = self.x.copy()
         np.random.shuffle(shuffled_x)
-        result_slow = slow_interp(shuffled_x, self.xp, self.fp)
-        result_fast = fast_interp(shuffled_x, self.xp, self.fp)
+        result_slow = slow_interp_same_y(shuffled_x, self.xp, self.fp)
+        result_fast = fast_interp_same_y(shuffled_x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_fast)
 
     def test_slow_vs_multi(self):
         """Test that slow interp gives same result as interpolate_multiple_rows."""
-        result_slow = slow_interp(self.x, self.xp, self.fp)
-        result_multiple = interpolate_multiple_rows(self.x, self.xp, self.fp)
+        result_slow = slow_interp_same_y(self.x, self.xp, self.fp)
+        result_multiple = interpolate_multiple_rows_same_y(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_multiple)
 
 

@@ -50,7 +50,7 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    interpolate_multiple_rows,
+    interpolate_multiple_rows_same_y,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
@@ -561,7 +561,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             [x / 100.0 for x in percentiles], dtype=np.float32
         )
 
-        forecast_at_percentiles = interpolate_multiple_rows(
+        forecast_at_percentiles = interpolate_multiple_rows_same_y(
             percentiles_as_fractions, probabilities_for_cdf, threshold_points,
         )
         forecast_at_percentiles = forecast_at_percentiles.transpose()

@@ -292,7 +292,7 @@ def restore_non_percentile_dimensions(
     return array_to_reshape.reshape(shape_to_reshape_to)
 
 
-def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray):
+def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray):
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
 
     Args:
@@ -311,11 +311,11 @@ def slow_interp(x: np.ndarray, xp: np.ndarray, fp: np.ndarray):
 try:
     import numba  # noqa: F401
 
-    from improver.ensemble_copula_coupling.numba_utilities import fast_interp
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
 
-    interpolate_multiple_rows = fast_interp
+    interpolate_multiple_rows_same_y = fast_interp_same_y
 except ImportError:
     warnings.warn(
         "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
     )
-    interpolate_multiple_rows = slow_interp
+    interpolate_multiple_rows_same_y = slow_interp_same_y
