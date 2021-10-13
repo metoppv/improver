@@ -1,3 +1,5 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
