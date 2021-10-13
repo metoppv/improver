@@ -35,6 +35,7 @@ plugins.
 """
 
 from typing import List, Optional, Union
+import warnings
 
 import cf_units as unit
 import iris
@@ -289,3 +290,34 @@ def restore_non_percentile_dimensions(
     if n_percentiles > 1:
         shape_to_reshape_to = [n_percentiles] + shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)
+
+
+def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """For each row i of fp, calculate np.interp(x, xp, fp[i, :]).
+    
+    Args:
+        x: 1-D array
+        xp: 1-D array, sorted in non-decreasing order
+        fp: 2-D array with len(xp) columns
+    Returns:
+        2-D array with shape (len(fp), len(x)), with each row i equal to 
+            np.interp(x, xp, fp[i, :])
+    """
+
+    result = np.empty((fp.shape[0], len(x)))
+    for i in range(fp.shape[0]):
+        result[i, :] = np.interp(x, xp, fp[i, :])
+    return result
+
+
+try:
+    import numba  # noqa: F401
+
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_x
+
+    interpolate_multiple_rows_same_x = fast_interp_same_x
+except ImportError:
+    warnings.warn(
+        "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
+    )
+    interpolate_multiple_rows_same_x = slow_interp_same_x

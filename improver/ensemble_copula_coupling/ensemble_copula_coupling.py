@@ -40,7 +40,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
-from scipy import interpolate, stats
+from scipy import stats
 
 from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
@@ -50,6 +50,7 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
+    interpolate_multiple_rows_same_x,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
@@ -283,32 +284,11 @@ class ResamplePercentiles(BasePlugin):
             original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
         )
 
-        interpolator = interpolate.interp1d(
-            original_percentiles,
-            forecast_at_reshaped_percentiles,
-            kind="linear",
-            axis=1,
-            bounds_error=False,
+        forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
+            desired_percentiles, original_percentiles, forecast_at_reshaped_percentiles,
         )
         forecast_at_interpolated_percentiles = np.transpose(
-            interpolator(desired_percentiles).astype(np.float32)
-        )
-        # fill out of bounds values
-        below_min_ind = [
-            i
-            for i in range(len(desired_percentiles))
-            if desired_percentiles[i] < np.min(original_percentiles)
-        ]
-        forecast_at_interpolated_percentiles[below_min_ind, :] = np.transpose(
-            forecast_at_reshaped_percentiles[:, [0]]
-        )
-        above_max_ind = [
-            i
-            for i in range(len(desired_percentiles))
-            if desired_percentiles[i] > np.max(original_percentiles)
-        ]
-        forecast_at_interpolated_percentiles[above_max_ind, :] = np.transpose(
-            forecast_at_reshaped_percentiles[:, [-1]]
+            forecast_at_interpolated_percentiles
         )
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is

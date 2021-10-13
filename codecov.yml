@@ -8,3 +8,5 @@ coverage:
           informational: true
 ignore:
   - "improver/cli"  # ignore folders and all its contents
+  - "improver/ensemble_copula_coupling/numba_utilities.py"  # numba not installed in CI environment
+  
