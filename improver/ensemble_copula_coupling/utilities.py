@@ -292,7 +292,7 @@ def restore_non_percentile_dimensions(
     return array_to_reshape.reshape(shape_to_reshape_to)
 
 
-def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray):
+def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
 
     Args:
