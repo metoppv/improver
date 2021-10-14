@@ -36,43 +36,43 @@ Unit tests for the
 import unittest
 
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 from scipy.stats import truncnorm as scipytruncnorm
 
 from improver.ensemble_copula_coupling._scipy_continuous_distns import truncnorm
 
+LINSPACE = np.linspace(0, 1, 10)
+ARANGE = list(range(-20, 20))
 
-class Test_truncnorm(IrisTest):
-    def run_method(self, x, method):
-        loc = 0
-        scale = 3
-        a = -1
-        b = 3
-        scipy_tnorm = scipytruncnorm(a, b, loc, scale)
-        our_tnorm = truncnorm(a, b, loc, scale)
-        tar = getattr(scipy_tnorm, method)(x)
-        res = getattr(our_tnorm, method)(x)
-        self.assertArrayAlmostEqual(res, tar)
 
-    def test_ppf(self):
-        x = np.linspace(0, 1, 10)
-        self.run_method(x, "ppf")
+@pytest.mark.parametrize(
+    "method,x",
+    [
+        ("ppf", LINSPACE),
+        ("cdf", ARANGE),
+        ("sf", ARANGE),
+        ("pdf", ARANGE),
+        ("logpdf", ARANGE),
+    ],
+)
+def test_method(method, x):
+    """
+    Test each method available for scipy truncnorm.
 
-    def test_cdf(self):
-        x = list(range(-20, 20))
-        self.run_method(x, "cdf")
+    Test is between the scipy v1.3.3 truncnorm and the scipy truncnorm
+    within the Python environment.
 
-    def test_sf(self):
-        x = list(range(-20, 20))
-        self.run_method(x, "sf")
-
-    def test_pdf(self):
-        x = list(range(-20, 20))
-        self.run_method(x, "pdf")
-
-    def test_logpdf(self):
-        x = list(range(-20, 20))
-        self.run_method(x, "logpdf")
+    """
+    loc = 0
+    scale = 3
+    a = -1
+    b = 3
+    scipy_tnorm = scipytruncnorm(a, b, loc, scale)
+    our_tnorm = truncnorm(a, b, loc, scale)
+    target = getattr(scipy_tnorm, method)(x)
+    result = getattr(our_tnorm, method)(x)
+    np.testing.assert_allclose(result, target, rtol=1e-5)
 
 
 if __name__ == "__main__":
