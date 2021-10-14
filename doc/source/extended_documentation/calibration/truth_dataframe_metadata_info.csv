@@ -1,0 +1,7 @@
+Column,Dtype,Notes
+time,"datetime64[ns,UTC]",The time of the observation.
+wmo_id,object,The five digit WMO ID.
+latitude,float32,The latitude in degrees.
+longitude,float32,The longtitude in degrees.
+altitude,float32,The altitude in metres.
+ob_value,float32,The value for a particula
