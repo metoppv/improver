@@ -1,0 +1,16 @@
+Column,Dtype,Notes
+forecast,float64,The value for a particular forecast
+altitude,float32,The altitude in metres.
+blend_time,"datetime64[ns,UTC]",The time at which a blend of models was produced.
+forecast_period,timedelta64[ns],The difference between the blend time (and forecast reference time) and the validity time.
+forecast_reference_time,"datetime64[ns,UTC]",The time at which the forecast analysis was made.
+latitude,float32,The latitude in degrees.
+longitude,float32,The longitude in degrees.
+time,"datetime64[ns,UTC]",The validity time of the forecasts.
+wmo_id,object,The five digit WMO ID.
+cf_name,object,The CF name for the diagnostic.
+units,object,The units of the forecast value.
+percentile,float64,The percentile value.
+period,timedelta64[ns],The period required to describe the forecast value.
+height,float32,The height of the forecast value.
+diagnostic,category,The name of the diagnostic.

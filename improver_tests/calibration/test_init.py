@@ -39,10 +39,10 @@ import pandas as pd
 import pytest
 
 from improver.calibration import (
-    forecast_and_truth_tables_to_cubes,
-    forecast_table_to_cube,
+    forecast_and_truth_dataframes_to_cubes,
+    forecast_dataframe_to_cube,
     split_forecasts_and_truth,
-    truth_table_to_cube,
+    truth_dataframe_to_cube,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
@@ -266,25 +266,25 @@ class Test_shared_dataframes(ImproverTest):
         )
         self.forecast_data = np.tile(data, 3)
 
-        self.frt1 = np.datetime64("2017-07-20T12:00:00")
-        self.frt2 = np.datetime64("2017-07-21T12:00:00")
-        self.frt3 = np.datetime64("2017-07-22T12:00:00")
+        self.frt1 = np.datetime64("2017-07-20T12:00:00+00:00")
+        self.frt2 = np.datetime64("2017-07-21T12:00:00+00:00")
+        self.frt3 = np.datetime64("2017-07-22T12:00:00+00:00")
 
         self.fp = np.timedelta64("6", "h")
 
-        self.time1 = np.datetime64("2017-07-20T18:00:00")
-        self.time2 = np.datetime64("2017-07-21T18:00:00")
-        self.time3 = np.datetime64("2017-07-22T18:00:00")
+        self.time1 = np.datetime64("2017-07-20T18:00:00+00:00")
+        self.time2 = np.datetime64("2017-07-21T18:00:00+00:00")
+        self.time3 = np.datetime64("2017-07-22T18:00:00+00:00")
 
         self.wmo_ids = ["03002", "03003", "03004"]
-        self.percentiles = [25, 50.0, 75.0]
+        self.percentiles = np.array([25, 50.0, 75.0], dtype=np.float32)
         diag = "air_temperature"
         self.cf_name = "air_temperature"
-        self.latitudes = [50.0, 60.0, 70.0]
-        self.longitudes = [-10.0, 0.0, 10.0]
-        self.altitudes = [10.0, 20.0, 30.0]
+        self.latitudes = np.array([50.0, 60.0, 70.0], dtype=np.float32)
+        self.longitudes = np.array([-10.0, 0.0, 10.0], dtype=np.float32)
+        self.altitudes = np.array([10.0, 20.0, 30.0], dtype=np.float32)
         self.period = np.timedelta64(1, "h").astype("timedelta64[ns]")
-        self.height = 1.5
+        self.height = np.array([1.5], dtype=np.float32)
         self.units = "Celsius"
 
         df_dict = {
@@ -300,7 +300,7 @@ class Test_shared_dataframes(ImproverTest):
             "longitude": np.tile(self.longitudes, 9),
             "altitude": np.tile(self.altitudes, 9),
             "period": [self.period] * 27,
-            "height": [self.height] * 27,
+            "height": np.tile(self.height, 27),
             "cf_name": [self.cf_name] * 27,
             "units": [self.units] * 27,
         }
@@ -315,9 +315,9 @@ class Test_shared_dataframes(ImproverTest):
             "time": np.repeat([self.time1, self.time2, self.time3], 3),
             "wmo_id": self.wmo_ids * 3,
             "diagnostic": [diag] * 9,
-            "latitude": self.latitudes * 3,
-            "longitude": self.longitudes * 3,
-            "altitude": self.altitudes * 3,
+            "latitude": np.tile(self.latitudes, 3),
+            "longitude": np.tile(self.longitudes, 3),
+            "altitude": np.tile(self.altitudes, 3),
         }
 
         self.truth_df = pd.DataFrame(df_dict)
@@ -326,7 +326,13 @@ class Test_shared_dataframes(ImproverTest):
         self.forecast_period = 6
         self.training_length = 3
         self.date_range = pd.date_range(
-            end=self.validity_time, periods=int(self.training_length), freq="D"
+            end=self.validity_time,
+            periods=int(self.training_length),
+            freq="D",
+            tz="UTC",
+        )
+        self.date_range_two_days = pd.date_range(
+            end=self.validity_time, periods=2, freq="D", tz="UTC"
         )
 
         self.height_coord = iris.coords.AuxCoord(
@@ -444,9 +450,9 @@ class Test_constructed_truth_cubes(Test_shared_dataframes):
         self.expected_instantaneous_truth.coord("time").bounds = None
 
 
-class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
+class Test_forecast_dataframe_to_cube(Test_constructed_forecast_cubes):
 
-    """Test the forecast_table_to_cube function."""
+    """Test the forecast_dataframe_to_cube function."""
 
     def setUp(self):
         """Set up for testing."""
@@ -455,7 +461,7 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
     def test_three_day_training_period_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for a period diagnostic."""
-        result = forecast_table_to_cube(
+        result = forecast_dataframe_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
         )
         self.assertCubeEqual(result, self.expected_period_forecast)
@@ -463,8 +469,8 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
-        self.forecast_df["period"] = np.timedelta64("NaT", "ns")
-        result = forecast_table_to_cube(
+        self.forecast_df["period"] = pd.Timedelta("NaT")
+        result = forecast_dataframe_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
         )
         self.assertCubeEqual(result, self.expected_instantaneous_forecast)
@@ -472,35 +478,40 @@ class Test_forecast_table_to_cube(Test_constructed_forecast_cubes):
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a two day training length."""
-        training_length = 2
-        date_range = pd.date_range(
-            end=self.validity_time, periods=int(training_length), freq="D"
-        )
-        result = forecast_table_to_cube(
-            self.forecast_df, date_range, self.forecast_period
+        result = forecast_dataframe_to_cube(
+            self.forecast_df, self.date_range_two_days, self.forecast_period
         )
         self.assertCubeEqual(result, self.expected_period_forecast[:, 1:])
 
-    def test_empty_table(self):
+    def test_empty_dataframe(self):
         """Test if none of the required data is available in the dataframe."""
         forecast_period = 7
-        msg = "No entries matching these dates"
-        with self.assertRaisesRegex(ValueError, msg):
-            forecast_table_to_cube(self.forecast_df, self.date_range, forecast_period)
+        result = forecast_dataframe_to_cube(
+            self.forecast_df, self.date_range, forecast_period
+        )
+        self.assertIsNone(result)
 
     def test_nonunique_values_in_column(self):
         """Test if there are multiple non-unique values in a column of the
         dataframe."""
         df = self.forecast_df.copy()
-        df.at[0, "period"] = 7200
+        df.at[0, "period"] = pd.Timedelta(7200, units="seconds")
         msg = "Multiple values provided for the period"
         with self.assertRaisesRegex(ValueError, msg):
-            forecast_table_to_cube(df, self.date_range, self.forecast_period)
+            forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
+
+    def test_missing_compulsory_columns(self):
+        """Test if there are missing compulsory columns."""
+        df = self.forecast_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
 
 
-class Test_truth_table_to_cube(Test_constructed_truth_cubes):
+class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
 
-    """Test the truth_table_to_cube function."""
+    """Test the truth_dataframe_to_cube function."""
 
     def setUp(self):
         """Set up for testing."""
@@ -509,7 +520,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
     def test_three_day_training_period_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for a period diagnostic."""
-        result = truth_table_to_cube(
+        result = truth_dataframe_to_cube(
             self.truth_df,
             self.date_range,
             self.period,
@@ -522,10 +533,10 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
-        result = truth_table_to_cube(
+        result = truth_dataframe_to_cube(
             self.truth_df,
             self.date_range,
-            np.timedelta64("NaT", "ns"),
+            pd.Timedelta("NaT"),
             self.height,
             self.cf_name,
             self.units,
@@ -535,13 +546,9 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a two day training length."""
-        training_length = 2
-        date_range = pd.date_range(
-            end=self.validity_time, periods=int(training_length), freq="D"
-        )
-        result = truth_table_to_cube(
+        result = truth_dataframe_to_cube(
             self.truth_df,
-            date_range,
+            self.date_range_two_days,
             self.period,
             self.height,
             self.cf_name,
@@ -554,7 +561,7 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         if an observation is missing at a particular time."""
         df = self.truth_df.head(-1)
         self.expected_period_truth.data[-1, -1] = np.nan
-        result = truth_table_to_cube(
+        result = truth_dataframe_to_cube(
             df, self.date_range, self.period, self.height, self.cf_name, self.units
         )
         np.testing.assert_array_equal(result.data, self.expected_period_truth.data)
@@ -570,27 +577,26 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         df.at[0, "altitude"] = 45
         df.at[0, "latitude"] = 52
         df.at[0, "longitude"] = -12
-        result = truth_table_to_cube(
+        result = truth_dataframe_to_cube(
             df, self.date_range, self.period, self.height, self.cf_name, self.units
         )
         self.assertCubeEqual(result, self.expected_period_truth)
 
-    def test_empty_table(self):
+    def test_empty_dataframe(self):
         """Test if none of the required data is available in the dataframe."""
         validity_time = np.datetime64("2017-07-22T19:00:00")
         date_range = pd.date_range(
-            end=validity_time, periods=int(self.training_length), freq="D"
+            end=validity_time, periods=int(self.training_length), freq="D", tz="UTC"
         )
-        msg = "No entries matching these dates"
-        with self.assertRaisesRegex(ValueError, msg):
-            truth_table_to_cube(
-                self.truth_df,
-                date_range,
-                self.period,
-                self.height,
-                self.cf_name,
-                self.units,
-            )
+        result = truth_dataframe_to_cube(
+            self.truth_df,
+            date_range,
+            self.period,
+            self.height,
+            self.cf_name,
+            self.units,
+        )
+        self.assertIsNone(result)
 
     def test_nonunique_values_in_column(self):
         """Test if there are multiple non-unique values in a column of the
@@ -599,16 +605,26 @@ class Test_truth_table_to_cube(Test_constructed_truth_cubes):
         df.at[0, "diagnostic"] = "wind_speed_at_10m"
         msg = "Multiple values provided for the diagnostic"
         with self.assertRaisesRegex(ValueError, msg):
-            truth_table_to_cube(
+            truth_dataframe_to_cube(
+                df, self.date_range, self.period, self.height, self.cf_name, self.units
+            )
+
+    def test_missing_compulsory_columns(self):
+        """Test if there are missing compulsory columns."""
+        df = self.truth_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            truth_dataframe_to_cube(
                 df, self.date_range, self.period, self.height, self.cf_name, self.units
             )
 
 
-class Test_forecast_and_truth_tables_to_cubes(
+class Test_forecast_and_truth_dataframes_to_cubes(
     Test_constructed_forecast_cubes, Test_constructed_truth_cubes
 ):
 
-    """Test the forecast_and_truth_tables_to_cubes function."""
+    """Test the forecast_and_truth_dataframes_to_cubes function."""
 
     def setUp(self):
         """Set up dataframes for testing."""
@@ -617,11 +633,47 @@ class Test_forecast_and_truth_tables_to_cubes(
 
     def test_basic(self):
         """Test the expected cubes are generated from the input dataframes."""
-        result = forecast_and_truth_tables_to_cubes(
+        result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             self.truth_df,
             self.cycletime,
             self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_multiday_forecast_period(self):
+        """Test for a multi-day forecast period to ensure that the
+        validity times within the training dataset are always in
+        the past, relative to the cycletime."""
+        forecast_period = 30
+        forecast_df = self.forecast_df.copy()
+        forecast_df["forecast_period"] = np.timedelta64(forecast_period, "h").astype(
+            "timedelta64[ns]"
+        )
+        for coord in ["forecast_reference_time", "blend_time"]:
+            forecast_df[coord] = forecast_df[coord].replace(
+                to_replace={
+                    self.frt1: self.frt1 - pd.Timedelta(1, days=1),
+                    self.frt2: self.frt2 - pd.Timedelta(1, days=1),
+                    self.frt3: self.frt3 - pd.Timedelta(1, days=1),
+                }
+            )
+
+        fp_int = np.int32(np.timedelta64(forecast_period, "h").astype("timedelta64[s]"))
+        self.expected_period_forecast.coord("forecast_period").points = fp_int
+        self.expected_period_forecast.coord("forecast_period").bounds = [
+            fp_int - np.int32(self.period.astype("timedelta64[s]")),
+            fp_int,
+        ]
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            self.truth_df,
+            self.cycletime,
+            forecast_period,
             self.training_length,
         )
         self.assertEqual(len(result), 2)
@@ -634,7 +686,7 @@ class Test_forecast_and_truth_tables_to_cubes(
         df = df.loc[df["wmo_id"].isin(self.wmo_ids[:-1])]
         expected_forecast = self.expected_period_forecast[:, :, :-1]
         expected_truth = self.expected_period_truth[:, :-1]
-        result = forecast_and_truth_tables_to_cubes(
+        result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             df,
             self.cycletime,
@@ -653,7 +705,7 @@ class Test_forecast_and_truth_tables_to_cubes(
         df.at[::3, "altitude"] = 45
         df.at[::3, "latitude"] = 52
         df.at[::3, "longitude"] = -12
-        result = forecast_and_truth_tables_to_cubes(
+        result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             df,
             self.cycletime,
