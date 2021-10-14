@@ -247,6 +247,7 @@ def split_forecasts_and_coeffs(
 
 def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None:
     """Check that the compulsory columns are present on the DataFrame.
+    Any other columns within the DataFrame are ignored.
 
     Args:
         df:
@@ -392,7 +393,7 @@ def forecast_dataframe_to_cube(
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, percentile, diagnostic, latitude, longitude, period,
-            height, cf_name, units.
+            height, cf_name, units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
@@ -497,6 +498,7 @@ def truth_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
+            Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
         period:
@@ -604,10 +606,11 @@ def forecast_and_truth_dataframes_to_cubes(
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, percentile, diagnostic, latitude, longitude, period,
-            height, cf_name, units.
+            height, cf_name, units. Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
+            Any other columns are ignored.
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
         forecast_period:
