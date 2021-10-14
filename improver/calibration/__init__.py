@@ -402,7 +402,6 @@ def forecast_dataframe_to_cube(
     Returns:
         Cube containing the forecasts from the training period.
     """
-    _dataframe_column_check(df, FORECAST_DATAFRAME_COLUMNS)
     df = _preprocess_temporal_columns(df)
 
     fp_point = pd.Timedelta(int(forecast_period), unit="hours")
@@ -484,14 +483,7 @@ def forecast_dataframe_to_cube(
     return RebadgePercentilesAsRealizations()(cube)
 
 
-def truth_dataframe_to_cube(
-    df: DataFrame,
-    training_dates: DatetimeIndex,
-    period: timedelta64,
-    height: float,
-    cf_name: str,
-    units: str,
-) -> Cube:
+def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
     Args:
@@ -501,19 +493,10 @@ def truth_dataframe_to_cube(
             Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
-        period:
-            The period for defining the bounds on the time coordinate.
-        height:
-            The value of the height for defining a height coordinate.
-        cf_name:
-            The name of the resulting truth cube.
-        units:
-            The units of the resulting truth cube.
 
     Returns:
         Cube containing the truths from the training period.
     """
-    _dataframe_column_check(df, TRUTH_DATAFRAME_COLUMNS)
     df = _preprocess_temporal_columns(df)
 
     cubelist = CubeList()
@@ -531,6 +514,7 @@ def truth_dataframe_to_cube(
         # Ensure that every WMO ID has an entry for a particular time.
         new_index = Index(df["wmo_id"].unique(), name="wmo_id")
         time_df = time_df.set_index("wmo_id").reindex(new_index)
+
         # Fill the alt/lat/lon with the mode to ensure consistent coordinates
         # to support merging. Also fill other columns known to contain one
         # unique value.
@@ -540,18 +524,19 @@ def truth_dataframe_to_cube(
             )
         time_df = time_df.reset_index()
 
-        if period is pd.Timedelta("NaT"):
+        if time_df["period"].isna().all():
             time_bounds = None
         else:
+            period = time_df["period"].values[0]
             time_bounds = [adate - period, adate]
 
         time_coord = _define_time_coord(adate, time_bounds)
-        height_coord = _define_height_coord(height)
+        height_coord = _define_height_coord(time_df["height"].values[0])
 
         cube = build_spotdata_cube(
             time_df["ob_value"].astype(np.float32),
-            cf_name,
-            units,
+            time_df["cf_name"].values[0],
+            time_df["units"].values[0],
             time_df["altitude"].astype(np.float32),
             time_df["latitude"].astype(np.float32),
             time_df["longitude"].astype(np.float32),
@@ -563,33 +548,6 @@ def truth_dataframe_to_cube(
     if not cubelist:
         return
     return cubelist.merge_cube()
-
-
-def _filter_forecasts_and_truths(forecast: Cube, truth: Cube) -> Tuple[Cube, Cube]:
-    """Filter forecasts and truths to ensure consistent WMO IDs.
-
-    Args:
-        forecast:
-            The training period forecasts.
-        truth:
-            The training period truths.
-
-    Returns:
-        Forecasts and truths for the training period that have been filtered to
-        only include sites that are present in both the forecasts and truths.
-
-    """
-    forecast_constr = iris.Constraint(wmo_id=forecast.coord("wmo_id").points)
-    truth_constr = iris.Constraint(wmo_id=truth.coord("wmo_id").points)
-    forecast = forecast.extract(truth_constr)
-    truth = truth.extract(forecast_constr)
-
-    # As the lat/lon/alt of the observation can change, ensure that the
-    # lat/lon/alt are consistent over the training period.
-    for coord in ["altitude", "latitude", "longitude"]:
-        truth.coord(coord).points = forecast.coord(coord).points
-
-    return forecast, truth
 
 
 def forecast_and_truth_dataframes_to_cubes(
@@ -624,16 +582,28 @@ def forecast_and_truth_dataframes_to_cubes(
     training_dates = _training_dates_for_calibration(
         cycletime, forecast_period, training_length
     )
+
+    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
+    _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
+
+    truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
+    # Identify columns to copy onto the truth_df from the forecast_df
+    forecast_subset = forecast_df[
+        [
+            "wmo_id",
+            "latitude",
+            "longitude",
+            "altitude",
+            "period",
+            "height",
+            "cf_name",
+            "units",
+        ]
+    ].drop_duplicates()
+    truth_df = truth_df.merge(forecast_subset, on=["wmo_id"])
+
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period
     )
-    truth_cube = truth_dataframe_to_cube(
-        truth_df,
-        training_dates,
-        period=forecast_df["period"].values[0],
-        height=forecast_df["height"].values[0],
-        cf_name=forecast_df["cf_name"].values[0],
-        units=forecast_df["units"].values[0],
-    )
-    forecast_cube, truth_cube = _filter_forecasts_and_truths(forecast_cube, truth_cube)
+    truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube

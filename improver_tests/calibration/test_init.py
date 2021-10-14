@@ -545,9 +545,16 @@ class Test_shared_dataframes(ImproverTest):
             "latitude": np.tile(self.latitudes, 3),
             "longitude": np.tile(self.longitudes, 3),
             "altitude": np.tile(self.altitudes, 3),
+            "period": [self.period] * 9,
+            "height": np.tile(self.height, 9),
+            "cf_name": [self.cf_name] * 9,
+            "units": [self.units] * 9,
         }
 
         self.truth_df = pd.DataFrame(df_dict)
+        self.truth_subset_df = self.truth_df.drop(
+            columns=["period", "height", "cf_name", "units"]
+        )
 
         self.validity_time = self.time3
         self.forecast_period = 6
@@ -727,14 +734,6 @@ class Test_forecast_dataframe_to_cube(Test_constructed_forecast_cubes):
         with self.assertRaisesRegex(ValueError, msg):
             forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
 
-    def test_missing_compulsory_columns(self):
-        """Test if there are missing compulsory columns."""
-        df = self.forecast_df.copy()
-        df = df.rename(columns={"diagnostic": "diag"})
-        msg = "The following compulsory column\\(s\\) are missing"
-        with self.assertRaisesRegex(ValueError, msg):
-            forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
-
 
 class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
 
@@ -747,40 +746,20 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
     def test_three_day_training_period_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for a period diagnostic."""
-        result = truth_dataframe_to_cube(
-            self.truth_df,
-            self.date_range,
-            self.period,
-            self.height,
-            self.cf_name,
-            self.units,
-        )
+        result = truth_dataframe_to_cube(self.truth_df, self.date_range,)
         self.assertCubeEqual(result, self.expected_period_truth)
 
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
-        result = truth_dataframe_to_cube(
-            self.truth_df,
-            self.date_range,
-            pd.Timedelta("NaT"),
-            self.height,
-            self.cf_name,
-            self.units,
-        )
+        self.truth_df["period"] = pd.Timedelta("NaT")
+        result = truth_dataframe_to_cube(self.truth_df, self.date_range,)
         self.assertCubeEqual(result, self.expected_instantaneous_truth)
 
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a two day training length."""
-        result = truth_dataframe_to_cube(
-            self.truth_df,
-            self.date_range_two_days,
-            self.period,
-            self.height,
-            self.cf_name,
-            self.units,
-        )
+        result = truth_dataframe_to_cube(self.truth_df, self.date_range_two_days,)
         self.assertCubeEqual(result, self.expected_period_truth[1:, :])
 
     def test_missing_observation(self):
@@ -788,9 +767,7 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
         if an observation is missing at a particular time."""
         df = self.truth_df.head(-1)
         self.expected_period_truth.data[-1, -1] = np.nan
-        result = truth_dataframe_to_cube(
-            df, self.date_range, self.period, self.height, self.cf_name, self.units
-        )
+        result = truth_dataframe_to_cube(df, self.date_range)
         np.testing.assert_array_equal(result.data, self.expected_period_truth.data)
         for coord in ["altitude", "latitude", "longitude"]:
             self.assertEqual(
@@ -804,9 +781,7 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
         df.at[0, "altitude"] = 45
         df.at[0, "latitude"] = 52
         df.at[0, "longitude"] = -12
-        result = truth_dataframe_to_cube(
-            df, self.date_range, self.period, self.height, self.cf_name, self.units
-        )
+        result = truth_dataframe_to_cube(df, self.date_range)
         self.assertCubeEqual(result, self.expected_period_truth)
 
     def test_empty_dataframe(self):
@@ -815,14 +790,7 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
         date_range = pd.date_range(
             end=validity_time, periods=int(self.training_length), freq="D", tz="UTC"
         )
-        result = truth_dataframe_to_cube(
-            self.truth_df,
-            date_range,
-            self.period,
-            self.height,
-            self.cf_name,
-            self.units,
-        )
+        result = truth_dataframe_to_cube(self.truth_df, date_range,)
         self.assertIsNone(result)
 
     def test_nonunique_values_in_column(self):
@@ -832,19 +800,7 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
         df.at[0, "diagnostic"] = "wind_speed_at_10m"
         msg = "Multiple values provided for the diagnostic"
         with self.assertRaisesRegex(ValueError, msg):
-            truth_dataframe_to_cube(
-                df, self.date_range, self.period, self.height, self.cf_name, self.units
-            )
-
-    def test_missing_compulsory_columns(self):
-        """Test if there are missing compulsory columns."""
-        df = self.truth_df.copy()
-        df = df.rename(columns={"diagnostic": "diag"})
-        msg = "The following compulsory column\\(s\\) are missing"
-        with self.assertRaisesRegex(ValueError, msg):
-            truth_dataframe_to_cube(
-                df, self.date_range, self.period, self.height, self.cf_name, self.units
-            )
+            truth_dataframe_to_cube(df, self.date_range)
 
 
 class Test_forecast_and_truth_dataframes_to_cubes(
@@ -862,7 +818,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test the expected cubes are generated from the input dataframes."""
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
-            self.truth_df,
+            self.truth_subset_df,
             self.cycletime,
             self.forecast_period,
             self.training_length,
@@ -898,7 +854,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,
-            self.truth_df,
+            self.truth_subset_df,
             self.cycletime,
             forecast_period,
             self.training_length,
@@ -909,7 +865,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_site_mismatch(self):
         """Test for a mismatch in the sites available as truths and forecasts."""
-        df = self.truth_df.copy()
+        df = self.truth_subset_df.copy()
         df = df.loc[df["wmo_id"].isin(self.wmo_ids[:-1])]
         expected_forecast = self.expected_period_forecast[:, :, :-1]
         expected_truth = self.expected_period_truth[:, :-1]
@@ -928,7 +884,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test for a mismatch in the location of a site between the truths
         and forecasts. In this case, the position (lat/lon/alt) from the
         forecast will be used."""
-        df = self.truth_df.copy()
+        df = self.truth_subset_df.copy()
         df.at[::3, "altitude"] = 45
         df.at[::3, "latitude"] = 52
         df.at[::3, "longitude"] = -12
@@ -942,6 +898,36 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_missing_compulsory_columns(self):
+        """Test if there are missing compulsory columns in the forecast
+        dataframe."""
+        df = self.forecast_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                df,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_missing_compulsory_columns(self):
+        """Test if there are missing compulsory columns in the truth
+        dataframe."""
+        df = self.truth_subset_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                self.forecast_df,
+                df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
 
 
 if __name__ == "__main__":
