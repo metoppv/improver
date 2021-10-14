@@ -37,7 +37,6 @@ import unittest
 
 import numpy as np
 import pytest
-from iris.tests import IrisTest
 from scipy.stats import truncnorm as scipytruncnorm
 
 from improver.ensemble_copula_coupling._scipy_continuous_distns import truncnorm
