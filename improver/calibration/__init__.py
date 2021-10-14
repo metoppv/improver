@@ -61,30 +61,30 @@ from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import MergeCubes
 
 FORECAST_DATAFRAME_COLUMNS = [
-    "forecast",
     "blend_time",
+    "cf_name",
+    "diagnostic",
+    "forecast",
     "forecast_period",
     "forecast_reference_time",
-    "time",
-    "wmo_id",
-    "percentile",
-    "diagnostic",
+    "height",
     "latitude",
     "longitude",
+    "percentile",
     "period",
-    "height",
-    "cf_name",
+    "time",
     "units",
+    "wmo_id",
 ]
 
 TRUTH_DATAFRAME_COLUMNS = [
-    "ob_value",
-    "time",
-    "wmo_id",
+    "altitude",
     "diagnostic",
     "latitude",
     "longitude",
-    "altitude",
+    "ob_value",
+    "time",
+    "wmo_id",
 ]
 
 
