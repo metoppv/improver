@@ -500,6 +500,14 @@ class Test_forecast_dataframe_to_cube(Test_constructed_forecast_cubes):
         with self.assertRaisesRegex(ValueError, msg):
             forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
 
+    def test_missing_compulsory_columns(self):
+        """Test if there are missing compulsory columns."""
+        df = self.forecast_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
+
 
 class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
 
@@ -596,6 +604,16 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
         df = self.truth_df.copy()
         df.at[0, "diagnostic"] = "wind_speed_at_10m"
         msg = "Multiple values provided for the diagnostic"
+        with self.assertRaisesRegex(ValueError, msg):
+            truth_dataframe_to_cube(
+                df, self.date_range, self.period, self.height, self.cf_name, self.units
+            )
+
+    def test_missing_compulsory_columns(self):
+        """Test if there are missing compulsory columns."""
+        df = self.truth_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
         with self.assertRaisesRegex(ValueError, msg):
             truth_dataframe_to_cube(
                 df, self.date_range, self.period, self.height, self.cf_name, self.units
