@@ -28,15 +28,22 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""init for calibration"""
+"""init for calibration that contains functionality to split forecast and truth
+inputs, and functionality to convert a pandas DataFrame in the expected format
+into an iris cube.
+
+.. Further information is available in:
+.. include:: extended_documentation/calibration/calibration_data_ingestion.rst
+
+"""
 
 from collections import OrderedDict
-from datetime import timedelta
-from typing import Any, Dict, List, Optional, Tuple
+from typing import Dict, List, Optional, Sequence, Tuple
 
 import iris
 import numpy as np
 import pandas as pd
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from numpy import timedelta64
 from pandas.core.frame import DataFrame
@@ -52,7 +59,33 @@ from improver.metadata.probabilistic import (
 )
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import MergeCubes
-from improver.utilities.temporal import cycletime_to_datetime
+
+FORECAST_DATAFRAME_COLUMNS = [
+    "forecast",
+    "blend_time",
+    "forecast_period",
+    "forecast_reference_time",
+    "time",
+    "wmo_id",
+    "percentile",
+    "diagnostic",
+    "latitude",
+    "longitude",
+    "period",
+    "height",
+    "cf_name",
+    "units",
+]
+
+TRUTH_DATAFRAME_COLUMNS = [
+    "ob_value",
+    "time",
+    "wmo_id",
+    "diagnostic",
+    "latitude",
+    "longitude",
+    "altitude",
+]
 
 
 def split_forecasts_and_truth(
@@ -211,30 +244,110 @@ def split_forecasts_and_coeffs(
         prob_template,
     )
 
-    
-def _unique_check(table: DataFrame, column: str) -> Any:
-    """Check whether the value in the column is unique.
+
+def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None:
+    """Check that the compulsory columns are present on the DataFrame.
 
     Args:
-        table:
+        df:
+            Dataframe expected to contain the compulsory columns.
+        compulsory_columns:
+            The names of the compulsory columns.
+
+    Raises:
+        ValueError: Raise an error if a compulsory column is missing.
+    """
+    if not set(compulsory_columns).issubset(df.columns):
+        diff = set(compulsory_columns).symmetric_difference(df.columns)
+        msg = (
+            "The following compulsory column(s) are missing from the "
+            f"dataframe: {diff}"
+        )
+        raise ValueError(msg)
+
+
+def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
+    """Pre-process the columns with temporal dtype to convert
+    from numpy datetime objects to pandas datetime objects.
+
+    Args:
+        df:
+            A DataFrame with temporal columns with numpy
+            datetime dtypes.
+
+    Returns:
+        A DataFrame without numpy datetime dtypes.
+    """
+    for col in [c for c in df.columns if df[c].dtype == "datetime64[ns]"]:
+        df[col] = df[col].dt.tz_localize("UTC").astype("O")
+    for col in [c for c in df.columns if df[c].dtype == "timedelta64[ns]"]:
+        df[col] = df[col].astype("O")
+    return df
+
+
+def _unique_check(df: DataFrame, column: str) -> None:
+    """Check whether the values in the column are unique.
+
+    Args:
+        df:
             The DataFrame to be checked.
         column:
-            Name of a column in the table.
+            Name of a column in the DataFrame.
 
     Raises:
         ValueError: Only one unique value within the specifed column
             is expected.
     """
-    if len(table[column].unique()) > 1:
+    if df[column].nunique(dropna=False) > 1:
         msg = (
             f"Multiple values provided for the {column}: "
-            f"{table[column].unique()}. "
+            f"{df[column].unique()}. "
             f"Only one value for the {column} is expected."
         )
         raise ValueError(msg)
 
 
-def _date_range_for_calibration(
+def _define_time_coord(
+    adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None,
+) -> DimCoord:
+    """Define a time coordinate with bounds is provided.
+
+    Args:
+        adate:
+            The point for the time coordinate.
+        time_bounds:
+            The values defining the bounds for the time coordinate.
+
+    Returns:
+        A time
+    """
+    return DimCoord(
+        np.array(adate.timestamp(), dtype=TIME_COORDS["time"].dtype),
+        "time",
+        bounds=time_bounds
+        if time_bounds is None
+        else [
+            np.array(t.timestamp(), dtype=TIME_COORDS["time"].dtype)
+            for t in time_bounds
+        ],
+        units=TIME_COORDS["time"].units,
+    )
+
+
+def _define_height_coord(height) -> AuxCoord:
+    """Define a height coordinate. A unit of metres is assumed.
+
+    Args:
+        height:
+            The value for the height coordinate in metres.
+
+    Returns:
+        The height coordinate.
+    """
+    return AuxCoord(np.array(height, dtype=np.float32), "height", units="m",)
+
+
+def _training_dates_for_calibration(
     cycletime: str, forecast_period: int, training_length: int
 ) -> DatetimeIndex:
     """Compute the date range required for extracting the required training
@@ -252,28 +365,29 @@ def _date_range_for_calibration(
         Datetimes ending one day prior to the computed validity time. The number
         of datetimes is equal to the training length.
     """
-    validity_time = cycletime_to_datetime(cycletime) + timedelta(
-        hours=int(forecast_period)
-    )
-
+    forecast_period = pd.Timedelta(int(forecast_period), unit="hours")
+    validity_time = pd.Timestamp(cycletime) + forecast_period
     return pd.date_range(
-        end=validity_time - timedelta(days=1), periods=int(training_length), freq="D"
+        end=validity_time - pd.Timedelta(1, unit="days") - forecast_period.floor("D"),
+        periods=int(training_length),
+        freq="D",
+        tz="UTC",
     )
 
 
-def forecast_table_to_cube(
-    table: DataFrame, date_range: DatetimeIndex, forecast_period: int
+def forecast_dataframe_to_cube(
+    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int
 ) -> Cube:
-    """Convert a forecast table into an iris Cube. The percentiles within the
-    forecast table are rebadged as realizations.
+    """Convert a forecast DataFrame into an iris Cube. The percentiles
+    within the forecast DataFrame are rebadged as realizations.
 
     Args:
-        table:
+        df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, percentile, diagnostic, latitude, longitude, period,
             height, cf_name, units.
-        date_range:
+        training_dates:
             Datetimes spanning the training period.
         forecast_period:
             Forecast period in hours as an integer.
@@ -281,80 +395,71 @@ def forecast_table_to_cube(
     Returns:
         Cube containing the forecasts from the training period.
     """
-    for coord in ["time", "forecast_reference_time"]:
-        table[coord] = table[coord].dt.tz_localize(None)
+    _dataframe_column_check(df, FORECAST_DATAFRAME_COLUMNS)
+    df = _preprocess_temporal_columns(df)
+
+    fp_point = pd.Timedelta(int(forecast_period), unit="hours")
 
     cubelist = CubeList()
-    for adate in date_range:
-        time_table = table.loc[
-            (table["time"] == adate)
-            & (table["forecast_period"] == timedelta(hours=int(forecast_period)))
-        ]
 
-        if time_table.empty:
+    for adate in training_dates:
+        time_df = df.loc[(df["time"] == adate) & (df["forecast_period"] == fp_point)]
+
+        if time_df.empty:
             continue
 
         # The following columns are expected to contain one unique value
         # per column.
         for col in ["period", "height", "cf_name", "units", "diagnostic"]:
-            _unique_check(time_table, col)
+            _unique_check(time_df, col)
 
-        time_point = np.datetime64(adate, "s")
-        fp_point = np.timedelta64(int(forecast_period), "h").astype("timedelta64[s]")
-        frt_point = np.datetime64(
-            time_table["forecast_reference_time"].values[0], "s"
-        ).astype(np.int64)
-
-        if time_table["period"].isna().all():
+        if time_df["period"].isna().all():
             time_bounds = None
             fp_bounds = None
         else:
-            period = time_table["period"].values[0].astype("timedelta64[s]")
-            time_bounds = [time_point - period, time_point]
+            period = time_df["period"].values[0]
+            time_bounds = [adate - period, adate]
             fp_bounds = [fp_point - period, fp_point]
 
-        time_coord = iris.coords.DimCoord(
-            time_point.astype(TIME_COORDS["time"].dtype),
-            "time",
-            bounds=[t.astype(TIME_COORDS["time"].dtype) for t in time_bounds]
-            if time_bounds
-            else time_bounds,
-            units=TIME_COORDS["time"].units,
-        )
-        fp_coord = iris.coords.AuxCoord(
-            fp_point.astype(TIME_COORDS["forecast_period"].dtype),
+        time_coord = _define_time_coord(adate, time_bounds)
+        height_coord = _define_height_coord(time_df["height"].values[0])
+
+        fp_coord = AuxCoord(
+            np.array(
+                fp_point.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype
+            ),
             "forecast_period",
-            bounds=[f.astype(TIME_COORDS["forecast_period"].dtype) for f in fp_bounds]
-            if fp_bounds
-            else fp_bounds,
+            bounds=fp_bounds
+            if fp_bounds is None
+            else [
+                np.array(f.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype)
+                for f in fp_bounds
+            ],
             units=TIME_COORDS["forecast_period"].units,
         )
-        frt_coord = iris.coords.AuxCoord(
-            frt_point,
+        frt_coord = AuxCoord(
+            np.array(
+                time_df["forecast_reference_time"].values[0].timestamp(),
+                dtype=TIME_COORDS["forecast_reference_time"].dtype,
+            ),
             "forecast_reference_time",
             units=TIME_COORDS["forecast_reference_time"].units,
         )
 
-        height_coord = iris.coords.AuxCoord(
-            np.array(time_table["height"].values[0], dtype=np.float32),
-            "height",
-            units="m",
-        )
-
-        for percentile in table["percentile"].unique():
-            perc_coord = iris.coords.DimCoord(
-                np.int32(percentile), long_name="percentile", units=1
+        for percentile in sorted(df["percentile"].unique()):
+            perc_coord = DimCoord(
+                np.float32(percentile), long_name="percentile", units="%"
             )
-            perc_table = time_table.loc[time_table["percentile"] == percentile]
+            perc_df = time_df.loc[time_df["percentile"] == percentile]
 
             cube = build_spotdata_cube(
-                perc_table["forecast"].astype(np.float32),  # data
-                perc_table["cf_name"].values[0],
-                perc_table["units"].values[0],
-                perc_table["altitude"].astype(np.float32),
-                perc_table["latitude"].astype(np.float32),
-                perc_table["longitude"].astype(np.float32),
-                perc_table["wmo_id"].values.astype("U5"),
+                perc_df["forecast"].astype(np.float32),
+                perc_df["cf_name"].values[0],
+                perc_df["units"].values[0],
+                perc_df["altitude"].astype(np.float32),
+                perc_df["latitude"].astype(np.float32),
+                perc_df["longitude"].astype(np.float32),
+                perc_df["wmo_id"].values.astype("U5"),
                 scalar_coords=[
                     time_coord,
                     frt_coord,
@@ -366,32 +471,27 @@ def forecast_table_to_cube(
             cubelist.append(cube)
 
     if not cubelist:
-        msg = (
-            f"No entries matching these dates {date_range} and "
-            f"this forecast period {forecast_period} are "
-            "available within the dataframe provided."
-        )
-        raise ValueError(msg)
+        return
     cube = cubelist.merge_cube()
 
     return RebadgePercentilesAsRealizations()(cube)
 
 
-def truth_table_to_cube(
-    table: DataFrame,
-    date_range: DatetimeIndex,
+def truth_dataframe_to_cube(
+    df: DataFrame,
+    training_dates: DatetimeIndex,
     period: timedelta64,
     height: float,
     cf_name: str,
     units: str,
 ) -> Cube:
-    """Convert a truth table into an iris Cube.
+    """Convert a truth DataFrame into an iris Cube.
 
     Args:
-        table:
+        df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
-        date_range:
+        training_dates:
             Datetimes spanning the training period.
         period:
             The period for defining the bounds on the time coordinate.
@@ -405,76 +505,55 @@ def truth_table_to_cube(
     Returns:
         Cube containing the truths from the training period.
     """
-    table["time"] = table["time"].dt.tz_localize(None)
+    _dataframe_column_check(df, TRUTH_DATAFRAME_COLUMNS)
+    df = _preprocess_temporal_columns(df)
 
     cubelist = CubeList()
-    for adate in date_range:
+    for adate in training_dates:
 
-        time_table = table.loc[table["time"] == adate]
+        time_df = df.loc[df["time"] == adate]
 
-        if time_table.empty:
+        if time_df.empty:
             continue
 
         # The following columns are expected to contain one unique value
         # per column.
-        _unique_check(time_table, "diagnostic")
+        _unique_check(time_df, "diagnostic")
 
         # Ensure that every WMO ID has an entry for a particular time.
-        new_index = Index(table["wmo_id"].unique(), name="wmo_id")
-        time_table = time_table.set_index("wmo_id").reindex(new_index)
+        new_index = Index(df["wmo_id"].unique(), name="wmo_id")
+        time_df = time_df.set_index("wmo_id").reindex(new_index)
         # Fill the alt/lat/lon with the mode to ensure consistent coordinates
         # to support merging. Also fill other columns known to contain one
-        # unique value. Columns containing entirely NaNs will return NaNs.
+        # unique value.
         for col in ["altitude", "latitude", "longitude", "diagnostic"]:
-            time_table[col] = table.groupby(by="wmo_id", sort=False)[col].agg(
-                lambda x: pd.Series.mode(x, dropna=not table[col].isna().all())
+            time_df[col] = df.groupby(by="wmo_id", sort=False)[col].agg(
+                lambda x: pd.Series.mode(x, dropna=not df[col].isna().all())
             )
-            # Replace empty arrays generated by the mode with NaNs.
-            time_table[col] = time_table[col].apply(
-                lambda x: np.nan if isinstance(x, np.ndarray) else x
-            )
-        time_table = time_table.reset_index()
+        time_df = time_df.reset_index()
 
-        time_point = np.datetime64(adate, "s")
-        if np.isnat(period):
+        if period is pd.Timedelta("NaT"):
             time_bounds = None
         else:
-            time_bounds = [
-                time_point - period.astype("timedelta64[s]"),
-                time_point,
-            ]
+            time_bounds = [adate - period, adate]
 
-        time_coord = iris.coords.DimCoord(
-            time_point.astype(TIME_COORDS["time"].dtype),
-            "time",
-            bounds=[t.astype(TIME_COORDS["time"].dtype) for t in time_bounds]
-            if time_bounds
-            else time_bounds,
-            units=TIME_COORDS["time"].units,
-        )
-
-        height_coord = iris.coords.AuxCoord(
-            np.array(height, dtype=np.float32), "height", units="m",
-        )
+        time_coord = _define_time_coord(adate, time_bounds)
+        height_coord = _define_height_coord(height)
 
         cube = build_spotdata_cube(
-            time_table["ob_value"].astype(np.float32),  # data
+            time_df["ob_value"].astype(np.float32),
             cf_name,
             units,
-            time_table["altitude"].astype(np.float32),
-            time_table["latitude"].astype(np.float32),
-            time_table["longitude"].astype(np.float32),
-            time_table["wmo_id"].values.astype("U5"),
+            time_df["altitude"].astype(np.float32),
+            time_df["latitude"].astype(np.float32),
+            time_df["longitude"].astype(np.float32),
+            time_df["wmo_id"].values.astype("U5"),
             scalar_coords=[time_coord, height_coord],
         )
         cubelist.append(cube)
 
     if not cubelist:
-        msg = (
-            f"No entries matching these dates {date_range} "
-            "are available within the dataframe provided."
-        )
-        raise ValueError(msg)
+        return
     return cubelist.merge_cube()
 
 
@@ -488,9 +567,8 @@ def _filter_forecasts_and_truths(forecast: Cube, truth: Cube) -> Tuple[Cube, Cub
             The training period truths.
 
     Returns:
-        Forecasts and truths for the training period that have been filtered
-        only include sites that are present in both the forecasts and truths
-        based on the WMO ID.
+        Forecasts and truths for the training period that have been filtered to
+        only include sites that are present in both the forecasts and truths.
 
     """
     forecast_constr = iris.Constraint(wmo_id=forecast.coord("wmo_id").points)
@@ -506,19 +584,19 @@ def _filter_forecasts_and_truths(forecast: Cube, truth: Cube) -> Tuple[Cube, Cub
     return forecast, truth
 
 
-def forecast_and_truth_tables_to_cubes(
-    forecast_table: DataFrame,
-    truth_table: DataFrame,
+def forecast_and_truth_dataframes_to_cubes(
+    forecast_df: DataFrame,
+    truth_df: DataFrame,
     cycletime: str,
     forecast_period: int,
     training_length: int,
 ) -> Tuple[Cube, Cube]:
-    """Convert a truth table into an iris Cube.
+    """Convert a truth DataFrame into an iris Cube.
 
     Args:
-        forecast_table:
+        forecast_df:
             DataFrame expected to contain the following columns: .
-        truth_table:
+        truth_df:
             DataFrame expected to contain the following columns: .
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
@@ -530,17 +608,19 @@ def forecast_and_truth_tables_to_cubes(
     Returns:
         Forecasts and truths for the training period in Cube format.
     """
-    date_range = _date_range_for_calibration(
+    training_dates = _training_dates_for_calibration(
         cycletime, forecast_period, training_length
     )
-    forecast_cube = forecast_table_to_cube(forecast_table, date_range, forecast_period)
-    truth_cube = truth_table_to_cube(
-        truth_table,
-        date_range,
-        period=forecast_table["period"].values[0],
-        height=forecast_table["height"].values[0],
-        cf_name=forecast_table["cf_name"].values[0],
-        units=forecast_table["units"].values[0],
+    forecast_cube = forecast_dataframe_to_cube(
+        forecast_df, training_dates, forecast_period
+    )
+    truth_cube = truth_dataframe_to_cube(
+        truth_df,
+        training_dates,
+        period=forecast_df["period"].values[0],
+        height=forecast_df["height"].values[0],
+        cf_name=forecast_df["cf_name"].values[0],
+        units=forecast_df["units"].values[0],
     )
     forecast_cube, truth_cube = _filter_forecasts_and_truths(forecast_cube, truth_cube)
     return forecast_cube, truth_cube
