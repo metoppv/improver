@@ -230,7 +230,8 @@ def _unique_check(df: DataFrame, column: str) -> None:
 def _define_time_coord(
     adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None,
 ) -> DimCoord:
-    """Define a time coordinate with bounds is provided.
+    """Define a time coordinate. The coordinate will have bounds,
+    if bounds are provided.
 
     Args:
         adate:
@@ -239,7 +240,8 @@ def _define_time_coord(
             The values defining the bounds for the time coordinate.
 
     Returns:
-        A time
+        A time coordinate. This coordinate will have bounds, if bounds
+        are provided.
     """
     return DimCoord(
         np.array(adate.timestamp(), dtype=TIME_COORDS["time"].dtype),
@@ -271,7 +273,11 @@ def _training_dates_for_calibration(
     cycletime: str, forecast_period: int, training_length: int
 ) -> DatetimeIndex:
     """Compute the date range required for extracting the required training
-    dataset.
+    dataset. The final validity time within the training dataset is
+    at least one day prior to the cycletime. The final validity time
+    within the training dataset is additionally offset by the number
+    of days within the forecast period to ensure that the dates defined
+    by the training dataset are in the past relative to the cycletime.
 
     Args:
         cycletime:
@@ -282,8 +288,8 @@ def _training_dates_for_calibration(
             Training length in days as an integer.
 
     Returns:
-        Datetimes ending one day prior to the computed validity time. The number
-        of datetimes is equal to the training length.
+        Datetimes defining the training dataset. The number of datetimes
+        is equal to the training length.
     """
     forecast_period = pd.Timedelta(int(forecast_period), unit="hours")
     validity_time = pd.Timestamp(cycletime) + forecast_period
@@ -515,9 +521,13 @@ def forecast_and_truth_dataframes_to_cubes(
 
     Args:
         forecast_df:
-            DataFrame expected to contain the following columns: .
+            DataFrame expected to contain the following columns: forecast,
+            blend_time, forecast_period, forecast_reference_time, time,
+            wmo_id, percentile, diagnostic, latitude, longitude, period,
+            height, cf_name, units.
         truth_df:
-            DataFrame expected to contain the following columns: .
+            DataFrame expected to contain the following columns: ob_value,
+            time, wmo_id, diagnostic, latitude, longitude and altitude.
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
         forecast_period:
