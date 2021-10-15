@@ -5,6 +5,9 @@ Ingestion of DataFrames into iris cubes
 DataFrames of the forecasts and truths (observations) can be provided
 for use with Ensemble Model Output Statistics (EMOS). The format
 expected for the forecast and truths DataFrames is described below.
+The forecasts are ensemble site forecasts in percentile format at
+a set of observation sites. The truths are observations from
+observation sites.
 
 ****************************
 Forecast DataFrame
@@ -22,10 +25,16 @@ A summary of the expected contents of a forecast table is shown below.
     :widths: 30, 30, 40
     :header-rows: 1
 
-An example forecast table is shown below.
+An example forecast table for an instantaneous diagnostic is shown below.
 
 .. csv-table::
-    :file: ./forecast_dataframe_example.csv
+    :file: ./forecast_dataframe_instantaneous_example.csv
+    :header-rows: 1
+
+An example forecast table for a period diagnostic is shown below.
+
+.. csv-table::
+    :file: ./forecast_dataframe_period_example.csv
     :header-rows: 1
 
 ****************************
