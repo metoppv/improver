@@ -148,9 +148,9 @@ class WeatherSymbols(BasePlugin):
                 A CubeList containing the input diagnostic cubes.
 
         Returns:
-            A dictionary of (keyword) nodes names where the diagnostic
-            data is missing and (values) node associated with
-            if_diagnostic_missing.
+            A list of node names where the diagnostic data is missing and
+            this is indicated as allowed by the presence of the if_diagnostic_missing
+            key.
 
         Raises:
             IOError:
@@ -160,7 +160,7 @@ class WeatherSymbols(BasePlugin):
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
 
-        optional_node_data_missing = {}
+        optional_node_data_missing = []
         missing_data = []
         for key, query in self.queries.items():
             diagnostics = get_parameter_names(
@@ -178,9 +178,7 @@ class WeatherSymbols(BasePlugin):
                 matched_cube = cubes.extract(test_condition)
                 if not matched_cube:
                     if "if_diagnostic_missing" in query:
-                        optional_node_data_missing.update(
-                            {key: query[query["if_diagnostic_missing"]]}
-                        )
+                        optional_node_data_missing.append(key)
                     else:
                         missing_data.append([diagnostic, threshold, condition])
                     continue
@@ -314,7 +312,6 @@ class WeatherSymbols(BasePlugin):
         inverted_combination = self._invert_comparator(
             condition["condition_combination"]
         )
-        # print("inverted", inverted_threshold, inverted_combination)
         return inverted_threshold, inverted_combination
 
     def create_condition_chain(self, test_conditions: Dict) -> List:
@@ -342,7 +339,6 @@ class WeatherSymbols(BasePlugin):
             test_conditions["probability_thresholds"],
             test_conditions["diagnostic_thresholds"],
         ):
-            # print(diagnostic, p_threshold, d_threshold)
             loop += 1
 
             if isinstance(diagnostic, list):
@@ -425,7 +421,7 @@ class WeatherSymbols(BasePlugin):
         constraint = iris.Constraint(name=diagnostic, **kw_dict)
         return constraint
 
-    def remove_optional_missing(self, optional_node_data_missing: Dict[str, Any]):
+    def remove_optional_missing(self, optional_node_data_missing: List[str]):
         """
         Some decision tree nodes are optional and have an "if_diagnostic_missing"
         key to enable passage through the tree in the absence of the required
@@ -438,10 +434,15 @@ class WeatherSymbols(BasePlugin):
 
         Args:
             optional_node_data_missing:
-                Dictionary in which the key is the name of the missing node and
-                the corresponding value is the alternative target node.
+                List of node names for which data is missing but for which this
+                is allowed.
         """
-        for missing, alternative in optional_node_data_missing.items():
+        for missing in optional_node_data_missing:
+
+            # Get the name of the alternative node to bypass the missing one
+            target = self.queries[missing]["if_diagnostic_missing"]
+            alternative = self.queries[missing][target]
+
             for node, query in self.queries.items():
                 if query["if_true"] == missing:
                     query["if_true"] = alternative
@@ -668,7 +669,6 @@ class WeatherSymbols(BasePlugin):
             res = self.evaluate_condition_chain(cubes, item)
         else:
             condition, comparator, threshold = item
-            # print(item)
             res = self.compare_array_to_threshold(
                 self.evaluate_extract_expression(cubes, condition),
                 comparator,
@@ -679,7 +679,6 @@ class WeatherSymbols(BasePlugin):
                 new_res = self.evaluate_condition_chain(cubes, item)
             else:
                 condition, comparator, threshold = item
-                # print(item)
                 new_res = self.compare_array_to_threshold(
                     self.evaluate_extract_expression(cubes, condition),
                     comparator,
@@ -697,7 +696,6 @@ class WeatherSymbols(BasePlugin):
                     "but second element is not 'AND' or 'OR'.",
                 )
                 raise RuntimeError(msg)
-        # print(res)
         return res
 
     def process(self, cubes: CubeList) -> Cube:
@@ -759,15 +757,11 @@ class WeatherSymbols(BasePlugin):
                     conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
 
-                # print(route)
-
                 # Set grid locations to suitable weather symbol
                 symbols.data[
                     np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
                 ] = symbol_code
-        #         print(symbol_code)
-        #         print(symbols.data)
-        # print(symbols.data)
+
         # Update symbols for day or night.
         symbols = update_daynight(symbols)
         return symbols

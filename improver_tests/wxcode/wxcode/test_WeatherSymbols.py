@@ -275,7 +275,7 @@ class Test_check_input_cubes(Test_WXCode):
         """Test check_input_cubes raises no error if lightning missing"""
         cubes = self.cubes.extract(self.missing_diagnostic)
         result = self.plugin.check_input_cubes(cubes)
-        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result, list)
         self.assertEqual(len(result), 1)
         self.assertTrue("lightning" in result)
 
@@ -983,11 +983,11 @@ class Test_remove_optional_missing(IrisTest):
         """Test that if the first node, lightning, is missing, the start_node
         progresses to its "if_diagnostic_missing" option."""
 
-        optional_missing = {"lightning": "heavy_precipitation"}
-        target = self.plugin.queries["lightning"]["if_diagnostic_missing"]
-        expected = self.plugin.queries["lightning"][target]
+        missing_diagnostic = "lightning"
+        target = self.plugin.queries[missing_diagnostic]["if_diagnostic_missing"]
+        expected = self.plugin.queries[missing_diagnostic][target]
 
-        self.plugin.remove_optional_missing(optional_missing)
+        self.plugin.remove_optional_missing([missing_diagnostic])
 
         self.assertEqual(self.plugin.start_node, expected)
 
@@ -998,11 +998,11 @@ class Test_remove_optional_missing(IrisTest):
         and instead targets its "if_diagnostic_missing" option, which is
         "heavy_precipitation_cloud"."""
 
-        optional_missing = {"heavy_precipitation": "heavy_precipitation_cloud"}
-        target = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
-        expected = self.plugin.queries["heavy_precipitation"][target]
+        missing_diagnostics = "heavy_precipitation"
+        target = self.plugin.queries[missing_diagnostics]["if_diagnostic_missing"]
+        expected = self.plugin.queries[missing_diagnostics][target]
 
-        self.plugin.remove_optional_missing(optional_missing)
+        self.plugin.remove_optional_missing([missing_diagnostics])
 
         self.assertEqual(self.plugin.queries["lightning"]["if_false"], expected)
 
@@ -1010,14 +1010,12 @@ class Test_remove_optional_missing(IrisTest):
         """Test that if the diagnostics for two nodes, that are both allowed to
         be missing, are absent, the start node skips both of them."""
 
-        optional_missing = {
-            "lightning": "heavy_precipitation",
-            "heavy_precipitation": "heavy_precipitation_cloud",
-        }
-        target = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
-        expected = self.plugin.queries["heavy_precipitation"][target]
+        missing_diagnostics = ["lightning", "heavy_precipitation"]
 
-        self.plugin.remove_optional_missing(optional_missing)
+        target = self.plugin.queries[missing_diagnostics[-1]]["if_diagnostic_missing"]
+        expected = self.plugin.queries[missing_diagnostics[-1]][target]
+
+        self.plugin.remove_optional_missing(missing_diagnostics)
 
         self.assertEqual(self.plugin.start_node, expected)
 
@@ -1031,11 +1029,10 @@ class Test_remove_optional_missing(IrisTest):
            lighting -> heavy_precipitation -> heavy_precipitation_cloud
         """
 
-        optional_missing = {
-            "lightning": "heavy_precipitation",
-            "heavy_precipitation_cloud": "heavy_snow_continuous",
-        }
-        # Start node should be that targetted by lightning
+        missing_diagnostics = ["lightning", "heavy_precipitation_cloud"]
+
+        # Start node should be that targeted by lightning, the first missing
+        # diagnostic
         target = self.plugin.queries["lightning"]["if_diagnostic_missing"]
         expected_start = self.plugin.queries["lightning"][target]
         # Expected subsequent step from the resulting first node
@@ -1044,7 +1041,7 @@ class Test_remove_optional_missing(IrisTest):
         ]
         expected_next = self.plugin.queries["heavy_precipitation_cloud"][target]
 
-        self.plugin.remove_optional_missing(optional_missing)
+        self.plugin.remove_optional_missing(missing_diagnostics)
 
         # Exract the node sandwiched by the missing nodes
         test_node = self.plugin.queries[self.plugin.start_node]
@@ -1352,6 +1349,19 @@ class Test_process(Test_WXCode):
         expected_wxcode[1, 1:] = 29
         expected_wxcode[2, 0] = 29
         self.assertArrayAndMaskEqual(result.data, expected_wxcode)
+
+    def test_lightning_but_missing_next_node(self):
+        """Test process returns right values if a lightning input is provided,
+        but the next node, heavy_precipitation, is missing. Lightning is set in
+        one corner only, all other
+        resulting values should match default expected values. This indicates
+        the missing hail node has been omitted successfully."""
+        cubes = self.cubes[:-2] + [self.cubes[-1]]
+        print(cubes)
+        cubes[7].data[0, 0] = 1
+        result = self.plugin.process(cubes)
+        self.expected_wxcode[0, 0] = 30
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
 
     def test_masked_precip(self):
         """Test process returns right values when precipitation data are fully masked
