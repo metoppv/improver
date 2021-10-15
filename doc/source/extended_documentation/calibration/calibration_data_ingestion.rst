@@ -22,7 +22,7 @@ A summary of the expected contents of a forecast table is shown below.
 
 .. csv-table::
     :file: ./forecast_dataframe_metadata_info.csv
-    :widths: 30, 30, 40
+    :widths: 25, 22, 53
     :header-rows: 1
 
 An example forecast table for an instantaneous diagnostic is shown below.
