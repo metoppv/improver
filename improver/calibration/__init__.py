@@ -61,6 +61,7 @@ from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import MergeCubes
 
 FORECAST_DATAFRAME_COLUMNS = [
+    "altitude",
     "blend_time",
     "cf_name",
     "diagnostic",
@@ -179,7 +180,7 @@ def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None
         ValueError: Raise an error if a compulsory column is missing.
     """
     if not set(compulsory_columns).issubset(df.columns):
-        diff = set(compulsory_columns).symmetric_difference(df.columns)
+        diff = set(compulsory_columns).difference(df.columns)
         msg = (
             "The following compulsory column(s) are missing from the "
             f"dataframe: {diff}"
@@ -199,9 +200,9 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
     Returns:
         A DataFrame without numpy datetime dtypes.
     """
-    for col in [c for c in df.columns if df[c].dtype == "datetime64[ns]"]:
+    for col in df.select_dtypes(include="datetime64[ns]"):
         df[col] = df[col].dt.tz_localize("UTC").astype("O")
-    for col in [c for c in df.columns if df[c].dtype == "timedelta64[ns]"]:
+    for col in df.select_dtypes(include="timedelta64[ns]"):
         df[col] = df[col].astype("O")
     return df
 

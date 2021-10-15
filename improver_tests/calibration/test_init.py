@@ -32,6 +32,7 @@
 
 import unittest
 from datetime import datetime
+from unittest.case import expectedFailure
 
 import iris
 import numpy as np
@@ -672,7 +673,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
-    def test_missing_compulsory_columns(self):
+    def test_forecast_missing_compulsory_columns(self):
         """Test if there are missing compulsory columns in the forecast
         dataframe."""
         df = self.forecast_df.copy()
@@ -687,10 +688,70 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.training_length,
             )
 
-    def test_missing_compulsory_columns(self):
+    def test_truth_missing_compulsory_columns(self):
         """Test if there are missing compulsory columns in the truth
         dataframe."""
         df = self.truth_subset_df.copy()
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                self.forecast_df,
+                df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_forecast_additional_columns_present(self):
+        """Test that if there are additional columns present
+        in forecast dataframe, these have no impact."""
+        df = self.forecast_df.copy()
+        df["station_id"] = "11111"
+        result = forecast_and_truth_dataframes_to_cubes(
+            df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+
+    def test_truth_additional_columns_present(self):
+        """Test that if there are additional columns present
+        in truth dataframe, these have no impact."""
+        df = self.truth_subset_df.copy()
+        df["station_id"] = "11111"
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+
+    def test_forecast_missing_columns_and_additional_columns(self):
+        """Test if there are missing compulsory columns in the forecast
+        dataframe and there are additional non-compulsory columns."""
+        df = self.forecast_df.copy()
+        df["station_id"] = "11111"
+        df = df.rename(columns={"diagnostic": "diag"})
+        msg = "The following compulsory column\\(s\\) are missing"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                df,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_truth_missing_columns_and_additional_columns(self):
+        """Test if there are missing compulsory columns in the truth
+        dataframe and there are additional non-compulsory columns."""
+        df = self.truth_subset_df.copy()
+        df["station_id"] = "11111"
         df = df.rename(columns={"diagnostic": "diag"})
         msg = "The following compulsory column\\(s\\) are missing"
         with self.assertRaisesRegex(ValueError, msg):
