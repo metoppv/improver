@@ -188,6 +188,10 @@ def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None
 def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
     """Pre-process the columns with temporal dtype to convert
     from numpy datetime objects to pandas datetime objects.
+    Casting the dtype of the columns to object type results
+    in columns of dtype "object" with the contents of the
+    columns being pandas datetime objects, rather than numpy
+    datetime objects.
 
     Args:
         df:
@@ -195,7 +199,9 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
             datetime dtypes.
 
     Returns:
-        A DataFrame without numpy datetime dtypes.
+        A DataFrame without numpy datetime dtypes. The
+        content of the columns with temporal dtypes are
+        accessible as pandas datetime objects.
     """
     for col in df.select_dtypes(include="datetime64[ns]"):
         df[col] = df[col].dt.tz_localize("UTC").astype("O")
