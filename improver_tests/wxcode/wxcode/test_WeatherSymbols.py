@@ -184,6 +184,27 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
+        hail = set_up_probability_cube(
+            np.zeros((1, 3, 3), dtype=np.float32),
+            thresholds,
+            variable_name="lwe_graupel_and_hail_fall_rate_in_vicinity",
+            threshold_units="m s-1",
+            time=time,
+            time_bounds=[time - timedelta(hours=1), time],
+            frt=frt,
+        )
+
+        thresholds = np.array([2.77777778e-07], dtype=np.float32)
+        precipmaxrate = set_up_probability_cube(
+            np.zeros((1, 3, 3), dtype=np.float32),
+            thresholds,
+            variable_name="lwe_precipitation_rate_max",
+            threshold_units="m s-1",
+            time=time,
+            time_bounds=[time - timedelta(hours=1), time],
+            frt=frt,
+        )
+
         thresholds = np.array([1.0], dtype=np.float32)
         data_shower_condition = np.array(
             [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
@@ -207,9 +228,12 @@ class Test_WXCode(IrisTest):
                 cloud,
                 cloud_low,
                 visibility,
-                lightning,
                 precip_rate,
                 shower_condition,
+                # Period diagnostics below here.
+                lightning,
+                hail,
+                precipmaxrate,
             ]
         )
         names = [cube.name() for cube in self.cubes]
@@ -994,7 +1018,7 @@ class Test_remove_optional_missing(IrisTest):
     def test_intermediate_node(self):
         """Test that if a node other than the first node is missing, is gets
         cut out of the possible paths through the decision tree. In this case
-        it means that the lightning "if_false" path skips "heavy_precipitation"
+        it means that the hail "if_false" path skips "heavy_precipitation"
         and instead targets its "if_diagnostic_missing" option, which is
         "heavy_precipitation_cloud"."""
 
@@ -1010,7 +1034,7 @@ class Test_remove_optional_missing(IrisTest):
         """Test that if the diagnostics for two nodes, that are both allowed to
         be missing, are absent, the start node skips both of them."""
 
-        missing_diagnostics = ["lightning", "heavy_precipitation"]
+        missing_diagnostics = ["lightning", "hail"]
 
         target = self.plugin.queries[missing_diagnostics[-1]]["if_diagnostic_missing"]
         expected = self.plugin.queries[missing_diagnostics[-1]][target]
@@ -1022,11 +1046,11 @@ class Test_remove_optional_missing(IrisTest):
     def test_nonsequential_missing_nodes(self):
         """Test that if the diagnostics for two non-sequential nodes, that are
         both allowed to be missing, are absent, the tree is modified as
-        expected.
+        expected. In this case lightning and heavy_precipitation are missing.
 
         Route being tested is:
 
-           lighting -> heavy_precipitation -> heavy_precipitation_cloud
+           lighting -> hail -> heavy_precipitation -> heavy_precipitation_cloud
         """
 
         missing_diagnostics = ["lightning", "heavy_precipitation_cloud"]
@@ -1107,7 +1131,7 @@ class Test_check_coincidence(Test_WXCode):
         no exception is raised."""
 
         self.plugin.check_coincidence(self.cubes)
-        self.assertIn("number_of_lightning_flashes", self.plugin.template_cube.name())
+        self.assertIn("lwe_precipitation_rate_max", self.plugin.template_cube.name())
         self.assertTrue(
             (
                 self.plugin.template_cube.coord("time").bounds == self.expected_bounds
@@ -1179,7 +1203,7 @@ class Test_check_coincidence(Test_WXCode):
         """Test that the first cube in the diagnostic cube list is set as the
         global template cube if there are no period diagnostics."""
 
-        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes = self.cubes[:8]
         expected = cubes[0]
         self.plugin.check_coincidence(cubes)
         self.assertEqual(self.plugin.template_cube, expected)
@@ -1342,7 +1366,7 @@ class Test_process(Test_WXCode):
         """Test process returns right values if all lightning. """
         data_lightning = np.ones((3, 3))
         cubes = self.cubes
-        cubes[7].data = data_lightning
+        cubes[9].data = data_lightning
         result = self.plugin.process(self.cubes)
         expected_wxcode = np.ones((3, 3)) * 30
         expected_wxcode[0, 1] = 29
@@ -1352,13 +1376,11 @@ class Test_process(Test_WXCode):
 
     def test_lightning_but_missing_next_node(self):
         """Test process returns right values if a lightning input is provided,
-        but the next node, heavy_precipitation, is missing. Lightning is set in
-        one corner only, all other
-        resulting values should match default expected values. This indicates
-        the missing hail node has been omitted successfully."""
-        cubes = self.cubes[:-2] + [self.cubes[-1]]
-        print(cubes)
-        cubes[7].data[0, 0] = 1
+        but the next node, hail, is missing. Lightning is set in one corner
+        only, all other resulting values should match default expected values.
+        This indicates that the missing hail node has been omitted successfully."""
+        cubes = self.cubes[:10] + [self.cubes[-1]]
+        cubes[9].data[0, 0] = 1
         result = self.plugin.process(cubes)
         self.expected_wxcode[0, 0] = 30
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
@@ -1367,9 +1389,9 @@ class Test_process(Test_WXCode):
         """Test process returns right values when precipitation data are fully masked
         (e.g. nowcast-only). The only possible non-masked result is a lightning code as
         these do not include precipitation in any of their decision routes."""
-        data_precip = np.ma.masked_all_like(self.cubes[8].data)
+        data_precip = np.ma.masked_all_like(self.cubes[7].data)
         cubes = self.cubes
-        cubes[8].data = data_precip
+        cubes[7].data = data_precip
         result = self.plugin.process(self.cubes)
         expected_wxcode = np.ma.masked_all_like(self.expected_wxcode)
         expected_wxcode[0, 1] = self.expected_wxcode[0, 1]
@@ -1434,9 +1456,9 @@ class Test_process(Test_WXCode):
         cubes[4].data = data_cloud
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
-        cubes[7].data = data_lightning
-        cubes[8].data = data_precip
-        cubes[9].data = data_shower_condition
+        cubes[7].data = data_precip
+        cubes[8].data = data_shower_condition
+        cubes[9].data = data_lightning
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
@@ -1450,8 +1472,8 @@ class Test_process(Test_WXCode):
         data_cloud = np.ones_like(self.cubes[4].data)
         data_cld_low = np.ones_like(self.cubes[5].data)
         data_vis = np.zeros_like(self.cubes[6].data)
-        data_lightning = np.zeros_like(self.cubes[7].data)
-        data_shower_condition = np.zeros_like(self.cubes[9].data)
+        data_lightning = np.zeros_like(self.cubes[9].data)
+        data_shower_condition = np.zeros_like(self.cubes[8].data)
         expected = np.ones_like(self.expected_wxcode_alternate) * 18
 
         cubes = self.cubes
@@ -1462,9 +1484,9 @@ class Test_process(Test_WXCode):
         cubes[4].data = data_cloud
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
-        cubes[7].data = data_lightning
-        cubes[8].data = data_precip
-        cubes[9].data = data_shower_condition
+        cubes[7].data = data_precip
+        cubes[8].data = data_shower_condition
+        cubes[9].data = data_lightning
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, expected)
 

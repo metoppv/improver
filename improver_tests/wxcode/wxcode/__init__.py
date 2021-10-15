@@ -43,7 +43,7 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
     """
     queries = {
         "lightning": {
-            "if_true": "lightning_cloud",
+            "if_true": "lightning_shower",
             "if_false": "heavy_precipitation",
             "if_diagnostic_missing": "if_false",
             "probability_thresholds": [0.3],
@@ -55,9 +55,45 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
             "diagnostic_thresholds": [[0.0, "m-2"]],
             "diagnostic_conditions": ["above"],
         },
-        "lightning_cloud": {
+        "lightning_shower": {
             "if_true": 29,
             "if_false": 30,
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": ["probability_of_shower_condition_above_threshold"],
+            "diagnostic_thresholds": [[1.0, 1]],
+            "diagnostic_conditions": ["above"],
+        },
+        "hail": {
+            "if_true": "hail_precip",
+            "if_false": "heavy_precipitation",
+            "if_diagnostic_missing": "if_false",
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                "probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold"
+            ],
+            "diagnostic_thresholds": [[0.0, "mm hr-1"]],
+            "diagnostic_conditions": ["above"],
+        },
+        "hail_precip": {
+            "if_true": "hail_shower",
+            "if_false": "heavy_precipitation",
+            "if_diagnostic_missing": "if_false",
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                "probability_of_lwe_precipitation_rate_max_above_threshold"
+            ],
+            "diagnostic_thresholds": [[1.0, "mm hr-1"]],
+            "diagnostic_conditions": ["above"],
+        },
+        "hail_shower": {
+            "if_true": 20,
+            "if_false": 21,
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
