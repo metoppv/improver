@@ -110,7 +110,7 @@ def process(
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
         percentiles (List[float]):
-            The set of percentiles within the calibrated forecast.
+            The set of percentiles used to create the calibrated forecast.
 
     Returns:
         iris.cube.Cube:

@@ -179,6 +179,7 @@ class Test_process(IrisTest):
                 np.full((3, 3), 10.534898),
             ]
         )
+        self.alternative_percentiles = [25.0, 50.0, 75.0]
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
@@ -378,23 +379,23 @@ class Test_process(IrisTest):
     def test_alternative_percentiles(self):
         """Test that the calibrated forecast is at a specified set of
         percentiles."""
-        alternative_percentiles = [25, 50, 75]
-        result = ApplyEMOS(percentiles=alternative_percentiles)(
+        result = ApplyEMOS(percentiles=self.alternative_percentiles)(
             self.percentiles, self.coefficients, realizations_count=3
         )
         self.assertArrayEqual(
-            result.coord("percentile").points, alternative_percentiles
+            result.coord("percentile").points, self.alternative_percentiles
         )
 
     def test_alternative_string_percentiles(self):
         """Test that the calibrated forecast is at a specified set of
         percentiles where the input percentiles are strings."""
-        alternative_percentiles = ["25", "50", "75"]
-        expected_percentiles = list(map(float, alternative_percentiles))
-        result = ApplyEMOS(percentiles=alternative_percentiles)(
+        str_percentiles = list(map(str, self.alternative_percentiles))
+        result = ApplyEMOS(percentiles=str_percentiles)(
             self.percentiles, self.coefficients, realizations_count=3
         )
-        self.assertArrayEqual(result.coord("percentile").points, expected_percentiles)
+        self.assertArrayEqual(
+            result.coord("percentile").points, self.alternative_percentiles
+        )
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution

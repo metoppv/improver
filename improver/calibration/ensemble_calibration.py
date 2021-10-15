@@ -1717,8 +1717,9 @@ class ApplyEMOS(PostProcessingPlugin):
 
         Args:
             percentiles:
+                The set of percentiles used to create the calibrated forecast.
         """
-        self.percentiles = [float(p) for p in percentiles] if percentiles else None
+        self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
 
     @staticmethod
     def _get_attribute(
