@@ -32,7 +32,6 @@
 
 import unittest
 from datetime import datetime
-from unittest.case import expectedFailure
 
 import iris
 import numpy as np
@@ -763,28 +762,6 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
         result = truth_dataframe_to_cube(self.truth_df, self.date_range_two_days,)
         self.assertCubeEqual(result, self.expected_period_truth[1:, :])
 
-    def test_missing_observation(self):
-        """Test an input DataFrame is converted correctly into an Iris Cube
-        if an observation is missing at a particular time."""
-        df = self.truth_df.head(-1)
-        self.expected_period_truth.data[-1, -1] = np.nan
-        result = truth_dataframe_to_cube(df, self.date_range)
-        np.testing.assert_array_equal(result.data, self.expected_period_truth.data)
-        for coord in ["altitude", "latitude", "longitude"]:
-            self.assertEqual(
-                result.coord(coord), self.expected_period_truth.coord(coord)
-            )
-
-    def test_moving_sites(self):
-        """Test an input DataFrame is converted correctly into an Iris Cube
-        if the position of a particular site varies during the training period."""
-        df = self.truth_df.copy()
-        df.at[0, "altitude"] = 45
-        df.at[0, "latitude"] = 52
-        df.at[0, "longitude"] = -12
-        result = truth_dataframe_to_cube(df, self.date_range)
-        self.assertCubeEqual(result, self.expected_period_truth)
-
     def test_empty_dataframe(self):
         """Test if none of the required data is available in the dataframe."""
         validity_time = np.datetime64("2017-07-22T19:00:00")
@@ -864,8 +841,25 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
-    def test_site_mismatch(self):
-        """Test for a mismatch in the sites available as truths and forecasts."""
+    def test_site_absent_from_forecast(self):
+        """Test for when a site is absent from the forecast dataframe."""
+        df = self.forecast_df.copy()
+        df = df.loc[df["wmo_id"].isin(self.wmo_ids[:-1])]
+        expected_forecast = self.expected_period_forecast[:, :, :-1]
+        expected_truth = self.expected_period_truth[:, :-1]
+        result = forecast_and_truth_dataframes_to_cubes(
+            df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], expected_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
+
+    def test_site_absent_from_truth(self):
+        """Test for when a site is absent from the truth dataframe."""
         df = self.truth_subset_df.copy()
         df = df.loc[df["wmo_id"].isin(self.wmo_ids[:-1])]
         expected_forecast = self.expected_period_forecast[:, :, :-1]
@@ -889,6 +883,22 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         df.at[::3, "altitude"] = 45
         df.at[::3, "latitude"] = 52
         df.at[::3, "longitude"] = -12
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_missing_observation(self):
+        """Test a truth DataFrame with a missing observation at
+        a particular time is converted correctly into an iris Cube."""
+        df = self.truth_subset_df.head(-1)
+        self.expected_period_truth.data[-1, -1] = np.nan
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             df,
@@ -932,7 +942,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_forecast_additional_columns_present(self):
         """Test that if there are additional columns present
-        in forecast dataframe, these have no impact."""
+        in the forecast dataframe, these have no impact."""
         df = self.forecast_df.copy()
         df["station_id"] = "11111"
         result = forecast_and_truth_dataframes_to_cubes(
@@ -946,7 +956,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_truth_additional_columns_present(self):
         """Test that if there are additional columns present
-        in truth dataframe, these have no impact."""
+        in the truth dataframe, these have no impact."""
         df = self.truth_subset_df.copy()
         df["station_id"] = "11111"
         result = forecast_and_truth_dataframes_to_cubes(

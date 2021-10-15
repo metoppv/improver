@@ -40,14 +40,11 @@ into an iris cube.
 from collections import OrderedDict
 from typing import Dict, List, Optional, Sequence, Tuple
 
-import iris
 import numpy as np
 import pandas as pd
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
-from numpy import timedelta64
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -396,6 +393,63 @@ def _training_dates_for_calibration(
     )
 
 
+def _prepare_dataframes(
+    forecast_df: DataFrame, truth_df: DataFrame
+) -> Tuple[DataFrame, DataFrame]:
+    """Prepare dataframes for conversion to cubes by: 1) checking
+    that the expected columns are present, 2) finding the sites
+    common to both the forecast and truth dataframes and 3)
+    replacing and supplementing the truth dataframe with
+    information from the forecast dataframe. Note that this third
+    step will also ensure that a row containing a NaN for the
+    ob_value is inserted for any missing observations.
+
+    Args:
+        forecast_df:
+            DataFrame expected to contain the following columns: forecast,
+            blend_time, forecast_period, forecast_reference_time, time,
+            wmo_id, percentile, diagnostic, latitude, longitude, period,
+            height, cf_name, units. Any other columns are ignored.
+        truth_df:
+            DataFrame expected to contain the following columns: ob_value,
+            time, wmo_id, diagnostic, latitude, longitude and altitude.
+            Any other columns are ignored.
+
+    Returns:
+        A sanitised version of the forecasts and truth dataframes that
+        are ready for conversion to cubes.
+    """
+    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
+    _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
+
+    # Find the common set of WMO IDs.
+    common_wmo_ids = set(forecast_df["wmo_id"]).intersection(truth_df["wmo_id"])
+    forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
+    truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
+
+    truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
+    # Identify columns to copy onto the truth_df from the forecast_df
+    forecast_subset = forecast_df[
+        [
+            "wmo_id",
+            "latitude",
+            "longitude",
+            "altitude",
+            "period",
+            "height",
+            "cf_name",
+            "units",
+            "time",
+            "diagnostic",
+        ]
+    ].drop_duplicates()
+    # Use "outer" to fill in any missing observations in the truth dataframe.
+    truth_df = truth_df.merge(
+        forecast_subset, on=["wmo_id", "time", "diagnostic"], how="outer"
+    )
+    return forecast_df, truth_df
+
+
 def forecast_dataframe_to_cube(
     df: DataFrame, training_dates: DatetimeIndex, forecast_period: int
 ) -> Cube:
@@ -525,19 +579,6 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
         # per column.
         _unique_check(time_df, "diagnostic")
 
-        # Ensure that every WMO ID has an entry for a particular time.
-        new_index = Index(df["wmo_id"].unique(), name="wmo_id")
-        time_df = time_df.set_index("wmo_id").reindex(new_index)
-
-        # Fill the alt/lat/lon with the mode to ensure consistent coordinates
-        # to support merging. Also fill other columns known to contain one
-        # unique value.
-        for col in ["altitude", "latitude", "longitude", "diagnostic"]:
-            time_df[col] = df.groupby(by="wmo_id", sort=False)[col].agg(
-                lambda x: pd.Series.mode(x, dropna=not df[col].isna().all())
-            )
-        time_df = time_df.reset_index()
-
         if time_df["period"].isna().all():
             time_bounds = None
         else:
@@ -571,7 +612,8 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_period: int,
     training_length: int,
 ) -> Tuple[Cube, Cube]:
-    """Convert a truth DataFrame into an iris Cube.
+    """Convert a forecast DataFrame into an iris Cube and a
+    truth DataFrame into an iris Cube.
 
     Args:
         forecast_df:
@@ -597,24 +639,7 @@ def forecast_and_truth_dataframes_to_cubes(
         cycletime, forecast_period, training_length
     )
 
-    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
-    _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
-
-    truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
-    # Identify columns to copy onto the truth_df from the forecast_df
-    forecast_subset = forecast_df[
-        [
-            "wmo_id",
-            "latitude",
-            "longitude",
-            "altitude",
-            "period",
-            "height",
-            "cf_name",
-            "units",
-        ]
-    ].drop_duplicates()
-    truth_df = truth_df.merge(forecast_subset, on=["wmo_id"])
+    forecast_df, truth_df = _prepare_dataframes(forecast_df, truth_df)
 
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period
