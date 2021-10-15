@@ -42,6 +42,7 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
 from scipy import stats
 
+import improver.ensemble_copula_coupling._scipy_continuous_distns as scipy_cont_distns
 from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
@@ -727,14 +728,18 @@ calculate_truncated_normal_crps`,
                 a lower bound of zero should be [0, np.inf].
 
         """
-        try:
-            self.distribution = getattr(stats, distribution)
-        except AttributeError as err:
-            msg = (
-                "The distribution requested {} is not a valid distribution "
-                "in scipy.stats. {}".format(distribution, err)
-            )
-            raise AttributeError(msg)
+        if distribution == "truncnorm":
+            # Use scipy v1.3.3 truncnorm
+            self.distribution = scipy_cont_distns.truncnorm
+        else:
+            try:
+                self.distribution = getattr(stats, distribution)
+            except AttributeError as err:
+                msg = (
+                    "The distribution requested {} is not a valid distribution "
+                    "in scipy.stats. {}".format(distribution, err)
+                )
+                raise AttributeError(msg)
 
         if shape_parameters is None:
             if self.distribution.name == "truncnorm":
