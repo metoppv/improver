@@ -359,10 +359,23 @@ def _training_dates_for_calibration(
     within the training dataset is additionally offset by the number
     of days within the forecast period to ensure that the dates defined
     by the training dataset are in the past relative to the cycletime.
+    For example, for a cycletime of 20170720T0000Z with a forecast period
+    of T+30 and a training length of 3 days, the validity time is
+    20170721T0600Z. Subtracting one day gives 20170720T0600Z. Note that
+    this is in the future relative to the cycletime and we want the
+    training dates to be in the past relative to the cycletime.
+    Subtracting the forecast period rounded down to the nearest day for
+    T+30 gives 1 day. Subtracting this additional day gives 20170719T0600Z.
+    This is the final validity time within the training period. We then
+    compute the validity times for a 3 day training period using 20170719T0600Z
+    as the final validity time giving 20170719T0600Z, 20170718T0600Z
+    and 20170717T0600Z.
 
     Args:
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
+            The training dates will always be in the past, relative
+            to the cycletime.
         forecast_period:
             Forecast period in hours as an integer.
         training_length:
