@@ -1,14 +1,13 @@
 # This environment is intended to match the conda-forge improver-feedstock at
 # https://github.com/conda-forge/improver-feedstock
 # If it is changed, the feedstock repository should also be updated.
-# This environment should avoid dependencies which are optional in the IMPROVER
-# code, but with restricted versions to allow all tests to pass when those
-# dependencies are installed.
+# This environment should not include optional dependencies.
+# This environment should pin versions so that all unit tests pass.
 name: improver_latest
 channels:
   - conda-forge
 dependencies:
-  - python=3
+  - python>=3.6
   # Included in improver-feedstock requirements
   - cartopy<0.20
   - cftime<1.5

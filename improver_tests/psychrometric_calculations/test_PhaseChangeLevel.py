@@ -34,10 +34,10 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from cf_units import Unit
 from iris.cube import CubeList
 from iris.tests import IrisTest
-import pytest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     PhaseChangeLevel,

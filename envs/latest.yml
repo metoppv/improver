@@ -1,8 +1,8 @@
 # This environment is intended to provide all optional dependencies and
-# use as-recent-as-possible versions with only required specification
-# of versions to make the unit test suite pass.
-# Acceptance test failures due to different output values are OK, but failures
-# due to library API mismatches are not.
+# use as-recent-as-possible versions with minimal pinning.
+# Acceptance test failures due to different output values are OK.
+# Unit test failures are not OK - pinning should be used where needed to
+# make the unit tests pass.
 name: improver_latest
 channels:
   - conda-forge
