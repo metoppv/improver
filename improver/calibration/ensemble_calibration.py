@@ -1760,7 +1760,7 @@ class ApplyEMOS(PostProcessingPlugin):
         raise AttributeError(msg)
 
     @staticmethod
-    def _get_forecast_type(forecast: Cube) -> str:
+    def _get_input_forecast_type(forecast: Cube) -> str:
         """Identifies whether the forecast is in probability, realization
         or percentile space
 
@@ -1779,7 +1779,7 @@ class ApplyEMOS(PostProcessingPlugin):
         return "percentiles"
 
     def _convert_to_realizations(
-        self, forecast: Cube, realizations_count: int, ignore_ecc_bounds: bool
+        self, forecast: Cube, realizations_count: Optional[int], ignore_ecc_bounds: bool
     ) -> Cube:
         """Convert an input forecast of probabilities or percentiles into
         pseudo-realizations
@@ -1797,14 +1797,14 @@ class ApplyEMOS(PostProcessingPlugin):
         if not realizations_count:
             raise ValueError(
                 "The 'realizations_count' argument must be defined "
-                "for forecasts provided as {}".format(self.forecast_type)
+                "for forecasts provided as {}".format(self.input_forecast_type)
             )
 
-        if self.forecast_type == "probabilities":
+        if self.input_forecast_type == "probabilities":
             conversion_plugin = ConvertProbabilitiesToPercentiles(
                 ecc_bounds_warning=ignore_ecc_bounds
             )
-        if self.forecast_type == "percentiles":
+        if self.input_forecast_type == "percentiles":
             conversion_plugin = ResamplePercentiles(
                 ecc_bounds_warning=ignore_ecc_bounds
             )
@@ -1819,14 +1819,15 @@ class ApplyEMOS(PostProcessingPlugin):
         return forecast_as_realizations
 
     def _calibrate_forecast(
-        self, forecast: Cube, randomise: bool, random_seed: int
+        self, template: Cube, randomise: bool, random_seed: Optional[int]
     ) -> Cube:
         """
         Generate calibrated probability, percentile or realization output
 
         Args:
-            forecast:
-                Uncalibrated input forecast
+            template:
+                A template cube containing the coordinates and metadata expected
+                on the calibrated forecast.
             randomise:
                 If True, order realization output randomly rather than using
                 the input forecast.  If forecast type is not realizations, this
@@ -1839,13 +1840,13 @@ class ApplyEMOS(PostProcessingPlugin):
         Returns:
             Calibrated forecast
         """
-        if self.forecast_type == "probabilities":
+        if self.output_forecast_type == "probabilities":
             conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
                 distribution=self.distribution["name"],
                 shape_parameters=self.distribution["shape"],
             )
             result = conversion_plugin(
-                self.distribution["location"], self.distribution["scale"], forecast
+                self.distribution["location"], self.distribution["scale"], template
             )
 
         else:
@@ -1854,25 +1855,25 @@ class ApplyEMOS(PostProcessingPlugin):
                 shape_parameters=self.distribution["shape"],
             )
 
-            if self.forecast_type == "percentiles":
-                perc_coord = find_percentile_coordinate(forecast)
+            if self.output_forecast_type == "percentiles":
+                perc_coord = find_percentile_coordinate(template)
                 result = conversion_plugin(
                     self.distribution["location"],
                     self.distribution["scale"],
-                    forecast,
+                    template,
                     percentiles=perc_coord.points,
                 )
             else:
-                no_of_percentiles = len(forecast.coord("realization").points)
+                no_of_percentiles = len(template.coord("realization").points)
                 percentiles = conversion_plugin(
                     self.distribution["location"],
                     self.distribution["scale"],
-                    forecast,
+                    template,
                     no_of_percentiles=no_of_percentiles,
                 )
                 result = EnsembleReordering().process(
                     percentiles,
-                    forecast,
+                    template,
                     random_ordering=randomise,
                     random_seed=random_seed,
                 )
@@ -1885,6 +1886,7 @@ class ApplyEMOS(PostProcessingPlugin):
         coefficients: CubeList,
         additional_fields: Optional[CubeList] = None,
         land_sea_mask: Optional[Cube] = None,
+        prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
         predictor: str = "mean",
@@ -1905,6 +1907,11 @@ class ApplyEMOS(PostProcessingPlugin):
                 Land sea mask where a value of "1" represents land points and
                 "0" represents sea.  If set, allows calibration of land points
                 only.
+            prob_template:
+                A cube containing a probability forecast that will be used as
+                a template when generating probability output when the input
+                format of the forecast cube is not probabilities i.e. realizations
+                or percentiles.
             realizations_count:
                 Number of realizations to use when generating the intermediate
                 calibrated forecast from probability or percentile inputs
@@ -1925,10 +1932,21 @@ class ApplyEMOS(PostProcessingPlugin):
             Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations)
         """
-        self.forecast_type = self._get_forecast_type(forecast)
+        self.input_forecast_type = self._get_input_forecast_type(forecast)
+        self.output_forecast_type = (
+            "probabilities" if prob_template else self.input_forecast_type
+        )
+        if land_sea_mask and self.input_forecast_type != self.output_forecast_type:
+            msg = ("If supplying a land-sea mask, the format of the input "
+                   "forecast must be the same as the format of the output "
+                   "forecast to faciliate merging of pre-calibration "
+                   "and post-calibration data. The input forecast type was "
+                   f"{self.input_forecast_type}. The output forecast type "
+                   f"was {self.output_forecast_type}.")
+            raise ValueError(msg)
 
         forecast_as_realizations = forecast.copy()
-        if self.forecast_type != "realizations":
+        if self.input_forecast_type != "realizations":
             forecast_as_realizations = self._convert_to_realizations(
                 forecast.copy(), realizations_count, ignore_ecc_bounds
             )
@@ -1952,7 +1970,8 @@ class ApplyEMOS(PostProcessingPlugin):
             ),
         }
 
-        result = self._calibrate_forecast(forecast, randomise, random_seed)
+        template = prob_template if prob_template else forecast
+        result = self._calibrate_forecast(template, randomise, random_seed)
 
         if land_sea_mask:
             # fill in masked sea points with uncalibrated data

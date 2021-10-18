@@ -134,6 +134,8 @@ def test_realizations_input_land_sea(tmp_path):
         land_sea_path,
         "--random-seed",
         "0",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--output",
         output_path,
     ]
@@ -195,6 +197,8 @@ def test_probabilities_input_land_sea(tmp_path):
         land_sea_path,
         "--realizations-count",
         "18",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--output",
         output_path,
     ]
@@ -251,6 +255,8 @@ def test_percentiles_input_land_sea(tmp_path):
         land_sea_path,
         "--realizations-count",
         "18",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--output",
         output_path,
     ]
@@ -302,6 +308,28 @@ def test_rebadged_percentiles(tmp_path):
     )
 
 
+def test_percentiles_in_probabilities_out(tmp_path):
+    """Test using percentiles as input whilst providing a probability
+    template cube, so that probabilities are output."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
+    kgo_path = kgo_dir / "../probabilities/kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
+    prob_template_path = kgo_dir / "../probabilities/input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        prob_template_path,
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+
+
 def test_no_coefficients(tmp_path):
     """Test no coefficients provided"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
@@ -338,44 +366,5 @@ def test_wrong_coefficients(tmp_path):
         "--output",
         output_path,
     ]
-    from iris.exceptions import ConstraintMismatchError
-
-    with pytest.raises(ConstraintMismatchError, match="Got 0 cubes for constraint.*"):
-        run_cli(args)
-
-
-def test_wrong_land_sea_mask(tmp_path):
-    """Test wrong land_sea_mask provided"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
-    emos_est_path = kgo_dir / "normal_coefficients.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        input_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=".*land_sea_mask.*"):
-        run_cli(args)
-
-
-def test_wrong_forecast_coefficients(tmp_path):
-    """Test forecast cube being a coefficients cube"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
-    emos_est_path = kgo_dir / "normal_coefficients.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    from iris.exceptions import MergeError
-
-    with pytest.raises(MergeError, match="failed to merge into a single cube.*"):
+    with pytest.raises(ValueError, match="Multiple items have been provided.*"):
         run_cli(args)

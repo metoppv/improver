@@ -34,13 +34,16 @@ import unittest
 from datetime import datetime
 
 import iris
+from iris.cube import CubeList
 import numpy as np
 
-from improver.calibration import split_forecasts_and_truth
+from improver.calibration import split_forecasts_and_coeffs, split_forecasts_and_truth
 from improver.synthetic_data.set_up_test_cubes import (
+    set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver_tests import ImproverTest
 
 
 class Test_split_forecasts_and_truth(unittest.TestCase):
@@ -225,6 +228,218 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 + self.realization_truths
                 + [self.landsea_mask],
                 self.truth_attribute,
+            )
+
+
+class Test_split_forecasts_and_coeffs(ImproverTest):
+
+    """Test the split_forecasts_and_coeffs function."""
+
+    def setUp(self):
+        """Set-up cubes for testing."""
+        thresholds = [283, 288]
+        percentiles = [25, 75]
+        probability_data = np.ones((2, 4, 4), dtype=np.float32)
+        realization_data = np.ones((4, 4), dtype=np.float32)
+
+        self.truth_attribute = "mosg__model_configuration=uk_det"
+
+        # Set-up probability and realization forecast cubes
+        self.probability_forecast = CubeList(
+            [set_up_probability_cube(probability_data, thresholds)]
+        )
+        self.realization_forecast = CubeList([set_up_variable_cube(realization_data)])
+        self.percentile_forecast = CubeList(
+            [set_up_percentile_cube(probability_data, percentiles)]
+        )
+
+        # Set-up coefficient cubes
+        fp_names = [self.realization_forecast[0].name()]
+        predictor_index = iris.coords.DimCoord(
+            np.array(range(len(fp_names)), dtype=np.int32),
+            long_name="predictor_index",
+            units="1",
+        )
+        dim_coords_and_dims = ((predictor_index, 0),)
+        predictor_name = iris.coords.AuxCoord(
+            fp_names, long_name="predictor_name", units="no_unit"
+        )
+        aux_coords_and_dims = ((predictor_name, 0),)
+
+        attributes = {
+            "diagnostic_standard_name": self.realization_forecast[0].name(),
+            "distribution": "norm",
+        }
+        alpha = iris.cube.Cube(
+            np.array(0, dtype=np.float32),
+            long_name="emos_coefficients_alpha",
+            units="K",
+            attributes=attributes,
+        )
+        beta = iris.cube.Cube(
+            np.array([0.5], dtype=np.float32),
+            long_name="emos_coefficients_beta",
+            units="1",
+            attributes=attributes,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+        )
+        gamma = iris.cube.Cube(
+            np.array(0, dtype=np.float32),
+            long_name="emos_coefficients_gamma",
+            units="K",
+            attributes=attributes,
+        )
+        delta = iris.cube.Cube(
+            np.array(1, dtype=np.float32),
+            long_name="emos_coefficients_delta",
+            units="1",
+            attributes=attributes,
+        )
+
+        self.coefficient_cubelist = CubeList([alpha, beta, gamma, delta])
+
+        self.landsea_mask_name = "land_binary_mask"
+        self.landsea_mask = set_up_variable_cube(
+            np.zeros((4, 4), dtype=np.float32), name=self.landsea_mask_name
+        )
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            self.landsea_mask.remove_coord(coord)
+        self.landsea_mask = CubeList([self.landsea_mask])
+
+    def test_realization_forecast_and_coefficients(self):
+        """Test a realization forecast input."""
+        forecast, coeffs, landsea_mask, template = split_forecasts_and_coeffs(
+            CubeList([self.realization_forecast, self.coefficient_cubelist]),
+            self.landsea_mask_name,
+        )
+
+        self.assertCubeEqual(forecast, self.realization_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(landsea_mask, None)
+        self.assertEqual(template, None)
+
+    def test_percentile_forecast_and_coefficients(self):
+        """Test a percentile forecast input."""
+        forecast, coeffs, landsea_mask, template = split_forecasts_and_coeffs(
+            CubeList([self.percentile_forecast, self.coefficient_cubelist]),
+            self.landsea_mask_name,
+        )
+        self.assertCubeEqual(forecast, self.percentile_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(landsea_mask, None)
+        self.assertEqual(template, None)
+
+    def test_probability_forecast_and_coefficients(self):
+        """Test a probability forecast input."""
+        forecast, coeffs, landsea_mask, template = split_forecasts_and_coeffs(
+            CubeList([self.probability_forecast, self.coefficient_cubelist]),
+            self.landsea_mask_name,
+        )
+        self.assertCubeEqual(forecast, self.probability_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(landsea_mask, None)
+        self.assertEqual(template, None)
+
+    def test_forecast_coefficients_and_land_sea_mask(self):
+        """Test the addition of a land-sea mask."""
+        forecast, coeffs, landsea_mask, template = split_forecasts_and_coeffs(
+            CubeList(
+                [
+                    self.realization_forecast,
+                    self.coefficient_cubelist,
+                    self.landsea_mask,
+                ]
+            ),
+            self.landsea_mask_name,
+        )
+
+        self.assertCubeEqual(forecast, self.realization_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertCubeEqual(landsea_mask, self.landsea_mask[0])
+        self.assertEqual(template, None)
+
+    def test_forecast_coefficients_prob_template(self):
+        """Test the addition of a probability template cube."""
+        forecast, coeffs, landsea_mask, template = split_forecasts_and_coeffs(
+            CubeList(
+                [
+                    self.realization_forecast,
+                    self.coefficient_cubelist,
+                    self.probability_forecast,
+                ]
+            ),
+            self.landsea_mask_name,
+        )
+        self.assertCubeEqual(forecast, self.realization_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(landsea_mask, None)
+        self.assertCubeEqual(template, self.probability_forecast[0])
+
+    def test_all_options(self):
+        """Test providing a forecast, coefficients, land-sea mask and a
+        probability template."""
+        forecast, coeffs, landsea_mask, template = split_forecasts_and_coeffs(
+            CubeList(
+                [
+                    self.realization_forecast,
+                    self.coefficient_cubelist,
+                    self.landsea_mask,
+                    self.probability_forecast,
+                ]
+            ),
+            self.landsea_mask_name,
+        )
+        self.assertCubeEqual(forecast, self.realization_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertCubeEqual(landsea_mask, self.landsea_mask[0])
+        self.assertCubeEqual(template, self.probability_forecast[0])
+
+    def test_probability_forecast_coefficients_prob_template(self):
+        """Test providing a probability template with a probability forecast."""
+        msg = "Multiple items have been provided"
+        with self.assertRaisesRegex(ValueError, msg):
+            split_forecasts_and_coeffs(
+                CubeList(
+                    [
+                        self.probability_forecast,
+                        self.coefficient_cubelist,
+                        self.probability_forecast,
+                    ]
+                ),
+                self.landsea_mask_name,
+            )
+
+    def test_no_coefficients(self):
+        """Test if multiple sets of coefficients are provided."""
+        _, coeffs, _, _ = split_forecasts_and_coeffs(
+            CubeList([self.percentile_forecast]), self.landsea_mask_name
+        )
+        self.assertIsNone(coeffs)
+
+    def test_no_forecast(self):
+        """Test if no forecast is present."""
+        msg = "No forecast is present"
+        with self.assertRaisesRegex(ValueError, msg):
+            split_forecasts_and_coeffs(
+                CubeList([self.coefficient_cubelist]), self.landsea_mask_name
+            )
+
+    def test_too_many_items_remaining(self):
+        """Test for a mismatch in attributes on the coefficients cubes."""
+        msg = "Multiple items have been provided"
+        with self.assertRaisesRegex(ValueError, msg):
+            split_forecasts_and_coeffs(
+                CubeList(
+                    [
+                        self.percentile_forecast,
+                        self.coefficient_cubelist,
+                        self.landsea_mask,
+                        self.probability_forecast,
+                        self.percentile_forecast,
+                    ]
+                ),
+                self.landsea_mask_name,
             )
 
 
