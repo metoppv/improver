@@ -30,17 +30,24 @@ jobs:
         conda activate im${{ matrix.env }}
         conda info
         conda list
-    - name: sphinx-build
+    - name: sphinx documentation
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate im${{ matrix.env }}
         make -C doc html SPHINXOPTS="-W --keep-going"
-    - name: pytest unit-tests & cov-report
+    - name: pytest without coverage
+      if: matrix.env != 'environment_a'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        pytest
+    - name: pytest with coverage
+      if: matrix.env == 'environment_a'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda activate im${{ matrix.env }}
         pytest --cov=improver --cov-report xml:coverage.xml
-    - name: codacy-coverage
+    - name: codacy upload
       if: env.CODACY_PROJECT_TOKEN && matrix.env == 'environment_a'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -48,7 +55,8 @@ jobs:
         python-codacy-coverage -v -r coverage.xml
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
-    - uses: codecov/codecov-action@v1
+    - name: codecov upload
+      uses: codecov/codecov-action@v1
       if: matrix.env == 'environment_a'
   Codestyle-and-flake8:
     runs-on: ubuntu-latest
