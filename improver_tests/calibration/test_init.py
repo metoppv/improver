@@ -480,7 +480,7 @@ def _chunker(seq, size):
     return (seq[pos : pos + size] for pos in range(0, len(seq), size))
 
 
-class Test_shared_dataframes(ImproverTest):
+class SetupSharedDataFrames(ImproverTest):
 
     """A shared dataframe creation class."""
 
@@ -574,7 +574,7 @@ class Test_shared_dataframes(ImproverTest):
         )
 
 
-class Test_constructed_forecast_cubes(Test_shared_dataframes):
+class SetupConstructedForecastCubes(SetupSharedDataFrames):
 
     """A constructed forecast cube class."""
 
@@ -645,7 +645,7 @@ class Test_constructed_forecast_cubes(Test_shared_dataframes):
             self.expected_instantaneous_forecast.coord(coord).bounds = None
 
 
-class Test_constructed_truth_cubes(Test_shared_dataframes):
+class SetupConstructedTruthCubes(SetupSharedDataFrames):
 
     """A constructed truth cube class."""
 
@@ -684,7 +684,7 @@ class Test_constructed_truth_cubes(Test_shared_dataframes):
         self.expected_instantaneous_truth.coord("time").bounds = None
 
 
-class Test_forecast_dataframe_to_cube(Test_constructed_forecast_cubes):
+class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
 
     """Test the forecast_dataframe_to_cube function."""
 
@@ -735,7 +735,7 @@ class Test_forecast_dataframe_to_cube(Test_constructed_forecast_cubes):
             forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
 
 
-class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
+class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
 
     """Test the truth_dataframe_to_cube function."""
 
@@ -782,7 +782,7 @@ class Test_truth_dataframe_to_cube(Test_constructed_truth_cubes):
 
 
 class Test_forecast_and_truth_dataframes_to_cubes(
-    Test_constructed_forecast_cubes, Test_constructed_truth_cubes
+    SetupConstructedForecastCubes, SetupConstructedTruthCubes
 ):
 
     """Test the forecast_and_truth_dataframes_to_cubes function."""
