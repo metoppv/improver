@@ -25,7 +25,6 @@ dependencies:
   - statsmodels
   - numba
   - pysteps=1.4.1
-  - statsmodels
   - timezonefinder=4.1.0
   # Development
   - astroid
