@@ -38,7 +38,9 @@ from improver import cli
 @cli.with_output
 def process(*cubes: cli.inputcube):
     """Generates a modal weather symbol for the period covered by the input
-    weather symbol cubes.
+    weather symbol cubes. Where there are different weather codes available
+    for night and day, the modal code returned is always a day code, regardless
+    of the times covered by the input files.
 
     Args:
         cubes (iris.cube.CubeList):

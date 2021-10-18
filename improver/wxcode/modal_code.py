@@ -61,7 +61,14 @@ class ModalWeatherCode(BasePlugin):
     return a thunder code to describe the whole period. This is likely not a
     good representation. In these cases grouping is used to try and select
     a suitable weather code (e.g. a rain shower if the codes include a mix of
-    rain showers and dynamic rain) by providing a more robust mode.
+    rain showers and dynamic rain) by providing a more robust mode. The lowest
+    number (least significant) member of the group is returned as the code.
+    Use of the least significant member reflects the lower certainty in the
+    forecasts.
+
+    Where there are different weather codes available for night and day, the
+    modal code returned is always a day code, regardless of the times
+    covered by the input files.
     """
 
     def __init__(self):
