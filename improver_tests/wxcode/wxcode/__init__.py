@@ -104,7 +104,7 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
         "heavy_precipitation": {
             "if_true": "heavy_precipitation_cloud",
             "if_false": "precipitation_in_vicinity",
-            "if_diagnostic_missing": "if_true",
+            "if_diagnostic_missing": "if_false",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -117,7 +117,7 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
         "heavy_precipitation_cloud": {
             "if_true": "heavy_snow_shower",
             "if_false": "heavy_snow_continuous",
-            "if_diagnostic_missing": "if_false",
+            "if_diagnostic_missing": "if_true",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
