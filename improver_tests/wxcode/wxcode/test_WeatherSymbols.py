@@ -1060,8 +1060,8 @@ class Test_remove_optional_missing(IrisTest):
         target = self.plugin.queries["lightning"]["if_diagnostic_missing"]
         expected_start = self.plugin.queries["lightning"][target]
         # Expected subsequent step from the resulting first node (hail) due to
-        # a missing target (heavy precipitation). Note this is confected and
-        # not a sensible route through the tree.
+        # a missing target (heavy precipitation). Note this is not an expected
+        # route through the tree but has been engineered for the test.
         target = self.plugin.queries["heavy_precipitation"]["if_diagnostic_missing"]
         expected_next = self.plugin.queries["heavy_precipitation"][target]
 
