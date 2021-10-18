@@ -6,25 +6,25 @@ dependencies:
   - python=3.7
   # Required
   - cartopy=0.19
-  - cftime<1.5
+  - cftime=1.2.1
   - cf-units=2.1.5
-  - clize
-  - dask
-  - iris=3.0
-  - netCDF4
-  - numpy<1.21
-  - pandas
-  - python-dateutil
-  - python-stratify
+  - clize=4.1.1
+  - dask=2021.8.1
+  - iris=3.0.3
+  - netCDF4=1.4.1
+  - numpy=1.20.2
+  - pandas=1.2.4
+  - python-dateutil=2.8.2
   - pytz=2020.5
-  - scipy=1.6
-  - sigtools
-  - sphinx
+  - scipy=1.6.2
+  - sigtools=2.0.2
+  - sphinx=4.0.1
   # Optional
-  - fastparquet
-  - statsmodels
-  - numba
+  - fastparquet=0.7.1
+  - statsmodels=0.12.2
+  - numba=0.53.1
   - pysteps=1.4.1
+  - python-stratify=0.1.1
   - timezonefinder=4.1.0
   # Development
   - astroid
@@ -33,7 +33,7 @@ dependencies:
   - codacy-coverage
   - filelock
   - flake8
-  - isort=5.*
+  - isort=5.7.0
   - mock
   - mypy
   - pytest

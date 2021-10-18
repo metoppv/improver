@@ -6,21 +6,22 @@ dependencies:
   - python=3.8
   # Required
   - cartopy=0.19
-  - cftime<1.5
+  - cftime=1.2.1
   - cf-units=2.1.5
-  - clize
-  - dask
-  - iris=3.0
-  - netCDF4
-  - numpy<1.21
-  - pandas
-  - python-dateutil
-  - python-stratify
+  - clize=4.2.0
+  - dask=2021.8.1
+  - iris=3.0.3
+  - netCDF4=1.5.7
+  - numpy=1.20
+  - pandas=1.3.4
+  - python-dateutil=2.8.2
   - pytz=2020.5
-  - scipy=1.6
-  - sigtools
-  - sphinx
+  - scipy=1.6.2
+  - sigtools=2.0.3
+  - sphinx=4.0.2
   # Optional
+  - numba=0.53.1
+  - python-stratify=0.2.post0
   # Development
   - astroid
   - bandit
