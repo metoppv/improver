@@ -38,7 +38,6 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube, CubeList
 from numpy import ndarray
-from stratify import interpolate
 
 import improver.constants as consts
 from improver import BasePlugin
@@ -587,6 +586,7 @@ class PhaseChangeLevel(BasePlugin):
         Returns:
             Phase change level data asl.
         """
+        from stratify import interpolate
         # Create cube of heights above sea level for each height in
         # the wet bulb integral cube.
         asl = wb_int_data.copy()
