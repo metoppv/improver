@@ -44,7 +44,7 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
     queries = {
         "lightning": {
             "if_true": "lightning_shower",
-            "if_false": "heavy_precipitation",
+            "if_false": "hail",
             "if_diagnostic_missing": "if_false",
             "probability_thresholds": [0.3],
             "threshold_condition": ">=",
