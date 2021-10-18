@@ -40,8 +40,7 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "test_path",
-    ["gridded_input", "spot_input", "gridded_ties", "spot_ties", "spot_night"],
+    "test_path", ["gridded_input", "spot_input", "gridded_ties", "spot_ties"],
 )
 @pytest.mark.slow
 def test_expected(tmp_path, test_path):
