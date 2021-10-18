@@ -33,7 +33,7 @@
 
 import copy
 import operator
-from typing import Any, Dict, List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
