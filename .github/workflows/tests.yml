@@ -98,7 +98,7 @@ jobs:
     strategy:
       fail-fast: false
       matrix:
-        env: [environment_a, environment_b]
+        env: [environment_a, environment_b, latest, conda-forge]
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
