@@ -9,14 +9,14 @@ channels:
 dependencies:
   - python=3
   # Required
-  - cartopy
+  - cartopy<0.20
   - cftime<1.5
   - cf-units=2.1.5
   - clize
   - dask
   - iris>=3.0
   - netCDF4
-  - numpy
+  - numpy<1.21
   - python-dateutil
   - pytz
   - scipy
