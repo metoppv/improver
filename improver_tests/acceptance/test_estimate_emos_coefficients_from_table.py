@@ -66,7 +66,7 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
     "distribution,diagnostic,kgo_name",
     [
         ("norm", "temperature_at_screen_level", "screen_temperature"),
-        ("truncnorm", "wind_speed_at_10m", "wind_speed"),
+        #("truncnorm", "wind_speed_at_10m", "wind_speed"),
     ],
 )
 @pytest.mark.slow
@@ -77,8 +77,8 @@ def test_basic(tmp_path, distribution, diagnostic, kgo_name):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
     kgo_path = kgo_dir / f"{kgo_name}_kgo.nc"
-    history_path = kgo_dir / "forecast_table"
-    truth_path = kgo_dir / "truth_table"
+    history_path = "/scratch/lbeard/spot_sample_data_finalv2"  #/ "forecast_table"
+    truth_path = "/scratch/lbeard/spot_sample_obs_final"  # kgo_dir / "truth_table"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,

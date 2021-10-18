@@ -41,6 +41,7 @@ from improver import cli
 def process(
     forecast: cli.inputpath,
     truth: cli.inputpath,
+    additional_predictor: cli.inputcube,
     *,
     diagnostic,
     cycletime,
@@ -130,17 +131,30 @@ def process(
             coefficient is stored in a separate cube.
     """
 
-    from improver.calibration import forecast_and_truth_tables_to_cubes
+    from improver.calibration import forecast_and_truth_dataframes_to_cubes
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
-    from improver.utilities.load import load_parquet
+    import pandas as pd
 
-    forecast_table = load_parquet(forecast, filters=[("diagnostic", "==", diagnostic)])
-    truth_table = load_parquet(truth, filters=[("diagnostic", "==", diagnostic)])
+    forecast_df = pd.read_parquet(forecast, filters=[("diagnostic", "==", diagnostic)])
+    if forecast_df.empty:
+        msg = (
+            f"The requested filepath {forecast} does not contain the "
+            f"requested contents: {filters}"
+        )
+        raise IOError(msg)
 
-    forecast, truth = forecast_and_truth_tables_to_cubes(
-        forecast_table, truth_table, cycletime, forecast_period, training_length
+    truth_df = pd.read_parquet(truth, filters=[("diagnostic", "==", diagnostic)])
+    if truth_df.empty:
+        msg = (
+            f"The requested filepath {truth} does not contain the "
+            f"requested contents: {filters}"
+        )
+        raise IOError(msg)
+
+    forecast, truth = forecast_and_truth_dataframes_to_cubes(
+        forecast_df, truth_df, cycletime, forecast_period, training_length
     )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
