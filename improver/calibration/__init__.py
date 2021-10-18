@@ -40,14 +40,11 @@ into an iris cube.
 from collections import OrderedDict
 from typing import List, Optional, Sequence, Tuple
 
-import iris
 import numpy as np
 import pandas as pd
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
-from numpy import timedelta64
 from pandas.core.frame import DataFrame
-from pandas.core.indexes.base import Index
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -61,6 +58,7 @@ from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import MergeCubes
 
 FORECAST_DATAFRAME_COLUMNS = [
+    "altitude",
     "blend_time",
     "cf_name",
     "diagnostic",
@@ -179,7 +177,7 @@ def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None
         ValueError: Raise an error if a compulsory column is missing.
     """
     if not set(compulsory_columns).issubset(df.columns):
-        diff = set(compulsory_columns).symmetric_difference(df.columns)
+        diff = set(compulsory_columns).difference(df.columns)
         msg = (
             "The following compulsory column(s) are missing from the "
             f"dataframe: {diff}"
@@ -190,6 +188,10 @@ def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None
 def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
     """Pre-process the columns with temporal dtype to convert
     from numpy datetime objects to pandas datetime objects.
+    Casting the dtype of the columns to object type results
+    in columns of dtype "object" with the contents of the
+    columns being pandas datetime objects, rather than numpy
+    datetime objects.
 
     Args:
         df:
@@ -197,11 +199,13 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
             datetime dtypes.
 
     Returns:
-        A DataFrame without numpy datetime dtypes.
+        A DataFrame without numpy datetime dtypes. The
+        content of the columns with temporal dtypes are
+        accessible as pandas datetime objects.
     """
-    for col in [c for c in df.columns if df[c].dtype == "datetime64[ns]"]:
+    for col in df.select_dtypes(include="datetime64[ns]"):
         df[col] = df[col].dt.tz_localize("UTC").astype("O")
-    for col in [c for c in df.columns if df[c].dtype == "timedelta64[ns]"]:
+    for col in df.select_dtypes(include="timedelta64[ns]"):
         df[col] = df[col].astype("O")
     return df
 
@@ -279,10 +283,23 @@ def _training_dates_for_calibration(
     within the training dataset is additionally offset by the number
     of days within the forecast period to ensure that the dates defined
     by the training dataset are in the past relative to the cycletime.
+    For example, for a cycletime of 20170720T0000Z with a forecast period
+    of T+30 and a training length of 3 days, the validity time is
+    20170721T0600Z. Subtracting one day gives 20170720T0600Z. Note that
+    this is in the future relative to the cycletime and we want the
+    training dates to be in the past relative to the cycletime.
+    Subtracting the forecast period rounded down to the nearest day for
+    T+30 gives 1 day. Subtracting this additional day gives 20170719T0600Z.
+    This is the final validity time within the training period. We then
+    compute the validity times for a 3 day training period using 20170719T0600Z
+    as the final validity time giving 20170719T0600Z, 20170718T0600Z
+    and 20170717T0600Z.
 
     Args:
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
+            The training dates will always be in the past, relative
+            to the cycletime.
         forecast_period:
             Forecast period in hours as an integer.
         training_length:
@@ -300,6 +317,63 @@ def _training_dates_for_calibration(
         freq="D",
         tz="UTC",
     )
+
+
+def _prepare_dataframes(
+    forecast_df: DataFrame, truth_df: DataFrame
+) -> Tuple[DataFrame, DataFrame]:
+    """Prepare dataframes for conversion to cubes by: 1) checking
+    that the expected columns are present, 2) finding the sites
+    common to both the forecast and truth dataframes and 3)
+    replacing and supplementing the truth dataframe with
+    information from the forecast dataframe. Note that this third
+    step will also ensure that a row containing a NaN for the
+    ob_value is inserted for any missing observations.
+
+    Args:
+        forecast_df:
+            DataFrame expected to contain the following columns: forecast,
+            blend_time, forecast_period, forecast_reference_time, time,
+            wmo_id, percentile, diagnostic, latitude, longitude, period,
+            height, cf_name, units. Any other columns are ignored.
+        truth_df:
+            DataFrame expected to contain the following columns: ob_value,
+            time, wmo_id, diagnostic, latitude, longitude and altitude.
+            Any other columns are ignored.
+
+    Returns:
+        A sanitised version of the forecasts and truth dataframes that
+        are ready for conversion to cubes.
+    """
+    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
+    _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
+
+    # Find the common set of WMO IDs.
+    common_wmo_ids = set(forecast_df["wmo_id"]).intersection(truth_df["wmo_id"])
+    forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
+    truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
+
+    truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
+    # Identify columns to copy onto the truth_df from the forecast_df
+    forecast_subset = forecast_df[
+        [
+            "wmo_id",
+            "latitude",
+            "longitude",
+            "altitude",
+            "period",
+            "height",
+            "cf_name",
+            "units",
+            "time",
+            "diagnostic",
+        ]
+    ].drop_duplicates()
+    # Use "outer" to fill in any missing observations in the truth dataframe.
+    truth_df = truth_df.merge(
+        forecast_subset, on=["wmo_id", "time", "diagnostic"], how="outer"
+    )
+    return forecast_df, truth_df
 
 
 def forecast_dataframe_to_cube(
@@ -322,7 +396,6 @@ def forecast_dataframe_to_cube(
     Returns:
         Cube containing the forecasts from the training period.
     """
-    _dataframe_column_check(df, FORECAST_DATAFRAME_COLUMNS)
     df = _preprocess_temporal_columns(df)
 
     fp_point = pd.Timedelta(int(forecast_period), unit="hours")
@@ -404,14 +477,7 @@ def forecast_dataframe_to_cube(
     return RebadgePercentilesAsRealizations()(cube)
 
 
-def truth_dataframe_to_cube(
-    df: DataFrame,
-    training_dates: DatetimeIndex,
-    period: timedelta64,
-    height: float,
-    cf_name: str,
-    units: str,
-) -> Cube:
+def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
     Args:
@@ -421,19 +487,10 @@ def truth_dataframe_to_cube(
             Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
-        period:
-            The period for defining the bounds on the time coordinate.
-        height:
-            The value of the height for defining a height coordinate.
-        cf_name:
-            The name of the resulting truth cube.
-        units:
-            The units of the resulting truth cube.
 
     Returns:
         Cube containing the truths from the training period.
     """
-    _dataframe_column_check(df, TRUTH_DATAFRAME_COLUMNS)
     df = _preprocess_temporal_columns(df)
 
     cubelist = CubeList()
@@ -448,30 +505,19 @@ def truth_dataframe_to_cube(
         # per column.
         _unique_check(time_df, "diagnostic")
 
-        # Ensure that every WMO ID has an entry for a particular time.
-        new_index = Index(df["wmo_id"].unique(), name="wmo_id")
-        time_df = time_df.set_index("wmo_id").reindex(new_index)
-        # Fill the alt/lat/lon with the mode to ensure consistent coordinates
-        # to support merging. Also fill other columns known to contain one
-        # unique value.
-        for col in ["altitude", "latitude", "longitude", "diagnostic"]:
-            time_df[col] = df.groupby(by="wmo_id", sort=False)[col].agg(
-                lambda x: pd.Series.mode(x, dropna=not df[col].isna().all())
-            )
-        time_df = time_df.reset_index()
-
-        if period is pd.Timedelta("NaT"):
+        if time_df["period"].isna().all():
             time_bounds = None
         else:
+            period = time_df["period"].values[0]
             time_bounds = [adate - period, adate]
 
         time_coord = _define_time_coord(adate, time_bounds)
-        height_coord = _define_height_coord(height)
+        height_coord = _define_height_coord(time_df["height"].values[0])
 
         cube = build_spotdata_cube(
             time_df["ob_value"].astype(np.float32),
-            cf_name,
-            units,
+            time_df["cf_name"].values[0],
+            time_df["units"].values[0],
             time_df["altitude"].astype(np.float32),
             time_df["latitude"].astype(np.float32),
             time_df["longitude"].astype(np.float32),
@@ -485,33 +531,6 @@ def truth_dataframe_to_cube(
     return cubelist.merge_cube()
 
 
-def _filter_forecasts_and_truths(forecast: Cube, truth: Cube) -> Tuple[Cube, Cube]:
-    """Filter forecasts and truths to ensure consistent WMO IDs.
-
-    Args:
-        forecast:
-            The training period forecasts.
-        truth:
-            The training period truths.
-
-    Returns:
-        Forecasts and truths for the training period that have been filtered to
-        only include sites that are present in both the forecasts and truths.
-
-    """
-    forecast_constr = iris.Constraint(wmo_id=forecast.coord("wmo_id").points)
-    truth_constr = iris.Constraint(wmo_id=truth.coord("wmo_id").points)
-    forecast = forecast.extract(truth_constr)
-    truth = truth.extract(forecast_constr)
-
-    # As the lat/lon/alt of the observation can change, ensure that the
-    # lat/lon/alt are consistent over the training period.
-    for coord in ["altitude", "latitude", "longitude"]:
-        truth.coord(coord).points = forecast.coord(coord).points
-
-    return forecast, truth
-
-
 def forecast_and_truth_dataframes_to_cubes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
@@ -519,7 +538,8 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_period: int,
     training_length: int,
 ) -> Tuple[Cube, Cube]:
-    """Convert a truth DataFrame into an iris Cube.
+    """Convert a forecast DataFrame into an iris Cube and a
+    truth DataFrame into an iris Cube.
 
     Args:
         forecast_df:
@@ -544,16 +564,11 @@ def forecast_and_truth_dataframes_to_cubes(
     training_dates = _training_dates_for_calibration(
         cycletime, forecast_period, training_length
     )
+
+    forecast_df, truth_df = _prepare_dataframes(forecast_df, truth_df)
+
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period
     )
-    truth_cube = truth_dataframe_to_cube(
-        truth_df,
-        training_dates,
-        period=forecast_df["period"].values[0],
-        height=forecast_df["height"].values[0],
-        cf_name=forecast_df["cf_name"].values[0],
-        units=forecast_df["units"].values[0],
-    )
-    forecast_cube, truth_cube = _filter_forecasts_and_truths(forecast_cube, truth_cube)
+    truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube
