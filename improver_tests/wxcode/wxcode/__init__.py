@@ -30,7 +30,62 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities for Unit tests for Weather Symbols"""
 
+import datetime
 from typing import Any, Dict
+
+import numpy as np
+
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.wxcode.utilities import weather_code_attributes
+
+
+def set_up_wxcube(
+    data=np.ones((16, 16), dtype=np.int8),
+    time=datetime.datetime(2018, 9, 12, 5, 43),
+    time_bounds=None,
+    frt=datetime.datetime(2018, 9, 12, 3),
+    lat_lon=False,
+):
+    """
+    Set up a wxcube for a particular time and location, which can cover
+    the terminator and test the "update_daynight" functionality
+
+    Args:
+        data (numpy array):
+            The weather codes with which to populate the array.
+        time (datetime.datetime):
+            Validity time for cube.
+        time_bounds ([datetime.datetime, datetime.datetime]):
+            Validity time bounds.
+        frt (datetime.datetime):
+            Forecast reference time for cube.
+        lat_lon (bool):
+            If True, returns a cube on a lat-lon grid.
+            If False, returns equal area.
+
+    Returns:
+        iris.cube.Cube:
+            cube of weather codes set to 1
+            data shape (time_points, 16, 16)
+    """
+    kwargs = {
+        "name": "weather_code",
+        "units": 1,
+        "time": time,
+        "time_bounds": time_bounds,
+        "frt": frt,
+        "attributes": weather_code_attributes(),
+        "spatial_grid": "equalarea",
+        "domain_corner": (0, -30000),
+    }
+
+    if lat_lon:
+        kwargs.update(
+            {"spatial_grid": "latlon", "domain_corner": (49, -8), "grid_spacing": 1}
+        )
+    cube = set_up_variable_cube(data, **kwargs)
+
+    return cube
 
 
 def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:

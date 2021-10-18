@@ -59,46 +59,7 @@ from improver.wxcode.utilities import (
     weather_code_attributes,
 )
 
-from . import wxcode_decision_tree
-
-
-def set_up_wxcube(time_points=None, lat_lon=False):
-    """
-    Set up a wxcube for a particular time and location, which can cover
-    the terminator and test the "update_daynight" functionality
-
-    Args:
-        time_points (list of datetime.datetime):
-            List of time points as datetime instances
-        lat_lon (bool):
-            If True, returns a cube on a lat-lon grid.
-            If False, returns equal area.
-
-    Returns:
-        iris.cube.Cube:
-            cube of weather codes set to 1
-            data shape (time_points, 16, 16)
-    """
-    kwargs = {
-        "name": "weather_code",
-        "units": 1,
-        "time": datetime.datetime(2018, 9, 12, 5, 43),
-        "frt": datetime.datetime(2018, 9, 12, 3),
-        "attributes": weather_code_attributes(),
-        "spatial_grid": "equalarea",
-        "domain_corner": (0, -30000),
-    }
-
-    if lat_lon:
-        kwargs.update(
-            {"spatial_grid": "latlon", "domain_corner": (49, -8), "grid_spacing": 1}
-        )
-
-    cube = set_up_variable_cube(np.ones((16, 16), dtype=np.float32), **kwargs)
-    if time_points is not None:
-        cube = add_coordinate(cube, time_points, "time", is_datetime=True)
-
-    return cube
+from . import set_up_wxcube, wxcode_decision_tree
 
 
 class Test_wx_dict(IrisTest):
@@ -288,7 +249,7 @@ class Test_update_daynight(IrisTest):
         """ Test code works if time coordinate has a difference in the number
         of seconds, which should round to the same time in hours and minutes.
         This was raised by changes to cftime which altered its precision."""
-        cube = set_up_wxcube(time_points=[datetime.datetime(2018, 9, 12, 5, 42, 59)])
+        cube = set_up_wxcube(time=datetime.datetime(2018, 9, 12, 5, 42, 59))
         cube.data = self.cube_data
         expected_result = np.array(
             [
@@ -317,13 +278,16 @@ class Test_update_daynight(IrisTest):
 
     def test_wxcode_time_as_array(self):
         """ Test code works if time is an array of dimension > 1 """
-        cube = set_up_wxcube(
-            time_points=[
-                datetime.datetime(2018, 9, 12, 5),
-                datetime.datetime(2018, 9, 12, 6),
-                datetime.datetime(2018, 9, 12, 7),
-            ]
-        )
+        time_points = [
+            datetime.datetime(2018, 9, 12, 5),
+            datetime.datetime(2018, 9, 12, 6),
+            datetime.datetime(2018, 9, 12, 7),
+        ]
+        cubes = iris.cube.CubeList()
+        for time in time_points:
+            cubes.append(set_up_wxcube(time=time))
+        cube = cubes.merge_cube()
+
         expected_result = np.ones((3, 16, 16))
         expected_result[0, :, :] = 0
         result = update_daynight(cube)

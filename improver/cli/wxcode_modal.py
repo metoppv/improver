@@ -29,52 +29,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate weather symbols."""
+"""CLI to generate modal weather symbols over periods."""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube,
-    wxtree: cli.inputjson = None,
-    model_id_attr: str = None,
-    check_tree: bool = False,
-):
-    """ Processes cube for Weather symbols.
+def process(*cubes: cli.inputcube):
+    """Generates a modal weather symbol for the period covered by the input
+    weather symbol cubes. Where there are different weather codes available
+    for night and day, the modal code returned is always a day code, regardless
+    of the times covered by the input files.
 
     Args:
         cubes (iris.cube.CubeList):
-            A cubelist containing the diagnostics required for the
-            weather symbols decision tree, these at co-incident times.
-        wxtree (dict):
-            A JSON file containing a weather symbols decision tree definition.
-        model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        check_tree (bool):
-            If set the decision tree will be checked to see if it conforms to
-            the expected format; the only other argument required is the path
-            to the decision tree. If the tree is found to be valid the required
-            inputs will be listed. Setting this flag will prevent the CLI
-            performing any other actions.
+            A cubelist containing weather symbols cubes that cover the period
+            over which a modal symbol is desired.
 
     Returns:
         iris.cube.Cube:
-            A cube of weather symbols.
+            A cube of modal weather symbols over a period.
     """
-    if check_tree:
-        from improver.wxcode.utilities import check_tree
-
-        return check_tree(wxtree)
-
-    from iris.cube import CubeList
-
-    from improver.wxcode.weather_symbols import WeatherSymbols
+    from improver.wxcode.modal_code import ModalWeatherCode
 
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return ModalWeatherCode()(cubes)
