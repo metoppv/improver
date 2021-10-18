@@ -45,7 +45,7 @@ def process(
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
-    land_sea_mask_name: str = None
+    land_sea_mask_name: str = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
 

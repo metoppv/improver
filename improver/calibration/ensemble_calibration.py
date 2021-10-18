@@ -1937,12 +1937,14 @@ class ApplyEMOS(PostProcessingPlugin):
             "probabilities" if prob_template else self.input_forecast_type
         )
         if land_sea_mask and self.input_forecast_type != self.output_forecast_type:
-            msg = ("If supplying a land-sea mask, the format of the input "
-                   "forecast must be the same as the format of the output "
-                   "forecast to faciliate merging of pre-calibration "
-                   "and post-calibration data. The input forecast type was "
-                   f"{self.input_forecast_type}. The output forecast type "
-                   f"was {self.output_forecast_type}.")
+            msg = (
+                "If supplying a land-sea mask, the format of the input "
+                "forecast must be the same as the format of the output "
+                "forecast to faciliate merging of pre-calibration "
+                "and post-calibration data. The input forecast type was "
+                f"{self.input_forecast_type}. The output forecast type "
+                f"was {self.output_forecast_type}."
+            )
             raise ValueError(msg)
 
         forecast_as_realizations = forecast.copy()

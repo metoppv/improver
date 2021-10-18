@@ -381,11 +381,7 @@ class Test_process(IrisTest):
         (this is small but non-zero due to limited sampling of the
         distribution)"""
         expected_data = np.array(
-            [
-                np.ones((3, 3)),
-                np.full((3, 3), 0.977250),
-                np.full((3, 3), 0.001350),
-            ]
+            [np.ones((3, 3)), np.full((3, 3), 0.977250), np.full((3, 3), 0.001350)]
         )
         result = ApplyEMOS()(
             self.percentiles,

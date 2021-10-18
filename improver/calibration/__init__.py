@@ -31,7 +31,7 @@
 """init for calibration"""
 
 from collections import OrderedDict
-from typing import Dict, List, Optional, Sequence, Tuple
+from typing import Dict, List, Optional, Tuple
 
 from iris.cube import Cube, CubeList
 
@@ -171,9 +171,9 @@ def split_forecasts_and_coeffs(cubes: CubeList, land_sea_mask_name: Optional[str
     elif len(grouped_cubes) == 2:
         for key in grouped_cubes.keys():
             if "probability" in key:
-                prob_template, = grouped_cubes[key]
+                (prob_template,) = grouped_cubes[key]
             else:
-                current_forecast, = grouped_cubes[key]
+                (current_forecast,) = grouped_cubes[key]
 
     coefficients = coefficients if coefficients else None
     return (
