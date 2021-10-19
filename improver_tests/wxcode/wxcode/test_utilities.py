@@ -337,8 +337,10 @@ def test_interrogate_decision_tree():
     expected = (
         "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
         "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+        "\u26C5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
         "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"  # noqa: E501
         "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
         "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
         "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
         "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501

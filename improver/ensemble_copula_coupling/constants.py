@@ -69,6 +69,7 @@ BOUNDS_FOR_ECDF = {
     # Precipitation rate
     "lwe_precipitation_rate": Bounds((0, 128.0), "mm h-1"),
     "lwe_precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
+    "lwe_precipitation_rate_max": Bounds((0, 128.0), "mm h-1"),
     "lwe_sleetfall_rate": Bounds((0, 128.0), "mm h-1"),
     "lwe_snowfall_rate": Bounds((0, 128.0), "mm h-1"),
     "lwe_snowfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
