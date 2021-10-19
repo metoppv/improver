@@ -22,13 +22,10 @@ or ``python setup.py install`` (``python setup.py develop``). Note that
 ``pip install`` will not work in an empty environment due to problems
 with installation of the dependency ``iris`` via pip.
 
-Required dependencies are listed in
-`environment_py37_iris30.yml <https://github.com/metoppv/improver/blob/master/envs/environment_py37_iris30.yml>`_,
-and
-`environment_py38_iris30.yml <https://github.com/metoppv/improver/blob/master/envs/environment_py38_iris30.yml>`_,
-depending on your version requirements. Both environment files are used
-to run the test suite on Github actions, so these conda environments
-file should stay up to date with any dependency changes.
+Example environments are included in the repository ``envs`` directory.
+These environment files are used to run the test suite on Github actions,
+so they should stay up to date with any dependency changes. See also
+documentation explaining use of dependencies.
 
 Alternatively, you can manually 'install' by downloading the code and
 putting the IMPROVER ``bin/`` directory in your PATH.
