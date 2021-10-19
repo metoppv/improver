@@ -137,7 +137,9 @@ def process(
             coefficient is stored in a separate cube.
     """
 
+    import iris
     import pandas as pd
+    from iris.cube import CubeList
 
     from improver.calibration import forecast_and_truth_dataframes_to_cubes
     from improver.calibration.ensemble_calibration import (
@@ -161,7 +163,7 @@ def process(
         )
         raise IOError(msg)
 
-    forecast, truth = forecast_and_truth_dataframes_to_cubes(
+    forecast_cube, truth_cube = forecast_and_truth_dataframes_to_cubes(
         forecast_df,
         truth_df,
         cycletime,
@@ -169,6 +171,13 @@ def process(
         training_length,
         percentiles=percentiles,
     )
+
+    # Extract WMO IDs from the additional predictors.
+    if additional_predictors:
+        constr = iris.Constraint(wmo_id=truth_cube.coord("wmo_id").points)
+        additional_predictors = CubeList(
+            [ap.extract(constr) for ap in additional_predictors]
+        )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
@@ -179,4 +188,4 @@ def process(
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast, truth, additional_fields=additional_predictors)
+    return plugin(forecast_cube, truth_cube, additional_fields=additional_predictors)

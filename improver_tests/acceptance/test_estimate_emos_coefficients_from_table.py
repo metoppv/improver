@@ -31,9 +31,6 @@
 """
 Tests for the estimate-emos-coefficients-from-table CLI
 
-Many of these tests use globs which are expanded by IMPROVER code itself,
-rather than by shell glob expansion. There are also a some directory globs
-which expand directory names in addition to filenames.
 """
 
 import pytest
@@ -63,13 +60,14 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.parametrize(
-    "forecast_input,distribution,diagnostic,percentiles,kgo_name",
+    "forecast_input,distribution,diagnostic,percentiles,additional_predictor,kgo_name",
     [
         (
             "forecast_table",
             "norm",
             "temperature_at_screen_level",
             "10,20,30,40,50,60,70,80,90",
+            None,
             "screen_temperature",
         ),
         (
@@ -77,6 +75,7 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
             "truncnorm",
             "wind_speed_at_10m",
             "20,40,60,80",
+            None,
             "wind_speed",
         ),
         (
@@ -84,13 +83,28 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
             "norm",
             "temperature_at_screen_level",
             None,
+            None,
             "screen_temperature_input_quantiles",
+        ),
+        (
+            "forecast_table",
+            "norm",
+            "temperature_at_screen_level",
+            "10,20,30,40,50,60,70,80,90",
+            "altitude.nc",
+            "screen_temperature_additional_predictor",
         ),
     ],
 )
 @pytest.mark.slow
 def test_basic(
-    tmp_path, forecast_input, distribution, diagnostic, percentiles, kgo_name
+    tmp_path,
+    forecast_input,
+    distribution,
+    diagnostic,
+    percentiles,
+    additional_predictor,
+    kgo_name,
 ):
     """
     Test estimate-emos-coefficients-from-table with an example forecast and truth
@@ -101,9 +115,8 @@ def test_basic(
     history_path = kgo_dir / forecast_input
     truth_path = kgo_dir / "truth_table"
     output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
+    compulsory_args = [history_path, truth_path]
+    named_args = [
         "--diagnostic",
         diagnostic,
         "--cycletime",
@@ -119,9 +132,11 @@ def test_basic(
         "--output",
         output_path,
     ]
+    if additional_predictor:
+        compulsory_args += [kgo_dir / additional_predictor]
     if percentiles:
-        args += ["--percentiles", percentiles]
-    run_cli(args)
+        named_args += ["--percentiles", percentiles]
+    run_cli(compulsory_args + named_args)
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
