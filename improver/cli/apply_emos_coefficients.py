@@ -56,6 +56,7 @@ def process(
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
+    percentiles: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
 
@@ -108,6 +109,8 @@ def process(
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
+        percentiles (List[float]):
+            The set of percentiles used to create the calibrated forecast.
 
     Returns:
         iris.cube.Cube:
@@ -139,7 +142,7 @@ def process(
         msg = "The land_sea_mask cube does not have the name 'land_binary_mask'"
         raise ValueError(msg)
 
-    calibration_plugin = ApplyEMOS()
+    calibration_plugin = ApplyEMOS(percentiles=percentiles)
     result = calibration_plugin(
         cube,
         coefficients,
