@@ -50,6 +50,7 @@ from pandas.core.indexes.datetimes import DatetimeIndex
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
 )
+from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -283,8 +284,8 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
         content of the columns with temporal dtypes are
         accessible as pandas datetime objects.
     """
-    for col in df.select_dtypes(include="datetime64[ns]"):
-        df[col] = df[col].dt.tz_localize("UTC").astype("O")
+    for col in df.select_dtypes(include=["datetime64[ns, UTC]"]):
+        df[col] = df[col].astype("O")
     for col in df.select_dtypes(include="timedelta64[ns]"):
         df[col] = df[col].astype("O")
     return df
@@ -308,6 +309,28 @@ def _unique_check(df: DataFrame, column: str) -> None:
             f"Multiple values provided for the {column}: "
             f"{df[column].unique()}. "
             f"Only one value for the {column} is expected."
+        )
+        raise ValueError(msg)
+
+
+def _quantile_check(df: DataFrame) -> None:
+    """Check that the percentiles provided can be considered to be
+    quantiles with equal spacing spanning the percentile range.
+
+    Args:
+        df: DataFrame with a percentile column.
+
+    Raises:
+        ValueError: Percentiles are not equally spaced.
+    """
+    expected_percentiles = choose_set_of_percentiles(df["percentile"].nunique())
+
+    if not np.allclose(expected_percentiles, df["percentile"].unique()):
+        msg = (
+            "The forecast percentiles can not be considered as quantiles. "
+            f"The forecast percentiles are {df['percentile'].unique()}."
+            "Based on the number of percentiles provided, the expected "
+            f"percentiles would be {expected_percentiles}."
         )
         raise ValueError(msg)
 
@@ -400,7 +423,9 @@ def _training_dates_for_calibration(
 
 
 def _prepare_dataframes(
-    forecast_df: DataFrame, truth_df: DataFrame
+    forecast_df: DataFrame,
+    truth_df: DataFrame,
+    percentiles: Optional[List[float]] = None,
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare dataframes for conversion to cubes by: 1) checking
     that the expected columns are present, 2) finding the sites
@@ -420,6 +445,8 @@ def _prepare_dataframes(
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
             Any other columns are ignored.
+        percentiles:
+            The set of percentiles to be used for estimating EMOS coefficients.
 
     Returns:
         A sanitised version of the forecasts and truth dataframes that
@@ -428,10 +455,23 @@ def _prepare_dataframes(
     _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
 
+    # Extract the required percentiles.
+    if percentiles:
+        indices = [np.isclose(forecast_df["percentile"], float(p)) for p in percentiles]
+        forecast_df = forecast_df[np.logical_or.reduce(indices)]
+
+    # Check the percentiles can be considered to be equally space quantiles.
+    _quantile_check(forecast_df)
+
     # Find the common set of WMO IDs.
-    common_wmo_ids = set(forecast_df["wmo_id"]).intersection(truth_df["wmo_id"])
+    common_wmo_ids = sorted(
+        set(forecast_df["wmo_id"].unique()).intersection(truth_df["wmo_id"].unique())
+    )
     forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
     truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
+
+    # Ensure time in forecasts is present in truths.
+    forecast_df = forecast_df[forecast_df["time"].isin(truth_df["time"].unique())]
 
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df
@@ -449,6 +489,7 @@ def _prepare_dataframes(
             "diagnostic",
         ]
     ].drop_duplicates()
+
     # Use "outer" to fill in any missing observations in the truth dataframe.
     truth_df = truth_df.merge(
         forecast_subset, on=["wmo_id", "time", "diagnostic"], how="outer"
@@ -476,8 +517,6 @@ def forecast_dataframe_to_cube(
     Returns:
         Cube containing the forecasts from the training period.
     """
-    df = _preprocess_temporal_columns(df)
-
     fp_point = pd.Timedelta(int(forecast_period), unit="hours")
 
     cubelist = CubeList()
@@ -485,6 +524,7 @@ def forecast_dataframe_to_cube(
     for adate in training_dates:
         time_df = df.loc[(df["time"] == adate) & (df["forecast_period"] == fp_point)]
 
+        time_df = _preprocess_temporal_columns(time_df)
         if time_df.empty:
             continue
 
@@ -571,12 +611,11 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
     Returns:
         Cube containing the truths from the training period.
     """
-    df = _preprocess_temporal_columns(df)
-
     cubelist = CubeList()
     for adate in training_dates:
+        time_df = df.loc[(df["time"] == adate)]
 
-        time_df = df.loc[df["time"] == adate]
+        time_df = _preprocess_temporal_columns(time_df)
 
         if time_df.empty:
             continue
@@ -617,6 +656,7 @@ def forecast_and_truth_dataframes_to_cubes(
     cycletime: str,
     forecast_period: int,
     training_length: int,
+    percentiles: Optional[List[float]] = None,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
     truth DataFrame into an iris Cube.
@@ -637,6 +677,8 @@ def forecast_and_truth_dataframes_to_cubes(
             Forecast period in hours as an integer.
         training_length:
             Training length in days as an integer.
+        percentiles:
+            The set of percentiles to be used for estimating EMOS coefficients.
 
     Returns:
         Forecasts and truths for the training period in Cube format.
@@ -645,7 +687,9 @@ def forecast_and_truth_dataframes_to_cubes(
         cycletime, forecast_period, training_length
     )
 
-    forecast_df, truth_df = _prepare_dataframes(forecast_df, truth_df)
+    forecast_df, truth_df = _prepare_dataframes(
+        forecast_df, truth_df, percentiles=percentiles
+    )
 
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period

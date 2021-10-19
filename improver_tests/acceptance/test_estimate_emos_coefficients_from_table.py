@@ -63,22 +63,43 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.parametrize(
-    "distribution,diagnostic,kgo_name",
+    "forecast_input,distribution,diagnostic,percentiles,kgo_name",
     [
-        ("norm", "temperature_at_screen_level", "screen_temperature"),
-        #("truncnorm", "wind_speed_at_10m", "wind_speed"),
+        (
+            "forecast_table",
+            "norm",
+            "temperature_at_screen_level",
+            "10,20,30,40,50,60,70,80,90",
+            "screen_temperature",
+        ),
+        (
+            "forecast_table",
+            "truncnorm",
+            "wind_speed_at_10m",
+            "20,40,60,80",
+            "wind_speed",
+        ),
+        (
+            "forecast_table_quantiles",
+            "norm",
+            "temperature_at_screen_level",
+            None,
+            "screen_temperature_input_quantiles",
+        ),
     ],
 )
 @pytest.mark.slow
-def test_basic(tmp_path, distribution, diagnostic, kgo_name):
+def test_basic(
+    tmp_path, forecast_input, distribution, diagnostic, percentiles, kgo_name
+):
     """
     Test estimate-emos-coefficients-from-table with an example forecast and truth
     table for screen temperature and wind speed.
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
     kgo_path = kgo_dir / f"{kgo_name}_kgo.nc"
-    history_path = "/scratch/lbeard/spot_sample_data_finalv2"  #/ "forecast_table"
-    truth_path = "/scratch/lbeard/spot_sample_obs_final"  # kgo_dir / "truth_table"
+    history_path = kgo_dir / forecast_input
+    truth_path = kgo_dir / "truth_table"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -98,6 +119,8 @@ def test_basic(tmp_path, distribution, diagnostic, kgo_name):
         "--output",
         output_path,
     ]
+    if percentiles:
+        args += ["--percentiles", percentiles]
     run_cli(args)
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE

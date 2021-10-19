@@ -41,7 +41,7 @@ from improver import cli
 def process(
     forecast: cli.inputpath,
     truth: cli.inputpath,
-    additional_predictors: cli.inputcubelist,
+    additional_predictors: cli.inputcubelist = None,
     *,
     diagnostic,
     cycletime,
@@ -54,6 +54,7 @@ def process(
     predictor="mean",
     tolerance: float = 0.02,
     max_iterations: int = 1000,
+    percentiles: cli.comma_separated_list = None,
 ):
     """Estimate coefficients for Ensemble Model Output Statistics.
 
@@ -127,6 +128,8 @@ def process(
             is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
+        percentiles (List[float]):
+            The set of percentiles to be used for estimating EMOS coefficients.
 
     Returns:
         iris.cube.CubeList:
@@ -158,7 +161,8 @@ def process(
         raise IOError(msg)
 
     forecast, truth = forecast_and_truth_dataframes_to_cubes(
-        forecast_df, truth_df, cycletime, forecast_period, training_length
+        forecast_df, truth_df, cycletime, forecast_period, training_length,
+        percentiles=percentiles
     )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
