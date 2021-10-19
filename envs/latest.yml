@@ -17,7 +17,6 @@ dependencies:
   - iris>=3.0
   - netCDF4
   - numpy<1.21
-  - python-dateutil
   - pytz
   - scipy
   - sigtools

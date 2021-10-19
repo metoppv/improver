@@ -125,12 +125,6 @@ https://pysteps.github.io/
 Required for CLIs: ``nowcast-accumulate``, ``nowcast-extrapolate``,
 ``nowcast-optical-flow-from-winds``
 
-python-dateutil
-~~~~~~~~~~
-https://dateutil.readthedocs.io/en/stable/
-
-Required for CLIs: FIXME
-
 pytz
 ~~~~~~~~~~
 Timezone database for Python.

@@ -29,10 +29,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
-from datetime import datetime
+from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Union
 
-from dateutil import tz
 from iris.cube import Cube, CubeList
 
 from improver.metadata.constants.mo_attributes import (
@@ -94,8 +93,9 @@ def set_history_attribute(cube: Cube, value: str, append: bool = False) -> None:
             If True, add to the existing history rather than replacing the
             existing attribute.  Default is False.
     """
-    tzinfo = tz.tzoffset("Z", 0)
-    timestamp = datetime.strftime(datetime.now(tzinfo), "%Y-%m-%dT%H:%M:%S%Z")
+    timestamp = datetime.strftime(
+        datetime.now(timezone(timedelta(0), name="Z")), "%Y-%m-%dT%H:%M:%S%Z"
+    )
     new_history = "{}: {}".format(timestamp, value)
     if append and "history" in cube.attributes.keys():
         cube.attributes["history"] += "; {}".format(new_history)
