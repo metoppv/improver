@@ -398,7 +398,7 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
 
     def test_probability_forecast_coefficients_prob_template(self):
         """Test providing a probability template with a probability forecast."""
-        msg = "Multiple items have been provided"
+        msg = "Providing multiple probability cubes"
         with self.assertRaisesRegex(ValueError, msg):
             split_forecasts_and_coeffs(
                 CubeList(
@@ -412,7 +412,7 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
             )
 
     def test_no_coefficients(self):
-        """Test if multiple sets of coefficients are provided."""
+        """Test if no EMOS coefficients are provided."""
         _, coeffs, _, _ = split_forecasts_and_coeffs(
             CubeList([self.percentile_forecast]), self.land_sea_mask_name
         )
@@ -426,8 +426,8 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
                 CubeList([self.coefficient_cubelist]), self.land_sea_mask_name
             )
 
-    def test_too_many_items_remaining(self):
-        """Test for a mismatch in attributes on the coefficients cubes."""
+    def test_duplicate_forecasts(self):
+        """Test if a duplicate forecast is provided."""
         msg = "Multiple items have been provided"
         with self.assertRaisesRegex(ValueError, msg):
             split_forecasts_and_coeffs(

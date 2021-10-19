@@ -153,7 +153,19 @@ def split_forecasts_and_coeffs(cubes: CubeList, land_sea_mask_name: Optional[str
             elif cube.name() == land_sea_mask_name:
                 land_sea_mask = cube
             else:
-                if cube.name() in grouped_cubes:
+                if "probability" in cube.name() and any(
+                    "probability" in k for k in grouped_cubes
+                ):
+                    msg = (
+                        "Providing multiple probability cubes is "
+                        "not supported. A probability cube can "
+                        "either be provided as the forecast or "
+                        "the probability template, but not both. "
+                        f"Cubes provided: {grouped_cubes.keys()} "
+                        f"and {cube.name()}."
+                    )
+                    raise ValueError(msg)
+                elif cube.name() in grouped_cubes:
                     msg = (
                         "Multiple items have been provided with the "
                         f"name {cube.name()}. Only one item is expected."
