@@ -179,6 +179,7 @@ class Test_process(IrisTest):
                 np.full((3, 3), 10.534898),
             ]
         )
+        self.alternative_percentiles = [25.0, 50.0, 75.0]
 
         land_sea_data = np.array([[1, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.int32)
         self.land_sea_mask = set_up_variable_cube(
@@ -391,6 +392,27 @@ class Test_process(IrisTest):
         )
         self.assertIn("probability_of", result.name())
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_alternative_percentiles(self):
+        """Test that the calibrated forecast is at a specified set of
+        percentiles."""
+        result = ApplyEMOS(percentiles=self.alternative_percentiles)(
+            self.percentiles, self.coefficients, realizations_count=3
+        )
+        self.assertArrayEqual(
+            result.coord("percentile").points, self.alternative_percentiles
+        )
+
+    def test_alternative_string_percentiles(self):
+        """Test that the calibrated forecast is at a specified set of
+        percentiles where the input percentiles are strings."""
+        str_percentiles = list(map(str, self.alternative_percentiles))
+        result = ApplyEMOS(percentiles=str_percentiles)(
+            self.percentiles, self.coefficients, realizations_count=3
+        )
+        self.assertArrayEqual(
+            result.coord("percentile").points, self.alternative_percentiles
+        )
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution

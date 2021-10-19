@@ -38,7 +38,7 @@ Statistics (EMOS).
 
 """
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import iris
 import numpy as np
@@ -1712,6 +1712,15 @@ class ApplyEMOS(PostProcessingPlugin):
     Class to calibrate an input forecast given EMOS coefficients
     """
 
+    def __init__(self, percentiles: Optional[Sequence] = None):
+        """Initialise class.
+
+        Args:
+            percentiles:
+                The set of percentiles used to create the calibrated forecast.
+        """
+        self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
+
     @staticmethod
     def _get_attribute(
         coefficients: CubeList, attribute_name: str, optional: bool = False
@@ -1818,11 +1827,12 @@ class ApplyEMOS(PostProcessingPlugin):
 
         return forecast_as_realizations
 
-    def _calibrate_forecast(
+    def _format_forecast(
         self, template: Cube, randomise: bool, random_seed: Optional[int]
     ) -> Cube:
         """
-        Generate calibrated probability, percentile or realization output
+        Generate calibrated probability, percentile or realization output in
+        the desired format.
 
         Args:
             template:
@@ -1861,7 +1871,9 @@ class ApplyEMOS(PostProcessingPlugin):
                     self.distribution["location"],
                     self.distribution["scale"],
                     template,
-                    percentiles=perc_coord.points,
+                    percentiles=self.percentiles
+                    if self.percentiles
+                    else perc_coord.points,
                 )
             else:
                 no_of_percentiles = len(template.coord("realization").points)
@@ -1973,7 +1985,7 @@ class ApplyEMOS(PostProcessingPlugin):
         }
 
         template = prob_template if prob_template else forecast
-        result = self._calibrate_forecast(template, randomise, random_seed)
+        result = self._format_forecast(template, randomise, random_seed)
 
         if land_sea_mask:
             # fill in masked sea points with uncalibrated data

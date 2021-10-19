@@ -46,6 +46,7 @@ def process(
     ignore_ecc_bounds=False,
     predictor="mean",
     land_sea_mask_name: str = None,
+    percentiles: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
 
@@ -105,6 +106,8 @@ def process(
             Name of the land-sea mask cube. If supplied, a land-sea mask cube
             is expected within the list of input cubes and this land-sea mask
             will be used to calibrate land points only.
+        percentiles (List[float]):
+            The set of percentiles used to create the calibrated forecast.
 
     Returns:
         iris.cube.Cube:
@@ -137,7 +140,7 @@ def process(
         warnings.warn(msg)
         return forecast
 
-    calibration_plugin = ApplyEMOS()
+    calibration_plugin = ApplyEMOS(percentiles=percentiles)
     result = calibration_plugin(
         forecast,
         coefficients,

@@ -264,6 +264,28 @@ def test_percentiles_input_land_sea(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_alternative_percentiles(tmp_path):
+    """Test using percentiles as input with an alternative set of
+    percentiles specified."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/alternative_percentiles"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "../percentiles/input.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--realizations-count",
+        "18",
+        "--percentiles",
+        "25,50,75",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+
+
 def test_percentiles_error(tmp_path):
     """Test using percentiles as input"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
