@@ -25,7 +25,7 @@ with installation of the dependency ``iris`` via pip.
 Example environments are included in the repository ``envs`` directory.
 These environment files are used to run the test suite on Github actions,
 so they should stay up to date with any dependency changes. See also
-documentation explaining use of dependencies.
+documentation about :doc:`use of dependencies in IMPROVER <Dependencies>`.
 
 Alternatively, you can manually 'install' by downloading the code and
 putting the IMPROVER ``bin/`` directory in your PATH.
