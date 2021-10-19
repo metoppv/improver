@@ -365,9 +365,9 @@ def test_process(request, grid_fixture, time, grouping):
     """Test that the process method returns cubes that take the expected form
     for different grids and different dates.
 
-    The output data is primarily checked in the acceptance tests as a reasonably
-    large number of data points are required to reliably check it. Here we check
-    only a small sample."""
+    The output data is checked in the acceptance tests as a large number of
+    data points are required to reliably check it and the output is highly
+    subject to changes based on the version of the timezone database in use."""
 
     domain = grid_fixture.split("_")[0]
     groupings = None
@@ -376,7 +376,6 @@ def test_process(request, grid_fixture, time, grouping):
 
     expected = EXPECTED[grouping][domain][time]
     expected_time = EXPECTED_TIME[time]
-    index = EXPECTED[grouping][domain]["indices"]
 
     grid = request.getfixturevalue(grid_fixture)
 
@@ -393,5 +392,3 @@ def test_process(request, grid_fixture, time, grouping):
         assert (
             result.coord("UTC_offset").bounds.dtype == TIME_COORDS["UTC_offset"].dtype
         )
-
-    assert_array_equal(result.data[index][::4], expected["data"])
