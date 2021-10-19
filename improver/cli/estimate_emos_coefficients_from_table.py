@@ -137,11 +137,12 @@ def process(
             coefficient is stored in a separate cube.
     """
 
+    import pandas as pd
+
     from improver.calibration import forecast_and_truth_dataframes_to_cubes
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
-    import pandas as pd
 
     filters = [("diagnostic", "==", diagnostic)]
     forecast_df = pd.read_parquet(forecast, filters=filters)
@@ -161,8 +162,12 @@ def process(
         raise IOError(msg)
 
     forecast, truth = forecast_and_truth_dataframes_to_cubes(
-        forecast_df, truth_df, cycletime, forecast_period, training_length,
-        percentiles=percentiles
+        forecast_df,
+        truth_df,
+        cycletime,
+        forecast_period,
+        training_length,
+        percentiles=percentiles,
     )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
