@@ -440,7 +440,7 @@ class Test_process(IrisTest):
             ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
 
     def test_land_sea_mask_input_output_format(self):
-        """Test that an exception is raised is a land-sea mask is supplied
+        """Test that an exception is raised if a land-sea mask is supplied
         whilst also requesting a different output format in comparison
         to the input."""
         msg = "If supplying a land-sea mask"
