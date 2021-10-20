@@ -3,7 +3,7 @@
 # If it is changed, the feedstock repository should also be updated.
 # This environment should not include optional dependencies.
 # This environment should pin versions so that all unit tests pass.
-name: improver_latest
+name: improver_conda_forge
 channels:
   - conda-forge
 dependencies:
