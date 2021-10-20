@@ -45,7 +45,7 @@ def process(
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
-    land_sea_mask_name: str = None,
+    land_sea_mask_name: str = "land_binary_mask",
     percentiles: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
@@ -69,7 +69,8 @@ def process(
             specified by ones and sea points are specified by zeros.
             If not None this argument will enable land-only calibration, in
             which sea points are returned without the application of
-            calibration.
+            calibration. If a land-sea mask is provided, the land_sea_mask_name
+            must also be provided, in order to identify the land-sea mask.
             - Optionally, a cube containing a probability forecast that will be
             used as a template when generating probability output when the input
             format of the forecast cube is not probabilities i.e. realizations
@@ -103,9 +104,10 @@ def process(
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
         land_sea_mask_name (str):
-            Name of the land-sea mask cube. If supplied, a land-sea mask cube
-            is expected within the list of input cubes and this land-sea mask
-            will be used to calibrate land points only.
+            Name of the land-sea mask cube. This must be provided if a
+            land-sea mask is provided within the list of input cubes, in
+            order to identify the land-sea mask. Providing the land-sea mask
+            ensures that only land points will be calibrated.
         percentiles (List[float]):
             The set of percentiles used to create the calibrated forecast.
 
