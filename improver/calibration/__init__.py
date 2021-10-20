@@ -118,7 +118,9 @@ def split_forecasts_and_truth(
     return forecast, truth, land_sea_mask
 
 
-def split_forecasts_and_coeffs(cubes: CubeList, land_sea_mask_name: Optional[str]):
+def split_forecasts_and_coeffs(
+    cubes: CubeList, land_sea_mask_name: Optional[str] = None
+):
     """Split the input forecast, coefficients, land sea-mask and
     probability template, if provided. The coefficients cubes and
     land-sea mask are identified based on their name. The current
@@ -150,7 +152,7 @@ def split_forecasts_and_coeffs(cubes: CubeList, land_sea_mask_name: Optional[str
         for cube in cubelist:
             if "emos_coefficient" in cube.name():
                 coefficients.append(cube)
-            elif cube.name() == land_sea_mask_name:
+            elif land_sea_mask_name and cube.name() == land_sea_mask_name:
                 land_sea_mask = cube
             else:
                 if "probability" in cube.name() and any(

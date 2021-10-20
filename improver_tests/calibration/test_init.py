@@ -360,6 +360,17 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
         self.assertCubeEqual(land_sea_mask, self.land_sea_mask[0])
         self.assertEqual(template, None)
 
+    def test_no_land_sea_mask_name(self):
+        """Test when not providing the land_sea_mask_name option."""
+        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+            CubeList([self.realization_forecast, self.coefficient_cubelist]),
+        )
+
+        self.assertCubeEqual(forecast, self.realization_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(land_sea_mask, None)
+        self.assertEqual(template, None)
+
     def test_forecast_coefficients_prob_template(self):
         """Test the addition of a probability template cube."""
         forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
