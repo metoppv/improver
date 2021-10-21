@@ -84,7 +84,7 @@ def test_normal_point_by_point_sites(tmp_path):
     independently at each site (initial guess and minimisation)."""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/point_by_point"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / ".." / "input.nc"
+    input_path = kgo_dir / ".." / "realization_input.nc"
     emos_est_path = kgo_dir / "coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -350,6 +350,57 @@ def test_percentiles_in_probabilities_out(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+
+
+def test_percentile_sites_additional_predictor(tmp_path):
+    """Test using percentile site forecasts with a static additional
+    predictor."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
+    kgo_path = kgo_dir / "percentile_kgo.nc"
+    input_path = kgo_dir / ".." / "percentile_input.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    additional_predictor_path = kgo_dir / "altitude.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        additional_predictor_path,
+        "--realizations-count",
+        "19",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
+def test_perc_in_prob_out_sites_additional_predictor(tmp_path):
+    """Test using percentile site forecasts with a static additional
+    predictor and a probability template to generate a probability
+    site forecast."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
+    kgo_path = kgo_dir / "probability_kgo.nc"
+    input_path = kgo_dir / ".." / "percentile_input.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    additional_predictor_path = kgo_dir / "altitude.nc"
+    prob_template = kgo_dir / "probability_template.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        additional_predictor_path,
+        prob_template,
+        "--realizations-count",
+        "19",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
 def test_no_coefficients(tmp_path):

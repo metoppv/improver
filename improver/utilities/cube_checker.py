@@ -50,7 +50,7 @@ def check_for_x_and_y_axes(cube: Cube, require_dim_coords: bool = False) -> None
 
     Raises:
         ValueError : Raise an error if non-uniform increments exist between
-                      grid points.
+            grid points.
     """
     for axis in ["x", "y"]:
         if require_dim_coords:
@@ -61,9 +61,7 @@ def check_for_x_and_y_axes(cube: Cube, require_dim_coords: bool = False) -> None
         if coord:
             pass
         else:
-            msg = "The cube does not contain the expected {}" "coordinates.".format(
-                axis
-            )
+            msg = "The cube does not contain the expected {} coordinates.".format(axis)
             raise ValueError(msg)
 
 

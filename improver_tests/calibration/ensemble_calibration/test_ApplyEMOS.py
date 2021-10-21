@@ -267,6 +267,7 @@ class Test_process(IrisTest):
             ApplyEMOS()(self.percentiles, self.coefficients)
 
     def test_additional_predictor(self):
+        """Test providing an additional predictor."""
         altitude = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
         )
