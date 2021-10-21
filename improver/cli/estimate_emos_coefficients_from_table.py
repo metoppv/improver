@@ -137,29 +137,15 @@ def process(
             coefficient is stored in a separate cube.
     """
 
-    import pandas as pd
-
     from improver.calibration import forecast_and_truth_dataframes_to_cubes
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
+    from improver.utilities.load import load_parquet
 
     filters = [("diagnostic", "==", diagnostic)]
-    forecast_df = pd.read_parquet(forecast, filters=filters)
-    if forecast_df.empty:
-        msg = (
-            f"The requested filepath {forecast} does not contain the "
-            f"requested contents: {filters}"
-        )
-        raise IOError(msg)
-
-    truth_df = pd.read_parquet(truth, filters=filters)
-    if truth_df.empty:
-        msg = (
-            f"The requested filepath {truth} does not contain the "
-            f"requested contents: {filters}"
-        )
-        raise IOError(msg)
+    forecast_df = load_parquet(forecast, filters)
+    truth_df = load_parquet(truth, filters)
 
     forecast, truth = forecast_and_truth_dataframes_to_cubes(
         forecast_df,

@@ -31,12 +31,16 @@
 """Unit tests for loading functionality."""
 
 import os
+import shutil
 import unittest
 from datetime import datetime
+from pathlib import Path
 from tempfile import mkdtemp
 
 import iris
 import numpy as np
+import pandas as pd
+import pytest
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import find_threshold_coordinate
@@ -46,7 +50,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.load import load_cube, load_cubelist
+from improver.utilities.load import load_cube, load_cubelist, load_parquet
 from improver.utilities.save import save_netcdf
 
 
@@ -437,6 +441,103 @@ class Test_load_cubelist(IrisTest):
         lazy data."""
         result = load_cubelist([self.filepath, self.filepath])
         self.assertArrayEqual([True, True], [_.has_lazy_data() for _ in result])
+
+
+class Test_load_parquet(unittest.TestCase):
+
+    """Test the load_parquet function."""
+
+    def setUp(self):
+        """Set-up tests."""
+        pytest.importorskip("fastparquet")
+        data = np.array([6.8, 2.7, 21.2], dtype=np.float32)
+        self.truth_data = np.tile(data, 3)
+
+        self.time1 = np.datetime64("2017-07-20T18:00:00")
+        self.time2 = np.datetime64("2017-07-21T18:00:00")
+        self.time3 = np.datetime64("2017-07-22T18:00:00")
+
+        self.wmo_ids = ["03002", "03003", "03004"]
+        diags = ["air_temperature"]
+        self.latitudes = [50, 60, 70]
+        self.longitudes = [-10, 0, 10]
+        self.altitudes = [10, 20, 30]
+
+        df_dict = {
+            "ob_value": self.truth_data,
+            "time": np.repeat([self.time1, self.time2, self.time3], 3),
+            "diagnostic": diags * 9,
+            "latitude": self.latitudes * 3,
+            "longitude": self.longitudes * 3,
+            "altitude": self.altitudes * 3,
+            "wmo_id": self.wmo_ids * 3,
+        }
+
+        self.df = pd.DataFrame(df_dict)
+        self.df = self.df.sort_values(by=["wmo_id"]).reset_index(drop=True)
+
+        self.one_parquet_filepath = Path(mkdtemp()) / "temp.parquet"
+        self.df.to_parquet(self.one_parquet_filepath, compression=None)
+
+        self.partitioned_directory = Path(mkdtemp())
+        self.df.to_parquet(
+            self.partitioned_directory, partition_cols="wmo_id", compression=None
+        )
+
+        self.partitioned_directory_with_sub = Path(mkdtemp()) / "extra_dir"
+        self.df.to_parquet(
+            self.partitioned_directory_with_sub,
+            partition_cols="wmo_id",
+            compression=None,
+        )
+
+        self.empty_directory = Path(mkdtemp())
+
+    def tearDown(self):
+        """Remove temporary files and directories created for testing."""
+        os.unlink(self.one_parquet_filepath)
+        shutil.rmtree(self.partitioned_directory)
+        shutil.rmtree(self.partitioned_directory_with_sub)
+        shutil.rmtree(self.empty_directory)
+
+    def test_basic(self):
+        """Test loading a parquet file."""
+        result = load_parquet(self.one_parquet_filepath)
+        pd.testing.assert_frame_equal(result, self.df)
+
+    def test_partitioned_dataset(self):
+        """Test loading a parquet dataset."""
+        result = load_parquet(self.partitioned_directory)
+        result["wmo_id"] = result["wmo_id"].astype(object)
+        pd.testing.assert_frame_equal(result, self.df)
+
+    def test_partitioned_dataset_with_subdirectory(self):
+        """Test loading a parquet dataset with an additional subdirectory."""
+        result = load_parquet(self.partitioned_directory_with_sub)
+        result["wmo_id"] = result["wmo_id"].astype(object)
+        pd.testing.assert_frame_equal(result, self.df)
+
+    def test_filter(self):
+        """Test loading a parquet file with a filter."""
+        filters = [("wmo_id", "==", "03002")]
+        expected_df = self.df.loc[self.df["wmo_id"] == self.wmo_ids[0]]
+        result = load_parquet(self.partitioned_directory, filters=filters)
+        result["wmo_id"] = result["wmo_id"].astype(object)
+        pd.testing.assert_frame_equal(result, expected_df)
+
+    def test_empty_filter(self):
+        """Test loading a parquet file with a filter when only an empty
+        dataframe is loaded."""
+        filters = [("wmo_id", "==", "03005")]
+        msg = "does not contain the requested contents"
+        with self.assertRaisesRegexp(IOError, msg):
+            load_parquet(self.partitioned_directory, filters)
+
+    def test_no_dirs(self):
+        """Test for when the expected subdirectories do not exist."""
+        msg = "The path provided is not"
+        with self.assertRaisesRegexp(IOError, msg):
+            load_parquet(self.empty_directory)
 
 
 if __name__ == "__main__":

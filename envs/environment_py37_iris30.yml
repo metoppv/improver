@@ -23,7 +23,7 @@ dependencies:
   - sigtools
   - sphinx
   # Optional
-  - fastparquet
+  - fastparquet=0.5.0
   - numba
   - pysteps=1.4.1
   - statsmodels

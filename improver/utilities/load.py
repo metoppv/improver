@@ -30,11 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for loading cubes."""
 
-from typing import List, Optional, Union
+import os
+from pathlib import Path
+from typing import List, Optional, Tuple, Union
 
 import iris
+import pandas as pd
 from iris import Constraint
 from iris.cube import Cube, CubeList
+from pandas.core.frame import DataFrame
 
 from improver.utilities.cube_manipulation import (
     MergeCubes,
@@ -145,3 +149,58 @@ def load_cube(
     else:
         cube = MergeCubes()(cubes)
     return cube
+
+
+def load_parquet(
+    path: Path, filters: Optional[List[Tuple[str, str, str]]] = None
+) -> DataFrame:
+    """Load a parquet file or a partitioned parquet dataset from the
+    path provided into a pandas DataFrame. For a partitioned parquet
+    dataset, the path provided is expected to be a directory containing
+    a _metadata directory or a directory containing subdirectories,
+    which each contain a _metadata directory.
+
+    Args:
+        path:
+            Path to a parquet file or a path or a partitioned parquet
+            dataset that will be loaded into a single pandas DataFrame.
+        filters:
+            Filter to restrict the contents of parquet file loaded.
+            For example: [('diagnostic', '==', 'wind_speed_at_10m')].
+
+    Returns:
+        Pandas DataFrame that has been loaded from the input filepath given
+        the filters provided.
+
+    Raises:
+        IOError: If no parquet files are found within the directory path.
+        IOError: If the filtered pandas dataframe is empty, raise an IOError.
+    """
+    if filters is None:
+        filters = []
+
+    if path.is_file() or (path / "_metadata").exists():
+        dirs = [path]
+    else:
+        dirs = [
+            path / d.name for d in os.scandir(path) if (Path(d) / "_metadata").exists()
+        ]
+
+    if not dirs:
+        msg = (
+            "The path provided is not a file and can not be "
+            "interpreted as a partitioned parquet dataset "
+            "as no _metadata subdirectory is present. "
+            f"The path provided was {path}"
+        )
+        raise IOError(msg)
+
+    df = pd.concat(pd.read_parquet(d, filters=filters) for d in dirs)
+
+    if df.empty:
+        msg = (
+            f"The requested directory {path} does not contain the "
+            f"requested contents: {filters}"
+        )
+        raise IOError(msg)
+    return df
