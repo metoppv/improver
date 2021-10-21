@@ -119,7 +119,7 @@ def split_forecasts_and_truth(
 
 
 def split_forecasts_and_coeffs(
-    cubes: CubeList, land_sea_mask_name: str = "land_binary_mask"
+    cubes: CubeList, land_sea_mask_name: Optional[str] = None,
 ):
     """Split the input forecast, coefficients, land sea-mask and
     probability template, if provided. The coefficients cubes and

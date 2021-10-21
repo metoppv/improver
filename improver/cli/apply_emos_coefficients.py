@@ -45,7 +45,7 @@ def process(
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
-    land_sea_mask_name: str = "land_binary_mask",
+    land_sea_mask_name: str = None,
     percentiles: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
@@ -67,7 +67,7 @@ def process(
             - Optionally, a cube containing the land-sea mask on the same domain
             as the forecast that is to be calibrated. Land points are
             specified by ones and sea points are specified by zeros.
-            If not None this argument will enable land-only calibration, in
+            The presence of a land-sea mask will enable land-only calibration, in
             which sea points are returned without the application of
             calibration. If a land-sea mask is provided, the land_sea_mask_name
             must also be provided, in order to identify the land-sea mask.

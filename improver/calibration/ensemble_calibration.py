@@ -1768,30 +1768,30 @@ class ApplyEMOS(PostProcessingPlugin):
         )
         raise AttributeError(msg)
 
-    @staticmethod
-    def _get_input_forecast_type(forecast: Cube) -> str:
+    def _get_input_forecast_type(self, forecast: Cube):
         """Identifies whether the forecast is in probability, realization
-        or percentile space
+        or percentile space.
 
         Args:
             forecast
 
-        Returns:
-            The forecast type
         """
         try:
             find_percentile_coordinate(forecast)
         except CoordinateNotFoundError:
             if forecast.name().startswith("probability_of"):
-                return "probabilities"
-            return "realizations"
-        return "percentiles"
+                forecast_type = "probabilities"
+            else:
+                forecast_type = "realizations"
+        else:
+            forecast_type = "percentiles"
+        self.input_forecast_type = forecast_type
 
     def _convert_to_realizations(
         self, forecast: Cube, realizations_count: Optional[int], ignore_ecc_bounds: bool
     ) -> Cube:
         """Convert an input forecast of probabilities or percentiles into
-        pseudo-realizations
+        pseudo-realizations.
 
         Args:
             forecast
@@ -1944,7 +1944,7 @@ class ApplyEMOS(PostProcessingPlugin):
             Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations)
         """
-        self.input_forecast_type = self._get_input_forecast_type(forecast)
+        self._get_input_forecast_type(forecast)
         self.output_forecast_type = (
             "probabilities" if prob_template else self.input_forecast_type
         )
@@ -1952,7 +1952,7 @@ class ApplyEMOS(PostProcessingPlugin):
             msg = (
                 "If supplying a land-sea mask, the format of the input "
                 "forecast must be the same as the format of the output "
-                "forecast to faciliate merging of pre-calibration "
+                "forecast to facilitate merging of pre-calibration "
                 "and post-calibration data. The input forecast type was "
                 f"{self.input_forecast_type}. The output forecast type "
                 f"was {self.output_forecast_type}."
