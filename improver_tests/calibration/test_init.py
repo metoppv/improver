@@ -35,9 +35,9 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from iris.cube import CubeList
 import pandas as pd
 import pytest
+from iris.cube import CubeList
 
 from improver.calibration import (
     forecast_and_truth_dataframes_to_cubes,
