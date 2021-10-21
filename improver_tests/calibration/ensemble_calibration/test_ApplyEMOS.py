@@ -181,6 +181,11 @@ class Test_process(IrisTest):
         )
         self.alternative_percentiles = [25.0, 50.0, 75.0]
 
+        land_sea_data = np.array([[1, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.int32)
+        self.land_sea_mask = set_up_variable_cube(
+            land_sea_data, name="land_binary_mask", units="1"
+        )
+
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
         (this is small but non-zero due to limited sampling of the
@@ -290,10 +295,6 @@ class Test_process(IrisTest):
     def test_land_sea_mask(self):
         """Test that coefficients can be effectively applied to "land" points
         only"""
-        land_sea_data = np.array([[1, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.int32)
-        land_sea_mask = set_up_variable_cube(
-            land_sea_data, name="land_binary_mask", units="1"
-        )
         # update the "gamma" value
         self.coefficients[2].data = 1
         expected_data_slice = np.array(
@@ -306,7 +307,7 @@ class Test_process(IrisTest):
         result = ApplyEMOS()(
             self.percentiles,
             self.coefficients,
-            land_sea_mask=land_sea_mask,
+            land_sea_mask=self.land_sea_mask,
             realizations_count=3,
         )
         self.assertArrayAlmostEqual(result.data[0], expected_data_slice)
@@ -376,6 +377,22 @@ class Test_process(IrisTest):
             np.mean(result.data), self.null_percentiles_expected_mean
         )
 
+    def test_percentiles_in_probabilities_out(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        (this is small but non-zero due to limited sampling of the
+        distribution)"""
+        expected_data = np.array(
+            [np.ones((3, 3)), np.full((3, 3), 0.977250), np.full((3, 3), 0.001350)]
+        )
+        result = ApplyEMOS()(
+            self.percentiles,
+            self.coefficients,
+            realizations_count=3,
+            prob_template=self.probabilities,
+        )
+        self.assertIn("probability_of", result.name())
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
     def test_alternative_percentiles(self):
         """Test that the calibrated forecast is at a specified set of
         percentiles."""
@@ -421,6 +438,20 @@ class Test_process(IrisTest):
         msg = "The distribution attribute must be specified on all coefficients cubes."
         with self.assertRaisesRegex(AttributeError, msg):
             ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
+
+    def test_land_sea_mask_input_output_format(self):
+        """Test that an exception is raised if a land-sea mask is supplied
+        whilst also requesting a different output format in comparison
+        to the input."""
+        msg = "If supplying a land-sea mask"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(
+                self.percentiles,
+                self.coefficients,
+                realizations_count=3,
+                land_sea_mask=self.land_sea_mask,
+                prob_template=self.probabilities,
+            )
 
 
 if __name__ == "__main__":

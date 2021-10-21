@@ -31,9 +31,9 @@
 """init for calibration"""
 
 from collections import OrderedDict
-from typing import List, Optional, Tuple
+from typing import Dict, List, Optional, Tuple
 
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -116,3 +116,83 @@ def split_forecasts_and_truth(
     forecast = MergeCubes()(grouped_cubes["historical forecast"])
 
     return forecast, truth, land_sea_mask
+
+
+def split_forecasts_and_coeffs(
+    cubes: CubeList, land_sea_mask_name: Optional[str] = None,
+):
+    """Split the input forecast, coefficients, land sea-mask and
+    probability template, if provided. The coefficients cubes and
+    land-sea mask are identified based on their name. The current
+    forecast and probability template are then split.
+
+    Args:
+        cubes:
+            A list of input cubes which will be split into relevant groups.
+            This includes the forecast, coefficients, land-sea mask and
+            probability template.
+        land_sea_mask_name:
+            Name of the land-sea mask cube to help identification.
+
+    Returns:
+        - A cube containing the current forecast.
+        - If found, a cubelist containing the coefficients else None.
+        - If found, a land-sea mask will be returned, else None.
+        - If found, a probability template will be returned, else None.
+
+    Raises:
+        ValueError: If multiple items provided, when only one is expected.
+        ValueError: If no forecast is found.
+    """
+    coefficients = CubeList()
+    land_sea_mask = None
+    grouped_cubes: Dict[str, List[Cube]] = {}
+
+    for cubelist in cubes:
+        for cube in cubelist:
+            if "emos_coefficient" in cube.name():
+                coefficients.append(cube)
+            elif land_sea_mask_name and cube.name() == land_sea_mask_name:
+                land_sea_mask = cube
+            else:
+                if "probability" in cube.name() and any(
+                    "probability" in k for k in grouped_cubes
+                ):
+                    msg = (
+                        "Providing multiple probability cubes is "
+                        "not supported. A probability cube can "
+                        "either be provided as the forecast or "
+                        "the probability template, but not both. "
+                        f"Cubes provided: {grouped_cubes.keys()} "
+                        f"and {cube.name()}."
+                    )
+                    raise ValueError(msg)
+                elif cube.name() in grouped_cubes:
+                    msg = (
+                        "Multiple items have been provided with the "
+                        f"name {cube.name()}. Only one item is expected."
+                    )
+                    raise ValueError(msg)
+                grouped_cubes.setdefault(cube.name(), []).append(cube)
+
+    prob_template = None
+    # Split the forecast and the probability template.
+    if len(grouped_cubes) == 0:
+        msg = "No forecast is present. A forecast cube is required."
+        raise ValueError(msg)
+    elif len(grouped_cubes) == 1:
+        (current_forecast,) = list(grouped_cubes.values())[0]
+    elif len(grouped_cubes) == 2:
+        for key in grouped_cubes.keys():
+            if "probability" in key:
+                (prob_template,) = grouped_cubes[key]
+            else:
+                (current_forecast,) = grouped_cubes[key]
+
+    coefficients = coefficients if coefficients else None
+    return (
+        current_forecast,
+        coefficients,
+        land_sea_mask,
+        prob_template,
+    )
