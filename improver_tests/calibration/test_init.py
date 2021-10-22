@@ -462,8 +462,8 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
         self.assertCubeEqual(template, self.probability_forecast[0])
 
     def test_all_options(self):
-        """Test providing a forecast, coefficients, land-sea mask and a
-        probability template."""
+        """Test providing a forecast, coefficients, additional predictor,
+        land-sea mask and a probability template."""
         (
             forecast,
             coeffs,

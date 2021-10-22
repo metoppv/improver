@@ -361,7 +361,9 @@ class Test_process(IrisTest):
         """Test for a mismatch in sites between the forecast and
         the additional predictor."""
         spot_altitude_cube = self.spot_altitude_cube[1:]
-        msg = "The forecast and additional predictors"
+        msg = (
+            "The forecast and additional predictors.*The mismatching sites are.*03001"
+        )
         with self.assertRaisesRegex(ValueError, msg):
             ApplyEMOS()(
                 self.realizations_spot_cube,

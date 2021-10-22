@@ -65,7 +65,7 @@ def process(
             - A cubelist containing the coefficients used for calibration or None.
             If none then then input is returned unchanged.
             - Optionally, cubes representing static additional predictors.
-            These static additional predictors is expected not to have a
+            These static additional predictors are expected not to have a
             time coordinate.
             - Optionally, a cube containing the land-sea mask on the same domain
             as the forecast that is to be calibrated. Land points are
