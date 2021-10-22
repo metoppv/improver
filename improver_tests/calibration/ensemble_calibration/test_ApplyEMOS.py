@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the `ensemble_calibration.ApplyEMOS` class."""
 
+import datetime
 import unittest
 from typing import Sequence, Union
 
@@ -39,7 +40,10 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import ApplyEMOS
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
@@ -186,6 +190,55 @@ class Test_process(IrisTest):
             land_sea_data, name="land_binary_mask", units="1"
         )
 
+        # Generate site forecast and additional predictor cubes.
+        data = np.tile([1.6, 1.3, 1.4, 1.1], (4, 1))
+        altitude = np.array([10, 20, 30, 40])
+        latitude = np.linspace(58.0, 59.5, 4)
+        longitude = np.linspace(-0.25, 0.5, 4)
+        wmo_id = ["03001", "03002", "03003", "03004"]
+        time_coords = construct_scalar_time_coords(
+            datetime.datetime(2017, 11, 5, 4, 0),
+            None,
+            datetime.datetime(2017, 11, 5, 0, 0),
+        )
+        time_coords = [t[0] for t in time_coords]
+        realization_coord = [
+            iris.coords.DimCoord(np.arange(1, 5), standard_name="realization")
+        ]
+        self.realizations_spot_cube = build_spotdata_cube(
+            data,
+            "air_temperature",
+            "degC",
+            altitude,
+            latitude,
+            longitude,
+            wmo_id,
+            scalar_coords=time_coords,
+            additional_dims=realization_coord,
+        )
+
+        self.realizations_spot_cube.attributes.update(MANDATORY_ATTRIBUTE_DEFAULTS)
+
+        self.spot_altitude_cube = self.realizations_spot_cube[0].copy(
+            self.realizations_spot_cube.coord("altitude").points
+        )
+        self.spot_altitude_cube.rename("altitude")
+        self.spot_altitude_cube.units = "m"
+        for coord in [
+            "altitude",
+            "forecast_period",
+            "forecast_reference_time",
+            "realization",
+            "time",
+        ]:
+            self.spot_altitude_cube.remove_coord(coord)
+
+        self.spot_coefficients = build_coefficients_cubelist(
+            self.realizations_spot_cube,
+            [0, [0.9, 0.1], 0, 1],
+            CubeList([self.realizations_spot_cube, self.spot_altitude_cube]),
+        )
+
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
         (this is small but non-zero due to limited sampling of the
@@ -292,6 +345,30 @@ class Test_process(IrisTest):
             realizations_count=3,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_realizations_additional_predictor_at_sites(self):
+        """Test providing an additional predictor for site forecasts."""
+        expected_data = np.tile([2.44, 3.17, 4.26, 4.99], (4, 1))
+        result = ApplyEMOS()(
+            self.realizations_spot_cube,
+            self.spot_coefficients,
+            additional_fields=CubeList([self.spot_altitude_cube]),
+            realizations_count=3,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_additional_predictor_site_mismatch(self):
+        """Test for a mismatch in sites between the forecast and
+        the additional predictor."""
+        spot_altitude_cube = self.spot_altitude_cube[1:]
+        msg = "The forecast and additional predictors"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(
+                self.realizations_spot_cube,
+                self.spot_coefficients,
+                additional_fields=CubeList([spot_altitude_cube]),
+                realizations_count=3,
+            )
 
     def test_land_sea_mask(self):
         """Test that coefficients can be effectively applied to "land" points
