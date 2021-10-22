@@ -1,0 +1,6 @@
+index,ob_value,altitude,latitude,longitude,time,wmo_id,diagnostic
+0,283.45,15,60,-5,2021-08-02 18:00:00+00:00,03001,temperature_at_screen_level
+1,283.91,82,59,-4,2021-08-02 18:00:00+00:00,03002,temperature_at_screen_level
+2,281.63,30,58,-3,2021-08-02 18:00:00+00:00,03003,temperature_at_screen_level
+3,286.55,4,57,-2,2021-08-02 18:00:00+00:00,03004,temperature_at_screen_level
+4,283.19,15,56,-1,2021-08-02 18:00:00+00:00,03005,temperature_at_screen_level
