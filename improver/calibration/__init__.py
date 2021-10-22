@@ -679,6 +679,7 @@ def forecast_and_truth_dataframes_to_cubes(
             Training length in days as an integer.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
+            These should be a set of equally spaced quantiles.
 
     Returns:
         Forecasts and truths for the training period in Cube format.

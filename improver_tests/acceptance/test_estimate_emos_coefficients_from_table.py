@@ -204,3 +204,33 @@ def test_invalid_truth_filter(tmp_path,):
         IOError, match="The requested filepath.*temperature_at_screen_level.*"
     ):
         run_cli(args)
+
+
+@pytest.mark.slow
+def test_return_none(tmp_path,):
+    """
+    Test that None is returned if a non-existent forecast period is requested.
+    """
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
+    history_path = kgo_dir / "forecast_table_quantiles"
+    truth_path = kgo_dir / "truth_table"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--diagnostic",
+        "temperature_at_screen_level",
+        "--cycletime",
+        "20210805T2100Z",
+        "--forecast-period",
+        "1000",
+        "--training-length",
+        "5",
+        "--distribution",
+        "norm",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
+    assert run_cli(args) is None

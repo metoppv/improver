@@ -130,6 +130,7 @@ def process(
             coefficients to solve.
         percentiles (List[float]):
             The set of percentiles to be used for estimating EMOS coefficients.
+            These should be a set of equally spaced quantiles.
 
     Returns:
         iris.cube.CubeList:
@@ -171,6 +172,9 @@ def process(
         training_length,
         percentiles=percentiles,
     )
+
+    if not forecast_cube or not truth_cube:
+        return
 
     # Extract WMO IDs from the additional predictors.
     if additional_predictors:
