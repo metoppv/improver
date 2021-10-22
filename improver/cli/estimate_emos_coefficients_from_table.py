@@ -137,6 +137,8 @@ def process(
             coefficient is stored in a separate cube.
     """
 
+    import pandas as pd
+
     from improver.calibration import forecast_and_truth_dataframes_to_cubes
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
