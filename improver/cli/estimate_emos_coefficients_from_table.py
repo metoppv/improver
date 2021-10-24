@@ -142,7 +142,9 @@ def process(
     import pandas as pd
     from iris.cube import CubeList
 
-    from improver.calibration import forecast_and_truth_dataframes_to_cubes
+    from improver.calibration.dataframe_utilities import (
+        forecast_and_truth_dataframes_to_cubes,
+    )
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
