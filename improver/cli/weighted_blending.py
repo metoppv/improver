@@ -134,7 +134,8 @@ def process(
 
     # make the data nonlazy
     if spatial_weights_from_mask:
-        for _ in map(lambda cube: getattr(cube, "data"), cubes): pass
+        for _ in map(lambda cube: getattr(cube, "data"), cubes):
+            pass
 
     if (weighting_method == "linear") and cval:
         raise RuntimeError("Method: linear does not accept arguments: cval")
