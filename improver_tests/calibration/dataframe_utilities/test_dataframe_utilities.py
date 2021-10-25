@@ -82,7 +82,7 @@ class SetupSharedDataFrames(ImproverTest):
         self.frt2 = pd.Timestamp("2017-07-21T12:00:00", tz="UTC")
         self.frt3 = pd.Timestamp("2017-07-22T12:00:00", tz="UTC")
 
-        self.fp = pd.Timedelta(6, unit="h")
+        self.fp = pd.Timedelta(6*3600, unit="s")
 
         self.time1 = pd.Timestamp("2017-07-20T18:00:00", tz="UTC")
         self.time2 = pd.Timestamp("2017-07-21T18:00:00", tz="UTC")
@@ -142,7 +142,7 @@ class SetupSharedDataFrames(ImproverTest):
         )
 
         self.validity_time = self.time3
-        self.forecast_period = 6
+        self.forecast_period = 6*3600
         self.training_length = 3
         self.date_range = pd.date_range(
             end=self.validity_time,
@@ -309,7 +309,7 @@ class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
 
     def test_empty_dataframe(self):
         """Test if none of the required data is available in the dataframe."""
-        forecast_period = 7
+        forecast_period = 7*3600
         result = forecast_dataframe_to_cube(
             self.forecast_df, self.date_range, forecast_period
         )
@@ -399,9 +399,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test for a multi-day forecast period to ensure that the
         validity times within the training dataset are always in
         the past, relative to the cycletime."""
-        forecast_period = 30
+        forecast_period = 30*3600
         forecast_df = self.forecast_df.copy()
-        forecast_df["forecast_period"] = np.timedelta64(forecast_period, "h").astype(
+        forecast_df["forecast_period"] = np.timedelta64(forecast_period, "s").astype(
             "timedelta64[ns]"
         )
         for coord in ["forecast_reference_time", "blend_time"]:
@@ -413,7 +413,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 }
             )
 
-        fp_int = pd.Timedelta(forecast_period, "h").total_seconds()
+        fp_int = pd.Timedelta(forecast_period, "s").total_seconds()
         self.expected_period_forecast.coord("forecast_period").points = np.array(
             fp_int, dtype=TIME_COORDS["forecast_period"].dtype
         )
