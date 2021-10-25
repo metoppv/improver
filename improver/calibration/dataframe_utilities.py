@@ -311,6 +311,9 @@ def _prepare_dataframes(
     # Ensure time in forecasts is present in truths.
     forecast_df = forecast_df[forecast_df["time"].isin(truth_df["time"].unique())]
 
+    # Ensure time in truths is present in forecasts.
+    truth_df = truth_df[truth_df["time"].isin(forecast_df["time"].unique())]
+
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df
     forecast_subset = forecast_df[
@@ -327,7 +330,8 @@ def _prepare_dataframes(
             "diagnostic",
         ]
     ].drop_duplicates()
-
+    # import pdb
+    # pdb.set_trace()
     # Use "outer" to fill in any missing observations in the truth dataframe.
     truth_df = truth_df.merge(
         forecast_subset, on=["wmo_id", "time", "diagnostic"], how="outer"
@@ -471,6 +475,8 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
         time_coord = _define_time_coord(adate, time_bounds)
         height_coord = _define_height_coord(time_df["height"].values[0])
 
+        # import pdb
+        # pdb.set_trace()
         cube = build_spotdata_cube(
             time_df["ob_value"].astype(np.float32),
             time_df["cf_name"].values[0],

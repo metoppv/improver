@@ -502,6 +502,22 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast[:, 1:])
         self.assertCubeEqual(result[1], self.expected_period_truth[1:])
 
+    def test_no_forecasts_for_a_time(self):
+        """Test for a time point having no forecasts."""
+        forecast_df = self.forecast_df[
+            self.forecast_df["time"].isin([self.time2, self.time3])
+        ]
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast[:, 1:])
+        self.assertCubeEqual(result[1], self.expected_period_truth[1:])
+
     def test_percentile_extract(self):
         """Test the desired percentiles are extracted."""
         expected_period_forecast = self.expected_period_forecast[::2]
