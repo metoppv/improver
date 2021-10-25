@@ -37,9 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube_nolazy,
-    target_grid: cli.inputcube_nolazy,
-    land_sea_mask: cli.inputcube_nolazy = None,
+    cube: cli.inputcube,
+    target_grid: cli.inputcube,
+    land_sea_mask: cli.inputcube,
     *,
     regrid_mode="bilinear",
     extrapolation_mode="nanmask",
