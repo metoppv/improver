@@ -162,9 +162,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         cycle_strings = []
         for cube in cubelist:
             if self.record_run_attr in cube.attributes:
-                cycle_strings.extend(
-                    cube.attributes[self.record_run_attr].splitlines()
-                )
+                cycle_strings.extend(cube.attributes[self.record_run_attr].splitlines())
                 continue
             cycle = datetime.utcfromtimestamp(
                 cube.coord("forecast_reference_time").points[0]
@@ -174,7 +172,8 @@ class MergeCubesForWeightedBlending(BasePlugin):
                 raise Exception(
                     f"Failure to record run information in '{self.record_run_attr}' "
                     "during blend: no model id attribute found in cube. "
-                    f"Cube attributes: {cube.attributes}")
+                    f"Cube attributes: {cube.attributes}"
+                )
             blending_weight = ""  # TODO: include actual blending weight here.
             cycle_strings.append(
                 f"{cube.attributes[self.model_id_attr]}:{cycle_str}:{blending_weight}"
