@@ -86,7 +86,7 @@ def process(
         cycletime (str):
             Cycletime of a format similar to 20170109T0000Z.
         forecast_period (int):
-            Forecast period to be calibrated in hours.
+            Forecast period to be calibrated in seconds.
         training_length (int):
             Number of days within the training period.
         distribution (str):

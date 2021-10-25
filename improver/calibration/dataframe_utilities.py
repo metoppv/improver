@@ -242,7 +242,7 @@ def _training_dates_for_calibration(
             The training dates will always be in the past, relative
             to the cycletime.
         forecast_period:
-            Forecast period in hours as an integer.
+            Forecast period in seconds as an integer.
         training_length:
             Training length in days as an integer.
 
@@ -250,7 +250,7 @@ def _training_dates_for_calibration(
         Datetimes defining the training dataset. The number of datetimes
         is equal to the training length.
     """
-    forecast_period = pd.Timedelta(int(forecast_period), unit="hours")
+    forecast_period = pd.Timedelta(int(forecast_period), unit="seconds")
     validity_time = pd.Timestamp(cycletime) + forecast_period
     return pd.date_range(
         end=validity_time - pd.Timedelta(1, unit="days") - forecast_period.floor("D"),
@@ -350,12 +350,12 @@ def forecast_dataframe_to_cube(
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
-            Forecast period in hours as an integer.
+            Forecast period in seconds as an integer.
 
     Returns:
         Cube containing the forecasts from the training period.
     """
-    fp_point = pd.Timedelta(int(forecast_period), unit="hours")
+    fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
     cubelist = CubeList()
 
@@ -512,7 +512,7 @@ def forecast_and_truth_dataframes_to_cubes(
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
         forecast_period:
-            Forecast period in hours as an integer.
+            Forecast period in seconds as an integer.
         training_length:
             Training length in days as an integer.
         percentiles:
