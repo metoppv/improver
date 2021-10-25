@@ -123,9 +123,9 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
         accessible as pandas datetime objects.
     """
     for col in df.select_dtypes(include=["datetime64[ns, UTC]"]):
-        df[col] = df[col].astype("O")
+        df = df.astype({col: "O"})
     for col in df.select_dtypes(include="timedelta64[ns]"):
-        df[col] = df[col].astype("O")
+        df = df.astype({col: "O"})
     return df
 
 
