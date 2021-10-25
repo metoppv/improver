@@ -230,7 +230,7 @@ class WeightAndBlend(PostProcessingPlugin):
         cubelist: Union[List[Cube], CubeList],
         cycletime: Optional[str] = None,
         model_id_attr: Optional[str] = None,
-        blend_model_record_attr: Optional[str] = None,
+        record_run_attr: Optional[str] = None,
         spatial_weights: bool = False,
         fuzzy_length: float = 20000,
         attributes_dict: Optional[Dict[str, str]] = None,
@@ -251,9 +251,10 @@ class WeightAndBlend(PostProcessingPlugin):
             model_id_attr:
                 The name of the dataset attribute to be used to identify the source
                 model when blending data from different models.
-            blend_model_record_attr:
-                The name of the dataset attribute to be used to store model sources
-                in metadata when blending data from different models.
+            record_run_attr:
+                The name of the dataset attribute to be used to store model and
+                cycle sources in metadata, e.g. when blending data from different
+                models. Requires model_id_attr.
             spatial_weights:
                 If True, this option will result in the generation of spatially
                 varying weights based on the masks of the data we are blending.
@@ -290,7 +291,7 @@ class WeightAndBlend(PostProcessingPlugin):
             self.blend_coord,
             weighting_coord=self.weighting_coord,
             model_id_attr=model_id_attr,
-            blend_model_record_attr=blend_model_record_attr,
+            record_run_attr=record_run_attr,
         )
         cube = merger(cubelist, cycletime=cycletime)
 
