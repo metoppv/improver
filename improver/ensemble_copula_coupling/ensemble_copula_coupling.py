@@ -988,8 +988,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
     def _check_template_cube(self, cube: Cube) -> None:
         """
         The template cube is expected to contain a leading threshold dimension
-        followed by spatial (y/x) dimensions. This check raises an error if
-        this is not the case. If the cube contains the expected dimensions,
+        followed by spatial (y/x) dimensions for a gridded cube. For a spot
+        template cube, the spatial dimensions are not expected to be dimension
+        coordinates. If the cube contains the expected dimensions,
         a threshold leading order is enforced.
 
         Args:
@@ -1000,7 +1001,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
         Raises:
             ValueError: If cube is not of the expected dimensions.
         """
-        check_for_x_and_y_axes(cube, require_dim_coords=True)
+        require_dim_coords = False if cube.coords("wmo_id") else True
+        check_for_x_and_y_axes(cube, require_dim_coords=require_dim_coords)
         dim_coords = get_dim_coord_names(cube)
         msg = (
             "{} expects a cube with only a leading threshold dimension, "
