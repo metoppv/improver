@@ -38,7 +38,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube_nolazy,
+    *cubes: cli.inputpath,
     coordinate,
     weighting_method="linear",
     weighting_coord="forecast_period",
@@ -131,6 +131,9 @@ def process(
             If calc_method is dict and weights_dict is None.
     """
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
+
+    loadcube = cli.inputcube if not spatial_weights_from_mask else cli.inputcube_nolazy
+    cubes = [loadcube(str(cube)) for cube in cubes]
 
     if (weighting_method == "linear") and cval:
         raise RuntimeError("Method: linear does not accept arguments: cval")

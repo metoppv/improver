@@ -39,7 +39,7 @@ from improver import cli
 def process(
     cube: cli.inputcube,
     target_grid: cli.inputcube,
-    land_sea_mask: cli.inputcube,
+    land_sea_mask: cli.inputcube = None,
     *,
     regrid_mode="bilinear",
     extrapolation_mode="nanmask",
