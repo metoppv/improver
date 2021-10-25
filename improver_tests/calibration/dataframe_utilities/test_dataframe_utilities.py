@@ -78,24 +78,24 @@ class SetupSharedDataFrames(ImproverTest):
         )
         self.forecast_data = np.tile(data, 3)
 
-        self.frt1 = np.datetime64("2017-07-20T12:00:00+00:00")
-        self.frt2 = np.datetime64("2017-07-21T12:00:00+00:00")
-        self.frt3 = np.datetime64("2017-07-22T12:00:00+00:00")
+        self.frt1 = pd.Timestamp("2017-07-20T12:00:00", tz="UTC")
+        self.frt2 = pd.Timestamp("2017-07-21T12:00:00", tz="UTC")
+        self.frt3 = pd.Timestamp("2017-07-22T12:00:00", tz="UTC")
 
-        self.fp = np.timedelta64("6", "h")
+        self.fp = pd.Timedelta(6, unit="h")
 
-        self.time1 = np.datetime64("2017-07-20T18:00:00+00:00")
-        self.time2 = np.datetime64("2017-07-21T18:00:00+00:00")
-        self.time3 = np.datetime64("2017-07-22T18:00:00+00:00")
+        self.time1 = pd.Timestamp("2017-07-20T18:00:00", tz="UTC")
+        self.time2 = pd.Timestamp("2017-07-21T18:00:00", tz="UTC")
+        self.time3 = pd.Timestamp("2017-07-22T18:00:00", tz="UTC")
 
         self.wmo_ids = ["03002", "03003", "03004"]
-        self.percentiles = np.array([25, 50.0, 75.0], dtype=np.float32)
+        self.percentiles = np.array([25.0, 50.0, 75.0], dtype=np.float32)
         diag = "air_temperature"
         self.cf_name = "air_temperature"
         self.latitudes = np.array([50.0, 60.0, 70.0], dtype=np.float32)
         self.longitudes = np.array([-10.0, 0.0, 10.0], dtype=np.float32)
         self.altitudes = np.array([10.0, 20.0, 30.0], dtype=np.float32)
-        self.period = np.timedelta64(1, "h").astype("timedelta64[ns]")
+        self.period = pd.Timedelta(1, unit="h")
         self.height = np.array([1.5], dtype=np.float32)
         self.units = "Celsius"
 
@@ -173,28 +173,33 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
             [self.frt1, self.frt2, self.frt3], [self.time1, self.time2, self.time3]
         ):
             time_coord = iris.coords.DimCoord(
-                time.astype(TIME_COORDS["time"].dtype),
+                np.array(time.timestamp(), dtype=TIME_COORDS["time"].dtype),
                 "time",
                 bounds=[
-                    t.astype(TIME_COORDS["time"].dtype)
-                    for t in [time - self.period.astype("timedelta64[s]"), time]
+                    np.array(t.timestamp(), dtype=TIME_COORDS["time"].dtype)
+                    for t in [time - self.period, time]
                 ],
                 units=TIME_COORDS["time"].units,
             )
 
-            fp_point = self.fp.astype("timedelta64[s]")
             fp_coord = iris.coords.AuxCoord(
-                fp_point.astype(TIME_COORDS["forecast_period"].dtype),
+                np.array(
+                    self.fp.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype
+                ),
                 "forecast_period",
                 bounds=[
-                    f.astype(TIME_COORDS["forecast_period"].dtype)
-                    for f in [fp_point - self.period.astype("timedelta64[s]"), fp_point]
+                    np.array(
+                        f.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype
+                    )
+                    for f in [self.fp - self.period, self.fp]
                 ],
                 units=TIME_COORDS["forecast_period"].units,
             )
 
             frt_coord = iris.coords.AuxCoord(
-                frt.astype(TIME_COORDS["forecast_reference_time"].dtype),
+                np.array(
+                    frt.timestamp(), dtype=TIME_COORDS["forecast_reference_time"].dtype
+                ),
                 "forecast_reference_time",
                 units=TIME_COORDS["forecast_reference_time"].units,
             )
@@ -244,11 +249,11 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
             [self.time1, self.time2, self.time3], _chunker(self.truth_data, 3)
         ):
             time_coord = iris.coords.DimCoord(
-                time.astype(TIME_COORDS["time"].dtype),
+                np.array(time.timestamp(), dtype=TIME_COORDS["time"].dtype),
                 "time",
                 bounds=[
-                    t.astype(TIME_COORDS["time"].dtype)
-                    for t in [time - self.period.astype("timedelta64[s]"), time]
+                    np.array(t.timestamp(), dtype=TIME_COORDS["time"].dtype)
+                    for t in [time - self.period, time]
                 ],
                 units=TIME_COORDS["time"].units,
             )
@@ -408,12 +413,14 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 }
             )
 
-        fp_int = np.int32(np.timedelta64(forecast_period, "h").astype("timedelta64[s]"))
-        self.expected_period_forecast.coord("forecast_period").points = fp_int
-        self.expected_period_forecast.coord("forecast_period").bounds = [
-            fp_int - np.int32(self.period.astype("timedelta64[s]")),
-            fp_int,
-        ]
+        fp_int = pd.Timedelta(forecast_period, "h").total_seconds()
+        self.expected_period_forecast.coord("forecast_period").points = np.array(
+            fp_int, dtype=TIME_COORDS["forecast_period"].dtype
+        )
+        self.expected_period_forecast.coord("forecast_period").bounds = np.array(
+            [fp_int - self.period.total_seconds(), fp_int],
+            dtype=TIME_COORDS["forecast_period"].dtype,
+        )
 
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,
@@ -479,8 +486,61 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
+    def test_no_observations_for_a_time(self):
+        """Test for a time point having no observations."""
+        truth_subset_df = self.truth_subset_df[
+            self.truth_subset_df["time"].isin([self.time2, self.time3])
+        ]
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast[:, 1:])
+        self.assertCubeEqual(result[1], self.expected_period_truth[1:])
+
+    def test_percentile_extract(self):
+        """Test the desired percentiles are extracted."""
+        expected_period_forecast = self.expected_period_forecast[::2]
+        expected_period_forecast.coord("realization").points = np.array(
+            [0, 1], dtype=np.int32
+        )
+        forecast_df = self.forecast_df.copy()
+        forecast_df = forecast_df.replace({"percentile": self.percentiles[0]}, 100 / 3)
+        forecast_df = forecast_df.replace(
+            {"percentile": self.percentiles[2]}, (2 / 3) * 100
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+            percentiles=["33.333333", "66.666666"],
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_not_quantiles(self):
+        """Test if the percentiles can not be considered to be quantiles."""
+        forecast_df = self.forecast_df.copy()
+        forecast_df = forecast_df.replace({"percentile": self.percentiles[0]}, 10.0)
+        msg = "The forecast percentiles can not be considered as quantiles"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                forecast_df,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
     def test_missing_observation(self):
-        """Test a truth DataFrame with a missing observation at
+        """Test a truth DataFrame with one missing observation at
         a particular time is converted correctly into an iris Cube."""
         df = self.truth_subset_df.head(-1)
         self.expected_period_truth.data[-1, -1] = np.nan
