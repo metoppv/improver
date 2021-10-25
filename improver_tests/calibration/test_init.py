@@ -308,43 +308,101 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
             self.land_sea_mask.remove_coord(coord)
         self.land_sea_mask = CubeList([self.land_sea_mask])
 
+        altitude = set_up_variable_cube(
+            np.ones((4, 4), dtype=np.float32), name="surface_altitude", units="m"
+        )
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            altitude.remove_coord(coord)
+        self.additional_predictors = CubeList([altitude])
+
     def test_realization_forecast_and_coefficients(self):
         """Test a realization forecast input."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList([self.realization_forecast, self.coefficient_cubelist]),
             self.land_sea_mask_name,
         )
 
         self.assertCubeEqual(forecast, self.realization_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(additional_predictors, None)
         self.assertEqual(land_sea_mask, None)
         self.assertEqual(template, None)
 
     def test_percentile_forecast_and_coefficients(self):
         """Test a percentile forecast input."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList([self.percentile_forecast, self.coefficient_cubelist]),
             self.land_sea_mask_name,
         )
         self.assertCubeEqual(forecast, self.percentile_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(additional_predictors, None)
         self.assertEqual(land_sea_mask, None)
         self.assertEqual(template, None)
 
     def test_probability_forecast_and_coefficients(self):
         """Test a probability forecast input."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList([self.probability_forecast, self.coefficient_cubelist]),
             self.land_sea_mask_name,
         )
         self.assertCubeEqual(forecast, self.probability_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(additional_predictors, None)
+        self.assertEqual(land_sea_mask, None)
+        self.assertEqual(template, None)
+
+    def test_forecast_coefficients_additional_predictor(self):
+        """Test the addition of a static additional predictor."""
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
+            CubeList(
+                [
+                    self.realization_forecast,
+                    self.coefficient_cubelist,
+                    self.additional_predictors,
+                ]
+            ),
+            self.land_sea_mask_name,
+        )
+        self.assertCubeEqual(forecast, self.realization_forecast[0])
+        self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertCubeListEqual(additional_predictors, self.additional_predictors)
         self.assertEqual(land_sea_mask, None)
         self.assertEqual(template, None)
 
     def test_forecast_coefficients_and_land_sea_mask(self):
         """Test the addition of a land-sea mask."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList(
                 [
                     self.realization_forecast,
@@ -357,23 +415,37 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
 
         self.assertCubeEqual(forecast, self.realization_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(additional_predictors, None)
         self.assertCubeEqual(land_sea_mask, self.land_sea_mask[0])
         self.assertEqual(template, None)
 
     def test_no_land_sea_mask_name(self):
         """Test when not providing the land_sea_mask_name option."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList([self.realization_forecast, self.coefficient_cubelist]),
         )
 
         self.assertCubeEqual(forecast, self.realization_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(additional_predictors, None)
         self.assertEqual(land_sea_mask, None)
         self.assertEqual(template, None)
 
     def test_forecast_coefficients_prob_template(self):
         """Test the addition of a probability template cube."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList(
                 [
                     self.realization_forecast,
@@ -385,17 +457,25 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
         )
         self.assertCubeEqual(forecast, self.realization_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertEqual(additional_predictors, None)
         self.assertEqual(land_sea_mask, None)
         self.assertCubeEqual(template, self.probability_forecast[0])
 
     def test_all_options(self):
-        """Test providing a forecast, coefficients, land-sea mask and a
-        probability template."""
-        forecast, coeffs, land_sea_mask, template = split_forecasts_and_coeffs(
+        """Test providing a forecast, coefficients, additional predictor,
+        land-sea mask and a probability template."""
+        (
+            forecast,
+            coeffs,
+            additional_predictors,
+            land_sea_mask,
+            template,
+        ) = split_forecasts_and_coeffs(
             CubeList(
                 [
                     self.realization_forecast,
                     self.coefficient_cubelist,
+                    self.additional_predictors,
                     self.land_sea_mask,
                     self.probability_forecast,
                 ]
@@ -404,6 +484,7 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
         )
         self.assertCubeEqual(forecast, self.realization_forecast[0])
         self.assertCubeListEqual(coeffs, self.coefficient_cubelist)
+        self.assertCubeListEqual(additional_predictors, self.additional_predictors)
         self.assertCubeEqual(land_sea_mask, self.land_sea_mask[0])
         self.assertCubeEqual(template, self.probability_forecast[0])
 
@@ -424,7 +505,7 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
 
     def test_no_coefficients(self):
         """Test if no EMOS coefficients are provided."""
-        _, coeffs, _, _ = split_forecasts_and_coeffs(
+        _, coeffs, _, _, _ = split_forecasts_and_coeffs(
             CubeList([self.percentile_forecast]), self.land_sea_mask_name
         )
         self.assertIsNone(coeffs)

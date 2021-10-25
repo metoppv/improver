@@ -64,6 +64,9 @@ def process(
             could be either realizations, probabilities or percentiles.
             - A cubelist containing the coefficients used for calibration or None.
             If none then then input is returned unchanged.
+            - Optionally, cubes representing static additional predictors.
+            These static additional predictors are expected not to have a
+            time coordinate.
             - Optionally, a cube containing the land-sea mask on the same domain
             as the forecast that is to be calibrated. Land points are
             specified by ones and sea points are specified by zeros.
@@ -130,9 +133,13 @@ def process(
     from improver.calibration import split_forecasts_and_coeffs
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
-    (forecast, coefficients, land_sea_mask, prob_template) = split_forecasts_and_coeffs(
-        cubes, land_sea_mask_name
-    )
+    (
+        forecast,
+        coefficients,
+        additional_predictors,
+        land_sea_mask,
+        prob_template,
+    ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
 
     if coefficients is None:
         msg = (
@@ -146,6 +153,7 @@ def process(
     result = calibration_plugin(
         forecast,
         coefficients,
+        additional_fields=additional_predictors,
         land_sea_mask=land_sea_mask,
         prob_template=prob_template,
         realizations_count=realizations_count,

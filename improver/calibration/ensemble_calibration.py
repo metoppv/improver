@@ -1721,6 +1721,45 @@ class ApplyEMOS(PostProcessingPlugin):
         """
         self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
 
+    def _check_additional_field_sites(self, forecast, additional_fields):
+        """Check that the forecast and additional fields have matching sites.
+
+        Args:
+            forecast:
+                Uncalibrated forecast as probabilities, percentiles or
+                realizations
+            additional_fields:
+                Additional fields to be used as forecast predictors.
+
+        Raises:
+            ValueError: If the sites mismatch between the forecast and
+                additional fields.
+        """
+        if additional_fields:
+            if any([c.name() == "wmo_id" for c in forecast.coords()]):
+                sites = [
+                    np.array_equal(
+                        p.coord("wmo_id").points, forecast.coord("wmo_id").points
+                    )
+                    for p in additional_fields
+                ]
+                if not np.all(sites):
+                    mismatching_sites = []
+                    for ap in additional_fields:
+                        mismatching_sites.extend(
+                            list(
+                                set(ap.coord("wmo_id").points).symmetric_difference(
+                                    set(forecast.coord("wmo_id").points)
+                                )
+                            )
+                        )
+                    msg = (
+                        "The forecast and additional predictors have "
+                        f"mismatching sites. The mismatching sites are: "
+                        f"{list(set(mismatching_sites))}"
+                    )
+                    raise ValueError(msg)
+
     @staticmethod
     def _get_attribute(
         coefficients: CubeList, attribute_name: str, optional: bool = False
@@ -1958,6 +1997,7 @@ class ApplyEMOS(PostProcessingPlugin):
                 f"was {self.output_forecast_type}."
             )
             raise ValueError(msg)
+        self._check_additional_field_sites(forecast, additional_fields)
 
         forecast_as_realizations = forecast.copy()
         if self.input_forecast_type != "realizations":

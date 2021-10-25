@@ -28,13 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""init for calibration that contains functionality to split forecast and truth
-inputs, and functionality to convert a pandas DataFrame in the expected format
-into an iris cube.
-
-.. Further information is available in:
-.. include:: extended_documentation/calibration/calibration_data_ingestion.rst
-
+"""init for calibration that contains functionality to split forecast, truth
+and coefficient inputs.
 """
 
 from collections import OrderedDict
@@ -128,22 +123,24 @@ def split_forecasts_and_truth(
 def split_forecasts_and_coeffs(
     cubes: CubeList, land_sea_mask_name: Optional[str] = None,
 ):
-    """Split the input forecast, coefficients, land sea-mask and
-    probability template, if provided. The coefficients cubes and
-    land-sea mask are identified based on their name. The current
-    forecast and probability template are then split.
+    """Split the input forecast, coefficients, static additional predictors,
+    land sea-mask and probability template, if provided. The coefficients
+    cubes and land-sea mask are identified based on their name. The
+    static additional predictors are identified as not have a time
+    coordinate. The current forecast and probability template are then split.
 
     Args:
         cubes:
             A list of input cubes which will be split into relevant groups.
-            This includes the forecast, coefficients, land-sea mask and
-            probability template.
+            This includes the forecast, coefficients, static additional
+            predictors, land-sea mask and probability template.
         land_sea_mask_name:
             Name of the land-sea mask cube to help identification.
 
     Returns:
         - A cube containing the current forecast.
         - If found, a cubelist containing the coefficients else None.
+        - If found, a cubelist containing the static additional predictor else None.
         - If found, a land-sea mask will be returned, else None.
         - If found, a probability template will be returned, else None.
 
@@ -154,6 +151,7 @@ def split_forecasts_and_coeffs(
     coefficients = CubeList()
     land_sea_mask = None
     grouped_cubes: Dict[str, List[Cube]] = {}
+    static_additional_predictors = CubeList()
 
     for cubelist in cubes:
         for cube in cubelist:
@@ -161,6 +159,8 @@ def split_forecasts_and_coeffs(
                 coefficients.append(cube)
             elif land_sea_mask_name and cube.name() == land_sea_mask_name:
                 land_sea_mask = cube
+            elif "time" not in [c.name() for c in cube.coords()]:
+                static_additional_predictors.append(cube)
             else:
                 if "probability" in cube.name() and any(
                     "probability" in k for k in grouped_cubes
@@ -197,9 +197,13 @@ def split_forecasts_and_coeffs(
                 (current_forecast,) = grouped_cubes[key]
 
     coefficients = coefficients if coefficients else None
+    static_additional_predictors = (
+        static_additional_predictors if static_additional_predictors else None
+    )
     return (
         current_forecast,
         coefficients,
+        static_additional_predictors,
         land_sea_mask,
         prob_template,
     )

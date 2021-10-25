@@ -29,8 +29,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-This module defines all the utilities used by the "plugins"
-specific for ensemble calibration.
+Functionality to convert a pandas DataFrame in the expected format
+into an iris cube.
+
+.. Further information is available in:
+.. include:: extended_documentation/calibration/calibration_data_ingestion.rst
+
 
 """
 from typing import List, Optional, Sequence, Tuple
