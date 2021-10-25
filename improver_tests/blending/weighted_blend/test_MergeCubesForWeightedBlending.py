@@ -377,7 +377,7 @@ class Test_process(IrisTest):
         cube = plugin.process(self.cubelist)
         self.assertEqual(
             cube.attributes["mosg__model_run"],
-            "uk_det:20151123T0300Z:;uk_ens:20151123T0000Z:",
+            "uk_det:20151123T0300Z:\nuk_ens:20151123T0000Z:",
         )
 
     def test_record_run_existing(self):
@@ -390,7 +390,7 @@ class Test_process(IrisTest):
         )
         self.cube_ukv.attributes[
             "mosg__model_run"
-        ] = "uk_det:20151123T0200Z:;uk_det:20151123T0300Z:"
+        ] = "uk_det:20151123T0200Z:\nuk_det:20151123T0300Z:"
         cube = plugin.process([self.cube_ukv, self.cube_enuk])
         self.assertEqual(
             cube.attributes["mosg__model_run"],
