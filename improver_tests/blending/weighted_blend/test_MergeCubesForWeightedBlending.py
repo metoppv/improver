@@ -406,7 +406,7 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
         )
         self.cube_ukv.attributes.pop("mosg__model_configuration")
-        msg = "Failure to record run information \'mosg__model_run\'"
+        msg = "Failure to record run information"
         with self.assertRaisesRegex(Exception, msg):
             plugin.process([self.cube_ukv, self.cube_enuk])
 
