@@ -242,7 +242,7 @@ def _training_dates_for_calibration(
             The training dates will always be in the past, relative
             to the cycletime.
         forecast_period:
-            Forecast period in hours as an integer.
+            Forecast period in seconds as an integer.
         training_length:
             Training length in days as an integer.
 
@@ -350,7 +350,7 @@ def forecast_dataframe_to_cube(
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
-            Forecast period in hours as an integer.
+            Forecast period in seconds as an integer.
 
     Returns:
         Cube containing the forecasts from the training period.
