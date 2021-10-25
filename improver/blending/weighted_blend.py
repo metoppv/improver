@@ -254,7 +254,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
 
         # create model ID and model configuration coordinates if blending
         # different models
-        if "model" in self.blend_coord:
+        if "model" in self.blend_coord and self.model_id_attr is not None:
             self._create_model_coordinates(cubelist)
 
         # merge resulting cubelist
