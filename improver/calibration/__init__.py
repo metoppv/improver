@@ -28,13 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""init for calibration that contains functionality to split forecast and truth
-inputs, and functionality to convert a pandas DataFrame in the expected format
-into an iris cube.
-
-.. Further information is available in:
-.. include:: extended_documentation/calibration/calibration_data_ingestion.rst
-
+"""init for calibration that contains functionality to split forecast, truth
+and coefficient inputs.
 """
 
 from collections import OrderedDict

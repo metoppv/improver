@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the utilities within the `calibration.utilities`
+Unit tests for the utilities within the `calibration.dataframe_utilities`
 module.
 
 """
