@@ -84,7 +84,7 @@ def test_normal_point_by_point_sites(tmp_path):
     independently at each site (initial guess and minimisation)."""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/point_by_point"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / ".." / "input.nc"
+    input_path = kgo_dir / ".." / "realization_input.nc"
     emos_est_path = kgo_dir / "coefficients.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -134,6 +134,8 @@ def test_realizations_input_land_sea(tmp_path):
         land_sea_path,
         "--random-seed",
         "0",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--output",
         output_path,
     ]
@@ -195,6 +197,8 @@ def test_probabilities_input_land_sea(tmp_path):
         land_sea_path,
         "--realizations-count",
         "18",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--output",
         output_path,
     ]
@@ -251,11 +255,35 @@ def test_percentiles_input_land_sea(tmp_path):
         land_sea_path,
         "--realizations-count",
         "18",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--output",
         output_path,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
+def test_alternative_percentiles(tmp_path):
+    """Test using percentiles as input with an alternative set of
+    percentiles specified."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/alternative_percentiles"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "../percentiles/input.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--realizations-count",
+        "18",
+        "--percentiles",
+        "25,50,75",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_percentiles_error(tmp_path):
@@ -302,6 +330,79 @@ def test_rebadged_percentiles(tmp_path):
     )
 
 
+def test_percentiles_in_probabilities_out(tmp_path):
+    """Test using percentiles as input whilst providing a probability
+    template cube, so that probabilities are output."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
+    kgo_path = kgo_dir / "../probabilities/kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
+    prob_template_path = kgo_dir / "../probabilities/input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        prob_template_path,
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+
+
+def test_percentile_sites_additional_predictor(tmp_path):
+    """Test using percentile site forecasts with a static additional
+    predictor."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
+    kgo_path = kgo_dir / "percentile_kgo.nc"
+    input_path = kgo_dir / ".." / "percentile_input.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    additional_predictor_path = kgo_dir / "altitude.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        additional_predictor_path,
+        "--realizations-count",
+        "19",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
+def test_perc_in_prob_out_sites_additional_predictor(tmp_path):
+    """Test using percentile site forecasts with a static additional
+    predictor and a probability template to generate a probability
+    site forecast."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
+    kgo_path = kgo_dir / "probability_kgo.nc"
+    input_path = kgo_dir / ".." / "percentile_input.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    additional_predictor_path = kgo_dir / "altitude.nc"
+    prob_template = kgo_dir / "probability_template.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        additional_predictor_path,
+        prob_template,
+        "--realizations-count",
+        "19",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_no_coefficients(tmp_path):
     """Test no coefficients provided"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
@@ -338,44 +439,5 @@ def test_wrong_coefficients(tmp_path):
         "--output",
         output_path,
     ]
-    from iris.exceptions import ConstraintMismatchError
-
-    with pytest.raises(ConstraintMismatchError, match="Got 0 cubes for constraint.*"):
-        run_cli(args)
-
-
-def test_wrong_land_sea_mask(tmp_path):
-    """Test wrong land_sea_mask provided"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
-    emos_est_path = kgo_dir / "normal_coefficients.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        input_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match=".*land_sea_mask.*"):
-        run_cli(args)
-
-
-def test_wrong_forecast_coefficients(tmp_path):
-    """Test forecast cube being a coefficients cube"""
-    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
-    emos_est_path = kgo_dir / "normal_coefficients.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
-    from iris.exceptions import MergeError
-
-    with pytest.raises(MergeError, match="failed to merge into a single cube.*"):
+    with pytest.raises(ValueError, match="Multiple items have been provided.*"):
         run_cli(args)

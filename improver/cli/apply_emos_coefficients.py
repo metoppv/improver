@@ -35,27 +35,18 @@ Regression (NGR)."""
 
 from improver import cli
 
-# Creates the value_converter that clize needs.
-inputcoeffs = cli.create_constrained_inputcubelist_converter(
-    "emos_coefficient_alpha",
-    "emos_coefficient_beta",
-    "emos_coefficient_gamma",
-    "emos_coefficient_delta",
-)
-
 
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
-    coefficients: inputcoeffs = None,
-    land_sea_mask: cli.inputcube = None,
-    *,
+    *cubes: cli.inputcubelist,
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
     ignore_ecc_bounds=False,
     predictor="mean",
+    land_sea_mask_name: str = None,
+    percentiles: cli.comma_separated_list = None,
 ):
     """Applying coefficients for Ensemble Model Output Statistics.
 
@@ -67,19 +58,26 @@ def process(
     forecast is returned unchanged.
 
     Args:
-        cube (iris.cube.Cube):
-            A Cube containing the forecast to be calibrated. The input format
+        input_cubes (iris.cube.CubeList):
+            A list of cubes containing:
+            - A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-        coefficients (iris.cube.CubeList):
-            A cubelist containing the coefficients used for calibration or None.
+            - A cubelist containing the coefficients used for calibration or None.
             If none then then input is returned unchanged.
-        land_sea_mask (iris.cube.Cube):
-            A cube containing the land-sea mask on the same domain as the
-            forecast that is to be calibrated. Land points are "
-            "specified by ones and sea points are specified by zeros. "
-            "If not None this argument will enable land-only calibration, in "
-            "which sea points are returned without the application of "
-            "calibration."
+            - Optionally, cubes representing static additional predictors.
+            These static additional predictors are expected not to have a
+            time coordinate.
+            - Optionally, a cube containing the land-sea mask on the same domain
+            as the forecast that is to be calibrated. Land points are
+            specified by ones and sea points are specified by zeros.
+            The presence of a land-sea mask will enable land-only calibration, in
+            which sea points are returned without the application of
+            calibration. If a land-sea mask is provided, the land_sea_mask_name
+            must also be provided, in order to identify the land-sea mask.
+            - Optionally, a cube containing a probability forecast that will be
+            used as a template when generating probability output when the input
+            format of the forecast cube is not probabilities i.e. realizations
+            or percentiles.
         realizations_count (int):
             Option to specify the number of ensemble realizations that will be
             created from probabilities or percentiles when applying the EMOS
@@ -108,6 +106,13 @@ def process(
             the location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble
             realizations ("realizations") are supported as the predictors.
+        land_sea_mask_name (str):
+            Name of the land-sea mask cube. This must be provided if a
+            land-sea mask is provided within the list of input cubes, in
+            order to identify the land-sea mask. Providing the land-sea mask
+            ensures that only land points will be calibrated.
+        percentiles (List[float]):
+            The set of percentiles used to create the calibrated forecast.
 
     Returns:
         iris.cube.Cube:
@@ -125,7 +130,16 @@ def process(
     """
     import warnings
 
+    from improver.calibration import split_forecasts_and_coeffs
     from improver.calibration.ensemble_calibration import ApplyEMOS
+
+    (
+        forecast,
+        coefficients,
+        additional_predictors,
+        land_sea_mask,
+        prob_template,
+    ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
 
     if coefficients is None:
         msg = (
@@ -133,17 +147,15 @@ def process(
             "uncalibrated forecast will be returned."
         )
         warnings.warn(msg)
-        return cube
+        return forecast
 
-    if land_sea_mask and land_sea_mask.name() != "land_binary_mask":
-        msg = "The land_sea_mask cube does not have the name 'land_binary_mask'"
-        raise ValueError(msg)
-
-    calibration_plugin = ApplyEMOS()
+    calibration_plugin = ApplyEMOS(percentiles=percentiles)
     result = calibration_plugin(
-        cube,
+        forecast,
         coefficients,
+        additional_fields=additional_predictors,
         land_sea_mask=land_sea_mask,
+        prob_template=prob_template,
         realizations_count=realizations_count,
         ignore_ecc_bounds=ignore_ecc_bounds,
         predictor=predictor,

@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the `ensemble_calibration.ApplyEMOS` class."""
 
+import datetime
 import unittest
 from typing import Sequence, Union
 
@@ -39,7 +40,10 @@ from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.calibration.ensemble_calibration import ApplyEMOS
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
@@ -179,6 +183,61 @@ class Test_process(IrisTest):
                 np.full((3, 3), 10.534898),
             ]
         )
+        self.alternative_percentiles = [25.0, 50.0, 75.0]
+
+        land_sea_data = np.array([[1, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.int32)
+        self.land_sea_mask = set_up_variable_cube(
+            land_sea_data, name="land_binary_mask", units="1"
+        )
+
+        # Generate site forecast and additional predictor cubes.
+        data = np.tile([1.6, 1.3, 1.4, 1.1], (4, 1))
+        altitude = np.array([10, 20, 30, 40])
+        latitude = np.linspace(58.0, 59.5, 4)
+        longitude = np.linspace(-0.25, 0.5, 4)
+        wmo_id = ["03001", "03002", "03003", "03004"]
+        time_coords = construct_scalar_time_coords(
+            datetime.datetime(2017, 11, 5, 4, 0),
+            None,
+            datetime.datetime(2017, 11, 5, 0, 0),
+        )
+        time_coords = [t[0] for t in time_coords]
+        realization_coord = [
+            iris.coords.DimCoord(np.arange(1, 5), standard_name="realization")
+        ]
+        self.realizations_spot_cube = build_spotdata_cube(
+            data,
+            "air_temperature",
+            "degC",
+            altitude,
+            latitude,
+            longitude,
+            wmo_id,
+            scalar_coords=time_coords,
+            additional_dims=realization_coord,
+        )
+
+        self.realizations_spot_cube.attributes.update(MANDATORY_ATTRIBUTE_DEFAULTS)
+
+        self.spot_altitude_cube = self.realizations_spot_cube[0].copy(
+            self.realizations_spot_cube.coord("altitude").points
+        )
+        self.spot_altitude_cube.rename("altitude")
+        self.spot_altitude_cube.units = "m"
+        for coord in [
+            "altitude",
+            "forecast_period",
+            "forecast_reference_time",
+            "realization",
+            "time",
+        ]:
+            self.spot_altitude_cube.remove_coord(coord)
+
+        self.spot_coefficients = build_coefficients_cubelist(
+            self.realizations_spot_cube,
+            [0, [0.9, 0.1], 0, 1],
+            CubeList([self.realizations_spot_cube, self.spot_altitude_cube]),
+        )
 
     def test_null_percentiles(self):
         """Test effect of "neutral" emos coefficients in percentile space
@@ -261,6 +320,7 @@ class Test_process(IrisTest):
             ApplyEMOS()(self.percentiles, self.coefficients)
 
     def test_additional_predictor(self):
+        """Test providing an additional predictor."""
         altitude = set_up_variable_cube(
             np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
         )
@@ -286,13 +346,33 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_realizations_additional_predictor_at_sites(self):
+        """Test providing an additional predictor for site forecasts."""
+        expected_data = np.tile([2.44, 3.17, 4.26, 4.99], (4, 1))
+        result = ApplyEMOS()(
+            self.realizations_spot_cube,
+            self.spot_coefficients,
+            additional_fields=CubeList([self.spot_altitude_cube]),
+            realizations_count=3,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_additional_predictor_site_mismatch(self):
+        """Test for a mismatch in sites between the forecast and
+        the additional predictor."""
+        spot_altitude_cube = self.spot_altitude_cube[1:]
+        msg = "The forecast and additional predictors.*The mismatching sites are.*03001"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(
+                self.realizations_spot_cube,
+                self.spot_coefficients,
+                additional_fields=CubeList([spot_altitude_cube]),
+                realizations_count=3,
+            )
+
     def test_land_sea_mask(self):
         """Test that coefficients can be effectively applied to "land" points
         only"""
-        land_sea_data = np.array([[1, 1, 0], [1, 1, 0], [1, 0, 0]], dtype=np.int32)
-        land_sea_mask = set_up_variable_cube(
-            land_sea_data, name="land_binary_mask", units="1"
-        )
         # update the "gamma" value
         self.coefficients[2].data = 1
         expected_data_slice = np.array(
@@ -305,7 +385,7 @@ class Test_process(IrisTest):
         result = ApplyEMOS()(
             self.percentiles,
             self.coefficients,
-            land_sea_mask=land_sea_mask,
+            land_sea_mask=self.land_sea_mask,
             realizations_count=3,
         )
         self.assertArrayAlmostEqual(result.data[0], expected_data_slice)
@@ -375,6 +455,43 @@ class Test_process(IrisTest):
             np.mean(result.data), self.null_percentiles_expected_mean
         )
 
+    def test_percentiles_in_probabilities_out(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        (this is small but non-zero due to limited sampling of the
+        distribution)"""
+        expected_data = np.array(
+            [np.ones((3, 3)), np.full((3, 3), 0.977250), np.full((3, 3), 0.001350)]
+        )
+        result = ApplyEMOS()(
+            self.percentiles,
+            self.coefficients,
+            realizations_count=3,
+            prob_template=self.probabilities,
+        )
+        self.assertIn("probability_of", result.name())
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_alternative_percentiles(self):
+        """Test that the calibrated forecast is at a specified set of
+        percentiles."""
+        result = ApplyEMOS(percentiles=self.alternative_percentiles)(
+            self.percentiles, self.coefficients, realizations_count=3
+        )
+        self.assertArrayEqual(
+            result.coord("percentile").points, self.alternative_percentiles
+        )
+
+    def test_alternative_string_percentiles(self):
+        """Test that the calibrated forecast is at a specified set of
+        percentiles where the input percentiles are strings."""
+        str_percentiles = list(map(str, self.alternative_percentiles))
+        result = ApplyEMOS(percentiles=str_percentiles)(
+            self.percentiles, self.coefficients, realizations_count=3
+        )
+        self.assertArrayEqual(
+            result.coord("percentile").points, self.alternative_percentiles
+        )
+
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution
         attributes are provided within the coefficients cubelist."""
@@ -399,6 +516,20 @@ class Test_process(IrisTest):
         msg = "The distribution attribute must be specified on all coefficients cubes."
         with self.assertRaisesRegex(AttributeError, msg):
             ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
+
+    def test_land_sea_mask_input_output_format(self):
+        """Test that an exception is raised if a land-sea mask is supplied
+        whilst also requesting a different output format in comparison
+        to the input."""
+        msg = "If supplying a land-sea mask"
+        with self.assertRaisesRegex(ValueError, msg):
+            ApplyEMOS()(
+                self.percentiles,
+                self.coefficients,
+                realizations_count=3,
+                land_sea_mask=self.land_sea_mask,
+                prob_template=self.probabilities,
+            )
 
 
 if __name__ == "__main__":

@@ -184,6 +184,27 @@ class Test_WXCode(IrisTest):
             frt=frt,
         )
 
+        hail = set_up_probability_cube(
+            np.zeros((1, 3, 3), dtype=np.float32),
+            thresholds,
+            variable_name="lwe_graupel_and_hail_fall_rate_in_vicinity",
+            threshold_units="m s-1",
+            time=time,
+            time_bounds=[time - timedelta(hours=1), time],
+            frt=frt,
+        )
+
+        thresholds = np.array([2.77777778e-07], dtype=np.float32)
+        precipmaxrate = set_up_probability_cube(
+            np.zeros((1, 3, 3), dtype=np.float32),
+            thresholds,
+            variable_name="lwe_precipitation_rate_max",
+            threshold_units="m s-1",
+            time=time,
+            time_bounds=[time - timedelta(hours=1), time],
+            frt=frt,
+        )
+
         thresholds = np.array([1.0], dtype=np.float32)
         data_shower_condition = np.array(
             [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
@@ -207,9 +228,12 @@ class Test_WXCode(IrisTest):
                 cloud,
                 cloud_low,
                 visibility,
-                lightning,
                 precip_rate,
                 shower_condition,
+                # Period diagnostics below here.
+                lightning,
+                hail,
+                precipmaxrate,
             ]
         )
         names = [cube.name() for cube in self.cubes]
@@ -275,7 +299,7 @@ class Test_check_input_cubes(Test_WXCode):
         """Test check_input_cubes raises no error if lightning missing"""
         cubes = self.cubes.extract(self.missing_diagnostic)
         result = self.plugin.check_input_cubes(cubes)
-        self.assertIsInstance(result, dict)
+        self.assertIsInstance(result, list)
         self.assertEqual(len(result), 1)
         self.assertTrue("lightning" in result)
 
@@ -969,6 +993,97 @@ class Test_evaluate_condition_chain(Test_WXCode):
         self.assertArrayEqual(result, expected)
 
 
+class Test_remove_optional_missing(IrisTest):
+
+    """Test the rewriting of the decision tree on-the-fly to take into account
+    allowed missing diagnostics."""
+
+    def setUp(self):
+        """Setup a decision tree for testing."""
+        # self.tree = wxcode_decision_tree()
+        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+
+    def test_first_node(self):
+        """Test that if the first node, lightning, is missing, the start_node
+        progresses to its "if_diagnostic_missing" option."""
+
+        missing_diagnostic = "lightning"
+        target = self.plugin.queries[missing_diagnostic]["if_diagnostic_missing"]
+        expected = self.plugin.queries[missing_diagnostic][target]
+
+        self.plugin.remove_optional_missing([missing_diagnostic])
+
+        self.assertEqual(self.plugin.start_node, expected)
+
+    def test_intermediate_node(self):
+        """Test that if a node other than the first node is missing, is gets
+        cut out of the possible paths through the decision tree. In this case
+        it means that the hail "if_false" path skips "heavy_precipitation"
+        and instead targets its "if_diagnostic_missing" option, which is
+        "heavy_precipitation_cloud"."""
+
+        missing_diagnostics = "heavy_precipitation"
+        target = self.plugin.queries[missing_diagnostics]["if_diagnostic_missing"]
+        expected = self.plugin.queries[missing_diagnostics][target]
+
+        self.plugin.remove_optional_missing([missing_diagnostics])
+
+        self.assertEqual(self.plugin.queries["hail"]["if_false"], expected)
+
+    def test_sequential_missing_nodes(self):
+        """Test that if the diagnostics for two nodes, that are both allowed to
+        be missing, are absent, the start node skips both of them."""
+
+        missing_diagnostics = ["lightning", "hail"]
+
+        target = self.plugin.queries[missing_diagnostics[-1]]["if_diagnostic_missing"]
+        expected = self.plugin.queries[missing_diagnostics[-1]][target]
+
+        self.plugin.remove_optional_missing(missing_diagnostics)
+
+        self.assertEqual(self.plugin.start_node, expected)
+
+    def test_nonsequential_missing_nodes(self):
+        """Test that if the diagnostics for two non-sequential nodes, that are
+        both allowed to be missing, are absent, the tree is modified as
+        expected. In this case lightning and heavy_precipitation_cloud are missing.
+
+        Route being tested is:
+
+           lighting -> hail -> heavy_precipitation -> heavy_precipitation_cloud
+           -> heavy_snow_shower
+        """
+
+        missing_diagnostics = ["lightning", "heavy_precipitation_cloud"]
+
+        # Start node should be that targeted by lightning, the first missing
+        # diagnostic
+        target = self.plugin.queries["lightning"]["if_diagnostic_missing"]
+        expected_start = self.plugin.queries["lightning"][target]
+        # Expected subsequent step from the resulting first node (hail) due to
+        # a missing target (heavy precipitation). Note this is not an expected
+        # route through the tree but has been engineered for the test.
+        target = self.plugin.queries["heavy_precipitation_cloud"][
+            "if_diagnostic_missing"
+        ]
+        expected_next = self.plugin.queries["heavy_precipitation_cloud"][target]
+
+        self.plugin.remove_optional_missing(missing_diagnostics)
+
+        # Check hail has been made the first node
+        self.assertEqual(self.plugin.start_node, expected_start)
+
+        # Exract the heavy precipitation node.
+        test_node = self.plugin.queries["heavy_precipitation"]
+
+        # Check it's "if_true" path that targetted "heavy_precipitation_cloud"
+        # now targets "heavy_snow_shower"
+        self.assertEqual(test_node["if_true"], expected_next)
+        # Check the "if_false" path is unmodified as that target diagnostic
+        # is not missing
+        self.assertEqual(test_node["if_false"], "precipitation_in_vicinity")
+
+
 class Test_find_all_routes(IrisTest):
 
     """Test the find_all_routes method ."""
@@ -1002,49 +1117,6 @@ class Test_find_all_routes(IrisTest):
         self.assertIsInstance(result, list)
         self.assertListEqual(result, expected_nodes)
 
-    def test_omit_nodes_top_node(self):
-        """Test find_all_routes where omit node is top node."""
-        omit_nodes = {"start_node": "success_1"}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
-        )
-        expected_nodes = [["success_1", "success_1_1", 1]]
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_midtree(self):
-        """Test find_all_routes where omit node is mid tree."""
-        omit_nodes = {"success_1": "success_1_1"}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
-        )
-        expected_nodes = [
-            ["start_node", "success_1_1", 1],
-            ["start_node", "fail_0", "success_0_1", 1],
-        ]
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_blocked(self):
-        """Test find_all_routes where omitted node is no longer accessible."""
-        omit_nodes = {"fail_0": 3}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 5, omit_nodes=omit_nodes,
-        )
-        expected_nodes = []
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
-    def test_omit_nodes_multi(self):
-        """Test find_all_routes where multiple omitted nodes."""
-        omit_nodes = {"fail_0": 3, "success_1": "success_1_1"}
-        result = self.plugin.find_all_routes(
-            self.test_graph, "start_node", 1, omit_nodes=omit_nodes,
-        )
-        expected_nodes = [["start_node", "success_1_1", 1]]
-        self.assertIsInstance(result, list)
-        self.assertListEqual(result, expected_nodes)
-
 
 class Test_check_coincidence(Test_WXCode):
     """Test the check_coincidence method."""
@@ -1063,7 +1135,7 @@ class Test_check_coincidence(Test_WXCode):
         no exception is raised."""
 
         self.plugin.check_coincidence(self.cubes)
-        self.assertIn("number_of_lightning_flashes", self.plugin.template_cube.name())
+        self.assertIn("lwe_precipitation_rate_max", self.plugin.template_cube.name())
         self.assertTrue(
             (
                 self.plugin.template_cube.coord("time").bounds == self.expected_bounds
@@ -1135,7 +1207,7 @@ class Test_check_coincidence(Test_WXCode):
         """Test that the first cube in the diagnostic cube list is set as the
         global template cube if there are no period diagnostics."""
 
-        cubes = [cube for cube in self.cubes if "lightning" not in cube.name()]
+        cubes = self.cubes[:8]
         expected = cubes[0]
         self.plugin.check_coincidence(cubes)
         self.assertEqual(self.plugin.template_cube, expected)
@@ -1298,7 +1370,7 @@ class Test_process(Test_WXCode):
         """Test process returns right values if all lightning. """
         data_lightning = np.ones((3, 3))
         cubes = self.cubes
-        cubes[7].data = data_lightning
+        cubes[9].data = data_lightning
         result = self.plugin.process(self.cubes)
         expected_wxcode = np.ones((3, 3)) * 30
         expected_wxcode[0, 1] = 29
@@ -1306,13 +1378,24 @@ class Test_process(Test_WXCode):
         expected_wxcode[2, 0] = 29
         self.assertArrayAndMaskEqual(result.data, expected_wxcode)
 
+    def test_lightning_but_missing_next_node(self):
+        """Test process returns right values if a lightning input is provided,
+        but the next node, hail, is missing. Lightning is set in one corner
+        only, all other resulting values should match default expected values.
+        This indicates that the missing hail node has been omitted successfully."""
+        cubes = self.cubes[:10] + [self.cubes[-1]]
+        cubes[9].data[0, 0] = 1
+        result = self.plugin.process(cubes)
+        self.expected_wxcode[0, 0] = 30
+        self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
+
     def test_masked_precip(self):
         """Test process returns right values when precipitation data are fully masked
         (e.g. nowcast-only). The only possible non-masked result is a lightning code as
         these do not include precipitation in any of their decision routes."""
-        data_precip = np.ma.masked_all_like(self.cubes[8].data)
+        data_precip = np.ma.masked_all_like(self.cubes[7].data)
         cubes = self.cubes
-        cubes[8].data = data_precip
+        cubes[7].data = data_precip
         result = self.plugin.process(self.cubes)
         expected_wxcode = np.ma.masked_all_like(self.expected_wxcode)
         expected_wxcode[0, 1] = self.expected_wxcode[0, 1]
@@ -1377,9 +1460,9 @@ class Test_process(Test_WXCode):
         cubes[4].data = data_cloud
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
-        cubes[7].data = data_lightning
-        cubes[8].data = data_precip
-        cubes[9].data = data_shower_condition
+        cubes[7].data = data_precip
+        cubes[8].data = data_shower_condition
+        cubes[9].data = data_lightning
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_alternate)
 
@@ -1393,8 +1476,8 @@ class Test_process(Test_WXCode):
         data_cloud = np.ones_like(self.cubes[4].data)
         data_cld_low = np.ones_like(self.cubes[5].data)
         data_vis = np.zeros_like(self.cubes[6].data)
-        data_lightning = np.zeros_like(self.cubes[7].data)
-        data_shower_condition = np.zeros_like(self.cubes[9].data)
+        data_lightning = np.zeros_like(self.cubes[9].data)
+        data_shower_condition = np.zeros_like(self.cubes[8].data)
         expected = np.ones_like(self.expected_wxcode_alternate) * 18
 
         cubes = self.cubes
@@ -1405,9 +1488,9 @@ class Test_process(Test_WXCode):
         cubes[4].data = data_cloud
         cubes[5].data = data_cld_low
         cubes[6].data = data_vis
-        cubes[7].data = data_lightning
-        cubes[8].data = data_precip
-        cubes[9].data = data_shower_condition
+        cubes[7].data = data_precip
+        cubes[8].data = data_shower_condition
+        cubes[9].data = data_lightning
         result = self.plugin.process(cubes)
         self.assertArrayAndMaskEqual(result.data, expected)
 

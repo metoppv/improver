@@ -94,6 +94,13 @@ WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
 
 DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 
+GROUPED_CODES = {
+    "snow": [23, 24, 26, 27],
+    "sleet": [17, 18],
+    "rain": [10, 12, 14, 15],
+    "convection": [20, 21, 29, 30],
+}
+
 
 def update_tree_units(tree: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
     """

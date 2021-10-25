@@ -38,7 +38,7 @@ Statistics (EMOS).
 
 """
 import warnings
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
 import iris
 import numpy as np
@@ -1712,6 +1712,54 @@ class ApplyEMOS(PostProcessingPlugin):
     Class to calibrate an input forecast given EMOS coefficients
     """
 
+    def __init__(self, percentiles: Optional[Sequence] = None):
+        """Initialise class.
+
+        Args:
+            percentiles:
+                The set of percentiles used to create the calibrated forecast.
+        """
+        self.percentiles = [np.float32(p) for p in percentiles] if percentiles else None
+
+    def _check_additional_field_sites(self, forecast, additional_fields):
+        """Check that the forecast and additional fields have matching sites.
+
+        Args:
+            forecast:
+                Uncalibrated forecast as probabilities, percentiles or
+                realizations
+            additional_fields:
+                Additional fields to be used as forecast predictors.
+
+        Raises:
+            ValueError: If the sites mismatch between the forecast and
+                additional fields.
+        """
+        if additional_fields:
+            if any([c.name() == "wmo_id" for c in forecast.coords()]):
+                sites = [
+                    np.array_equal(
+                        p.coord("wmo_id").points, forecast.coord("wmo_id").points
+                    )
+                    for p in additional_fields
+                ]
+                if not np.all(sites):
+                    mismatching_sites = []
+                    for ap in additional_fields:
+                        mismatching_sites.extend(
+                            list(
+                                set(ap.coord("wmo_id").points).symmetric_difference(
+                                    set(forecast.coord("wmo_id").points)
+                                )
+                            )
+                        )
+                    msg = (
+                        "The forecast and additional predictors have "
+                        f"mismatching sites. The mismatching sites are: "
+                        f"{list(set(mismatching_sites))}"
+                    )
+                    raise ValueError(msg)
+
     @staticmethod
     def _get_attribute(
         coefficients: CubeList, attribute_name: str, optional: bool = False
@@ -1759,30 +1807,30 @@ class ApplyEMOS(PostProcessingPlugin):
         )
         raise AttributeError(msg)
 
-    @staticmethod
-    def _get_forecast_type(forecast: Cube) -> str:
+    def _get_input_forecast_type(self, forecast: Cube):
         """Identifies whether the forecast is in probability, realization
-        or percentile space
+        or percentile space.
 
         Args:
             forecast
 
-        Returns:
-            The forecast type
         """
         try:
             find_percentile_coordinate(forecast)
         except CoordinateNotFoundError:
             if forecast.name().startswith("probability_of"):
-                return "probabilities"
-            return "realizations"
-        return "percentiles"
+                forecast_type = "probabilities"
+            else:
+                forecast_type = "realizations"
+        else:
+            forecast_type = "percentiles"
+        self.input_forecast_type = forecast_type
 
     def _convert_to_realizations(
-        self, forecast: Cube, realizations_count: int, ignore_ecc_bounds: bool
+        self, forecast: Cube, realizations_count: Optional[int], ignore_ecc_bounds: bool
     ) -> Cube:
         """Convert an input forecast of probabilities or percentiles into
-        pseudo-realizations
+        pseudo-realizations.
 
         Args:
             forecast
@@ -1797,14 +1845,14 @@ class ApplyEMOS(PostProcessingPlugin):
         if not realizations_count:
             raise ValueError(
                 "The 'realizations_count' argument must be defined "
-                "for forecasts provided as {}".format(self.forecast_type)
+                "for forecasts provided as {}".format(self.input_forecast_type)
             )
 
-        if self.forecast_type == "probabilities":
+        if self.input_forecast_type == "probabilities":
             conversion_plugin = ConvertProbabilitiesToPercentiles(
                 ecc_bounds_warning=ignore_ecc_bounds
             )
-        if self.forecast_type == "percentiles":
+        if self.input_forecast_type == "percentiles":
             conversion_plugin = ResamplePercentiles(
                 ecc_bounds_warning=ignore_ecc_bounds
             )
@@ -1818,15 +1866,17 @@ class ApplyEMOS(PostProcessingPlugin):
 
         return forecast_as_realizations
 
-    def _calibrate_forecast(
-        self, forecast: Cube, randomise: bool, random_seed: int
+    def _format_forecast(
+        self, template: Cube, randomise: bool, random_seed: Optional[int]
     ) -> Cube:
         """
-        Generate calibrated probability, percentile or realization output
+        Generate calibrated probability, percentile or realization output in
+        the desired format.
 
         Args:
-            forecast:
-                Uncalibrated input forecast
+            template:
+                A template cube containing the coordinates and metadata expected
+                on the calibrated forecast.
             randomise:
                 If True, order realization output randomly rather than using
                 the input forecast.  If forecast type is not realizations, this
@@ -1839,13 +1889,13 @@ class ApplyEMOS(PostProcessingPlugin):
         Returns:
             Calibrated forecast
         """
-        if self.forecast_type == "probabilities":
+        if self.output_forecast_type == "probabilities":
             conversion_plugin = ConvertLocationAndScaleParametersToProbabilities(
                 distribution=self.distribution["name"],
                 shape_parameters=self.distribution["shape"],
             )
             result = conversion_plugin(
-                self.distribution["location"], self.distribution["scale"], forecast
+                self.distribution["location"], self.distribution["scale"], template
             )
 
         else:
@@ -1854,25 +1904,27 @@ class ApplyEMOS(PostProcessingPlugin):
                 shape_parameters=self.distribution["shape"],
             )
 
-            if self.forecast_type == "percentiles":
-                perc_coord = find_percentile_coordinate(forecast)
+            if self.output_forecast_type == "percentiles":
+                perc_coord = find_percentile_coordinate(template)
                 result = conversion_plugin(
                     self.distribution["location"],
                     self.distribution["scale"],
-                    forecast,
-                    percentiles=perc_coord.points,
+                    template,
+                    percentiles=self.percentiles
+                    if self.percentiles
+                    else perc_coord.points,
                 )
             else:
-                no_of_percentiles = len(forecast.coord("realization").points)
+                no_of_percentiles = len(template.coord("realization").points)
                 percentiles = conversion_plugin(
                     self.distribution["location"],
                     self.distribution["scale"],
-                    forecast,
+                    template,
                     no_of_percentiles=no_of_percentiles,
                 )
                 result = EnsembleReordering().process(
                     percentiles,
-                    forecast,
+                    template,
                     random_ordering=randomise,
                     random_seed=random_seed,
                 )
@@ -1885,6 +1937,7 @@ class ApplyEMOS(PostProcessingPlugin):
         coefficients: CubeList,
         additional_fields: Optional[CubeList] = None,
         land_sea_mask: Optional[Cube] = None,
+        prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
         predictor: str = "mean",
@@ -1905,6 +1958,11 @@ class ApplyEMOS(PostProcessingPlugin):
                 Land sea mask where a value of "1" represents land points and
                 "0" represents sea.  If set, allows calibration of land points
                 only.
+            prob_template:
+                A cube containing a probability forecast that will be used as
+                a template when generating probability output when the input
+                format of the forecast cube is not probabilities i.e. realizations
+                or percentiles.
             realizations_count:
                 Number of realizations to use when generating the intermediate
                 calibrated forecast from probability or percentile inputs
@@ -1925,10 +1983,24 @@ class ApplyEMOS(PostProcessingPlugin):
             Calibrated forecast in the form of the input (ie probabilities
             percentiles or realizations)
         """
-        self.forecast_type = self._get_forecast_type(forecast)
+        self._get_input_forecast_type(forecast)
+        self.output_forecast_type = (
+            "probabilities" if prob_template else self.input_forecast_type
+        )
+        if land_sea_mask and self.input_forecast_type != self.output_forecast_type:
+            msg = (
+                "If supplying a land-sea mask, the format of the input "
+                "forecast must be the same as the format of the output "
+                "forecast to facilitate merging of pre-calibration "
+                "and post-calibration data. The input forecast type was "
+                f"{self.input_forecast_type}. The output forecast type "
+                f"was {self.output_forecast_type}."
+            )
+            raise ValueError(msg)
+        self._check_additional_field_sites(forecast, additional_fields)
 
         forecast_as_realizations = forecast.copy()
-        if self.forecast_type != "realizations":
+        if self.input_forecast_type != "realizations":
             forecast_as_realizations = self._convert_to_realizations(
                 forecast.copy(), realizations_count, ignore_ecc_bounds
             )
@@ -1952,7 +2024,8 @@ class ApplyEMOS(PostProcessingPlugin):
             ),
         }
 
-        result = self._calibrate_forecast(forecast, randomise, random_seed)
+        template = prob_template if prob_template else forecast
+        result = self._format_forecast(template, randomise, random_seed)
 
         if land_sea_mask:
             # fill in masked sea points with uncalibrated data
