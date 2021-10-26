@@ -49,6 +49,7 @@ def process(
     ynval: float = None,
     cval: float = None,
     model_id_attr: str = None,
+    record_run_attr: str = None,
     spatial_weights_from_mask=False,
     fuzzy_length=20000.0,
 ):
@@ -99,6 +100,10 @@ def process(
         model_id_attr (str):
             The name of the dataset attribute to be used to identify the source
             model when blending data from different models.
+        record_run_attr:
+            The name of the dataset attribute to be used to store model and
+            cycle sources in metadata, e.g. when blending data from different
+            models. Requires model_id_attr.
         spatial_weights_from_mask (bool):
             If True, this option will result in the generation of spatially
             varying weights based on the masks of the data we are blending.
@@ -141,7 +146,9 @@ def process(
     if (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
     if "model" in coordinate and model_id_attr is None:
-        raise RuntimeError("model_id_attr must be specified for " "model blending")
+        raise RuntimeError("model_id_attr must be specified for model blending")
+    if record_run_attr is not None and model_id_attr is None:
+        raise RuntimeError("model_id_attr must be specified for blend model recording")
 
     plugin = WeightAndBlend(
         coordinate,
@@ -157,6 +164,7 @@ def process(
         cubes,
         cycletime=cycletime,
         model_id_attr=model_id_attr,
+        record_run_attr=record_run_attr,
         spatial_weights=spatial_weights_from_mask,
         fuzzy_length=fuzzy_length,
         attributes_dict=attributes_config,
