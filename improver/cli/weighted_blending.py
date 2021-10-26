@@ -137,6 +137,11 @@ def process(
     """
     from improver.blending.calculate_weights_and_blend import WeightAndBlend
 
+    # make the data nonlazy
+    if spatial_weights_from_mask:
+        for _ in map(lambda cube: getattr(cube, "data"), cubes):
+            pass
+
     if (weighting_method == "linear") and cval:
         raise RuntimeError("Method: linear does not accept arguments: cval")
     if (weighting_method == "nonlinear") and any([y0val, ynval]):
