@@ -539,10 +539,45 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.training_length,
             )
 
-    def test_missing_observation(self):
-        """Test a truth DataFrame with one missing observation at
-        a particular time is converted correctly into an iris Cube."""
-        df = self.truth_subset_df.head(-1)
+    def test_missing_observation_at_start(self):
+        """Test a truth DataFrame with one missing observation
+        within the first row of the dataframe is converted correctly
+        into an iris Cube."""
+        df = self.truth_subset_df.drop(0)
+        self.expected_period_truth.data[0, 0] = np.nan
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_missing_observation_in_middle(self):
+        """Test a truth DataFrame with one missing observation
+        within a central row within the dataframe is converted correctly
+        into an iris Cube."""
+        df = self.truth_subset_df.drop(4)
+        self.expected_period_truth.data[1, 1] = np.nan
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_missing_observation_at_end(self):
+        """Test a truth DataFrame with one missing observation
+        within the last row of the dataframe is converted correctly
+        into an iris Cube."""
+        df = self.truth_subset_df.drop(8)
         self.expected_period_truth.data[-1, -1] = np.nan
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
