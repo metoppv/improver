@@ -406,7 +406,7 @@ def broadcast_data_to_time_coord(cubelist: CubeList) -> List[ndarray]:
         data = cube.data
         if not cube.coords("time") and num_times:
             # Broadcast data from cube along a time dimension.
-            data = np.broadcast_to(data, (num_times,) + data.shape)
+            data = np.broadcast_to(data, (num_times[0],) + data.shape)
 
         broadcasted_data.append(data)
     return broadcasted_data
