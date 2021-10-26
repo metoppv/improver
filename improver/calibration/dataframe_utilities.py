@@ -328,9 +328,10 @@ def _prepare_dataframes(
         ]
     ].drop_duplicates()
 
-    # Use "outer" to fill in any missing observations in the truth dataframe.
+    # Use "right" to fill in any missing observations in the truth dataframe
+    # and retain the order from the forecast_subset.
     truth_df = truth_df.merge(
-        forecast_subset, on=["wmo_id", "time", "diagnostic"], how="outer"
+        forecast_subset, on=["wmo_id", "time", "diagnostic"], how="right"
     )
     return forecast_df, truth_df
 

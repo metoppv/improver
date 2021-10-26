@@ -542,8 +542,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_missing_observation(self):
         """Test a truth DataFrame with one missing observation at
         a particular time is converted correctly into an iris Cube."""
-        df = self.truth_subset_df.head(-1)
-        self.expected_period_truth.data[-1, -1] = np.nan
+        df = self.truth_subset_df.tail(-1)
+        self.expected_period_truth.data[0, 0] = np.nan
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             df,
