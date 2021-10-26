@@ -123,9 +123,9 @@ def _preprocess_temporal_columns(df: DataFrame) -> DataFrame:
         accessible as pandas datetime objects.
     """
     for col in df.select_dtypes(include=["datetime64[ns, UTC]"]):
-        df[col] = df[col].astype("O")
+        df = df.astype({col: "O"})
     for col in df.select_dtypes(include="timedelta64[ns]"):
-        df[col] = df[col].astype("O")
+        df = df.astype({col: "O"})
     return df
 
 
@@ -310,6 +310,9 @@ def _prepare_dataframes(
 
     # Ensure time in forecasts is present in truths.
     forecast_df = forecast_df[forecast_df["time"].isin(truth_df["time"].unique())]
+
+    # Ensure time in truths is present in forecasts.
+    truth_df = truth_df[truth_df["time"].isin(forecast_df["time"].unique())]
 
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df
