@@ -738,6 +738,17 @@ class Test_broadcast_data_to_time_coord(IrisTest):
         self.assertTupleEqual(results[0].shape, self.expected_forecast)
         self.assertTupleEqual(results[1].shape, self.expected_altitude)
 
+    def test_scalar_time_coord(self):
+        """Test handling of a scalar time coordinate on the historic forecasts,
+        which may occur during the spinning-up of a training dataset."""
+        self.forecast_predictors = iris.cube.CubeList(
+            [self.forecast[:, 0], self.altitude]
+        )
+        results = broadcast_data_to_time_coord(self.forecast_predictors)
+        self.assertEqual(len(results), 2)
+        self.assertTupleEqual(results[0].shape, self.forecast[:, 0].shape)
+        self.assertTupleEqual(results[1].shape, self.altitude.shape)
+
 
 if __name__ == "__main__":
     unittest.main()

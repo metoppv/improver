@@ -378,7 +378,10 @@ def check_forecast_consistency(forecasts: Cube) -> None:
 def broadcast_data_to_time_coord(cubelist: CubeList) -> List[ndarray]:
     """Ensure that the data from all cubes within a cubelist is of the required shape
     by broadcasting the data from cubes without a time coordinate along the time
-    dimension taken from other input cubes that do have a time coordinate.
+    dimension taken from other input cubes that do have a time coordinate. In the
+    case where none of the input cubes have a time coordinate that is a dimension
+    coordinate, which may occur when using a very small training dataset, the
+    data is returned without being broadcast.
 
     Args:
         cubelist:
@@ -390,17 +393,18 @@ def broadcast_data_to_time_coord(cubelist: CubeList) -> List[ndarray]:
        time coordinate have had their data broadcast along the time dimension
        (with this time dimension provided by other input cubes with a time
        dimension) to ensure that the data within each numpy array within the
-       output list has the same shape.
+       output list has the same shape. If a time dimension coordinate is not
+       present on any of the cubes, no broadcasting occurs.
     """
     broadcasted_data = []
-    (num_times,) = [
+    num_times = [
         len(cube.coord("time").points)
         for cube in cubelist
         if cube.coords("time", dim_coords=True)
     ]
     for cube in cubelist:
         data = cube.data
-        if not cube.coords("time"):
+        if not cube.coords("time") and num_times:
             # Broadcast data from cube along a time dimension.
             data = np.broadcast_to(data, (num_times,) + data.shape)
 
