@@ -426,6 +426,35 @@ def test_no_coefficients(tmp_path):
     )
 
 
+def test_no_coefficients_with_prob_template(tmp_path):
+    """Test no coefficients provided with a probability template."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
+    input_path = kgo_dir / ".." / "percentile_input.nc"
+    prob_template = kgo_dir / "probability_template.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        prob_template,
+        "--realizations-count",
+        "19",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    with pytest.warns(
+        UserWarning, match=".*no coefficients provided.*probability template.*"
+    ):
+        run_cli(args)
+    acc.compare(
+        output_path,
+        prob_template,
+        recreate=False,
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
+    )
+
+
 def test_wrong_coefficients(tmp_path):
     """Test wrong coefficients provided"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"

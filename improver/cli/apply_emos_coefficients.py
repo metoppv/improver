@@ -77,7 +77,9 @@ def process(
             - Optionally, a cube containing a probability forecast that will be
             used as a template when generating probability output when the input
             format of the forecast cube is not probabilities i.e. realizations
-            or percentiles.
+            or percentiles. If no coefficients are provided and a probability
+            template is provided, the probability template forecast will be
+            returned as the uncalibrated probability forecast.
         realizations_count (int):
             Option to specify the number of ensemble realizations that will be
             created from probabilities or percentiles when applying the EMOS
@@ -142,6 +144,17 @@ def process(
     ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
 
     if coefficients is None:
+        if prob_template:
+            msg = (
+                "There are no coefficients provided for calibration. As a "
+                "probability template has been provided with the aim of "
+                "creating a calibrated probability forecast, the probability "
+                "template will be returned as the uncalibrated probability "
+                "forecast."
+            )
+            warnings.warn(msg)
+            return prob_template
+
         msg = (
             "There are no coefficients provided for calibration. The "
             "uncalibrated forecast will be returned."
