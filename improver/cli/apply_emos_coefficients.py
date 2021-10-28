@@ -63,7 +63,9 @@ def process(
             - A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
             - A cubelist containing the coefficients used for calibration or None.
-            If none then then input is returned unchanged.
+            - A cubelist containing the coefficients used for calibration or None.
+            If none then the input, or probability template if provided,
+            is returned unchanged.
             - Optionally, cubes representing static additional predictors.
             These static additional predictors are expected not to have a
             time coordinate.
