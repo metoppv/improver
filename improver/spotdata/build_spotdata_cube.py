@@ -34,7 +34,7 @@ from typing import List, Optional, Union
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord, Coord
+from iris.coords import AuxCoord, Coord, DimCoord
 from iris.cube import Cube
 from numpy import ndarray
 

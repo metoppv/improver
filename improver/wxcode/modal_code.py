@@ -39,8 +39,8 @@ from scipy import stats
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 
-from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 from ..metadata.forecast_times import forecast_period_coord
+from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 
 CODE_MAX = 100
 UNSET_CODE_INDICATOR = -99
