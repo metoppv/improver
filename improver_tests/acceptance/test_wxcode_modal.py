@@ -40,7 +40,14 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "test_path", ["gridded_input", "spot_input", "gridded_ties", "spot_ties"],
+    "test_path",
+    [
+        "gridded_input",
+        "spot_input",
+        "gridded_ties",
+        "spot_ties",
+        "blend_mismatch_inputs",
+    ],
 )
 @pytest.mark.slow
 def test_expected(tmp_path, test_path):
@@ -51,7 +58,8 @@ def test_expected(tmp_path, test_path):
         - gridded / spot data input engineered to provide many ties that are
           solved using grouping
         - a night-time code test using spot data
-         """
+        - spot data where one input has a different blend-time to the rest
+    """
     kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = (kgo_dir).glob("202012*.nc")

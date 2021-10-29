@@ -34,7 +34,7 @@ from typing import List, Optional, Union
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord, DimCoord, Coord
 from iris.cube import Cube
 from numpy import ndarray
 
@@ -51,11 +51,11 @@ def build_spotdata_cube(
     wmo_id: Union[str, List[str]],
     unique_site_id: Optional[Union[List[str], ndarray]] = None,
     unique_site_id_key: Optional[str] = None,
-    scalar_coords: Optional[List[AuxCoord]] = None,
-    auxiliary_coords: Optional[List[AuxCoord]] = None,
+    scalar_coords: Optional[List[Coord]] = None,
+    auxiliary_coords: Optional[List[Coord]] = None,
     neighbour_methods: Optional[List[str]] = None,
     grid_attributes: Optional[List[str]] = None,
-    additional_dims: Optional[List[DimCoord]] = None,
+    additional_dims: Optional[List[Coord]] = None,
 ) -> Cube:
     """
     Function to build a spotdata cube with expected dimension and auxiliary
@@ -99,9 +99,9 @@ def build_spotdata_cube(
             String to name the unique_site_id coordinate. Required if
             unique_site_id is in use.
         scalar_coords:
-            Optional list of iris.coords.AuxCoord instances
+            Optional list of iris.coords.Coord instances
         auxiliary_coords:
-            Optional list of iris.coords.AuxCoord instances which are non-scalar.
+            Optional list of iris.coords.Coord instances which are non-scalar.
         neighbour_methods:
             Optional list of neighbour method names, e.g. 'nearest'
         grid_attributes:
