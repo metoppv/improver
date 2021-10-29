@@ -58,6 +58,7 @@ FORECAST_DATAFRAME_COLUMNS = [
     "blend_time",
     "cf_name",
     "diagnostic",
+    "experiment",
     "forecast",
     "forecast_period",
     "forecast_reference_time",
@@ -340,7 +341,10 @@ def _prepare_dataframes(
 
 
 def forecast_dataframe_to_cube(
-    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int
+    df: DataFrame,
+    training_dates: DatetimeIndex,
+    forecast_period: int,
+    experiment: Optional[str] = None,
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -355,10 +359,25 @@ def forecast_dataframe_to_cube(
             Datetimes spanning the training period.
         forecast_period:
             Forecast period in seconds as an integer.
+        experiment:
+            A value within the experiment column to select from the forecast
+            table.
 
     Returns:
         Cube containing the forecasts from the training period.
     """
+    # Filter to select only one experiment
+    if experiment:
+        df = df.loc[df["experiment"] == experiment]
+
+    if df["experiment"].nunique() > 1:
+        unique_exps = df["experiment"].unique()
+        msg = (
+            "More than one value for the experiment column found in the "
+            f"forecast dataframe. Values for experiment column {unique_exps}"
+        )
+        raise ValueError(msg)
+
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
     cubelist = CubeList()
@@ -499,6 +518,7 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_period: int,
     training_length: int,
     percentiles: Optional[List[float]] = None,
+    experiment: Optional[str] = None,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
     truth DataFrame into an iris Cube.
@@ -522,6 +542,10 @@ def forecast_and_truth_dataframes_to_cubes(
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
             These should be a set of equally spaced quantiles.
+        experiment:
+            A value within the experiment column to select from the forecast
+            table.
+
 
     Returns:
         Forecasts and truths for the training period in Cube format.
@@ -535,7 +559,7 @@ def forecast_and_truth_dataframes_to_cubes(
     )
 
     forecast_cube = forecast_dataframe_to_cube(
-        forecast_df, training_dates, forecast_period
+        forecast_df, training_dates, forecast_period, experiment=experiment
     )
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube

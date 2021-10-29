@@ -98,6 +98,7 @@ class SetupSharedDataFrames(ImproverTest):
         self.period = pd.Timedelta(1, unit="h")
         self.height = np.array([1.5], dtype=np.float32)
         self.units = "Celsius"
+        self.experiment = "standardise"
 
         df_dict = {
             "forecast": self.forecast_data,
@@ -115,6 +116,7 @@ class SetupSharedDataFrames(ImproverTest):
             "height": np.tile(self.height, 27),
             "cf_name": [self.cf_name] * 27,
             "units": [self.units] * 27,
+            "experiment": [self.experiment] * 27,
         }
 
         self.forecast_df = pd.DataFrame(df_dict)
@@ -287,6 +289,31 @@ class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
         for a three day training length for a period diagnostic."""
         result = forecast_dataframe_to_cube(
             self.forecast_df, self.date_range, self.forecast_period
+        )
+        self.assertCubeEqual(result, self.expected_period_forecast)
+
+    def test_error_multiple_experiment_values(self):
+        """Test an error is raised if multiple experiment values are in
+        the dataframe."""
+        experiment2 = self.forecast_df.copy()
+        experiment2["experiment"] = "threshold"
+        forecast_df = pd.concat([self.forecast_df, experiment2])
+        msg = "More than one value for the experiment column found"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_dataframe_to_cube(
+                forecast_df, self.date_range, self.forecast_period
+            )
+
+    def test_select_single_experiment_value(self):
+        """Test selecting a single experiment value from the dataframe"""
+        experiment2 = self.forecast_df.copy()
+        experiment2["experiment"] = "threshold"
+        # Set original data to different values to make sure the correct experiment
+        # is picked up
+        self.forecast_df["forecast"] = 0.0
+        forecast_df = pd.concat([self.forecast_df, experiment2])
+        result = forecast_dataframe_to_cube(
+            forecast_df, self.date_range, self.forecast_period, experiment="threshold"
         )
         self.assertCubeEqual(result, self.expected_period_forecast)
 

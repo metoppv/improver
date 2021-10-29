@@ -55,6 +55,7 @@ def process(
     tolerance: float = 0.02,
     max_iterations: int = 1000,
     percentiles: cli.comma_separated_list = None,
+    experiment: str = None,
 ):
     """Estimate coefficients for Ensemble Model Output Statistics.
 
@@ -131,6 +132,9 @@ def process(
         percentiles (List[float]):
             The set of percentiles to be used for estimating EMOS coefficients.
             These should be a set of equally spaced quantiles.
+        experiment (str):
+            A value within the experiment column to select from the forecast
+            table.
 
     Returns:
         iris.cube.CubeList:
@@ -173,6 +177,7 @@ def process(
         forecast_period,
         training_length,
         percentiles=percentiles,
+        experiment=experiment,
     )
 
     if not forecast_cube or not truth_cube:

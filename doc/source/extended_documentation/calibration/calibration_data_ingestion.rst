@@ -16,7 +16,7 @@ Forecast DataFrame
 The forecast DataFrame is expected to contain the following compulsory
 columns: forecast, blend_time, forecast_period, forecast_reference_time,
 time, wmo_id, percentile, diagnostic, latitude, longitude, period, height,
-cf_name and units. Other columns will be ignored.
+cf_name, units and experiment. Other columns will be ignored.
 
 A summary of the expected contents of a forecast table is shown below.
 
