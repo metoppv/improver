@@ -58,6 +58,7 @@ FORECAST_DATAFRAME_COLUMNS = [
     "blend_time",
     "cf_name",
     "diagnostic",
+    "experiment",
     "forecast",
     "forecast_period",
     "forecast_reference_time",
@@ -69,7 +70,6 @@ FORECAST_DATAFRAME_COLUMNS = [
     "time",
     "units",
     "wmo_id",
-    "experiment",
 ]
 
 TRUTH_DATAFRAME_COLUMNS = [
@@ -369,7 +369,8 @@ def forecast_dataframe_to_cube(
     # Filter to select only one experiment
     if experiment:
         df = df.loc[df["experiment"] == experiment]
-    elif df["experiment"].nunique() > 1:
+
+    if df["experiment"].nunique() > 1:
         unique_exps = df["experiment"].unique()
         msg = (
             "More than one value for the experiment column found in the "
