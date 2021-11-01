@@ -37,7 +37,7 @@ import iris
 import numpy as np
 from iris.analysis import Linear, Nearest
 from iris.cube import Cube
-from scipy.interpolate import griddata
+from scipy.spatial import cKDTree
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -256,6 +256,7 @@ class AdjustLandSeaPoints(BasePlugin):
         self.output_cube = None
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
         self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
+        self._cache_nn = {}
 
     def correct_where_input_true(self, selector_val: int) -> None:
         """
@@ -271,46 +272,67 @@ class AdjustLandSeaPoints(BasePlugin):
                 Intended to be 1 for filling land points near the coast
                 and 0 for filling sea points near the coast.
         """
-        # Find all points on output grid matching selector_val
-        use_points = np.where(self.input_land.data == selector_val)
+        if selector_val not in self._cache_nn:
+            # Find all points on output grid matching selector_val
+            use_points = np.where(self.input_land.data == selector_val)
 
-        # If there are no matching points on the input grid, no alteration can
-        # be made. This tests the size of the y-coordinate of use_points.
-        if use_points[0].size == 0:
-            return
+            # If there are no matching points on the input grid, no alteration can
+            # be made. This tests the size of the y-coordinate of use_points.
+            if use_points[0].size == 0:
+                return None, None
 
-        # Get shape of output grid
-        ynum, xnum = self.output_land.shape
+            # Get shape of output grid
+            ynum, xnum = self.output_land.shape
 
-        # Using only these points, extrapolate to fill domain using nearest
-        # neighbour. This will generate a grid where the non-selector_val
-        # points are filled with the nearest value in the same mask
-        # classification.
-        (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-        selector_data = griddata(
-            use_points,
-            self.nearest_cube.data[use_points],
-            (y_points, x_points),
-            method="nearest",
-        )
+            # # Using only these points, extrapolate to fill domain using nearest
+            # # neighbour. This will generate a grid where the non-selector_val
+            # # points are filled with the nearest value in the same mask
+            # # classification.
+            (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
 
-        # Identify nearby points on regridded input_land that match the
-        # selector_value
-        if selector_val > 0.5:
-            thresholder = BasicThreshold(0.5)
-        else:
-            thresholder = BasicThreshold(0.5, comparison_operator="<=")
-        in_vicinity = self.vicinity(thresholder(self.input_land))
+            no_use_points = np.where(self.input_land.data != selector_val)
+            search_y = y_points[use_points].ravel()
+            search_x = x_points[use_points].ravel()
+            tree = cKDTree(np.c_[search_y, search_x])
+            find_y = y_points[no_use_points].ravel()
+            find_x = x_points[no_use_points].ravel()
+            _, indices = tree.query(np.c_[find_y, find_x])
 
-        # Identify those points sourced from the opposite mask that are
-        # close to a source point of the correct mask
-        mismatch_points = np.logical_and(
-            np.logical_and(
-                self.output_land.data == selector_val,
-                self.input_land.data != selector_val,
-            ),
-            in_vicinity.data > 0.5,
-        )
+            # Identify nearby points on regridded input_land that match the
+            # selector_value
+            if selector_val > 0.5:
+                thresholder = BasicThreshold(0.5)
+            else:
+                thresholder = BasicThreshold(0.5, comparison_operator="<=")
+            in_vicinity = self.vicinity(thresholder(self.input_land))
+
+            # Identify those points sourced from the opposite mask that are
+            # close to a source point of the correct mask
+            mismatch_points = np.logical_and(
+                np.logical_and(
+                    self.output_land.data == selector_val,
+                    self.input_land.data != selector_val,
+                ),
+                in_vicinity.data > 0.5,
+            )
+            self._cache_nn[selector_val] = {
+                "mismatch_points": mismatch_points,
+                "indices": indices,
+                "find_y": find_y,
+                "find_x": find_x,
+                "search_x": search_x,
+                "search_y": search_y,
+            }
+
+        cache = self._cache_nn[selector_val]
+        mismatch_points = cache["mismatch_points"]
+        indices = cache["indices"]
+        find_y = cache["find_y"]
+        find_x = cache["find_x"]
+        search_x = cache["search_x"]
+        search_y = cache["search_y"]
+        selector_data = self.nearest_cube.data.copy()
+        selector_data[find_y, find_x] = selector_data[search_y, search_x][indices]
 
         # Replace these points with the filled-domain data
         self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
