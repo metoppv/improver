@@ -48,9 +48,10 @@ TARGET_TIME = dt(2020, 6, 15, 18)
 
 
 @pytest.fixture(name="wxcode_series")
-def wxcode_series_fixture(data, cube_type) -> Cube:
+def wxcode_series_fixture(data, cube_type, offset_reference_times: bool) -> Cube:
     """Generate a time series of weather code cubes for combination to create
-    a period representative code."""
+    a period representative code. When offset_reference_times is set, each
+    successive cube will have a reference time one hour older."""
 
     time = TARGET_TIME
 
@@ -60,7 +61,10 @@ def wxcode_series_fixture(data, cube_type) -> Cube:
     for i in range(ntimes):
         wxtime = time - timedelta(hours=i)
         wxbounds = [wxtime - timedelta(hours=1), wxtime]
-        wxfrt = time - timedelta(hours=18)
+        if offset_reference_times:
+            wxfrt = time - timedelta(hours=18) - timedelta(hours=i)
+        else:
+            wxfrt = time - timedelta(hours=18)
         wxdata = np.ones((2, 2), dtype=np.int8)
         wxdata[0, 0] = data[i]
 
@@ -69,8 +73,8 @@ def wxcode_series_fixture(data, cube_type) -> Cube:
                 set_up_wxcube(data=wxdata, time=wxtime, time_bounds=wxbounds, frt=wxfrt)
             )
         else:
-            time_coord = construct_scalar_time_coords(wxtime, wxbounds, wxfrt)
-            time_coord = [crd[0] for crd in time_coord]
+            time_coords = construct_scalar_time_coords(wxtime, wxbounds, wxfrt)
+            time_coords = [crd for crd, _ in time_coords]
             latitudes = np.array([50, 52, 54, 56])
             longitudes = np.array([-4, -2, 0, 2])
             altitudes = wmo_ids = unique_site_id = np.arange(4)
@@ -86,12 +90,13 @@ def wxcode_series_fixture(data, cube_type) -> Cube:
                     wmo_ids,
                     unique_site_id=unique_site_id,
                     unique_site_id_key=unique_site_id_key,
-                    scalar_coords=time_coord,
+                    scalar_coords=time_coords,
                 )
             )
     return wxcubes
 
 
+@pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, expected",
@@ -132,11 +137,14 @@ def test_expected_values(wxcode_series, expected):
     assert result.data.flatten()[0] == expected
 
 
+@pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("data, cube_type", [(np.ones((12)), "gridded")])
 def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the
-    representative symbol has been calculated."""
+    representative symbol has been calculated while the forecast_reference_time
+    will be the latest of those input and the forecast_period will be the
+    difference between the forecast_reference_time and time."""
 
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
@@ -144,7 +152,21 @@ def test_metadata(wxcode_series):
     result = ModalWeatherCode()(wxcode_series)
     expected_time = TARGET_TIME
     expected_bounds = [TARGET_TIME - timedelta(hours=12), TARGET_TIME]
+    expected_reference_time = TARGET_TIME - timedelta(hours=18)
+    expected_forecast_period = (expected_time - expected_reference_time).total_seconds()
+    expected_forecast_period_bounds = [
+        expected_forecast_period - 12 * 3600,
+        expected_forecast_period,
+    ]
 
     assert result.coord("time").points[0] == as_utc_timestamp(expected_time)
     assert result.coord("time").bounds[0][0] == as_utc_timestamp(expected_bounds[0])
     assert result.coord("time").bounds[0][1] == as_utc_timestamp(expected_bounds[1])
+    assert result.coord("forecast_reference_time").points[0] == as_utc_timestamp(
+        expected_reference_time
+    )
+    assert not result.coord("forecast_reference_time").has_bounds()
+    assert result.coord("forecast_period").points[0] == expected_forecast_period
+    assert np.allclose(
+        result.coord("forecast_period").bounds[0], expected_forecast_period_bounds
+    )

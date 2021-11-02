@@ -39,6 +39,7 @@ from scipy import stats
 from improver import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 
+from ..metadata.forecast_times import forecast_period_coord
 from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 
 CODE_MAX = 100
@@ -151,6 +152,29 @@ class ModalWeatherCode(BasePlugin):
         )
         return CODE_MAX - np.squeeze(mode_result)
 
+    @staticmethod
+    def _set_blended_times(cube: Cube) -> None:
+        """Updates time coordinates so that time point is at the end of the time bounds,
+        blend_time and forecast_reference_time (if present) are set to the end of the
+        bound period and bounds are removed, and forecast_period is updated to match."""
+        cube.coord("time").points = cube.coord("time").bounds[0][-1]
+
+        for coord_name in ["blend_time", "forecast_reference_time"]:
+            if coord_name in [c.name() for c in cube.coords()]:
+                coord = cube.coord(coord_name)
+                if coord.has_bounds():
+                    coord = coord.copy(coord.bounds[0][-1])
+                    cube.replace_coord(coord)
+
+        if "forecast_period" in [c.name() for c in cube.coords()]:
+            calculated_coord = forecast_period_coord(
+                cube, force_lead_time_calculation=True
+            )
+            new_coord = cube.coord("forecast_period").copy(
+                points=calculated_coord.points, bounds=calculated_coord.bounds
+            )
+            cube.replace_coord(new_coord)
+
     def process(self, cubes: CubeList) -> Cube:
         """Calculate the modal weather code, with handling for edge cases.
 
@@ -173,7 +197,7 @@ class ModalWeatherCode(BasePlugin):
         self._unify_day_and_night(cube)
 
         result = cube.collapsed("time", self.aggregator_instance)
-        result.coord("time").points = result.coord("time").bounds[0][-1]
+        self._set_blended_times(result)
 
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == UNSET_CODE_INDICATOR).any():
