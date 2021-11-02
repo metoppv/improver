@@ -375,6 +375,8 @@ class AdjustLandSeaPoints(BasePlugin):
         # Slice over x-y grids for multi-realization data.
         result = iris.cube.CubeList()
 
+        # Reset cache as input_land and output_land have changed
+        self._cache_nn = {}
         for xyslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
 
             # Store and copy cube ready for the output data
