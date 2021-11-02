@@ -167,12 +167,13 @@ class ModalWeatherCode(BasePlugin):
                     cube.replace_coord(coord)
 
         if "forecast_period" in [c.name() for c in cube.coords()]:
-            coord_dim = cube.coord_dims("forecast_period")
-            cube.remove_coord("forecast_period")
-            cube.add_aux_coord(
-                forecast_period_coord(cube, force_lead_time_calculation=True),
-                data_dims=coord_dim,
+            calculated_coord = forecast_period_coord(
+                cube, force_lead_time_calculation=True
             )
+            new_coord = cube.coord("forecast_period").copy(
+                points=calculated_coord.points, bounds=calculated_coord.bounds
+            )
+            cube.replace_coord(new_coord)
 
     def process(self, cubes: CubeList) -> Cube:
         """Calculate the modal weather code, with handling for edge cases.
