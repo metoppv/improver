@@ -325,9 +325,7 @@ class AdjustLandSeaPoints(BasePlugin):
         except NoMatchesError:
             return
         selector_data = self.nearest_cube.data.copy()
-        selector_data[no_use_points[0], no_use_points[1]] = selector_data[
-            use_points[0], use_points[1]
-        ][indices]
+        selector_data[no_use_points] = selector_data[use_points][indices]
 
         # Replace these points with the filled-domain data
         self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
