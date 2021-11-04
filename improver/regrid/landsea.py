@@ -225,12 +225,6 @@ class RegridLandSea(BasePlugin):
         )
 
 
-class NoMatchesError(ValueError):
-    """Raise when there are no matches for the specified selector."""
-
-    pass
-
-
 class AdjustLandSeaPoints(BasePlugin):
     """
     Replace data values at points where the nearest-regridding technique
@@ -240,6 +234,11 @@ class AdjustLandSeaPoints(BasePlugin):
     source-grid and the closest point of the correct mask is used.
     Where no match is found within the vicinity, the data value is not changed.
     """
+
+    class _NoMatchesError(ValueError):
+        """Raise when there are no matches for the specified selector."""
+
+        pass
 
     def __init__(
         self, extrapolation_mode: str = "nanmask", vicinity_radius: float = 25000.0
@@ -276,7 +275,7 @@ class AdjustLandSeaPoints(BasePlugin):
         # If there are no matching points on the input grid, no alteration can
         # be made.
         if use_points[0].size == 0:
-            raise NoMatchesError
+            raise self._NoMatchesError
 
         # Using only these points, extrapolate to fill domain using nearest
         # neighbour. This will generate a grid where the non-selector_val
@@ -322,7 +321,7 @@ class AdjustLandSeaPoints(BasePlugin):
             mismatch_points, indices, use_points, no_use_points = self._get_matches(
                 selector_val
             )
-        except NoMatchesError:
+        except self._NoMatchesError:
             return
         selector_data = self.nearest_cube.data.copy()
         selector_data[no_use_points] = selector_data[use_points][indices]
