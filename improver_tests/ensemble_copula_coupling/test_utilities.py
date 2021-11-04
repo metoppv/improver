@@ -44,10 +44,10 @@ from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
-    concatenate_2d_array_with_2d_array_endpoints,
+    concatenate_array_with_array_endpoints,
     create_cube_with_percentiles,
+    flatten_and_interpolate,
     get_bounds_of_distribution,
-    insert_lower_and_upper_endpoint_to_1d_array,
     restore_non_percentile_dimensions,
 )
 from improver.synthetic_data.set_up_test_cubes import (
@@ -58,31 +58,43 @@ from improver.synthetic_data.set_up_test_cubes import (
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
-class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
+class Test_concatenate_array_with_array_endpoints(IrisTest):
 
-    """Test the concatenate_2d_array_with_2d_array_endpoints."""
+    """Test the concatenate_array_with_array_endpoints."""
 
-    def test_basic(self):
-        """Test that result is a numpy array with the expected contents."""
-        expected = np.array([[0, 20, 50, 80, 100]])
-        input_array = np.array([[20, 50, 80]])
-        result = concatenate_2d_array_with_2d_array_endpoints(input_array, 0, 100)
+    def test_1d_input(self):
+        """Test 1D input results in a numpy array with the expected contents."""
+        expected = np.array([-100, -40, 200, 1000, 10000])
+        input_array = np.array([-40, 200, 1000])
+        result = concatenate_array_with_array_endpoints(input_array, -100, 10000)
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected)
 
-    def test_1d_input(self):
-        """Test 1D input results in the expected error"""
-        input_array = np.array([-40, 200, 1000])
-        msg = "Expected 2D input"
-        with self.assertRaisesRegex(ValueError, msg):
-            concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
+    def test_2d_input(self):
+        """Test 2D input results is a numpy array with the expected contents."""
+        expected = np.array([[0, 20, 50, 80, 100]])
+        input_array = np.array([[20, 50, 80]])
+        result = concatenate_array_with_array_endpoints(input_array, 0, 100)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
 
     def test_3d_input(self):
-        """Test 3D input results in expected error"""
+        """Test 3D input results in a numpy array with the expected contents."""
+        expected = np.array([[[-100, -40, 200, 1000, 10000]]])
         input_array = np.array([[[-40, 200, 1000]]])
-        msg = "Expected 2D input"
-        with self.assertRaisesRegex(ValueError, msg):
-            concatenate_2d_array_with_2d_array_endpoints(input_array, -100, 10000)
+        result = concatenate_array_with_array_endpoints(input_array, -100, 10000)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
+
+    def test_complex_3d_input(self):
+        """Test 3D input results in a numpy array with the expected contents."""
+        input_array = np.arange(18).reshape((3, 3, 2))
+        expected = np.array(
+            [[-100, *row, 10000] for array in input_array for row in array]
+        ).reshape(3, 3, 4)
+        result = concatenate_array_with_array_endpoints(input_array, -100, 10000)
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected)
 
 
 class Test_choose_set_of_percentiles(IrisTest):
@@ -308,29 +320,9 @@ class Test_get_bounds_of_distribution(IrisTest):
             get_bounds_of_distribution(cube_name, cube_units)
 
 
-class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
-
-    """Test the insert_lower_and_upper_endpoint_to_1d_array."""
-
-    def test_basic(self):
-        """Test that the result is a numpy array with the expected contents."""
-        expected = [0, 20, 50, 80, 100]
-        percentiles = np.array([20, 50, 80])
-        result = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected)
-
-    def test_2d_example(self):
-        """Test 2D input results in expected error"""
-        percentiles = np.array([[-40, 200, 1000], [-40, 200, 1000]])
-        msg = "Expected 1D input"
-        with self.assertRaisesRegex(ValueError, msg):
-            insert_lower_and_upper_endpoint_to_1d_array(percentiles, -100, 10000)
-
-
 class Test_restore_non_percentile_dimensions(IrisTest):
 
-    """Test the restore_non_percentile_dimensions."""
+    """Test the restore_non_percentile_dimensions function."""
 
     def setUp(self):
         """Set up template cube and temperature data."""
@@ -396,6 +388,69 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             1,
         )
         self.assertArrayAlmostEqual(reshaped_array, expected)
+
+
+class Test_flatten_and_interpolate(IrisTest):
+
+    """Test the flatten_and_interpolate function."""
+
+    def setUp(self):
+        """Set up test arrays."""
+        # Data with leading percentile coordinate
+        data = np.tile(np.linspace(1, 5, 9), 4).reshape(3, 2, 2, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        # Move percentile coordinate to last dimension as expected
+        data = np.moveaxis(data, 0, -1)
+        self.data = data.astype(np.float32)
+        self.percentiles = np.array([10, 50, 90], dtype=np.float32)
+        self.desired_percentiles = np.array([30, 50, 70], dtype=np.float32)
+
+    def test_3d_array(self):
+        """Test the values and shape of the returned array are as expected for
+        a typical 3-dimensional array (e.g. percentile - y - x)."""
+        expected = np.array(
+            [
+                [[1.75, 2.25, 2.75], [3.25, 3.75, 4.25]],
+                [[3.5, 4.0, 4.5], [5.0, 5.5, 6.0]],
+                [[5.25, 5.75, 6.25], [4.5, 5.0, 5.5]],
+            ],
+            dtype=np.float32,
+        )
+        expected_shape = (3, 2, 3)
+        result = flatten_and_interpolate(
+            self.desired_percentiles, self.percentiles, self.data[0]
+        )
+        self.assertArrayAlmostEqual(result, expected)
+        self.assertEqual(result.shape, expected_shape)
+
+    def test_4d_array(self):
+        """Test the values and shape of the returned array are as expected for
+        a 4-dimensional array (e.g. percentile - height - y - x). In this case
+        the non-percentile, non-looping dimensions will be combined in the
+        returned array."""
+        expected = np.array(
+            [
+                [
+                    [1.75, 2.25, 2.75, 3.25, 3.75, 4.25],
+                    [2.5, 3.0, 3.5, 1.75, 2.25, 2.75],
+                ],
+                [[3.5, 4.0, 4.5, 5.0, 5.5, 6.0], [2.0, 2.5, 3.0, 3.5, 4.0, 4.5]],
+                [
+                    [5.25, 5.75, 6.25, 4.5, 5.0, 5.5],
+                    [3.75, 4.25, 4.75, 5.25, 5.75, 6.25],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        # percentile dim (3), loop dim (2), combined other dims (2x3)
+        expected_shape = (3, 2, 6)
+        result = flatten_and_interpolate(
+            self.desired_percentiles, self.percentiles, self.data
+        )
+        self.assertArrayAlmostEqual(result, expected)
+        self.assertEqual(result.shape, expected_shape)
 
 
 if __name__ == "__main__":

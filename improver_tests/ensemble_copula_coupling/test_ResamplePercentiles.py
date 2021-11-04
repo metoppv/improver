@@ -186,13 +186,11 @@ class Test__interpolate_percentiles(IrisTest):
         data[0] -= 1
         data[1] += 1
         data[2] += 3
+        data = np.sort(data.astype(np.float32), axis=0)
         self.perc_coord = "percentile"
         self.percentiles = np.array([10, 50, 90], dtype=np.float32)
         self.cube = set_up_percentile_cube(
-            np.sort(data.astype(np.float32), axis=0),
-            self.percentiles,
-            name="air_temperature",
-            units="degC",
+            data, self.percentiles, name="air_temperature", units="degC",
         )
         self.bounds_pairing = (-40, 50)
 
@@ -356,7 +354,8 @@ class Test__interpolate_percentiles(IrisTest):
                 [[11.0, 11.0, 11.0], [11.0, 11.0, 11.0], [11.0, 11.0, 11.0]],
                 [[15.0, 15.0, 15.0], [15.0, 15.0, 15.0], [15.0, 15.0, 15.0]],
                 [[19.0, 19.0, 19.0], [19.0, 19.0, 19.0], [19.0, 19.0, 19.0]],
-            ]
+            ],
+            dtype=np.float32,
         )
 
         input_forecast_values = np.tile(np.linspace(10, 20, 30), (3, 3, 1)).T
@@ -366,7 +365,6 @@ class Test__interpolate_percentiles(IrisTest):
             name="air_temperature",
             units="degC",
         )
-
         result = Plugin()._interpolate_percentiles(
             cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
@@ -427,6 +425,49 @@ class Test__interpolate_percentiles(IrisTest):
             spot_percentile_cube, percentiles, self.bounds_pairing, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, data)
+
+    def test_additional_dimension(self):
+        """Test that additional coordinates are restored as expected following
+        interpolation. Here a height coordinate is included."""
+        data = np.tile(np.linspace(1, 5, 9), 4).reshape(3, 2, 2, 3)
+        data[0] -= 1
+        data[1] += 1
+        data[2] += 3
+        data = np.sort(data.astype(np.float32), axis=0)
+        cube = set_up_percentile_cube(
+            data,
+            self.percentiles,
+            name="air_temperature",
+            units="degC",
+            height_levels=[0, 10],
+        )
+        expected = np.array(
+            [
+                [
+                    [[1.75, 2.25, 2.75], [2.75, 3.25, 3.75]],
+                    [[2.5, 3.0, 3.5], [1.75, 2.25, 2.75]],
+                ],
+                [
+                    [[3.5, 4.0, 4.5], [4.0, 4.5, 5.0]],
+                    [[3.0, 3.5, 4.0], [3.5, 4.0, 4.5]],
+                ],
+                [
+                    [[5.25, 5.75, 6.25], [4.5, 5.0, 5.5]],
+                    [[4.25, 4.75, 5.25], [5.25, 5.75, 6.25]],
+                ],
+            ],
+            dtype=np.float32,
+        )
+        expected_shape = (3, 2, 2, 3)
+        expected_coord_names = [crd.name() for crd in cube.coords()]
+
+        percentiles = np.array([30, 50, 70], dtype=np.float32)
+        result = Plugin()._interpolate_percentiles(
+            cube, percentiles, self.bounds_pairing, self.perc_coord
+        )
+        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertEqual(result.shape, expected_shape)
+        self.assertEqual([crd.name() for crd in result.coords()], expected_coord_names)
 
 
 class Test_process(IrisTest):
