@@ -46,34 +46,31 @@ from numpy import ndarray
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
 
-def concatenate_2d_array_with_2d_array_endpoints(
-    array_2d: ndarray, low_endpoint: float, high_endpoint: float,
+def concatenate_array_with_array_endpoints(
+    data: ndarray, low_endpoint: float, high_endpoint: float,
 ) -> ndarray:
     """
-    For a 2d array, add a 2d array as the lower and upper endpoints.
-    The concatenation to add the lower and upper endpoints to the 2d array
-    are performed along the second (index 1) dimension.
+    For an array, add lower and upper endpoints to the last dimension, which
+    increases that dimension's length by 2.
 
     Args:
-        array_2d:
-            2d array of values
+        data:
+            Array of values
         low_endpoint:
-            Number used to create a 2d array of a constant value
+            Number used to create an array of a constant value
             as the lower endpoint.
         high_endpoint:
-            Number of used to create a 2d array of a constant value
+            Number of used to create an array of a constant value
             as the upper endpoint.
 
     Returns:
-        2d array of values after padding with the low_endpoint and
+        Array of values after padding with the low_endpoint and
         high_endpoint.
     """
-    if array_2d.ndim != 2:
-        raise ValueError("Expected 2D input, got {}D input".format(array_2d.ndim))
-    lower_array = np.full((array_2d.shape[0], 1), low_endpoint, dtype=array_2d.dtype)
-    upper_array = np.full((array_2d.shape[0], 1), high_endpoint, dtype=array_2d.dtype)
-    array_2d = np.concatenate((lower_array, array_2d, upper_array), axis=1)
-    return array_2d
+    lower_array = np.full((*data.shape[0:-1], 1), low_endpoint, dtype=data.dtype)
+    upper_array = np.full((*data.shape[0:-1], 1), high_endpoint, dtype=data.dtype)
+    data = np.concatenate((lower_array, data, upper_array), axis=-1)
+    return data
 
 
 def choose_set_of_percentiles(
@@ -230,33 +227,6 @@ def get_bounds_of_distribution(bounds_pairing_key: str, desired_units: Unit) -> 
     return bounds_pairing
 
 
-def insert_lower_and_upper_endpoint_to_1d_array(
-    array_1d: ndarray, low_endpoint: float, high_endpoint: float
-) -> ndarray:
-    """
-    For a 1d array, add a lower and upper endpoint.
-
-    Args:
-        array_1d:
-            1d array of values
-        low_endpoint:
-            Number of use as the lower endpoint.
-        high_endpoint:
-            Number of use as the upper endpoint.
-
-    Returns:
-        1d array of values padded with the low_endpoint and high_endpoint.
-    """
-    if array_1d.ndim != 1:
-        raise ValueError("Expected 1D input, got {}D input".format(array_1d.ndim))
-    lower_array = np.array([low_endpoint])
-    upper_array = np.array([high_endpoint])
-    array_1d = np.concatenate((lower_array, array_1d, upper_array))
-    if array_1d.dtype == np.float64:
-        array_1d = array_1d.astype(np.float32)
-    return array_1d
-
-
 def restore_non_percentile_dimensions(
     array_to_reshape: ndarray, original_cube: Cube, n_percentiles: int
 ) -> ndarray:
@@ -289,3 +259,100 @@ def restore_non_percentile_dimensions(
     if n_percentiles > 1:
         shape_to_reshape_to = [n_percentiles] + shape_to_reshape_to
     return array_to_reshape.reshape(shape_to_reshape_to)
+
+
+def flatten_and_interpolate(
+    desired_percentiles: Union[list, ndarray],
+    original_percentiles: ndarray,
+    data: ndarray,
+    max_value: float = 100,
+) -> ndarray:
+    """
+    Interpolates percentiles or probabilities in a semi-vectorised manner to
+    provide greater speed. The interpolation is performed on a cube with
+    3-dimensions. The last dimension is equivalent to xp in usual interpolation
+    syntax. The leading dimension is looped over as a compromise between
+    vectorisation and memory requirements given typical array sizes. Between
+    these the dimensions are collapsed and the interpolation operation is
+    vectorised.
+
+    The method works by applying the numpy interpolation functionality to large
+    1-dimensional arrays. These are constructed by repeating the original and
+    desired percentile sequences N times in 1-dimensional arrays, where N is the
+    length of the grid dimension being vectorised. The data taken from different
+    grid points along the dimension being vectorised that corresponds to the
+    original percentiles is also placed end-to-end in a single 1-dimensional
+    array. Finally, each repeated sequence of percentiles in both the original
+    and desired sets is offset by some value (max_value). Interpolation is then
+    used with the three long 1-dimensional arrays in a single step.
+
+    For a typical spatial grid the vectorisation applied along say x, but a loop
+    is used over y. This reduces the amount of memory used whilst providing a
+    speed up.
+
+    This method will become slower for increasingly large percentile coordinates
+    but provides a significant speed up for typical numbers of percentiles
+    (i.e. up to around 20).
+
+    Args:
+        desired_percentiles:
+            The target percentiles.
+        original_percentiles:
+            The percentiles at which the data is provided.
+        data:
+            The data to be interpolated.
+        max_value:
+            The maximum potential value of the percentile coordinate, defaults
+            to 100. Used to calculate an offset for vectorisation.
+
+    Returns:
+        The forecast values interpolated to the desired_percentiles.
+    """
+
+    def calculate_offset(percentiles_size: int, dim_size: int):
+        """Calculate offsets, each step has a length determined by the variable
+        percentile_size. The number of steps is set by dim_size. The increment
+        is set by max_value. An array describing the offsets is returned."""
+        steps = []
+        for i in range(0, dim_size):
+            steps.extend(np.ones(percentiles_size, dtype=np.int) * i * max_value)
+        return np.array(steps).reshape(percentiles_size, dim_size)
+
+    desired_percentiles = np.array(desired_percentiles)
+    loop_size = data.shape[0]
+    # Calculate the remaining array size that is not part of the looping (first)
+    # dimension or the percentile (last) dimension.
+    vectorised_dim_size = data[..., -1].size // loop_size
+
+    # Flatten input and target percentiles and tile
+    orig_flat = (
+        np.tile(original_percentiles, vectorised_dim_size)
+        .reshape(original_percentiles.size, -1)
+        .astype(np.float64)
+    )
+    desired_flat = (
+        np.tile(desired_percentiles, vectorised_dim_size)
+        .reshape(desired_percentiles.size, -1)
+        .astype(np.float64)
+    )
+    # Offset the repeated sets of percentiles to make them distinct
+    orig_flat += calculate_offset(original_percentiles.size, vectorised_dim_size)
+    desired_flat += calculate_offset(desired_percentiles.size, vectorised_dim_size)
+
+    # Interpolate along one entire span of the looping (first) dimension in
+    # each iteration of the loop before reshaping the output.
+    result = []
+    for index in range(loop_size):
+        result.append(
+            np.interp(
+                desired_flat.reshape(-1),
+                orig_flat.reshape(-1),
+                data[index].reshape(-1),
+            ).reshape(vectorised_dim_size, -1)
+        )
+
+    # Construct an array of shape
+    # (loop_size, vectorised_dim_size, desired_percentiles.size)
+    result = np.stack(result).astype(np.float32)
+    # Move the percentile dimension to be the leading dimension.
+    return np.moveaxis(result, -1, 0)

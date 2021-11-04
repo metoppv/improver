@@ -47,10 +47,10 @@ from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
-    concatenate_2d_array_with_2d_array_endpoints,
+    concatenate_array_with_array_endpoints,
     create_cube_with_percentiles,
+    flatten_and_interpolate,
     get_bounds_of_distribution,
-    insert_lower_and_upper_endpoint_to_1d_array,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
@@ -195,11 +195,10 @@ class ResamplePercentiles(BasePlugin):
                 and self.ecc_bounds_warning is True.
         """
         lower_bound, upper_bound = bounds_pairing
-        percentiles = insert_lower_and_upper_endpoint_to_1d_array(percentiles, 0, 100)
-        forecast = concatenate_2d_array_with_2d_array_endpoints(
+        percentiles = concatenate_array_with_array_endpoints(percentiles, 0, 100)
+        forecast = concatenate_array_with_array_endpoints(
             forecast_at_percentiles, lower_bound, upper_bound
         )
-
         if np.any(np.diff(forecast) < 0):
             out_of_bounds_vals = forecast[np.where(np.diff(forecast) < 0)]
             msg = (
@@ -225,7 +224,7 @@ class ResamplePercentiles(BasePlugin):
                     upper_bound = forecast.max()
                 if lower_bound > forecast.min():
                     lower_bound = forecast.min()
-                forecast = concatenate_2d_array_with_2d_array_endpoints(
+                forecast = concatenate_array_with_array_endpoints(
                     forecast_at_percentiles, lower_bound, upper_bound
                 )
             else:
@@ -270,31 +269,27 @@ class ResamplePercentiles(BasePlugin):
             percentile_coord_name
         ).points
 
-        # Ensure that the percentile dimension is first, so that the
-        # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(forecast_at_percentiles, percentile_coord_name)
-        forecast_at_reshaped_percentiles = convert_cube_data_to_2d(
-            forecast_at_percentiles, coord=percentile_coord_name
-        )
+        # Ensure the percentile coordinate is a dimension
+        if original_percentiles.size == 1:
+            forecast_at_percentiles = iris.util.new_axis(
+                forecast_at_percentiles, "percentile"
+            )
 
+        # Ensure that the percentile dimension is last
+        enforce_coordinate_ordering(
+            forecast_at_percentiles, percentile_coord_name, anchor_start=False
+        )
+        # Add lower and upper bounds to the percentile coordinate and data
         (
             original_percentiles,
             forecast_at_reshaped_percentiles,
         ) = self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
+            original_percentiles, forecast_at_percentiles.data, bounds_pairing
         )
 
-        forecast_at_interpolated_percentiles = np.empty(
-            (len(desired_percentiles), forecast_at_reshaped_percentiles.shape[0]),
-            dtype=np.float32,
+        forecast_at_interpolated_percentiles = flatten_and_interpolate(
+            desired_percentiles, original_percentiles, forecast_at_reshaped_percentiles,
         )
-        for index in range(forecast_at_reshaped_percentiles.shape[0]):
-            forecast_at_interpolated_percentiles[:, index] = np.interp(
-                desired_percentiles,
-                original_percentiles,
-                forecast_at_reshaped_percentiles[index, :],
-            )
-
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
         forecast_at_percentiles_data = restore_non_percentile_dimensions(
@@ -435,10 +430,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 the diagnostic and self.ecc_bounds_warning is True.
         """
         lower_bound, upper_bound = bounds_pairing
-        threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
+        threshold_points_with_endpoints = concatenate_array_with_array_endpoints(
             threshold_points, lower_bound, upper_bound
         )
-        probabilities_for_cdf = concatenate_2d_array_with_2d_array_endpoints(
+        probabilities_for_cdf = concatenate_array_with_array_endpoints(
             probabilities_for_cdf, 0, 1
         )
 
@@ -467,7 +462,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     upper_bound = max(threshold_points_with_endpoints)
                 if lower_bound > min(threshold_points_with_endpoints):
                     lower_bound = min(threshold_points_with_endpoints)
-                threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
+                threshold_points_with_endpoints = concatenate_array_with_array_endpoints(
                     threshold_points, lower_bound, upper_bound
                 )
             else:
@@ -513,7 +508,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
 
-        # Ensure that the percentile dimension is first, so that the
+        # Ensure that the threshold dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         enforce_coordinate_ordering(forecast_probabilities, threshold_coord.name())
         prob_slices = convert_cube_data_to_2d(
