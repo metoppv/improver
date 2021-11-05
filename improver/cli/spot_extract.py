@@ -141,9 +141,6 @@ def process(
     from improver.utilities.cube_extraction import extract_subcube
     from improver.utilities.cube_manipulation import collapse_realizations
 
-    # We should be able to merge our tuple of cubes rather than loop over each.
-    # Right now we can't due to numerous assumptions about coordinate dimension
-    # mappings by the spot extracion code - significant refactor required.
     results = iris.cube.CubeList()
     for cc in cube:
         if realization_collapse:
@@ -217,4 +214,4 @@ def process(
         # Remove the internal model_grid_hash attribute if present.
         result.attributes.pop("model_grid_hash", None)
         results.append(result)
-    return results.merge_cube()
+    return results

@@ -291,7 +291,7 @@ def create_constrained_inputcubelist_converter(*constraints):
 def with_output(
     wrapped,
     *args,
-    output=None,
+    output: comma_separated_list = None,
     compression_level=1,
     least_significant_digit: int = None,
     **kwargs,
@@ -325,12 +325,32 @@ def with_output(
     Returns:
         Result of calling `wrapped` or None if `output` is given.
     """
+    from iris.cube import Cube
+
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
 
     if output and result:
-        save_netcdf(result, output, compression_level, least_significant_digit)
+        if isinstance(result, Cube):
+            if len(output) != 1:
+                raise ValueError(
+                    f"Expecting 1 output filepath for cube save, got {len(output)}"
+                )
+            save_netcdf(result, output[0], compression_level, least_significant_digit)
+        else:
+            if len(output) != len(result):
+                for res, out in zip(result, output):
+                    save_netcdf(res, out, compression_level, least_significant_digit)
+            elif len(output) == 1:
+                for res in result:
+                    save_netcdf(
+                        res, output[0], compression_level, least_significant_digit
+                    )
+            else:
+                raise ValueError(
+                    f"Expecting 1 output filepath or one for each cube result.  len(result)={len(result)}; len(output)={len(output)}"
+                )
         return
     return result
 
