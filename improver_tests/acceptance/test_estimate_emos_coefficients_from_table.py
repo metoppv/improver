@@ -143,37 +143,6 @@ def test_basic(
 
 
 @pytest.mark.slow
-def test_invalid_forecast_filter(tmp_path,):
-    """
-    Test using an invalid diagnostic name to filter the forecast table.
-    """
-    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients-from-table/"
-    history_path = kgo_dir / "forecast_table"
-    truth_path = kgo_dir / "truth_table"
-    output_path = tmp_path / "output.nc"
-    args = [
-        history_path,
-        truth_path,
-        "--diagnostic",
-        "fake_diagnostic",
-        "--cycletime",
-        "20210805T2100Z",
-        "--forecast-period",
-        "86400",
-        "--training-length",
-        "5",
-        "--distribution",
-        "norm",
-        "--tolerance",
-        EST_EMOS_TOL,
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(IOError, match="The requested filepath.*fake_diagnostic.*"):
-        run_cli(args)
-
-
-@pytest.mark.slow
 def test_invalid_truth_filter(tmp_path,):
     """
     Test using an invalid diagnostic name to filter the truth table.

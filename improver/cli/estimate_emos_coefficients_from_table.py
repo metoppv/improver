@@ -154,19 +154,16 @@ def process(
     )
 
     # Load forecasts from parquet file filtering by diagnostic and blend_time.
+    forecast_period_td = pd.Timedelta(int(forecast_period), unit="seconds")
     cycletimes = pd.date_range(
-        end=pd.Timestamp(cycletime) - pd.Timedelta(1, unit="days"),
+        end=pd.Timestamp(cycletime)
+        - pd.Timedelta(1, unit="days")
+        - forecast_period_td.floor("D"),
         periods=int(training_length),
         freq="D",
     ).tz_localize(None)
     filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
     forecast_df = pd.read_parquet(forecast, filters=filters)
-    if forecast_df.empty:
-        msg = (
-            f"The requested filepath {forecast} does not contain the "
-            f"requested contents: {filters}"
-        )
-        raise IOError(msg)
 
     # Load truths from parquet file filtering by diagnostic.
     filters = [[("diagnostic", "==", diagnostic)]]
