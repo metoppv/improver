@@ -265,7 +265,7 @@ def flatten_and_interpolate(
     desired_percentiles: Union[list, ndarray],
     original_percentiles: ndarray,
     data: ndarray,
-    max_value: float = 100,
+    max_value: float = 101,
 ) -> ndarray:
     """
     Interpolates percentiles or probabilities in a semi-vectorised manner to
@@ -302,8 +302,11 @@ def flatten_and_interpolate(
         data:
             The data to be interpolated.
         max_value:
-            The maximum potential value of the percentile coordinate, defaults
-            to 100. Used to calculate an offset for vectorisation.
+            A value beyond the maximum potential value of the percentile
+            coordinate, defaults to 101. Used to calculate an offset for
+            vectorisation. The number should not be equivalent to the maximum
+            percentile value (e.g. 100) as this will not give sufficiently
+            large offsets.
 
     Returns:
         The forecast values interpolated to the desired_percentiles.
@@ -312,11 +315,12 @@ def flatten_and_interpolate(
     def calculate_offset(percentiles_size: int, dim_size: int):
         """Calculate offsets, each step has a length determined by the variable
         percentile_size. The number of steps is set by dim_size. The increment
-        is set by max_value. An array describing the offsets is returned."""
-        steps = []
+        is set by max_value. An 1-dimensional array describing the offsets is
+        returned."""
+        steps = np.ones((percentiles_size * dim_size), dtype=np.int) * max_value
         for i in range(0, dim_size):
-            steps.extend(np.ones(percentiles_size, dtype=np.int) * i * max_value)
-        return np.array(steps).reshape(percentiles_size, dim_size)
+            steps[i * percentiles_size : (i + 1) * percentiles_size] *= i
+        return steps
 
     desired_percentiles = np.array(desired_percentiles)
     loop_size = data.shape[0]
@@ -324,35 +328,23 @@ def flatten_and_interpolate(
     # dimension or the percentile (last) dimension.
     vectorised_dim_size = data[..., -1].size // loop_size
 
-    # Flatten input and target percentiles and tile
-    orig_flat = (
-        np.tile(original_percentiles, vectorised_dim_size)
-        .reshape(original_percentiles.size, -1)
-        .astype(np.float64)
-    )
-    desired_flat = (
-        np.tile(desired_percentiles, vectorised_dim_size)
-        .reshape(desired_percentiles.size, -1)
-        .astype(np.float64)
-    )
+    # Flatten input and target percentiles and tile. Float64 to ensure
+    # interpolation gives correct results.
+    orig_flat = np.tile(original_percentiles, vectorised_dim_size).astype(np.float64)
+    desired_flat = np.tile(desired_percentiles, vectorised_dim_size).astype(np.float64)
     # Offset the repeated sets of percentiles to make them distinct
     orig_flat += calculate_offset(original_percentiles.size, vectorised_dim_size)
     desired_flat += calculate_offset(desired_percentiles.size, vectorised_dim_size)
 
     # Interpolate along one entire span of the looping (first) dimension in
     # each iteration of the loop before reshaping the output.
-    result = []
+    result = np.empty(
+        (loop_size, vectorised_dim_size, desired_percentiles.size), dtype=np.float32
+    )
     for index in range(loop_size):
-        result.append(
-            np.interp(
-                desired_flat.reshape(-1),
-                orig_flat.reshape(-1),
-                data[index].reshape(-1),
-            ).reshape(vectorised_dim_size, -1)
-        )
+        result[index] = np.interp(
+            desired_flat, orig_flat, data[index].reshape(-1),
+        ).reshape(vectorised_dim_size, -1)
 
-    # Construct an array of shape
-    # (loop_size, vectorised_dim_size, desired_percentiles.size)
-    result = np.stack(result).astype(np.float32)
     # Move the percentile dimension to be the leading dimension.
     return np.moveaxis(result, -1, 0)
