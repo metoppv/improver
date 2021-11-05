@@ -529,7 +529,7 @@ def test_multi_time_input(tmp_path):
     that utilities.load.load_cube reverses the order of the leading dimensions
     on load. As such the KGO has the threshold and time coordinates in a
     different order to the input, but this is unrelated to spot-extract."""
-    
+
     kgo_dir = acc.kgo_root() / "spot-extract"
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     diag_path = kgo_dir / "inputs/enukx_temperature_thresholds_multi_time.nc"
