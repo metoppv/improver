@@ -153,7 +153,13 @@ def process(
         EstimateCoefficientsForEnsembleCalibration,
     )
 
-    filters = [("diagnostic", "==", diagnostic)]
+    # Load forecasts from parquet file filtering by diagnostic and blend_time.
+    cycletimes = pd.date_range(
+        end=pd.Timestamp(cycletime) - pd.Timedelta(1, unit="days"),
+        periods=int(training_length),
+        freq="D",
+    ).tz_localize(None)
+    filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
     forecast_df = pd.read_parquet(forecast, filters=filters)
     if forecast_df.empty:
         msg = (
@@ -162,6 +168,8 @@ def process(
         )
         raise IOError(msg)
 
+    # Load truths from parquet file filtering by diagnostic.
+    filters = [[("diagnostic", "==", diagnostic)]]
     truth_df = pd.read_parquet(truth, filters=filters)
     if truth_df.empty:
         msg = (
