@@ -421,7 +421,6 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         self.xp = np.sort(np.random.random_sample(100))
         self.fp = np.random.random((100, 100))
 
-
     def test_slow(self):
         """Test slow interp against known result."""
         xp = np.array([0, 1, 2, 3, 4], dtype=np.float32)
@@ -430,7 +429,6 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         expected = np.array([[0, 0.25, 1], [0, 1, 4]], dtype=np.float32)
         result = slow_interp_same_x(x, xp, fp)
         np.testing.assert_allclose(result, expected)
-
 
     @skipIf(not (numba_installed), "numba not installed")
     def test_fast(self):
@@ -441,7 +439,6 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         expected = np.array([[0, 0.25, 1], [0, 1, 4]], dtype=np.float32)
         result = fast_interp_same_x(x, xp, fp)
         np.testing.assert_allclose(result, expected)
-
 
     @skipIf(not (numba_installed), "numba not installed")
     def test_slow_vs_fast(self):
@@ -477,7 +474,6 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         result_slow = slow_interp_same_x(self.x, self.xp, self.fp)
         result_multiple = interpolate_multiple_rows_same_x(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_multiple)
-
 
 
 if __name__ == "__main__":
