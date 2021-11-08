@@ -325,7 +325,7 @@ EXPECTED = {
             "indices": (12, 2),
         },
         "uk": {
-            None: {"shape": (4, 21, 22), "min": -2 * 3600, "max": 1 * 3600,},
+            None: {"shape": (4, 21, 22), "min": -2 * 3600, "max": 1 * 3600},
             "20200716T1500Z": {
                 "shape": (5, 21, 22),
                 "min": -2 * 3600,
@@ -340,7 +340,7 @@ EXPECTED = {
             "20200716T1500Z": GLOBAL_GRID_GR,
             "indices": (0, 2),
         },
-        "uk": {None: UK_GRID_GR, "20200716T1500Z": UK_GRID_GR, "indices": (0, 9),},
+        "uk": {None: UK_GRID_GR, "20200716T1500Z": UK_GRID_GR, "indices": (0, 9)},
     },
 }
 
