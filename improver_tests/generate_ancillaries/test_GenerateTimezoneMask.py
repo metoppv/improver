@@ -320,40 +320,27 @@ EXPECTED_TIME = {None: 1510286400, "20200716T1500Z": 1594911600}
 EXPECTED = {
     "ungrouped": {
         "global": {
-            None: {**GLOBAL_GRID, "data": np.array([1, 1, 1, 1, 1, 0, 1, 1, 1, 1])},
-            "20200716T1500Z": {**GLOBAL_GRID, "data": np.ones([10])},
+            None: GLOBAL_GRID,
+            "20200716T1500Z": GLOBAL_GRID,
             "indices": (12, 2),
         },
         "uk": {
-            None: {
-                "shape": (4, 21, 22),
-                "min": -2 * 3600,
-                "max": 1 * 3600,
-                "data": np.array([1, 1, 0, 0, 0, 1]),
-            },
+            None: {"shape": (4, 21, 22), "min": -2 * 3600, "max": 1 * 3600,},
             "20200716T1500Z": {
                 "shape": (5, 21, 22),
                 "min": -2 * 3600,
                 "max": 2 * 3600,
-                "data": np.array([1, 1, 1, 1, 0, 1]),
             },
             "indices": (2, 10),
         },
     },
     "grouped": {
         "global": {
-            None: {**GLOBAL_GRID_GR, "data": np.array([0, 0, 0, 0, 0, 0, 1, 1, 1, 1])},
-            "20200716T1500Z": {
-                **GLOBAL_GRID_GR,
-                "data": np.array([0, 0, 0, 0, 0, 1, 1, 1, 1, 1]),
-            },
+            None: GLOBAL_GRID_GR,
+            "20200716T1500Z": GLOBAL_GRID_GR,
             "indices": (0, 2),
         },
-        "uk": {
-            None: {**UK_GRID_GR, "data": np.array([0, 0, 0, 0, 0, 1])},
-            "20200716T1500Z": {**UK_GRID_GR, "data": np.array([0, 0, 1, 1, 0, 1])},
-            "indices": (0, 9),
-        },
+        "uk": {None: UK_GRID_GR, "20200716T1500Z": UK_GRID_GR, "indices": (0, 9),},
     },
 }
 
