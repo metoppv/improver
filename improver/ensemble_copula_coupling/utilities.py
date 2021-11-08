@@ -303,7 +303,7 @@ def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
             np.interp(x, xp, fp[i, :])
     """
 
-    result = np.empty((fp.shape[0], len(x)))
+    result = np.empty((fp.shape[0], len(x)), np.float32)
     for i in range(fp.shape[0]):
         result[i, :] = np.interp(x, xp, fp[i, :])
     return result
