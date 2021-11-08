@@ -313,7 +313,7 @@ class Test_process(IrisTest):
     @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_with_regridding(self):
         """Test when input grid is on a different projection."""
-        self.input_land = self.input_land_ll
+        input_land = self.input_land_ll
         expected = self.cube.data.copy()
         # Output sea-point populated with data from input sea-point:
         expected[0, 0] = 0.5
@@ -324,7 +324,7 @@ class Test_process(IrisTest):
         # Output land-point populated with data from input sea-point due to
         # vicinity-constraint:
         expected[4, 4] = 1.0
-        result = self.plugin.process(self.cube, self.input_land, self.output_land)
+        result = self.plugin.process(self.cube, input_land, self.output_land)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.data, expected)
         self.assertDictEqual(result.attributes, self.cube.attributes)
