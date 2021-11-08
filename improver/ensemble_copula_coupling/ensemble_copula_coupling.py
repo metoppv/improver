@@ -285,7 +285,9 @@ class ResamplePercentiles(BasePlugin):
         )
 
         forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
-            desired_percentiles, original_percentiles, forecast_at_reshaped_percentiles,
+            np.array(desired_percentiles, dtype=np.float64),
+            original_percentiles.astype(np.float64),
+            forecast_at_reshaped_percentiles.astype(np.float64),
         )
         forecast_at_interpolated_percentiles = np.transpose(
             forecast_at_interpolated_percentiles

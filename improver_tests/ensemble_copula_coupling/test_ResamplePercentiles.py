@@ -344,7 +344,7 @@ class Test__interpolate_percentiles(IrisTest):
         result = Plugin()._interpolate_percentiles(
             cube, self.percentiles, self.bounds_pairing, self.perc_coord
         )
-        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+        self.assertArrayAlmostEqual(result.data, expected)
 
     def test_lots_of_input_percentiles(self):
         """

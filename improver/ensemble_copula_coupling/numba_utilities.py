@@ -56,7 +56,7 @@ def fast_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
             np.interp(x, xp, fp[i, :])
     """
     index = np.searchsorted(xp, x)
-    result = np.empty((fp.shape[0], len(x)))
+    result = np.empty((fp.shape[0], len(x)), dtype=np.float32)
     for row in prange(fp.shape[0]):
         for i, ind in enumerate(index):
             if ind == 0:
