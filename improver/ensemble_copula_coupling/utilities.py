@@ -316,7 +316,5 @@ try:
 
     interpolate_multiple_rows_same_x = fast_interp_same_x
 except ImportError:
-    warnings.warn(
-        "Module numba unavailable. ResamplePercentiles will be slower."
-    )
+    warnings.warn("Module numba unavailable. ResamplePercentiles will be slower.")
     interpolate_multiple_rows_same_x = slow_interp_same_x
