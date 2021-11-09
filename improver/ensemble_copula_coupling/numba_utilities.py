@@ -54,6 +54,13 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     Returns:
         n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
     """
+    # check inputs
+    if len(x.shape) != 1:
+        raise ValueError("x must be 1-dimensional.")
+    if len(fp.shape) != 1:
+        raise ValueError("fp must be 1-dimensional.")
+    if xp.shape[1] != len(fp):
+        raise ValueError("Dimension 1 of xp must be equal to length of fp.")
     # check whether x is non-decreasing
     x_ordered = True
     for i in range(1, len(x)):
@@ -62,7 +69,7 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
             break
     max_ind = xp.shape[1]
     min_val = fp[0]
-    max_val = fp[max_ind - 1]
+    max_val = fp[-1]
     result = np.empty((xp.shape[0], len(x)))
     for i in prange(xp.shape[0]):
         ind = 0
