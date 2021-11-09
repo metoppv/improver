@@ -54,12 +54,9 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     Returns:
         n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
     """
-    # check whether x is non-decreasing
-    x_ordered = True
-    for i in range(1, len(x)):
-        if x[i] < x[i - 1]:
-            x_ordered = False
-            break
+    # sort x
+    sorted_ind = np.argsort(x)
+    x = x[sorted_ind]
     max_ind = xp.shape[1]
     min_val = fp[0]
     max_val = fp[max_ind - 1]
@@ -72,23 +69,18 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
         for j in range(len(x)):
             recalculate = False
             curr_x = x[j]
-            # Find the indices of xp[i] to interpolate between. We need the
-            # smallest index ind of xp[i] for which xp[i, ind] >= curr_x.
-            if x_ordered:
-                # Since x and x[i] are non-decreasing, ind for current j must be
-                # greater than equal to ind for previous j.
-                while (ind < max_ind) and (xp[i, ind] < curr_x):
-                    ind = ind + 1
-                    recalculate = True
-            else:
-                ind = np.searchsorted(xp[i], curr_x)
+            # Since x and x[i] are non-decreasing, ind for current j must be
+            # greater than equal to ind for previous j.
+            while (ind < max_ind) and (xp[i, ind] < curr_x):
+                ind = ind + 1
+                recalculate = True
             # linear interpolation
             if ind == 0:
                 result[i, j] = min_val
             elif ind == max_ind:
                 result[i, j] = max_val
             else:
-                if recalculate or not (x_ordered):
+                if recalculate:
                     intercept = fp[ind - 1]
                     x_lower = xp[i, ind - 1]
                     h_diff = xp[i, ind] - x_lower
@@ -98,4 +90,7 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
                     else:
                         slope = (fp[ind] - intercept) / h_diff
                 result[i, j] = intercept + (curr_x - x_lower) * slope
+    # reverse the sorting of x for the result
+    reverse_sorted_ind = np.argsort(sorted_ind)
+    result = result[:, reverse_sorted_ind]
     return result
