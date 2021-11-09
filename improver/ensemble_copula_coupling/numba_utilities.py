@@ -63,7 +63,7 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     max_ind = xp.shape[1]
     min_val = fp[0]
     max_val = fp[max_ind - 1]
-    result = np.empty((xp.shape[0], len(x)))
+    result = np.empty((xp.shape[0], len(x)), dtype=np.float32)
     for i in prange(xp.shape[0]):
         ind = 0
         intercept = 0

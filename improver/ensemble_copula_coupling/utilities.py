@@ -302,7 +302,7 @@ def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     Returns:
         n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
     """
-    result = np.empty((xp.shape[0], len(x)))
+    result = np.empty((xp.shape[0], len(x)), dtype=np.float32)
     for i in range(xp.shape[0]):
         result[i] = np.interp(x, xp[i, :], fp)
     return result
