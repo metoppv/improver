@@ -638,6 +638,40 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.training_length,
             )
 
+    def test_duplicate_forecasts(self):
+        """Test that a forecast cube is still produced if duplicate forecasts
+        are provided."""
+        forecast_df_with_duplicates = self.forecast_df.append(
+            self.forecast_df.iloc[:9], ignore_index=True
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df_with_duplicates,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_duplicate_truths(self):
+        """Test that a truth cube is still produced if duplicate truths
+        are provided."""
+        truth_df_with_duplicates = self.truth_subset_df.append(
+            self.truth_subset_df.iloc[:3], ignore_index=True
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_df_with_duplicates,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
     def test_forecast_additional_columns_present(self):
         """Test that if there are additional columns present
         in the forecast dataframe, these have no impact."""
