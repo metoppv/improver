@@ -324,6 +324,7 @@ def _prepare_dataframes(
         subset=["diagnostic", "forecast_period", "percentile", "time", "wmo_id"],
         keep="last",
     )
+    # Sort to ensure a consistent ordering after removing duplicates.
     forecast_df.sort_values(
         by=["blend_time", "percentile", "wmo_id"], inplace=True, ignore_index=True,
     )
@@ -331,6 +332,7 @@ def _prepare_dataframes(
     # Remove truth duplicates.
     truth_cols = ["diagnostic", "time", "wmo_id"]
     truth_df = truth_df.drop_duplicates(subset=truth_cols, keep="last",)
+    # Sort to ensure a consistent ordering after removing duplicates.
     truth_df.sort_values(
         by=truth_cols, inplace=True, ignore_index=True,
     )
