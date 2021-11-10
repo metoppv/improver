@@ -61,7 +61,7 @@ def fast_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     if len(xp.shape) != 1:
         raise ValueError("xp must be 1-dimensional.")
     if fp.shape[1] != len(xp):
-        raise ValueError("Dimension 1 of fp must be equal to lenght of xp.")
+        raise ValueError("Dimension 1 of fp must be equal to length of xp.")
     index = np.searchsorted(xp, x)
     result = np.empty((fp.shape[0], len(x)), dtype=np.float32)
     for row in prange(fp.shape[0]):
