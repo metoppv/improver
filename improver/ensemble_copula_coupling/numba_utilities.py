@@ -34,7 +34,6 @@ plugins.
 """
 
 import os
-from multiprocessing import Value
 
 import numpy as np
 from numba import config, njit, prange, set_num_threads
