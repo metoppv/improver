@@ -492,8 +492,8 @@ class Test_interpolate_multiple_rows_same_y_numba(IrisTest):
             if importlib.util.find_spec("numba") is not None:
                 import numba  # noqa: F401
             importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
-            from improver.ensemble_copula_coupling.utilities import (
-                interpolate_multiple_rows_same_y,  # noqa: F401
+            from improver.ensemble_copula_coupling.utilities import (  # noqa: F401
+                interpolate_multiple_rows_same_y,
             )
 
         self.addCleanup(undo_mocks)
@@ -527,8 +527,8 @@ class Test_interpolate_multiple_rows_same_y_no_numba(IrisTest):
             if importlib.util.find_spec("numba") is not None:
                 import numba  # noqa: F401
             importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
-            from improver.ensemble_copula_coupling.utilities import (
-                interpolate_multiple_rows_same_y,  # noqa: F401
+            from improver.ensemble_copula_coupling.utilities import (  # noqa: F401
+                interpolate_multiple_rows_same_y,
             )
 
         self.addCleanup(undo_mocks)
