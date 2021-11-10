@@ -316,7 +316,7 @@ class SpotExtraction(BasePlugin):
 
         additional_dims = None
         if len(spot_values.shape) > 1:
-            additional_dims = np.flip(diagnostic_cube.dim_coords)[2:]
+            additional_dims = diagnostic_cube.dim_coords[:-2]
 
         scalar_coords, nonscalar_coords = self.get_aux_coords(
             diagnostic_cube, x_indices, y_indices
