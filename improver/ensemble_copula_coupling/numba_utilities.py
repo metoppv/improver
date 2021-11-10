@@ -33,8 +33,8 @@ This module defines the optional numba utilities for Ensemble Copula Coupling
 plugins.
 """
 
-from multiprocessing import Value
 import os
+from multiprocessing import Value
 
 import numpy as np
 from numba import config, njit, prange, set_num_threads
