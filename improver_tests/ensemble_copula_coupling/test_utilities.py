@@ -33,7 +33,6 @@ Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
 import importlib
-import inspect
 import sys
 import unittest
 from datetime import datetime
@@ -490,13 +489,11 @@ class Test_interpolate_multiple_rows_same_y_numba(IrisTest):
         def undo_mocks():
             patch.stopall()
             # undo change to sys.modules
-            try:
-                import numba
-            except:
-                pass
+            if importlib.util.find_spec("numba") is not None:
+                import numba  # noqa: F401
             importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
             from improver.ensemble_copula_coupling.utilities import (
-                interpolate_multiple_rows_same_y,
+                interpolate_multiple_rows_same_y,  # noqa: F401
             )
 
         self.addCleanup(undo_mocks)
@@ -527,13 +524,11 @@ class Test_interpolate_multiple_rows_same_y_no_numba(IrisTest):
         def undo_mocks():
             patch.stopall()
             # undo change to sys.modules
-            try:
-                import numba
-            except:
-                pass
+            if importlib.util.find_spec("numba") is not None:
+                import numba  # noqa: F401
             importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
             from improver.ensemble_copula_coupling.utilities import (
-                interpolate_multiple_rows_same_y,
+                interpolate_multiple_rows_same_y,  # noqa: F401
             )
 
         self.addCleanup(undo_mocks)
