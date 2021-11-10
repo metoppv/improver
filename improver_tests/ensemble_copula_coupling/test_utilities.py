@@ -32,14 +32,12 @@
 Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
-import inspect
 import importlib
+import inspect
+import sys
 import unittest
 from datetime import datetime
-from mock import patch
 from unittest.case import skipIf
-import sys
-from mock.mock import MagicMock
 
 import numpy as np
 from cf_units import Unit
@@ -47,6 +45,8 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
+from mock import patch
+from mock.mock import MagicMock
 
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
