@@ -483,14 +483,8 @@ class Test_interpolate_multiple_rows_same_y_numba(IrisTest):
     """Test that fast version is used when numba is installed."""
 
     def setUp(self):
-        # mock numba available
-        sys.modules["numba"] = MagicMock()
-
         def undo_mocks():
             patch.stopall()
-            # undo change to sys.modules
-            if importlib.util.find_spec("numba") is not None:
-                import numba  # noqa: F401
             importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
             from improver.ensemble_copula_coupling.utilities import (  # noqa: F401
                 interpolate_multiple_rows_same_y,
@@ -502,6 +496,7 @@ class Test_interpolate_multiple_rows_same_y_numba(IrisTest):
         self.xp = np.sort(np.random.random_sample((100, 100)), axis=1)
         self.fp = np.arange(0, 100, 1).astype(float)
 
+    @patch.dict("sys.modules", numba=MagicMock())
     @patch("improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y")
     def test_correct_implementation_called(self, fast_interp_same_y):
         """Test that fast_interp_same_y is called if numba is installed."""
@@ -518,14 +513,8 @@ class Test_interpolate_multiple_rows_same_y_no_numba(IrisTest):
     """Test that slow version is used when numba is not installed."""
 
     def setUp(self):
-        # mock numba unavailable
-        sys.modules.pop("numba")
-
         def undo_mocks():
             patch.stopall()
-            # undo change to sys.modules
-            if importlib.util.find_spec("numba") is not None:
-                import numba  # noqa: F401
             importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
             from improver.ensemble_copula_coupling.utilities import (  # noqa: F401
                 interpolate_multiple_rows_same_y,
@@ -537,16 +526,20 @@ class Test_interpolate_multiple_rows_same_y_no_numba(IrisTest):
         self.xp = np.sort(np.random.random_sample((100, 100)), axis=1)
         self.fp = np.arange(0, 100, 1).astype(float)
 
-    @patch("improver.ensemble_copula_coupling.numba_utilities.slow_interp_same_y")
-    def test_correct_implementation_called(self, slow_interp_same_y):
-        """Test that slow_interp_same_y is called if numba is installed."""
+    @patch.dict("sys.modules", numba=None)
+    def test_correct_implementation_called(self):
+        """Test that slow_interp_same_y is called if numba is not installed."""
         importlib.reload(sys.modules["improver.ensemble_copula_coupling.utilities"])
         from improver.ensemble_copula_coupling.utilities import (
             interpolate_multiple_rows_same_y,
         )
 
-        interpolate_multiple_rows_same_y(self.x, self.xp, self.fp)
-        assert slow_interp_same_y.called
+        with patch.object(
+            sys.modules["improver.ensemble_copula_coupling.utilities"],
+            "slow_interp_same_y",
+        ) as slow_interp_same_y_mock:
+            interpolate_multiple_rows_same_y(self.x, self.xp, self.fp)
+            assert slow_interp_same_y_mock.called
 
 
 if __name__ == "__main__":

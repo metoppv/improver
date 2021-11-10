@@ -313,9 +313,14 @@ try:
 
     from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
 
-    interpolate_multiple_rows_same_y = fast_interp_same_y
+    def interpolate_multiple_rows_same_y(*args):
+        return fast_interp_same_y(*args)
+
+
 except ImportError:
     warnings.warn(
         "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
     )
-    interpolate_multiple_rows_same_y = slow_interp_same_y
+
+    def interpolate_multiple_rows_same_y(*args):
+        return slow_interp_same_y(*args)
