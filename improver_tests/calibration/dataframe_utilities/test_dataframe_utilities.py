@@ -638,9 +638,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.training_length,
             )
 
-    def test_duplicate_forecasts(self):
-        """Test that a forecast cube is still produced if duplicate forecasts
-        are provided."""
+    def test_duplicate_cycle_forecasts(self):
+        """Test that a forecast cube is still produced if a duplicated
+        cycle of forecasts is provided."""
         forecast_df_with_duplicates = self.forecast_df.append(
             self.forecast_df.iloc[:9], ignore_index=True
         )
@@ -655,11 +655,45 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
-    def test_duplicate_truths(self):
-        """Test that a truth cube is still produced if duplicate truths
-        are provided."""
+    def test_duplicate_cycle_truths(self):
+        """Test that a truth cube is still produced if duplicate
+        truths for a given validity time are provided."""
         truth_df_with_duplicates = self.truth_subset_df.append(
             self.truth_subset_df.iloc[:3], ignore_index=True
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_df_with_duplicates,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_duplicate_row_forecasts(self):
+        """Test that a forecast cube is still produced if a single
+        duplicated forecast is provided."""
+        forecast_df_with_duplicates = self.forecast_df.append(
+            self.forecast_df.iloc[0], ignore_index=True
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df_with_duplicates,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_duplicate_row_truths(self):
+        """Test that a truth cube is still produced if a single
+        duplicated truth for a given validity time is provided."""
+        truth_df_with_duplicates = self.truth_subset_df.append(
+            self.truth_subset_df.iloc[0], ignore_index=True
         )
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
