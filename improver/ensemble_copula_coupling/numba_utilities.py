@@ -33,6 +33,7 @@ This module defines the optional numba utilities for Ensemble Copula Coupling
 plugins.
 """
 
+from multiprocessing import Value
 import os
 
 import numpy as np
@@ -55,6 +56,13 @@ def fast_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
         2-D array with shape (len(fp), len(x)), with each row i equal to
             np.interp(x, xp, fp[i, :])
     """
+    # check inputs
+    if len(x.shape) != 1:
+        raise ValueError("x must be 1-dimensional.")
+    if len(xp.shape) != 1:
+        raise ValueError("xp must be 1-dimensional.")
+    if fp.shape[1] != len(xp):
+        raise ValueError("Dimension 1 of fp must be equal to lenght of xp.")
     index = np.searchsorted(xp, x)
     result = np.empty((fp.shape[0], len(x)), dtype=np.float32)
     for row in prange(fp.shape[0]):
