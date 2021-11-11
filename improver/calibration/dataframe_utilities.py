@@ -268,9 +268,10 @@ def _prepare_dataframes(
     experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare dataframes for conversion to cubes by: 1) checking
-    that the expected columns are present, 2) finding the sites
-    common to both the forecast and truth dataframes and 3)
-    replacing and supplementing the truth dataframe with
+    that the expected columns are present, 2) checking the percentiles
+    are as expected, 3) removing duplicates from the forecast and truth,
+    4) finding the sites common to both the forecast and truth dataframes
+    and 5) replacing and supplementing the truth dataframe with
     information from the forecast dataframe. Note that this third
     step will also ensure that a row containing a NaN for the
     ob_value is inserted for any missing observations.
@@ -317,6 +318,24 @@ def _prepare_dataframes(
 
     # Check the percentiles can be considered to be equally space quantiles.
     _quantile_check(forecast_df)
+
+    # Remove forecast duplicates.
+    forecast_df = forecast_df.drop_duplicates(
+        subset=["diagnostic", "forecast_period", "percentile", "time", "wmo_id"],
+        keep="last",
+    )
+    # Sort to ensure a consistent ordering after removing duplicates.
+    forecast_df.sort_values(
+        by=["blend_time", "percentile", "wmo_id"], inplace=True, ignore_index=True,
+    )
+
+    # Remove truth duplicates.
+    truth_cols = ["diagnostic", "time", "wmo_id"]
+    truth_df = truth_df.drop_duplicates(subset=truth_cols, keep="last",)
+    # Sort to ensure a consistent ordering after removing duplicates.
+    truth_df.sort_values(
+        by=truth_cols, inplace=True, ignore_index=True,
+    )
 
     # Find the common set of WMO IDs.
     common_wmo_ids = sorted(
