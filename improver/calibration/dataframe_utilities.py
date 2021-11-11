@@ -265,6 +265,7 @@ def _prepare_dataframes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
     percentiles: Optional[List[float]] = None,
+    experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare dataframes for conversion to cubes by: 1) checking
     that the expected columns are present, 2) finding the sites
@@ -286,6 +287,9 @@ def _prepare_dataframes(
             Any other columns are ignored.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
+        experiment:
+            A value within the experiment column to select from the forecast
+            table.
 
     Returns:
         A sanitised version of the forecasts and truth dataframes that
@@ -293,6 +297,18 @@ def _prepare_dataframes(
     """
     _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
+
+    # Filter to select only one experiment
+    if experiment:
+        forecast_df = forecast_df.loc[forecast_df["experiment"] == experiment]
+
+    if forecast_df["experiment"].nunique() > 1:
+        unique_exps = forecast_df["experiment"].unique()
+        msg = (
+            "More than one value for the experiment column found in the "
+            f"forecast dataframe. Values for experiment column {unique_exps}"
+        )
+        raise ValueError(msg)
 
     # Extract the required percentiles.
     if percentiles:
@@ -341,10 +357,7 @@ def _prepare_dataframes(
 
 
 def forecast_dataframe_to_cube(
-    df: DataFrame,
-    training_dates: DatetimeIndex,
-    forecast_period: int,
-    experiment: Optional[str] = None,
+    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int,
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -359,25 +372,10 @@ def forecast_dataframe_to_cube(
             Datetimes spanning the training period.
         forecast_period:
             Forecast period in seconds as an integer.
-        experiment:
-            A value within the experiment column to select from the forecast
-            table.
 
     Returns:
         Cube containing the forecasts from the training period.
     """
-    # Filter to select only one experiment
-    if experiment:
-        df = df.loc[df["experiment"] == experiment]
-
-    if df["experiment"].nunique() > 1:
-        unique_exps = df["experiment"].unique()
-        msg = (
-            "More than one value for the experiment column found in the "
-            f"forecast dataframe. Values for experiment column {unique_exps}"
-        )
-        raise ValueError(msg)
-
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
     cubelist = CubeList()
@@ -555,11 +553,11 @@ def forecast_and_truth_dataframes_to_cubes(
     )
 
     forecast_df, truth_df = _prepare_dataframes(
-        forecast_df, truth_df, percentiles=percentiles
+        forecast_df, truth_df, percentiles=percentiles, experiment=experiment
     )
 
     forecast_cube = forecast_dataframe_to_cube(
-        forecast_df, training_dates, forecast_period, experiment=experiment
+        forecast_df, training_dates, forecast_period
     )
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube

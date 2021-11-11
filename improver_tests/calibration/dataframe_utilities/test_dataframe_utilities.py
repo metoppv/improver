@@ -292,31 +292,6 @@ class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
         )
         self.assertCubeEqual(result, self.expected_period_forecast)
 
-    def test_error_multiple_experiment_values(self):
-        """Test an error is raised if multiple experiment values are in
-        the dataframe."""
-        experiment2 = self.forecast_df.copy()
-        experiment2["experiment"] = "threshold"
-        forecast_df = pd.concat([self.forecast_df, experiment2])
-        msg = "More than one value for the experiment column found"
-        with self.assertRaisesRegex(ValueError, msg):
-            forecast_dataframe_to_cube(
-                forecast_df, self.date_range, self.forecast_period
-            )
-
-    def test_select_single_experiment_value(self):
-        """Test selecting a single experiment value from the dataframe"""
-        experiment2 = self.forecast_df.copy()
-        experiment2["experiment"] = "threshold"
-        # Set original data to different values to make sure the correct experiment
-        # is picked up
-        self.forecast_df["forecast"] = 0.0
-        forecast_df = pd.concat([self.forecast_df, experiment2])
-        result = forecast_dataframe_to_cube(
-            forecast_df, self.date_range, self.forecast_period, experiment="threshold"
-        )
-        self.assertCubeEqual(result, self.expected_period_forecast)
-
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
@@ -690,6 +665,42 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             self.training_length,
         )
         self.assertEqual(len(result), 2)
+
+    def test_error_multiple_experiment_values(self):
+        """Test an error is raised if multiple experiment values are in
+        the dataframe."""
+        experiment2 = self.forecast_df.copy()
+        experiment2["experiment"] = "threshold"
+        forecast_df = pd.concat([self.forecast_df, experiment2])
+        msg = "More than one value for the experiment column found"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                forecast_df,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_select_single_experiment_value(self):
+        """Test selecting a single experiment value from the dataframe"""
+        experiment2 = self.forecast_df.copy()
+        experiment2["experiment"] = "threshold"
+        # Set original data to different values to make sure the correct experiment
+        # is picked up
+        self.forecast_df["forecast"] = 0.0
+        forecast_df = pd.concat([self.forecast_df, experiment2])
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+            experiment="threshold",
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
 
     def test_forecast_missing_columns_and_additional_columns(self):
         """Test if there are missing compulsory columns in the forecast

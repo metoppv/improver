@@ -102,15 +102,20 @@ def process(
     """
     from improver.regrid.landsea import RegridLandSea
 
-    if land_sea_mask and (
-        regrid_mode
-        not in ("nearest-with-mask", "nearest-with-mask-2", "bilinear-with-mask-2")
-    ):
-        msg = (
-            "Land-mask file supplied without appropriate regrid-mode. "
-            "Use --regrid-mode nearest-with-mask."
-        )
-        raise ValueError(msg)
+    if land_sea_mask:
+        if regrid_mode not in (
+            "nearest-with-mask",
+            "nearest-with-mask-2",
+            "bilinear-with-mask-2",
+        ):
+            msg = (
+                "Land-mask file supplied without appropriate regrid-mode. "
+                "Use --regrid-mode nearest-with-mask."
+            )
+            raise ValueError(msg)
+        _ = cube.data
+        _ = target_grid.data
+        _ = land_sea_mask.data
 
     return RegridLandSea(
         regrid_mode=regrid_mode,

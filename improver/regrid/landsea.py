@@ -30,14 +30,16 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Plugin to regrid with land-sea awareness"""
 
+import functools
 import warnings
-from typing import Optional
+from typing import Optional, Tuple
 
 import iris
 import numpy as np
 from iris.analysis import Linear, Nearest
 from iris.cube import Cube
-from scipy.interpolate import griddata
+from numpy import ndarray
+from scipy.spatial import cKDTree
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -233,6 +235,11 @@ class AdjustLandSeaPoints(BasePlugin):
     Where no match is found within the vicinity, the data value is not changed.
     """
 
+    class _NoMatchesError(ValueError):
+        """Raise when there are no matches for the specified selector."""
+
+        pass
+
     def __init__(
         self, extrapolation_mode: str = "nanmask", vicinity_radius: float = 25000.0
     ):
@@ -257,42 +264,25 @@ class AdjustLandSeaPoints(BasePlugin):
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
         self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
 
-    def correct_where_input_true(self, selector_val: int) -> None:
-        """
-        Replace points in the output_cube where output_land matches the
-        selector_val and the input_land does not match, but has matching
-        points in the vicinity, with the nearest matching point in the
-        vicinity in the original nearest_cube.
-        Updates self.output_cube.data.
-
-        Args:
-            selector_val:
-                Value of mask to replace if needed.
-                Intended to be 1 for filling land points near the coast
-                and 0 for filling sea points near the coast.
-        """
+    @functools.lru_cache(maxsize=2)
+    def _get_matches(
+        self, selector_val: int
+    ) -> Tuple[ndarray, ndarray, ndarray, ndarray]:
         # Find all points on output grid matching selector_val
         use_points = np.where(self.input_land.data == selector_val)
+        no_use_points = np.where(self.input_land.data != selector_val)
 
         # If there are no matching points on the input grid, no alteration can
-        # be made. This tests the size of the y-coordinate of use_points.
+        # be made.
         if use_points[0].size == 0:
-            return
-
-        # Get shape of output grid
-        ynum, xnum = self.output_land.shape
+            raise self._NoMatchesError
 
         # Using only these points, extrapolate to fill domain using nearest
         # neighbour. This will generate a grid where the non-selector_val
         # points are filled with the nearest value in the same mask
         # classification.
-        (y_points, x_points) = np.mgrid[0:ynum, 0:xnum]
-        selector_data = griddata(
-            use_points,
-            self.nearest_cube.data[use_points],
-            (y_points, x_points),
-            method="nearest",
-        )
+        tree = cKDTree(np.c_[use_points[0], use_points[1]])
+        _, indices = tree.query(np.c_[no_use_points[0], no_use_points[1]])
 
         # Identify nearby points on regridded input_land that match the
         # selector_value
@@ -311,6 +301,30 @@ class AdjustLandSeaPoints(BasePlugin):
             ),
             in_vicinity.data > 0.5,
         )
+        return mismatch_points, indices, use_points, no_use_points
+
+    def correct_where_input_true(self, selector_val: int) -> None:
+        """
+        Replace points in the output_cube where output_land matches the
+        selector_val and the input_land does not match, but has matching
+        points in the vicinity, with the nearest matching point in the
+        vicinity in the original nearest_cube.
+        Updates self.output_cube.data.
+
+        Args:
+            selector_val:
+                Value of mask to replace if needed.
+                Intended to be 1 for filling land points near the coast
+                and 0 for filling sea points near the coast.
+        """
+        try:
+            mismatch_points, indices, use_points, no_use_points = self._get_matches(
+                selector_val
+            )
+        except self._NoMatchesError:
+            return
+        selector_data = self.nearest_cube.data.copy()
+        selector_data[no_use_points] = selector_data[use_points][indices]
 
         # Replace these points with the filled-domain data
         self.output_cube.data[mismatch_points] = selector_data[mismatch_points]
@@ -353,8 +367,9 @@ class AdjustLandSeaPoints(BasePlugin):
         # Slice over x-y grids for multi-realization data.
         result = iris.cube.CubeList()
 
+        # Reset cache as input_land and output_land have changed
+        self._get_matches.cache_clear()
         for xyslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-
             # Store and copy cube ready for the output data
             self.nearest_cube = xyslice
             self.output_cube = self.nearest_cube.copy()
