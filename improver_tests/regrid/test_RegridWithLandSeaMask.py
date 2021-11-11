@@ -364,13 +364,11 @@ def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinpu
         cube_in.data = cube_in_masked_data
 
     # run the regridding
-    regrid_out = RegridLandSea(
+    regridder = RegridLandSea(
         regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000,
-    )(cube_in, cube_out_mask)
-
-    regrid_out_pad = RegridLandSea(
-        regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000,
-    )(cube_in, cube_out_mask_pad)
+    )
+    regrid_out = regridder(cube_in, cube_out_mask)
+    regrid_out_pad = regridder(cube_in, cube_out_mask_pad)
 
     # check that results inside the padding matches the same regridding without padding
     np.testing.assert_allclose(
@@ -378,8 +376,6 @@ def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinpu
     )
 
     # check results in the padded area
-    # NOTE: there is an extra column with values in the X dimension compared to
-    # the assert_allclose checking the data above
     if maskedinput:
         # masked array input should result in masked array output
         assert hasattr(regrid_out_pad.data, "mask")

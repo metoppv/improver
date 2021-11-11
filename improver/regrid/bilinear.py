@@ -68,7 +68,7 @@ def apply_weights(
         Regridded values for target points.
     """
     input_array_masked = False
-    if isinstance(in_values, np.ma.MaskedArray):
+    if isinstance(in_values, MaskedArray):
         input_array_masked = True
         in_values = np.ma.filled(in_values, np.nan)
     in_values_expanded = in_values[indexes]
@@ -193,7 +193,7 @@ def adjust_boundary_indexes(
         )[0]
 
         # if point_lat_lon_max_index exists, handle it.
-        if len(point_lat_lon_max_index) > 0:
+        if point_lat_lon_max_index:
             point_lat_lon_max = point_lat_max[point_lat_lon_max_index[0]]
             point_lat_max = np.delete(
                 point_lat_max, np.where(point_lat_max == point_lat_lon_max)[0]

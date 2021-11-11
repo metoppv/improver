@@ -102,8 +102,9 @@ class RegridWithLandSeaMask(BasePlugin):
         """
         Regridding considering land_sea mask. please note cube_in must use
         lats/lons rectlinear system(GeogCS). cube_in_mask and cube_in could be
-        different  resolution. cube_our could be either in lats/lons rectlinear
-        system or LambertAzimuthalEqualArea system.
+        different  resolution. cube_out could be either in lats/lons rectlinear
+        system or LambertAzimuthalEqualArea system. Grid points in cube_out
+        domain but not in cube_in domain will be masked.
 
         Args:
             cube_in:
