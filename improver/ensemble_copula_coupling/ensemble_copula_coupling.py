@@ -51,6 +51,7 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
+    interpolate_multiple_rows_same_x,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
@@ -284,16 +285,14 @@ class ResamplePercentiles(BasePlugin):
             original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
         )
 
-        forecast_at_interpolated_percentiles = np.empty(
-            (len(desired_percentiles), forecast_at_reshaped_percentiles.shape[0]),
-            dtype=np.float32,
+        forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
+            np.array(desired_percentiles, dtype=np.float64),
+            original_percentiles.astype(np.float64),
+            forecast_at_reshaped_percentiles.astype(np.float64),
         )
-        for index in range(forecast_at_reshaped_percentiles.shape[0]):
-            forecast_at_interpolated_percentiles[:, index] = np.interp(
-                desired_percentiles,
-                original_percentiles,
-                forecast_at_reshaped_percentiles[index, :],
-            )
+        forecast_at_interpolated_percentiles = np.transpose(
+            forecast_at_interpolated_percentiles
+        )
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.

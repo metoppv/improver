@@ -32,8 +32,10 @@
 Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
+import importlib
 import unittest
 from datetime import datetime
+from unittest.case import skipIf
 
 import numpy as np
 from cf_units import Unit
@@ -48,7 +50,9 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
+    interpolate_multiple_rows_same_x,
     restore_non_percentile_dimensions,
+    slow_interp_same_x,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -396,6 +400,80 @@ class Test_restore_non_percentile_dimensions(IrisTest):
             1,
         )
         self.assertArrayAlmostEqual(reshaped_array, expected)
+
+
+numba_installed = True
+try:
+    importlib.util.find_spec("numba")
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_x
+except ImportError:
+    numba_installed = False
+
+
+class TestInterpolateMultipleRowsSameX(IrisTest):
+
+    """Test interpolate_multiple_rows"""
+
+    def setUp(self):
+        """Set up arrays."""
+        np.random.seed(0)
+        self.x = np.arange(0, 1, 0.01)
+        self.xp = np.sort(np.random.random_sample(100))
+        self.fp = np.random.random((100, 100))
+
+    def test_slow(self):
+        """Test slow interp against known result."""
+        xp = np.array([0, 1, 2, 3, 4], dtype=np.float32)
+        fp = np.array([[0, 0.5, 1, 1.5, 2], [0, 2, 4, 6, 8]], dtype=np.float32)
+        x = np.array([-1, 0.5, 2], dtype=np.float32)
+        expected = np.array([[0, 0.25, 1], [0, 1, 4]], dtype=np.float32)
+        result = slow_interp_same_x(x, xp, fp)
+        np.testing.assert_allclose(result, expected)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_fast(self):
+        """Test fast interp against known result."""
+        xp = np.array([0, 1, 2, 3, 4], dtype=np.float32)
+        fp = np.array([[0, 0.5, 1, 1.5, 2], [0, 2, 4, 6, 8]], dtype=np.float32)
+        x = np.array([-1, 0.5, 2], dtype=np.float32)
+        expected = np.array([[0, 0.25, 1], [0, 1, 4]], dtype=np.float32)
+        result = fast_interp_same_x(x, xp, fp)
+        np.testing.assert_allclose(result, expected)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_fast(self):
+        """Test that slow and fast versions give same result."""
+        result_slow = slow_interp_same_x(self.x, self.xp, self.fp)
+        result_fast = fast_interp_same_x(self.x, self.xp, self.fp)
+        np.testing.assert_allclose(result_slow, result_fast)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_fast_unordered(self):
+        """Test that slow and fast versions give same result
+        when x is not sorted."""
+        shuffled_x = self.x.copy()
+        np.random.shuffle(shuffled_x)
+        result_slow = slow_interp_same_x(shuffled_x, self.xp, self.fp)
+        result_fast = fast_interp_same_x(shuffled_x, self.xp, self.fp)
+        np.testing.assert_allclose(result_slow, result_fast)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_fast_repeated(self):
+        """Test that slow and fast versions give same result when xp
+        contains repeats."""
+        repeat_xp = self.xp.copy()
+        repeat_xp[51] = repeat_xp[50]
+        result_slow = slow_interp_same_x(self.x, repeat_xp, self.fp)
+        result_fast = fast_interp_same_x(self.x, repeat_xp, self.fp)
+        np.testing.assert_allclose(result_slow, result_fast)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_multi(self):
+        """Test that slow interp gives same result as
+        interpolate_multiple_rows_same_x."""
+        result_slow = slow_interp_same_x(self.x, self.xp, self.fp)
+        result_multiple = interpolate_multiple_rows_same_x(self.x, self.xp, self.fp)
+        np.testing.assert_allclose(result_slow, result_multiple)
 
 
 if __name__ == "__main__":
