@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *cubes: cli.inputcube_nolazy,
     phase_change,
     grid_point_radius=2,
     horizontal_interpolation=True,

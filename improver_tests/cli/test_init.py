@@ -30,10 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for cli.__init__"""
 
-import dask.array as da
 import unittest
 from unittest.mock import patch
 
+import dask.array as da
 import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError

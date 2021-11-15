@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -29,52 +28,30 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate weather symbols."""
+"""Test nowcast_accumulate name_constraint function"""
 
-from improver import cli
+import dask.array as da
+import pytest
+from iris import Constraint
+from iris.cube import Cube, CubeList
+
+from improver.cli.nowcast_accumulate import name_constraint
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    *cubes: cli.inputcube_nolazy,
-    wxtree: cli.inputjson = None,
-    model_id_attr: str = None,
-    check_tree: bool = False,
-):
-    """ Processes cube for Weather symbols.
+def test_all():
+    """Check that cubes returned using the 'name_constraint' are not lazy"""
+    constraint = name_constraint(["dummy1"])
+    dummy1_cube = Cube(da.zeros((1, 1), chunks=(1, 1)), long_name="dummy2")
+    dummy2_cube = Cube(da.zeros((1, 1), chunks=(1, 1)), long_name="dummy1")
+    assert dummy1_cube.has_lazy_data()
+    assert dummy2_cube.has_lazy_data()
 
-    Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing the diagnostics required for the
-            weather symbols decision tree, these at co-incident times.
-        wxtree (dict):
-            A JSON file containing a weather symbols decision tree definition.
-        model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        check_tree (bool):
-            If set the decision tree will be checked to see if it conforms to
-            the expected format; the only other argument required is the path
-            to the decision tree. If the tree is found to be valid the required
-            inputs will be listed. Setting this flag will prevent the CLI
-            performing any other actions.
+    res = CubeList([dummy1_cube, dummy2_cube]).extract_cube(
+        Constraint(cube_func=constraint)
+    )
+    assert res.name() == "dummy1"
+    assert not res.has_lazy_data()
 
-    Returns:
-        iris.cube.Cube:
-            A cube of weather symbols.
-    """
-    if check_tree:
-        from improver.wxcode.utilities import check_tree
 
-        return check_tree(wxtree)
-
-    from iris.cube import CubeList
-
-    from improver.wxcode.weather_symbols import WeatherSymbols
-
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
-
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+if __name__ == "__main__":
+    pytest.main()

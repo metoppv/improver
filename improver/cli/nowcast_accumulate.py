@@ -31,26 +31,55 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to accumulate input data given advection velocity fields."""
 
+from typing import Callable, List
+
 from improver import cli
 
 # The accumulation frequency in minutes.
 ACCUMULATION_FIDELITY = 1
 
+
+def name_constraint(names: List[str]) -> Callable:
+    """
+    Generates a callable constraint for matching cube names.
+
+    The callable constraint will realise the data of those cubes matching the
+    constraint.
+    cube names
+
+    Args:
+        name:
+            List of cube names to constrain our cubes.
+
+    Returns:
+        A callable which when called, returns True or False for the provided cube,
+        depending on whether it matches the names provided.  These matching cube
+        will also have its data realised by the callable.
+    """
+
+    def constraint(cube):
+        ret = False
+        if cube.name() in names:
+            ret = True
+            _ = cube.data
+        return ret
+
+    return constraint
+
+
 # Creates the value_converter that clize needs.
 inputadvection = cli.create_constrained_inputcubelist_converter(
-    lambda cube: cube.name()
-    in ["precipitation_advection_x_velocity", "grid_eastward_wind"],
-    lambda cube: cube.name()
-    in ["precipitation_advection_y_velocity", "grid_northward_wind"],
+    name_constraint(["precipitation_advection_x_velocity", "grid_eastward_wind"]),
+    name_constraint(["precipitation_advection_y_velocity", "grid_northward_wind"]),
 )
 
 
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
+    cube: cli.inputcube_nolazy,
     advection_velocity: inputadvection,
-    orographic_enhancement: cli.inputcube,
+    orographic_enhancement: cli.inputcube_nolazy,
     *,
     attributes_config: cli.inputjson = None,
     max_lead_time=360,
