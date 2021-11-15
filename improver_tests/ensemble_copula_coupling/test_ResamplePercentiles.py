@@ -445,38 +445,40 @@ class Test_process(IrisTest):
             name="air_temperature",
             units="degC",
         )
+        self.expected = np.array(
+            [
+                [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
+                [[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]],
+                [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
+            ]
+        )
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_specifying_percentile_number(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values for a specific number of percentiles.
+        """
+        result = Plugin().process(self.percentile_cube, no_of_percentiles=3)
+        self.assertArrayAlmostEqual(result.data, self.expected)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_not_specifying_percentile_number(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values without specifying the number of percentiles.
+        """
+        result = Plugin().process(self.percentile_cube)
+        self.assertArrayAlmostEqual(result.data, self.expected)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
-        data values for a specific number of percentiles.
+        data values corresponding to the set of percentiles requested.
         """
-        data = np.array(
-            [
-                [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
-                [[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]],
-                [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
-            ]
-        )
-        result = Plugin().process(self.percentile_cube, no_of_percentiles=3)
-        self.assertArrayAlmostEqual(result.data, data)
-
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
-    def test_check_data_not_specifying_percentiles(self):
-        """
-        Test that the plugin returns an Iris.cube.Cube with the expected
-        data values without specifying the number of percentiles.
-        """
-        data = np.array(
-            [
-                [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
-                [[6.0, 6.625, 7.25], [7.875, 8.5, 9.125], [9.75, 10.375, 11.0]],
-                [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
-            ]
-        )
-        result = Plugin().process(self.percentile_cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        result = Plugin().process(self.percentile_cube, percentiles=[25, 50, 75])
+        self.assertArrayAlmostEqual(result.data, self.expected)
 
 
 if __name__ == "__main__":
