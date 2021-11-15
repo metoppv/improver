@@ -134,6 +134,9 @@ def process(
     """
     import warnings
 
+    import iris
+    import numpy as np
+
     from improver.calibration import split_forecasts_and_coeffs
     from improver.calibration.ensemble_calibration import ApplyEMOS
 
@@ -156,6 +159,11 @@ def process(
             )
             warnings.warn(msg)
             return prob_template
+
+        if percentiles:
+            percentiles = [np.float32(p) for p in percentiles]
+            constr = iris.Constraint(percentile=percentiles)
+            forecast = forecast.extract(constr)
 
         msg = (
             "There are no coefficients provided for calibration. The "

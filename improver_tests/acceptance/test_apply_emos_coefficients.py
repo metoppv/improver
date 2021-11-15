@@ -426,6 +426,26 @@ def test_no_coefficients(tmp_path):
     )
 
 
+def test_no_coefficients_percentiles(tmp_path):
+    """Test returning alternative percentiles when no coefficients are provided"""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/subsetted_percentiles"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--random-seed",
+        "0",
+        "--percentiles",
+        "25,50,75",
+        "--output",
+        output_path,
+    ]
+    with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
+        run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_no_coefficients_with_prob_template(tmp_path):
     """Test no coefficients provided with a probability template."""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
