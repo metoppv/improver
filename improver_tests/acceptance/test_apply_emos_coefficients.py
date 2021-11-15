@@ -446,6 +446,46 @@ def test_no_coefficients_percentiles(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_no_coefficients_partial_subset_percentiles(tmp_path):
+    """Test if no coefficients are provided and some of the percentiles
+    requested do not match the percentiles within the input forecast."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/subsetted_percentiles"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--random-seed",
+        "0",
+        "--percentiles",
+        "1,2,5",
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError, match=".*The percentiles within the forecast.*"):
+        run_cli(args)
+
+
+def test_no_coefficients_non_subset_percentiles(tmp_path):
+    """Test if no coefficients are provided and none of the percentiles
+    requested match the percentiles within the input forecast."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/subsetted_percentiles"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--random-seed",
+        "0",
+        "--percentiles",
+        "1,2,3",
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(
+        ValueError, match=".*No percentiles are present within the forecast.*"
+    ):
+        run_cli(args)
+
+
 def test_no_coefficients_with_prob_template(tmp_path):
     """Test no coefficients provided with a probability template."""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
