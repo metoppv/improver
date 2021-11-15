@@ -117,7 +117,7 @@ def process(
             ensures that only land points will be calibrated.
         percentiles (List[float]):
             The set of percentiles used to create the calibrated forecast.
-            If not coefficients are provided, these percentiles are expected to be
+            If no coefficients are provided, these percentiles are expected to be
             a subset of the percentiles within the input forecast.
 
     Returns:
@@ -159,7 +159,11 @@ def process(
 
         if percentiles:
             percentiles = [np.float32(p) for p in percentiles]
-            constr = iris.Constraint(percentile=percentiles)
+            constr = iris.Constraint(
+                coord_values={
+                    "percentile": lambda cell: any(np.isclose(cell.point, percentiles))
+                }
+            )
             forecast = forecast.extract(constr)
             if forecast is None or len(forecast.coord("percentile").points) != len(
                 percentiles
