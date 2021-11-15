@@ -194,16 +194,15 @@ class ModalWeatherCode(BasePlugin):
             A single weather code cube with time bounds that span those of
             the input weather code cubes.
         """
-        # Handle case in which a single time is provided.
-        if len(cubes) == 1:
-            self._unify_day_and_night(cubes[0])
-            cubes[0].add_cell_method(self.mode_cell_method)
-            return cubes[0]
-
         cube = MergeCubes()(cubes)
         self._unify_day_and_night(cube)
 
-        result = cube.collapsed("time", self.aggregator_instance)
+        # Handle case in which a single time is provided.
+        if len(cube.coord("time").points) == 1:
+            result = cube
+            result.add_cell_method(self.mode_cell_method)
+        else:
+            result = cube.collapsed("time", self.aggregator_instance)
         self._set_blended_times(result)
 
         # Handle any unset points where it was hard to determine a suitable mode
