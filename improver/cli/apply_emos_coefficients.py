@@ -117,6 +117,8 @@ def process(
             ensures that only land points will be calibrated.
         percentiles (List[float]):
             The set of percentiles used to create the calibrated forecast.
+            If no coefficients are provided, these percentiles are expected to be
+            a subset of the percentiles within the input forecast.
 
     Returns:
         iris.cube.Cube:
@@ -124,15 +126,13 @@ def process(
 
     Raises:
         ValueError:
-            If the current forecast is a coefficients cube.
-        ValueError:
-            If the coefficients cube does not have the right name of
-            "emos_coefficients".
-        ValueError:
-            If the forecast type is 'percentiles' or 'probabilities' and the
-            realizations_count argument is not provided.
+            If coefficients are not provided and the requested percentiles
+            cannot be extracted from the input forecast.
     """
     import warnings
+
+    import iris
+    import numpy as np
 
     from improver.calibration import split_forecasts_and_coeffs
     from improver.calibration.ensemble_calibration import ApplyEMOS
@@ -156,6 +156,35 @@ def process(
             )
             warnings.warn(msg)
             return prob_template
+
+        if percentiles:
+            percentiles = [np.float32(p) for p in percentiles]
+            constr = iris.Constraint(
+                coord_values={
+                    "percentile": lambda cell: any(np.isclose(cell.point, percentiles))
+                }
+            )
+            forecast = forecast.extract(constr)
+            if forecast is None or len(forecast.coord("percentile").points) != len(
+                percentiles
+            ):
+                msg = (
+                    "If coefficients are not provided, the percentiles "
+                    "requested are expected to be a subset of the percentiles "
+                    "within the forecast. The percentiles requested were "
+                    f"{percentiles}. "
+                )
+                if forecast:
+                    msg += (
+                        "The percentiles within the forecast "
+                        f"after extraction were {forecast.coord('percentile').points}."
+                    )
+                else:
+                    msg += (
+                        "No percentiles are present within the forecast "
+                        "after extraction."
+                    )
+                raise ValueError(msg)
 
         msg = (
             "There are no coefficients provided for calibration. The "
