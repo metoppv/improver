@@ -155,7 +155,7 @@ def test_metadata(wxcode_series):
         return timegm(time.utctimetuple())
 
     result = ModalWeatherCode()(wxcode_series)
-    print(result)
+
     n_times = len(wxcode_series)
     expected_time = TARGET_TIME
     expected_bounds = [TARGET_TIME - timedelta(hours=n_times), TARGET_TIME]
