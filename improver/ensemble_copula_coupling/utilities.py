@@ -309,7 +309,7 @@ def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
 
 
 def interpolate_multiple_rows_same_x(*args):
-    """For each row i of xp, For each row i of fp, calculate np.interp(x, xp, fp[i, :]).
+    """For each row i of fp, do the equivalent of np.interp(x, xp, fp[i, :]).
 
     Calls a fast numba implementation where numba is available (see
     `improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y`) and calls a
