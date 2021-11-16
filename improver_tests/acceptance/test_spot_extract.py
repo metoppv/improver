@@ -501,3 +501,47 @@ def test_percentile_from_threshold_with_realizations(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_local_timezone_extraction(tmp_path):
+    """Test spot extraction of diagnostic on a global grid representing local
+    timezone information. The input cube contains a 2-dimensional time
+    coordinate, from which a time for each site should be extracted."""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_global.nc"
+    diag_path = kgo_dir / "inputs/engluk_temperature_max_localtime.nc"
+    kgo_path = kgo_dir / "outputs/engluk_localtime_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        neighbour_path,
+        diag_path,
+        "--new-title",
+        "MOGREPS-G Spot Values",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_multi_time_input(tmp_path):
+    """Test extracting from a cube with a time and threshold coordinate. Note
+    that utilities.load.load_cube reverses the order of the leading dimensions
+    on load. As such the KGO has the threshold and time coordinates in a
+    different order to the input, but this is unrelated to spot-extract."""
+
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    diag_path = kgo_dir / "inputs/enukx_temperature_thresholds_multi_time.nc"
+    kgo_path = kgo_dir / "outputs/multi_time_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        neighbour_path,
+        diag_path,
+        "--output",
+        output_path,
+        "--new-title",
+        UK_SPOT_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

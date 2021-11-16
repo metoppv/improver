@@ -328,7 +328,8 @@ def with_output(
     from improver.utilities.save import save_netcdf
 
     result = wrapped(*args, **kwargs)
-    if output:
+
+    if output and result:
         save_netcdf(result, output, compression_level, least_significant_digit)
         return
     return result

@@ -55,6 +55,7 @@ below:
 * Daniel Mentiplay (Bureau of Meteorology, Australia)
 * Stephen Moseley (Met Office, UK)
 * Meabh NicGuidhir (Met Office, UK)
+* Carwyn Pelley (Met Office, UK)
 * Tim Pillinger (Met Office, UK)
 * Fiona Rust (Met Office, UK)
 * Chris Sampson (Met Office, UK)

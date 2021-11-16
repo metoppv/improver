@@ -42,6 +42,7 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
 from scipy import stats
 
+import improver.ensemble_copula_coupling._scipy_continuous_distns as scipy_cont_distns
 from improver import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
@@ -51,6 +52,7 @@ from improver.ensemble_copula_coupling.utilities import (
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
     interpolate_multiple_rows_same_y,
+    interpolate_multiple_rows_same_x,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
@@ -284,16 +286,14 @@ class ResamplePercentiles(BasePlugin):
             original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
         )
 
-        forecast_at_interpolated_percentiles = np.empty(
-            (len(desired_percentiles), forecast_at_reshaped_percentiles.shape[0]),
-            dtype=np.float32,
+        forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
+            np.array(desired_percentiles, dtype=np.float64),
+            original_percentiles.astype(np.float64),
+            forecast_at_reshaped_percentiles.astype(np.float64),
         )
-        for index in range(forecast_at_reshaped_percentiles.shape[0]):
-            forecast_at_interpolated_percentiles[:, index] = np.interp(
-                desired_percentiles,
-                original_percentiles,
-                forecast_at_reshaped_percentiles[index, :],
-            )
+        forecast_at_interpolated_percentiles = np.transpose(
+            forecast_at_interpolated_percentiles
+        )
 
         # Reshape forecast_at_percentiles, so the percentiles dimension is
         # first, and any other dimension coordinates follow.
@@ -725,14 +725,18 @@ calculate_truncated_normal_crps`,
                 a lower bound of zero should be [0, np.inf].
 
         """
-        try:
-            self.distribution = getattr(stats, distribution)
-        except AttributeError as err:
-            msg = (
-                "The distribution requested {} is not a valid distribution "
-                "in scipy.stats. {}".format(distribution, err)
-            )
-            raise AttributeError(msg)
+        if distribution == "truncnorm":
+            # Use scipy v1.3.3 truncnorm
+            self.distribution = scipy_cont_distns.truncnorm
+        else:
+            try:
+                self.distribution = getattr(stats, distribution)
+            except AttributeError as err:
+                msg = (
+                    "The distribution requested {} is not a valid distribution "
+                    "in scipy.stats. {}".format(distribution, err)
+                )
+                raise AttributeError(msg)
 
         if shape_parameters is None:
             if self.distribution.name == "truncnorm":
@@ -981,8 +985,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
     def _check_template_cube(self, cube: Cube) -> None:
         """
         The template cube is expected to contain a leading threshold dimension
-        followed by spatial (y/x) dimensions. This check raises an error if
-        this is not the case. If the cube contains the expected dimensions,
+        followed by spatial (y/x) dimensions for a gridded cube. For a spot
+        template cube, the spatial dimensions are not expected to be dimension
+        coordinates. If the cube contains the expected dimensions,
         a threshold leading order is enforced.
 
         Args:
@@ -993,7 +998,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
         Raises:
             ValueError: If cube is not of the expected dimensions.
         """
-        check_for_x_and_y_axes(cube, require_dim_coords=True)
+        require_dim_coords = False if cube.coords("wmo_id") else True
+        check_for_x_and_y_axes(cube, require_dim_coords=require_dim_coords)
         dim_coords = get_dim_coord_names(cube)
         msg = (
             "{} expects a cube with only a leading threshold dimension, "
@@ -1337,7 +1343,8 @@ class EnsembleReordering(BasePlugin):
         Returns:
             Cube containing the new ensemble realizations where all points
             within the dataset have been reordered in comparison to the
-            input percentiles.
+            input percentiles. This cube contains the same ensemble
+            realization numbers as the raw forecast.
         """
 
         percentile_coord_name = find_percentile_coordinate(
@@ -1357,7 +1364,8 @@ class EnsembleReordering(BasePlugin):
         )
         plugin = RebadgePercentilesAsRealizations()
         post_processed_forecast_realizations = plugin(
-            post_processed_forecast_realizations
+            post_processed_forecast_realizations,
+            ensemble_realization_numbers=raw_forecast.coord("realization").points,
         )
 
         enforce_coordinate_ordering(post_processed_forecast_realizations, "realization")

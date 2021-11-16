@@ -75,8 +75,6 @@ def process(
     from improver.wxcode.weather_symbols import WeatherSymbols
 
     if not cubes:
-        raise RuntimeError(
-            "Not enough input arguments. " "See help for more information."
-        )
+        raise RuntimeError("Not enough input arguments. See help for more information.")
 
     return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))

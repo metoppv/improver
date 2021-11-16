@@ -366,6 +366,50 @@ class Test_process(IrisTest):
         self.assertEqual(result[0].metadata, cube1.metadata)
         self.assertEqual(result[1].metadata, cube2.metadata)
 
+    def test_record_run(self):
+        """Test recording the source runs in a blend record run attribute."""
+        plugin = MergeCubesForWeightedBlending(
+            "model",
+            weighting_coord="forecast_period",
+            model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
+        )
+        cube = plugin.process(self.cubelist)
+        self.assertEqual(
+            cube.attributes["mosg__model_run"],
+            "uk_det:20151123T0300Z:\nuk_ens:20151123T0000Z:",
+        )
+
+    def test_record_run_existing(self):
+        """Test recording blend source runs with existing record attributes."""
+        plugin = MergeCubesForWeightedBlending(
+            "model",
+            weighting_coord="forecast_period",
+            model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
+        )
+        self.cube_ukv.attributes[
+            "mosg__model_run"
+        ] = "uk_det:20151123T0200Z:\nuk_det:20151123T0300Z:"
+        cube = plugin.process([self.cube_ukv, self.cube_enuk])
+        self.assertEqual(
+            cube.attributes["mosg__model_run"],
+            "uk_det:20151123T0200Z:\nuk_det:20151123T0300Z:\nuk_ens:20151123T0000Z:",
+        )
+
+    def test_record_run_no_model_attr(self):
+        """Test recording the source runs without a model attribute."""
+        plugin = MergeCubesForWeightedBlending(
+            "model",
+            weighting_coord="forecast_period",
+            model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
+        )
+        self.cube_ukv.attributes.pop("mosg__model_configuration")
+        msg = "Failure to record run information"
+        with self.assertRaisesRegex(Exception, msg):
+            plugin.process([self.cube_ukv, self.cube_enuk])
+
     def test_handling_blend_time(self):
         """Test merging works with mismatched and / or missing blend time
         coordinates"""

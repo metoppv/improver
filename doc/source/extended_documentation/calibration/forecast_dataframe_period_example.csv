@@ -1,0 +1,6 @@
+index,forecast,altitude,blend_time,forecast_period,forecast_reference_time,latitude,longitude,time,wmo_id,cf_name,units,percentile,period,height,diagnostic,experiment
+0,282.69,15,2021-08-01 00:00:00+00:00,0 days 09:00:00,2021-08-01 00:00:00+00:00,60,-5,2021-08-01 21:00:00+00:00,03001,temperature_at_screen_level_daytime_max,K,5,0 days 12:00:00,1.5,temperature_at_screen_level_max-daytime,threshold
+1,283.2,82,2021-08-01 00:00:00+00:00,0 days 09:00:00,2021-08-01 00:00:00+00:00,59,-4,2021-08-01 21:00:00+00:00,03002,temperature_at_screen_level_daytime_max,K,5,0 days 12:00:00,1.5,temperature_at_screen_level_max-daytime,threshold
+2,282.62,30,2021-08-01 00:00:00+00:00,0 days 09:00:00,2021-08-01 00:00:00+00:00,58,-3,2021-08-01 21:00:00+00:00,03003,temperature_at_screen_level_daytime_max,K,5,0 days 12:00:00,1.5,temperature_at_screen_level_max-daytime,threshold
+3,286.17,4,2021-08-01 00:00:00+00:00,0 days 09:00:00,2021-08-01 00:00:00+00:00,57,-2,2021-08-01 21:00:00+00:00,03004,temperature_at_screen_level_daytime_max,K,5,0 days 12:00:00,1.5,temperature_at_screen_level_max-daytime,threshold
+4,284.43,15,2021-08-01 00:00:00+00:00,0 days 09:00:00,2021-08-01 00:00:00+00:00,56,-1,2021-08-01 21:00:00+00:00,03005,temperature_at_screen_level_daytime_max,K,5,0 days 12:00:00,1.5,temperature_at_screen_level_max-daytime,threshold

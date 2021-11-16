@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -28,48 +29,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the compare CLI"""
+"""CLI to generate modal weather symbols over periods."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI, verbose=False)
+from improver import cli
 
 
-def test_same(capsys):
-    """Compare identical files, should not produce any output"""
-    kgo_dir = acc.kgo_root()
-    input_file = kgo_dir / "apply-lapse-rate/highres_orog.nc"
-    matching_file = kgo_dir / "wind_downscaling/basic/highres_orog.nc"
-    args = [input_file, matching_file]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert captured.err == ""
+@cli.clizefy
+@cli.with_output
+def process(*cubes: cli.inputcube):
+    """Generates a modal weather symbol for the period covered by the input
+    weather symbol cubes. Where there are different weather codes available
+    for night and day, the modal code returned is always a day code, regardless
+    of the times covered by the input files.
 
+    Args:
+        cubes (iris.cube.CubeList):
+            A cubelist containing weather symbols cubes that cover the period
+            over which a modal symbol is desired.
 
-def test_different(capsys):
-    """Compare different files, should report differences to stdout"""
-    kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "generate-percentiles/basic/input.nc"
-    b_file = kgo_dir / "threshold/basic/input.nc"
-    args = [a_file, b_file]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert "different dimension size" in captured.out
-    assert "different variables" in captured.out
-    assert "different data" in captured.out
+    Returns:
+        iris.cube.Cube:
+            A cube of modal weather symbols over a period.
+    """
+    from improver.wxcode.modal_code import ModalWeatherCode
 
+    if not cubes:
+        raise RuntimeError("Not enough input arguments. See help for more information.")
 
-def test_ignored_attributes(capsys):
-    """Ensure attribute differences are not reported if explicity excluded."""
-    kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "spot-extract/inputs/all_methods_uk_unique_ids.nc"
-    b_file = kgo_dir / "spot-extract/inputs/all_methods_global.nc"
-    args = [a_file, b_file, "--ignored-attributes=model_grid_hash"]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert "different attribute value" not in captured.out
+    return ModalWeatherCode()(cubes)

@@ -33,7 +33,6 @@ This module defines the utilities required for Ensemble Copula Coupling
 plugins.
 
 """
-
 import warnings
 from typing import List, Optional, Union
 
@@ -258,6 +257,7 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     return array_1d
 
 
+
 def restore_non_percentile_dimensions(
     array_to_reshape: ndarray, original_cube: Cube, n_percentiles: int
 ) -> ndarray:
@@ -333,3 +333,31 @@ def interpolate_multiple_rows_same_y(*args):
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
         return slow_interp_same_y(*args)
+
+
+def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """For each row i of fp, calculate np.interp(x, xp, fp[i, :]).
+    Args:
+        x: 1-D array
+        xp: 1-D array, sorted in non-decreasing order
+        fp: 2-D array with len(xp) columns
+    Returns:
+        2-D array with shape (len(fp), len(x)), with each row i equal to
+            np.interp(x, xp, fp[i, :])
+    """
+
+    result = np.empty((fp.shape[0], len(x)), np.float32)
+    for i in range(fp.shape[0]):
+        result[i, :] = np.interp(x, xp, fp[i, :])
+    return result
+
+
+try:
+    import numba  # noqa: F401
+
+    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_x
+
+    interpolate_multiple_rows_same_x = fast_interp_same_x
+except ImportError:
+    warnings.warn("Module numba unavailable. ResamplePercentiles will be slower.")
+    interpolate_multiple_rows_same_x = slow_interp_same_x

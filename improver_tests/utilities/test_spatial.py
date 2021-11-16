@@ -188,6 +188,16 @@ class Test_calculate_grid_spacing_without_tolerance(GridSpacingTest):
         result = calculate_grid_spacing(self.cube, self.unit)
         self.assertAlmostEqual(result, self.spacing)
 
+    def test_negative_x(self):
+        """Test positive answer is returned from a negative-striding x-axis"""
+        result = calculate_grid_spacing(self.cube[..., ::-1], self.unit, axis="x")
+        self.assertAlmostEqual(result, self.spacing)
+
+    def test_negative_y(self):
+        """Test positive answer is returned from a negative-striding y-axis"""
+        result = calculate_grid_spacing(self.cube[..., ::-1, :], self.unit, axis="y")
+        self.assertAlmostEqual(result, self.spacing)
+
     def test_units(self):
         """Test correct answer is returned for coordinates in km"""
         for axis in ["x", "y"]:
@@ -239,10 +249,15 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
         self.assertAlmostEqual(result, self.expected)
 
     def test_lat_lon_negative_spacing(self):
-        """Test negative grid spacing outputs with lat-lon grid in degrees"""
-        self.lat_lon_cube.coord("longitude").points = self.longitude_points[::-1]
-        result = calculate_grid_spacing(self.lat_lon_cube, "degrees", rtol=self.rtol)
-        self.assertAlmostEqual(result, -self.expected)
+        """Test negative-striding axes grid spacing is positive with lat-lon grid in degrees"""
+        for axis in "yx":
+            self.lat_lon_cube.coord(axis=axis).points = self.lat_lon_cube.coord(
+                axis=axis
+            ).points[::-1]
+            result = calculate_grid_spacing(
+                self.lat_lon_cube, "degrees", rtol=self.rtol, axis=axis
+            )
+            self.assertAlmostEqual(result, self.expected)
 
     def test_lat_lon_not_equal_spacing(self):
         """Test outputs with lat-lon grid in degrees"""

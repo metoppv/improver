@@ -122,20 +122,17 @@ def acceptance_checksums(checksum_path=DEFAULT_CHECKSUM_FILE):
 
 def verify_checksum(kgo_path, checksums=None, checksum_path=DEFAULT_CHECKSUM_FILE):
     """
-    Verify an individual KGO file's checksum.
+    Verify the checksum of the provided KGO path.
 
     Args:
-        kgo_path (pathlib.Path): Path to file in KGO directory
+        kgo_path (pathlib.Path): Either a path to a KGO file or a path
+            to a directory containing a KGO dataset.
         checksums (Optional[Dict[pathlib.Path, str]]): Lookup dictionary
             mapping from paths to hexadecimal checksums. If provided, used in
             preference to checksum_path.
         checksum_path (pathlib.Path): Path to checksum file, used if checksums is
             None. File should be plain text in the format produced by the
             sha256sum command line tool.
-
-    Raises:
-        KeyError: File being verified is not found in checksum dict/file
-        ValueError: Checksum does not match value in checksum dict/file
     """
     if checksums is None:
         checksums_dict = acceptance_checksums(checksum_path=checksum_path)
@@ -143,6 +140,31 @@ def verify_checksum(kgo_path, checksums=None, checksum_path=DEFAULT_CHECKSUM_FIL
     else:
         checksums_dict = checksums
         checksums_source = "lookup dict"
+
+    if kgo_path.is_dir():
+        for kgo_filepath in kgo_path.rglob("*"):
+            if kgo_filepath.is_file():
+                verify_file_checksum(kgo_filepath, checksums_dict, checksums_source)
+    else:
+        verify_file_checksum(kgo_path, checksums_dict, checksums_source)
+
+
+def verify_file_checksum(kgo_path, checksums_dict, checksums_source):
+    """
+    Verify an individual KGO file's checksum.
+
+    Args:
+        kgo_path (pathlib.Path): A path to a KGO file.
+        checksums_dict (Dict[pathlib.Path, str]): Dict with keys being
+            relative paths and values being hexadecimal checksums.
+        checksums_source (Union[pathlib.Path, str]): Path or string
+            identifying the source of the checksum information.
+
+    Raises:
+        KeyError: File being verified is not found in checksum dict/file
+        ValueError: Checksum does not match value in checksum dict/file
+    """
+
     kgo_csum = calculate_checksum(kgo_path)
     kgo_norm_path = pathlib.Path(os.path.normpath(kgo_path))
     kgo_rel_path = kgo_norm_path.relative_to(kgo_root())

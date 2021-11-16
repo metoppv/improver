@@ -28,48 +28,51 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the compare CLI"""
+"""
+Unit tests for the
+`ensemble_copula_coupling._scipy_continuous_distns` scipy truncnorm workaround.
 
+"""
+import unittest
+
+import numpy as np
 import pytest
+from scipy.stats import truncnorm as scipytruncnorm
 
-from . import acceptance as acc
+from improver.ensemble_copula_coupling._scipy_continuous_distns import truncnorm
 
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI, verbose=False)
-
-
-def test_same(capsys):
-    """Compare identical files, should not produce any output"""
-    kgo_dir = acc.kgo_root()
-    input_file = kgo_dir / "apply-lapse-rate/highres_orog.nc"
-    matching_file = kgo_dir / "wind_downscaling/basic/highres_orog.nc"
-    args = [input_file, matching_file]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert captured.err == ""
+LINSPACE = np.linspace(0, 1, 10)
+ARANGE = list(range(-20, 20))
 
 
-def test_different(capsys):
-    """Compare different files, should report differences to stdout"""
-    kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "generate-percentiles/basic/input.nc"
-    b_file = kgo_dir / "threshold/basic/input.nc"
-    args = [a_file, b_file]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert "different dimension size" in captured.out
-    assert "different variables" in captured.out
-    assert "different data" in captured.out
+@pytest.mark.parametrize(
+    "method,x",
+    [
+        ("ppf", LINSPACE),
+        ("cdf", ARANGE),
+        ("sf", ARANGE),
+        ("pdf", ARANGE),
+        ("logpdf", ARANGE),
+    ],
+)
+def test_method(method, x):
+    """
+    Test each method available for scipy truncnorm.
+
+    Test is between the scipy v1.3.3 truncnorm and the scipy truncnorm
+    within the Python environment.
+
+    """
+    loc = 0
+    scale = 3
+    a = -1
+    b = 3
+    scipy_tnorm = scipytruncnorm(a, b, loc, scale)
+    our_tnorm = truncnorm(a, b, loc, scale)
+    target = getattr(scipy_tnorm, method)(x)
+    result = getattr(our_tnorm, method)(x)
+    np.testing.assert_allclose(result, target, rtol=1e-5)
 
 
-def test_ignored_attributes(capsys):
-    """Ensure attribute differences are not reported if explicity excluded."""
-    kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "spot-extract/inputs/all_methods_uk_unique_ids.nc"
-    b_file = kgo_dir / "spot-extract/inputs/all_methods_global.nc"
-    args = [a_file, b_file, "--ignored-attributes=model_grid_hash"]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert "different attribute value" not in captured.out
+if __name__ == "__main__":
+    unittest.main()

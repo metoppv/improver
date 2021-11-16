@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the compare CLI"""
+"""Tests for the wxcode-modal CLI"""
 
 import pytest
 
@@ -36,40 +36,49 @@ from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI, verbose=False)
+run_cli = acc.run_cli(CLI)
 
 
-def test_same(capsys):
-    """Compare identical files, should not produce any output"""
-    kgo_dir = acc.kgo_root()
-    input_file = kgo_dir / "apply-lapse-rate/highres_orog.nc"
-    matching_file = kgo_dir / "wind_downscaling/basic/highres_orog.nc"
-    args = [input_file, matching_file]
+@pytest.mark.parametrize(
+    "test_path",
+    [
+        "gridded_input",
+        "spot_input",
+        "gridded_ties",
+        "spot_ties",
+        "blend_mismatch_inputs",
+    ],
+)
+@pytest.mark.slow
+def test_expected(tmp_path, test_path):
+    """Test wxcode modal calculation returns the expected results. The tests
+    are:
+
+        - simple gridded / spot data input
+        - gridded / spot data input engineered to provide many ties that are
+          solved using grouping
+        - a night-time code test using spot data
+        - spot data where one input has a different blend-time to the rest
+    """
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = (kgo_dir).glob("202012*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--output",
+        output_path,
+    ]
     run_cli(args)
-    captured = capsys.readouterr()
-    assert captured.out == ""
-    assert captured.err == ""
+    acc.compare(output_path, kgo_path)
 
 
-def test_different(capsys):
-    """Compare different files, should report differences to stdout"""
-    kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "generate-percentiles/basic/input.nc"
-    b_file = kgo_dir / "threshold/basic/input.nc"
-    args = [a_file, b_file]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert "different dimension size" in captured.out
-    assert "different variables" in captured.out
-    assert "different data" in captured.out
-
-
-def test_ignored_attributes(capsys):
-    """Ensure attribute differences are not reported if explicity excluded."""
-    kgo_dir = acc.kgo_root()
-    a_file = kgo_dir / "spot-extract/inputs/all_methods_uk_unique_ids.nc"
-    b_file = kgo_dir / "spot-extract/inputs/all_methods_global.nc"
-    args = [a_file, b_file, "--ignored-attributes=model_grid_hash"]
-    run_cli(args)
-    captured = capsys.readouterr()
-    assert "different attribute value" not in captured.out
+def test_no_input(tmp_path):
+    """Test an exceptions is raised by the CLI if no cubes are provided."""
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(RuntimeError, match="Not enough input arguments*"):
+        run_cli(args)
