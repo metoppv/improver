@@ -314,10 +314,11 @@ class ResamplePercentiles(BasePlugin):
         self,
         forecast_at_percentiles: Cube,
         no_of_percentiles: Optional[int] = None,
-        sampling: str = "quantile",
+        sampling: Optional[str] = "quantile",
+        percentiles: Optional[List] = None,
     ) -> Cube:
         """
-        1. Creates a list of percentiles.
+        1. Creates a list of percentiles, if not provided.
         2. Accesses the lower and upper bound pair of the forecast values,
            in order to specify lower and upper bounds for the percentiles.
         3. Interpolate the percentile coordinate into an alternative
@@ -341,19 +342,33 @@ class ResamplePercentiles(BasePlugin):
                      at dividing a Cumulative Distribution Function into
                      blocks of equal probability.
                 * Random: A random set of ordered percentiles.
+            percentiles:
+                List of the desired output percentiles.
 
         Returns:
             Cube with forecast values at the desired set of percentiles.
             The percentile coordinate is always the zeroth dimension.
+
+        Raises:
+            ValueError: The percentiles supplied must be between 0 and 100.
         """
         percentile_coord = find_percentile_coordinate(forecast_at_percentiles)
 
-        if no_of_percentiles is None:
-            no_of_percentiles = len(
-                forecast_at_percentiles.coord(percentile_coord).points
+        if percentiles:
+            if any(p < 0 or p > 100 for p in percentiles):
+                msg = (
+                    "The percentiles supplied must be between 0 and 100. "
+                    f"Percentiles supplied: {percentiles}"
+                )
+                raise ValueError(msg)
+        else:
+            if no_of_percentiles is None:
+                no_of_percentiles = len(
+                    forecast_at_percentiles.coord(percentile_coord).points
+                )
+            percentiles = choose_set_of_percentiles(
+                no_of_percentiles, sampling=sampling
             )
-
-        percentiles = choose_set_of_percentiles(no_of_percentiles, sampling=sampling)
 
         cube_units = forecast_at_percentiles.units
         bounds_pairing = get_bounds_of_distribution(
