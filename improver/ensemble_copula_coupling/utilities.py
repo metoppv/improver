@@ -257,7 +257,6 @@ def insert_lower_and_upper_endpoint_to_1d_array(
     return array_1d
 
 
-
 def restore_non_percentile_dimensions(
     array_to_reshape: ndarray, original_cube: Cube, n_percentiles: int
 ) -> ndarray:
@@ -331,11 +330,8 @@ def interpolate_multiple_rows_same_x(*args):
 
         return fast_interp_same_x(*args)
     except ImportError:
-        warnings.warn(
-            "Module numba unavailable. ResamplePercentiles will be slower."
-        )
+        warnings.warn("Module numba unavailable. ResamplePercentiles will be slower.")
         return slow_interp_same_x(*args)
-
 
 
 def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:

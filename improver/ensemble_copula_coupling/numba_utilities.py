@@ -140,5 +140,3 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
                         slope = (fp[ind] - intercept) / h_diff
                 result[i, j] = intercept + (curr_x - x_lower) * slope
     return result
-
-

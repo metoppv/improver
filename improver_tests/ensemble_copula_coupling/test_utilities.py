@@ -409,8 +409,10 @@ class Test_restore_non_percentile_dimensions(IrisTest):
 numba_installed = True
 try:
     importlib.util.find_spec("numba")
-    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
-    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_x
+    from improver.ensemble_copula_coupling.numba_utilities import (
+        fast_interp_same_x,
+        fast_interp_same_y,
+    )
 except ImportError:
     numba_installed = False
 
@@ -567,7 +569,6 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         result_slow = slow_interp_same_x(self.x, self.xp, self.fp)
         result_multiple = interpolate_multiple_rows_same_x(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_multiple)
-
 
 
 if __name__ == "__main__":
