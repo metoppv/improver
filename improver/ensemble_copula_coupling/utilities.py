@@ -293,7 +293,6 @@ def restore_non_percentile_dimensions(
 
 def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """For each row i of fp, calculate np.interp(x, xp, fp[i, :]).
-
     Args:
         x: 1-D array
         xp: 1-D array, sorted in non-decreasing order
@@ -309,12 +308,70 @@ def slow_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
     return result
 
 
-try:
-    import numba  # noqa: F401
+def interpolate_multiple_rows_same_x(*args):
+    """For each row i of fp, do the equivalent of np.interp(x, xp, fp[i, :]).
 
-    from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_x
+    Calls a fast numba implementation where numba is available (see
+    `improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y`) and calls a
+    the native python implementation otherwise (see :func:`slow_interp_same_y`).
 
-    interpolate_multiple_rows_same_x = fast_interp_same_x
-except ImportError:
-    warnings.warn("Module numba unavailable. ResamplePercentiles will be slower.")
-    interpolate_multiple_rows_same_x = slow_interp_same_x
+    Args:
+        x: 1-D array
+        xp: 1-D array, sorted in non-decreasing order
+        fp: 2-D array with len(xp) columns
+    Returns:
+        2-D array with shape (len(fp), len(x)), with each row i equal to
+            np.interp(x, xp, fp[i, :])
+    """
+    try:
+        import numba  # noqa: F401
+
+        from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_x
+
+        return fast_interp_same_x(*args)
+    except ImportError:
+        warnings.warn("Module numba unavailable. ResamplePercentiles will be slower.")
+        return slow_interp_same_x(*args)
+
+
+def slow_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
+    """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
+
+    Args:
+        x: 1-d array
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-d array with length m
+    Returns:
+        n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
+    """
+    result = np.empty((xp.shape[0], len(x)), dtype=np.float32)
+    for i in range(xp.shape[0]):
+        result[i] = np.interp(x, xp[i, :], fp)
+    return result
+
+
+def interpolate_multiple_rows_same_y(*args):
+    """For each row i of xp, do the equivalent of np.interp(x, xp[i], fp).
+
+    Calls a fast numba implementation where numba is available (see
+    `improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_y`) and calls a
+    the native python implementation otherwise (see :func:`slow_interp_same_y`).
+
+    Args:
+        x: 1-d array
+        xp: n * m array, each row must be in non-decreasing order
+        fp: 1-d array with length m
+    Returns:
+        n * len(x) array where each row i is equal to np.interp(x, xp[i], fp)
+    """
+    try:
+        import numba  # noqa: F401
+
+        from improver.ensemble_copula_coupling.numba_utilities import fast_interp_same_y
+
+        return fast_interp_same_y(*args)
+    except ImportError:
+        warnings.warn(
+            "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
+        )
+        return slow_interp_same_y(*args)
