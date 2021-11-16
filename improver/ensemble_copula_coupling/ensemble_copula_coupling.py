@@ -51,8 +51,8 @@ from improver.ensemble_copula_coupling.utilities import (
     create_cube_with_percentiles,
     get_bounds_of_distribution,
     insert_lower_and_upper_endpoint_to_1d_array,
-    interpolate_multiple_rows_same_y,
     interpolate_multiple_rows_same_x,
+    interpolate_multiple_rows_same_y,
     restore_non_percentile_dimensions,
 )
 from improver.metadata.probabilistic import (
