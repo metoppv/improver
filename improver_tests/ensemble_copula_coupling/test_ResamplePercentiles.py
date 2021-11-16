@@ -477,8 +477,26 @@ class Test_process(IrisTest):
         Test that the plugin returns an Iris.cube.Cube with the expected
         data values corresponding to the set of percentiles requested.
         """
-        result = Plugin().process(self.percentile_cube, percentiles=[25, 50, 75])
-        self.assertArrayAlmostEqual(result.data, self.expected)
+        result = Plugin().process(self.percentile_cube, percentiles=[35, 60, 85])
+        self.assertArrayAlmostEqual(result.data, self.expected + 0.5)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_percentiles_too_low(self):
+        """
+        Test that an exception is raised if a percentile value is below 0.
+        """
+        msg = "The percentiles supplied must be between 0 and 100"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin().process(self.percentile_cube, percentiles=[-5, 50, 75])
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_percentiles_too_high(self):
+        """
+        Test that an exception is raised if a percentile value is above 100.
+        """
+        msg = "The percentiles supplied must be between 0 and 100"
+        with self.assertRaisesRegex(ValueError, msg):
+            Plugin().process(self.percentile_cube, percentiles=[25, 50, 105])
 
 
 if __name__ == "__main__":

@@ -348,10 +348,20 @@ class ResamplePercentiles(BasePlugin):
         Returns:
             Cube with forecast values at the desired set of percentiles.
             The percentile coordinate is always the zeroth dimension.
+
+        Raises:
+            ValueError: The percentiles supplied must be between 0 and 100.
         """
         percentile_coord = find_percentile_coordinate(forecast_at_percentiles)
 
-        if not percentiles:
+        if percentiles:
+            if any(p < 0 or p > 100 for p in percentiles):
+                msg = (
+                    "The percentiles supplied must be between 0 and 100. "
+                    f"Percentiles supplied: {percentiles}"
+                )
+                raise ValueError(msg)
+        else:
             if no_of_percentiles is None:
                 no_of_percentiles = len(
                     forecast_at_percentiles.coord(percentile_coord).points
