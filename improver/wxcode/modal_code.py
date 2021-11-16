@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing a plugin to calculate the modal weather code in a period."""
 
+import iris
 import numpy as np
 from iris.analysis import Aggregator
 from iris.cube import Cube, CubeList
@@ -75,6 +76,10 @@ class ModalWeatherCode(BasePlugin):
     def __init__(self):
         """Create an aggregator instance for reuse"""
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
+
+        # Create the expected cell method for use with single cube inputs
+        # that do not pass through the aggregator.
+        self.mode_cell_method = iris.coords.CellMethod("mode", coords="time")
 
     @staticmethod
     def _unify_day_and_night(cube: Cube):
@@ -189,14 +194,15 @@ class ModalWeatherCode(BasePlugin):
             A single weather code cube with time bounds that span those of
             the input weather code cubes.
         """
-        # Handle case in which a single time is provided.
-        if len(cubes) == 1:
-            return cubes[0]
-
         cube = MergeCubes()(cubes)
         self._unify_day_and_night(cube)
 
-        result = cube.collapsed("time", self.aggregator_instance)
+        # Handle case in which a single time is provided.
+        if len(cube.coord("time").points) == 1:
+            result = cube
+            result.add_cell_method(self.mode_cell_method)
+        else:
+            result = cube.collapsed("time", self.aggregator_instance)
         self._set_blended_times(result)
 
         # Handle any unset points where it was hard to determine a suitable mode

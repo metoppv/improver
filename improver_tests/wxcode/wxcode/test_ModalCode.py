@@ -107,10 +107,10 @@ def wxcode_series_fixture(data, cube_type, offset_reference_times: bool) -> Cube
         # Short period with an equal split. The most significant weather
         # (hail, 21) should be returned.
         ([1, 21], 21),
-        # A single time is provided in which sleet is falling (18). We expect
-        # the cube to be returned unchanged as it already represents the period
-        # of interest.
-        ([18], 18),
+        # A single time is provided in which a sleet shower is forecast (16).
+        # We expect the cube to be returned with the night code changed to a
+        # day code (17).
+        ([16], 17),
         # Equal split in day codes, but a night code corresponding to one
         # of the day types means a valid mode can be calculated. We expect the
         # day code (10) to be returned.
@@ -138,26 +138,34 @@ def test_expected_values(wxcode_series, expected):
 
 
 @pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("data, cube_type", [(np.ones((12)), "gridded")])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("data", [np.ones((12)), np.ones((1))])
 def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the
     representative symbol has been calculated while the forecast_reference_time
     will be the latest of those input and the forecast_period will be the
-    difference between the forecast_reference_time and time."""
+    difference between the forecast_reference_time and time.
+
+    A single data point is tested which means a single cube is passed in. This
+    ensures the metadata is consistent whether or not the input data has passed
+    through the modal aggregator."""
 
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
     result = ModalWeatherCode()(wxcode_series)
+
+    n_times = len(wxcode_series)
     expected_time = TARGET_TIME
-    expected_bounds = [TARGET_TIME - timedelta(hours=12), TARGET_TIME]
+    expected_bounds = [TARGET_TIME - timedelta(hours=n_times), TARGET_TIME]
     expected_reference_time = TARGET_TIME - timedelta(hours=18)
     expected_forecast_period = (expected_time - expected_reference_time).total_seconds()
     expected_forecast_period_bounds = [
-        expected_forecast_period - 12 * 3600,
+        expected_forecast_period - n_times * 3600,
         expected_forecast_period,
     ]
+    expected_cell_method = ["mode", "time"]
 
     assert result.coord("time").points[0] == as_utc_timestamp(expected_time)
     assert result.coord("time").bounds[0][0] == as_utc_timestamp(expected_bounds[0])
@@ -170,3 +178,5 @@ def test_metadata(wxcode_series):
     assert np.allclose(
         result.coord("forecast_period").bounds[0], expected_forecast_period_bounds
     )
+    assert result.cell_methods[0].method == expected_cell_method[0]
+    assert result.cell_methods[0].coord_names[0] == expected_cell_method[1]
