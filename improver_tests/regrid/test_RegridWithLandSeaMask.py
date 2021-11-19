@@ -36,11 +36,13 @@
 # not using "set_up_variable_cube" because of different spacing at lat/lon
 
 import numpy as np
+import pytest
 
 from improver.regrid.bilinear import basic_indexes
 from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.pad_spatial import pad_cube_with_halo
 
 
 def modify_cube_coordinate_value(cube, coord_x, coord_y):
@@ -57,12 +59,12 @@ def modify_cube_coordinate_value(cube, coord_x, coord_y):
 def define_source_target_grid_data():
     """ define cube_in, cube_in_mask,cube_out_mask using assumed data """
     # source (input) grid
-    in_lats = np.linspace(0, 15, 4)
-    in_lons = np.linspace(0, 40, 5)
+    in_lats = np.linspace(0, 15, 4, dtype=np.float32)
+    in_lons = np.linspace(0, 40, 5, dtype=np.float32)
 
     # target (output) grid
-    out_lats = np.linspace(0, 14, 8)
-    out_lons = np.linspace(5, 35, 11)
+    out_lats = np.linspace(0, 14, 8, dtype=np.float32)
+    out_lons = np.linspace(5, 35, 11, dtype=np.float32)
 
     # assume a set of nwp data
     data = np.arange(20).reshape(4, 5).astype(np.float32)
@@ -101,12 +103,12 @@ def define_source_target_grid_data():
 def define_source_target_grid_data_same_domain():
     """ define cube_in, cube_in_mask,cube_out_mask, assume the same domain  """
     # source (input) grid
-    in_lats = np.linspace(0, 15, 4)
-    in_lons = np.linspace(0, 40, 5)
+    in_lats = np.linspace(0, 15, 4, dtype=np.float32)
+    in_lons = np.linspace(0, 40, 5, dtype=np.float32)
 
     # target (output) grid
-    out_lats = np.linspace(0, 15, 7)
-    out_lons = np.linspace(5, 40, 9)
+    out_lats = np.linspace(0, 15, 7, dtype=np.float32)
+    out_lons = np.linspace(0, 40, 9, dtype=np.float32)
 
     # assume a set of nwp data
     data = np.arange(20).reshape(4, 5).astype(np.float32)
@@ -220,7 +222,7 @@ def test_regrid_nearest_with_mask_2():
             [0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3],
             [0, 1, 1, 1, 7, 2, 7, 3, 3, 3, 3],
             [5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8],
-            [5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 9],
+            [5, 6, 6, 6, 7, 7, 7, 8, 8, 8, 8],
             [10, 11, 11, 11, 7, 7, 7, 8, 8, 8, 14],
             [10, 11, 11, 11, 12, 12, 12, 13, 13, 13, 14],
             [10, 11, 11, 11, 12, 12, 7, 13, 13, 13, 14],
@@ -258,62 +260,26 @@ def test_regrid_bilinear_with_mask_2():
 
     expected_results = np.array(
         [
-            [0.5, 0.8, 1.40096, 3.2916, 2.0, 2.0, 2.0, 4.94333, 3.25586, 3.2, 3.5],
-            [2.5, 2.8, 3.1, 3.4, 5.48911, 2.76267, 6.32926, 4.6, 4.9, 5.2, 5.5],
-            [4.5, 4.8, 5.1, 5.4, 5.7, 7.0154, 6.3, 6.6, 6.9, 7.2, 7.5],
-            [6.5, 6.8, 7.1, 7.4, 7.7, 7.0, 7.19033, 7.6681, 7.6618, 9.2, 9.5],
-            [
-                8.5,
-                8.8,
-                9.1,
-                9.4,
-                8.10633,
-                7.0,
-                7.0,
-                7.62915,
-                7.21672,
-                9.11434,
-                10.52363,
-            ],
-            [
-                10.5,
-                10.8,
-                11.00012,
-                11.01183,
-                13.15439,
-                12.0,
-                12.3,
-                12.6,
-                12.9,
-                13.71286,
-                15.74504,
-            ],
+            [0.5, 0.8, 1.401, 3.292, 2.0, 2.0, 2.0, 4.943, 3.256, 3.2, 3.5],
+            [2.5, 2.8, 3.1, 3.4, 5.489, 2.763, 6.329, 4.6, 4.9, 5.2, 5.5],
+            [4.5, 4.8, 5.1, 5.4, 5.7, 6.985, 6.3, 6.6, 6.9, 7.2, 7.5],
+            [6.5, 6.8, 7.1, 7.4, 7.7, 7.0, 7.19, 7.668, 7.662, 9.2, 9.5],
+            [8.5, 8.8, 9.1, 9.4, 8.106, 7.0, 7.0, 7.629, 7.217, 9.114, 10.524],
+            [10.5, 10.8, 11.0, 11.012, 13.154, 12.0, 12.3, 12.6, 12.9, 13.713, 15.745],
             [
                 12.5,
                 12.8,
-                12.23411,
-                13.25881,
-                14.14155,
+                12.234,
+                13.259,
+                14.142,
                 14.0,
-                8.07328,
+                8.073,
                 14.6,
                 14.9,
-                14.96332,
-                16.3334,
+                14.963,
+                16.333,
             ],
-            [
-                14.5,
-                14.8,
-                15.0997,
-                14.22659,
-                15.50905,
-                16.0,
-                9.8733,
-                16.6,
-                16.9,
-                16.91114,
-                17.03773,
-            ],
+            [14.5, 14.8, 15.1, 14.227, 15.509, 16.0, 9.873, 16.6, 16.9, 16.911, 17.038],
         ]
     )
 
@@ -334,3 +300,61 @@ def test_regrid_bilinear_with_mask_2():
     np.testing.assert_allclose(
         regrid_bilinear_with_mask.data, expected_results, atol=1e-3
     )
+
+
+@pytest.mark.parametrize("regridder", ("nearest", "bilinear"))
+@pytest.mark.parametrize("landmask", (True, False))
+@pytest.mark.parametrize("maskedinput", (True, False))
+def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinput):
+    """Test regridding when target domain is bigger than source domain"""
+
+    # set up source cube, target cube and land-sea mask cube
+    cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data_same_domain()
+
+    # add a circle of grid points so that output domain is much bigger than input domain
+    width_x, width_y = 2, 4  # lon,lat
+    cube_out_mask_pad = pad_cube_with_halo(cube_out_mask, width_x, width_y)
+
+    if landmask:
+        with_mask = "-with-mask"
+    else:
+        with_mask = ""
+        cube_in_mask = None
+    regrid_mode = f"{regridder}{with_mask}-2"
+
+    if maskedinput:
+        # convert the input data to a masked array with no values covered by the mask
+        cube_in_masked_data = np.ma.masked_array(cube_in.data, mask=False)
+        cube_in.data = cube_in_masked_data
+
+    # run the regridding
+    regridderLandSea = RegridLandSea(
+        regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000,
+    )
+    regrid_out = regridderLandSea(cube_in, cube_out_mask)
+    regrid_out_pad = regridderLandSea(cube_in, cube_out_mask_pad)
+
+    # check that results inside the padding matches the same regridding without padding
+    np.testing.assert_allclose(
+        regrid_out.data, regrid_out_pad.data[width_y:-width_y, width_x:-width_x],
+    )
+
+    # check results in the padded area
+    if maskedinput:
+        # masked array input should result in masked array output
+        assert hasattr(regrid_out_pad.data, "mask")
+        assert regrid_out_pad.dtype == np.float32
+        regrid_out_pad.data.mask[width_y:-width_y, width_x:-width_x] = True
+        np.testing.assert_array_equal(
+            regrid_out_pad.data.mask,
+            np.full_like(regrid_out_pad.data, True, dtype=np.bool),
+        )
+    else:
+        assert not hasattr(regrid_out_pad.data, "mask")
+        assert regrid_out_pad.dtype == np.float32
+        # fill the area inside the padding with NaNs
+        regrid_out_pad.data[width_y:-width_y, width_x:-width_x] = np.nan
+        # this should result in the whole grid being NaN
+        np.testing.assert_array_equal(
+            regrid_out_pad.data, np.full_like(regrid_out_pad.data, np.nan)
+        )
