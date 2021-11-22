@@ -1,0 +1,135 @@
+name: Nightly tests
+
+on: schedule
+  - cron: '3 * * * *'
+jobs:
+  Sphinx-Pytest-Coverage:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [latest]
+    if: secrets.SCHEDULED_JOBS == 'yes'
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 2
+      with:
+        path: /usr/share/miniconda/envs/im${{ matrix.env }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
+    - name: conda env update
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda install -c conda-forge mamba
+        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+    - name: conda info
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        conda info
+        conda list
+    - name: sphinx documentation
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        make -C doc html SPHINXOPTS="-W --keep-going"
+    - name: pytest without coverage
+      if: matrix.env != 'environment_a'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        pytest
+    - name: pytest with coverage
+      if: matrix.env == 'environment_a'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        pytest --cov=improver --cov-report xml:coverage.xml
+    - name: codacy upload
+      if: env.CODACY_PROJECT_TOKEN && matrix.env == 'environment_a'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        python-codacy-coverage -v -r coverage.xml
+      env:
+        CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
+    - name: codecov upload
+      uses: codecov/codecov-action@v1
+      if: matrix.env == 'environment_a'
+  Safety-Bandit:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [latest]
+    if: secrets.SCHEDULED_JOBS == 'yes'
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 2
+      with:
+        path: /usr/share/miniconda/envs/im${{ matrix.env }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
+    - name: conda env update
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda install -c conda-forge mamba
+        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+    - name: conda info
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        conda info
+        conda list
+    - name: safety
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        safety check || true
+    - name: bandit
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        bandit -r improver
+  Type-checking:
+    runs-on: ubuntu-latest
+    strategy:
+      fail-fast: false
+      matrix:
+        env: [latest]
+    if: secrets.SCHEDULED_JOBS == 'yes'
+    steps:
+    - uses: actions/checkout@v2
+    - uses: actions/cache@v2
+      id: cache
+      env:
+        # Increase this value to reset cache
+        CACHE_NUMBER: 2
+      with:
+        path: /usr/share/miniconda/envs/im${{ matrix.env }}
+        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
+    - name: conda env update
+      if: steps.cache.outputs.cache-hit != 'true'
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda install -c conda-forge mamba
+        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+    - name: conda info
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        conda info
+        conda list
+    - name: mypy
+      run: |
+        source '/usr/share/miniconda/etc/profile.d/conda.sh'
+        conda activate im${{ matrix.env }}
+        mypy improver || true
