@@ -1,7 +1,8 @@
 name: Nightly tests
 
-on: schedule
-  - cron: '3 * * * *'
+on:
+  schedule:
+    - cron: '3 * * * *'
 jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
