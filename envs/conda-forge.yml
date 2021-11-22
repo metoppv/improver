@@ -1,6 +1,7 @@
-# This environment is intended to match the conda-forge improver-feedstock at
-# https://github.com/conda-forge/improver-feedstock
-# If it is changed, the feedstock repository should also be updated.
+# This environment is intended to be used for the conda-forge improver-feedstock
+# dependencies in https://github.com/conda-forge/improver-feedstock
+# If this file is changed, recipe/meta.yaml in the improver-feedstock repository
+# should also be updated.
 # This environment should not include optional dependencies.
 # This environment should pin versions so that all unit tests pass.
 name: improver_conda_forge
