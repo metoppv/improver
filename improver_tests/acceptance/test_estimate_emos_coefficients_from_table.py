@@ -60,12 +60,13 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
 
 
 @pytest.mark.parametrize(
-    "forecast_input,distribution,diagnostic,percentiles,additional_predictor,kgo_name",
+    "forecast_input,distribution,diagnostic,experiment,percentiles,additional_predictor,kgo_name",
     [
         (
             "forecast_table",
             "norm",
             "temperature_at_screen_level",
+            None,
             "10,20,30,40,50,60,70,80,90",
             None,
             "screen_temperature",
@@ -74,6 +75,7 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
             "forecast_table",
             "truncnorm",
             "wind_speed_at_10m",
+            None,
             "20,40,60,80",
             None,
             "wind_speed",
@@ -84,12 +86,14 @@ EST_EMOS_TOL = str(EST_EMOS_TOLERANCE)
             "temperature_at_screen_level",
             None,
             None,
+            None,
             "screen_temperature_input_quantiles",
         ),
         (
             "forecast_table",
             "norm",
             "temperature_at_screen_level",
+            "mix-latestblend",
             "10,20,30,40,50,60,70,80,90",
             "altitude.nc",
             "screen_temperature_additional_predictor",
@@ -102,6 +106,7 @@ def test_basic(
     forecast_input,
     distribution,
     diagnostic,
+    experiment,
     percentiles,
     additional_predictor,
     kgo_name,
@@ -134,6 +139,8 @@ def test_basic(
     ]
     if additional_predictor:
         compulsory_args += [kgo_dir / additional_predictor]
+    if experiment:
+        named_args += ["--experiment", experiment]
     if percentiles:
         named_args += ["--percentiles", percentiles]
     run_cli(compulsory_args + named_args)

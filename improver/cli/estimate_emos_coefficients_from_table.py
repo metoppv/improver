@@ -164,7 +164,9 @@ def process(
         periods=int(training_length),
         freq="D",
     ).tz_localize(None)
-    filters = [[("diagnostic", "==", diagnostic), ("blend_time", "in", cycletimes)]]
+    filters = [[("blend_time", "in", cycletimes), ("diagnostic", "==", diagnostic)]]
+    if experiment:
+        filters[0].append(("experiment", "==", experiment))
     forecast_df = pd.read_parquet(forecast, filters=filters)
 
     # Load truths from parquet file filtering by diagnostic.
