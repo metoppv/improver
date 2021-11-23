@@ -1,8 +1,9 @@
-name: Nightly tests
+name: Scheduled Tests
 
 on:
   schedule:
-    - cron: '10 * * * *'
+    - cron: '7 4 * * *'
+  workflow_dispatch:
 jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
@@ -10,7 +11,7 @@ jobs:
       fail-fast: false
       matrix:
         env: [latest]
-    if: secrets.SCHEDULED_JOBS == 'yes'
+    if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -67,7 +68,7 @@ jobs:
       fail-fast: false
       matrix:
         env: [latest]
-    if: secrets.SCHEDULED_JOBS == 'yes'
+    if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
@@ -106,7 +107,7 @@ jobs:
       fail-fast: false
       matrix:
         env: [latest]
-    if: secrets.SCHEDULED_JOBS == 'yes'
+    if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
     - uses: actions/cache@v2
