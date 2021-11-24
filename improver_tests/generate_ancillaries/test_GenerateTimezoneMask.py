@@ -89,11 +89,24 @@ def global_grid_fixture_360() -> Cube:
     return cube
 
 
+@pytest.fixture(name="europe_grid")
+def europe_grid_fixture() -> Cube:
+    data = np.zeros((10, 10), dtype=np.float32)
+    cube = set_up_variable_cube(
+        data,
+        name="template",
+        grid_spacing=1,
+        domain_corner=(45, -5),
+        attributes=GLOBAL_ATTRIBUTES,
+    )
+    return cube
+
+
 @pytest.fixture(name="uk_grid")
 def uk_grid_fixture() -> Cube:
     """UK grid template"""
 
-    data = np.zeros((21, 22), dtype=np.float32)
+    data = np.zeros((11, 11), dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="template",
@@ -160,7 +173,7 @@ def test__get_coordinate_pairs(request, grid_fixture):
     expected_data = {
         "global_grid": [[-90.0, -180.0], [-90.0, -80.0], [90.0, 180.0]],
         "global_grid_360": [[-90.0, -180.0], [-90.0, -80.0], [90.0, 180.0]],
-        "uk_grid": [[44.517, -17.117], [45.548, -4.913], [62.026, 14.410]],
+        "uk_grid": [[44.517, -17.117], [45.548, -4.913], [54.263, -5.401]],
     }
 
     grid = request.getfixturevalue(grid_fixture)
@@ -245,7 +258,7 @@ def test__create_template_cube(request, grid_fixture, include_dst):
 
     expected = {
         "global_grid": {"shape": (19, 37), "attributes": GLOBAL_ATTRIBUTES},
-        "uk_grid": {"shape": (21, 22), "attributes": UK_ATTRIBUTES},
+        "uk_grid": {"shape": (11, 11), "attributes": UK_ATTRIBUTES},
     }
 
     # Set expected includes_daylight_savings attribute
@@ -309,52 +322,113 @@ def test__group_timezones_empty_group(timezone_mask):
 
 
 # Expected data for process tests
-
-# ungrouped
-GLOBAL_GRID = {"shape": (27, 19, 37), "min": -12 * 3600, "max": 14 * 3600}
-# grouped
-GLOBAL_GRID_GR = {"shape": (2, 19, 37), "min": -6 * 3600, "max": 6 * 3600}
-UK_GRID_GR = {"shape": (2, 21, 22), "min": -6 * 3600, "max": 6 * 3600}
-
 EXPECTED_TIME = {None: 1510286400, "20200716T1500Z": 1594911600}
+GROUPED_MIN_MAX = {"min": -6 * 3600, "max": 6 * 3600}
 EXPECTED = {
     "ungrouped": {
-        "global": {
-            None: GLOBAL_GRID,
-            "20200716T1500Z": GLOBAL_GRID,
-            "indices": (12, 2),
-        },
         "uk": {
-            None: {"shape": (4, 21, 22), "min": -2 * 3600, "max": 1 * 3600},
-            "20200716T1500Z": {
-                "shape": (5, 21, 22),
-                "min": -2 * 3600,
-                "max": 2 * 3600,
+            None: {
+                "shape": (3, 11, 11),
+                "min": -1 * 3600,
+                "max": 1 * 3600,
+                "data": np.array(
+                    [
+                        [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    ]
+                ),
             },
-            "indices": (2, 10),
+            "20200716T1500Z": {
+                "shape": (4, 11, 11),
+                "min": -1 * 3600,
+                "max": 2 * 3600,
+                "data": np.array(
+                    [
+                        [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    ],
+                ),
+            },
+        },
+        "europe": {
+            None: {
+                "shape": (2, 10, 10),
+                "min": 0,
+                "max": 1 * 3600,
+                "data": np.array(
+                    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+                ),
+            },
+            "20200716T1500Z": {
+                "shape": (3, 10, 10),
+                "min": 0,
+                "max": 2 * 3600,
+                "data": np.array(
+                    [
+                        [1, 0, 1, 1, 1, 1, 0, 0, 0, 0],
+                        [0, 1, 0, 0, 0, 0, 1, 1, 1, 1],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    ]
+                ),
+            },
         },
     },
     "grouped": {
-        "global": {
-            None: GLOBAL_GRID_GR,
-            "20200716T1500Z": GLOBAL_GRID_GR,
-            "indices": (0, 2),
+        "uk": {
+            None: {
+                "shape": (2, 11, 11),
+                **GROUPED_MIN_MAX,
+                "data": np.array(
+                    [
+                        [0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                    ]
+                ),
+            },
+            "20200716T1500Z": {
+                "shape": (2, 11, 11),
+                **GROUPED_MIN_MAX,
+                "data": np.array(
+                    [
+                        [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 0],
+                        [1, 1, 1, 1, 1, 1, 1, 0, 0, 0, 1],
+                    ],
+                ),
+            },
         },
-        "uk": {None: UK_GRID_GR, "20200716T1500Z": UK_GRID_GR, "indices": (0, 9)},
+        "europe": {
+            None: {
+                "shape": (2, 10, 10),
+                **GROUPED_MIN_MAX,
+                "data": np.array(
+                    [[0, 0, 0, 0, 0, 0, 0, 0, 0, 0], [1, 1, 1, 1, 1, 1, 1, 1, 1, 1]]
+                ),
+            },
+            "20200716T1500Z": {
+                "shape": (2, 10, 10),
+                **GROUPED_MIN_MAX,
+                "data": np.array(
+                    [[1, 0, 1, 1, 1, 1, 0, 0, 0, 0], [0, 1, 0, 0, 0, 0, 1, 1, 1, 1]]
+                ),
+            },
+        },
     },
 }
 
 
 @pytest.mark.parametrize("grouping", ["ungrouped", "grouped"])
 @pytest.mark.parametrize("time", [None, "20200716T1500Z"])
-@pytest.mark.parametrize("grid_fixture", ["global_grid", "global_grid_360", "uk_grid"])
+@pytest.mark.parametrize("grid_fixture", ["uk_grid", "europe_grid"])
 def test_process(request, grid_fixture, time, grouping):
     """Test that the process method returns cubes that take the expected form
     for different grids and different dates.
 
-    The output data is checked in the acceptance tests as a large number of
-    data points are required to reliably check it and the output is highly
-    subject to changes based on the version of the timezone database in use."""
+    The output data is primarily checked in the acceptance tests as a reasonably
+    large number of data points are required to reliably check it. Here we check
+    only a small sample."""
 
     domain = grid_fixture.split("_")[0]
     groupings = None
@@ -379,3 +453,14 @@ def test_process(request, grid_fixture, time, grouping):
         assert (
             result.coord("UTC_offset").bounds.dtype == TIME_COORDS["UTC_offset"].dtype
         )
+    # slice the first spatial dimension to moderate size of expected arrays
+    assert_array_equal(result.data[:, 9, :], expected["data"])
+
+    # check each spatial location in the UTC_offset dimension
+    zone_count = np.count_nonzero(result.data, axis=0)
+    if grouping == "grouped":
+        # grouped outputs have a single UTC_offset with a non-zero entry
+        assert_array_equal(zone_count, 1)
+    else:
+        # ungrouped outputs have a single UTC_offset with a zero entry
+        assert_array_equal(zone_count, expected["shape"][0] - 1)
