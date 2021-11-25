@@ -452,7 +452,6 @@ class Test_process(IrisTest):
     def test_threshold_unit_conversion_2(self):
         """Test threshold coordinate points after unit conversion of small
         numbers."""
-        expected_result_array = np.zeros((2, 5, 5))
         plugin = Threshold([0.03, 0.09, 0.1], threshold_units="mm s-1")
         result = plugin(self.rate_cube)
         self.assertArrayEqual(
