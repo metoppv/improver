@@ -248,7 +248,7 @@ class BasicThreshold(PostProcessingPlugin):
                 Value at which the data has been thresholded
         """
         coord = iris.coords.DimCoord(
-            np.array([threshold], dtype=FLOAT_DTYPE), units=cube.units
+            np.array([threshold], dtype="float64"), units=cube.units
         )
         coord.rename(self.threshold_coord_name)
         coord.var_name = "threshold"
@@ -379,6 +379,9 @@ class BasicThreshold(PostProcessingPlugin):
             thresholded_cubes.append(cube)
 
         (cube,) = thresholded_cubes.merge()
+        cube.coord(var_name="threshold").points = cube.coord(
+            var_name="threshold"
+        ).points.astype(FLOAT_DTYPE)
 
         self._update_metadata(cube)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])

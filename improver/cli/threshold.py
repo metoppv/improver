@@ -129,7 +129,7 @@ def process(
         thresholds = []
         fuzzy_bounds = []
         for key in threshold_config.keys():
-            thresholds.append(np.float32(key))
+            thresholds.append(float(key))
             # If the first threshold has no bounds, fuzzy_bounds is
             # set to None and subsequent bounds checks are skipped
             if threshold_config[key] == "None":
@@ -137,7 +137,7 @@ def process(
                 continue
             fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
-        thresholds = [np.float32(x) for x in threshold_values]
+        thresholds = [float(x) for x in threshold_values]
         fuzzy_bounds = None
 
     each_threshold_func_list = []
