@@ -570,6 +570,28 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         result_multiple = interpolate_multiple_rows_same_x(self.x, self.xp, self.fp)
         np.testing.assert_allclose(result_slow, result_multiple)
 
+    @patch.dict("sys.modules", numba=None)
+    @patch("improver.ensemble_copula_coupling.utilities.slow_interp_same_x")
+    def test_slow_interp_same_x_called(self, interp_imp):
+        """Test that slow_interp_same_x is called if numba is not installed."""
+        interpolate_multiple_rows_same_x(
+            mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
+        )
+        interp_imp.assert_called_once_with(
+            mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
+        )
+
+    @skipIf(not (numba_installed), "numba not installed")
+    @patch("improver.ensemble_copula_coupling.numba_utilities.fast_interp_same_x")
+    def test_fast_interp_same_x_called(self, interp_imp):
+        """Test that fast_interp_same_x is called if numba is installed."""
+        interpolate_multiple_rows_same_x(
+            mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
+        )
+        interp_imp.assert_called_once_with(
+            mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
+        )
+
 
 if __name__ == "__main__":
     unittest.main()
