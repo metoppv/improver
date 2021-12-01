@@ -1,0 +1,44 @@
+# This environment is intended to provide all optional dependencies and
+# use as-recent-as-possible versions with minimal pinning.
+# Acceptance test failures due to different output values are OK.
+# Unit test failures are not OK - pinning should be used where needed to
+# make the unit tests pass.
+name: improver_latest
+channels:
+  - conda-forge
+dependencies:
+  - python=3
+  # Required
+  - cartopy<0.20
+  - cftime<1.5
+  - cf-units=2.1.5
+  - clize
+  - dask
+  - iris>=3.0
+  - netCDF4
+  - numpy<1.21
+  - pytz
+  - scipy
+  - sigtools
+  - sphinx
+  # Optional
+  - python-stratify
+  - statsmodels
+  - numba
+  - pysteps
+  - timezonefinder
+  # Development
+  - astroid
+  - bandit
+  - black
+  - codacy-coverage
+  - filelock
+  - flake8
+  - isort
+  - mock
+  - mypy
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - safety
+  - sphinx-autodoc-typehints

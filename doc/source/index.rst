@@ -15,6 +15,7 @@
    Guidance-for-Reviewing-Code
    How-to-implement-a-command-line-utility
    Running-at-your-site
+   Dependencies
    Ticket-Creation-and-Definition-of-Ready
 
 .. toctree::

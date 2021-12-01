@@ -55,6 +55,7 @@ def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
         snow/sleet level
         sleet/rain level leaving below orography points unfilled.
     """
+    pytest.importorskip("stratify")
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_name = "{}_kgo.nc".format(kgo_name)
     kgo_path = kgo_dir / kgo_name
