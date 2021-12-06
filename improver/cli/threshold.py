@@ -127,6 +127,7 @@ def process(
         thresholds = []
         fuzzy_bounds = []
         for key in threshold_config.keys():
+            # Ensure thresholds are float64 to avoid rounding errors during possible unit conversion.
             thresholds.append(float(key))
             # If the first threshold has no bounds, fuzzy_bounds is
             # set to None and subsequent bounds checks are skipped
@@ -135,6 +136,7 @@ def process(
                 continue
             fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
+        # Ensure thresholds are float64 to avoid rounding errors during possible unit conversion.
         thresholds = [float(x) for x in threshold_values]
         fuzzy_bounds = None
 
