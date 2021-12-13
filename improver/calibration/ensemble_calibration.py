@@ -1635,6 +1635,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         coefficients_cubelist: CubeList,
         additional_fields: Optional[CubeList] = None,
         landsea_mask: Optional[Cube] = None,
+        tolerate_time_mismatch: Optional[bool] = False,
     ) -> Tuple[Cube, Cube]:
         """
         Apply the EMOS coefficients to the current forecast, in order to
@@ -1655,6 +1656,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 points will be masked in the output cube.
                 This cube needs to have land points set to 1 and
                 sea points to 0.
+            tolerate_time_mismatch:
+                If True, tolerate a mismatch in validity time and forecast
+                period for coefficients vs forecasts. Use with caution!
 
         Returns:
             - Cube containing the location parameter of the calibrated
@@ -1674,8 +1678,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         # Check coefficients_cube and forecast cube are compatible.
         self._diagnostic_match()
-        for cube in coefficients_cubelist:
-            forecast_coords_match(cube, current_forecast)
+        if not tolerate_time_mismatch:
+            # Check validity time and forecast period matches.
+            for cube in coefficients_cubelist:
+                forecast_coords_match(cube, current_forecast)
         self._spatial_domain_match()
 
         if self.predictor == "mean":
@@ -1940,6 +1946,7 @@ class ApplyEMOS(PostProcessingPlugin):
         prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
         ignore_ecc_bounds: bool = True,
+        tolerate_time_mismatch: bool = False,
         predictor: str = "mean",
         randomise: bool = False,
         random_seed: Optional[int] = None,
@@ -1969,6 +1976,9 @@ class ApplyEMOS(PostProcessingPlugin):
             ignore_ecc_bounds:
                 If True, allow percentiles from probabilities to exceed the ECC
                 bounds range.  If input is not probabilities, this is ignored.
+            tolerate_time_mismatch:
+                If True, tolerate a mismatch in validity time and forecast
+                period for coefficients vs forecasts. Use with caution!
             predictor:
                 Predictor to be used to calculate the location parameter of the
                 calibrated distribution.  Value is "mean" or "realizations".
@@ -2013,6 +2023,7 @@ class ApplyEMOS(PostProcessingPlugin):
             coefficients,
             additional_fields=additional_fields,
             landsea_mask=land_sea_mask,
+            tolerate_time_mismatch=tolerate_time_mismatch,
         )
 
         self.distribution = {

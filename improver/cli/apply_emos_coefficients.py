@@ -44,6 +44,7 @@ def process(
     randomise=False,
     random_seed: int = None,
     ignore_ecc_bounds=False,
+    tolerate_time_mismatch=False,
     predictor="mean",
     land_sea_mask_name: str = None,
     percentiles: cli.comma_separated_list = None,
@@ -105,6 +106,9 @@ def process(
             current forecasts is in the form of probabilities and is
             converted to percentiles, as part of converting the input
             probabilities into realizations.
+        tolerate_time_mismatch (bool):
+            If True, tolerate a mismatch in validity time and forecast period
+            for coefficients vs forecasts. Use with caution!
         predictor (str):
             String to specify the form of the predictor used to calculate
             the location parameter when estimating the EMOS coefficients.
@@ -175,6 +179,7 @@ def process(
         prob_template=prob_template,
         realizations_count=realizations_count,
         ignore_ecc_bounds=ignore_ecc_bounds,
+        tolerate_time_mismatch=tolerate_time_mismatch,
         predictor=predictor,
         randomise=randomise,
         random_seed=random_seed,

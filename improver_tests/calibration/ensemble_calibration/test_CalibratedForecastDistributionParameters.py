@@ -87,6 +87,20 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             CubeList([self.historic_temperature_forecast_cube]),
         )
 
+        # Set up a timeshifted coefficients cube using the ensemble mean as a
+        # predictor.
+        forecast_timeshift_cube = self.historic_temperature_forecast_cube.copy()
+        for coord_name in ["time", "forecast_period"]:
+            forecast_timeshift_cube.coord(coord_name).points = [
+                _ + 3600 for _ in forecast_timeshift_cube.coord(coord_name).points
+            ]
+
+        self.coeffs_from_mean_timeshift = estimator.create_coefficients_cubelist(
+            self.expected_mean_pred_norm,
+            forecast_timeshift_cube,
+            CubeList([forecast_timeshift_cube]),
+        )
+
         # Set up a coefficients cube when using the ensemble mean as the
         # predictor and separate coefficients at each point.
         estimator = EstimateCoefficientsForEnsembleCalibration(
@@ -432,6 +446,26 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
             self.plugin.process(
                 self.current_wind_speed_forecast_cube, self.coeffs_from_mean
             )
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_time_match(self):
+        """Test that an error is raised if the time coordinates do
+        not match when comparing a forecast cube and coefficients cubelist."""
+        msg = "rounded forecast_period hours"
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(
+                self.current_temperature_forecast_cube, self.coeffs_from_mean_timeshift
+            )
+
+    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
+    def test_time_match_tolerate(self):
+        """Test that an error is raised if the diagnostic_standard_name does
+        not match when comparing a forecast cube and coefficients cubelist."""
+        _ = self.plugin.process(
+            self.current_temperature_forecast_cube,
+            self.coeffs_from_mean_timeshift,
+            tolerate_time_mismatch=True,
+        )
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_variable_setting(self):
