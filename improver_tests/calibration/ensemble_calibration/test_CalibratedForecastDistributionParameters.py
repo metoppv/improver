@@ -459,13 +459,21 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_time_match_tolerate(self):
-        """Test that an error is raised if the diagnostic_standard_name does
-        not match when comparing a forecast cube and coefficients cubelist."""
-        _ = self.plugin.process(
+        """Test that no error is raised when using a coefficients file with
+        a mismatching forecast_period coordinate, if the
+        tolerate_time_mismatch option is enabled."""
+        calibrated_forecast_predictor, calibrated_forecast_var = self.plugin.process(
             self.current_temperature_forecast_cube,
             self.coeffs_from_mean_timeshift,
             tolerate_time_mismatch=True,
         )
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_predictor.data, self.expected_loc_param_mean
+        )
+        self.assertCalibratedVariablesAlmostEqual(
+            calibrated_forecast_var.data, self.expected_scale_param_mean
+        )
+        self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_variable_setting(self):
