@@ -638,6 +638,101 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.training_length,
             )
 
+    def test_duplicate_cycle_forecasts(self):
+        """Test that a forecast cube is still produced if a duplicated
+        cycle of forecasts is provided."""
+        forecast_df_with_duplicates = self.forecast_df.append(
+            self.forecast_df.iloc[:9], ignore_index=True
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df_with_duplicates,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_duplicate_cycle_truths(self):
+        """Test that a truth cube is still produced if duplicate
+        truths for a given validity time are provided."""
+        truth_df_with_duplicates = self.truth_subset_df.append(
+            self.truth_subset_df.iloc[:3], ignore_index=True
+        )
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_df_with_duplicates,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_duplicate_row_forecasts(self):
+        """Test that a forecast cube is still produced if duplicated
+        forecasts are provided."""
+        # Use results from the first realization,
+        # equivalent to the 50th percentile.
+        expected_period_forecast = self.expected_period_forecast[1, :, :]
+        expected_period_forecast.coord("realization").points = np.array([0], np.int32)
+
+        # Use 50th percentile only
+        forecast_subset_df = self.forecast_df[self.forecast_df["percentile"] == 50.0]
+
+        # Duplicate first row twice.
+        forecast_df_with_duplicates = pd.concat(
+            [
+                forecast_subset_df,
+                forecast_subset_df.iloc[[0]],
+                forecast_subset_df.iloc[[0]],
+            ],
+            ignore_index=True,
+        )
+        forecast_df_with_duplicates.at[0, "forecast"] = 6.0
+        forecast_df_with_duplicates.at[9, "forecast"] = 8.0
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df_with_duplicates,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_duplicate_row_truths(self):
+        """Test that a truth cube is still produced if duplicated
+        truths for a given validity time are provided."""
+        # Duplicate first row twice.
+        truth_df_with_duplicates = pd.concat(
+            [
+                self.truth_subset_df,
+                self.truth_subset_df.iloc[[0]],
+                self.truth_subset_df.iloc[[0]],
+            ],
+            ignore_index=True,
+        )
+        truth_df_with_duplicates.at[0, "ob_value"] = 6.0
+        truth_df_with_duplicates.at[9, "ob_value"] = 8.0
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_df_with_duplicates,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
     def test_forecast_additional_columns_present(self):
         """Test that if there are additional columns present
         in the forecast dataframe, these have no impact."""

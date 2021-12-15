@@ -122,20 +122,16 @@ def process(
         iris.cube.Cube:
             The calibrated forecast cube.
 
-    Raises:
-        ValueError:
-            If the current forecast is a coefficients cube.
-        ValueError:
-            If the coefficients cube does not have the right name of
-            "emos_coefficients".
-        ValueError:
-            If the forecast type is 'percentiles' or 'probabilities' and the
-            realizations_count argument is not provided.
     """
     import warnings
 
+    import numpy as np
+
     from improver.calibration import split_forecasts_and_coeffs
     from improver.calibration.ensemble_calibration import ApplyEMOS
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        ResamplePercentiles,
+    )
 
     (
         forecast,
@@ -156,6 +152,12 @@ def process(
             )
             warnings.warn(msg)
             return prob_template
+
+        if percentiles:
+            percentiles = [np.float32(p) for p in percentiles]
+            forecast = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
+                forecast, percentiles=percentiles
+            )
 
         msg = (
             "There are no coefficients provided for calibration. The "

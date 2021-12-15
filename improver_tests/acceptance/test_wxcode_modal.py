@@ -47,6 +47,7 @@ run_cli = acc.run_cli(CLI)
         "gridded_ties",
         "spot_ties",
         "blend_mismatch_inputs",
+        "single_input",
     ],
 )
 @pytest.mark.slow
@@ -59,6 +60,7 @@ def test_expected(tmp_path, test_path):
           solved using grouping
         - a night-time code test using spot data
         - spot data where one input has a different blend-time to the rest
+        - a single input file rather than multiple
     """
     kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
     kgo_path = kgo_dir / "kgo.nc"
