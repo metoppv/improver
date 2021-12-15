@@ -44,11 +44,14 @@ from improver.blending.weights import ChooseDefaultWeightsTriangular
 
 class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
     """
-    Apply a Weighted blend to a coordinate, using triangular weights at each
-    point in the coordinate. Returns a cube with the same coordinates as the
-    input cube, with each point in the coordinate of interest having been
-    blended with the adjacent points according to a triangular weighting
-    function of a specified width.
+    Applies a weighted blend to the data using a triangular weighting function
+    at each point in the dimension so that maximum weighting is applied to the
+    specified point, and weighting falls away at neighbouring points the
+    further they get until the specified width has been reached.
+
+    Returns a cube with the same coordinates as the input cube, with each point
+    in the dimension having been blended with the adjacent points according to
+    a triangular weighting function of a specified width.
     """
 
     def __init__(
@@ -62,20 +65,24 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
         Args:
             coord:
-                The name of a coordinate dimension in the cube that we
-                will blend over.
+                The name of a coordinate dimension in the cube to be blended
+                over.
             central_point:
                 Central point at which the output from the triangular weighted
-                blending will be calculated.
+                blending will be calculated. This should be in the units of the
+                units argument that is passed in. This value should be a point
+                on the coordinate for blending over.
             parameter_units:
                 The units of the width of the triangular weighting function
                 and the units of the central_point.
                 This does not need to be the same as the units of the
-                coordinate we are blending over, but it should be possible to
+                coordinate being blending over, but it should be possible to
                 convert between them.
             width:
-                The width of the triangular weighting function we will use
-                to blend.
+                The width from the triangle’s centre point, in units of the units
+                argument, which will determine the triangular weighting function
+                used to blend that specified point with its adjacent points. Beyond
+                this width the weighting drops to zero.
         """
         self.coord = coord
         self.central_point = central_point
@@ -142,17 +149,18 @@ class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
 
     def process(self, cube: Cube) -> Cube:
         """
-        Apply the weighted blend for each point in the given coordinate.
+        Apply the weighted blend for each point in the given dimension.
 
         Args:
             cube:
                 Cube containing input for blending.
 
         Returns:
-            The processed cube, with the same coordinates as the input
-            central_cube. The points in one coordinate will be blended
-            with the adjacent points based on a triangular weighting
-            function of the specified width.
+            A processed cube, with the same coordinates as the input
+            central_cube. The points in one dimension corresponding to
+            the specified coordinate will be blended with the adjacent
+            points based on a triangular weighting function of the
+            specified width.
         """
         # Extract the central point from the input cube.
         central_point_cube = self._find_central_point(cube)

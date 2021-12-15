@@ -746,7 +746,7 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
     def triangular_weights(
         coord_vals: ndarray, midpoint: float, width: float
     ) -> ndarray:
-        """Create triangular weights.
+        """Calculate triangular weights.
 
         Args:
             coord_vals:
@@ -755,10 +755,13 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
             midpoint:
                 The centre point of the triangular function.
             width:
-                The width of the triangular function from the centre point.
+                The width from the triangle’s centre point, in units of the units
+                argument, which will determine the triangular weighting function
+                used to blend that specified point with its adjacent points. Beyond
+                this width the weighting drops to zero.
 
         Returns:
-            array of weights, sum of all weights should equal 1.0.
+            An array of weights, the sum of which should equal 1.0.
         """
 
         def calculate_weight(point: float, slope: float) -> float:
@@ -812,7 +815,7 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
 
         Returns:
             1D cube of normalised (sum = 1.0) weights matching length
-            of input dimension to be blended
+            of input dimension to be blended.
 
         Raises:
             TypeError : input is not a cube
