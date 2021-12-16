@@ -755,8 +755,8 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
             midpoint:
                 The centre point of the triangular function.
             width:
-                The width from the triangle’s centre point, in units of the units
-                argument, which will determine the triangular weighting function
+                The width from the triangle’s centre point, in units of the plugin's
+                units argument, which will determine the triangular weighting function
                 used to blend that specified point with its adjacent points. Beyond
                 this width the weighting drops to zero.
 
