@@ -45,9 +45,9 @@ from improver.blending.weights import ChooseDefaultWeightsTriangular
 class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):
     """
     Applies a weighted blend to the data using a triangular weighting function
-    at each point in the dimension so that maximum weighting is applied to the
-    specified point, and weighting falls away at neighbouring points the
-    further they get until the specified width has been reached.
+    at each point in the specified dimension. The maximum weighting is applied
+    to the specified point, and weighting decreases linearly for neighbouring
+    points to zero at the specified triangle width.
 
     Returns a cube with the same coordinates as the input cube, with each point
     in the dimension having been blended with the adjacent points according to
