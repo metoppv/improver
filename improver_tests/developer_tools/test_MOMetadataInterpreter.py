@@ -127,6 +127,20 @@ def test_handles_duplicate_model_string(probability_above_cube, interpreter):
     assert interpreter.model == "UKV"
 
 
+def test_vicinity_cell_method(
+    probability_over_time_in_vicinity_above_cube, interpreter
+):
+    """Test when precipitation accumulation in-vicinity cube has a cell method"""
+    cube = probability_over_time_in_vicinity_above_cube.copy()
+    diagnostic_name = "lwe_thickness_of_precipitation_amount"
+    cube.rename(f"probability_of_{diagnostic_name}_in_vicinity_above_threshold")
+    cube.cell_methods = []
+    cube.add_cell_method(
+        CellMethod(method="sum", coords="time", comments=(f"of {diagnostic_name}",),)
+    )
+    interpreter.run(cube)
+
+
 def test_probabilities_below(blended_probability_below_cube, interpreter):
     """Test interpretation of blended probability of max temperature in hour
     below threshold"""
