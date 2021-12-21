@@ -242,14 +242,13 @@ def snow_level_fixture():
     )
 
 
-@pytest.fixture(name="blended_spot_median_cube")
+@pytest.fixture(name="spot_template")
 def spot_fixture():
-    """Spot temperature cube"""
     alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
     lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
     lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
-    wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
-    spot_cube = build_spotdata_cube(
+    wmo_ids = ["3002", "3005", "3017", "3023", "3026", "3031"]
+    cube = build_spotdata_cube(
         np.arange(6).astype(np.float32),
         "air_temperature",
         "degC",
@@ -258,10 +257,17 @@ def spot_fixture():
         lons,
         wmo_ids,
     )
-    spot_cube.add_aux_coord(
+    cube.add_aux_coord(
         iris.coords.AuxCoord([50], long_name="percentile", units="%")
     )
-    spot_cube.attributes = {
+    return cube
+
+
+@pytest.fixture(name="blended_spot_median_cube")
+def blended_spot_median_spot_fixture(spot_template):
+    """Spot temperature cube from blend"""
+    cube = spot_template.copy()
+    cube.attributes = {
         "source": "IMPROVER",
         "institution": "Met Office",
         "title": "IMPROVER Post-Processed Multi-Model Blend UK Spot Values",
@@ -271,9 +277,34 @@ def spot_fixture():
         time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
     )
     blend_time.rename("blend_time")
-    spot_cube.add_aux_coord(time)
-    spot_cube.add_aux_coord(blend_time)
-    return spot_cube
+    cube.add_aux_coord(time)
+    cube.add_aux_coord(blend_time)
+    return cube
+
+
+@pytest.fixture(name="blended_spot_timezone_cube")
+def spot_timezone_fixture(spot_template):
+    """Spot data on local time-zones
+    (no forecast_period, forecast_reference_time matches spatial dimension)"""
+    cube = spot_template.copy()
+    cube.attributes = {
+        "source": "Met Office Unified Model",
+        "institution": "Met Office",
+        "title": "Post-Processed MOGREPS-G Model Forecast Global Spot Values",
+        "mosg__model_configuration": "gl_ens",
+    }
+    (time, _), (frt_source_coord, _), (_, _) = construct_scalar_time_coords(
+        time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
+    )
+    cube.add_aux_coord(time)
+    spatial_index, = cube.coord_dims("latitude")
+    frt_coord = iris.coords.AuxCoord(
+        np.full(cube.shape, fill_value=frt_source_coord.points),
+        standard_name=frt_source_coord.standard_name,
+        units=frt_source_coord.units,
+    )
+    cube.add_aux_coord(frt_coord, spatial_index)
+    return cube
 
 
 @pytest.fixture(name="wind_direction_cube")

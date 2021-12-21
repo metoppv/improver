@@ -187,6 +187,20 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert not interpreter.warnings
 
 
+def test_spot_timezone(blended_spot_timezone_cube, interpreter):
+    """Test interpretation of spot on timezones"""
+    interpreter.run(blended_spot_timezone_cube)
+    assert interpreter.prod_type == "spot"
+    assert interpreter.field_type == "percentiles"
+    assert interpreter.diagnostic == "air_temperature"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed
+    assert interpreter.model == "MOGREPS-G"
+    assert not interpreter.blended
+    assert not interpreter.warnings
+
+
 def test_wind_direction(wind_direction_cube, interpreter):
     """Test interpretation of wind direction field with mean over realizations
     cell method"""
