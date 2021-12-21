@@ -483,7 +483,7 @@ def main(
             To write to stdout, use a hyphen (-)
         memprofile (str):
             Creates 2 files by adding a suffix to the provided arguemnt -
-            a tracemalloc snapsot at the point of highest memory consumption
+            a tracemalloc snapshot at the point of highest memory consumption
             of your program (suffixed with _SNAPSHOT)
             and a track of the maximum memory used by your program
             over time (suffixed with _MAX_TRACKER).
