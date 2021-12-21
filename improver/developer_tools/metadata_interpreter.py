@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
-from typing import Dict, Iterable, List
+from typing import Callable, Dict, Iterable, List
 
 from iris.coords import CellMethod, Coord
 from iris.cube import Cube
@@ -550,7 +550,7 @@ class MOMetadataInterpreter:
 
 
 def _format_standard_cases(
-    interpreter: MOMetadataInterpreter, verbose: bool, vstring: str
+    interpreter: MOMetadataInterpreter, verbose: bool, vstring: Callable[[str], str]
 ) -> List[str]:
     """Format prob / perc / diagnostic information from a
     MOMetadataInterpreter instance"""
