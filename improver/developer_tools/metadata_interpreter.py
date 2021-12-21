@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
-from typing import Dict, List, Iterable
+from typing import Dict, Iterable, List
 
 from iris.coords import CellMethod, Coord
 from iris.cube import Cube
@@ -507,9 +507,7 @@ class MOMetadataInterpreter:
         if self.field_type == self.ANCIL:
             # there is no definitive standard for time coordinates on static ancillaries
             pass
-        elif (
-            cube.coords("time_in_local_timezone")
-        ):
+        elif cube.coords("time_in_local_timezone"):
             # For data on local timezones, the time coordinate will match the horizontal
             # dimensions and there will be no forecast period.
             expected_coords = set(LOCAL_TIME_COORDS + UNBLENDED_TIME_COORDS)

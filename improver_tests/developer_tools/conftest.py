@@ -259,9 +259,7 @@ def spot_fixture():
         lons,
         wmo_ids,
     )
-    cube.add_aux_coord(
-        iris.coords.AuxCoord([50], long_name="percentile", units="%")
-    )
+    cube.add_aux_coord(iris.coords.AuxCoord([50], long_name="percentile", units="%"))
     return cube
 
 
@@ -299,7 +297,7 @@ def spot_timezone_fixture(spot_template):
         time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
     )
     cube.add_aux_coord(frt_coord)
-    spatial_index, = cube.coord_dims("latitude")
+    (spatial_index,) = cube.coord_dims("latitude")
     time_coord = iris.coords.AuxCoord(
         np.full(cube.shape, fill_value=time_source_coord.points),
         standard_name=time_source_coord.standard_name,
@@ -308,8 +306,7 @@ def spot_timezone_fixture(spot_template):
     cube.add_aux_coord(time_coord, spatial_index)
     local_time_coord_standards = TIME_COORDS["time_in_local_timezone"]
     local_time_units = cf_units.Unit(
-        local_time_coord_standards.units,
-        calendar=local_time_coord_standards.calendar,
+        local_time_coord_standards.units, calendar=local_time_coord_standards.calendar,
     )
     timezone_points = np.array(
         np.round(local_time_units.date2num(datetime(2021, 2, 3, 15))),
@@ -317,9 +314,7 @@ def spot_timezone_fixture(spot_template):
     )
     cube.add_aux_coord(
         iris.coords.AuxCoord(
-            timezone_points,
-            long_name="time_in_local_timezone",
-            units=local_time_units,
+            timezone_points, long_name="time_in_local_timezone", units=local_time_units,
         )
     )
     return cube
