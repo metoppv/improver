@@ -32,11 +32,13 @@
 
 from datetime import datetime
 
+import cf_units
 import iris
 import numpy as np
 import pytest
 
 from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
@@ -304,6 +306,22 @@ def spot_timezone_fixture(spot_template):
         units=frt_source_coord.units,
     )
     cube.add_aux_coord(frt_coord, spatial_index)
+    local_time_coord_standards = TIME_COORDS["time_in_local_timezone"]
+    local_time_units = cf_units.Unit(
+        local_time_coord_standards.units,
+        calendar=local_time_coord_standards.calendar,
+    )
+    timezone_points = np.array(
+        np.round(local_time_units.date2num(datetime(2021, 2, 3, 15))),
+        dtype=local_time_coord_standards.dtype,
+    )
+    cube.add_aux_coord(
+        iris.coords.AuxCoord(
+            timezone_points,
+            long_name="time_in_local_timezone",
+            units=local_time_units,
+        )
+    )
     return cube
 
 
