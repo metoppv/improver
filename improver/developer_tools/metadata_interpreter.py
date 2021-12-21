@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
-from typing import Dict, List
+from typing import Dict, List, Iterable
 
 from iris.coords import CellMethod, Coord
 from iris.cube import Cube
@@ -384,7 +384,7 @@ class MOMetadataInterpreter:
                 self._check_blend_and_model_attributes(attrs)
 
     def _check_coords_present(
-        self, coords: List[str], expected_coords: List[str]
+        self, coords: List[str], expected_coords: Iterable[str]
     ) -> None:
         """Check whether all expected coordinates are present"""
         found_coords = [coord for coord in coords if coord in expected_coords]
@@ -393,6 +393,21 @@ class MOMetadataInterpreter:
                 f"Missing one or more coordinates: found {found_coords}, "
                 f"expected {expected_coords}"
             )
+
+    def _check_coords_are_horizontal(self, cube: Cube, coords: List[str]) -> None:
+        """Checks that all the mentioned coords match the x and y coords"""
+        y_coord, x_coord = (cube.coord(axis=n) for n in "yx")
+        horizontal_dims = set([cube.coord_dims(n)[0] for n in [y_coord, x_coord]])
+        for coord in coords:
+            try:
+                coord_dims = set(cube.coord_dims(coord))
+            except CoordinateNotFoundError:
+                # The presence of coords is checked elsewhere
+                continue
+            if coord_dims != horizontal_dims:
+                self.errors.append(
+                    f"Coordinate {coord} does not span all horizontal coordinates"
+                )
 
     def _check_coord_bounds(self, cube: Cube, coord: str) -> None:
         """If coordinate has bounds, check points are equal to upper bound"""
@@ -412,6 +427,7 @@ class MOMetadataInterpreter:
                 )
 
         self._check_coords_present(coords, SPOT_COORDS)
+        self._check_coords_are_horizontal(cube, SPOT_COORDS)
 
     def run(self, cube: Cube) -> None:
         """Populates self-consistent interpreted parameters, or raises collated errors
@@ -494,12 +510,12 @@ class MOMetadataInterpreter:
         elif (
             cube.coords("time_in_local_timezone")
         ):
-            # For data on local timezones, the time and forecast_reference_time
-            # coordinates will match the spatial dimensions and there will be
-            # no forecast period.
+            # For data on local timezones, the time coordinate will match the horizontal
+            # dimensions and there will be no forecast period.
             expected_coords = set(LOCAL_TIME_COORDS + UNBLENDED_TIME_COORDS)
             expected_coords.discard("forecast_period")
             self._check_coords_present(coords, expected_coords)
+            self._check_coords_are_horizontal(cube, ["time"])
         elif self.blended:
             self._check_coords_present(coords, BLENDED_TIME_COORDS)
         else:

@@ -295,17 +295,17 @@ def spot_timezone_fixture(spot_template):
         "title": "Post-Processed MOGREPS-G Model Forecast Global Spot Values",
         "mosg__model_configuration": "gl_ens",
     }
-    (time, _), (frt_source_coord, _), (_, _) = construct_scalar_time_coords(
+    (time_source_coord, _), (frt_coord, _), (_, _) = construct_scalar_time_coords(
         time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
     )
-    cube.add_aux_coord(time)
+    cube.add_aux_coord(frt_coord)
     spatial_index, = cube.coord_dims("latitude")
-    frt_coord = iris.coords.AuxCoord(
-        np.full(cube.shape, fill_value=frt_source_coord.points),
-        standard_name=frt_source_coord.standard_name,
-        units=frt_source_coord.units,
+    time_coord = iris.coords.AuxCoord(
+        np.full(cube.shape, fill_value=time_source_coord.points),
+        standard_name=time_source_coord.standard_name,
+        units=time_source_coord.units,
     )
-    cube.add_aux_coord(frt_coord, spatial_index)
+    cube.add_aux_coord(time_coord, spatial_index)
     local_time_coord_standards = TIME_COORDS["time_in_local_timezone"]
     local_time_units = cf_units.Unit(
         local_time_coord_standards.units,
