@@ -492,12 +492,11 @@ class MOMetadataInterpreter:
             # there is no definitive standard for time coordinates on static ancillaries
             pass
         elif (
-            cube.coords("time")
-            and len(cube.coord_dims("time")) == 2
-            and not self.blended
+            cube.coords("time_in_local_timezone")
         ):
-            # 2D time coordinates are only present on global day-max diagnostics that
-            # use a local time zone coordinate. These do not have a 2D forecast period.
+            # For data on local timezones, the time and forecast_reference_time
+            # coordinates will match the spatial dimensions and there will be
+            # no forecast period.
             expected_coords = set(LOCAL_TIME_COORDS + UNBLENDED_TIME_COORDS)
             expected_coords.discard("forecast_period")
             self._check_coords_present(coords, expected_coords)
