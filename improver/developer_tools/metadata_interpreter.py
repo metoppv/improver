@@ -181,7 +181,7 @@ class MOMetadataInterpreter:
             )
 
         try:
-            self.diagnostic = get_diagnostic_cube_name_from_probability_name(
+            self.diagnostic = get_threshold_coord_name_from_probability_name(
                 cube.name()
             )
         except ValueError as cause:
