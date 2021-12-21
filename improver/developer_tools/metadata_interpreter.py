@@ -42,7 +42,6 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.metadata.probabilistic import (
     find_percentile_coordinate,
     find_threshold_coordinate,
-    get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import get_coord_names
