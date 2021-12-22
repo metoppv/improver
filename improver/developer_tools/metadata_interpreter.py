@@ -453,7 +453,9 @@ class MOMetadataInterpreter:
                     if cm == WXCODE_MODE_CM and cube.name() in WXCODE_NAMES:
                         pass
                     else:
-                        self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
+                        self.errors.append(
+                            f"Unexpected cell methods {cube.cell_methods}"
+                        )
             elif cube.name() == "wind_from_direction":
                 if cube.cell_methods:
                     expected = CellMethod(method="mean", coords="realization")
