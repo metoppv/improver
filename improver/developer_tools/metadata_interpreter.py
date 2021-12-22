@@ -108,6 +108,8 @@ PRECIP_ACCUM_NAMES = [
     "lwe_thickness_of_snowfall_amount",
     "thickness_of_rainfall_amount",
 ]
+WXCODE_MODE_CM = CellMethod(method="mode", coords="time")
+WXCODE_NAMES = ["weather_code"]
 
 # Compliant, required and forbidden attributes
 NONCOMP_ATTRS = [
@@ -450,8 +452,11 @@ class MOMetadataInterpreter:
         elif cube.name() in SPECIAL_CASES:
             self.field_type = self.diagnostic = cube.name()
             if cube.name() == "weather_code":
-                if cube.cell_methods:
-                    self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
+                for cm in cube.cell_methods:
+                    if cm == WXCODE_MODE_CM and cube.name() in WXCODE_NAMES:
+                        pass
+                    else:
+                        self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
             elif cube.name() == "wind_from_direction":
                 if cube.cell_methods:
                     expected = CellMethod(method="mean", coords="realization")
