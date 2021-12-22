@@ -273,31 +273,28 @@ class MOMetadataInterpreter:
                 if not found_cm:
                     self.errors.append(msg)
 
-        if cube.cell_methods:
-            for cm in cube.cell_methods:
-                if cm.method in COMPLIANT_CM_METHODS:
-                    self.methods += f" {cm.method} over {cm.coord_names[0]}"
-                    if self.field_type == self.PROB:
-                        if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
-                            self.errors.append(
-                                f"Cell method {cm} on probability data should have comment "
-                                f"'of {self.diagnostic}'"
-                            )
-                    # check point and bounds on method coordinate
-                    if "time" in cm.coord_names:
-                        if cube.coord("time").bounds is None:
-                            self.errors.append(
-                                f"Cube of{self.methods} has no time bounds"
-                            )
+        for cm in cube.cell_methods:
+            if cm.method in COMPLIANT_CM_METHODS:
+                self.methods += f" {cm.method} over {cm.coord_names[0]}"
+                if self.field_type == self.PROB:
+                    if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
+                        self.errors.append(
+                            f"Cell method {cm} on probability data should have comment "
+                            f"'of {self.diagnostic}'"
+                        )
+                # check point and bounds on method coordinate
+                if "time" in cm.coord_names:
+                    if cube.coord("time").bounds is None:
+                        self.errors.append(f"Cube of{self.methods} has no time bounds")
 
-                elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
-                    self.errors.append(f"Non-standard cell method {cm}")
-                else:
-                    # flag method which might be invalid, but we can't be sure
-                    self.warnings.append(
-                        f"Unexpected cell method {cm}. Please check the standard to "
-                        "ensure this is valid"
-                    )
+            elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
+                self.errors.append(f"Non-standard cell method {cm}")
+            else:
+                # flag method which might be invalid, but we can't be sure
+                self.warnings.append(
+                    f"Unexpected cell method {cm}. Please check the standard to "
+                    "ensure this is valid"
+                )
 
     def _check_blend_and_model_attributes(self, attrs: Dict) -> None:
         """Interprets attributes for model and blending information
