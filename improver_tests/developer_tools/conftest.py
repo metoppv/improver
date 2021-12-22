@@ -358,6 +358,15 @@ def wxcode_fixture():
         units="1",
         attributes=attributes,
         spatial_grid="equalarea",
+        time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0)),
     )
     _update_blended_time_coords(cube)
+    return cube
+
+
+@pytest.fixture(name="wxcode_mode_cube")
+def wxcode_mode_fixture(wxcode_cube):
+    """Weather symbols cube representing mode over time"""
+    cube = wxcode_cube.copy()
+    cube.add_cell_method(iris.coords.CellMethod("mode", coords="time"))
     return cube

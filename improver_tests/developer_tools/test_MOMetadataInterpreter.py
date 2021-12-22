@@ -218,6 +218,14 @@ def test_weather_code(wxcode_cube, interpreter):
     assert interpreter.blended
 
 
+def test_weather_mode_code(wxcode_mode_cube, interpreter):
+    """Test interpretation of weather code mode-in-time field"""
+    interpreter.run(wxcode_mode_cube)
+    assert interpreter.diagnostic == "weather_code"
+    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert interpreter.blended
+
+
 # Test errors and warnings (input cubes in alphabetical order by fixture)
 
 
