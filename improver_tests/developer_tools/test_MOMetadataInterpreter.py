@@ -32,9 +32,10 @@
 
 import numpy as np
 import pytest
-from iris.coords import CellMethod
+from iris.coords import AuxCoord, CellMethod
 
 # Test successful outputs (input cubes in alphabetical order by fixture)
+from improver.developer_tools.metadata_interpreter import SPOT_COORDS
 
 
 def test_realizations(ensemble_cube, interpreter):
@@ -434,6 +435,24 @@ def test_error_time_coord_units(probability_above_cube, interpreter):
         interpreter.run(probability_above_cube)
 
 
+def test_error_timezone_has_scalar_time(blended_spot_timezone_cube, interpreter):
+    """Test error raised if a timezones cube has a scalar time coord"""
+    cube = blended_spot_timezone_cube.copy()
+    time_coord = cube.coord("time").copy()
+    cube.remove_coord("time")
+    cube.add_aux_coord(
+        AuxCoord(
+            time_coord.points[0],
+            standard_name=time_coord.standard_name,
+            units=time_coord.units,
+        )
+    )
+    with pytest.raises(
+        ValueError, match="Coordinate time does not span all horizontal coordinates"
+    ):
+        interpreter.run(cube)
+
+
 # Test the interpreter can return multiple errors.
 
 
@@ -542,6 +561,30 @@ def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
     """Test error raised if a spot cube doesn't have all the expected metadata"""
     blended_spot_median_cube.remove_coord("altitude")
     with pytest.raises(ValueError, match="Missing one or more coordinates"):
+        interpreter.run(blended_spot_median_cube)
+
+
+@pytest.mark.parametrize(
+    "coord_name", set(SPOT_COORDS).difference({"latitude", "longitude"})
+)
+def test_error_inconsistent_spot_coords(
+    blended_spot_median_cube, interpreter, coord_name
+):
+    """Test error raised if a spot cube coord ought to apply to all spots and doesn't"""
+    coord = blended_spot_median_cube.coord(coord_name).copy()
+    blended_spot_median_cube.remove_coord(coord_name)
+    blended_spot_median_cube.add_aux_coord(
+        AuxCoord(
+            coord.points[0],
+            standard_name=coord.standard_name,
+            long_name=coord.long_name,
+            units=coord.units,
+        )
+    )
+    with pytest.raises(
+        ValueError,
+        match=f"Coordinate {coord_name} does not span all horizontal coordinates",
+    ):
         interpreter.run(blended_spot_median_cube)
 
 
