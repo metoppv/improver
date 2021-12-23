@@ -73,9 +73,19 @@ class ModalWeatherCode(BasePlugin):
     covered by the input files.
     """
 
-    def __init__(self):
-        """Create an aggregator instance for reuse"""
+    def __init__(self, model_id_attr: str = None):
+        """
+        Set up plugin and create an aggregator instance for reuse
+
+        Args:
+            model_id_attr:
+                Name of attribute recording source models that should be
+                inherited by the output cube. The source models are expected as
+                a space-separated string.
+        """
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
+
+        self.model_id_attr = model_id_attr
 
         # Create the expected cell method for use with single cube inputs
         # that do not pass through the aggregator.
@@ -204,6 +214,17 @@ class ModalWeatherCode(BasePlugin):
         else:
             result = cube.collapsed("time", self.aggregator_instance)
         self._set_blended_times(result)
+
+        if self.model_id_attr:
+            # Update contributing models
+            contributing_models = set()
+            for source_cube in cubes:
+                for model in source_cube.attributes[self.model_id_attr].split(" "):
+                    contributing_models.update([model])
+            # iris concatenates string coordinates as a "|"-separated string
+            result.attributes[self.model_id_attr] = " ".join(
+                sorted(list(contributing_models))
+            )
 
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == UNSET_CODE_INDICATOR).any():

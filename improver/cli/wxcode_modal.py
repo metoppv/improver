@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """Generates a modal weather symbol for the period covered by the input
     weather symbol cubes. Where there are different weather codes available
     for night and day, the modal code returned is always a day code, regardless
@@ -46,6 +46,10 @@ def process(*cubes: cli.inputcube):
         cubes (iris.cube.CubeList):
             A cubelist containing weather symbols cubes that cover the period
             over which a modal symbol is desired.
+        model_id_attr (str):
+            Name of attribute recording source models that should be
+            inherited by the output cube. The source models are expected as
+            a space-separated string.
 
     Returns:
         iris.cube.Cube:
@@ -56,4 +60,4 @@ def process(*cubes: cli.inputcube):
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return ModalWeatherCode()(cubes)
+    return ModalWeatherCode(model_id_attr=model_id_attr)(cubes)
