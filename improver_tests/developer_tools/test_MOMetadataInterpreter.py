@@ -565,7 +565,7 @@ def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
 
 
 @pytest.mark.parametrize(
-    "coord_name", set(SPOT_COORDS).difference({"latitude", "longitude"})
+    "coord_name", [x for x in SPOT_COORDS if x not in ["latitude", "longitude"]]
 )
 def test_error_inconsistent_spot_coords(
     blended_spot_median_cube, interpreter, coord_name
