@@ -208,6 +208,7 @@ class SpotExtraction(BasePlugin):
         diagnostic_cube: Cube,
         spot_values: ndarray,
         additional_dims: Optional[List[DimCoord]] = None,
+        additional_dims_aux: Optional[List[List[AuxCoord]]] = None,
         scalar_coords: Optional[List[AuxCoord]] = None,
         auxiliary_coords: Optional[List[AuxCoord]] = None,
         unique_site_id: Optional[Union[List[str], ndarray]] = None,
@@ -229,6 +230,9 @@ class SpotExtraction(BasePlugin):
             additional_dims:
                 Optional list containing iris.coord.DimCoords with any leading
                 dimensions required before spot data.
+            additional_dims_aux:
+                Optional list of auxiliary coordinates associated with each dimension in
+                additional_dims
             scalar_coords:
                 Optional list containing iris.coord.AuxCoords with all scalar coordinates
                 relevant for the spot sites.
@@ -256,6 +260,7 @@ class SpotExtraction(BasePlugin):
             scalar_coords=scalar_coords,
             auxiliary_coords=auxiliary_coords,
             additional_dims=additional_dims,
+            additional_dims_aux=additional_dims_aux,
         )
         return spot_diagnostic_cube
 
@@ -315,9 +320,17 @@ class SpotExtraction(BasePlugin):
         spot_values = diagnostic_cube.data[..., y_indices, x_indices]
 
         additional_dims = None
+        additional_dims_aux = []
         if len(spot_values.shape) > 1:
             additional_dims = diagnostic_cube.dim_coords[:-2]
-
+            for dim_coord in additional_dims:
+                dim_coord_dim = diagnostic_cube.coord_dims(dim_coord)
+                aux_coords = [
+                    aux_coord
+                    for aux_coord in diagnostic_cube.aux_coords
+                    if diagnostic_cube.coord_dims(aux_coord) == dim_coord_dim
+                ]
+                additional_dims_aux.append(aux_coords if aux_coords else [])
         scalar_coords, nonscalar_coords = self.get_aux_coords(
             diagnostic_cube, x_indices, y_indices
         )
@@ -329,6 +342,7 @@ class SpotExtraction(BasePlugin):
             scalar_coords=scalar_coords,
             auxiliary_coords=nonscalar_coords,
             additional_dims=additional_dims,
+            additional_dims_aux=additional_dims_aux,
             unique_site_id=unique_site_id,
             unique_site_id_key=unique_site_id_key,
         )
