@@ -33,6 +33,7 @@
 from calendar import timegm
 from datetime import datetime as dt
 from datetime import timedelta
+from typing import Tuple
 
 import numpy as np
 import pytest
@@ -50,8 +51,8 @@ TARGET_TIME = dt(2020, 6, 15, 18)
 
 @pytest.fixture(name="wxcode_series")
 def wxcode_series_fixture(
-    data, cube_type, offset_reference_times: bool, model_id_attr: bool
-) -> CubeList:
+    data, cube_type, offset_reference_times: bool, model_id_attr: bool,
+) -> Tuple[bool, CubeList]:
     """Generate a time series of weather code cubes for combination to create
     a period representative code. When offset_reference_times is set, each
     successive cube will have a reference time one hour older."""
@@ -99,9 +100,10 @@ def wxcode_series_fixture(
         if model_id_attr:
             [c.attributes.update({MODEL_ID_ATTR: "uk_ens"}) for c in wxcubes]
             wxcubes[0].attributes.update({MODEL_ID_ATTR: "uk_det uk_ens"})
-    return wxcubes
+    return model_id_attr, wxcubes
 
 
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
@@ -139,7 +141,8 @@ def wxcode_series_fixture(
 )
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
-    result = ModalWeatherCode()(wxcode_series)
+    _, wxcode_cubes = wxcode_series
+    result = ModalWeatherCode()(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
@@ -147,7 +150,7 @@ def test_expected_values(wxcode_series, expected):
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize("data", [np.ones(12), np.ones(1)])
-def test_metadata(wxcode_series, model_id_attr: bool):
+def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the
     representative symbol has been calculated while the forecast_reference_time
@@ -161,14 +164,16 @@ def test_metadata(wxcode_series, model_id_attr: bool):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
+    model_id_attr, wxcode_cubes = wxcode_series
+
     if model_id_attr:
         kwargs = {"model_id_attr": MODEL_ID_ATTR}
     else:
         kwargs = {}
 
-    result = ModalWeatherCode(**kwargs)(wxcode_series)
+    result = ModalWeatherCode(**kwargs)(wxcode_cubes)
 
-    n_times = len(wxcode_series)
+    n_times = len(wxcode_cubes)
     expected_time = TARGET_TIME
     expected_bounds = [TARGET_TIME - timedelta(hours=n_times), TARGET_TIME]
     expected_reference_time = TARGET_TIME - timedelta(hours=18)
