@@ -452,7 +452,8 @@ def modify_tree_fixture(node, key, value):
             "lightning_shower",
             "if_false",
             "kittens",
-            "Node lightning_shower has an invalid destination of kittens for the if_false condition",
+            "Node lightning_shower has an invalid destination of kittens for the if_false "
+            "condition",
         ),
         (
             "snow_in_vicinity",
