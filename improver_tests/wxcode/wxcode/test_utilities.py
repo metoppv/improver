@@ -518,6 +518,15 @@ def test_check_tree(modify_tree, expected):
     assert result == expected
 
 
+def test_check_tree_unreachable_leaf():
+    """Add an unreachable leaf and check for an error."""
+    expected = "Unreachable node 'kittens'"
+    tree = wxcode_decision_tree()
+    tree["kittens"] = tree["lightning"].copy()
+    result = check_tree(tree)
+    assert result == expected
+
+
 def test_check_tree_invalid_key():
     """Modify a wx decision tree."""
     expected = "Node lightning contains unknown key 'kittens'"
