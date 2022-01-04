@@ -36,7 +36,7 @@ from datetime import timedelta
 
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import CubeList
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
@@ -49,7 +49,9 @@ TARGET_TIME = dt(2020, 6, 15, 18)
 
 
 @pytest.fixture(name="wxcode_series")
-def wxcode_series_fixture(data, cube_type, offset_reference_times: bool, model_id_attr: bool) -> CubeList:
+def wxcode_series_fixture(
+    data, cube_type, offset_reference_times: bool, model_id_attr: bool
+) -> CubeList:
     """Generate a time series of weather code cubes for combination to create
     a period representative code. When offset_reference_times is set, each
     successive cube will have a reference time one hour older."""
