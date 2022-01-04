@@ -241,6 +241,9 @@ class BasicThreshold(PostProcessingPlugin):
         Add a scalar threshold-type coordinate with correct name and units
         to a 2D slice containing thresholded data.
 
+        The 'threshold' coordinate will be float64 to avoid rounding errors
+        during possible unit conversion.
+
         Args:
             cube:
                 Cube containing thresholded data (1s and 0s)
@@ -248,7 +251,7 @@ class BasicThreshold(PostProcessingPlugin):
                 Value at which the data has been thresholded
         """
         coord = iris.coords.DimCoord(
-            np.array([threshold], dtype=FLOAT_DTYPE), units=cube.units
+            np.array([threshold], dtype="float64"), units=cube.units
         )
         coord.rename(self.threshold_coord_name)
         coord.var_name = "threshold"
@@ -379,6 +382,10 @@ class BasicThreshold(PostProcessingPlugin):
             thresholded_cubes.append(cube)
 
         (cube,) = thresholded_cubes.merge()
+        # Re-cast to 32bit now that any unit conversion has already taken place.
+        cube.coord(var_name="threshold").points = cube.coord(
+            var_name="threshold"
+        ).points.astype(FLOAT_DTYPE)
 
         self._update_metadata(cube)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])

@@ -110,8 +110,6 @@ def process(
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
     """
-    import numpy as np
-
     from improver.metadata.probabilistic import in_vicinity_name_format
     from improver.threshold import BasicThreshold
     from improver.utilities.cube_manipulation import collapse_realizations
@@ -129,7 +127,9 @@ def process(
         thresholds = []
         fuzzy_bounds = []
         for key in threshold_config.keys():
-            thresholds.append(np.float32(key))
+            # Ensure thresholds are float64 to avoid rounding errors during
+            # possible unit conversion.
+            thresholds.append(float(key))
             # If the first threshold has no bounds, fuzzy_bounds is
             # set to None and subsequent bounds checks are skipped
             if threshold_config[key] == "None":
@@ -137,7 +137,9 @@ def process(
                 continue
             fuzzy_bounds.append(tuple(threshold_config[key]))
     else:
-        thresholds = [np.float32(x) for x in threshold_values]
+        # Ensure thresholds are float64 to avoid rounding errors during possible
+        # unit conversion.
+        thresholds = [float(x) for x in threshold_values]
         fuzzy_bounds = None
 
     each_threshold_func_list = []
