@@ -431,28 +431,28 @@ def modify_tree_fixture(node, key, value):
             ),
         ),
         (
-            "lightning",
+            "lightning_shower",
             "if_true",
             100,
             (
-                "Node lightning results in an invalid weather code of 100 for the "
+                "Node lightning_shower results in an invalid weather code of 100 for the "
                 "if_true condition"
             ),
         ),
         (
-            "lightning",
+            "lightning_shower",
             "if_false",
             100,
             (
-                "Node lightning results in an invalid weather code of 100 for the "
+                "Node lightning_shower results in an invalid weather code of 100 for the "
                 "if_false condition"
             ),
         ),
         (
-            "lightning",
+            "lightning_shower",
             "if_false",
             "kittens",
-            "Node lightning has an invalid destination of kittens for the if_false condition",
+            "Node lightning_shower has an invalid destination of kittens for the if_false condition",
         ),
         (
             "snow_in_vicinity",
