@@ -160,6 +160,7 @@ class WeatherSymbols(BasePlugin):
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
 
+        used_cubes = iris.cube.CubeList()
         optional_node_data_missing = []
         missing_data = []
         for key, query in self.queries.items():
@@ -220,6 +221,8 @@ class WeatherSymbols(BasePlugin):
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
+                else:
+                    used_cubes.extend(matched_threshold)
 
         if missing_data:
             msg = (
@@ -234,7 +237,7 @@ class WeatherSymbols(BasePlugin):
 
         if not optional_node_data_missing:
             optional_node_data_missing = None
-        return optional_node_data_missing
+        return used_cubes, optional_node_data_missing
 
     def check_coincidence(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
@@ -710,8 +713,9 @@ class WeatherSymbols(BasePlugin):
         Returns:
             A cube of weather symbols.
         """
-        # Check input cubes contain required data
-        optional_node_data_missing = self.check_input_cubes(cubes)
+        # Check input cubes contain required data and return only those that
+        # are needed to speed up later cube extractions.
+        cubes, optional_node_data_missing = self.check_input_cubes(cubes)
 
         # Reroute the decision tree around missing optional nodes
         if optional_node_data_missing is not None:
