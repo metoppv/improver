@@ -141,16 +141,18 @@ class WeatherSymbols(BasePlugin):
         required by the decision tree.  Sets self.coord_named_threshold to
         "True" if threshold-type coordinates have the name "threshold" (as
         opposed to the standard name of the diagnostic), for backward
-        compatibility.
+        compatibility. A cubelist containing only cubes of the required
+        diagnostic-threshold combinations is returned.
 
         Args:
             cubes:
                 A CubeList containing the input diagnostic cubes.
 
         Returns:
-            A list of node names where the diagnostic data is missing and
-            this is indicated as allowed by the presence of the if_diagnostic_missing
-            key.
+            - A CubeList containing only the required cubes.
+            - A list of node names where the diagnostic data is missing and
+              this is indicated as allowed by the presence of the if_diagnostic_missing
+              key.
 
         Raises:
             IOError:

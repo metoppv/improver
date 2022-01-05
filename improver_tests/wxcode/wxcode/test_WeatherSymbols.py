@@ -293,12 +293,12 @@ class Test_check_input_cubes(Test_WXCode):
     def test_basic(self):
         """Test check_input_cubes method raises no error if the data is OK"""
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
-        self.assertEqual(plugin.check_input_cubes(self.cubes), None)
+        plugin.check_input_cubes(self.cubes)
 
     def test_no_lightning(self):
         """Test check_input_cubes raises no error if lightning missing"""
         cubes = self.cubes.extract(self.missing_diagnostic)
-        result = self.plugin.check_input_cubes(cubes)
+        _, result = self.plugin.check_input_cubes(cubes)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 1)
         self.assertTrue("lightning" in result)
@@ -326,6 +326,25 @@ class Test_check_input_cubes(Test_WXCode):
         self.cubes[0].coord(threshold_coord).units = Unit("mm kg-1")
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_input_cubes(self.cubes)
+
+    def test_returns_used_cubes(self):
+        """Test that check_input_cubes method returns a list of cubes that is
+        reduced to include only those diagnostics and thresholds that are used
+        in the decision tree.
+
+        The test below is that the 0.1 mm/hr sleet rate threshold (unused) is
+        not contained in the returned cube list, whilst the 1 mm/hr is."""
+
+        result, _ = self.plugin.check_input_cubes(self.cubes)
+
+        expected = iris.Constraint(
+            coord_values={"lwe_sleetfall_rate": lambda cell: 2.7e-07 < cell < 2.8e-07}
+        )
+        unexpected = iris.Constraint(
+            coord_values={"lwe_sleetfall_rate": lambda cell: 2.7e-08 < cell < 2.8e-08}
+        )
+        self.assertTrue(len(result.extract(expected)) > 0)
+        self.assertEqual(len(result.extract(unexpected)), 0)
 
 
 class Test_invert_condition(IrisTest):
