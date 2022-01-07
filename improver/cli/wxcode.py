@@ -85,4 +85,6 @@ def process(
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr, target_period=target_period)(CubeList(cubes))
+    return WeatherSymbols(
+        wxtree, model_id_attr=model_id_attr, target_period=target_period
+    )(CubeList(cubes))

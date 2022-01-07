@@ -498,24 +498,14 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
         queries["heavy_precipitation"] = {
             "if_true": "heavy_precipitation_cloud",
             "if_false": "precipitation_in_vicinity",
-            "probability_thresholds": [
-                0.5
-            ],
+            "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
             "diagnostic_fields": [
                 "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
             ],
-            "diagnostic_thresholds": [
-                [
-                    1.0,
-                    "mm",
-                    3600
-                ]
-            ],
-            "diagnostic_conditions": [
-                "above"
-            ]
+            "diagnostic_thresholds": [[1.0, "mm", 3600]],
+            "diagnostic_conditions": ["above"],
         }
 
     return queries

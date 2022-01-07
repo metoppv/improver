@@ -94,7 +94,12 @@ class WeatherSymbols(BasePlugin):
     .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
     """
 
-    def __init__(self, wxtree: dict, model_id_attr: Optional[str] = None, target_period: int = None) -> None:
+    def __init__(
+        self,
+        wxtree: dict,
+        model_id_attr: Optional[str] = None,
+        target_period: int = None,
+    ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather

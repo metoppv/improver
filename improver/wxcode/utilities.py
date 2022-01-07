@@ -102,7 +102,9 @@ GROUPED_CODES = {
 }
 
 
-def update_tree_thresholds(tree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None) -> Dict[str, Dict[str, Any]]:
+def update_tree_thresholds(
+    tree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
+) -> Dict[str, Dict[str, Any]]:
     """
     Replaces value / unit pairs from tree definition with an Iris AuxCoord
     that encodes the same information. Also scales any threshold values that
@@ -126,6 +128,7 @@ def update_tree_thresholds(tree: Dict[str, Dict[str, Any]], target_period: Optio
         ValueError: If thresholds are defined with an associated period and no
                     target_period is provided.
     """
+
     def _make_thresholds_with_units(items):
         if isinstance(items[0], list):
             return [_make_thresholds_with_units(item) for item in items]
@@ -362,7 +365,9 @@ def _check_nested_list_consistency(query: List[List[Any]]) -> bool:
     return _checker(query)
 
 
-def check_tree(wxtree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None) -> str:
+def check_tree(
+    wxtree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
+) -> str:
     """Perform some checks to ensure the provided decision tree is valid.
 
     Args:

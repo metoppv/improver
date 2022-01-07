@@ -102,12 +102,16 @@ class Test_wx_dict(IrisTest):
 
 @pytest.mark.parametrize(
     "accumulation, target_period, expected_value, expected_unit",
-    ((False, None, 1, "mm/hr"),
-     (False, 10800, 1, "mm/hr"),
-     (True, 3600, 1, "mm"),
-     (True, 10800, 3, "mm"))
+    (
+        (False, None, 1, "mm/hr"),
+        (False, 10800, 1, "mm/hr"),
+        (True, 3600, 1, "mm"),
+        (True, 10800, 3, "mm"),
+    ),
 )
-def test_update_tree_thresholds(accumulation, target_period, expected_value, expected_unit):
+def test_update_tree_thresholds(
+    accumulation, target_period, expected_value, expected_unit
+):
     """Test that updating tree thresholds returns iris AuxCoords with the
     expected value and units. Includes a test that the threshold value is scaled
     if it is defined with an associated period that differs from a user supplied
@@ -115,7 +119,7 @@ def test_update_tree_thresholds(accumulation, target_period, expected_value, exp
 
     tree = wxcode_decision_tree(accumulation=accumulation)
     tree = update_tree_thresholds(tree, target_period=target_period)
-    result, = tree["heavy_precipitation"]["diagnostic_thresholds"]
+    (result,) = tree["heavy_precipitation"]["diagnostic_thresholds"]
 
     assert isinstance(result, iris.coords.AuxCoord)
     assert result.points[0] == expected_value
