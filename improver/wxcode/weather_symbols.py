@@ -130,6 +130,7 @@ class WeatherSymbols(BasePlugin):
 
         self.model_id_attr = model_id_attr
         self.start_node = list(wxtree.keys())[0]
+        self.target_period = target_period
         self.queries = update_tree_thresholds(wxtree, target_period)
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
@@ -258,6 +259,7 @@ class WeatherSymbols(BasePlugin):
         Raises:
             ValueError: If validity times differ for diagnostics.
             ValueError: If period diagnostics have different periods.
+            ValueError: If period diagnostics do not match target_period.
         """
         times = []
         bounds = []
@@ -292,6 +294,14 @@ class WeatherSymbols(BasePlugin):
                 "all describe the same period to be used together."
                 f"\n{diagnostic_bounds}"
             )
+        # Check that if time bounded diagnostics are used they match the
+        # user specified target_period.
+        if bounds and self.target_period:
+            if not np.diff(bounds[0])[0] == self.target_period:
+                raise ValueError(
+                    f"Diagnostic periods ({np.diff(bounds[0])[0]}) do not match "
+                    f"the user specified target_period ({self.target_period})."
+                )
 
     @staticmethod
     def _invert_comparator(comparator: str) -> str:
@@ -566,8 +576,8 @@ class WeatherSymbols(BasePlugin):
             return arr >= threshold
         else:
             raise ValueError(
-                "Invalid comparator: {}. ".format(comparator),
-                "Comparator must be one of '<', '>', '<=', '>='.",
+                f"Invalid comparator: {comparator}. "
+                "Comparator must be one of '<', '>', '<=', '>='."
             )
 
     def evaluate_extract_expression(
@@ -698,8 +708,8 @@ class WeatherSymbols(BasePlugin):
                 res = res | new_res
             else:
                 msg = (
-                    "Invalid condition chain found. First element has length > 1 ",
-                    "but second element is not 'AND' or 'OR'.",
+                    "Invalid condition chain found. First element has length > 1 "
+                    "but second element is not 'AND' or 'OR'."
                 )
                 raise RuntimeError(msg)
         return res
