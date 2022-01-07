@@ -76,7 +76,7 @@ def process(
     if check_tree:
         from improver.wxcode.utilities import check_tree
 
-        return check_tree(wxtree, target_period)
+        return check_tree(wxtree, target_period=target_period)
 
     from iris.cube import CubeList
 
@@ -85,4 +85,4 @@ def process(
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return WeatherSymbols(wxtree, model_id_attr=model_id_attr, target_period=target_period)(CubeList(cubes))

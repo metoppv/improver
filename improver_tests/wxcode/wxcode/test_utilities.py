@@ -100,6 +100,28 @@ class Test_wx_dict(IrisTest):
         self.assertEqual(WX_DICT[30], "Thunder")
 
 
+@pytest.mark.parametrize(
+    "accumulation, target_period, expected_value, expected_unit",
+    ((False, None, 1, "mm/hr"),
+     (False, 10800, 1, "mm/hr"),
+     (True, 3600, 1, "mm"),
+     (True, 10800, 3, "mm"))
+)
+def test_update_tree_thresholds(accumulation, target_period, expected_value, expected_unit):
+    """Test that updating tree thresholds returns iris AuxCoords with the
+    expected value and units. Includes a test that the threshold value is scaled
+    if it is defined with an associated period that differs from a user supplied
+    target period."""
+
+    tree = wxcode_decision_tree(accumulation=accumulation)
+    tree = update_tree_thresholds(tree, target_period=target_period)
+    result, = tree["heavy_precipitation"]["diagnostic_thresholds"]
+
+    assert isinstance(result, iris.coords.AuxCoord)
+    assert result.points[0] == expected_value
+    assert result.units == expected_unit
+
+
 class Test_weather_code_attributes(IrisTest):
     """ Test weather_code_attributes is working correctly """
 
