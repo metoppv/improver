@@ -188,10 +188,9 @@ class MOMetadataInterpreter:
         except ValueError as cause:
             # if the probability name is not valid
             self.errors.append(str(cause))
+            return
 
-        expected_threshold_name = get_threshold_coord_name_from_probability_name(
-            cube.name()
-        )
+        expected_threshold_name = self.diagnostic
 
         if not cube.coords(expected_threshold_name):
             msg = f"Cube does not have expected threshold coord '{expected_threshold_name}'; "
@@ -394,7 +393,7 @@ class MOMetadataInterpreter:
             )
 
     def _check_coords_are_horizontal(self, cube: Cube, coords: List[str]) -> None:
-        """Checks that all the mentioned coords match the x and y coords"""
+        """Checks that all the mentioned coords share the same dimensions as the x and y coords"""
         y_coord, x_coord = (cube.coord(axis=n) for n in "yx")
         horizontal_dims = set([cube.coord_dims(n)[0] for n in [y_coord, x_coord]])
         for coord in coords:

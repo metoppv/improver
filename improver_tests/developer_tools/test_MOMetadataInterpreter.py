@@ -133,13 +133,8 @@ def test_vicinity_cell_method(
 ):
     """Test when precipitation accumulation in-vicinity cube has a cell method"""
     cube = probability_over_time_in_vicinity_above_cube.copy()
-    diagnostic_name = "lwe_thickness_of_precipitation_amount"
-    cube.rename(f"probability_of_{diagnostic_name}_in_vicinity_above_threshold")
-    cube.cell_methods = []
-    cube.add_cell_method(
-        CellMethod(method="sum", coords="time", comments=(f"of {diagnostic_name}",),)
-    )
     interpreter.run(cube)
+    assert "sum over time" in interpreter.methods
 
 
 def test_probabilities_below(blended_probability_below_cube, interpreter):
@@ -570,7 +565,7 @@ def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
 def test_error_inconsistent_spot_coords(
     blended_spot_median_cube, interpreter, coord_name
 ):
-    """Test error raised if a spot cube coord ought to apply to all spots and doesn't"""
+    """Test error raised if a spot cube coord ought to apply to the x/y dim, but doesn't"""
     coord = blended_spot_median_cube.coord(coord_name).copy()
     blended_spot_median_cube.remove_coord(coord_name)
     blended_spot_median_cube.add_aux_coord(

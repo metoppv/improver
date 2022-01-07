@@ -173,7 +173,7 @@ def probability_above_fixture():
 
 @pytest.fixture(name="probability_over_time_in_vicinity_above_cube")
 def probability_over_time_in_vicinity_above_fixture():
-    """Probability of max air temperature in 1H above threshold cube from UKV"""
+    """Probability of precipitation accumulation in 1H in vicinity above threshold cube from UKV"""
     data = 0.5 * np.ones((3, 3, 3), dtype=np.float32)
     thresholds = np.array([280, 282, 284], dtype=np.float32)
     attributes = {
@@ -182,14 +182,19 @@ def probability_over_time_in_vicinity_above_fixture():
         "institution": "Met Office",
         "mosg__model_configuration": "uk_det",
     }
+    diagnostic_name = "lwe_thickness_of_precipitation_amount"
     cube = set_up_probability_cube(
         data,
         thresholds,
         attributes=attributes,
         spatial_grid="equalarea",
-        variable_name="lwe_thickness_of_precipitation_amount_in_vicinity",
+        variable_name=f"{diagnostic_name}_in_vicinity",
     )
-    cube.add_cell_method(iris.coords.CellMethod(method="sum", coords="time"))
+    cube.add_cell_method(
+        iris.coords.CellMethod(
+            method="sum", coords="time", comments=(f"of {diagnostic_name}",),
+        )
+    )
     for coord in ["time", "forecast_period"]:
         cube.coord(coord).bounds = np.array(
             [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0]],
