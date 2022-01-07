@@ -1165,7 +1165,7 @@ class Test_check_coincidence(Test_WXCode):
 
         msg = (
             "Weather symbol input cubes are valid at different times; \n"
-            "\['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
+            "\\['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
             "'probability_of_lwe_sleetfall_rate_above_threshold: 1507636800', "
             "'probability_of_rainfall_rate_above_threshold: 1507636800', "
             "'probability_of_lwe_precipitation_rate_in_vicinity_above_threshold: 1507636800', "
@@ -1174,8 +1174,8 @@ class Test_check_coincidence(Test_WXCode):
             "'probability_of_visibility_in_air_below_threshold: 1507636800', "
             "'probability_of_lwe_precipitation_rate_above_threshold: 1507636800', "
             "'probability_of_shower_condition_above_threshold: 1507636800', "
-            "'probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold: 1507636800', "
-            "'probability_of_lwe_precipitation_rate_max_above_threshold: 1507640400'\]"
+            "'probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold: 1507636800', "  # noqa: E501
+            "'probability_of_lwe_precipitation_rate_max_above_threshold: 1507640400'\\]"
         )
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_coincidence(cubes)
@@ -1197,12 +1197,12 @@ class Test_check_coincidence(Test_WXCode):
             "Period diagnostics with different periods have been provided as "
             "input to the weather symbols code. Period diagnostics must all "
             "describe the same period to be used together.\n"
-            "\['probability_of_shower_condition_above_threshold: 7200', "
+            "\\['probability_of_shower_condition_above_threshold: 7200', "
             "'probability_of_number_of_lightning_flashes_per_unit_area_in_"
             "vicinity_above_threshold: 3600', 'probability_of_lwe_graupel_and_"
             "hail_fall_rate_in_vicinity_above_threshold: 3600', "
             "'probability_of_lwe_precipitation_rate_max_above_threshold: 3600', "
-            "'probability_of_shower_condition_above_threshold: 7200'\]"
+            "'probability_of_shower_condition_above_threshold: 7200'\\]"
         )
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_coincidence(self.cubes)
@@ -1213,8 +1213,8 @@ class Test_check_coincidence(Test_WXCode):
 
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=10800)
         msg = (
-            "Diagnostic periods \(3600\) do not match "
-            "the user specified target_period \(10800\)."
+            "Diagnostic periods (3600) do not match "
+            "the user specified target_period (10800)."
         )
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_coincidence(self.cubes)
