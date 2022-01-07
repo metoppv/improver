@@ -1213,8 +1213,8 @@ class Test_check_coincidence(Test_WXCode):
 
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=10800)
         msg = (
-            "Diagnostic periods (3600) do not match "
-            "the user specified target_period (10800)."
+            "Diagnostic periods \\(3600\\) do not match "
+            "the user specified target_period \\(10800\\)."
         )
         with self.assertRaisesRegex(ValueError, msg):
             plugin.check_coincidence(self.cubes)
