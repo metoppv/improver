@@ -61,7 +61,7 @@ def name_constraint(names: List[str]) -> Callable:
         ret = False
         if cube.name() in names:
             ret = True
-            _ = cube.data
+            cube.data
         return ret
 
     return constraint
