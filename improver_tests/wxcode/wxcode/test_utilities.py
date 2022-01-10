@@ -126,6 +126,16 @@ def test_update_tree_thresholds(
     assert result.units == expected_unit
 
 
+def test_update_tree_thresholds_exception():
+    """Test that updating tree thresholds raises an error if the input thresholds
+    are defined with an associated period, but no target_period is provided."""
+
+    tree = wxcode_decision_tree(accumulation=True)
+    expected = "The decision tree contains thresholds defined"
+    with pytest.raises(ValueError, match=expected):
+        update_tree_thresholds(tree, target_period=None)
+
+
 class Test_weather_code_attributes(IrisTest):
     """ Test weather_code_attributes is working correctly """
 
