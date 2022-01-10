@@ -173,7 +173,7 @@ def probability_above_fixture():
 
 @pytest.fixture(name="probability_over_time_in_vicinity_above_cube")
 def probability_over_time_in_vicinity_above_fixture():
-    """Probability of precipitation accumulation in 1H in vicinity above threshold cube from UKV"""
+    """Probability of precipitation accumulation in 15M in vicinity above threshold cube from UKV"""
     data = 0.5 * np.ones((3, 3, 3), dtype=np.float32)
     thresholds = np.array([280, 282, 284], dtype=np.float32)
     attributes = {
