@@ -52,7 +52,7 @@ def name_constraint(names: List[str]) -> Callable:
 
     Returns:
         A callable which when called, returns True or False for the provided cube,
-        depending on whether it matches the names provided.  These matching cube
+        depending on whether it matches the names provided.  A matching cube
         will also have its data realised by the callable.
     """
 
