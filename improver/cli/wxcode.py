@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube_nolazy,
+    *cubes: cli.inputcube,
     wxtree: cli.inputjson = None,
     model_id_attr: str = None,
     check_tree: bool = False,
