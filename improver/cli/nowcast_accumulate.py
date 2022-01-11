@@ -45,7 +45,6 @@ def name_constraint(names: List[str]) -> Callable:
 
     The callable constraint will realise the data of those cubes matching the
     constraint.
-    cube names
 
     Args:
         name:
