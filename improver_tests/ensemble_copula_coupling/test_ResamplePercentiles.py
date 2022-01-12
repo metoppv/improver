@@ -118,12 +118,14 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
         forecast_at_percentiles = np.array([[8, 10, 60]])
         percentiles = np.array([5, 70, 95])
 
-        msg = ("Forecast values exist that fall outside the expected extrema "
-               "values that are defined as bounds in ensemble_copula_coupling"
-               "\\/constants.py. Applying the extrema values as end points to "
-               "the distribution would result in non-monotonically increasing "
-               "values. The defined extremes are \\(-40, 50\\), whilst the "
-               "following forecast values exist outside this range: \\[60\\].")
+        msg = (
+            "Forecast values exist that fall outside the expected extrema "
+            "values that are defined as bounds in ensemble_copula_coupling"
+            "\\/constants.py. Applying the extrema values as end points to "
+            "the distribution would result in non-monotonically increasing "
+            "values. The defined extremes are \\(-40, 50\\), whilst the "
+            "following forecast values exist outside this range: \\[60\\]."
+        )
 
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._add_bounds_to_percentiles_and_forecast_at_percentiles(
@@ -149,7 +151,8 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
             "values. The defined extremes are (-40, 50), whilst the "
             "following forecast values exist outside this range: [60]. "
             "The percentile values that have exceeded the existing bounds "
-            "will be used as new bounds.")
+            "will be used as new bounds."
+        )
         plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
             percentiles, forecast_at_percentiles, self.bounds_pairing
         )
