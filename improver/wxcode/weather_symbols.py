@@ -135,7 +135,7 @@ class WeatherSymbols(BasePlugin):
         """Represent the configured plugin instance as a string."""
         return "<WeatherSymbols start_node={}>".format(self.start_node)
 
-    def check_input_cubes(self, cubes: CubeList) -> Optional[List[str]]:
+    def prepare_input_cubes(self, cubes: CubeList) -> [CubeList, Optional[List[str]]]:
         """
         Check that the input cubes contain all the diagnostics and thresholds
         required by the decision tree.  Sets self.coord_named_threshold to
@@ -717,7 +717,7 @@ class WeatherSymbols(BasePlugin):
         """
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
-        cubes, optional_node_data_missing = self.check_input_cubes(cubes)
+        cubes, optional_node_data_missing = self.prepare_input_cubes(cubes)
 
         # Reroute the decision tree around missing optional nodes
         if optional_node_data_missing is not None:
