@@ -135,7 +135,9 @@ class WeatherSymbols(BasePlugin):
         """Represent the configured plugin instance as a string."""
         return "<WeatherSymbols start_node={}>".format(self.start_node)
 
-    def prepare_input_cubes(self, cubes: CubeList) -> [CubeList, Optional[List[str]]]:
+    def prepare_input_cubes(
+        self, cubes: CubeList
+    ) -> Tuple[CubeList, Optional[List[str]]]:
         """
         Check that the input cubes contain all the diagnostics and thresholds
         required by the decision tree.  Sets self.coord_named_threshold to
