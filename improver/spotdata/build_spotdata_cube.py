@@ -56,6 +56,7 @@ def build_spotdata_cube(
     neighbour_methods: Optional[List[str]] = None,
     grid_attributes: Optional[List[str]] = None,
     additional_dims: Optional[List[Coord]] = None,
+    additional_dims_aux: Optional[List[List[AuxCoord]]] = None,
 ) -> Cube:
     """
     Function to build a spotdata cube with expected dimension and auxiliary
@@ -108,6 +109,9 @@ def build_spotdata_cube(
             Optional list of grid attribute names, e.g. x-index, y-index
         additional_dims:
             Optional list of additional dimensions to preceed the spot data dimension.
+        additional_dims_aux:
+            Optional list of auxiliary coordinates associated with each dimension in
+            additional_dims
 
     Returns:
         A cube containing the extracted spot data with spot data being the final dimension.
@@ -179,8 +183,12 @@ def build_spotdata_cube(
         current_dim += 1
 
     if additional_dims is not None:
-        for coord in additional_dims:
+        for coord, aux_coords in zip(
+            additional_dims, additional_dims_aux or [[] for _ in additional_dims]
+        ):
             dim_coords_and_dims.append((coord, current_dim))
+            for aux_coord in aux_coords:
+                aux_coords_and_dims.append((aux_coord, current_dim))
             current_dim += 1
 
     dim_coords_and_dims.append((spot_index, current_dim))
