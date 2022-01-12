@@ -871,10 +871,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
             (len(percentiles_as_fractions), location_data.shape[0]), dtype=np.float32
         )
 
-        self._rescale_shape_parameters(location_data, np.sqrt(scale_data))
+        self._rescale_shape_parameters(location_data, scale_data)
 
         percentile_method = self.distribution(
-            *self.shape_parameters, loc=location_data, scale=np.sqrt(scale_data)
+            *self.shape_parameters, loc=location_data, scale=scale_data
         )
 
         # Loop over percentiles, and use the distribution as the
@@ -1039,11 +1039,9 @@ class ConvertLocationAndScaleParametersToProbabilities(
     ) -> None:
         """
         The location parameter, scale parameters, and threshold values come
-        from three different cubes. They should all be in the same base unit,
-        with the units of the scale parameter being the squared units of the
-        location parameter and threshold values. This is a sanity check to
-        ensure the units are as expected, converting units of the location
-        parameter and scale parameter if possible.
+        from three different cubes. This is a sanity check to ensure the units
+        are as expected, converting units of the location parameter and
+        scale parameter if possible.
 
         Args:
             location_parameter:
@@ -1060,7 +1058,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
 
         try:
             location_parameter.convert_units(threshold_units)
-            scale_parameter.convert_units(threshold_units ** 2)
+            scale_parameter.convert_units(threshold_units)
         except ValueError as err:
             msg = (
                 "Error: {} This is likely because the mean "
@@ -1107,7 +1105,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         relative_to_threshold = probability_is_above_or_below(probability_cube_template)
 
         self._rescale_shape_parameters(
-            location_parameter.data.flatten(), np.sqrt(scale_parameter.data).flatten()
+            location_parameter.data.flatten(), scale_parameter.data.flatten()
         )
 
         # Loop over thresholds, and use the specified distribution with the
@@ -1118,7 +1116,7 @@ class ConvertLocationAndScaleParametersToProbabilities(
         distribution = self.distribution(
             *self.shape_parameters,
             loc=location_parameter.data.flatten(),
-            scale=np.sqrt(scale_parameter.data.flatten()),
+            scale=scale_parameter.data.flatten(),
         )
 
         probability_method = distribution.cdf
