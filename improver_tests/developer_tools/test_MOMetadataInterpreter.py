@@ -152,6 +152,26 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
     assert not interpreter.warnings
 
 
+def test_probabilities_below_model_run(
+    blended_probability_below_cube_model_run, interpreter
+):
+    """Test interpretation of blended probability of max temperature in hour
+    below threshold with model run information"""
+    interpreter.run(blended_probability_below_cube_model_run)
+    assert interpreter.prod_type == "gridded"
+    assert interpreter.field_type == "probabilities"
+    assert interpreter.diagnostic == "air_temperature"
+    assert interpreter.relative_to_threshold == "less_than"
+    assert interpreter.methods == " maximum over time"
+    assert interpreter.post_processed
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20220113T0900Z), MOGREPS-UK (cycle: 20220113T0800Z)"
+    )
+    assert interpreter.blended
+    assert not interpreter.warnings
+
+
 def test_snow_level(snow_level_cube, interpreter):
     """Test interpretation of a diagnostic cube with "probability" in the name,
     which is not designed for blending with other models"""

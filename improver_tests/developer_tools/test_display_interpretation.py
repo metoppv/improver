@@ -160,6 +160,47 @@ def test_verbose_with_cell_method(blended_probability_below_cube, interpreter):
     assert result == expected_result
 
 
+def test_probabilities_below_model_run(
+    blended_probability_below_cube_model_run, interpreter
+):
+    """Test interpretation of blended probability of max temperature in hour
+    below threshold with model cycle information available"""
+    expected_result = (
+        "This is a gridded probabilities file\n"
+        "It contains probabilities of air temperature less than thresholds\n"
+        "These probabilities are of air temperature maximum over time\n"
+        "It has undergone some significant post-processing\n"
+        "It contains blended data from models: UKV (cycle: 20220113T0900Z), "
+        "MOGREPS-UK (cycle: 20220113T0800Z)\n"
+    )
+    interpreter.run(blended_probability_below_cube_model_run)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
+
+
+def test_probabilities_below_model_run_verbose(
+    blended_probability_below_cube_model_run, interpreter
+):
+    """Test interpretation of blended probability of max temperature in hour
+    below threshold with model cycle information available"""
+    expected_result = (
+        "This is a gridded probabilities file\n"
+        "    Source: name, coordinates\n"
+        "It contains probabilities of air temperature less than thresholds\n"
+        "    Source: name, threshold coordinate (probabilities only)\n"
+        "These probabilities are of air temperature maximum over time\n"
+        "    Source: cell methods\n"
+        "It has undergone some significant post-processing\n"
+        "    Source: title attribute\n"
+        "It contains blended data from models: UKV (cycle: 20220113T0900Z), "
+        "MOGREPS-UK (cycle: 20220113T0800Z)\n"
+        "    Source: title attribute, model ID attribute, model run attribute\n"
+    )
+    interpreter.run(blended_probability_below_cube_model_run)
+    result = display_interpretation(interpreter, verbose=True)
+    assert result == expected_result
+
+
 def test_verbose_snow_level(snow_level_cube, interpreter):
     """Test interpretation of a diagnostic cube with "probability" in the name,
     which is not designed for blending with other models"""
