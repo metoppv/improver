@@ -164,11 +164,6 @@ class CircularNeighbourhood:
         self.re_mask = re_mask
         self.kernel = None
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = "<CircularNeighbourhood: weighted_mode: {}, " "sum_or_fraction: {}>"
-        return result.format(self.weighted_mode, self.sum_or_fraction)
-
     def apply_circular_kernel(self, cube: Cube, ranges: int) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
@@ -262,11 +257,6 @@ class GeneratePercentilesFromACircularNeighbourhood:
             self.percentiles = tuple(percentiles)
         except TypeError:
             self.percentiles = (percentiles,)
-
-    def __repr__(self) -> str:
-        """Represent the configured class instance as a string."""
-        result = "<GeneratePercentilesFromACircularNeighbourhood: " "percentiles: {}>"
-        return result.format(self.percentiles)
 
     def pad_and_unpad_cube(self, slice_2d: Cube, kernel: ndarray) -> Cube:
         """
