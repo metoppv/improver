@@ -50,11 +50,7 @@ class Test__init__(IrisTest):
          method exists."""
         neighbourhood_method = "circular"
         radii = 10000
-        result = NBHood(neighbourhood_method, radii)
-        msg = (
-            "<CircularNeighbourhood: weighted_mode: True, " "sum_or_fraction: fraction>"
-        )
-        self.assertEqual(str(result.neighbourhood_method), msg)
+        NBHood(neighbourhood_method, radii)
 
     def test_neighbourhood_method_does_not_exist(self):
         """Test that desired error message is raised, if the neighbourhood
@@ -64,22 +60,6 @@ class Test__init__(IrisTest):
         msg = "The neighbourhood_method requested: "
         with self.assertRaisesRegex(KeyError, msg):
             NBHood(neighbourhood_method, radii)
-
-
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(NBHood("circular", 10000))
-        msg = (
-            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
-            "<CircularNeighbourhood: weighted_mode: True, "
-            "sum_or_fraction: fraction>; "
-            "radii: 10000.0; lead_times: None>"
-        )
-        self.assertEqual(result, msg)
 
 
 class Test_process(IrisTest):

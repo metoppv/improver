@@ -61,20 +61,6 @@ class Test__init__(IrisTest):
             CircularNeighbourhood(sum_or_fraction=sum_or_fraction)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-
-        result = str(CircularNeighbourhood())
-        msg = (
-            "<CircularNeighbourhood: weighted_mode: True, " "sum_or_fraction: fraction>"
-        )
-        self.assertEqual(str(result), msg)
-
-
 class Test_apply_circular_kernel(IrisTest):
 
     """Test neighbourhood circular probabilities plugin."""
