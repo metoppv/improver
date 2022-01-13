@@ -281,7 +281,7 @@ def _prepare_dataframes(
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, percentile, diagnostic, latitude, longitude, period,
-            height, cf_name, units. Any other columns are ignored.
+            height, cf_name and units. Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
@@ -481,8 +481,8 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
     Args:
         df:
             DataFrame expected to contain the following columns: ob_value,
-            time, wmo_id, diagnostic, latitude, longitude and altitude.
-            Any other columns are ignored.
+            time, wmo_id, diagnostic, latitude, longitude, altitude, cf_name,
+            height, period and units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
 
