@@ -40,7 +40,10 @@ from cf_units import Unit
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
-from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.metadata.probabilistic import (
+    find_threshold_coordinate,
+    get_threshold_coord_name_from_probability_name,
+)
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
@@ -286,46 +289,82 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_check_input_cubes(Test_WXCode):
+class Test_prepare_input_cubes(Test_WXCode):
 
-    """Test the check_input_cubes method."""
+    """Test the prepare_input_cubes method."""
 
     def test_basic(self):
-        """Test check_input_cubes method raises no error if the data is OK"""
+        """Test prepare_input_cubes method raises no error if the data is OK"""
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
-        self.assertEqual(plugin.check_input_cubes(self.cubes), None)
+        plugin.prepare_input_cubes(self.cubes)
 
     def test_no_lightning(self):
-        """Test check_input_cubes raises no error if lightning missing"""
+        """Test prepare_input_cubes raises no error if lightning missing"""
         cubes = self.cubes.extract(self.missing_diagnostic)
-        result = self.plugin.check_input_cubes(cubes)
+        _, result = self.plugin.prepare_input_cubes(cubes)
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 1)
         self.assertTrue("lightning" in result)
 
     def test_raises_error_missing_cubes(self):
-        """Test check_input_cubes method raises error if data is missing"""
+        """Test prepare_input_cubes method raises error if data is missing"""
         cubes = self.cubes[0:2]
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
-            self.plugin.check_input_cubes(cubes)
+            self.plugin.prepare_input_cubes(cubes)
 
     def test_raises_error_missing_threshold(self):
-        """Test check_input_cubes method raises error if data is missing"""
+        """Test prepare_input_cubes method raises error if data is missing"""
         cubes = self.cubes
         cubes[0] = cubes[0][0]
         msg = "Weather Symbols input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
-            self.plugin.check_input_cubes(cubes)
+            self.plugin.prepare_input_cubes(cubes)
 
     def test_incorrect_units(self):
-        """Test that check_input_cubes method raises an error if the units are
+        """Test that prepare_input_cubes method raises an error if the units are
         incompatible between the input cube and the decision tree."""
         msg = "Unable to convert from"
         threshold_coord = find_threshold_coordinate(self.cubes[0])
         self.cubes[0].coord(threshold_coord).units = Unit("mm kg-1")
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.check_input_cubes(self.cubes)
+            self.plugin.prepare_input_cubes(self.cubes)
+
+    def test_returns_used_cubes(self):
+        """Test that prepare_input_cubes method returns a list of cubes that is
+        reduced to include only those diagnostics and thresholds that are used
+        in the decision tree. Rain, sleet and snow all have a redundant
+        threshold in the input cubes. The test below ensures that for all other
+        diagnostics all thresholds are returned, but for rain, sleet and snow
+        the extra threshold is omitted."""
+
+        expected = []
+        unexpected = []
+        for cube in self.cubes:
+            threshold_name = get_threshold_coord_name_from_probability_name(cube.name())
+            threshold_values = cube.coord(threshold_name).points
+            if (
+                "rain" in threshold_name
+                or "sleet" in threshold_name
+                or "snow" in threshold_name
+            ):
+                unexpected.append(
+                    iris.Constraint(
+                        coord_values={
+                            threshold_name: lambda cell: 2.7e-08 < cell < 2.8e-08
+                        }
+                    )
+                )
+                threshold_values = threshold_values[0::2]
+            for value in threshold_values:
+                expected.append(iris.Constraint(coord_values={threshold_name: value}))
+
+        result, _ = self.plugin.prepare_input_cubes(self.cubes)
+
+        for constraint in expected:
+            self.assertTrue(len(result.extract(constraint)) > 0)
+        for constraint in unexpected:
+            self.assertEqual(len(result.extract(constraint)), 0)
 
 
 class Test_invert_condition(IrisTest):

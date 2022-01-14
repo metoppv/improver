@@ -135,22 +135,26 @@ class WeatherSymbols(BasePlugin):
         """Represent the configured plugin instance as a string."""
         return "<WeatherSymbols start_node={}>".format(self.start_node)
 
-    def check_input_cubes(self, cubes: CubeList) -> Optional[List[str]]:
+    def prepare_input_cubes(
+        self, cubes: CubeList
+    ) -> Tuple[CubeList, Optional[List[str]]]:
         """
         Check that the input cubes contain all the diagnostics and thresholds
         required by the decision tree.  Sets self.coord_named_threshold to
         "True" if threshold-type coordinates have the name "threshold" (as
         opposed to the standard name of the diagnostic), for backward
-        compatibility.
+        compatibility. A cubelist containing only cubes of the required
+        diagnostic-threshold combinations is returned.
 
         Args:
             cubes:
                 A CubeList containing the input diagnostic cubes.
 
         Returns:
-            A list of node names where the diagnostic data is missing and
-            this is indicated as allowed by the presence of the if_diagnostic_missing
-            key.
+            - A CubeList containing only the required cubes.
+            - A list of node names where the diagnostic data is missing and
+              this is indicated as allowed by the presence of the if_diagnostic_missing
+              key.
 
         Raises:
             IOError:
@@ -160,6 +164,7 @@ class WeatherSymbols(BasePlugin):
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
 
+        used_cubes = iris.cube.CubeList()
         optional_node_data_missing = []
         missing_data = []
         for key, query in self.queries.items():
@@ -220,6 +225,8 @@ class WeatherSymbols(BasePlugin):
                 matched_threshold = matched_cube.extract(test_condition)
                 if not matched_threshold:
                     missing_data.append([diagnostic, threshold, condition])
+                else:
+                    used_cubes.extend(matched_threshold)
 
         if missing_data:
             msg = (
@@ -234,7 +241,7 @@ class WeatherSymbols(BasePlugin):
 
         if not optional_node_data_missing:
             optional_node_data_missing = None
-        return optional_node_data_missing
+        return used_cubes, optional_node_data_missing
 
     def check_coincidence(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
@@ -710,8 +717,9 @@ class WeatherSymbols(BasePlugin):
         Returns:
             A cube of weather symbols.
         """
-        # Check input cubes contain required data
-        optional_node_data_missing = self.check_input_cubes(cubes)
+        # Check input cubes contain required data and return only those that
+        # are needed to speed up later cube extractions.
+        cubes, optional_node_data_missing = self.prepare_input_cubes(cubes)
 
         # Reroute the decision tree around missing optional nodes
         if optional_node_data_missing is not None:
