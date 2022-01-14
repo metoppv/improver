@@ -280,8 +280,9 @@ def _prepare_dataframes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, period,
-            height, cf_name, units and experiment. Any other columns are ignored.
+            wmo_id, percentile, diagnostic, latitude, longitude, altitude,
+            period, height, cf_name, units and experiment. Any other
+            columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
