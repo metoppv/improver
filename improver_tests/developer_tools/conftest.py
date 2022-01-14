@@ -204,33 +204,17 @@ def probability_over_time_in_vicinity_above_fixture():
 
 
 @pytest.fixture(name="blended_probability_below_cube")
-def blended_probability_below():
-    attributes = {
-        "source": "IMPROVER",
-        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_det uk_ens",
-    }
-    return probability_below_fixture(attributes)
-
-
-@pytest.fixture(name="blended_probability_below_cube_model_run")
-def blended_probability_below_model_run():
-    attributes = {
-        "source": "IMPROVER",
-        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
-        "institution": "Met Office",
-        "mosg__model_configuration": "uk_det uk_ens",
-        "mosg__model_run": "uk_det:20220113T0900Z:\nuk_ens:20220113T0800Z:",
-    }
-    return probability_below_fixture(attributes)
-
-
-def probability_below_fixture(attributes):
+def probability_below_fixture():
     """Probability of maximum screen temperature below threshold blended cube"""
     data = 0.5 * np.ones((3, 3, 3), dtype=np.float32)
     thresholds = np.array([280, 282, 284], dtype=np.float32)
-
+    attributes = {
+        "source": "IMPROVER",
+        "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
+        "institution": "Met Office",
+        "mosg__model_configuration": "uk_det uk_ens",
+        "mosg__model_run": "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
+    }
     cube = set_up_probability_cube(
         data,
         thresholds,
@@ -294,6 +278,7 @@ def blended_spot_median_spot_fixture(spot_template):
         "institution": "Met Office",
         "title": "IMPROVER Post-Processed Multi-Model Blend UK Spot Values",
         "mosg__model_configuration": "uk_det uk_ens",
+        "mosg__model_run": "uk_det:20210203T0900Z:\nuk_ens:20210203T0700Z:",
     }
     (time, _), (blend_time, _), (_, _) = construct_scalar_time_coords(
         time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
@@ -372,6 +357,7 @@ def wxcode_fixture():
         "institution": "Met Office",
         "title": "IMPROVER Post-Processed Multi-Model Blend on 2 km Standard Grid",
         "mosg__model_configuration": "uk_det uk_ens",
+        "mosg__model_run": "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
     }
     attributes.update(weather_code_attributes())
     cube = set_up_variable_cube(

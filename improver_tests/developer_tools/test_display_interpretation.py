@@ -128,59 +128,21 @@ def test_verbose_probability(probability_above_cube, interpreter):
 
 def test_probabilities_below(blended_probability_below_cube, interpreter):
     """Test interpretation of blended probability of max temperature in hour
-    below threshold"""
-    expected_result = (
-        "This is a gridded probabilities file\n"
-        "It contains probabilities of air temperature less than thresholds\n"
-        "These probabilities are of air temperature maximum over time\n"
-        "It has undergone some significant post-processing\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
-    )
-    interpreter.run(blended_probability_below_cube)
-    result = display_interpretation(interpreter)
-    assert result == expected_result
-
-
-def test_verbose_with_cell_method(blended_probability_below_cube, interpreter):
-    """Test verbose output with valid cell method"""
-    expected_result = (
-        "This is a gridded probabilities file\n"
-        "    Source: name, coordinates\n"
-        "It contains probabilities of air temperature less than thresholds\n"
-        "    Source: name, threshold coordinate (probabilities only)\n"
-        "These probabilities are of air temperature maximum over time\n"
-        "    Source: cell methods\n"
-        "It has undergone some significant post-processing\n"
-        "    Source: title attribute\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
-        "    Source: title attribute, model ID attribute\n"
-    )
-    interpreter.run(blended_probability_below_cube)
-    result = display_interpretation(interpreter, verbose=True)
-    assert result == expected_result
-
-
-def test_probabilities_below_model_run(
-    blended_probability_below_cube_model_run, interpreter
-):
-    """Test interpretation of blended probability of max temperature in hour
     below threshold with model cycle information available"""
     expected_result = (
         "This is a gridded probabilities file\n"
         "It contains probabilities of air temperature less than thresholds\n"
         "These probabilities are of air temperature maximum over time\n"
         "It has undergone some significant post-processing\n"
-        "It contains blended data from models: UKV (cycle: 20220113T0900Z), "
-        "MOGREPS-UK (cycle: 20220113T0800Z)\n"
+        "It contains blended data from models: UKV (cycle: 20171109T2300Z), "
+        "MOGREPS-UK (cycle: 20171109T2100Z)\n"
     )
-    interpreter.run(blended_probability_below_cube_model_run)
+    interpreter.run(blended_probability_below_cube)
     result = display_interpretation(interpreter)
     assert result == expected_result
 
 
-def test_probabilities_below_model_run_verbose(
-    blended_probability_below_cube_model_run, interpreter
-):
+def test_probabilities_below_verbose(blended_probability_below_cube, interpreter):
     """Test interpretation of blended probability of max temperature in hour
     below threshold with model cycle information available"""
     expected_result = (
@@ -192,11 +154,11 @@ def test_probabilities_below_model_run_verbose(
         "    Source: cell methods\n"
         "It has undergone some significant post-processing\n"
         "    Source: title attribute\n"
-        "It contains blended data from models: UKV (cycle: 20220113T0900Z), "
-        "MOGREPS-UK (cycle: 20220113T0800Z)\n"
+        "It contains blended data from models: UKV (cycle: 20171109T2300Z), "
+        "MOGREPS-UK (cycle: 20171109T2100Z)\n"
         "    Source: title attribute, model ID attribute, model run attribute\n"
     )
-    interpreter.run(blended_probability_below_cube_model_run)
+    interpreter.run(blended_probability_below_cube)
     result = display_interpretation(interpreter, verbose=True)
     assert result == expected_result
 
@@ -225,7 +187,8 @@ def test_spot_median(blended_spot_median_cube, interpreter):
         "This is a spot percentiles file\n"
         "It contains percentiles of air temperature\n"
         "It has undergone some significant post-processing\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
+        "It contains blended data from models: UKV (cycle: 20210203T0900Z), "
+        "MOGREPS-UK (cycle: 20210203T0700Z)\n"
     )
     interpreter.run(blended_spot_median_cube)
     result = display_interpretation(interpreter)
@@ -248,7 +211,8 @@ def test_weather_code(wxcode_cube, interpreter):
     """Test interpretation of weather code field"""
     expected_result = (
         "This is a gridded weather code file\n"
-        "It contains blended data from models: UKV, MOGREPS-UK\n"
+        "It contains blended data from models: UKV (cycle: 20171109T2300Z), "
+        "MOGREPS-UK (cycle: 20171109T2100Z)\n"
     )
     interpreter.run(wxcode_cube)
     result = display_interpretation(interpreter)

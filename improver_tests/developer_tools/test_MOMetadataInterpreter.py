@@ -139,25 +139,8 @@ def test_vicinity_cell_method(
 
 def test_probabilities_below(blended_probability_below_cube, interpreter):
     """Test interpretation of blended probability of max temperature in hour
-    below threshold"""
-    interpreter.run(blended_probability_below_cube)
-    assert interpreter.prod_type == "gridded"
-    assert interpreter.field_type == "probabilities"
-    assert interpreter.diagnostic == "air_temperature"
-    assert interpreter.relative_to_threshold == "less_than"
-    assert interpreter.methods == " maximum over time"
-    assert interpreter.post_processed
-    assert interpreter.model == "UKV, MOGREPS-UK"
-    assert interpreter.blended
-    assert not interpreter.warnings
-
-
-def test_probabilities_below_model_run(
-    blended_probability_below_cube_model_run, interpreter
-):
-    """Test interpretation of blended probability of max temperature in hour
     below threshold with model run information"""
-    interpreter.run(blended_probability_below_cube_model_run)
+    interpreter.run(blended_probability_below_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "probabilities"
     assert interpreter.diagnostic == "air_temperature"
@@ -166,7 +149,7 @@ def test_probabilities_below_model_run(
     assert interpreter.post_processed
     assert (
         interpreter.model
-        == "UKV (cycle: 20220113T0900Z), MOGREPS-UK (cycle: 20220113T0800Z)"
+        == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
     )
     assert interpreter.blended
     assert not interpreter.warnings
@@ -198,7 +181,10 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
     assert interpreter.post_processed
-    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20210203T0900Z), MOGREPS-UK (cycle: 20210203T0700Z)"
+    )
     assert interpreter.blended
     assert not interpreter.warnings
 
@@ -229,8 +215,12 @@ def test_wind_direction(wind_direction_cube, interpreter):
 def test_weather_code(wxcode_cube, interpreter):
     """Test interpretation of weather code field"""
     interpreter.run(wxcode_cube)
+    print(wxcode_cube)
     assert interpreter.diagnostic == "weather_code"
-    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
+    )
     assert interpreter.blended
 
 
@@ -238,7 +228,10 @@ def test_weather_mode_code(wxcode_mode_cube, interpreter):
     """Test interpretation of weather code mode-in-time field"""
     interpreter.run(wxcode_mode_cube)
     assert interpreter.diagnostic == "weather_code"
-    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
+    )
     assert interpreter.blended
 
 
@@ -546,7 +539,18 @@ def test_error_missing_blended_coords(blended_probability_below_cube, interprete
 def test_error_missing_model_information(blended_probability_below_cube, interpreter):
     """Test error raised if a blended cube doesn't have a model ID attribute"""
     blended_probability_below_cube.attributes.pop("mosg__model_configuration")
-    with pytest.raises(ValueError, match="on blended file"):
+    with pytest.raises(
+        ValueError, match="No mosg__model_configuration on blended file"
+    ):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_missing_model_run_information(
+    blended_probability_below_cube, interpreter
+):
+    """Test error raised if a blended cube doesn't have a model run attribute"""
+    blended_probability_below_cube.attributes.pop("mosg__model_run")
+    with pytest.raises(ValueError, match="No mosg__model_run on blended file"):
         interpreter.run(blended_probability_below_cube)
 
 
