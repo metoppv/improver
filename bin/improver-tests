@@ -68,6 +68,7 @@ function improver_test_isort {
 
 function improver_test_flake8 {
     ${FLAKE8:-flake8} $FILES_TO_TEST
+    echo_ok "flake8"
 }
 
 function improver_test_doc {
