@@ -1130,7 +1130,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             IndexError: if the cube and landsea_mask shapes are not compatible.
         """
         try:
-            cube.data[..., ~landsea_mask.data.astype(np.bool)] = np.nan
+            cube.data[..., ~landsea_mask.data.astype(bool)] = np.nan
         except IndexError as err:
             msg = "Cube and landsea_mask shapes are not compatible. {}".format(err)
             raise IndexError(msg)
@@ -1380,7 +1380,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             forecast_var,
             number_of_realizations,
         )
-
         return coefficients_cubelist
 
 
