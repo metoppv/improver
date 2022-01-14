@@ -138,9 +138,9 @@ class FieldTexture(BasePlugin):
             A ratio between 0 and 1 of actual transitions over potential transitions.
         """
         # Calculate the potential transitions within neighbourhoods.
-        potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
-            cube, radius=radius
-        )
+        potential_transitions = SquareNeighbourhood(
+            "square", sum_or_fraction="sum"
+        ).run(cube, radius=radius)
         potential_transitions.data = 4 * potential_transitions.data
 
         # Calculate the actual transitions for each grid cell of value 1 and
@@ -150,7 +150,7 @@ class FieldTexture(BasePlugin):
         )
 
         # Sum the number of actual transitions within the neighbourhood.
-        actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
+        actual_transitions = SquareNeighbourhood("square", sum_or_fraction="sum").run(
             actual_transitions, radius=radius
         )
 

@@ -52,7 +52,7 @@ class Test__init__(IrisTest):
         sum_or_fraction = "nonsense"
         msg = "option is invalid"
         with self.assertRaisesRegex(ValueError, msg):
-            SquareNeighbourhood(sum_or_fraction=sum_or_fraction)
+            SquareNeighbourhood("square", sum_or_fraction=sum_or_fraction)
 
 
 class Test_run(IrisTest):
@@ -89,7 +89,7 @@ class Test_run(IrisTest):
                 [1.0, 1.0, 1.0, 1.0, 1.0],
             ]
         )
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(self.cube, self.RADIUS)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
@@ -110,7 +110,7 @@ class Test_run(IrisTest):
         self.cube.coord("projection_x_coordinate").points = coord_points_x
         self.cube.coord("projection_y_coordinate").points = coord_points_y
 
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(self.cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_basic_re_mask_false(self):
@@ -124,7 +124,9 @@ class Test_run(IrisTest):
                 [1.0, 1.0, 1.0, 1.0, 1.0],
             ]
         )
-        result = SquareNeighbourhood(re_mask=False).run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square", re_mask=False).run(
+            self.cube, self.RADIUS
+        )
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_masked_array_re_mask_true(self):
@@ -167,7 +169,7 @@ class Test_run(IrisTest):
             ]
         )
         self.cube.data = np.ma.masked_where(mask == 0, self.cube.data)
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square").run(self.cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data.data, expected_array)
         self.assertArrayAlmostEqual(result.data.mask, expected_mask_array)
 
@@ -202,7 +204,9 @@ class Test_run(IrisTest):
             ]
         )
         self.cube.data = np.ma.masked_where(mask == 0, self.cube.data)
-        result = SquareNeighbourhood(re_mask=False).run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square", re_mask=False).run(
+            self.cube, self.RADIUS
+        )
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_nan_array_re_mask_true(self):
@@ -218,7 +222,7 @@ class Test_run(IrisTest):
             ]
         )
         self.cube.data[0, 0] = np.nan
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(self.cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_nan_array_re_mask_false(self):
@@ -233,7 +237,9 @@ class Test_run(IrisTest):
             ]
         )
         self.cube.data[0, 0] = np.nan
-        result = SquareNeighbourhood(re_mask=False).run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square", re_mask=False).run(
+            self.cube, self.RADIUS
+        )
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_masked_array_with_nans_re_mask_true(self):
@@ -268,7 +274,7 @@ class Test_run(IrisTest):
             ]
         )
         self.cube.data = np.ma.masked_where(mask == 0, self.cube.data)
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(self.cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_masked_array_with_nans_re_mask_false(self):
@@ -302,7 +308,9 @@ class Test_run(IrisTest):
             ]
         )
         self.cube.data = np.ma.masked_where(mask == 0, self.cube.data)
-        result = SquareNeighbourhood(re_mask=False).run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square", re_mask=False).run(
+            self.cube, self.RADIUS
+        )
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_complex(self):
@@ -343,7 +351,7 @@ class Test_run(IrisTest):
                 [1.0 + 0.0j, 1.0 + 0.0j, 0.9 + 0.1j, 0.9 + 0.1j, 0.85 + 0.15j],
             ]
         )
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(self.cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_multiple_realizations(self):
@@ -370,7 +378,9 @@ class Test_run(IrisTest):
 
         self.multi_realization_cube.data[0, 2, 2] = 0
         self.multi_realization_cube.data[1, 1, 2] = 0
-        result = SquareNeighbourhood().run(self.multi_realization_cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(
+            self.multi_realization_cube, self.RADIUS
+        )
         self.assertArrayAlmostEqual(result.data[0], expected_1)
         self.assertArrayAlmostEqual(result.data[1], expected_2)
 
@@ -435,7 +445,7 @@ class Test_run(IrisTest):
                 ],
             ]
         )
-        result = SquareNeighbourhood(re_mask=False).run(
+        result = SquareNeighbourhood("square", re_mask=False).run(
             self.multi_realization_cube, self.RADIUS
         )
         self.assertArrayAlmostEqual(result.data, expected_array)
@@ -466,7 +476,7 @@ class Test_run(IrisTest):
         cube.data[0, 1, 2] = 0
         cube.data[0, 0, 0] = np.nan
         cube.data[1, 1, 1] = np.nan
-        result = SquareNeighbourhood().run(cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(cube, self.RADIUS)
         self.assertArrayAlmostEqual(result.data[0], expected_1)
         self.assertArrayAlmostEqual(result.data[1], expected_2)
 
@@ -475,7 +485,7 @@ class Test_run(IrisTest):
         method."""
         self.cube.attributes = {"Conventions": "CF-1.5"}
         self.cube.add_cell_method(CellMethod("mean", coords="time"))
-        result = SquareNeighbourhood().run(self.cube, self.RADIUS)
+        result = SquareNeighbourhood("square",).run(self.cube, self.RADIUS)
         self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
         self.assertDictEqual(result.attributes, self.cube.attributes)
 

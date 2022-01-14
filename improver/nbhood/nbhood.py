@@ -41,7 +41,6 @@ from improver import PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.forecast_times import forecast_period_coord
 from improver.nbhood.circular_kernel import (
-    CircularNeighbourhood,
     GeneratePercentilesFromACircularNeighbourhood,
 )
 from improver.nbhood.square_kernel import SquareNeighbourhood
@@ -69,7 +68,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
 
     def __init__(
         self,
-        neighbourhood_method: Union[CircularNeighbourhood, SquareNeighbourhood],
+        neighbourhood_method: Union[SquareNeighbourhood],
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
     ) -> None:
@@ -311,10 +310,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             neighbourhood_method, radii, lead_times=lead_times
         )
 
-        methods = {"circular": CircularNeighbourhood, "square": SquareNeighbourhood}
+        methods = {"circular": SquareNeighbourhood, "square": SquareNeighbourhood}
         try:
             method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(weighted_mode, sum_or_fraction, re_mask)
+            self.neighbourhood_method = method(
+                neighbourhood_method, weighted_mode, sum_or_fraction, re_mask,
+            )
         except KeyError:
             msg = (
                 "The neighbourhood_method requested: {} is not a "
