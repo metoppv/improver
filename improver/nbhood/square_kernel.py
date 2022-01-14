@@ -50,7 +50,7 @@ from improver.utilities.spatial import (
 )
 
 
-class SquareNeighbourhood:
+class Neighbourhood:
 
     """
     Methods for use in application of a square neighbourhood.

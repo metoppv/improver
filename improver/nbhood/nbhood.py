@@ -43,7 +43,7 @@ from improver.metadata.forecast_times import forecast_period_coord
 from improver.nbhood.circular_kernel import (
     GeneratePercentilesFromACircularNeighbourhood,
 )
-from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.nbhood.square_kernel import Neighbourhood
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
@@ -68,7 +68,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
 
     def __init__(
         self,
-        neighbourhood_method: Union[SquareNeighbourhood],
+        neighbourhood_method: Union[Neighbourhood],
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
     ) -> None:
@@ -310,7 +310,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             neighbourhood_method, radii, lead_times=lead_times
         )
 
-        methods = {"circular": SquareNeighbourhood, "square": SquareNeighbourhood}
+        methods = {"circular": Neighbourhood, "square": Neighbourhood}
         try:
             method = methods[neighbourhood_method]
             self.neighbourhood_method = method(
