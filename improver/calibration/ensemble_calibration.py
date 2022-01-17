@@ -1581,8 +1581,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         )
 
         # Calculating the scale parameter, based on the raw variance S^2,
-        # where predicted variance = c + dS^2, where c = (gamma)^2 and
-        # d = (delta)^2
+        # where predicted scale parameter (or equivalently standard deviation
+        # for a normal distribution) = sqrt(c + dS^2), where c = (gamma)^2 and
+        # d = (delta)^2.
         scale_parameter = np.sqrt(
             self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
             * self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data

@@ -65,7 +65,7 @@ to lie within 0 and infinity, the distribution can be represented as:
     \mathcal{N^0}(\mu,\,\sigma^{2})
 
 In this case, the :math:`\mu` is strictly interpreted as the location parameter
-and :math:`\sigma^{2}` is strictly interpreted as the scale parameter.
+and :math:`\sigma^{2}` is strictly interpreted as the square of the scale parameter.
 
 ===============================
 What is the location parameter?

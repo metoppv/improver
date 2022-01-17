@@ -143,7 +143,7 @@ class Test__check_unit_compatibility(IrisTest):
         """Pass in cubes of incompatible units that should raise an
         exception."""
         self.scale_parameters.units = "m s-1"
-        msg = "This is likely because the mean"
+        msg = "This is likely because the location"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_unit_compatibility(
                 self.location_parameters, self.scale_parameters, self.template_cube

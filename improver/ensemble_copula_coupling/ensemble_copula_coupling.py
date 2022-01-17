@@ -885,8 +885,9 @@ class ConvertLocationAndScaleParametersToPercentiles(
             result[index, :] = percentile_method.ppf(percentile_list)
             # If percent point function (PPF) returns NaNs, fill in
             # mean instead of NaN values. NaN will only be generated if the
-            # variance is zero. Therefore, if the variance is zero, the mean
-            # value is used for all gridpoints with a NaN.
+            # scale parameter (standard deviation) is zero. Therefore, if the
+            # scale parameter (standard deviation) is zero, the mean value is
+            # used for all gridpoints with a NaN.
             if np.any(scale_data == 0):
                 nan_index = np.argwhere(np.isnan(result[index, :]))
                 result[index, nan_index] = location_data[nan_index]
@@ -1061,8 +1062,8 @@ class ConvertLocationAndScaleParametersToProbabilities(
             scale_parameter.convert_units(threshold_units)
         except ValueError as err:
             msg = (
-                "Error: {} This is likely because the mean "
-                "variance and template cube threshold units are "
+                "Error: {} This is likely because the location parameter, "
+                "scale parameter and template cube threshold units are "
                 "not equivalent/compatible.".format(err)
             )
             raise ValueError(msg)
