@@ -53,21 +53,6 @@ def _mean_points(points):
     return np.array((points[:-1] + points[1:]) / 2, dtype=np.float32)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        iterations = None
-        edge_width = 1
-        result = str(RecursiveFilter(iterations, edge_width))
-        msg = "<RecursiveFilter: iterations: {}, edge_width: {}".format(
-            iterations, edge_width
-        )
-        self.assertEqual(result, msg)
-
-
 class Test_RecursiveFilter(IrisTest):
 
     """Test class for the RecursiveFilter tests, setting up cubes."""

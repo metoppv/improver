@@ -199,25 +199,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             message = "re_mask should be set to False when using collapse_weights"
             raise ValueError(message)
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<ApplyNeighbourhoodProcessingWithAMask: "
-            "coord_for_masking: {}, neighbourhood_method: {}, "
-            "radii: {}, lead_times: {}, collapse_weights: {}, "
-            "weighted_mode: {}, sum_or_fraction: {}, re_mask: {}>"
-        )
-        return result.format(
-            self.coord_for_masking,
-            self.neighbourhood_method,
-            self.radii,
-            self.lead_times,
-            self.collapse_weights,
-            self.weighted_mode,
-            self.sum_or_fraction,
-            self.re_mask,
-        )
-
     def collapse_mask_coord(self, cube: Cube) -> Cube:
         """
         Collapse the chosen coordinate with the available weights. The result
