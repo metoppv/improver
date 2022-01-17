@@ -215,7 +215,6 @@ def test_wind_direction(wind_direction_cube, interpreter):
 def test_weather_code(wxcode_cube, interpreter):
     """Test interpretation of weather code field"""
     interpreter.run(wxcode_cube)
-    print(wxcode_cube)
     assert interpreter.diagnostic == "weather_code"
     assert (
         interpreter.model

@@ -545,8 +545,6 @@ d06c91048d68465f95993408dd651dda4572378e72329427ec8a72ec7b6a924c  ./time-lagged-
 75e3560ac20d301dafaea6f0ad3787b77daebc638a994d2a7d926fc8679974d8  ./time-lagged-ens/same_validity/20180924T1300Z-PT0010H00M-temperature_at_surface.nc
 be50cea72c2f64b2ad78b83a53f8681c9e1099b0967a06594b849c16c6f1e7d4  ./time-lagged-ens/same_validity/kgo.nc
 c7830b1fb5742fcc06bc402b64cfdc7bb390ba1e7f72cce28eff35b3df1ee2df  ./time-lagged-ens/same_validity/kgo_single_cube.nc
-b5c8e5191199b9b6c52ea1216d4ceb52094813aba5df73f4b38cca5e0555745e  ./update.txt
-a48d6952f640d7bf912cfe071324439a7aa6b7f39d53f893610d36114dccf7e7  ./update.txt~
 28d99b611f151c971b086253104956c044ca536b98700c50443e7bbd8f443505  ./uv-index/basic/20181210T0600Z-PT0000H00M-radiation_flux_in_uv_downward_at_surface.nc
 290083d358d6894820c7bf528fbd1ff584ad3c0d6d60e27f6b628f1c93508611  ./uv-index/basic/kgo.nc
 e0f2bf30f1da2910e5a9ff929b2c2202f1a588033856b14914b78a8ea22bca3f  ./weighted_blending/accum_cycle_blend/kgo.nc
