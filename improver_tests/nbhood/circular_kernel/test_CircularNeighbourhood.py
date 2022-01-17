@@ -338,9 +338,8 @@ class Test_run(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_mask_cube(self):
-        """Test that a NotImplementedError is raised, if a mask cube is passed
-        in when using a circular neighbourhood, as this option is not
-        supported."""
+        """Test that a cube with the correct data and mask is produced
+        if the input cube is masked"""
 
         data = np.ones((5, 5), dtype=np.float32)
         data[2, 2] = 0

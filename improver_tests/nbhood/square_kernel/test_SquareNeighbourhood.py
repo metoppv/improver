@@ -77,6 +77,13 @@ class Test_run(IrisTest):
             data, spatial_grid="equalarea",
         )
 
+    def test_invalid_neighbourhood_method(self):
+        """Test an exception is raised if an invalid neighbourhood option
+         is provided"""
+        msg = "rainbow is not a valid neighbourhood_method."
+        with self.assertRaisesRegex(ValueError, msg):
+            Neighbourhood("rainbow").run(self.cube, self.RADIUS)
+
     def test_basic_re_mask_true(self):
         """Test that a cube with correct data is produced by the run method
         when re-masking is applied."""
