@@ -33,8 +33,9 @@
 import unittest
 from unittest.mock import patch
 
+import dask.array as da
 import numpy as np
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
 import improver
@@ -43,6 +44,7 @@ from improver.cli import (
     create_constrained_inputcubelist_converter,
     docutilize,
     inputcube,
+    inputcube_nolazy,
     inputcubelist,
     inputjson,
     maybe_coerce_with,
@@ -133,6 +135,37 @@ class Test_inputcube(unittest.TestCase):
         """Tests that input cube calls load_cube with the string"""
         result = inputcube("foo")
         m.assert_called_with(improver.utilities.load.load_cube, "foo")
+        self.assertEqual(result, "return")
+
+
+class Test_inputcube_nolazy(unittest.TestCase):
+    """Tests the input cube no lazy function"""
+
+    def setUp(self):
+        coerce_patch = patch("improver.cli.maybe_coerce_with", return_value="return")
+        self.coerce_patch = coerce_patch.start()
+        self.addCleanup(coerce_patch.stop)
+
+    def test_string_arg(self):
+        """
+        Check that inputcube_nolazy calls the coerce func with the input
+        string.
+        """
+        result = inputcube_nolazy("foo")
+        self.coerce_patch.assert_called_with(
+            improver.utilities.load.load_cube, "foo", no_lazy_load=True
+        )
+        self.assertEqual(result, "return")
+
+    def test_cube_arg(self):
+        """Check that a input lazy cube will be realised before return."""
+        cube = Cube(da.zeros((1, 1), chunks=(1, 1)), long_name="dummy")
+        self.assertTrue(cube.has_lazy_data())
+        result = inputcube_nolazy(cube)
+        self.coerce_patch.assert_called_with(
+            improver.utilities.load.load_cube, cube, no_lazy_load=True
+        )
+        self.assertFalse(cube.has_lazy_data())
         self.assertEqual(result, "return")
 
 
