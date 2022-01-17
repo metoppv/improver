@@ -98,7 +98,7 @@ class WeatherSymbols(BasePlugin):
         self,
         wxtree: dict,
         model_id_attr: Optional[str] = None,
-        target_period: int = None,
+        target_period: Optional[int] = None,
     ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
