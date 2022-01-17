@@ -67,6 +67,9 @@ class Neighbourhood:
         Initialise class.
 
         Args:
+            neighbourhood_method:
+                Name of the neighbourhood method to use. Options: 'circular',
+                'square'.
             weighted_mode:
                 This is included to allow a standard interface for both the
                 square and circular neighbourhood plugins.
