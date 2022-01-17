@@ -644,12 +644,9 @@ def display_interpretation(
     elif interpreter.blended:
         output.append(f"It contains blended data from models: {interpreter.model}")
         if verbose:
-            if "cycle:" in interpreter.model:
-                output.append(
-                    vstring("title attribute, model ID attribute, model run attribute")
-                )
-            else:
-                output.append(vstring("title attribute, model ID attribute"))
+            output.append(
+                vstring("title attribute, model ID attribute, model run attribute")
+            )
     else:
         if interpreter.model:
             output.append(f"It contains data from {interpreter.model}")
