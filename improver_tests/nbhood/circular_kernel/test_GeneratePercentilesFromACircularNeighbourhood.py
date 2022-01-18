@@ -51,21 +51,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-
-        result = str(GeneratePercentilesFromACircularNeighbourhood())
-        msg = (
-            "<GeneratePercentilesFromACircularNeighbourhood: "
-            "percentiles: {}>".format(DEFAULT_PERCENTILES)
-        )
-        self.assertEqual(str(result), msg)
-
-
 class Test_make_percentile_cube(IrisTest):
 
     """Test the make_percentile_cube method from

@@ -131,7 +131,10 @@ def test_checksums_sorted():
     This test doesn't depend on having the acceptance test data available, so
     can run with the unit tests.
     """
-    csum_paths = [str(path) for path in acc.acceptance_checksums().keys()]
+    try:
+        csum_paths = [str(path) for path in acc.acceptance_checksums().keys()]
+    except FileNotFoundError:
+        pytest.skip("no checksum file, likely due to package being installed")
     with temporary_sort_locale("C") as strcoll:
         csum_paths_sorted = sorted(csum_paths, key=functools.cmp_to_key(strcoll))
     assert csum_paths == csum_paths_sorted

@@ -85,6 +85,7 @@ def test_filling_with_nearest_use(tmp_path):
     """Test filling masked areas using difference interpolation, in this case
     with a hole in the corner of the data that requires use of nearest
     neighbour interpolation."""
+    pytest.importorskip("stratify")
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
     kgo_path = kgo_dir / "sleet_rain_nearest_filled_kgo.nc"
     output_path = tmp_path / "output.nc"

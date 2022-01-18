@@ -1,0 +1,41 @@
+# This environment is a representative example for usage of IMPROVER
+# It does not include dependencies for the following IMPROVER CLIs:
+# estimate-emos-coefficients, generate-timezone-mask-ancillary,
+# nowcast-accumulate, nowcast-extrapolate and nowcast-optical-flow-from-winds
+# See doc/source/Dependencies.rst for more information
+name: improver_b
+channels:
+  - conda-forge
+dependencies:
+  - python=3.8
+  # Required
+  - cartopy=0.19
+  - cftime=1.2.1
+  - cf-units=2.1.5
+  - clize=4.2.0
+  - dask=2021.8.1
+  - iris=3.0.3
+  - netCDF4=1.5.7
+  - numpy=1.20
+  - pandas=1.3.4
+  - pytz=2020.5
+  - scipy=1.6.2
+  - sigtools=2.0.3
+  - sphinx=4.0.2
+  # Optional
+  - numba=0.53.1
+  - python-stratify=0.2.post0
+  # Development
+  - astroid
+  - bandit
+  - black=19.10b0
+  - filelock
+  - flake8
+  - isort=5
+  - mock
+  - mypy
+  - pytest
+  - pytest-cov
+  - pytest-xdist
+  - safety
+  - sphinx-autodoc-typehints

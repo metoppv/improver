@@ -114,7 +114,12 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         """
         probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
         threshold_points = np.array([8, 10, 60])
-        msg = "The calculated threshold values"
+        msg = (
+            "The calculated threshold values \\[-40   8  10  60  50\\] are "
+            "not in ascending order as required for the cumulative distribution "
+            "function \\(CDF\\). This is due to the threshold values exceeding "
+            "the range given by the ECC bounds \\(-40, 50\\)."
+        )
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, self.bounds_pairing
@@ -131,7 +136,14 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
         threshold_points = np.array([8, 10, 60])
         plugin = Plugin(ecc_bounds_warning=True)
-        warning_msg = "The calculated threshold values"
+        warning_msg = (
+            "The calculated threshold values [-40   8  10  60  50] are "
+            "not in ascending order as required for the cumulative distribution "
+            "function (CDF). This is due to the threshold values exceeding "
+            "the range given by the ECC bounds (-40, 50). The threshold "
+            "points that have exceeded the existing bounds will be used as "
+            "new bounds."
+        )
         plugin._add_bounds_to_thresholds_and_probabilities(
             threshold_points, probabilities_for_cdf, self.bounds_pairing
         )

@@ -189,31 +189,6 @@ class Test__init__(IrisTest):
             NBHood(neighbourhood_method, radii, lead_times=lead_times)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_callable(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(NBHood(CircularNeighbourhood(), 10000))
-        msg = (
-            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
-            "<CircularNeighbourhood: weighted_mode: True, "
-            "sum_or_fraction: fraction>; "
-            "radii: 10000.0; lead_times: None>"
-        )
-        self.assertEqual(result, msg)
-
-    def test_not_callable(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(NBHood("circular", 10000))
-        msg = (
-            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
-            "circular; radii: 10000.0; lead_times: None>"
-        )
-        self.assertEqual(result, msg)
-
-
 class Test__find_radii(IrisTest):
 
     """Test the internal _find_radii function is working correctly."""

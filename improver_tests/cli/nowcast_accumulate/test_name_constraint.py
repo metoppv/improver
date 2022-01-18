@@ -28,50 +28,30 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the phase-change-level CLI
-"""
+"""Test nowcast_accumulate name_constraint function"""
 
+import dask.array as da
 import pytest
+from iris import Constraint
+from iris.cube import Cube, CubeList
 
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver.cli.nowcast_accumulate import name_constraint
 
 
-@pytest.mark.parametrize(
-    "phase_type,kgo_name,horiz_interp",
-    [
-        ("snow-sleet", "snow_sleet", "True"),
-        ("sleet-rain", "sleet_rain", "True"),
-        ("sleet-rain", "sleet_rain_unfilled", "False"),
-    ],
-)
-def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
-    """Testing:
-        sleet/rain level
-        snow/sleet level
-        sleet/rain level leaving below orography points unfilled.
-    """
-    pytest.importorskip("stratify")
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_name = "{}_kgo.nc".format(kgo_name)
-    kgo_path = kgo_dir / kgo_name
-    output_path = tmp_path / "output.nc"
-    input_paths = [
-        kgo_dir / x
-        for x in ("wet_bulb_temperature.nc", "wbti.nc", "orog.nc", "land_mask.nc")
-    ]
-    args = [
-        *input_paths,
-        "--phase-change",
-        phase_type,
-        "--horizontal-interpolation",
-        horiz_interp,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+def test_all():
+    """Check that cubes returned using the 'name_constraint' are not lazy"""
+    constraint = name_constraint(["dummy1"])
+    dummy1_cube = Cube(da.zeros((1, 1), chunks=(1, 1)), long_name="dummy2")
+    dummy2_cube = Cube(da.zeros((1, 1), chunks=(1, 1)), long_name="dummy1")
+    assert dummy1_cube.has_lazy_data()
+    assert dummy2_cube.has_lazy_data()
+
+    res = CubeList([dummy1_cube, dummy2_cube]).extract_cube(
+        Constraint(cube_func=constraint)
+    )
+    assert res.name() == "dummy1"
+    assert not res.has_lazy_data()
+
+
+if __name__ == "__main__":
+    pytest.main()

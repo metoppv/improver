@@ -32,11 +32,13 @@
 
 from datetime import datetime
 
+import cf_units
 import iris
 import numpy as np
 import pytest
 
 from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
@@ -169,6 +171,38 @@ def probability_above_fixture():
     )
 
 
+@pytest.fixture(name="probability_over_time_in_vicinity_above_cube")
+def probability_over_time_in_vicinity_above_fixture():
+    """Probability of precipitation accumulation in 15M in vicinity above threshold cube from UKV"""
+    data = 0.5 * np.ones((3, 3, 3), dtype=np.float32)
+    thresholds = np.array([280, 282, 284], dtype=np.float32)
+    attributes = {
+        "source": "Met Office Unified Model",
+        "title": "Post-Processed UKV Model Forecast on 2 km Standard Grid",
+        "institution": "Met Office",
+        "mosg__model_configuration": "uk_det",
+    }
+    diagnostic_name = "lwe_thickness_of_precipitation_amount"
+    cube = set_up_probability_cube(
+        data,
+        thresholds,
+        attributes=attributes,
+        spatial_grid="equalarea",
+        variable_name=f"{diagnostic_name}_in_vicinity",
+    )
+    cube.add_cell_method(
+        iris.coords.CellMethod(
+            method="sum", coords="time", comments=(f"of {diagnostic_name}",),
+        )
+    )
+    for coord in ["time", "forecast_period"]:
+        cube.coord(coord).bounds = np.array(
+            [cube.coord(coord).points[0] - 900, cube.coord(coord).points[0]],
+            dtype=cube.coord(coord).dtype,
+        )
+    return cube
+
+
 @pytest.fixture(name="blended_probability_below_cube")
 def probability_below_fixture():
     """Probability of maximum screen temperature below threshold blended cube"""
@@ -215,14 +249,13 @@ def snow_level_fixture():
     )
 
 
-@pytest.fixture(name="blended_spot_median_cube")
+@pytest.fixture(name="spot_template")
 def spot_fixture():
-    """Spot temperature cube"""
     alts = np.array([15, 82, 0, 4, 15, 269], dtype=np.float32)
     lats = np.array([60.75, 60.13, 58.95, 57.37, 58.22, 57.72], dtype=np.float32)
     lons = np.array([-0.85, -1.18, -2.9, -7.40, -6.32, -4.90], dtype=np.float32)
-    wmo_ids = np.array(["3002", "3005", "3017", "3023", "3026", "3031"])
-    spot_cube = build_spotdata_cube(
+    wmo_ids = ["3002", "3005", "3017", "3023", "3026", "3031"]
+    cube = build_spotdata_cube(
         np.arange(6).astype(np.float32),
         "air_temperature",
         "degC",
@@ -231,10 +264,15 @@ def spot_fixture():
         lons,
         wmo_ids,
     )
-    spot_cube.add_aux_coord(
-        iris.coords.AuxCoord([50], long_name="percentile", units="%")
-    )
-    spot_cube.attributes = {
+    cube.add_aux_coord(iris.coords.AuxCoord([50], long_name="percentile", units="%"))
+    return cube
+
+
+@pytest.fixture(name="blended_spot_median_cube")
+def blended_spot_median_spot_fixture(spot_template):
+    """Spot temperature cube from blend"""
+    cube = spot_template.copy()
+    cube.attributes = {
         "source": "IMPROVER",
         "institution": "Met Office",
         "title": "IMPROVER Post-Processed Multi-Model Blend UK Spot Values",
@@ -244,9 +282,47 @@ def spot_fixture():
         time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
     )
     blend_time.rename("blend_time")
-    spot_cube.add_aux_coord(time)
-    spot_cube.add_aux_coord(blend_time)
-    return spot_cube
+    cube.add_aux_coord(time)
+    cube.add_aux_coord(blend_time)
+    return cube
+
+
+@pytest.fixture(name="blended_spot_timezone_cube")
+def spot_timezone_fixture(spot_template):
+    """Spot data on local time-zones
+    (no forecast_period, forecast_reference_time matches spatial dimension)"""
+    cube = spot_template.copy()
+    cube.attributes = {
+        "source": "Met Office Unified Model",
+        "institution": "Met Office",
+        "title": "Post-Processed MOGREPS-G Model Forecast Global Spot Values",
+        "mosg__model_configuration": "gl_ens",
+    }
+    (time_source_coord, _), (frt_coord, _), (_, _) = construct_scalar_time_coords(
+        time=datetime(2021, 2, 3, 14), time_bounds=None, frt=datetime(2021, 2, 3, 10)
+    )
+    cube.add_aux_coord(frt_coord)
+    (spatial_index,) = cube.coord_dims("latitude")
+    time_coord = iris.coords.AuxCoord(
+        np.full(cube.shape, fill_value=time_source_coord.points),
+        standard_name=time_source_coord.standard_name,
+        units=time_source_coord.units,
+    )
+    cube.add_aux_coord(time_coord, spatial_index)
+    local_time_coord_standards = TIME_COORDS["time_in_local_timezone"]
+    local_time_units = cf_units.Unit(
+        local_time_coord_standards.units, calendar=local_time_coord_standards.calendar,
+    )
+    timezone_points = np.array(
+        np.round(local_time_units.date2num(datetime(2021, 2, 3, 15))),
+        dtype=local_time_coord_standards.dtype,
+    )
+    cube.add_aux_coord(
+        iris.coords.AuxCoord(
+            timezone_points, long_name="time_in_local_timezone", units=local_time_units,
+        )
+    )
+    return cube
 
 
 @pytest.fixture(name="wind_direction_cube")
@@ -287,6 +363,15 @@ def wxcode_fixture():
         units="1",
         attributes=attributes,
         spatial_grid="equalarea",
+        time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0)),
     )
     _update_blended_time_coords(cube)
+    return cube
+
+
+@pytest.fixture(name="wxcode_mode_cube")
+def wxcode_mode_fixture(wxcode_cube):
+    """Weather symbols cube representing mode over time"""
+    cube = wxcode_cube.copy()
+    cube.add_cell_method(iris.coords.CellMethod("mode", coords="time"))
     return cube

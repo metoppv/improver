@@ -35,10 +35,14 @@ from datetime import datetime
 
 import iris
 import numpy as np
+from cf_units import Unit
+from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
+from improver.utilities.round import round_close
 
 
 class Test_build_spotdata_cube(IrisTest):
@@ -189,6 +193,37 @@ class Test_build_spotdata_cube(IrisTest):
                 neighbour_methods=self.neighbour_methods,
                 grid_attributes=self.grid_attributes,
             )
+
+    def test_3d_spot_cube_for_time(self):
+        """Test output with two extra dimensions, one of which is time with
+        forecast_period as an auxiliary coordinate"""
+        data = np.ones((3, 2, 4), dtype=np.float32)
+        time_spec = TIME_COORDS["time"]
+        time_units = Unit(time_spec.units)
+        time_as_dt = [datetime(2021, 12, 25, 12, 0), datetime(2021, 12, 25, 12, 1)]
+        time_points = round_close(
+            np.array([time_units.date2num(t) for t in time_as_dt]),
+            dtype=time_spec.dtype,
+        )
+        time_coord = DimCoord(time_points, units=time_units, standard_name="time")
+
+        fp_spec = TIME_COORDS["forecast_period"]
+        fp_units = Unit(fp_spec.units)
+        fp_points = np.array([0, 3600], dtype=fp_spec.dtype)
+        fp_coord = AuxCoord(fp_points, units=fp_units, standard_name="forecast_period")
+
+        result = build_spotdata_cube(
+            data,
+            *self.args,
+            grid_attributes=self.grid_attributes,
+            additional_dims=[time_coord],
+            additional_dims_aux=[[fp_coord]],
+        )
+
+        self.assertArrayAlmostEqual(result.data, data)
+        self.assertEqual(result.coord_dims("grid_attributes")[0], 0)
+        self.assertEqual(result.coord_dims("time")[0], 1)
+        self.assertEqual(result.coord_dims("forecast_period")[0], 1)
 
     def test_scalar_coords(self):
         """Test additional scalar coordinates"""

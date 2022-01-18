@@ -52,12 +52,7 @@ class Test__init__(IrisTest):
         """
         neighbourhood_method = "circular"
         radii = 10000
-        result = NBHood(neighbourhood_method, radii)
-        msg = (
-            "<GeneratePercentilesFromACircularNeighbourhood: percentiles: "
-            "(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>"
-        )
-        self.assertEqual(str(result.neighbourhood_method), msg)
+        NBHood(neighbourhood_method, radii)
 
     def test_neighbourhood_method_does_not_exist(self):
         """
@@ -69,22 +64,6 @@ class Test__init__(IrisTest):
         msg = "The neighbourhood_method requested: "
         with self.assertRaisesRegex(KeyError, msg):
             NBHood(neighbourhood_method, radii)
-
-
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(NBHood("circular", 10000))
-        msg = (
-            "<BaseNeighbourhoodProcessing: neighbourhood_method: "
-            "<GeneratePercentilesFromACircularNeighbourhood: percentiles: "
-            "(0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)>; "
-            "radii: 10000.0; lead_times: None>"
-        )
-        self.assertEqual(result, msg)
 
 
 class Test_process(IrisTest):

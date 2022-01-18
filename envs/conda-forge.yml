@@ -1,0 +1,28 @@
+# This environment is intended to be used for the conda-forge improver-feedstock
+# dependencies in https://github.com/conda-forge/improver-feedstock
+# If this file is changed, recipe/meta.yaml in the improver-feedstock repository
+# should also be updated.
+# This environment should not include optional dependencies.
+# This environment should pin versions so that all unit tests pass.
+name: improver_conda_forge
+channels:
+  - conda-forge
+dependencies:
+  - python>=3.6
+  # Included in improver-feedstock requirements
+  - cartopy<0.20
+  - cftime<1.5
+  - cf-units=2.1.5
+  - clize
+  - dask
+  - iris>=3.0,<3.1
+  - netCDF4
+  - numpy<1.21
+  - scipy
+  - sigtools
+  - sphinx
+  # Additional libraries to run tests, not included in improver-feedstock
+  - bandit
+  - filelock
+  - pytest
+  - sphinx-autodoc-typehints
