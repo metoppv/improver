@@ -221,7 +221,6 @@ class ModalWeatherCode(BasePlugin):
             for source_cube in cubes:
                 for model in source_cube.attributes[self.model_id_attr].split(" "):
                     contributing_models.update([model])
-            # iris concatenates string coordinates as a "|"-separated string
             result.attributes[self.model_id_attr] = " ".join(
                 sorted(list(contributing_models))
             )
