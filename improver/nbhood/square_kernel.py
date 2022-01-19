@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""This module contains methods for square neighbourhood processing."""
+"""This module contains methods for neighbourhood processing."""
 
 from typing import Optional
 
@@ -36,21 +36,29 @@ import iris
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
+from scipy.ndimage.filters import correlate
 
-from improver.nbhood.circular_kernel import check_radius_against_distance
+from improver.nbhood.circular_kernel import (
+    check_radius_against_distance,
+    circular_kernel,
+)
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.neighbourhood_tools import boxsum
-from improver.utilities.spatial import distance_to_number_of_grid_cells
+from improver.utilities.spatial import (
+    check_if_grid_is_equal_area,
+    distance_to_number_of_grid_cells,
+)
 
 
-class SquareNeighbourhood:
+class Neighbourhood:
 
     """
-    Methods for use in application of a square neighbourhood.
+    Methods for use in application of a neighbourhood.
     """
 
     def __init__(
         self,
+        neighbourhood_method: str,
         weighted_mode: bool = True,
         sum_or_fraction: str = "fraction",
         re_mask: bool = True,
@@ -59,6 +67,9 @@ class SquareNeighbourhood:
         Initialise class.
 
         Args:
+            neighbourhood_method:
+                Name of the neighbourhood method to use. Options: 'circular',
+                'square'.
             weighted_mode:
                 This is included to allow a standard interface for both the
                 square and circular neighbourhood plugins.
@@ -76,6 +87,7 @@ class SquareNeighbourhood:
                 may result in values being present in areas that were
                 originally masked.
         """
+        self.neighbourhood_method = neighbourhood_method
         self.weighted_mode = weighted_mode
         if sum_or_fraction not in ["sum", "fraction"]:
             msg = (
@@ -89,9 +101,8 @@ class SquareNeighbourhood:
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
 
-    @staticmethod
     def _calculate_neighbourhood(
-        data: ndarray, mask: ndarray, nb_size: int, sum_only: bool, re_mask: bool
+        self, data: ndarray, mask: ndarray, sum_only: bool, re_mask: bool
     ) -> ndarray:
         """
         Apply neighbourhood processing.
@@ -101,8 +112,6 @@ class SquareNeighbourhood:
                 Input data array.
             mask:
                 Mask of valid input data elements.
-            nb_size:
-                Size of the square neighbourhood as the number of grid cells.
             sum_only:
                 If true, return neighbourhood sum instead of mean.
             re_mask:
@@ -144,12 +153,20 @@ class SquareNeighbourhood:
         zero_mask = nan_mask | data_mask
         np.copyto(area_mask, 0, where=zero_mask)
         np.copyto(data, 0, where=zero_mask)
-
         # Calculate neighbourhood totals for input data.
-        data = boxsum(data, nb_size, mode="constant")
+        if self.neighbourhood_method == "square":
+            data = boxsum(data, self.nb_size, mode="constant")
+        elif self.neighbourhood_method == "circular":
+            data = correlate(data, self.kernel, mode="nearest")
         if not sum_only:
             # Calculate neighbourhood totals for mask.
-            area_sum = boxsum(area_mask, nb_size, mode="constant")
+            if self.neighbourhood_method == "square":
+                area_sum = boxsum(area_mask, self.nb_size, mode="constant")
+            elif self.neighbourhood_method == "circular":
+                area_sum = correlate(
+                    area_mask.astype(np.float32), self.kernel, mode="nearest"
+                )
+
             with np.errstate(divide="ignore", invalid="ignore"):
                 # Calculate neighbourhood mean.
                 data = data / area_sum
@@ -196,13 +213,24 @@ class SquareNeighbourhood:
             Cube containing the smoothed field after the square
             neighbourhood method has been applied.
         """
+        check_if_grid_is_equal_area(cube)
+
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
         check_radius_against_distance(cube, radius)
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
         grid_cells = distance_to_number_of_grid_cells(cube, radius)
-        nb_size = 2 * grid_cells + 1
+        if self.neighbourhood_method == "circular":
+            self.kernel = circular_kernel(grid_cells, self.weighted_mode)
+        elif self.neighbourhood_method == "square":
+            self.nb_size = 2 * grid_cells + 1
+        else:
+            msg = "{} is not a valid neighbourhood_method.".format(
+                self.neighbourhood_method
+            )
+            raise ValueError(msg)
+
         try:
             mask_cube_data = mask_cube.data
         except AttributeError:
@@ -213,7 +241,6 @@ class SquareNeighbourhood:
             cube_slice.data = self._calculate_neighbourhood(
                 cube_slice.data,
                 mask_cube_data,
-                nb_size,
                 self.sum_or_fraction == "sum",
                 self.re_mask,
             )
