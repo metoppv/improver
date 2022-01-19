@@ -129,6 +129,7 @@ COMPLIANT_ATTRS = MANDATORY_ATTRIBUTES + [
     "Conventions",
     "least_significant_digit",
     "mosg__model_configuration",
+    "mosg__model_run",
 ]
 
 # Expected substrings to be found in certain title attributes
@@ -154,6 +155,7 @@ class MOMetadataInterpreter:
         function.
         """
         self.model_id_attr = "mosg__model_configuration"
+        self.record_run_attr = "mosg__model_run"
         self.unhandled = False
 
         # set up empty strings to record any non-compliance (returned as one error
@@ -301,11 +303,25 @@ class MOMetadataInterpreter:
         self.blended = True if BLEND_TITLE_SUBSTR in attrs["title"] else False
 
         if self.blended:
+            complete_blend_attributes = True
             if self.model_id_attr not in attrs:
                 self.errors.append(f"No {self.model_id_attr} on blended file")
-            else:
+                complete_blend_attributes = False
+            if self.record_run_attr not in attrs:
+                self.errors.append(f"No {self.record_run_attr} on blended file")
+                complete_blend_attributes = False
+
+            if complete_blend_attributes:
                 codes = attrs[self.model_id_attr].split(" ")
                 names = []
+                cycles = {
+                    k: v
+                    for k, v in [
+                        item.split(":")[0:-1]
+                        for item in attrs[self.record_run_attr].split("\n")
+                    ]
+                }
+
                 for code in codes:
                     try:
                         names.append(MODEL_NAMES[code])
@@ -313,7 +329,10 @@ class MOMetadataInterpreter:
                         self.errors.append(
                             f"Model ID attribute contains unrecognised model code {code}"
                         )
+                    else:
+                        names[-1] += f" (cycle: {cycles[code]})"
                 self.model = ", ".join(names)
+
             return
 
         if self.model_id_attr in attrs:
@@ -625,7 +644,9 @@ def display_interpretation(
     elif interpreter.blended:
         output.append(f"It contains blended data from models: {interpreter.model}")
         if verbose:
-            output.append(vstring("title attribute, model ID attribute"))
+            output.append(
+                vstring("title attribute, model ID attribute, model run attribute")
+            )
     else:
         if interpreter.model:
             output.append(f"It contains data from {interpreter.model}")

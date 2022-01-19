@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""This module contains methods for square neighbourhood processing."""
+"""This module contains methods for neighbourhood processing."""
 
 from typing import Optional
 
@@ -53,7 +53,7 @@ from improver.utilities.spatial import (
 class Neighbourhood:
 
     """
-    Methods for use in application of a square neighbourhood.
+    Methods for use in application of a neighbourhood.
     """
 
     def __init__(
@@ -102,7 +102,7 @@ class Neighbourhood:
         self.re_mask = re_mask
 
     def _calculate_neighbourhood(
-        self, data: ndarray, mask: ndarray, nb_size: int, sum_only: bool, re_mask: bool
+        self, data: ndarray, mask: ndarray, sum_only: bool, re_mask: bool
     ) -> ndarray:
         """
         Apply neighbourhood processing.
@@ -112,8 +112,6 @@ class Neighbourhood:
                 Input data array.
             mask:
                 Mask of valid input data elements.
-            nb_size:
-                Size of the square neighbourhood as the number of grid cells.
             sum_only:
                 If true, return neighbourhood sum instead of mean.
             re_mask:
@@ -157,13 +155,13 @@ class Neighbourhood:
         np.copyto(data, 0, where=zero_mask)
         # Calculate neighbourhood totals for input data.
         if self.neighbourhood_method == "square":
-            data = boxsum(data, nb_size, mode="constant")
+            data = boxsum(data, self.nb_size, mode="constant")
         elif self.neighbourhood_method == "circular":
             data = correlate(data, self.kernel, mode="nearest")
         if not sum_only:
             # Calculate neighbourhood totals for mask.
             if self.neighbourhood_method == "square":
-                area_sum = boxsum(area_mask, nb_size, mode="constant")
+                area_sum = boxsum(area_mask, self.nb_size, mode="constant")
             elif self.neighbourhood_method == "circular":
                 area_sum = correlate(
                     area_mask.astype(np.float32), self.kernel, mode="nearest"
@@ -223,14 +221,15 @@ class Neighbourhood:
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
         grid_cells = distance_to_number_of_grid_cells(cube, radius)
-        nb_size = 2 * grid_cells + 1
         if self.neighbourhood_method == "circular":
-            axes = []
-            for axis in ["x", "y"]:
-                coord_name = cube.coord(axis=axis).name()
-                axes.append(cube.coord_dims(coord_name)[0])
-
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
+        elif self.neighbourhood_method == "square":
+            self.nb_size = 2 * grid_cells + 1
+        else:
+            msg = "{} is not a valid neighbourhood_method.".format(
+                self.neighbourhood_method
+            )
+            raise ValueError(msg)
 
         try:
             mask_cube_data = mask_cube.data
@@ -242,7 +241,6 @@ class Neighbourhood:
             cube_slice.data = self._calculate_neighbourhood(
                 cube_slice.data,
                 mask_cube_data,
-                nb_size,
                 self.sum_or_fraction == "sum",
                 self.re_mask,
             )

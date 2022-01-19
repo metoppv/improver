@@ -68,7 +68,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
 
     def __init__(
         self,
-        neighbourhood_method: Union[Neighbourhood],
+        neighbourhood_method: Neighbourhood,
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
     ) -> None:
