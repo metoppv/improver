@@ -145,8 +145,7 @@ class Test_apply_circular_kernel(IrisTest):
         mask[6][7] = 1
         self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
 
-        for index, slice_ in enumerate(SINGLE_POINT_RANGE_3_CENTROID):
-            expected[5 + index][5:10] = slice_
+        expected[9][5:10] = SINGLE_POINT_RANGE_3_CENTROID[4]
         # Update expected result for rows affected by masked point
         expected[5:9, 4:11] = [
             [1, 0.991736, 0.966102, 0.957265, 0.966102, 0.991736, 1],
@@ -348,7 +347,7 @@ class Test_run(IrisTest):
         result = Neighbourhood("circular",).run(cube, self.RADIUS, mask_cube=cube)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data.data, np.ones((5, 5)))
-        self.assertArrayEqual(result.data.mask, ~data.astype(np.bool))
+        self.assertArrayEqual(result.data.mask, ~data.astype(bool))
 
 
 if __name__ == "__main__":
