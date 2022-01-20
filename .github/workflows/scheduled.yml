@@ -14,16 +14,7 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      id: cache
-      env:
-        # Increase this value to reset cache
-        CACHE_NUMBER: 2
-      with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
     - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
@@ -71,16 +62,7 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      id: cache
-      env:
-        # Increase this value to reset cache
-        CACHE_NUMBER: 2
-      with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
     - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
@@ -110,16 +92,7 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      id: cache
-      env:
-        # Increase this value to reset cache
-        CACHE_NUMBER: 2
-      with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
     - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
