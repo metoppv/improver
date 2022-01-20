@@ -45,7 +45,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.nbhood.square_kernel import Neighbourhood
+from improver.nbhood.square_kernel import NeighbourhoodProcessing
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
@@ -138,9 +138,9 @@ class FieldTexture(BasePlugin):
             A ratio between 0 and 1 of actual transitions over potential transitions.
         """
         # Calculate the potential transitions within neighbourhoods.
-        potential_transitions = Neighbourhood("square", sum_or_fraction="sum").run(
-            cube, radius=radius
-        )
+        potential_transitions = NeighbourhoodProcessing(
+            "square", radius, sum_or_fraction="sum"
+        ).process(cube)
         potential_transitions.data = 4 * potential_transitions.data
 
         # Calculate the actual transitions for each grid cell of value 1 and
@@ -150,9 +150,9 @@ class FieldTexture(BasePlugin):
         )
 
         # Sum the number of actual transitions within the neighbourhood.
-        actual_transitions = Neighbourhood("square", sum_or_fraction="sum").run(
-            actual_transitions, radius=radius
-        )
+        actual_transitions = NeighbourhoodProcessing(
+            "square", radius, sum_or_fraction="sum"
+        ).process(actual_transitions)
 
         # Calculate the ratio of actual to potential transitions in areas where the
         # original diagnostic value was greater than zero. Where the original value

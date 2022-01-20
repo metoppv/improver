@@ -127,10 +127,8 @@ def process(
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
     from improver.nbhood import radius_by_lead_time
-    from improver.nbhood.nbhood import (
-        GeneratePercentilesFromANeighbourhood,
-        NeighbourhoodProcessing,
-    )
+    from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
+    from improver.nbhood.square_kernel import NeighbourhoodProcessing
     from improver.utilities.pad_spatial import remove_cube_halo
     from improver.wind_calculations.wind_direction import WindDirection
 
@@ -167,10 +165,7 @@ def process(
         )(cube, mask_cube=mask)
     elif neighbourhood_output == "percentiles":
         result = GeneratePercentilesFromANeighbourhood(
-            neighbourhood_shape,
-            radius_or_radii,
-            lead_times=lead_times,
-            percentiles=percentiles,
+            radius_or_radii, lead_times=lead_times, percentiles=percentiles,
         )(cube)
 
     if degrees_as_complex:

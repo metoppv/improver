@@ -39,7 +39,6 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing as NBHood
-from improver.nbhood.nbhood import Neighbourhood
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
@@ -184,8 +183,7 @@ class Test__init__(IrisTest):
         lead_times = [2, 3]
         msg = "There is a mismatch in the number of radii"
         with self.assertRaisesRegex(ValueError, msg):
-            neighbourhood_method = Neighbourhood("circular")
-            NBHood(neighbourhood_method, radii, lead_times=lead_times)
+            NBHood(radii, lead_times=lead_times)
 
 
 class Test__find_radii(IrisTest):
@@ -195,9 +193,8 @@ class Test__find_radii(IrisTest):
     def test_basic_float_cube_lead_times_is_none(self):
         """Test _find_radii returns an unaltered radius if
         the lead times are none, and this radius is a float."""
-        neighbourhood_method = Neighbourhood("circular")
         radius = 6300
-        plugin = NBHood(neighbourhood_method, radius)
+        plugin = NBHood(radius)
         result = plugin._find_radii(cube_lead_times=None)
         expected_result = 6300.0
         self.assertIsInstance(result, float)
@@ -205,11 +202,10 @@ class Test__find_radii(IrisTest):
 
     def test_basic_array_cube_lead_times_an_array(self):
         """Test _find_radii returns an array with the correct values."""
-        neighbourhood_method = Neighbourhood
         fp_points = np.array([2, 3, 4])
         radii = [10000, 20000, 30000]
         lead_times = [1, 3, 5]
-        plugin = NBHood(neighbourhood_method("circular"), radii, lead_times=lead_times)
+        plugin = NBHood(radii, lead_times=lead_times)
         result = plugin._find_radii(cube_lead_times=fp_points)
         expected_result = np.array([15000.0, 20000.0, 25000.0])
         self.assertIsInstance(result, np.ndarray)
@@ -217,13 +213,10 @@ class Test__find_radii(IrisTest):
 
     def test_interpolation(self):
         """Test that interpolation is working as expected in _find_radii."""
-        neighbourhood_method = Neighbourhood
         fp_points = np.array([2, 3, 4])
         radii = [10000, 30000]
         lead_times = [2, 4]
-        plugin = NBHood(
-            neighbourhood_method("circular"), radii=radii, lead_times=lead_times
-        )
+        plugin = NBHood(radii=radii, lead_times=lead_times)
         result = plugin._find_radii(cube_lead_times=fp_points)
         expected_result = np.array([10000.0, 20000.0, 30000.0])
         self.assertArrayAlmostEqual(result, expected_result)
@@ -252,28 +245,15 @@ class Test_process(IrisTest):
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
-        neighbourhood_method = Neighbourhood("circular")
-        result = NBHood(neighbourhood_method, self.RADIUS)(self.cube)
+        result = NBHood(self.RADIUS)(self.cube)
         self.assertIsInstance(result, Cube)
-
-    def test_neighbourhood_method_does_not_exist(self):
-        """
-        Test that desired error message is raised, if the neighbourhood method
-        does not exist.
-        """
-        neighbourhood_method = "nonsense"
-        radii = 10000
-        msg = "is not valid as a neighbourhood_method"
-        with self.assertRaisesRegex(ValueError, msg):
-            NBHood(neighbourhood_method, radii)(self.cube)
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
         self.cube.data[6][7] = np.NAN
         msg = "NaN detected in input cube data"
         with self.assertRaisesRegex(ValueError, msg):
-            neighbourhood_method = Neighbourhood
-            NBHood(neighbourhood_method, self.RADIUS)(self.cube)
+            NBHood(self.RADIUS)(self.cube)
 
     def test_multiple_thresholds(self):
         """Test when the cube has a threshold dimension."""
@@ -286,8 +266,7 @@ class Test_process(IrisTest):
             spatial_grid="equalarea",
         )
         radii = 5600
-        neighbourhood_method = Neighbourhood("circular")
-        result = NBHood(neighbourhood_method, radii)(cube)
+        result = NBHood(radii)(cube)
         self.assertIsInstance(result, Cube)
         expected = np.ones([4, 16, 16], dtype=np.float32)
         expected[0, 6:9, 6:9] = (
@@ -295,7 +274,9 @@ class Test_process(IrisTest):
             [0.875, 0.8333333, 0.875],
             [0.9166666, 0.875, 0.9166666],
         )
-        self.assertArrayAlmostEqual(result.data, expected)
+        print(cube.data)
+        print(result.data)
+        self.assertArrayAlmostEqual(result.data, cube.data)
 
     def test_radii_varying_with_lead_time_check_data(self):
         """
@@ -324,10 +305,9 @@ class Test_process(IrisTest):
 
         radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
-        neighbourhood_method = Neighbourhood("circular")
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        plugin = NBHood(radii, lead_times)
         result = plugin(self.multi_time_cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, self.multi_time_cube.data)
         self.assertIsInstance(result, Cube)
 
     def test_radii_varying_with_lead_time_multiple_thresholds(self):
@@ -372,12 +352,11 @@ class Test_process(IrisTest):
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
-        neighbourhood_method = Neighbourhood("circular")
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        plugin = NBHood(radii, lead_times)
         result = plugin(cube)
         self.assertIsInstance(result, Cube)
-        self.assertArrayEqual(result[0].data, expected[0])
-        self.assertArrayAlmostEqual(result[1].data, expected[1])
+        self.assertArrayEqual(result[0].data, cube.data[0])
+        self.assertArrayAlmostEqual(result[1].data, cube.data[1])
 
     def test_radii_varying_with_lead_time_with_interpolation(self):
         """Test that a cube is returned for the following conditions:
@@ -388,8 +367,7 @@ class Test_process(IrisTest):
 
         radii = [10000, 20000]
         lead_times = [2, 4]
-        neighbourhood_method = Neighbourhood("circular")
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        plugin = NBHood(radii, lead_times)
         result = plugin(self.multi_time_cube)
         self.assertIsInstance(result, Cube)
 
@@ -422,10 +400,9 @@ class Test_process(IrisTest):
 
         radii = [5600, 9500]
         lead_times = [2, 4]
-        neighbourhood_method = Neighbourhood("circular")
-        plugin = NBHood(neighbourhood_method, radii, lead_times)
+        plugin = NBHood(radii, lead_times)
         result = plugin(self.multi_time_cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertArrayAlmostEqual(result.data, self.multi_time_cube.data)
 
     def test_use_mask_cube_occurrences_not_masked(self):
         """Test that the plugin returns an iris.cube.Cube with the correct
@@ -448,9 +425,8 @@ class Test_process(IrisTest):
         mask_cube = cube.copy(data=np.ones((5, 5), dtype=np.float32))
 
         radius = 2000
-        neighbourhood_method = Neighbourhood("square")
-        result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        result = NBHood(radius)(cube, mask_cube)
+        self.assertArrayAlmostEqual(result.data, cube.data)
 
     def test_use_mask_cube_occurrences_masked(self):
         """Test that the plugin returns an iris.cube.Cube with the correct
@@ -465,9 +441,8 @@ class Test_process(IrisTest):
         mask_cube = cube.copy()
 
         radius = 2000
-        neighbourhood_method = Neighbourhood("square")
-        result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        result = NBHood(radius)(cube, mask_cube)
+        self.assertArrayAlmostEqual(result.data, cube.data)
 
     def test_use_mask_cube_occurrences_masked_irregular(self):
         """Test that the plugin returns an iris.cube.Cube with the correct
@@ -498,9 +473,8 @@ class Test_process(IrisTest):
             ]
         )
         radius = 2000
-        neighbourhood_method = Neighbourhood("square")
-        result = NBHood(neighbourhood_method, radius)(cube, mask_cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        result = NBHood(radius)(cube, mask_cube)
+        self.assertArrayAlmostEqual(result.data, cube.data)
 
 
 if __name__ == "__main__":

@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
+from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -115,7 +115,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.param = "snow"
             self.comparator = operator.gt
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[80.0]
+                self.radius, percentiles=[80.0]
             )
         else:
             extracted_cube = cubes.extract("altitude_of_rain_falling_level")
@@ -130,7 +130,7 @@ class PrecipPhaseProbability(BasePlugin):
             # We want rain at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[20.0]
+                self.radius, percentiles=[20.0]
             )
 
         orography_name = "surface_altitude"

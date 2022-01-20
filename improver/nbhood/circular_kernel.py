@@ -38,6 +38,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver.constants import DEFAULT_PERCENTILES
+from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
@@ -110,25 +111,39 @@ def circular_kernel(ranges: int, weighted_mode: bool) -> ndarray:
     return kernel
 
 
-class GeneratePercentilesFromACircularNeighbourhood:
-    """
-    Methods for use in calculating percentiles from a 2D circular
-    neighbourhood.
-    A maximum kernel radius of 500 grid cells is imposed in order to
-    avoid computational ineffiency and possible memory errors.
-    """
+class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
+
+    """Class for generating percentiles from a neighbourhood."""
 
     def __init__(
-        self, percentiles: Union[float, List[float]] = DEFAULT_PERCENTILES
+        self,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
+        percentiles: List = DEFAULT_PERCENTILES,
     ) -> None:
         """
-        Initialise class.
+        Create a neighbourhood processing subclass that generates percentiles
+        from calculating percentiles from a 2D circular neighbourhood.
+        A maximum kernel radius of 500 grid cells is imposed in order to
+        avoid computational ineffiency and possible memory errors.
 
         Args:
+            radii:
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+            lead_times:
+                List of lead times or forecast periods, at which the radii
+                within 'radii' are defined. The lead times are expected
+                in hours.
             percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
+        super(GeneratePercentilesFromANeighbourhood, self).__init__(
+            radii, lead_times=lead_times
+        )
         try:
             self.percentiles = tuple(percentiles)
         except TypeError:

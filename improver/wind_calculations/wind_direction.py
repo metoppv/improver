@@ -39,7 +39,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
-from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.nbhood.square_kernel import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 
 

@@ -37,7 +37,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.nbhood.nbhood import NeighbourhoodProcessing as NBHood
+from improver.nbhood.square_kernel import NeighbourhoodProcessing as NBHood
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
@@ -57,8 +57,8 @@ class Test__init__(IrisTest):
         method does not exist."""
         neighbourhood_method = "nonsense"
         radii = 10000
-        msg = "The neighbourhood_method requested: "
-        with self.assertRaisesRegex(KeyError, msg):
+        msg = "nonsense is not a valid neighbourhood_method"
+        with self.assertRaisesRegex(ValueError, msg):
             NBHood(neighbourhood_method, radii)
 
 
