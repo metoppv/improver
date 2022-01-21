@@ -76,7 +76,7 @@ class Test_apply_circular_kernel(IrisTest):
 
         radius = 4000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=False).run(
-            self.cube, radius
+            self.cube
         )
         self.assertIsInstance(result, Cube)
 
@@ -106,7 +106,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[5 + index][5:10] = slice_
         radius = 4000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=False).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -125,7 +125,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[1][5 + index][5:10] = slice_
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            cube, radius
+            cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -139,7 +139,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected = np.ma.masked_array(self.cube.data, mask=mask)
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertArrayEqual(result.data.mask, expected.mask)
@@ -165,7 +165,7 @@ class Test_apply_circular_kernel(IrisTest):
         ]
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertArrayEqual(result.data.mask, mask)
@@ -179,7 +179,7 @@ class Test_apply_circular_kernel(IrisTest):
         expected[7][7] = 0.0
         radius = 2000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -193,7 +193,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[3 + index][3:12] = slice_
         radius = 10000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -202,11 +202,9 @@ class Test_apply_circular_kernel(IrisTest):
         data = np.ones((4, 4), dtype=np.float32)
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
         radius = 10000
-        msg = "Distance of 10000m exceeds max domain distance"
+        msg = "Distance of 10000.0m exceeds max domain distance"
         with self.assertRaisesRegex(ValueError, msg):
-            NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-                cube, radius
-            )
+            NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(cube)
 
     def test_point_pair(self):
         """Test behaviour for two nearby non-zero grid cells."""
@@ -228,7 +226,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[5 + index][4:11] = slice_
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -244,7 +242,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[5 + index][0:5] = slice_
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -260,7 +258,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[5 + index][0:4] = slice_[1:]
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -283,7 +281,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[5 + index][0:3] = slice_
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -299,7 +297,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[index][0:5] = slice_
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -317,7 +315,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[index - 1][0:4] = slice_[1:]
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -336,7 +334,7 @@ class Test_apply_circular_kernel(IrisTest):
             expected[index][0:3] = slice_
         radius = 6000
         result = NeighbourhoodProcessing("circular", radius, weighted_mode=True).run(
-            self.cube, radius
+            self.cube
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -364,7 +362,7 @@ class Test_run(IrisTest):
         data[2, 2] = 0
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
-        result = NeighbourhoodProcessing("circular", self.RADIUS).run(cube, self.RADIUS)
+        result = NeighbourhoodProcessing("circular", self.RADIUS).run(cube)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -377,7 +375,7 @@ class Test_run(IrisTest):
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
         result = NeighbourhoodProcessing("circular", self.RADIUS).run(
-            cube, self.RADIUS, mask_cube=cube
+            cube, mask_cube=cube
         )
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data.data, np.ones((5, 5)))

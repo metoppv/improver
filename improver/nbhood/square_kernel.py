@@ -205,7 +205,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
         return data
 
-    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
+    def run(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -222,9 +222,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             cube:
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            radius:
-                Radius in metres for use in specifying the number of
-                grid cells used to create a square neighbourhood.
             mask_cube:
                 Cube containing the array to be used as a mask.
 
@@ -236,10 +233,10 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
-        check_radius_against_distance(cube, radius)
+        check_radius_against_distance(cube, self.radius)
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
-        grid_cells = distance_to_number_of_grid_cells(cube, radius)
+        grid_cells = distance_to_number_of_grid_cells(cube, self.radius)
         if self.neighbourhood_method == "circular":
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
         elif self.neighbourhood_method == "square":

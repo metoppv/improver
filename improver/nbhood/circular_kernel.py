@@ -286,7 +286,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
         return pctcube
 
-    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
+    def run(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -294,9 +294,6 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         Args:
             cube:
                 Cube containing array to apply processing to.
-            radius:
-                Radius in metres for use in specifying the number of
-                grid cells used to create a circular neighbourhood.
             mask_cube:
                 Cube containing the array to be used as a mask.
 
@@ -314,8 +311,8 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cell = distance_to_number_of_grid_cells(cube, radius)
-        check_radius_against_distance(cube, radius)
+        grid_cell = distance_to_number_of_grid_cells(cube, self.radius)
+        check_radius_against_distance(cube, self.radius)
         kernel = circular_kernel(grid_cell, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.

@@ -190,16 +190,6 @@ class Test__find_radii(IrisTest):
 
     """Test the internal _find_radii function is working correctly."""
 
-    def test_basic_float_cube_lead_times_is_none(self):
-        """Test _find_radii returns an unaltered radius if
-        the lead times are none, and this radius is a float."""
-        radius = 6300
-        plugin = NBHood(radius)
-        result = plugin._find_radii(cube_lead_times=None)
-        expected_result = 6300.0
-        self.assertIsInstance(result, float)
-        self.assertAlmostEqual(result, expected_result)
-
     def test_basic_array_cube_lead_times_an_array(self):
         """Test _find_radii returns an array with the correct values."""
         fp_points = np.array([2, 3, 4])
