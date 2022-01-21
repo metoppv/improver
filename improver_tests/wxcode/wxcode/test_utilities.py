@@ -516,7 +516,7 @@ def modify_tree_fixture(node, key, value):
             "if_true",
             "no_precipitation_cloud",
             "Unreachable node 'fog_conditions'",
-        )
+        ),
     ),
 )
 def test_check_tree(modify_tree, expected):
