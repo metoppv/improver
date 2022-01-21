@@ -511,20 +511,17 @@ def modify_tree_fixture(node, key, value):
             ["kittens"],
             "Node lightning has a non-numeric probability threshold ['kittens']",
         ),
+        (
+            "mist_conditions",
+            "if_true",
+            "no_precipitation_cloud",
+            "Unreachable node 'fog_conditions'",
+        )
     ),
 )
 def test_check_tree(modify_tree, expected):
     """Test that the various possible decision tree problems are identified."""
     result = check_tree(modify_tree)
-    assert result == expected
-
-
-def test_check_tree_unreachable_leaf():
-    """Add an unreachable leaf and check for an error."""
-    expected = "Unreachable node 'kittens'"
-    tree = wxcode_decision_tree()
-    tree["kittens"] = tree["lightning"].copy()
-    result = check_tree(tree)
     assert result == expected
 
 
