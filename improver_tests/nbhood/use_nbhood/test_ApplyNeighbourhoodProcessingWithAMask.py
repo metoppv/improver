@@ -48,19 +48,6 @@ class Test__init__(unittest.TestCase):
 
     """Test the __init__ method of ApplyNeighbourhoodProcessingWithAMask."""
 
-    def test_basic(self):
-        """Test that the __init__ method returns the expected string."""
-        coord_for_masking = "topographic_zone"
-        radii = 2000
-        result = ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii)
-        msg = (
-            "<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
-            "topographic_zone, neighbourhood_method: square, radii: 2000, "
-            "lead_times: None, collapse_weights: None, weighted_mode: True, "
-            "sum_or_fraction: fraction, re_mask: False>"
-        )
-        self.assertEqual(str(result), msg)
-
     def test_raises_error(self):
         """Test raises an error if re_mask=True when using collapse_weights"""
         message = "re_mask should be set to False when using collapse_weights"
@@ -71,24 +58,6 @@ class Test__init__(unittest.TestCase):
                 collapse_weights=iris.cube.Cube([0]),
                 re_mask=True,
             )
-
-
-class Test__repr__(unittest.TestCase):
-
-    """Test the __repr__ method of ApplyNeighbourhoodProcessingWithAMask."""
-
-    def test_basic(self):
-        """Test that the __repr__ method returns the expected string."""
-        coord_for_masking = "topographic_zone"
-        radii = 2000
-        result = str(ApplyNeighbourhoodProcessingWithAMask(coord_for_masking, radii))
-        msg = (
-            "<ApplyNeighbourhoodProcessingWithAMask: coord_for_masking: "
-            "topographic_zone, neighbourhood_method: square, radii: 2000, "
-            "lead_times: None, collapse_weights: None, weighted_mode: True, "
-            "sum_or_fraction: fraction, re_mask: False>"
-        )
-        self.assertEqual(result, msg)
 
 
 class Test_collapse_mask_coord(unittest.TestCase):

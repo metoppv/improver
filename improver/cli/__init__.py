@@ -156,6 +156,25 @@ def inputcube(to_convert):
 
 
 @value_converter
+def inputcube_nolazy(to_convert):
+    """Loads cube from file or returns passed object.
+    Where a load is performed, it will not have lazy data.
+    Args:
+        to_convert (string or iris.cube.Cube):
+            File name or Cube object.
+    Returns:
+        Loaded cube or passed object.
+    """
+    from improver.utilities.load import load_cube
+
+    if getattr(to_convert, "has_lazy_data", False):
+        # Realise data if lazy
+        to_convert.data
+
+    return maybe_coerce_with(load_cube, to_convert, no_lazy_load=True)
+
+
+@value_converter
 def inputcubelist(to_convert):
     """Loads a cubelist from file or returns passed object.
     Args:
@@ -483,7 +502,7 @@ def main(
             To write to stdout, use a hyphen (-)
         memprofile (str):
             Creates 2 files by adding a suffix to the provided arguemnt -
-            a tracemalloc snapsot at the point of highest memory consumption
+            a tracemalloc snapshot at the point of highest memory consumption
             of your program (suffixed with _SNAPSHOT)
             and a track of the maximum memory used by your program
             over time (suffixed with _MAX_TRACKER).

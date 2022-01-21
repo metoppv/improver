@@ -32,9 +32,10 @@
 
 import numpy as np
 import pytest
-from iris.coords import CellMethod
+from iris.coords import AuxCoord, CellMethod
 
 # Test successful outputs (input cubes in alphabetical order by fixture)
+from improver.developer_tools.metadata_interpreter import SPOT_COORDS
 
 
 def test_realizations(ensemble_cube, interpreter):
@@ -127,9 +128,18 @@ def test_handles_duplicate_model_string(probability_above_cube, interpreter):
     assert interpreter.model == "UKV"
 
 
+def test_vicinity_cell_method(
+    probability_over_time_in_vicinity_above_cube, interpreter
+):
+    """Test when precipitation accumulation in-vicinity cube has a cell method"""
+    cube = probability_over_time_in_vicinity_above_cube.copy()
+    interpreter.run(cube)
+    assert "sum over time" in interpreter.methods
+
+
 def test_probabilities_below(blended_probability_below_cube, interpreter):
     """Test interpretation of blended probability of max temperature in hour
-    below threshold"""
+    below threshold with model run information"""
     interpreter.run(blended_probability_below_cube)
     assert interpreter.prod_type == "gridded"
     assert interpreter.field_type == "probabilities"
@@ -137,7 +147,10 @@ def test_probabilities_below(blended_probability_below_cube, interpreter):
     assert interpreter.relative_to_threshold == "less_than"
     assert interpreter.methods == " maximum over time"
     assert interpreter.post_processed
-    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
+    )
     assert interpreter.blended
     assert not interpreter.warnings
 
@@ -168,8 +181,25 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert interpreter.relative_to_threshold is None
     assert not interpreter.methods
     assert interpreter.post_processed
-    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20210203T0900Z), MOGREPS-UK (cycle: 20210203T0700Z)"
+    )
     assert interpreter.blended
+    assert not interpreter.warnings
+
+
+def test_spot_timezone(blended_spot_timezone_cube, interpreter):
+    """Test interpretation of spot on timezones"""
+    interpreter.run(blended_spot_timezone_cube)
+    assert interpreter.prod_type == "spot"
+    assert interpreter.field_type == "percentiles"
+    assert interpreter.diagnostic == "air_temperature"
+    assert interpreter.relative_to_threshold is None
+    assert not interpreter.methods
+    assert interpreter.post_processed
+    assert interpreter.model == "MOGREPS-G"
+    assert not interpreter.blended
     assert not interpreter.warnings
 
 
@@ -186,7 +216,21 @@ def test_weather_code(wxcode_cube, interpreter):
     """Test interpretation of weather code field"""
     interpreter.run(wxcode_cube)
     assert interpreter.diagnostic == "weather_code"
-    assert interpreter.model == "UKV, MOGREPS-UK"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
+    )
+    assert interpreter.blended
+
+
+def test_weather_mode_code(wxcode_mode_cube, interpreter):
+    """Test interpretation of weather code mode-in-time field"""
+    interpreter.run(wxcode_mode_cube)
+    assert interpreter.diagnostic == "weather_code"
+    assert (
+        interpreter.model
+        == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
+    )
     assert interpreter.blended
 
 
@@ -398,6 +442,24 @@ def test_error_time_coord_units(probability_above_cube, interpreter):
         interpreter.run(probability_above_cube)
 
 
+def test_error_timezone_has_scalar_time(blended_spot_timezone_cube, interpreter):
+    """Test error raised if a timezones cube has a scalar time coord"""
+    cube = blended_spot_timezone_cube.copy()
+    time_coord = cube.coord("time").copy()
+    cube.remove_coord("time")
+    cube.add_aux_coord(
+        AuxCoord(
+            time_coord.points[0],
+            standard_name=time_coord.standard_name,
+            units=time_coord.units,
+        )
+    )
+    with pytest.raises(
+        ValueError, match="Coordinate time does not span all horizontal coordinates"
+    ):
+        interpreter.run(cube)
+
+
 # Test the interpreter can return multiple errors.
 
 
@@ -476,7 +538,18 @@ def test_error_missing_blended_coords(blended_probability_below_cube, interprete
 def test_error_missing_model_information(blended_probability_below_cube, interpreter):
     """Test error raised if a blended cube doesn't have a model ID attribute"""
     blended_probability_below_cube.attributes.pop("mosg__model_configuration")
-    with pytest.raises(ValueError, match="on blended file"):
+    with pytest.raises(
+        ValueError, match="No mosg__model_configuration on blended file"
+    ):
+        interpreter.run(blended_probability_below_cube)
+
+
+def test_error_missing_model_run_information(
+    blended_probability_below_cube, interpreter
+):
+    """Test error raised if a blended cube doesn't have a model run attribute"""
+    blended_probability_below_cube.attributes.pop("mosg__model_run")
+    with pytest.raises(ValueError, match="No mosg__model_run on blended file"):
         interpreter.run(blended_probability_below_cube)
 
 
@@ -506,6 +579,30 @@ def test_error_missing_spot_coords(blended_spot_median_cube, interpreter):
     """Test error raised if a spot cube doesn't have all the expected metadata"""
     blended_spot_median_cube.remove_coord("altitude")
     with pytest.raises(ValueError, match="Missing one or more coordinates"):
+        interpreter.run(blended_spot_median_cube)
+
+
+@pytest.mark.parametrize(
+    "coord_name", [x for x in SPOT_COORDS if x not in ["latitude", "longitude"]]
+)
+def test_error_inconsistent_spot_coords(
+    blended_spot_median_cube, interpreter, coord_name
+):
+    """Test error raised if a spot cube coord ought to apply to the x/y dim, but doesn't"""
+    coord = blended_spot_median_cube.coord(coord_name).copy()
+    blended_spot_median_cube.remove_coord(coord_name)
+    blended_spot_median_cube.add_aux_coord(
+        AuxCoord(
+            coord.points[0],
+            standard_name=coord.standard_name,
+            long_name=coord.long_name,
+            units=coord.units,
+        )
+    )
+    with pytest.raises(
+        ValueError,
+        match=f"Coordinate {coord_name} does not span all horizontal coordinates",
+    ):
         interpreter.run(blended_spot_median_cube)
 
 

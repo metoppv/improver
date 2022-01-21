@@ -40,15 +40,17 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 ALL_PARAMS = [
-    "lightning_flashes_per_unit_area_in_vicinity_above",
     "low_and_medium_type_cloud_area_fraction_above",
     "low_type_cloud_area_fraction_above",
+    "lwe_graupel_and_hail_fall_rate_in_vicinity_above",
+    "lwe_thickness_of_graupel_and_hail_fall_amount_above",
     "lwe_thickness_of_precipitation_amount_above",
     "lwe_thickness_of_precipitation_amount_in_vicinity_above",
     "lwe_thickness_of_sleetfall_amount_above",
     "lwe_thickness_of_snowfall_amount_above",
-    "thickness_of_rainfall_amount_above",
+    "number_of_lightning_flashes_per_unit_area_in_vicinity_above",
     "shower_condition_above",
+    "thickness_of_rainfall_amount_above",
     "visibility_in_air_below",
 ]
 
@@ -107,7 +109,7 @@ def test_global(tmp_path):
     """Test global wxcode processing"""
     kgo_dir = acc.kgo_root() / "wxcode"
     kgo_path = kgo_dir / "global" / "kgo.nc"
-    params = [param for param in ALL_PARAMS if "lightning" not in param]
+    params = [param for param in ALL_PARAMS if "hail" not in param]
     param_paths = [
         kgo_dir / "global" / f"probability_of_{p}_threshold.nc" for p in params
     ]

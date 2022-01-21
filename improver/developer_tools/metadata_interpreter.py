@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
-from typing import Dict, List
+from typing import Callable, Dict, Iterable, List
 
 from iris.coords import CellMethod, Coord
 from iris.cube import Cube
@@ -42,7 +42,6 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
 from improver.metadata.probabilistic import (
     find_percentile_coordinate,
     find_threshold_coordinate,
-    get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import get_coord_names
@@ -109,6 +108,8 @@ PRECIP_ACCUM_NAMES = [
     "lwe_thickness_of_snowfall_amount",
     "thickness_of_rainfall_amount",
 ]
+WXCODE_MODE_CM = CellMethod(method="mode", coords="time")
+WXCODE_NAMES = ["weather_code"]
 
 # Compliant, required and forbidden attributes
 NONCOMP_ATTRS = [
@@ -128,6 +129,7 @@ COMPLIANT_ATTRS = MANDATORY_ATTRIBUTES + [
     "Conventions",
     "least_significant_digit",
     "mosg__model_configuration",
+    "mosg__model_run",
 ]
 
 # Expected substrings to be found in certain title attributes
@@ -153,6 +155,7 @@ class MOMetadataInterpreter:
         function.
         """
         self.model_id_attr = "mosg__model_configuration"
+        self.record_run_attr = "mosg__model_run"
         self.unhandled = False
 
         # set up empty strings to record any non-compliance (returned as one error
@@ -181,16 +184,15 @@ class MOMetadataInterpreter:
             )
 
         try:
-            self.diagnostic = get_diagnostic_cube_name_from_probability_name(
+            self.diagnostic = get_threshold_coord_name_from_probability_name(
                 cube.name()
             )
         except ValueError as cause:
             # if the probability name is not valid
             self.errors.append(str(cause))
+            return
 
-        expected_threshold_name = get_threshold_coord_name_from_probability_name(
-            cube.name()
-        )
+        expected_threshold_name = self.diagnostic
 
         if not cube.coords(expected_threshold_name):
             msg = f"Cube does not have expected threshold coord '{expected_threshold_name}'; "
@@ -272,31 +274,28 @@ class MOMetadataInterpreter:
                 if not found_cm:
                     self.errors.append(msg)
 
-        if cube.cell_methods:
-            for cm in cube.cell_methods:
-                if cm.method in COMPLIANT_CM_METHODS:
-                    self.methods += f" {cm.method} over {cm.coord_names[0]}"
-                    if self.field_type == self.PROB:
-                        if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
-                            self.errors.append(
-                                f"Cell method {cm} on probability data should have comment "
-                                f"'of {self.diagnostic}'"
-                            )
-                    # check point and bounds on method coordinate
-                    if "time" in cm.coord_names:
-                        if cube.coord("time").bounds is None:
-                            self.errors.append(
-                                f"Cube of{self.methods} has no time bounds"
-                            )
+        for cm in cube.cell_methods:
+            if cm.method in COMPLIANT_CM_METHODS:
+                self.methods += f" {cm.method} over {cm.coord_names[0]}"
+                if self.field_type == self.PROB:
+                    if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
+                        self.errors.append(
+                            f"Cell method {cm} on probability data should have comment "
+                            f"'of {self.diagnostic}'"
+                        )
+                # check point and bounds on method coordinate
+                if "time" in cm.coord_names:
+                    if cube.coord("time").bounds is None:
+                        self.errors.append(f"Cube of{self.methods} has no time bounds")
 
-                elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
-                    self.errors.append(f"Non-standard cell method {cm}")
-                else:
-                    # flag method which might be invalid, but we can't be sure
-                    self.warnings.append(
-                        f"Unexpected cell method {cm}. Please check the standard to "
-                        "ensure this is valid"
-                    )
+            elif cm in NONCOMP_CMS or cm.method in NONCOMP_CM_METHODS:
+                self.errors.append(f"Non-standard cell method {cm}")
+            else:
+                # flag method which might be invalid, but we can't be sure
+                self.warnings.append(
+                    f"Unexpected cell method {cm}. Please check the standard to "
+                    "ensure this is valid"
+                )
 
     def _check_blend_and_model_attributes(self, attrs: Dict) -> None:
         """Interprets attributes for model and blending information
@@ -304,11 +303,25 @@ class MOMetadataInterpreter:
         self.blended = True if BLEND_TITLE_SUBSTR in attrs["title"] else False
 
         if self.blended:
+            complete_blend_attributes = True
             if self.model_id_attr not in attrs:
                 self.errors.append(f"No {self.model_id_attr} on blended file")
-            else:
+                complete_blend_attributes = False
+            if self.record_run_attr not in attrs:
+                self.errors.append(f"No {self.record_run_attr} on blended file")
+                complete_blend_attributes = False
+
+            if complete_blend_attributes:
                 codes = attrs[self.model_id_attr].split(" ")
                 names = []
+                cycles = {
+                    k: v
+                    for k, v in [
+                        item.split(":")[0:-1]
+                        for item in attrs[self.record_run_attr].split("\n")
+                    ]
+                }
+
                 for code in codes:
                     try:
                         names.append(MODEL_NAMES[code])
@@ -316,7 +329,10 @@ class MOMetadataInterpreter:
                         self.errors.append(
                             f"Model ID attribute contains unrecognised model code {code}"
                         )
+                    else:
+                        names[-1] += f" (cycle: {cycles[code]})"
                 self.model = ", ".join(names)
+
             return
 
         if self.model_id_attr in attrs:
@@ -385,7 +401,7 @@ class MOMetadataInterpreter:
                 self._check_blend_and_model_attributes(attrs)
 
     def _check_coords_present(
-        self, coords: List[str], expected_coords: List[str]
+        self, coords: List[str], expected_coords: Iterable[str]
     ) -> None:
         """Check whether all expected coordinates are present"""
         found_coords = [coord for coord in coords if coord in expected_coords]
@@ -394,6 +410,21 @@ class MOMetadataInterpreter:
                 f"Missing one or more coordinates: found {found_coords}, "
                 f"expected {expected_coords}"
             )
+
+    def _check_coords_are_horizontal(self, cube: Cube, coords: List[str]) -> None:
+        """Checks that all the mentioned coords share the same dimensions as the x and y coords"""
+        y_coord, x_coord = (cube.coord(axis=n) for n in "yx")
+        horizontal_dims = set([cube.coord_dims(n)[0] for n in [y_coord, x_coord]])
+        for coord in coords:
+            try:
+                coord_dims = set(cube.coord_dims(coord))
+            except CoordinateNotFoundError:
+                # The presence of coords is checked elsewhere
+                continue
+            if coord_dims != horizontal_dims:
+                self.errors.append(
+                    f"Coordinate {coord} does not span all horizontal coordinates"
+                )
 
     def _check_coord_bounds(self, cube: Cube, coord: str) -> None:
         """If coordinate has bounds, check points are equal to upper bound"""
@@ -413,6 +444,7 @@ class MOMetadataInterpreter:
                 )
 
         self._check_coords_present(coords, SPOT_COORDS)
+        self._check_coords_are_horizontal(cube, SPOT_COORDS)
 
     def run(self, cube: Cube) -> None:
         """Populates self-consistent interpreted parameters, or raises collated errors
@@ -435,8 +467,13 @@ class MOMetadataInterpreter:
         elif cube.name() in SPECIAL_CASES:
             self.field_type = self.diagnostic = cube.name()
             if cube.name() == "weather_code":
-                if cube.cell_methods:
-                    self.errors.append(f"Unexpected cell methods {cube.cell_methods}")
+                for cm in cube.cell_methods:
+                    if cm == WXCODE_MODE_CM and cube.name() in WXCODE_NAMES:
+                        pass
+                    else:
+                        self.errors.append(
+                            f"Unexpected cell methods {cube.cell_methods}"
+                        )
             elif cube.name() == "wind_from_direction":
                 if cube.cell_methods:
                     expected = CellMethod(method="mean", coords="realization")
@@ -492,16 +529,13 @@ class MOMetadataInterpreter:
         if self.field_type == self.ANCIL:
             # there is no definitive standard for time coordinates on static ancillaries
             pass
-        elif (
-            cube.coords("time")
-            and len(cube.coord_dims("time")) == 2
-            and not self.blended
-        ):
-            # 2D time coordinates are only present on global day-max diagnostics that
-            # use a local time zone coordinate. These do not have a 2D forecast period.
+        elif cube.coords("time_in_local_timezone"):
+            # For data on local timezones, the time coordinate will match the horizontal
+            # dimensions and there will be no forecast period.
             expected_coords = set(LOCAL_TIME_COORDS + UNBLENDED_TIME_COORDS)
             expected_coords.discard("forecast_period")
             self._check_coords_present(coords, expected_coords)
+            self._check_coords_are_horizontal(cube, ["time"])
         elif self.blended:
             self._check_coords_present(coords, BLENDED_TIME_COORDS)
         else:
@@ -538,7 +572,7 @@ class MOMetadataInterpreter:
 
 
 def _format_standard_cases(
-    interpreter: MOMetadataInterpreter, verbose: bool, vstring: str
+    interpreter: MOMetadataInterpreter, verbose: bool, vstring: Callable[[str], str]
 ) -> List[str]:
     """Format prob / perc / diagnostic information from a
     MOMetadataInterpreter instance"""
@@ -610,7 +644,9 @@ def display_interpretation(
     elif interpreter.blended:
         output.append(f"It contains blended data from models: {interpreter.model}")
         if verbose:
-            output.append(vstring("title attribute, model ID attribute"))
+            output.append(
+                vstring("title attribute, model ID attribute, model run attribute")
+            )
     else:
         if interpreter.model:
             output.append(f"It contains data from {interpreter.model}")

@@ -82,11 +82,6 @@ class RecursiveFilter(PostProcessingPlugin):
         self.edge_width = edge_width
         self.smoothing_coefficient_name_format = "smoothing_coefficient_{}"
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = "<RecursiveFilter: iterations: {}, edge_width: {}"
-        return result.format(self.iterations, self.edge_width)
-
     @staticmethod
     def _recurse_forward(
         grid: ndarray, smoothing_coefficients: ndarray, axis: int

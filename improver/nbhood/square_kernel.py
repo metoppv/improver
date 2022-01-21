@@ -89,14 +89,6 @@ class SquareNeighbourhood:
         self.sum_or_fraction = sum_or_fraction
         self.re_mask = re_mask
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<SquareNeighbourhood: weighted_mode: {}, "
-            "sum_or_fraction: {}, re_mask: {}>"
-        )
-        return result.format(self.weighted_mode, self.sum_or_fraction, self.re_mask)
-
     @staticmethod
     def _calculate_neighbourhood(
         data: ndarray, mask: ndarray, nb_size: int, sum_only: bool, re_mask: bool

@@ -449,6 +449,18 @@ class Test_process(IrisTest):
         result = plugin(self.rate_cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
+    def test_threshold_unit_conversion_2(self):
+        """Test threshold coordinate points after undergoing unit conversion.
+        Specifically ensuring that small floating point values have no floating
+        point precision errors after the conversion (float equality check with no
+        tolerance)."""
+        plugin = Threshold([0.03, 0.09, 0.1], threshold_units="mm s-1")
+        result = plugin(self.rate_cube)
+        self.assertArrayEqual(
+            result.coord(var_name="threshold").points,
+            np.array([3e-5, 9.0e-05, 1e-4], dtype="float32"),
+        )
+
     def test_threshold_unit_conversion_fuzzy_factor(self):
         """Test for sensible fuzzy factor behaviour when units of threshold
         are different from input cube.  A fuzzy factor of 0.75 is equivalent

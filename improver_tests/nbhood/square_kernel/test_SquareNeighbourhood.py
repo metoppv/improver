@@ -55,20 +55,6 @@ class Test__init__(IrisTest):
             SquareNeighbourhood(sum_or_fraction=sum_or_fraction)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(SquareNeighbourhood())
-        msg = (
-            "<SquareNeighbourhood: weighted_mode: {}, "
-            "sum_or_fraction: {}, re_mask: {}>".format(True, "fraction", True)
-        )
-        self.assertEqual(result, msg)
-
-
 class Test_run(IrisTest):
 
     """Test the run method on the SquareNeighbourhood class."""

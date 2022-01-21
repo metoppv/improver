@@ -128,18 +128,6 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         radii = np.interp(cube_lead_times, self.lead_times, self.radii)
         return radii
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        if callable(self.neighbourhood_method):
-            neighbourhood_method = self.neighbourhood_method()
-        else:
-            neighbourhood_method = self.neighbourhood_method
-        result = (
-            "<BaseNeighbourhoodProcessing: neighbourhood_method: {}; "
-            "radii: {}; lead_times: {}>"
-        )
-        return result.format(neighbourhood_method, self.radii, self.lead_times)
-
     def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Supply neighbourhood processing method, in order to smooth the
