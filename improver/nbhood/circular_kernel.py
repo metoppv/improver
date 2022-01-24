@@ -37,6 +37,7 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver import PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
 from improver.utilities.cube_checker import (
@@ -111,7 +112,9 @@ def circular_kernel(ranges: int, weighted_mode: bool) -> ndarray:
     return kernel
 
 
-class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
+class GeneratePercentilesFromANeighbourhood(
+    PostProcessingPlugin, BaseNeighbourhoodProcessing
+):
 
     """Class for generating percentiles from a neighbourhood."""
 
@@ -286,7 +289,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
         return pctcube
 
-    def run(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -301,6 +304,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
             Cube containing the percentile fields.
             Has percentile as an added dimension.
         """
+        super(GeneratePercentilesFromANeighbourhood, self).process(cube)
         if mask_cube is not None:
             msg = (
                 "The use of a mask cube with a circular kernel is not "

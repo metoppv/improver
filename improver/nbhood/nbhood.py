@@ -32,23 +32,15 @@
 
 from typing import List, Optional, Union
 
-import iris
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver import PostProcessingPlugin
+from improver import BasePlugin
 from improver.metadata.forecast_times import forecast_period_coord
 
-# from improver.nbhood.square_kernel import Neighbourhood
-from improver.utilities.cube_checker import (
-    check_cube_coordinates,
-    find_dimension_coordinate_mismatch,
-)
-from improver.utilities.cube_manipulation import MergeCubes
 
-
-class BaseNeighbourhoodProcessing(PostProcessingPlugin):
+class BaseNeighbourhoodProcessing(BasePlugin):
     """
     Apply a neighbourhood processing method to a thresholded cube. This is a
     base class for usage with a subclass that will inherit the functionality
@@ -113,10 +105,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         radii = np.interp(cube_lead_times, self.lead_times, self.radii)
         return radii
 
-    def run(self, cube_slice, mask_cube: Optional[Cube] = None):
-        return cube_slice
-
-    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
         Supply neighbourhood processing method, in order to smooth the
         input cube.
@@ -125,48 +114,14 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
             cube:
                 Cube to apply a neighbourhood processing method to, in order to
                 generate a smoother field.
-            mask_cube:
-                Cube containing the array to be used as a mask.
 
-        Returns:
-            Cube after applying a neighbourhood processing method, so that
-            the resulting field is smoothed.
         """
-        # Check if a dimensional realization coordinate exists. If so, the
-        # cube is sliced, so that it becomes a scalar coordinate.
-        try:
-            cube.coord("realization", dim_coords=True)
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_realization = [cube]
-        else:
-            slices_over_realization = cube.slices_over(["realization", "time"])
 
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        cubes_real = []
-        for cube_realization in slices_over_realization:
-            if self.lead_times:
-                # Interpolate to find the radius at each required lead time.
-                fp_coord = forecast_period_coord(cube_realization)
-                fp_coord.convert_units("hours")
-                self.radius = self._find_radii(cube_lead_times=fp_coord.points)
-
-            cube_new = self.run(cube_realization, mask_cube=mask_cube)
-
-            cubes_real.append(cube_new)
-
-        if len(cubes_real) > 1:
-            combined_cube = MergeCubes()(cubes_real, slice_over_realization=True)
-        else:
-            combined_cube = cubes_real[0]
-
-        # Promote dimensional coordinates that used to be present.
-        exception_coordinates = find_dimension_coordinate_mismatch(
-            cube, combined_cube, two_way_mismatch=False
-        )
-        combined_cube = check_cube_coordinates(
-            cube, combined_cube, exception_coordinates=exception_coordinates
-        )
-
-        return combined_cube
+        if self.lead_times:
+            # Interpolate to find the radius at each required lead time.
+            fp_coord = forecast_period_coord(cube)
+            fp_coord.convert_units("hours")
+            self.radius = self._find_radii(cube_lead_times=fp_coord.points)

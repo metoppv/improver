@@ -38,6 +38,7 @@ from iris.cube import Cube
 from numpy import ndarray
 from scipy.ndimage.filters import correlate
 
+from improver import PostProcessingPlugin
 from improver.nbhood.circular_kernel import (
     check_radius_against_distance,
     circular_kernel,
@@ -51,7 +52,7 @@ from improver.utilities.spatial import (
 )
 
 
-class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
+class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing):
     """Class for applying neighbourhood processing to produce a smoothed field
     within the chosen neighbourhood."""
 
@@ -205,7 +206,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
         return data
 
-    def run(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -229,6 +230,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             Cube containing the smoothed field after the square
             neighbourhood method has been applied.
         """
+        super(NeighbourhoodProcessing, self).process(cube)
         check_if_grid_is_equal_area(cube)
 
         # If the data is masked, the mask will be processed as well as the
