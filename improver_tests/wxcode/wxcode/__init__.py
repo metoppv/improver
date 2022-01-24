@@ -92,6 +92,11 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
     """
     Define an example decision tree to test the weather symbols code.
 
+    Args:
+        accumulation:
+            A boolean that if true means the "heavy_precipitation" node
+            should be modified to use a precipitation accumulation rather than
+            a rate.
     Returns:
         A dictionary containing the queries that comprise the decision
         tree.
