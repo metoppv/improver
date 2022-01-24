@@ -31,6 +31,7 @@
 """init for cli and clize"""
 
 import pathlib
+import os
 import shlex
 from collections import OrderedDict
 from functools import partial
@@ -120,9 +121,15 @@ class ObjectAsStr(str):
         self.original_object = obj
         return self
 
+    def __hash__(self):
+        # make sure our hash doesn't clash with normal string hash
+        return super().__hash__(self) ^ hash(type(self))
+
     @staticmethod
     def obj_to_name(obj, cls=None):
         """Helper function to create the string."""
+        if isinstance(obj, str):
+            return obj
         if cls is None:
             cls = type(obj)
         try:
@@ -328,6 +335,7 @@ def with_output(
     wrapped,
     *args,
     output=None,
+    tee=False,
     compression_level=1,
     least_significant_digit: int = None,
     **kwargs,
@@ -349,6 +357,9 @@ def with_output(
         output (str, optional):
             Output file name. If not supplied, the output object will be
             printed instead.
+        tee (bool):
+            Pass through the output object even if saved to file.
+            Used in pipelines of commands if intermediate output needs to be saved.
         compression_level (int):
             Will set the compression level (1 to 9), or disable compression (0).
         least_significant_digit (int):
@@ -367,6 +378,8 @@ def with_output(
 
     if output and result:
         save_netcdf(result, output, compression_level, least_significant_digit)
+        if tee:
+            return ObjectAsStr(result, output)
         return
     return result
 
@@ -404,6 +417,109 @@ def improver_help(prog_name: parameters.pass_name, command=None, *, usage=False)
     return result
 
 
+# run-workflow command
+
+
+def command_executor(output, *argv, verbose=False, dry_run=False):
+    if argv[0] == "improver":
+        result = execute_command(
+            SUBCOMMANDS_DISPATCHER, *argv, verbose=verbose, dry_run=dry_run
+        )
+        if result is None:
+            # assume it's sufficient to pass along the output instead
+            result = output
+            if verbose or dry_run:
+                print(output)
+    else:  # assume generic shell command
+        cmd = " ".join(argv)
+        if verbose or dry_run:
+            print(cmd)
+        if not dry_run and os.system(cmd):  # nosec
+            raise RuntimeError("failed command: " + cmd)
+        result = output
+    if not isinstance(result, ObjectAsStr):
+        # NB: ObjectAsStr protects against circular dependencies in Dask graph
+        result = ObjectAsStr(result, output)
+    return result
+
+
+def no_op(*args, **kwargs):
+    pass
+
+
+@clizefy
+@with_output
+def improver_run_workflow(
+    workflow: inputjson,
+    *,
+    target=None,
+    scheduler="processes",
+    num_workers: int = None,
+    no_clobber=False,
+    verbose=False,
+    dry_run=False,
+):
+    """Execute directed acyclic graph (DAG) of commands.
+
+    Args:
+        workflow (dict):
+            Dictionary defining DAG of commands to execute.
+        target (str):
+            Target to compute and return.
+        scheduler (str):
+            Dask scheduler.
+        num_workers (int):
+            Number of scheduler workers.
+        no_clobber (bool):
+            Do not overwrite existing files.
+        verbose (bool):
+            Print executed commands.
+        dry_run (bool):
+            Print commands to be executed.
+    """
+    from dask.base import tokenize
+    from dask.core import get_deps
+    from dask.delayed import Delayed
+
+    def no_op(*args):
+        pass
+
+    executor = partial(command_executor, verbose=verbose, dry_run=dry_run)
+
+    # convert JSON into Dask DAG
+    dsk = {}
+    for key, argv in workflow.items():
+        if no_clobber and os.path.isfile(key):
+            if verbose:
+                print("skipping existing file: " + key)
+            continue
+        quoted_key = ObjectAsStr(key, key)  # prevents circular dependencies in dask
+        tsk = (executor, quoted_key)
+        tsk += tuple(quoted_key if arg == key else arg for arg in argv)
+        dsk[key] = tsk
+
+    if target is None:
+        pred_deps, succ_deps = get_deps(dsk)
+        # add dummy tasks to every terminal node in the graph
+        no_op_dsk = {
+            "waiter-" + tokenize(dsk[t]): (no_op, t)
+            for t, successors in succ_deps.items()
+            if not successors
+        }
+        dsk.update(no_op_dsk)
+        if len(no_op_dsk) == 1:
+            (target,) = no_op_dsk.keys()
+        else:
+            # collect all wait keys (force computation of every task waited on)
+            tsk = (no_op, *no_op_dsk)
+            target = "waiter-" + tokenize(tsk)
+            dsk[target] = tsk
+
+    # execute DAG
+    result = Delayed(target, dsk).compute(scheduler=scheduler, num_workers=num_workers)
+    return result
+
+
 def _cli_items():
     """Dynamically discover CLIs."""
     import importlib
@@ -412,6 +528,7 @@ def _cli_items():
     from improver.cli import __path__ as improver_cli_pkg_path
 
     yield ("help", improver_help)
+    yield ("run-workflow", improver_run_workflow)
     for minfo in pkgutil.iter_modules(improver_cli_pkg_path):
         mod_name = minfo.name
         if mod_name != "__main__":
