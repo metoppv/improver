@@ -66,8 +66,7 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
         re_mask: bool = True,
     ) -> None:
         """
-        Create a neighbourhood processing subclass that applies a smoothing
-        to points in a cube.
+        Initialise class.
 
         Args:
             neighbourhood_method:

@@ -42,25 +42,16 @@ from improver.metadata.forecast_times import forecast_period_coord
 
 class BaseNeighbourhoodProcessing(BasePlugin):
     """
-    Apply a neighbourhood processing method to a thresholded cube. This is a
-    base class for usage with a subclass that will inherit the functionality
-    within this base class.
-
-    When applied to a thresholded probabilistic cube, it acts like a
-    low-pass filter which reduces noisiness in the probabilities.
-
-    The neighbourhood methods will presently only work with projections in
-    which the x grid point spacing and y grid point spacing are constant
-    over the entire domain, such as the UK national grid projection
-
+    A base class used to set up neighbourhood radii for a given cube
+    based on the forecast period of that cube if required.
     """
 
     def __init__(
         self, radii: Union[float, List[float]], lead_times: Optional[List] = None,
     ) -> None:
         """
-        Create a neighbourhood processing plugin that applies a smoothing
-        to points in a cube.
+        Create a base neighbourhod processing plugins which process radii
+        related arguments.
 
             radii:
                 The radii in metres of the neighbourhood to apply.
@@ -107,13 +98,14 @@ class BaseNeighbourhoodProcessing(BasePlugin):
 
     def process(self, cube: Cube) -> Cube:
         """
-        Supply neighbourhood processing method, in order to smooth the
-        input cube.
+        Supply a cube with a forecast period coordinate in order to set the
+        correct radius for use in neighbourhood processing.
+
+        Also checkes there are no unmasked NaNs in the input cube.
 
         Args:
             cube:
-                Cube to apply a neighbourhood processing method to, in order to
-                generate a smoother field.
+                Cube to apply a neighbourhood processing method.
 
         """
 

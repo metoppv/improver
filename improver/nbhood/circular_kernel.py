@@ -116,7 +116,7 @@ class GeneratePercentilesFromANeighbourhood(
     PostProcessingPlugin, BaseNeighbourhoodProcessing
 ):
 
-    """Class for generating percentiles from a neighbourhood."""
+    """Class for generating percentiles from a circular neighbourhood."""
 
     def __init__(
         self,
@@ -297,19 +297,14 @@ class GeneratePercentilesFromANeighbourhood(
         Args:
             cube:
                 Cube containing array to apply processing to.
-            mask_cube:
-                Cube containing the array to be used as a mask.
 
         Returns:
             Cube containing the percentile fields.
             Has percentile as an added dimension.
         """
         super(GeneratePercentilesFromANeighbourhood, self).process(cube)
-        if mask_cube is not None:
-            msg = (
-                "The use of a mask cube with a circular kernel is not "
-                "yet implemented."
-            )
+        if np.ma.is_masked(cube.data):
+            msg = "The use of masked data is not yet implemented."
             raise NotImplementedError(msg)
 
         # Check that the cube has an equal area grid.

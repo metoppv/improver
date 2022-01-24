@@ -476,87 +476,19 @@ class Test_process(IrisTest):
 
     def test_single_point_masked_to_null(self):
         """Test behaviour with a masked non-zero point.
-        The behaviour here is not right, as the mask is ignored.
-        This comes directly from the numpy.percentile base
-        behaviour."""
-
-        expected = np.array(
-            [
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 0.4, 1.0, 1.0],
-                    [1.0, 0.4, 0.4, 0.4, 1.0],
-                    [1.0, 1.0, 0.4, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ],
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ],
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ],
-            ]
-        )
-        self.cube.data[2, 2] = 0
-
+        The underlying numpy.percentile base behaviour does not support
+        masked arrays so raise an error.
+        """
         mask = np.zeros_like(self.cube.data)
         mask[2, 2] = 1
         self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
-        result = GeneratePercentilesFromANeighbourhood(
-            radius, percentiles=percentiles
-        ).process(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_single_point_masked_other_point(self):
-        """Test behaviour with a non-zero point next to a masked point.
-        The behaviour here is not right, as the mask is ignored."""
-
-        expected = np.array(
-            [
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 0.4, 1.0, 1.0],
-                    [1.0, 0.4, 0.4, 0.4, 1.0],
-                    [1.0, 1.0, 0.4, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ],
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ],
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ],
-            ]
-        )
-        self.cube.data[2, 2] = 0
-
-        mask = np.zeros_like(self.cube.data)
-        mask[2, 3] = 1
-        self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
-        percentiles = np.array([10, 50, 90])
-        radius = 2000.0
-        result = GeneratePercentilesFromANeighbourhood(
-            radius, percentiles=percentiles
-        ).process(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected)
+        message = "The use of masked data is not yet implemented."
+        with self.assertRaisesRegex(NotImplementedError, message):
+            GeneratePercentilesFromANeighbourhood(
+                radius, percentiles=percentiles
+            ).process(self.cube)
 
     def test_single_point_low_percentiles(self):
         """Test behaviour with low percentiles."""
@@ -815,19 +747,6 @@ class Test_process(IrisTest):
         msg = "Distance of {}m exceeds max domain distance".format(radius)
         with self.assertRaisesRegex(ValueError, msg):
             GeneratePercentilesFromANeighbourhood(radius).process(self.cube)
-
-    def test_mask_cube(self):
-        """Test that a NotImplementedError is raised if a mask cube is passed
-        in when generating percentiles from a circular neighbourhood, as this
-        option is not supported."""
-
-        self.cube.data[2, 2] = 0
-        radius = 4000.0
-        msg = "The use of a mask cube with a circular kernel is " "not yet implemented."
-        with self.assertRaisesRegex(NotImplementedError, msg):
-            GeneratePercentilesFromANeighbourhood(radius).process(
-                self.cube, mask_cube=self.cube
-            )
 
 
 if __name__ == "__main__":
