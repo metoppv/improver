@@ -90,7 +90,7 @@ class Test_apply_circular_kernel(IrisTest):
         radius = 6000
         result = NeighbourhoodProcessing(
             "circular", radius, weighted_mode=True
-        ).process(self.cube, radius)
+        ).process(self.cube)
 
         self.assertArrayAlmostEqual(result.data, expected)
 
