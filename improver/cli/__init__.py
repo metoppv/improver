@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """init for cli and clize"""
 
-import pathlib
 import os
+import pathlib
 import shlex
 from collections import OrderedDict
 from functools import partial
