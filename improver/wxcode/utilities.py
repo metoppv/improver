@@ -31,7 +31,7 @@
 """This module defines the utilities required for wxcode plugin """
 
 from collections import OrderedDict
-from typing import Any, Dict, List
+from typing import Any, Dict, List, Optional
 
 import iris
 from iris.cube import Cube
@@ -102,22 +102,49 @@ GROUPED_CODES = {
 }
 
 
-def update_tree_units(tree: Dict[str, Dict[str, Any]]) -> Dict[str, Dict[str, Any]]:
+def update_tree_thresholds(
+    tree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
+) -> Dict[str, Dict[str, Any]]:
     """
     Replaces value / unit pairs from tree definition with an Iris AuxCoord
-    that encodes the same information.
+    that encodes the same information. Also scales any threshold values that
+    have an associated period (e.g. accumulation in 3600 seconds) by a factor
+    to reflect the target period (e.g. a 3-hour, 10800 second, weather symbol).
 
     Args:
         tree:
             Weather symbols decision tree.
+        target_period:
+            The period in seconds that the weather symbol being produced should
+            represent. This should correspond with any period diagnostics, e.g.
+            precipitation accumulation, being used as input. This is used to scale
+            any threshold values that are defined with an associated period in
+            the decision tree.
     Returns:
-        The tree now containing AuxCoords instead of value / unit pairs.
+        The tree now containing AuxCoords instead of value / unit pairs, with
+        period diagnostic threshold values scaled appropriately.
+
+    Raises:
+        ValueError: If thresholds are defined with an associated period and no
+                    target_period is provided.
     """
 
     def _make_thresholds_with_units(items):
         if isinstance(items[0], list):
             return [_make_thresholds_with_units(item) for item in items]
-        values, units = items
+        try:
+            values, units, period = items
+        except ValueError:
+            values, units = items
+        else:
+            if not target_period:
+                raise ValueError(
+                    "The decision tree contains thresholds defined for a particular "
+                    "time period, e.g. the accumulation over 3600 seconds. To "
+                    "use such a decision tree a target_period must be provided "
+                    "such that the threshold values can be scaled appropriately."
+                )
+            values = values * target_period / period
         return iris.coords.AuxCoord(values, units=units)
 
     for query in tree.values():
@@ -338,13 +365,21 @@ def _check_nested_list_consistency(query: List[List[Any]]) -> bool:
     return _checker(query)
 
 
-def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
+def check_tree(
+    wxtree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
+) -> str:
     """Perform some checks to ensure the provided decision tree is valid.
 
     Args:
         wxtree:
             Weather symbols decision tree definition, provided as a
             dictionary.
+        target_period:
+            The period in seconds that the weather symbol being produced should
+            represent. This should correspond with any period diagnostics, e.g.
+            precipitation accumulation, being used as input. This is used to scale
+            any threshold values that are defined with an associated period in
+            the decision tree.
 
     Returns:
         A list of problems found in the decision tree, or if none are found, the
@@ -358,7 +393,7 @@ def check_tree(wxtree: Dict[str, Dict[str, Any]]) -> str:
         raise ValueError("Decision tree is not a dictionary")
 
     issues = []
-    wxtree = update_tree_units(wxtree)
+    wxtree = update_tree_thresholds(wxtree, target_period)
     valid_codes = list(WX_DICT.keys())
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
