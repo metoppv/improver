@@ -862,10 +862,10 @@ class Test_evaluate_condition_chain(Test_WXCode):
             "",
         ]
         msg = (
-            "Invalid condition chain found. First element has length > 1 ",
-            "but second element is not 'AND' or 'OR'.",
+            "Invalid condition chain found. First element has length > 1 "
+            "but second element is not 'AND' or 'OR'."
         )
-        with self.assertRaises(RuntimeError, msg=msg):
+        with self.assertRaisesRegex(RuntimeError, msg):
             self.plugin.evaluate_condition_chain(self.cubes, chain)
 
     def test_with_operators(self):
@@ -1203,8 +1203,8 @@ class Test_check_coincidence(Test_WXCode):
         cubes[-1].coord("time").points = cubes[-1].coord("time").points + 3600
 
         msg = (
-            "Weather symbol input cubes are valid at different times"
-            "['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
+            "Weather symbol input cubes are valid at different times; \n"
+            "\\['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
             "'probability_of_lwe_sleetfall_rate_above_threshold: 1507636800', "
             "'probability_of_rainfall_rate_above_threshold: 1507636800', "
             "'probability_of_lwe_precipitation_rate_in_vicinity_above_threshold: 1507636800', "
@@ -1212,9 +1212,11 @@ class Test_check_coincidence(Test_WXCode):
             "'probability_of_low_type_cloud_area_fraction_above_threshold: 1507636800', "
             "'probability_of_visibility_in_air_below_threshold: 1507636800', "
             "'probability_of_lwe_precipitation_rate_above_threshold: 1507636800', "
-            "'probability_of_shower_condition_above_threshold: 1507640400']"
+            "'probability_of_shower_condition_above_threshold: 1507636800', "
+            "'probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold: 1507636800', "  # noqa: E501
+            "'probability_of_lwe_precipitation_rate_max_above_threshold: 1507640400'\\]"
         )
-        with self.assertRaises(ValueError, msg=msg):
+        with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_coincidence(cubes)
 
     def test_unmatched_periods(self):
@@ -1233,14 +1235,28 @@ class Test_check_coincidence(Test_WXCode):
         msg = (
             "Period diagnostics with different periods have been provided as "
             "input to the weather symbols code. Period diagnostics must all "
-            "describe the same period to be used together."
-            "['probability_of_number_of_lightning_flashes_per_unit_area_in_"
-            "vicinity_above_threshold: 3600', 'probability_of_shower_condition_"
-            "above_threshold: 7200', 'probability_of_shower_condition_above_"
-            "threshold: 7200']"
+            "describe the same period to be used together.\n"
+            "\\['probability_of_shower_condition_above_threshold: 7200', "
+            "'probability_of_number_of_lightning_flashes_per_unit_area_in_"
+            "vicinity_above_threshold: 3600', 'probability_of_lwe_graupel_and_"
+            "hail_fall_rate_in_vicinity_above_threshold: 3600', "
+            "'probability_of_lwe_precipitation_rate_max_above_threshold: 3600', "
+            "'probability_of_shower_condition_above_threshold: 7200'\\]"
         )
-        with self.assertRaises(ValueError, msg=msg):
+        with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_coincidence(self.cubes)
+
+    def test_target_period_mismatch(self):
+        """Test that an exception is raised if the diagnostic periods do not
+        match the user specified target_period."""
+
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=10800)
+        msg = (
+            "Diagnostic periods \\(3600\\) do not match "
+            "the user specified target_period \\(10800\\)."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.check_coincidence(self.cubes)
 
     def test_no_period_diagnostics(self):
         """Test that the first cube in the diagnostic cube list is set as the
@@ -1354,11 +1370,9 @@ class Test_compare_to_threshold(IrisTest):
         one of the expected strings."""
         arr = np.array([0, 1, 2], dtype=np.int32)
         plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
-        msg = (
-            "Invalid comparator: !=. ",
-            "Comparator must be one of '<', '>', '<=', '>='.",
-        )
-        with self.assertRaises(ValueError, msg=msg):
+        msg = "Invalid comparator: !=. Comparator must be one of '<', '>', '<=', '>='."
+
+        with self.assertRaisesRegex(ValueError, msg):
             plugin.compare_array_to_threshold(arr, "!=", 1)
 
 

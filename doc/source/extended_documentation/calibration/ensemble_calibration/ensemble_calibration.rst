@@ -56,16 +56,16 @@ A normal (Gaussian) distribution is often represented using the syntax:
 where :math:`\mu` is mean and :math:`\sigma^{2}` is the variance. The normal
 distribution is a special case, where :math:`\mu` can be interpreted as both
 the mean and the location parameter and :math:`\sigma^{2}` can be interpreted
-as both the variance and the scale parameter. For an alternative distribution,
-such as a truncated normal distribution that has been truncated to lie within
-0 and infinity, the distribution can be represented as:
+as both the variance and the square of the scale parameter. For an alternative
+distribution, such as a truncated normal distribution that has been truncated
+to lie within 0 and infinity, the distribution can be represented as:
 
 .. math::
 
     \mathcal{N^0}(\mu,\,\sigma^{2})
 
 In this case, the :math:`\mu` is strictly interpreted as the location parameter
-and :math:`\sigma^{2}` is strictly interpreted as the scale parameter.
+and :math:`\sigma^{2}` is strictly interpreted as the square of the scale parameter.
 
 ===============================
 What is the location parameter?
@@ -83,6 +83,29 @@ parameter is large, then the distribution will be broader. If the scale is
 smaller, then the distribution will be narrower.
 
 ****************************************************
+Implementation details
+****************************************************
+
+In this implementation, we will choose to define the distributions
+using the scale parameter (as this matches scipy's expectation),
+rather than the square of the scale parameter:
+
+.. math::
+
+    \mathcal{N}(\mu,\,\sigma)
+
+The full equation when estimating the EMOS coefficients using
+the ensemble mean is therefore:
+
+.. math::
+
+    \mathcal{N}(a + b\bar{X}, \sqrt{c + dS^{2}})
+
+This matches the equations noted in `Allen et al., 2021`_.
+
+.. _Allen et al., 2021: https://doi.org/10.1002/qj.3983
+
+****************************************************
 Estimating EMOS coefficients using the ensemble mean
 ****************************************************
 
@@ -91,7 +114,7 @@ If the predictor is the ensemble mean, coefficients are estimated as
 
 .. math::
 
-    \mathcal{N}(a + \bar{X}, c + dS^{2})
+    \mathcal{N}(a + b\bar{X}, \sqrt{c + dS^{2}})
 
 where N is a chosen distribution and values of a, b, c and d are solved in the
 format of :math:`\alpha, \beta, \gamma` and :math:`\delta`, see the equations
@@ -121,7 +144,7 @@ If the predictor is the ensemble realizations, coefficients are estimated for
 
 .. math::
 
-    \mathcal{N}(a + b_1X_1 + ... + b_mX_m, c + dS^{2})
+    \mathcal{N}(a + b_1X_1 + ... + b_mX_m, \sqrt{c + dS^{2}})
 
 where N is a chosen distribution, the values of a, b, c and d relate
 to alpha, beta, gamma and delta through the equations above with
@@ -140,14 +163,14 @@ The EMOS coefficients represent adjustments to the ensemble mean and ensemble
 variance, in order to generate the location and scale parameters that, for the
 chosen distribution, minimise the CRPS. The coefficients can therefore be used
 to construct the location parameter, :math:`\mu`, and scale parameter,
-:math:`\sigma^{2}`, for the calibrated forecast from today's ensemble mean, or
+:math:`\sigma`, for the calibrated forecast from today's ensemble mean, or
 ensemble realizations, and the ensemble variance.
 
 .. math::
 
     \mu = a + b\bar{X}
 
-    \sigma^{2} = c + dS^{2}
+    \sigma = \sqrt{c + dS^{2}}
 
 Note here that this procedure holds whether the distribution is normal, i.e.
 where the application of the EMOS coefficients to the raw ensemble mean results

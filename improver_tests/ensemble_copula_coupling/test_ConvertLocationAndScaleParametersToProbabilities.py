@@ -119,7 +119,7 @@ class Test__check_unit_compatibility(IrisTest):
         self.location_parameters = self.template_cube[0, :, :].copy()
         self.location_parameters.units = "Celsius"
         self.scale_parameters = self.template_cube[0, :, :].copy()
-        self.scale_parameters.units = "Celsius2"
+        self.scale_parameters.units = "Celsius"
 
     def test_compatible_units(self):
         """Pass in compatible cubes that should not raise an exception. No
@@ -133,7 +133,7 @@ class Test__check_unit_compatibility(IrisTest):
         """Pass in cubes with units that can be made equivalent by modification
         to match the threshold units."""
         self.location_parameters.units = "Fahrenheit"
-        self.scale_parameters.units = "Fahrenheit2"
+        self.scale_parameters.units = "Fahrenheit"
         Plugin()._check_unit_compatibility(
             self.location_parameters, self.scale_parameters, self.template_cube
         )
@@ -143,7 +143,7 @@ class Test__check_unit_compatibility(IrisTest):
         """Pass in cubes of incompatible units that should raise an
         exception."""
         self.scale_parameters.units = "m s-1"
-        msg = "This is likely because the mean"
+        msg = "This is likely because the location"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_unit_compatibility(
                 self.location_parameters, self.scale_parameters, self.template_cube
@@ -163,7 +163,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         )
 
         location_parameter_values = np.ones((3, 3)) * 2
-        scale_parameter_values = np.ones((3, 3)) * 4
+        scale_parameter_values = np.ones((3, 3)) * 2
         self.expected = (np.ones((3, 3, 3)) * [0.75, 0.5, 0.25]).T
         self.location_parameter_values = self.template_cube[0, :, :].copy(
             data=location_parameter_values
@@ -172,7 +172,7 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
         self.scale_parameter_values = self.template_cube[0, :, :].copy(
             data=scale_parameter_values
         )
-        self.scale_parameter_values.units = "Celsius2"
+        self.scale_parameter_values.units = "Celsius"
 
     def test_threshold_above_cube(self):
         """Test that the expected probabilities are returned for a cube in
@@ -288,7 +288,7 @@ class Test_process(IrisTest):
         self.scale_parameter_values = self.template_cube[0, :, :].copy(
             data=scale_parameter_values
         )
-        self.scale_parameter_values.units = "Celsius2"
+        self.scale_parameter_values.units = "Celsius"
 
     def test_metadata_matches_template(self):
         """Test that the returned cube's metadata matches the template cube."""

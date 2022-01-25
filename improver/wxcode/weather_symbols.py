@@ -58,7 +58,7 @@ from improver.wxcode.utilities import (
     get_parameter_names,
     is_variable,
     update_daynight,
-    update_tree_units,
+    update_tree_thresholds,
     weather_code_attributes,
 )
 
@@ -94,7 +94,12 @@ class WeatherSymbols(BasePlugin):
     .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
     """
 
-    def __init__(self, wxtree: dict, model_id_attr: Optional[str] = None) -> None:
+    def __init__(
+        self,
+        wxtree: dict,
+        model_id_attr: Optional[str] = None,
+        target_period: Optional[int] = None,
+    ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
         the input diagnostics. Use this decision tree to allocate a weather
@@ -108,6 +113,13 @@ class WeatherSymbols(BasePlugin):
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
                 a space-separated string.
+            target_period:
+                The period in seconds that the weather symbol being produced should
+                represent. This should correspond with any period diagnostics, e.g.
+                precipitation accumulation, being used as input. This is used to scale
+                any threshold values that are defined with an associated period in
+                the decision tree. It will only be used if the decision tree
+                provided has threshold values defined with an associated period.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -116,15 +128,10 @@ class WeatherSymbols(BasePlugin):
         or snowfall rate could not trigger it.
         """
 
-        def make_thresholds_with_units(items):
-            if isinstance(items[0], list):
-                return [make_thresholds_with_units(item) for item in items]
-            values, units = items
-            return iris.coords.AuxCoord(values, units=units)
-
         self.model_id_attr = model_id_attr
         self.start_node = list(wxtree.keys())[0]
-        self.queries = update_tree_units(wxtree)
+        self.target_period = target_period
+        self.queries = update_tree_thresholds(wxtree, target_period)
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
@@ -259,6 +266,7 @@ class WeatherSymbols(BasePlugin):
         Raises:
             ValueError: If validity times differ for diagnostics.
             ValueError: If period diagnostics have different periods.
+            ValueError: If period diagnostics do not match target_period.
         """
         times = []
         bounds = []
@@ -293,6 +301,14 @@ class WeatherSymbols(BasePlugin):
                 "all describe the same period to be used together."
                 f"\n{diagnostic_bounds}"
             )
+        # Check that if time bounded diagnostics are used they match the
+        # user specified target_period.
+        if bounds and self.target_period:
+            if not np.diff(bounds[0])[0] == self.target_period:
+                raise ValueError(
+                    f"Diagnostic periods ({np.diff(bounds[0])[0]}) do not match "
+                    f"the user specified target_period ({self.target_period})."
+                )
 
     @staticmethod
     def _invert_comparator(comparator: str) -> str:
@@ -567,8 +583,8 @@ class WeatherSymbols(BasePlugin):
             return arr >= threshold
         else:
             raise ValueError(
-                "Invalid comparator: {}. ".format(comparator),
-                "Comparator must be one of '<', '>', '<=', '>='.",
+                f"Invalid comparator: {comparator}. "
+                "Comparator must be one of '<', '>', '<=', '>='."
             )
 
     def evaluate_extract_expression(
@@ -699,8 +715,8 @@ class WeatherSymbols(BasePlugin):
                 res = res | new_res
             else:
                 msg = (
-                    "Invalid condition chain found. First element has length > 1 ",
-                    "but second element is not 'AND' or 'OR'.",
+                    "Invalid condition chain found. First element has length > 1 "
+                    "but second element is not 'AND' or 'OR'."
                 )
                 raise RuntimeError(msg)
         return res

@@ -55,7 +55,7 @@ from improver.wxcode.utilities import (
     get_parameter_names,
     interrogate_decision_tree,
     update_daynight,
-    update_tree_units,
+    update_tree_thresholds,
     weather_code_attributes,
 )
 
@@ -98,6 +98,42 @@ class Test_wx_dict(IrisTest):
         self.assertEqual(WX_DICT[28], "Thunder_Shower_Night")
         self.assertEqual(WX_DICT[29], "Thunder_Shower_Day")
         self.assertEqual(WX_DICT[30], "Thunder")
+
+
+@pytest.mark.parametrize(
+    "accumulation, target_period, expected_value, expected_unit",
+    (
+        (False, None, 1, "mm/hr"),
+        (False, 10800, 1, "mm/hr"),
+        (True, 3600, 1, "mm"),
+        (True, 10800, 3, "mm"),
+    ),
+)
+def test_update_tree_thresholds(
+    accumulation, target_period, expected_value, expected_unit
+):
+    """Test that updating tree thresholds returns iris AuxCoords with the
+    expected value and units. Includes a test that the threshold value is scaled
+    if it is defined with an associated period that differs from a user supplied
+    target period."""
+
+    tree = wxcode_decision_tree(accumulation=accumulation)
+    tree = update_tree_thresholds(tree, target_period=target_period)
+    (result,) = tree["heavy_precipitation"]["diagnostic_thresholds"]
+
+    assert isinstance(result, iris.coords.AuxCoord)
+    assert result.points[0] == expected_value
+    assert result.units == expected_unit
+
+
+def test_update_tree_thresholds_exception():
+    """Test that updating tree thresholds raises an error if the input thresholds
+    are defined with an associated period, but no target_period is provided."""
+
+    tree = wxcode_decision_tree(accumulation=True)
+    expected = "The decision tree contains thresholds defined"
+    with pytest.raises(ValueError, match=expected):
+        update_tree_thresholds(tree, target_period=None)
 
 
 class Test_weather_code_attributes(IrisTest):
@@ -348,7 +384,51 @@ def test_interrogate_decision_tree():
         "\u26C5 probability_of_shower_condition_above_threshold (1): 1.0\n"
         "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
     )
-    tree = update_tree_units(wxcode_decision_tree())
+    tree = update_tree_thresholds(wxcode_decision_tree(), None)
+    result = interrogate_decision_tree(tree)
+    assert result == expected
+
+
+def test_interrogate_decision_tree_accumulation_1h():
+    """Test that the function returns the right strings."""
+    expected = (
+        "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+        "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+        "\u26C5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26C5 probability_of_lwe_thickness_of_precipitation_amount_above_threshold (mm): 1.0\n"  # noqa: E501
+        "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+        "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26C5 probability_of_shower_condition_above_threshold (1): 1.0\n"
+        "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+    )
+    tree = update_tree_thresholds(wxcode_decision_tree(accumulation=True), 3600)
+    result = interrogate_decision_tree(tree)
+    assert result == expected
+
+
+def test_interrogate_decision_tree_accumulation_3h():
+    """Test that the function returns the right strings."""
+    expected = (
+        "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+        "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+        "\u26C5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
+        "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26C5 probability_of_lwe_thickness_of_precipitation_amount_above_threshold (mm): 3.0\n"  # noqa: E501
+        "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+        "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26C5 probability_of_shower_condition_above_threshold (1): 1.0\n"
+        "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+    )
+    tree = update_tree_thresholds(wxcode_decision_tree(accumulation=True), 10800)
     result = interrogate_decision_tree(tree)
     assert result == expected
 

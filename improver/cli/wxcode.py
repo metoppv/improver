@@ -40,6 +40,7 @@ def process(
     *cubes: cli.inputcube,
     wxtree: cli.inputjson = None,
     model_id_attr: str = None,
+    target_period: int = None,
     check_tree: bool = False,
 ):
     """ Processes cube for Weather symbols.
@@ -54,6 +55,13 @@ def process(
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
             a space-separated string.
+        target_period:
+            The period in seconds that the weather symbol being produced should
+            represent. This should correspond with any period diagnostics, e.g.
+            precipitation accumulation, being used as input. This is used to scale
+            any threshold values that are defined with an associated period in
+            the decision tree. It will only be used if the decision tree
+            provided has threshold values defined with an associated period.
         check_tree (bool):
             If set the decision tree will be checked to see if it conforms to
             the expected format; the only other argument required is the path
@@ -68,7 +76,7 @@ def process(
     if check_tree:
         from improver.wxcode.utilities import check_tree
 
-        return check_tree(wxtree)
+        return check_tree(wxtree, target_period=target_period)
 
     from iris.cube import CubeList
 
@@ -77,4 +85,6 @@ def process(
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return WeatherSymbols(wxtree, model_id_attr=model_id_attr)(CubeList(cubes))
+    return WeatherSymbols(
+        wxtree, model_id_attr=model_id_attr, target_period=target_period
+    )(CubeList(cubes))
