@@ -341,9 +341,9 @@ class Test_apply_circular_kernel(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected)
 
 
-class Test_run(IrisTest):
+class Test_process(IrisTest):
 
-    """Test the run method on the NeighbourhoodProcessing class."""
+    """Test the process method on the NeighbourhoodProcessing class."""
 
     RADIUS = 4000
 

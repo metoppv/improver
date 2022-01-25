@@ -55,7 +55,6 @@ class Test__init__(IrisTest):
         self.assertTrue(
             plugin.percentile_plugin is GeneratePercentilesFromANeighbourhood
         )
-        self.assertEqual(plugin._nbhood_shape, "circular")
         self.assertAlmostEqual(plugin.radius, 10000.0)
 
 
