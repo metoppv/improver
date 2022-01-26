@@ -222,8 +222,7 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
         check_radius_against_distance(cube, self.radius)
-        original_attributes = cube.attributes
-        original_methods = cube.cell_methods
+
         grid_cells = distance_to_number_of_grid_cells(cube, self.radius)
         if self.neighbourhood_method == "circular":
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
@@ -243,10 +242,4 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
             result_slices.append(cube_slice)
         neighbourhood_averaged_cube = result_slices.merge_cube()
 
-        neighbourhood_averaged_cube.cell_methods = original_methods
-        neighbourhood_averaged_cube.attributes = original_attributes
-
-        neighbourhood_averaged_cube = check_cube_coordinates(
-            cube, neighbourhood_averaged_cube
-        )
         return neighbourhood_averaged_cube
