@@ -47,20 +47,6 @@ from ..nbhood.test_BaseNeighbourhoodProcessing import (
 )
 
 
-class Test__init__(IrisTest):
-
-    """Test the init method."""
-
-    def test_sum_or_fraction(self):
-        """Test that a ValueError is raised if an invalid option is passed
-        in for sum_or_fraction."""
-
-        sum_or_fraction = "nonsense"
-        msg = "option is invalid"
-        with self.assertRaisesRegex(ValueError, msg):
-            NeighbourhoodProcessing("circular", 2000, sum_or_fraction=sum_or_fraction)
-
-
 class Test_apply_circular_kernel(IrisTest):
 
     """Test neighbourhood circular probabilities plugin."""

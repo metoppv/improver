@@ -102,8 +102,6 @@ def process(
     from improver.nbhood import radius_by_lead_time
     from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
-    sum_or_fraction = "sum" if area_sum else "fraction"
-
     radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
 
     result = ApplyNeighbourhoodProcessingWithAMask(
@@ -111,7 +109,7 @@ def process(
         radius_or_radii,
         lead_times=lead_times,
         collapse_weights=weights,
-        sum_or_fraction=sum_or_fraction,
+        sum_only=area_sum,
         re_mask=remask,
     )(cube, mask)
 
