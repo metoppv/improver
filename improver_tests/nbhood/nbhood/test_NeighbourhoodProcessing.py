@@ -385,16 +385,6 @@ class Test_process(IrisTest):
 
     def test_cube_metadata(self):
         """Test that the square neighbourhood processing is successful."""
-        nbhood_result = np.array(
-            [
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-                [1.0, 1.0, 1.0, 1.0, 1.0],
-            ]
-        )
-        expected = np.broadcast_to(nbhood_result, (3, 5, 5))
         neighbourhood_method = "square"
         radii = 2000
         self.cube.attributes = {"Conventions": "CF-1.5"}

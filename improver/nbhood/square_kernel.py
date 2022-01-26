@@ -44,7 +44,6 @@ from improver.nbhood.circular_kernel import (
     circular_kernel,
 )
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
-from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.neighbourhood_tools import boxsum
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
