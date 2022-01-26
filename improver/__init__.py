@@ -100,4 +100,3 @@ class PostProcessingPlugin(BasePlugin):
         ):
             title = cube.attributes["title"]
             cube.attributes["title"] = f"Post-Processed {title}"
-            print(cube.attributes)
