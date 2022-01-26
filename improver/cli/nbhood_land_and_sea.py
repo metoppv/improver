@@ -106,8 +106,6 @@ def process(
     from improver.nbhood.square_kernel import NeighbourhoodProcessing
     from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
-    sum_or_fraction = "sum" if area_sum else "fraction"
-
     masking_coordinate = None
     if any(
         "topographic_zone" in coord.name() for coord in mask.coords(dim_coords=True)
@@ -174,7 +172,7 @@ def process(
                 "square",
                 radius_or_radii,
                 lead_times=lead_times,
-                sum_or_fraction=sum_or_fraction,
+                sum_only=area_sum,
                 re_mask=True,
             )(cube, land_only)
         else:
@@ -183,7 +181,7 @@ def process(
                 radius_or_radii,
                 lead_times=lead_times,
                 collapse_weights=weights,
-                sum_or_fraction=sum_or_fraction,
+                sum_only=area_sum,
                 re_mask=False,
             )(cube, mask)
         result = result_land
@@ -194,7 +192,7 @@ def process(
             "square",
             radius_or_radii,
             lead_times=lead_times,
-            sum_or_fraction=sum_or_fraction,
+            sum_only=area_sum,
             re_mask=True,
         )(cube, sea_only)
         result = result_sea

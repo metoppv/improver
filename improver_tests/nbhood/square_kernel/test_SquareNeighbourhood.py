@@ -42,19 +42,6 @@ from improver.nbhood.square_kernel import NeighbourhoodProcessing
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class Test__init__(IrisTest):
-
-    """Test the init method."""
-
-    def test_sum_or_fraction(self):
-        """Test that a ValueError is raised if an invalid option is passed
-        in for sum_or_fraction."""
-        sum_or_fraction = "nonsense"
-        msg = "option is invalid"
-        with self.assertRaisesRegex(ValueError, msg):
-            NeighbourhoodProcessing("square", 2000, sum_or_fraction=sum_or_fraction)
-
-
 class Test_process(IrisTest):
 
     """Test the process method on the NeighbourhoodProcessing class."""
