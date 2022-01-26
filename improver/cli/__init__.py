@@ -313,6 +313,11 @@ def create_constrained_inputcubelist_converter(*constraints):
 # output handling
 
 
+@parameters.value_inserter
+def pass_output(ba):
+    return ba.kwargs.get("output")
+
+
 @decorator
 def with_output(
     wrapped,
@@ -435,12 +440,12 @@ def no_op(*args, **kwargs):
 def improver_run_workflow(
     workflow: inputjson,
     *,
-    target=None,
     scheduler="processes",
     num_workers: int = None,
     no_clobber=False,
     verbose=False,
     dry_run=False,
+    target: pass_output = None,
 ):
     """Execute directed acyclic graph (DAG) of commands.
 
@@ -463,9 +468,6 @@ def improver_run_workflow(
     from dask.base import tokenize
     from dask.core import get_deps
     from dask.delayed import Delayed
-
-    def no_op(*args):
-        pass
 
     executor = partial(command_executor, verbose=verbose, dry_run=dry_run)
 
