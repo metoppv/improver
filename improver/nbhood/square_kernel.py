@@ -124,7 +124,7 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
                 Mask of valid input data elements.
 
         Returns:
-            Array containing the smoothed field after the square
+            Array containing the smoothed field after the
             neighbourhood method has been applied.
         """
         if not self.sum_only:
@@ -193,26 +193,28 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
 
     def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
-        Call the methods required to apply a square neighbourhood
-        method to a cube.
+        Call the methods required to apply a neighbourhood processing to a cube.
 
-        The steps undertaken are:
+        Applies neighbourhood processing to each 2D x-y-slice of the input cube.
 
-        1. Set up cubes by determining, if the arrays are masked.
-        2. Pad the input array with a halo and then calculate the neighbourhood
-           of the haloed array.
-        3. Remove the halo from the neighbourhooded array and deal with a mask,
-           if required.
+        If the input cube is masked the neighbourhood sum is calculated from
+        the total of the unmasked data in the neighbourhood around each grid
+        point. The neighbourhood mean is then calculated by dividing the
+        neighbourhood sum at each grid point by the total number of valid grid
+        points that contributed to that sum. If a mask_cube is provided then
+        this is used to mask each x-y-slice prior to the neighburhood sum
+        or mean being calculated.
+
 
         Args:
             cube:
-                Cube containing the array to which the square neighbourhood
+                Cube containing the array to which the neighbourhood processing
                 will be applied.
             mask_cube:
                 Cube containing the array to be used as a mask.
 
         Returns:
-            Cube containing the smoothed field after the square
+            Cube containing the smoothed field after the
             neighbourhood method has been applied.
         """
         super(NeighbourhoodProcessing, self).process(cube)
