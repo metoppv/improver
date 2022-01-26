@@ -100,7 +100,7 @@ class Test__repr__(IrisTest):
             "<DiagnoseConvectivePrecipitation: lower_threshold 2.7778e-10; "
             "higher_threshold 1.3889e-06; neighbourhood_method: square; "
             "radii: 2000.0; fuzzy_factor None; comparison_operator: >; "
-            "lead_times: None; weighted_mode: True;"
+            "lead_times: None; weighted_mode: False;"
             "use_adjacent_grid_square_differences: True>"
         )
         self.assertEqual(str(result), msg)
@@ -213,6 +213,7 @@ class Test__calculate_convective_ratio(IrisTest):
             self.higher_threshold,
             neighbourhood_method,
             self.radii,
+            weighted_mode=True,
         )._calculate_convective_ratio(self.cubelist, self.threshold_list)
         self.assertArrayAlmostEqual(result, expected)
 
