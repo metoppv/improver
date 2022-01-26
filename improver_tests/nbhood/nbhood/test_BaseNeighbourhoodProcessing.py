@@ -265,7 +265,7 @@ class Test_process_old(IrisTest):
             spatial_grid="equalarea",
         )
         radii = 5600
-        result = NeighbourhoodProcessing("circular", radii)(cube)
+        result = NeighbourhoodProcessing("circular", radii, weighted_mode=True)(cube)
         self.assertIsInstance(result, Cube)
         expected = np.ones([4, 16, 16], dtype=np.float32)
         expected[0, 6:9, 6:9] = (
@@ -295,7 +295,9 @@ class Test_process_old(IrisTest):
 
         radii = [5600, 7600, 9500]
         lead_times = [2, 3, 4]
-        plugin = NeighbourhoodProcessing("circular", radii, lead_times)
+        plugin = NeighbourhoodProcessing(
+            "circular", radii, lead_times, weighted_mode=True
+        )
         result = plugin(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
         self.assertIsInstance(result, Cube)
@@ -323,7 +325,9 @@ class Test_process_old(IrisTest):
             [0.9925, 0.98, 0.9725, 0.97, 0.9725, 0.98, 0.9925],
             [1, 0.9925, 0.985, 0.9825, 0.985, 0.9925, 1],
         )
-        plugin = NeighbourhoodProcessing("circular", radii, lead_times)
+        plugin = NeighbourhoodProcessing(
+            "circular", radii, lead_times, weighted_mode=True
+        )
         result = plugin(cube)
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result[0].data, expected[0])
@@ -363,7 +367,9 @@ class Test_process_old(IrisTest):
 
         radii = [5600, 9500]
         lead_times = [2, 4]
-        plugin = NeighbourhoodProcessing("circular", radii, lead_times)
+        plugin = NeighbourhoodProcessing(
+            "circular", radii, lead_times, weighted_mode=True
+        )
         result = plugin(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

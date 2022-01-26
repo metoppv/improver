@@ -77,7 +77,6 @@ def test_basic_square(tmp_path):
         "square",
         "--radii",
         "20000",
-        "--weighted-mode",
         "--output",
         output_path,
     ]
@@ -99,7 +98,6 @@ def test_masked_square(tmp_path):
         "square",
         "--radii",
         "20000",
-        "--weighted-mode",
         "--output",
         output_path,
     ]
@@ -214,7 +212,6 @@ def test_halo_radius(tmp_path):
         "square",
         "--radii",
         "20000",
-        "--weighted-mode",
         "--halo-radius=162000",
         "--output",
         output_path,
