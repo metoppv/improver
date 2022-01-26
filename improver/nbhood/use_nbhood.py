@@ -133,7 +133,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         radii: Union[float, List[float]],
         lead_times: Optional[List[float]] = None,
         collapse_weights: Optional[Cube] = None,
-        weighted_mode: bool = True,
+        weighted_mode: bool = False,
         sum_only: bool = False,
         re_mask: bool = False,
     ) -> None:

@@ -60,7 +60,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         neighbourhood_method: str,
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
-        weighted_mode: bool = True,
+        weighted_mode: bool = False,
         sum_only: bool = False,
         re_mask: bool = True,
     ) -> None:
@@ -100,9 +100,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         else:
             msg = "{} is not a valid neighbourhood_method.".format(neighbourhood_method)
             raise ValueError(msg)
-        # if weighted_mode and neighbourhood_method != "circular":
-        #     msg = "weighted_mode can only be used if neighbourhood_method is circular"
-        #     raise ValueError(msg)
+        if weighted_mode and neighbourhood_method != "circular":
+            msg = "weighted_mode can only be used if neighbourhood_method is circular"
+            raise ValueError(msg)
         self.weighted_mode = weighted_mode
         self.sum_only = sum_only
         self.re_mask = re_mask

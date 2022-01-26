@@ -350,7 +350,9 @@ class Test_process(IrisTest):
         data[2, 2] = 0
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
 
-        result = NeighbourhoodProcessing("circular", self.RADIUS).process(cube)
+        result = NeighbourhoodProcessing(
+            "circular", self.RADIUS, weighted_mode=True
+        ).process(cube)
         self.assertIsInstance(cube, Cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
