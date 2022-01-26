@@ -34,6 +34,7 @@
 import unittest
 
 import numpy as np
+from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -347,74 +348,61 @@ class Test__calculate_neighbourhood(IrisTest):
         self.assertArrayAlmostEqual(result.mask, self.expected_mask)
 
 
-#
-# class Test_process(IrisTest):
-#
-#     """Test the process method."""
-#
-#     def setUp(self):
-#         """Set up a cube."""
-#
-#         data = np.ones((1, 5, 5), dtype=np.float32)
-#         data[0, 2, 2] = 0
-#         self.cube = set_up_probability_cube(
-#             data,
-#             thresholds=np.array([278], dtype=np.float32),
-#             spatial_grid="equalarea",
-#         )
-#
-#     def test_weighted_mode_is_true(self):
-#         """Test that the circular neighbourhood processing is successful, if
-#         the weighted mode is True."""
-#         expected = np.array(
-#             [
-#                 [1.0, 1.0, 1.0, 1.0, 1.0],
-#                 [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
-#                 [1.0, 0.875, 0.83333333, 0.875, 1.0],
-#                 [1.0, 0.91666667, 0.875, 0.91666667, 1.0],
-#                 [1.0, 1.0, 1.0, 1.0, 1.0],
-#             ]
-#         )
-#         neighbourhood_method = "circular"
-#         radii = 4000
-#         result = NBHood(neighbourhood_method, radii, weighted_mode=True)(self.cube)
-#         self.assertIsInstance(result, Cube)
-#         self.assertArrayAlmostEqual(result.data, expected)
-#
-#     def test_weighted_mode_is_false(self):
-#         """Test that the circular neighbourhood processing is successful, if
-#         the weighted mode is False."""
-#         expected = np.array(
-#             [
-#                 [1.0, 1.0, 0.92307692, 1.0, 1.0],
-#                 [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
-#                 [0.92307692, 0.92307692, 0.92307692, 0.92307692, 0.92307692],
-#                 [1.0, 0.92307692, 0.92307692, 0.92307692, 1.0],
-#                 [1.0, 1.0, 0.92307692, 1.0, 1.0],
-#             ]
-#         )
-#         neighbourhood_method = "circular"
-#         radii = 4000
-#         result = NBHood(neighbourhood_method, radii,)(self.cube)
-#         self.assertIsInstance(result, Cube)
-#         self.assertArrayAlmostEqual(result.data, expected)
-#
-#     def test_square_neighbourhood(self):
-#         """Test that the square neighbourhood processing is successful."""
-#         expected = np.array(
-#             [
-#                 [1.0, 1.0, 1.0, 1.0, 1.0],
-#                 [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-#                 [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-#                 [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
-#                 [1.0, 1.0, 1.0, 1.0, 1.0],
-#             ]
-#         )
-#         neighbourhood_method = "square"
-#         radii = 2000
-#         result = NBHood(neighbourhood_method, radii)(self.cube)
-#         self.assertIsInstance(result, Cube)
-#         self.assertArrayAlmostEqual(result.data, expected)
+class Test_process(IrisTest):
+
+    """Test the process method."""
+
+    def setUp(self):
+        """Set up a cube."""
+
+        data = np.ones((3, 5, 5), dtype=np.float32)
+        data[:, 2, 2] = 0
+        self.cube = set_up_probability_cube(
+            data,
+            thresholds=np.array([278, 281, 284], dtype=np.float32),
+            spatial_grid="equalarea",
+        )
+
+    def test_square_neighbourhood(self):
+        """Test that the square neighbourhood processing is successful."""
+        nbhood_result = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
+        expected = np.broadcast_to(nbhood_result, (3, 5, 5))
+        neighbourhood_method = "square"
+        radii = 2000
+        result = NeighbourhoodProcessing(neighbourhood_method, radii)(self.cube)
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+        self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
+        self.assertDictEqual(result.attributes, self.cube.attributes)
+
+    def test_cube_metadata(self):
+        """Test that the square neighbourhood processing is successful."""
+        nbhood_result = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 0.88888889, 0.88888889, 0.88888889, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
+        expected = np.broadcast_to(nbhood_result, (3, 5, 5))
+        neighbourhood_method = "square"
+        radii = 2000
+        self.cube.attributes = {"Conventions": "CF-1.5"}
+        self.cube.add_cell_method(CellMethod("mean", coords="time"))
+        result = NeighbourhoodProcessing(neighbourhood_method, radii)(self.cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTupleEqual(result.cell_methods, self.cube.cell_methods)
+        self.assertDictEqual(result.attributes, self.cube.attributes)
 
 
 if __name__ == "__main__":
