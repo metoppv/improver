@@ -134,7 +134,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         lead_times: Optional[List[float]] = None,
         collapse_weights: Optional[Cube] = None,
         weighted_mode: bool = True,
-        sum_or_fraction: str = "fraction",
+        sum_only: bool = False,
         re_mask: bool = False,
     ) -> None:
         """
@@ -170,13 +170,8 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction:
-                Identifier for whether sum or fraction should be returned from
-                neighbourhooding. The sum represents the sum of the
-                neighbourhood.
-                The fraction represents the sum of the neighbourhood divided by
-                the neighbourhood area. "fraction" is the default.
-                Valid options are "sum" or "fraction".
+            sum_only:
+                If true, return neighbourhood sum instead of mean.
             re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
@@ -192,7 +187,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         self.lead_times = lead_times
         self.collapse_weights = collapse_weights
         self.weighted_mode = weighted_mode
-        self.sum_or_fraction = sum_or_fraction
+        self.sum_only = sum_only
         self.re_mask = re_mask
         # Check that if collapse_weights are provided then re_mask is set to False
         if self.collapse_weights is not None and re_mask is True:
@@ -262,7 +257,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             self.radii,
             lead_times=self.lead_times,
             weighted_mode=self.weighted_mode,
-            sum_or_fraction=self.sum_or_fraction,
+            sum_only=self.sum_only,
             re_mask=self.re_mask,
         )
         yname = cube.coord(axis="y").name()

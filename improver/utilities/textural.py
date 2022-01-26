@@ -139,7 +139,7 @@ class FieldTexture(BasePlugin):
         """
         # Calculate the potential transitions within neighbourhoods.
         potential_transitions = NeighbourhoodProcessing(
-            "square", radius, sum_or_fraction="sum"
+            "square", radius, sum_only=True
         ).process(cube)
         potential_transitions.data = 4 * potential_transitions.data
 
@@ -151,7 +151,7 @@ class FieldTexture(BasePlugin):
 
         # Sum the number of actual transitions within the neighbourhood.
         actual_transitions = NeighbourhoodProcessing(
-            "square", radius, sum_or_fraction="sum"
+            "square", radius, sum_only=True
         ).process(actual_transitions)
 
         # Calculate the ratio of actual to potential transitions in areas where the

@@ -132,8 +132,6 @@ def process(
     from improver.utilities.pad_spatial import remove_cube_halo
     from improver.wind_calculations.wind_direction import WindDirection
 
-    sum_or_fraction = "sum" if area_sum else "fraction"
-
     if neighbourhood_output == "percentiles":
         if weighted_mode:
             raise RuntimeError(
@@ -160,7 +158,7 @@ def process(
             radius_or_radii,
             lead_times=lead_times,
             weighted_mode=weighted_mode,
-            sum_or_fraction=sum_or_fraction,
+            sum_only=area_sum,
             re_mask=remask,
         )(cube, mask_cube=mask)
     elif neighbourhood_output == "percentiles":
