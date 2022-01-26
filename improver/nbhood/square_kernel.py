@@ -93,6 +93,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 mask is not applied. Therefore, the neighbourhood processing
                 may result in values being present in areas that were
                 originally masked.
+
+        Raises:
+            ValueError: If the neighbourhood_method is not either
+                        "square" or "circular".
+            ValueError: If the weighted_mode is used with a
+                        neighbourhood_method that is not "circular".
         """
         super().__init__(radii, lead_times=lead_times)
         if neighbourhood_method in ["square", "circular"]:
