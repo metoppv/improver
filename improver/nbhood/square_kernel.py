@@ -113,7 +113,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         self.sum_only = sum_only
         self.re_mask = re_mask
 
-    def _calculate_neighbourhood(self, data: ndarray, mask: ndarray) -> ndarray:
+    def _calculate_neighbourhood(self, data: ndarray, mask: ndarray = None) -> ndarray:
         """
         Apply neighbourhood processing.
 
