@@ -28,3 +28,29 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+import iris
+from iris.cube import Cube, CubeList
+
+from improver import BasePlugin
+
+
+class FilterRealizations(BasePlugin):
+    """For a given list of cubes, identifies the set of times, filters out any realizations
+    that are not present at all times and returns a merged cube of the result."""
+
+    def process(self, cubes: CubeList) -> Cube:
+        """For a given list of cubes, identifies the set of times, filters out any realizations
+        that are not present at all times and returns a merged cube of the result."""
+        times = set()
+        realizations = set()
+        for cube in cubes:
+            times.update([c.point for c in cube.coord("time").cells()])
+            realizations.update(cube.coord("realization").points)
+        filtered_cubes = CubeList()
+        for realization in realizations:
+            realization_cube = cubes.extract(
+                iris.Constraint(realization=realization)
+            ).merge_cube()
+            if set([c.point for c in realization_cube.coord("time").cells()]) == times:
+                filtered_cubes.append(realization_cube)
+        return filtered_cubes.merge_cube()
