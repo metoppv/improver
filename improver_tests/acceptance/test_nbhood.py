@@ -168,7 +168,6 @@ def test_masked_square_remask(tmp_path):
         "square",
         "--radii",
         "20000",
-        "--remask",
         "--output",
         output_path,
     ]

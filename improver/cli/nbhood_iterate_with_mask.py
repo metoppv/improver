@@ -43,6 +43,7 @@ def process(
     weights: cli.inputcube = None,
     *,
     coord_for_masking,
+    neighbourhood_shape,
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
@@ -76,6 +77,11 @@ def process(
         coord_for_masking (str):
             String matching the name of the coordinate that will be used
             for masking.
+        neighbourhood_shape (str):
+            Name of the neighbourhood method to use. Only a "circular"
+            neighbourhood shape is applicable for calculating "percentiles"
+            output.
+            Options: "circular", "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to
             apply.
@@ -88,12 +94,7 @@ def process(
             lead_times. Lead times must be given as integer values.
         area_sum (bool):
             Return sum rather than fraction over the neighbourhood area.
-        remask (bool):
-            Include this option to apply the original un-neighbourhood
-            processed mask to the neighbourhood processed cube.
-            Otherwise the original un-neighbourhood processed mask
-            is not applied. Therefore, the neighbourhood processing may result
-            in values being present in area that were originally masked.
+
 
     Returns:
         iris.cube.Cube:
@@ -106,11 +107,11 @@ def process(
 
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking,
+        neighbourhood_shape,
         radius_or_radii,
         lead_times=lead_times,
         collapse_weights=weights,
         sum_only=area_sum,
-        re_mask=remask,
     )(cube, mask)
 
     return result

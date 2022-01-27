@@ -48,7 +48,37 @@ def test_basic(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, "--radii", "20000", "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_basic_circular(tmp_path):
+    """Test basic land-sea without topographic bands"""
+    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
+    kgo_path = kgo_dir / "kgo_circular.nc"
+    input_path = kgo_dir / "input.nc"
+    mask_path = kgo_dir / "ukvx_landmask.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        mask_path,
+        "--neighbourhood-shape",
+        "circular",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -64,6 +94,8 @@ def test_radii_with_lead_times(tmp_path):
     args = [
         input_path,
         mask_path,
+        "--neighbourhood-shape",
+        "square",
         "--radii",
         "18000,54000,90000,162000",
         "--lead-times",
@@ -86,6 +118,8 @@ def test_unnecessary_weights(tmp_path):
         input_path,
         mask_path,
         weights_path,
+        "--neighbourhood-shape",
+        "square",
         "--radii",
         "20000",
         "--output",
@@ -101,7 +135,16 @@ def test_missing_weights(tmp_path):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "topographic_bands_land.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, "--radii", "20000", "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     with pytest.raises(TypeError, match=".*weights cube.*"):
         run_cli(args)
 
@@ -117,6 +160,8 @@ def test_incorrect_weights(tmp_path):
         input_path,
         mask_path,
         weights_path,
+        "--neighbourhood-shape",
+        "square",
         "--radii",
         "20000",
         "--output",
@@ -137,6 +182,8 @@ def test_topographic_sea(tmp_path):
         input_path,
         mask_path,
         weights_path,
+        "--neighbourhood-shape",
+        "square",
         "--radii",
         "20000",
         "--output",
@@ -156,7 +203,16 @@ def test_landsea_only(tmp_path, landsea):
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, mask_path, "--radii", "20000", "--output", output_path]
+    args = [
+        input_path,
+        mask_path,
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -174,6 +230,32 @@ def test_topographic_bands_probabilities(tmp_path):
         input_path,
         mask_path,
         weights_path,
+        "--neighbourhood-shape",
+        "square",
+        "--radii",
+        "20000",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.slow
+def test_topographic_bands_probabilities_circular(tmp_path):
+    """Test topographic banding of probabilities"""
+    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/topographic_bands"
+    kgo_path = kgo_dir / "kgo_probs_circular.nc"
+    input_path = kgo_dir / "input_probs.nc"
+    mask_path = kgo_dir / "../topographic_bands/topographic_bands_land.nc"
+    weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        mask_path,
+        weights_path,
+        "--neighbourhood-shape",
+        "circular",
         "--radii",
         "20000",
         "--output",
@@ -192,6 +274,8 @@ def test_lead_time_radii_mismatch(tmp_path):
     args = [
         input_path,
         mask_path,
+        "--neighbourhood-shape",
+        "square",
         "--radii",
         "20000,20001",
         "--lead-times",

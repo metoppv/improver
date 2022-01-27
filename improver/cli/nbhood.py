@@ -48,7 +48,6 @@ def process(
     degrees_as_complex=False,
     weighted_mode=False,
     area_sum=False,
-    remask=False,
     percentiles: cli.comma_separated_list = DEFAULT_PERCENTILES,
     halo_radius: float = None,
 ):
@@ -63,7 +62,7 @@ def process(
         mask (iris.cube.Cube):
             A cube to mask the input cube. The data should contain 1 for
             usable points and 0 for discarded points.
-            Only supported with square neighbourhoods. (Optional)
+            Can't be used with "percentiles" as neighbourhood_output (Optional)
         neighbourhood_output (str):
             The form of the results generated using neighbourhood processing.
             If "probabilities" is selected, the mean probability with a
@@ -97,12 +96,6 @@ def process(
             neighbourhood output using the circular kernel.
         area_sum (bool):
             Return sum rather than fraction over the neighbourhood area.
-        remask (bool):
-            Include this option to apply the original un-neighbourhood
-            processed mask to the neighbourhood processed cube.
-            Otherwise the original un-neighbourhood processed mask
-            is not applied. Therefore, the neighbourhood processing may result
-            in values being present in area that were originally masked.
         percentiles (float):
             Calculates value at the specified percentiles from the
             neighbourhood surrounding each grid point. This argument has no
@@ -159,7 +152,7 @@ def process(
             lead_times=lead_times,
             weighted_mode=weighted_mode,
             sum_only=area_sum,
-            re_mask=remask,
+            re_mask=True,
         )(cube, mask_cube=mask)
     elif neighbourhood_output == "percentiles":
         result = GeneratePercentilesFromANeighbourhood(
