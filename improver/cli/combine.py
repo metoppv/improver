@@ -37,7 +37,11 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, operation="+", new_name=None, broadcast_to_threshold=False,
+    *cubes: cli.inputcube,
+    operation="+",
+    new_name=None,
+    broadcast_to_threshold=False,
+    minimum_realizations=None,
 ):
     r"""Combine input cubes.
 
@@ -58,6 +62,10 @@ def process(
         broadcast_to_threshold (bool):
             If True, broadcast input cubes to the threshold coord prior to combining -
             a threshold coord must already exist on the first input cube.
+        minimum_realizations (int):
+            If specified, the input cubes will be filtered to ensure that only realizations that
+            include all available lead times are combined. If the number of realizations that
+            meet this criteria are fewer than this integer, an error will be raised.
 
     Returns:
         result (iris.cube.Cube):
@@ -71,6 +79,17 @@ def process(
         raise TypeError("A cube is needed to be combined.")
     if new_name is None:
         new_name = cubes[0].name()
+
+    if minimum_realizations:
+        from improver.utilities import FilterRealizations
+
+        cube = FilterRealizations()(cubes)
+        realization_count = len(cube.coord("realization").points)
+        if realization_count < minimum_realizations:
+            raise ValueError(
+                f"After filtering, number of realizations {realization_count} is less than {minimum_realizations}"
+            )
+        cubes = [cube]
 
     if operation == "*" or operation == "multiply":
         result = CubeMultiplier()(
