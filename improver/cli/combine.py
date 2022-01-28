@@ -72,31 +72,11 @@ def process(
             Returns a cube with the combined data.
     """
     from iris.cube import CubeList
+    from improver.cube_combiner import Combine
 
-    from improver.cube_combiner import CubeCombiner, CubeMultiplier
-
-    if not cubes:
-        raise TypeError("A cube is needed to be combined.")
-    if new_name is None:
-        new_name = cubes[0].name()
-
-    if minimum_realizations:
-        from improver.utilities import FilterRealizations
-
-        cube = FilterRealizations()(cubes)
-        realization_count = len(cube.coord("realization").points)
-        if realization_count < minimum_realizations:
-            raise ValueError(
-                f"After filtering, number of realizations {realization_count} is less than {minimum_realizations}"
-            )
-        cubes = [cube]
-
-    if operation == "*" or operation == "multiply":
-        result = CubeMultiplier()(
-            CubeList(cubes), new_name, broadcast_to_threshold=broadcast_to_threshold,
-        )
-
-    else:
-        result = CubeCombiner(operation)(CubeList(cubes), new_name)
-
-    return result
+    return Combine(
+        operation,
+        new_name=new_name,
+        broadcast_to_threshold=broadcast_to_threshold,
+        minimum_realizations=minimum_realizations,
+    )(CubeList(cubes))
