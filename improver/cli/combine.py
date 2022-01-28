@@ -72,6 +72,7 @@ def process(
             Returns a cube with the combined data.
     """
     from iris.cube import CubeList
+
     from improver.cube_combiner import Combine
 
     return Combine(

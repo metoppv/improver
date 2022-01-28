@@ -76,8 +76,8 @@ def test_minmax_temperatures(tmp_path, minmax):
 def test_minimum_realizations(tmp_path, realizations, gives_error):
     """Test combining with the minimum-realizations filter"""
     kgo_dir = acc.kgo_root() / "combine/minimum_realizations"
-    kgo_path = kgo_dir / f"kgo.nc"
-    temperatures = sorted(kgo_dir.glob(f"*temperature_at_screen_level*.nc"))
+    kgo_path = kgo_dir / "kgo.nc"
+    temperatures = sorted(kgo_dir.glob("*temperature_at_screen_level*.nc"))
     output_path = tmp_path / "output.nc"
     args = [
         "--operation",

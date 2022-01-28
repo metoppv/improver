@@ -33,7 +33,7 @@
 import pytest
 
 from improver.cube_combiner import Combine, CubeCombiner, CubeMultiplier
-from improver_tests.utilities.test_FilterRealizations import realization_cubes_fixture
+from improver_tests.utilities.test_FilterRealizations import realization_cubes_fixture  # noqa: F401
 
 
 @pytest.mark.parametrize("broadcast_to_threshold", (False, True))

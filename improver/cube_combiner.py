@@ -133,7 +133,8 @@ class Combine(BasePlugin):
             realization_count = len(cube.coord("realization").points)
             if realization_count < self.minimum_realizations:
                 raise ValueError(
-                    f"After filtering, number of realizations {realization_count} is less than {self.minimum_realizations}"
+                    f"After filtering, number of realizations {realization_count} "
+                    f"is less than {self.minimum_realizations}"
                 )
             filtered_cubes = cube.slices_over("time")
         else:

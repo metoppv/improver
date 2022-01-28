@@ -196,7 +196,9 @@ class Test_process(MultiplierTest):
     def test_with_Combine(self):
         """Test plugin works through the Combine plugin"""
         cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
-        result = Combine("*", broadcast_to_threshold=True, new_name="new_cube_name")(cubelist)
+        result = Combine("*", broadcast_to_threshold=True, new_name="new_cube_name")(
+            cubelist
+        )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
