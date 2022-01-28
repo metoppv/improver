@@ -65,7 +65,7 @@ class Combine(BasePlugin):
     def __init__(
         self,
         operation: str,
-        minimum_realizations: int = None,
+        minimum_realizations: Union[str, int, None] = None,
         new_name: str = None,
         broadcast_to_threshold: bool = False,
     ):
@@ -85,7 +85,12 @@ class Combine(BasePlugin):
                 meet this criteria are fewer than this integer, an error will be raised.
                 Minimum value is 1.
         """
-        self.minimum_realizations = minimum_realizations
+        try:
+            self.minimum_realizations = int(minimum_realizations)
+        except TypeError:
+            if minimum_realizations is not None:
+                raise
+            self.minimum_realizations = None
         self.new_name = new_name
         self.broadcast_to_threshold = broadcast_to_threshold
 
@@ -130,7 +135,7 @@ class Combine(BasePlugin):
                 raise ValueError(
                     f"After filtering, number of realizations {realization_count} is less than {self.minimum_realizations}"
                 )
-            filtered_cubes = [cube]
+            filtered_cubes = cube.slices_over("time")
         else:
             filtered_cubes = cubes
 

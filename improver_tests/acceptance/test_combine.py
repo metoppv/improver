@@ -72,6 +72,33 @@ def test_minmax_temperatures(tmp_path, minmax):
     acc.compare(output_path, kgo_path)
 
 
+@pytest.mark.parametrize("realizations, gives_error", ((3, False), (4, True)))
+def test_minimum_realizations(tmp_path, realizations, gives_error):
+    """Test combining with the minimum-realizations filter"""
+    kgo_dir = acc.kgo_root() / "combine/minimum_realizations"
+    kgo_path = kgo_dir / f"kgo.nc"
+    temperatures = sorted(kgo_dir.glob(f"*temperature_at_screen_level*.nc"))
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--operation",
+        "max",
+        "--minimum-realizations",
+        f"{realizations}",
+        *temperatures,
+        "--output",
+        f"{output_path}",
+    ]
+    if gives_error:
+        with pytest.raises(
+            ValueError,
+            match=f"After filtering, number of realizations 3 is less than {realizations}",
+        ):
+            run_cli(args)
+    else:
+        run_cli(args)
+        acc.compare(output_path, kgo_path)
+
+
 def test_combine_accumulation(tmp_path):
     """Test combining precipitation accumulations"""
     kgo_dir = acc.kgo_root() / "combine/accum"
