@@ -193,8 +193,7 @@ def test_no_lightning(tmp_path):
 @pytest.mark.parametrize(
     "wxtree,expected",
     (
-        ("wx_decision_tree_1h.json", "Decision tree OK\nRequired inputs are:"),
-        ("wx_decision_tree_3h.json", "Decision tree OK\nRequired inputs are:"),
+        ("wx_decision_tree.json", "Decision tree OK\nRequired inputs are:"),
         ("bad_wx_decision_tree.json", "Unreachable node 'unreachable'"),
     ),
 )
@@ -205,6 +204,8 @@ def test_trees(wxtree, expected):
         "--wxtree",
         kgo_dir / wxtree,
         "--check-tree",
+        "--target-period",
+        "3600",
     ]
     result = run_cli(args)
     assert re.match(expected, result)
