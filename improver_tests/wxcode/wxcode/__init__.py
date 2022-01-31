@@ -88,10 +88,15 @@ def set_up_wxcube(
     return cube
 
 
-def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
+def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]]:
     """
     Define an example decision tree to test the weather symbols code.
 
+    Args:
+        accumulation:
+            A boolean that if true means the "heavy_precipitation" node
+            should be modified to use a precipitation accumulation rather than
+            a rate.
     Returns:
         A dictionary containing the queries that comprise the decision
         tree.
@@ -493,5 +498,19 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
             "diagnostic_conditions": ["above"],
         },
     }
+
+    if accumulation:
+        queries["heavy_precipitation"] = {
+            "if_true": "heavy_precipitation_cloud",
+            "if_false": "precipitation_in_vicinity",
+            "probability_thresholds": [0.5],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": [
+                "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
+            ],
+            "diagnostic_thresholds": [[1.0, "mm", 3600]],
+            "diagnostic_conditions": ["above"],
+        }
 
     return queries

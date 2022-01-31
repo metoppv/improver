@@ -77,10 +77,16 @@ accessed with this key contains the essentials that make the node function.
     condition_combination. Alternatively, if they are being manipulated within
     the node (e.g. added together), they must be separated by the desired
     operators (e.g. 'diagnostic1', '+', 'diagnostic2').
-  - **diagnostic_thresholds** (List(List(float, str)): The diagnostic threshold
-    value and units being used in the test. A threshold [value, units] pair must
-    be provided for each diagnostic field with the same nested list structure; as
-    the basic unit is a list of value and unit, the overall nested structure is
+  - **diagnostic_thresholds** (List(List(float, str, Optional(int))): The
+    diagnostic threshold value and units being used in the test. An optional
+    third value provides a period in seconds that is associated with the
+    threshold value. For example, a precipitation accumulation threshold might
+    be given for a 1-hour period (3600 seconds). If instead 3-hour symbols are
+    being produced using 3-hour precipitation accumulations then the threshold
+    value will be scaled up by a factor of 3. Only thresholds with an
+    associated period will be scaled in this way. A threshold [value, units] pair
+    must be provided for each diagnostic field with the same nested list structure;
+    as the basic unit is a list of value and unit, the overall nested structure is
     one list deeper.
   - **diagnostic_conditions** (as diagnostic_fields): The expected inequality
     that has been used to construct the input probability field. This is checked
