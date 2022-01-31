@@ -33,10 +33,11 @@
 from calendar import timegm
 from datetime import datetime as dt
 from datetime import timedelta
+from typing import Tuple
 
 import numpy as np
 import pytest
-from iris.cube import Cube
+from iris.cube import CubeList
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
@@ -44,11 +45,14 @@ from improver.wxcode.modal_code import ModalWeatherCode
 
 from . import set_up_wxcube
 
+MODEL_ID_ATTR = "mosg__model_configuration"
 TARGET_TIME = dt(2020, 6, 15, 18)
 
 
 @pytest.fixture(name="wxcode_series")
-def wxcode_series_fixture(data, cube_type, offset_reference_times: bool) -> Cube:
+def wxcode_series_fixture(
+    data, cube_type, offset_reference_times: bool, model_id_attr: bool,
+) -> Tuple[bool, CubeList]:
     """Generate a time series of weather code cubes for combination to create
     a period representative code. When offset_reference_times is set, each
     successive cube will have a reference time one hour older."""
@@ -56,7 +60,7 @@ def wxcode_series_fixture(data, cube_type, offset_reference_times: bool) -> Cube
     time = TARGET_TIME
 
     ntimes = len(data)
-    wxcubes = []
+    wxcubes = CubeList()
 
     for i in range(ntimes):
         wxtime = time - timedelta(hours=i)
@@ -93,9 +97,13 @@ def wxcode_series_fixture(data, cube_type, offset_reference_times: bool) -> Cube
                     scalar_coords=time_coords,
                 )
             )
-    return wxcubes
+        if model_id_attr:
+            [c.attributes.update({MODEL_ID_ATTR: "uk_ens"}) for c in wxcubes]
+            wxcubes[0].attributes.update({MODEL_ID_ATTR: "uk_det uk_ens"})
+    return model_id_attr, wxcubes
 
 
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
@@ -133,13 +141,15 @@ def wxcode_series_fixture(data, cube_type, offset_reference_times: bool) -> Cube
 )
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
-    result = ModalWeatherCode()(wxcode_series)
+    _, wxcode_cubes = wxcode_series
+    result = ModalWeatherCode()(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
-@pytest.mark.parametrize("data", [np.ones((12)), np.ones((1))])
+@pytest.mark.parametrize("data", [np.ones(12), np.ones(1)])
 def test_metadata(wxcode_series):
     """Check that the returned metadata is correct. In this case we expect a
     time coordinate with bounds that describe the full period over which the
@@ -154,9 +164,16 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    result = ModalWeatherCode()(wxcode_series)
+    model_id_attr, wxcode_cubes = wxcode_series
 
-    n_times = len(wxcode_series)
+    if model_id_attr:
+        kwargs = {"model_id_attr": MODEL_ID_ATTR}
+    else:
+        kwargs = {}
+
+    result = ModalWeatherCode(**kwargs)(wxcode_cubes)
+
+    n_times = len(wxcode_cubes)
     expected_time = TARGET_TIME
     expected_bounds = [TARGET_TIME - timedelta(hours=n_times), TARGET_TIME]
     expected_reference_time = TARGET_TIME - timedelta(hours=18)
@@ -180,3 +197,7 @@ def test_metadata(wxcode_series):
     )
     assert result.cell_methods[0].method == expected_cell_method[0]
     assert result.cell_methods[0].coord_names[0] == expected_cell_method[1]
+    if model_id_attr:
+        assert result.attributes[MODEL_ID_ATTR] == "uk_det uk_ens"
+    else:
+        assert MODEL_ID_ATTR not in result.attributes.keys()

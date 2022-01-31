@@ -68,6 +68,8 @@ def test_expected(tmp_path, test_path):
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
+        "--model-id-attr",
+        "mosg__model_configuration",
         "--output",
         output_path,
     ]
