@@ -315,6 +315,7 @@ class CubeMultiplier(CubeCombiner):
 
     def __init__(self, broadcast_to_threshold: bool = False) -> None:
         """Create a CubeMultiplier plugin
+
         Args:
             broadcast_to_threshold:
                 True if the first cube has a threshold coordinate to which the
