@@ -272,6 +272,10 @@ class ResamplePercentiles(BasePlugin):
             percentile_coord_name
         ).points
 
+        original_mask = None
+        if np.ma.is_masked(forecast_at_percentiles.data):
+            original_mask = forecast_at_percentiles.data.mask[0]
+
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         enforce_coordinate_ordering(forecast_at_percentiles, percentile_coord_name)
@@ -308,6 +312,11 @@ class ResamplePercentiles(BasePlugin):
         percentile_cube = create_cube_with_percentiles(
             desired_percentiles, template_cube, forecast_at_percentiles_data,
         )
+        if original_mask is not None:
+            original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
+            percentile_cube.data = np.ma.MaskedArray(
+                percentile_cube.data, original_mask
+            )
         return percentile_cube
 
     def process(
@@ -528,6 +537,10 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
 
+        original_mask = None
+        if np.ma.is_masked(forecast_probabilities.data):
+            original_mask = forecast_probabilities.data.mask[0]
+
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
         enforce_coordinate_ordering(forecast_probabilities, threshold_coord.name())
@@ -603,6 +616,12 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             forecast_at_percentiles,
             cube_unit=threshold_unit,
         )
+
+        if original_mask is not None:
+            original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
+            percentile_cube.data = np.ma.MaskedArray(
+                percentile_cube.data, original_mask
+            )
         return percentile_cube
 
     def process(
@@ -1326,6 +1345,59 @@ class EnsembleReordering(BasePlugin):
         results = check_cube_coordinates(post_processed_forecast_percentiles, results)
         return results
 
+    @staticmethod
+    def _check_input_cube_masks(post_processed_forecast, raw_forecast):
+        """
+        Checks that both input cubes have the same mask applied to each
+        x-y slice of both cubes.
+
+        Args:
+            post_processed_forecast:
+                The cube containing the post-processed
+                forecast realizations.
+            raw_forecast:
+                The cube containing the raw (not post-processed)
+                forecast.
+
+        Raises:
+            ValueError:
+                If only one of raw_forecast and post_processed_forecast is masked
+            ValueError:
+                If the post_processed_forecast does not have same mask on all
+                x-y slices
+            ValueError:
+                If the raw_forecast x-y slices do not all have the same mask
+                as the post_processed_forecast.
+        """
+        if np.ma.is_masked(post_processed_forecast.data) or np.ma.is_masked(
+            raw_forecast.data
+        ):
+
+            if not (
+                np.ma.is_masked(post_processed_forecast.data)
+                and np.ma.is_masked(raw_forecast.data)
+            ):
+                message = (
+                    "Only one of raw_forecast and post_processed_forecast is masked."
+                )
+                raise (ValueError(message))
+            for slice in post_processed_forecast.data.mask[1:, ...]:
+                if np.any(slice != post_processed_forecast.data.mask[0]):
+
+                    message = (
+                        "The post_processed_forecast does not have same"
+                        " mask on all x-y slices"
+                    )
+                    raise (ValueError(message))
+            for slice in raw_forecast.data.mask[0:, ...]:
+                if np.any(slice != post_processed_forecast.data.mask[0]):
+
+                    message = (
+                        "The raw_forecast x-y slices do not all have the"
+                        " same mask as the post_processed_forecast."
+                    )
+                    raise (ValueError(message))
+
     def process(
         self,
         post_processed_forecast: Cube,
@@ -1360,6 +1432,7 @@ class EnsembleReordering(BasePlugin):
             input percentiles. This cube contains the same ensemble
             realization numbers as the raw forecast.
         """
+        self._check_input_cube_masks(post_processed_forecast, raw_forecast)
 
         percentile_coord_name = find_percentile_coordinate(
             post_processed_forecast

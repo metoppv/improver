@@ -381,6 +381,94 @@ class Test_rank_ecc(IrisTest):
         self.assertIn(True, matches)
 
 
+class Test__check_input_cube_masks(IrisTest):
+
+    """Test the EnsembleReordering plugin."""
+
+    def setUp(self):
+        """
+        Create a raw realization forecast with a fixed set of realization
+        numbers and a percentile cube following ensemble reordering.
+        """
+        self.raw_cube = set_up_variable_cube(
+            ECC_TEMPERATURE_REALIZATIONS.copy(), realizations=[10, 11, 12]
+        )
+        self.post_processed_percentiles = set_up_percentile_cube(
+            np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
+            np.array([10, 50, 90], dtype=np.float32),
+        )
+
+    def test_unmasked_data(self):
+        """Test umasked data does not raise any errors."""
+        Plugin._check_input_cube_masks(self.post_processed_percentiles, self.raw_cube)
+
+    def test_only_one_input_cube_masked(self):
+        """
+        Test an error is raised if only the post_processed_forecast is masked.
+        """
+        self.post_processed_percentiles.data[:, 0, 0] = np.nan
+        self.post_processed_percentiles.data = np.ma.masked_invalid(
+            self.post_processed_percentiles.data
+        )
+        message = "Only one of raw_forecast and post_processed_forecast is masked."
+        with self.assertRaisesRegex(ValueError, message):
+            Plugin._check_input_cube_masks(
+                self.post_processed_percentiles, self.raw_cube
+            )
+
+    def test_post_processed_forecast_inconsistent_mask(self):
+        """Test an error is raised if the post_processed_forecast has an
+        inconsistent mask.
+        """
+        self.post_processed_percentiles.data[2, 0, 0] = np.nan
+        self.post_processed_percentiles.data = np.ma.masked_invalid(
+            self.post_processed_percentiles.data
+        )
+        self.raw_cube.data[:, 0, 0] = np.nan
+        self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
+
+        message = (
+            "The post_processed_forecast does not have same mask on all x-y slices"
+        )
+        with self.assertRaisesRegex(ValueError, message):
+            Plugin._check_input_cube_masks(
+                self.post_processed_percentiles, self.raw_cube
+            )
+
+    def test_raw_forecast_inconsistent_mask(self):
+        """Test an error is raised if the raw_forecast has an
+        inconsistent mask.
+        """
+        self.post_processed_percentiles.data[:, 0, 0] = np.nan
+        self.post_processed_percentiles.data = np.ma.masked_invalid(
+            self.post_processed_percentiles.data
+        )
+        self.raw_cube.data[2, 0, 0] = np.nan
+        self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
+
+        message = (
+            "The raw_forecast x-y slices do not all have the"
+            " same mask as the post_processed_forecast."
+        )
+        with self.assertRaisesRegex(ValueError, message):
+            Plugin._check_input_cube_masks(
+                self.post_processed_percentiles, self.raw_cube
+            )
+
+    def test_consistent_masks(self):
+        """Test no error is raised if the raw_forecast and
+        post_processed_forecast have consistent masks.
+        """
+        self.post_processed_percentiles.data[:, 0, 0] = np.nan
+        self.post_processed_percentiles.data = np.ma.masked_invalid(
+            self.post_processed_percentiles.data
+        )
+        self.raw_cube.data[:, 0, 0] = np.nan
+        self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
+
+        Plugin._check_input_cube_masks(self.post_processed_percentiles, self.raw_cube)
+
+
 class Test_process(IrisTest):
 
     """Test the EnsembleReordering plugin."""
@@ -413,6 +501,56 @@ class Test_process(IrisTest):
             result.coord("realization"), self.raw_cube.coord("realization")
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_basic_masked_input_data(self):
+        """
+        Test that the plugin returns an iris.cube.Cube, the cube has a
+        realization coordinate with specific realization numbers and is
+        correctly re-ordered to match the source realizations, when the
+        input data is masked.
+        """
+        # Assuming inptu data and raw ensemble are masked in the same way.
+        self.raw_cube.data[:, 0, 0] = np.nan
+        self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
+        self.post_processed_percentiles.data[:, 0, 0] = np.nan
+        self.post_processed_percentiles.data = np.ma.masked_invalid(
+            self.post_processed_percentiles.data
+        )
+        expected_data = self.raw_cube.data.copy()
+        result = Plugin().process(self.post_processed_percentiles, self.raw_cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTrue(result.coords("realization"))
+        self.assertEqual(
+            result.coord("realization"), self.raw_cube.coord("realization")
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.data.mask, expected_data.mask)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_basic_masked_input_data_not_nans(self):
+        """
+        Test that the plugin returns an iris.cube.Cube, the cube has a
+        realization coordinate with specific realization numbers and is
+        correctly re-ordered to match the source realizations, when the
+        input data is masked.
+        """
+        # Assuming inptu data and raw ensemble are masked in the same way.
+        self.raw_cube.data[:, 0, 0] = 1000
+        self.raw_cube.data = np.ma.masked_equal(self.raw_cube.data, 1000)
+        self.post_processed_percentiles.data[:, 0, 0] = 1000
+        self.post_processed_percentiles.data = np.ma.masked_equal(
+            self.post_processed_percentiles.data, 1000
+        )
+        expected_data = self.raw_cube.data.copy()
+        result = Plugin().process(self.post_processed_percentiles, self.raw_cube)
+        self.assertIsInstance(result, Cube)
+        self.assertTrue(result.coords("realization"))
+        self.assertEqual(
+            result.coord("realization"), self.raw_cube.coord("realization")
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertArrayAlmostEqual(result.data.mask, expected_data.mask)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_1d_cube_random_ordering(self):
