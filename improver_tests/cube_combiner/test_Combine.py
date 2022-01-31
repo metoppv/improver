@@ -29,11 +29,35 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the cube_combiner.Combine plugin."""
+from datetime import datetime
 
+import numpy as np
 import pytest
+from iris.cube import CubeList
 
 from improver.cube_combiner import Combine, CubeCombiner, CubeMultiplier
-from improver_tests.utilities.test_FilterRealizations import realization_cubes_fixture  # noqa: F401
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+
+
+@pytest.fixture(name="realization_cubes")
+def realization_cubes_fixture() -> CubeList:
+    """Set up a single realization cube in parameter space"""
+    realizations = [0, 1, 2, 3]
+    data = np.ones((len(realizations), 2, 2), dtype=np.float32)
+    times = [datetime(2017, 11, 10, hour) for hour in [4, 5, 6]]
+    cubes = CubeList()
+    for time in times:
+        cubes.append(
+            set_up_variable_cube(
+                data,
+                realizations=realizations,
+                spatial_grid="equalarea",
+                time=time,
+                frt=datetime(2017, 11, 10, 1),
+            )
+        )
+    cube = cubes.merge_cube()
+    return CubeList(cube.slices_over("realization"))
 
 
 @pytest.mark.parametrize("broadcast_to_threshold", (False, True))
