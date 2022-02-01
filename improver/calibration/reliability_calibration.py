@@ -39,6 +39,7 @@ import numpy as np
 import scipy
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
@@ -282,11 +283,20 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         non_spatial_coords = ["forecast_period", diagnostic]
 
         # Construct a list of coordinates in the desired order
+        aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
+        aux_coords_and_dims.append((reliability_name_coord, 0))
         spatial_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
         spatial_coords_and_dims = _get_coords_and_dims(spatial_coords)
-        aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
+        try:
+            spot_index_coord = _get_coords_and_dims(["spot_index"])
+            wmo_id_coord = _get_coords_and_dims(["wmo_id"])
+        except CoordinateNotFoundError:
+            dim_coords_and_dims = spatial_coords_and_dims
+        else:
+            dim_coords_and_dims = spot_index_coord
+            aux_coords_and_dims.extend(spatial_coords_and_dims + wmo_id_coord)
+
         dim_coords_and_dims.append((reliability_index_coord, 0))
-        aux_coords_and_dims.append((reliability_name_coord, 0))
         dim_coords_and_dims.append((probability_bins_coord, 1))
 
         reliability_cube = iris.cube.Cube(
