@@ -479,6 +479,7 @@ class Test_process(Test_Setup):
         result = Plugin(
             single_value_lower_limit=True, single_value_upper_limit=True
         ).process(self.forecasts, self.truths)
+        result.coord('spot_index')
 
         assert_array_equal(result[0].data, expected)
 
