@@ -151,7 +151,7 @@ class Test_rank_ecc(IrisTest):
         Create a cube with forecast_reference_time and
         forecast_period coordinates.
         """
-        self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
+        self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS.copy())
         self.cube_2d = self.cube[:, :2, 0].copy()
 
     def test_basic(self):
@@ -394,7 +394,7 @@ class Test__check_input_cube_masks(IrisTest):
             ECC_TEMPERATURE_REALIZATIONS.copy(), realizations=[10, 11, 12]
         )
         self.post_processed_percentiles = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
+            np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
             np.array([10, 50, 90], dtype=np.float32),
         )
 
@@ -402,15 +402,25 @@ class Test__check_input_cube_masks(IrisTest):
         """Test umasked data does not raise any errors."""
         Plugin._check_input_cube_masks(self.post_processed_percentiles, self.raw_cube)
 
-    def test_only_one_input_cube_masked(self):
+    def test_only_one_post_processed_forecast_masked(self):
         """
-        Test an error is raised if only the post_processed_forecast is masked.
+        Test no error is raised if only the post_processed_forecast is masked.
         """
         self.post_processed_percentiles.data[:, 0, 0] = np.nan
         self.post_processed_percentiles.data = np.ma.masked_invalid(
             self.post_processed_percentiles.data
         )
-        message = "Only one of raw_forecast and post_processed_forecast is masked."
+        Plugin._check_input_cube_masks(self.post_processed_percentiles, self.raw_cube)
+
+    def test_only_raw_cube_masked(self):
+        """
+        Test an error is raised if only the raw_cube is masked.
+        """
+        self.raw_cube.data[:, 0, 0] = np.nan
+        self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
+        message = (
+            "The raw_forecast is masked but the post_processed_forecast forecast isn't."
+        )
         with self.assertRaisesRegex(ValueError, message):
             Plugin._check_input_cube_masks(
                 self.post_processed_percentiles, self.raw_cube
@@ -479,10 +489,10 @@ class Test_process(IrisTest):
         numbers and a percentile cube following ensemble reordering.
         """
         self.raw_cube = set_up_variable_cube(
-            ECC_TEMPERATURE_REALIZATIONS, realizations=[10, 11, 12]
+            ECC_TEMPERATURE_REALIZATIONS.copy(), realizations=[10, 11, 12]
         )
         self.post_processed_percentiles = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
+            np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
             np.array([10, 50, 90], dtype=np.float32),
         )
 

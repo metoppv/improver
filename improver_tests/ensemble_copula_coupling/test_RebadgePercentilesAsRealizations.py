@@ -57,7 +57,7 @@ class Test_process(IrisTest):
     def setUp(self):
         """Set up temperature percentile cube for testing"""
         self.cube = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0),
+            np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
             np.array([10, 50, 90], dtype=np.float32),
         )
 

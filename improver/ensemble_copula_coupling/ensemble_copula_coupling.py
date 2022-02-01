@@ -1348,7 +1348,12 @@ class EnsembleReordering(BasePlugin):
     @staticmethod
     def _check_input_cube_masks(post_processed_forecast, raw_forecast):
         """
-        Checks that both input cubes have the same mask applied to each
+        Checks that if hte raw_forecast is masked the post_processed_forecast
+        is also masked. The code supports the post_processed_forecast being
+        masked even if the raw_forecast isn't masked, but not vice versa.
+
+        If both post_processed_forecast and raw_forecast are masked checks
+        that both input cubes have the same mask applied to each
         x-y slice of both cubes.
 
         Args:
@@ -1361,7 +1366,7 @@ class EnsembleReordering(BasePlugin):
 
         Raises:
             ValueError:
-                If only one of raw_forecast and post_processed_forecast is masked
+                If only the raw_forecast is masked
             ValueError:
                 If the post_processed_forecast does not have same mask on all
                 x-y slices
@@ -1369,18 +1374,9 @@ class EnsembleReordering(BasePlugin):
                 If the raw_forecast x-y slices do not all have the same mask
                 as the post_processed_forecast.
         """
-        if np.ma.is_masked(post_processed_forecast.data) or np.ma.is_masked(
+        if np.ma.is_masked(post_processed_forecast.data) and np.ma.is_masked(
             raw_forecast.data
         ):
-
-            if not (
-                np.ma.is_masked(post_processed_forecast.data)
-                and np.ma.is_masked(raw_forecast.data)
-            ):
-                message = (
-                    "Only one of raw_forecast and post_processed_forecast is masked."
-                )
-                raise (ValueError(message))
             for slice in post_processed_forecast.data.mask[1:, ...]:
                 if np.any(slice != post_processed_forecast.data.mask[0]):
 
@@ -1391,12 +1387,19 @@ class EnsembleReordering(BasePlugin):
                     raise (ValueError(message))
             for slice in raw_forecast.data.mask[0:, ...]:
                 if np.any(slice != post_processed_forecast.data.mask[0]):
-
                     message = (
                         "The raw_forecast x-y slices do not all have the"
                         " same mask as the post_processed_forecast."
                     )
                     raise (ValueError(message))
+        if np.ma.is_masked(raw_forecast.data) and not np.ma.is_masked(
+            post_processed_forecast.data
+        ):
+            message = (
+                "The raw_forecast is masked but the "
+                "post_processed_forecast forecast isn't."
+            )
+            raise (ValueError(message))
 
     def process(
         self,
