@@ -260,7 +260,7 @@ def _create_dimension_coord(
 
         coord_array = np.array(coord_array)
 
-        if issubclass(coord_array.dtype.type, np.float):
+        if issubclass(coord_array.dtype.type, float):
             # option needed for realizations percentile & probability cube setup
             # and heights coordinate
             coord_array = coord_array.astype(np.float32)
