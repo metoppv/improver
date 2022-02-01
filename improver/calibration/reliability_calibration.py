@@ -282,8 +282,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         non_spatial_coords = ["forecast_period", diagnostic]
 
         # Construct a list of coordinates in the desired order
-        dim_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
-        dim_coords_and_dims = _get_coords_and_dims(dim_coords)
+        spatial_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
+        spatial_coords_and_dims = _get_coords_and_dims(spatial_coords)
         aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
         dim_coords_and_dims.append((reliability_index_coord, 0))
         aux_coords_and_dims.append((reliability_name_coord, 0))
