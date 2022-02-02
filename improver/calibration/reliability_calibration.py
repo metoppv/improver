@@ -233,10 +233,11 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
     ) -> Cube:
         """
         Construct a reliability table cube and populate it with the provided
-        data. The returned cube will include a cycle hour coordinate, which
-        describes the model cycle hour at which the forecast data was produced.
-        It will further include the forecast period, threshold coordinate,
-        and spatial coordinates from the forecast cube.
+        data. The returned cube will include a forecast_reference_time
+        coordinate, which will be the maximum range of bounds of the input
+        forecast reference times, with the point value set to the latest
+        of those in the inputs. It will further include the forecast period,
+        threshold coordinate, and spatial coordinates from the forecast cube.
 
         Args:
             forecast:
@@ -443,11 +444,11 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         whether the data is thresholded below or above a given diagnostic
         threshold.
 
+        `historic_forecasts` and `truths` should have matching validity times.
+
         Args:
             historic_forecasts:
                 A cube containing the historical forecasts used in calibration.
-                These are expected to all have a consistent cycle hour, that is
-                the hour in the forecast reference time.
             truths:
                 A cube containing the thresholded gridded truths used in
                 calibration.
