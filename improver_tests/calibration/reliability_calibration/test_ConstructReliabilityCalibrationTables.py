@@ -35,12 +35,17 @@ from datetime import datetime
 
 import iris
 import numpy as np
+from iris.coords import DimCoord
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as Plugin,
 )
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    construct_scalar_time_coords,
+)
 from improver.utilities.cube_manipulation import MergeCubes
 
 
@@ -100,6 +105,50 @@ class Test_Setup(unittest.TestCase):
         masked_array[:, :2, 0] = True
         masked_truth_data_2 = np.ma.array(truth_data, mask=masked_array)
 
+        ECC_TEMPERATURE_THRESHOLDS = np.array([8, 10, 12], dtype=np.float32)
+        ECC_SPOT_PROBABILITIES = np.array(
+            [
+                [1.0, 0.9, 1.0, 0.8, 0.9, 0.5, 0.5, 0.2, 0.0],
+                [1.0, 0.5, 1.0, 0.5, 0.5, 0.3, 0.2, 0.0, 0.0],
+                [1.0, 0.2, 0.5, 0.2, 0.0, 0.1, 0.0, 0.0, 0.0],
+            ],
+            dtype=np.float32,
+        )
+        dummy_point_locations = np.arange(9).astype(np.float32)
+        dummy_string_ids = [f"{i}" for i in range(9)]
+
+        threshold_coord = DimCoord(
+            ECC_TEMPERATURE_THRESHOLDS,
+            standard_name="air_temperature",
+            var_name="threshold",
+            units="degC",
+            attributes={"spp__relative_to_threshold": "above"},
+        )
+        forecast_spot_cube_list = iris.cube.CubeList()
+        for day in range(5, 7):
+            time_coords = construct_scalar_time_coords(
+                datetime(2017, 11, day, 4, 0),
+                None,
+                datetime(2017, 11, day, 0, 0),
+            )
+            time_coords = [t[0] for t in time_coords]
+            forecast_spot_cube_list.append(
+                build_spotdata_cube(
+                    ECC_SPOT_PROBABILITIES,
+                    name="probability_of_air_temperature_above_threshold",
+                    units="1",
+                    altitude=dummy_point_locations,
+                    latitude=dummy_point_locations,
+                    longitude=dummy_point_locations,
+                    wmo_id=dummy_string_ids,
+                    additional_dims=[threshold_coord],
+                    scalar_coords=time_coords,
+                )
+            )
+        self.forecast_spot_cube_1 = forecast_spot_cube_list[0]
+        self.forecast_spot_cube_2 = forecast_spot_cube_list[1]
+        self.forecast_spot_cubes = forecast_spot_cube_list.merge_cube()
+
         self.masked_truth_1 = set_up_probability_cube(
             masked_truth_data_1, thresholds, frt=datetime(2017, 11, 10, 4, 0)
         )
@@ -111,7 +160,8 @@ class Test_Setup(unittest.TestCase):
         )
         self.masked_truths = MergeCubes()([self.masked_truth_1, self.masked_truth_2])
         self.expected_threshold_coord = self.forecasts.coord(var_name="threshold")
-        self.expected_table_shape = (3, 5, 3, 3)
+        self.expected_table_shape_grid = (3, 5, 3, 3)
+        self.expected_table_shape_spot = (3, 5, 9)
         self.expected_attributes = {
             "title": "Reliability calibration data table",
             "source": "IMPROVER",
@@ -401,15 +451,29 @@ class Test__create_reliability_table_cube(Test_Setup):
 
     """Test the _create_reliability_table_cube method."""
 
-    def test_valid_inputs(self):
-        """Test the cube returned has the structure expected."""
+    def test_valid_inputs_grid(self):
+        """Tests correct reliability cube generated from grid cube."""
 
         forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
         result = Plugin()._create_reliability_table_cube(
             forecast_slice, forecast_slice.coord(var_name="threshold")
         )
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertSequenceEqual(result.shape, self.expected_table_shape)
+        self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
+        self.assertEqual(result.name(), "reliability_calibration_table")
+        self.assertEqual(result.attributes, self.expected_attributes)
+
+
+    def test_valid_inputs_spot(self):
+        """Tests correct reliability cube generated from spot cube."""
+
+        forecast_slice = next(self.forecast_spot_cube_1.slices_over("air_temperature"))
+        print(f" fcst slice: {forecast_slice}")
+        result = Plugin()._create_reliability_table_cube(
+            forecast_slice, forecast_slice.coord(var_name="threshold")
+        )
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertSequenceEqual(result.shape, self.expected_table_shape_spot)
         self.assertEqual(result.name(), "reliability_calibration_table")
         self.assertEqual(result.attributes, self.expected_attributes)
 
@@ -428,7 +492,7 @@ class Test__populate_reliability_bins(Test_Setup):
             single_value_lower_limit=True, single_value_upper_limit=True
         )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
 
-        self.assertSequenceEqual(result.shape, self.expected_table_shape)
+        self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
         assert_array_equal(result, self.expected_table)
 
 
@@ -446,7 +510,7 @@ class Test__populate_masked_reliability_bins(Test_Setup):
             single_value_lower_limit=True, single_value_upper_limit=True
         )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
 
-        self.assertSequenceEqual(result.shape, self.expected_table_shape)
+        self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
         self.assertTrue(np.ma.is_masked(result))
         assert_array_equal(result.data, self.expected_table_for_mask)
         expected_mask = np.zeros(self.expected_table_for_mask.shape, dtype=bool)
