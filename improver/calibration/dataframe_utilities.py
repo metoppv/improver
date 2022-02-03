@@ -53,6 +53,15 @@ from improver.ensemble_copula_coupling.utilities import choose_set_of_percentile
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
+ALT_PERCENTILE_COLUMNS = [
+    "percentile",
+    "realization",
+    "probability",
+]
+
+# set a default
+VAR_TYPE = None
+
 FORECAST_DATAFRAME_COLUMNS = [
     "altitude",
     "blend_time",
@@ -65,7 +74,6 @@ FORECAST_DATAFRAME_COLUMNS = [
     "height",
     "latitude",
     "longitude",
-    "percentile",
     "period",
     "time",
     "units",
@@ -265,6 +273,7 @@ def _prepare_dataframes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
     percentiles: Optional[List[float]] = None,
+    var_subset: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare dataframes for conversion to cubes by: 1) checking
@@ -289,6 +298,8 @@ def _prepare_dataframes(
             Any other columns are ignored.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
+        var_subet:
+            The set of realizations/probabilites to be used
         experiment:
             A value within the experiment column to select from the forecast
             table.
@@ -297,6 +308,25 @@ def _prepare_dataframes(
         A sanitised version of the forecasts and truth dataframes that
         are ready for conversion to cubes.
     """
+    global VAR_TYPE
+    # AS: modify the FORECAST_DATAFRAME_COLUMNS based on one of three
+    # AS: ensure this fails if none of the 3 alternatives are presnet
+    for variable in ALT_PERCENTILE_COLUMNS:
+        try:
+            forecast_df[variable]
+            FORECAST_DATAFRAME_COLUMNS.append(variable)
+            FORECAST_DATAFRAME_COLUMNS.sort()
+            VAR_TYPE = variable
+        except:
+            continue
+
+    # check if one of the data-columns was found
+    if VAR_TYPE is None:
+        msg = (
+            f"VAR_TYPE did not get set, ensure one of the colums {ALT_PERCENTILE_COLUMNS} exists in the input dataset"
+        )
+        raise ValueError(msg)
+
     _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
 
@@ -317,17 +347,21 @@ def _prepare_dataframes(
         indices = [np.isclose(forecast_df["percentile"], float(p)) for p in percentiles]
         forecast_df = forecast_df[np.logical_or.reduce(indices)]
 
+    if var_subset:
+        indices = [np.isclose(forecast_df[VAR_TYPE], float(p)) for p in var_subset]
+        forecast_df = forecast_df[np.logical_or.reduce(indices)]
+
     # Check the percentiles can be considered to be equally space quantiles.
     _quantile_check(forecast_df)
 
     # Remove forecast duplicates.
     forecast_df = forecast_df.drop_duplicates(
-        subset=["diagnostic", "forecast_period", "percentile", "time", "wmo_id"],
+        subset=["diagnostic", "forecast_period", VAR_TYPE, "time", "wmo_id"],
         keep="last",
     )
     # Sort to ensure a consistent ordering after removing duplicates.
-    forecast_df = forecast_df.sort_values(
-        by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
+    forecast_df.sort_values(
+        by=["blend_time", VAR_TYPE, "wmo_id"], inplace=True, ignore_index=True,
     )
 
     # Remove truth duplicates.
@@ -384,7 +418,7 @@ def forecast_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, period,
+            wmo_id, percentile (or realization/probability), diagnostic, latitude, longitude, period,
             height, cf_name, units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
@@ -443,25 +477,31 @@ def forecast_dataframe_to_cube(
             units=TIME_COORDS["forecast_reference_time"].units,
         )
 
-        for percentile in sorted(df["percentile"].unique()):
-            perc_coord = DimCoord(
-                np.float32(percentile), long_name="percentile", units="%"
-            )
-            perc_df = time_df.loc[time_df["percentile"] == percentile]
+        # generalise? 
+        # what do units become for different things? 
+        if VAR_TYPE == "percentile":
+            unit = "%"
+        else:
+            unit = '1'
 
+        for var in sorted(df[VAR_TYPE].unique()):
+            var_coord = DimCoord(
+                np.float32(var), long_name=VAR_TYPE, units=unit
+            )
+            var_df = time_df.loc[time_df[VAR_TYPE] == percentile]
             cube = build_spotdata_cube(
-                perc_df["forecast"].astype(np.float32),
-                perc_df["cf_name"].values[0],
-                perc_df["units"].values[0],
-                perc_df["altitude"].astype(np.float32),
-                perc_df["latitude"].astype(np.float32),
-                perc_df["longitude"].astype(np.float32),
-                perc_df["wmo_id"].values.astype("U5"),
+                var_df["forecast"].astype(np.float32),
+                var_df["cf_name"].values[0],
+                var_df["units"].values[0],
+                var_df["altitude"].astype(np.float32),
+                var_df["latitude"].astype(np.float32),
+                var_df["longitude"].astype(np.float32),
+                var_df["wmo_id"].values.astype("U5"),
                 scalar_coords=[
                     time_coord,
                     frt_coord,
                     fp_coord,
-                    perc_coord,
+                    var_coord,
                     height_coord,
                 ],
             )
@@ -470,8 +510,10 @@ def forecast_dataframe_to_cube(
     if not cubelist:
         return
     cube = cubelist.merge_cube()
-
-    return RebadgePercentilesAsRealizations()(cube)
+    if VAR_TYPE == "percentile":
+        return RebadgePercentilesAsRealizations()(cube)
+    else:
+        return cube
 
 
 def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
@@ -534,6 +576,7 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_period: int,
     training_length: int,
     percentiles: Optional[List[float]] = None,
+    var_subset: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
@@ -558,6 +601,8 @@ def forecast_and_truth_dataframes_to_cubes(
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
             These should be a set of equally spaced quantiles.
+        var_subset:
+            The set of realizations/probailities used 
         experiment:
             A value within the experiment column to select from the forecast
             table.
