@@ -284,7 +284,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
         return pctcube
 
-    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
