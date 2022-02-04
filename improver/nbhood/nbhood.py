@@ -32,54 +32,27 @@
 
 from typing import List, Optional, Union
 
-import iris
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
-from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.forecast_times import forecast_period_coord
-from improver.nbhood.circular_kernel import (
-    GeneratePercentilesFromACircularNeighbourhood,
-)
-from improver.nbhood.square_kernel import Neighbourhood
-from improver.utilities.cube_checker import (
-    check_cube_coordinates,
-    find_dimension_coordinate_mismatch,
-)
-from improver.utilities.cube_manipulation import MergeCubes
 
 
 class BaseNeighbourhoodProcessing(PostProcessingPlugin):
     """
-    Apply a neighbourhood processing method to a thresholded cube. This is a
-    base class for usage with a subclass that will inherit the functionality
-    within this base class.
-
-    When applied to a thresholded probabilistic cube, it acts like a
-    low-pass filter which reduces noisiness in the probabilities.
-
-    The neighbourhood methods will presently only work with projections in
-    which the x grid point spacing and y grid point spacing are constant
-    over the entire domain, such as the UK national grid projection
-
+    A base class used to set up neighbourhood radii for a given cube
+    based on the forecast period of that cube if required.
     """
 
     def __init__(
-        self,
-        neighbourhood_method: Neighbourhood,
-        radii: Union[float, List[float]],
-        lead_times: Optional[List] = None,
+        self, radii: Union[float, List[float]], lead_times: Optional[List] = None,
     ) -> None:
         """
-        Create a neighbourhood processing plugin that applies a smoothing
-        to points in a cube.
+        Create a base neighbourhood processing plugin that processes radii
+        related arguments.
 
-        Args:
-            neighbourhood_method:
-                Instance of the class containing the method that will be used
-                for the neighbourhood processing.
             radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
@@ -90,12 +63,10 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
                 within 'radii' are defined. The lead times are expected
                 in hours.
         """
-        self.neighbourhood_method = neighbourhood_method
-
         if isinstance(radii, list):
             self.radii = [float(x) for x in radii]
         else:
-            self.radii = float(radii)
+            self.radius = float(radii)
         self.lead_times = lead_times
         if self.lead_times is not None:
             if len(radii) != len(lead_times):
@@ -122,205 +93,31 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         Returns:
             Required neighbourhood sizes.
         """
-        if cube_lead_times is None:
-            return self.radii
         radii = np.interp(cube_lead_times, self.lead_times, self.radii)
         return radii
 
-    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
-        Supply neighbourhood processing method, in order to smooth the
-        input cube.
+        Supply a cube with a forecast period coordinate in order to set the
+        correct radius for use in neighbourhood processing.
+
+        Also checkes there are no unmasked NaNs in the input cube.
 
         Args:
             cube:
-                Cube to apply a neighbourhood processing method to, in order to
-                generate a smoother field.
-            mask_cube:
-                Cube containing the array to be used as a mask.
+                Cube to apply a neighbourhood processing method.
 
         Returns:
-            Cube after applying a neighbourhood processing method, so that
-            the resulting field is smoothed.
+            cube:
+                The unaltered input cube.
         """
-        if not getattr(self.neighbourhood_method, "run", None) or not callable(
-            self.neighbourhood_method.run
-        ):
-            msg = (
-                "{} is not valid as a neighbourhood_method. "
-                "Please choose a valid neighbourhood_method with a "
-                "run method.".format(self.neighbourhood_method)
-            )
-            raise ValueError(msg)
-
-        # Check if a dimensional realization coordinate exists. If so, the
-        # cube is sliced, so that it becomes a scalar coordinate.
-        try:
-            cube.coord("realization", dim_coords=True)
-        except iris.exceptions.CoordinateNotFoundError:
-            slices_over_realization = [cube]
-        else:
-            slices_over_realization = cube.slices_over("realization")
 
         if np.isnan(cube.data).any():
             raise ValueError("Error: NaN detected in input cube data")
 
-        cubes_real = []
-        for cube_realization in slices_over_realization:
-            if self.lead_times is None:
-                cube_new = self.neighbourhood_method.run(
-                    cube_realization, self.radii, mask_cube=mask_cube
-                )
-            else:
-                # Interpolate to find the radius at each required lead time.
-                fp_coord = forecast_period_coord(cube_realization)
-                fp_coord.convert_units("hours")
-                required_radii = self._find_radii(cube_lead_times=fp_coord.points)
-
-                cubes_time = iris.cube.CubeList([])
-                # Find the number of grid cells required for creating the
-                # neighbourhood, and then apply the neighbourhood
-                # processing method to smooth the field.
-                for cube_slice, radius in zip(
-                    cube_realization.slices_over("time"), required_radii
-                ):
-                    cube_slice = self.neighbourhood_method.run(
-                        cube_slice, radius, mask_cube=mask_cube
-                    )
-                    cubes_time.append(cube_slice)
-                cube_new = MergeCubes()(cubes_time)
-
-            cubes_real.append(cube_new)
-
-        if len(cubes_real) > 1:
-            combined_cube = MergeCubes()(cubes_real, slice_over_realization=True)
-        else:
-            combined_cube = cubes_real[0]
-
-        # Promote dimensional coordinates that used to be present.
-        exception_coordinates = find_dimension_coordinate_mismatch(
-            cube, combined_cube, two_way_mismatch=False
-        )
-        combined_cube = check_cube_coordinates(
-            cube, combined_cube, exception_coordinates=exception_coordinates
-        )
-
-        return combined_cube
-
-
-class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
-
-    """Class for generating percentiles from a neighbourhood."""
-
-    def __init__(
-        self,
-        neighbourhood_method: str,
-        radii: Union[float, List[float]],
-        lead_times: Optional[List] = None,
-        percentiles: List = DEFAULT_PERCENTILES,
-    ) -> None:
-        """
-        Create a neighbourhood processing subclass that generates percentiles
-        from a neighbourhood of points.
-
-        Args:
-            neighbourhood_method:
-                Name of the neighbourhood method to use. Options: 'circular'.
-            radii:
-                The radii in metres of the neighbourhood to apply.
-                Rounded up to convert into integer number of grid
-                points east and north, based on the characteristic spacing
-                at the zero indices of the cube projection-x and y coords.
-            lead_times:
-                List of lead times or forecast periods, at which the radii
-                within 'radii' are defined. The lead times are expected
-                in hours.
-            percentiles:
-                Percentile values at which to calculate; if not provided uses
-                DEFAULT_PERCENTILES.
-        """
-        super(GeneratePercentilesFromANeighbourhood, self).__init__(
-            neighbourhood_method, radii, lead_times=lead_times
-        )
-
-        methods = {"circular": GeneratePercentilesFromACircularNeighbourhood}
-        try:
-            method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(percentiles=percentiles)
-        except KeyError:
-            msg = (
-                "The neighbourhood_method requested: {} is not a "
-                "supported method. Please choose from: {}".format(
-                    neighbourhood_method, methods.keys()
-                )
-            )
-            raise KeyError(msg)
-
-
-class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
-    """Class for applying neighbourhood processing to produce a smoothed field
-    within the chosen neighbourhood."""
-
-    def __init__(
-        self,
-        neighbourhood_method: str,
-        radii: Union[float, List[float]],
-        lead_times: Optional[List] = None,
-        weighted_mode: bool = True,
-        sum_or_fraction: str = "fraction",
-        re_mask: bool = False,
-    ) -> None:
-        """
-        Create a neighbourhood processing subclass that applies a smoothing
-        to points in a cube.
-
-        Args:
-            neighbourhood_method:
-                Name of the neighbourhood method to use. Options: 'circular',
-                'square'.
-            radii:
-                The radii in metres of the neighbourhood to apply.
-                Rounded up to convert into integer number of grid
-                points east and north, based on the characteristic spacing
-                at the zero indices of the cube projection-x and y coords.
-            lead_times:
-                List of lead times or forecast periods, at which the radii
-                within 'radii' are defined. The lead times are expected
-                in hours.
-            weighted_mode:
-                If True, use a circle for neighbourhood kernel with
-                weighting decreasing with radius.
-                If False, use a circle with constant weighting.
-            sum_or_fraction:
-                Identifier for whether sum or fraction should be returned from
-                neighbourhooding. The sum represents the sum of the
-                neighbourhood. The fraction represents the sum of the
-                neighbourhood divided by the neighbourhood area.
-                "fraction" is the default.
-                Valid options are "sum" or "fraction".
-            re_mask:
-                If re_mask is True, the original un-neighbourhood processed
-                mask is applied to mask out the neighbourhood processed cube.
-                If re_mask is False, the original un-neighbourhood processed
-                mask is not applied. Therefore, the neighbourhood processing
-                may result in values being present in areas that were
-                originally masked.
-        """
-        super(NeighbourhoodProcessing, self).__init__(
-            neighbourhood_method, radii, lead_times=lead_times
-        )
-
-        methods = {"circular": Neighbourhood, "square": Neighbourhood}
-        try:
-            method = methods[neighbourhood_method]
-            self.neighbourhood_method = method(
-                neighbourhood_method, weighted_mode, sum_or_fraction, re_mask,
-            )
-        except KeyError:
-            msg = (
-                "The neighbourhood_method requested: {} is not a "
-                "supported method. Please choose from: {}".format(
-                    neighbourhood_method, methods.keys()
-                )
-            )
-            raise KeyError(msg)
+        if self.lead_times:
+            # Interpolate to find the radius at each required lead time.
+            fp_coord = forecast_period_coord(cube)
+            fp_coord.convert_units("hours")
+            self.radius = self._find_radii(cube_lead_times=fp_coord.points)
+        return cube

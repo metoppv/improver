@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """This module contains methods for neighbourhood processing."""
 
-from typing import Optional
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
@@ -42,6 +42,7 @@ from improver.nbhood.circular_kernel import (
     check_radius_against_distance,
     circular_kernel,
 )
+from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.neighbourhood_tools import boxsum
 from improver.utilities.spatial import (
@@ -50,15 +51,15 @@ from improver.utilities.spatial import (
 )
 
 
-class Neighbourhood:
-
-    """
-    Methods for use in application of a neighbourhood.
-    """
+class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
+    """Class for applying neighbourhood processing to produce a smoothed field
+    within the chosen neighbourhood."""
 
     def __init__(
         self,
         neighbourhood_method: str,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
         weighted_mode: bool = True,
         sum_or_fraction: str = "fraction",
         re_mask: bool = True,
@@ -70,14 +71,25 @@ class Neighbourhood:
             neighbourhood_method:
                 Name of the neighbourhood method to use. Options: 'circular',
                 'square'.
+            radii:
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+            lead_times:
+                List of lead times or forecast periods, at which the radii
+                within 'radii' are defined. The lead times are expected
+                in hours.
             weighted_mode:
-                This is included to allow a standard interface for both the
-                square and circular neighbourhood plugins.
+                If True, use a circle for neighbourhood kernel with
+                weighting decreasing with radius.
+                If False, use a circle with constant weighting.
             sum_or_fraction:
                 Identifier for whether sum or fraction should be returned from
                 neighbourhooding. The sum represents the sum of the
                 neighbourhood. The fraction represents the sum of the
                 neighbourhood divided by the neighbourhood area.
+                "fraction" is the default.
                 Valid options are "sum" or "fraction".
             re_mask:
                 If re_mask is True, the original un-neighbourhood processed
@@ -87,7 +99,13 @@ class Neighbourhood:
                 may result in values being present in areas that were
                 originally masked.
         """
-        self.neighbourhood_method = neighbourhood_method
+        super().__init__(radii, lead_times=lead_times)
+        if neighbourhood_method in ["square", "circular"]:
+            self.neighbourhood_method = neighbourhood_method
+        else:
+            msg = "{} is not a valid neighbourhood_method.".format(neighbourhood_method)
+            raise ValueError(msg)
+
         self.weighted_mode = weighted_mode
         if sum_or_fraction not in ["sum", "fraction"]:
             msg = (
@@ -186,7 +204,7 @@ class Neighbourhood:
 
         return data
 
-    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
         Call the methods required to apply a square neighbourhood
         method to a cube.
@@ -203,9 +221,6 @@ class Neighbourhood:
             cube:
                 Cube containing the array to which the square neighbourhood
                 will be applied.
-            radius:
-                Radius in metres for use in specifying the number of
-                grid cells used to create a square neighbourhood.
             mask_cube:
                 Cube containing the array to be used as a mask.
 
@@ -213,23 +228,19 @@ class Neighbourhood:
             Cube containing the smoothed field after the square
             neighbourhood method has been applied.
         """
+        super().process(cube)
         check_if_grid_is_equal_area(cube)
 
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
-        check_radius_against_distance(cube, radius)
+        check_radius_against_distance(cube, self.radius)
         original_attributes = cube.attributes
         original_methods = cube.cell_methods
-        grid_cells = distance_to_number_of_grid_cells(cube, radius)
+        grid_cells = distance_to_number_of_grid_cells(cube, self.radius)
         if self.neighbourhood_method == "circular":
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
         elif self.neighbourhood_method == "square":
             self.nb_size = 2 * grid_cells + 1
-        else:
-            msg = "{} is not a valid neighbourhood_method.".format(
-                self.neighbourhood_method
-            )
-            raise ValueError(msg)
 
         try:
             mask_cube_data = mask_cube.data

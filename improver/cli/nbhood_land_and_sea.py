@@ -103,7 +103,7 @@ def process(
     """
     import numpy as np
 
-    from improver.nbhood.nbhood import NeighbourhoodProcessing
+    from improver.nbhood.square_kernel import NeighbourhoodProcessing
     from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
     sum_or_fraction = "sum" if area_sum else "fraction"

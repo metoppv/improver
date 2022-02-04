@@ -45,7 +45,7 @@ from improver import BasePlugin
 from improver.constants import R_WATER_VAPOUR
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.nbhood.square_kernel import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )

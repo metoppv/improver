@@ -38,6 +38,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver.constants import DEFAULT_PERCENTILES
+from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
@@ -110,25 +111,37 @@ def circular_kernel(ranges: int, weighted_mode: bool) -> ndarray:
     return kernel
 
 
-class GeneratePercentilesFromACircularNeighbourhood:
-    """
-    Methods for use in calculating percentiles from a 2D circular
-    neighbourhood.
-    A maximum kernel radius of 500 grid cells is imposed in order to
-    avoid computational ineffiency and possible memory errors.
-    """
+class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
+
+    """Class for generating percentiles from a circular neighbourhood."""
 
     def __init__(
-        self, percentiles: Union[float, List[float]] = DEFAULT_PERCENTILES
+        self,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
+        percentiles: List = DEFAULT_PERCENTILES,
     ) -> None:
         """
-        Initialise class.
+        Create a neighbourhood processing subclass that generates percentiles
+        from a 2D circular neighbourhood. A maximum kernel radius of 500
+        grid cells is imposed in order to avoid computational inefficiency and
+        possible memory errors.
 
         Args:
+            radii:
+                The radii in metres of the neighbourhood to apply.
+                Rounded up to convert into integer number of grid
+                points east and north, based on the characteristic spacing
+                at the zero indices of the cube projection-x and y coords.
+            lead_times:
+                List of lead times or forecast periods, at which the radii
+                within 'radii' are defined. The lead times are expected
+                in hours.
             percentiles:
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
+        super().__init__(radii, lead_times=lead_times)
         try:
             self.percentiles = tuple(percentiles)
         except TypeError:
@@ -271,7 +284,7 @@ class GeneratePercentilesFromACircularNeighbourhood:
 
         return pctcube
 
-    def run(self, cube: Cube, radius: float, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -279,28 +292,24 @@ class GeneratePercentilesFromACircularNeighbourhood:
         Args:
             cube:
                 Cube containing array to apply processing to.
-            radius:
-                Radius in metres for use in specifying the number of
-                grid cells used to create a circular neighbourhood.
-            mask_cube:
-                Cube containing the array to be used as a mask.
 
         Returns:
             Cube containing the percentile fields.
             Has percentile as an added dimension.
         """
-        if mask_cube is not None:
+        super().process(cube)
+        if np.ma.is_masked(cube.data):
             msg = (
-                "The use of a mask cube with a circular kernel is not "
-                "yet implemented."
+                "The use of masked input cubes is not yet implemented in"
+                " the GeneratePercentilesFromANeighbourhood plugin."
             )
             raise NotImplementedError(msg)
 
         # Check that the cube has an equal area grid.
         check_if_grid_is_equal_area(cube)
         # Take data array and identify X and Y axes indices
-        grid_cell = distance_to_number_of_grid_cells(cube, radius)
-        check_radius_against_distance(cube, radius)
+        grid_cell = distance_to_number_of_grid_cells(cube, self.radius)
+        check_radius_against_distance(cube, self.radius)
         kernel = circular_kernel(grid_cell, weighted_mode=False)
         # Loop over each 2D slice to reduce memory demand and derive
         # percentiles on the kernel. Will return an extra dimension.

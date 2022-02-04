@@ -37,7 +37,7 @@ import numpy as np
 from cf_units import Unit
 from iris.tests import IrisTest
 
-from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
+from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
 from improver.psychrometric_calculations.precip_phase_probability import (
     PrecipPhaseProbability,
 )
@@ -55,7 +55,6 @@ class Test__init__(IrisTest):
         self.assertTrue(
             plugin.percentile_plugin is GeneratePercentilesFromANeighbourhood
         )
-        self.assertEqual(plugin._nbhood_shape, "circular")
         self.assertAlmostEqual(plugin.radius, 10000.0)
 
 
