@@ -110,8 +110,8 @@ class Test_apply_circular_kernel(IrisTest):
         ).process(self.cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_multi_point_multitimes(self):
-        """Test behaviour for points over multiple times."""
+    def test_multi_point_multirealizations(self):
+        """Test behaviour for points over multiple realizations."""
 
         data = np.ones((2, 16, 16), dtype=np.float32)
         data[0, 10, 10] = 0
