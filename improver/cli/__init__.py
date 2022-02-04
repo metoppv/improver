@@ -275,9 +275,8 @@ def create_constrained_inputcubelist_converter(*constraints):
         cubelist = maybe_coerce_with(load_cubelist, to_convert)
 
         return CubeList(
-            cubelist.extract(
-                Constraint(cube_func=constr) if callable(constr) else constr,
-                strict=True,
+            cubelist.extract_cube(
+                Constraint(cube_func=constr) if callable(constr) else constr
             )
             for constr in constraints
         )

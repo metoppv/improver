@@ -1369,19 +1369,20 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         forecast_predictor = collapsed(
             self.current_forecast, "realization", iris.analysis.MEAN
         )
+
         if self.standardise_cubelist:
             forecast_predictor_orig = forecast_predictor.copy()
-            forecast_predictor = (forecast_predictor - self.standardise_cubelist.extract_strict("fbar"))/self.standardise_cubelist.extract_strict("fsig")
+            forecast_predictor = (forecast_predictor - self.standardise_cubelist.extract_cube("fbar"))/self.standardise_cubelist.extract_cube("fsig")
 
         # Calculate location parameter = a + b*X, where X is the
         # raw ensemble mean. In this case, b = beta.
         location_parameter = (
-            self.coefficients_cubelist.extract_strict("emos_coefficient_alpha").data
-            + self.coefficients_cubelist.extract_strict("emos_coefficient_beta").data
+            self.coefficients_cubelist.extract_cube("emos_coefficient_alpha").data
+            + self.coefficients_cubelist.extract_cube("emos_coefficient_beta").data
             * forecast_predictor.data
         ).astype(np.float32)
         if self.standardise_cubelist:
-            location_parameter = (location_parameter*self.standardise_cubelist.extract_strict("ysig").data) + self.standardise_cubelist.extract_strict("ybar").data
+            location_parameter = (location_parameter*self.standardise_cubelist.extract_cube("ysig").data) + self.standardise_cubelist.extract_cube("ybar").data
             index = np.isnan(location_parameter)
             location_parameter[index] = forecast_predictor_orig.data[index]
 
@@ -1403,14 +1404,14 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # Calculate location parameter = a + b1*X1 .... + bn*Xn, where X is the
         # ensemble realizations. The number of b and X terms depends upon the
         # number of ensemble realizations. In this case, b = beta^2.
-        beta_cube = self.coefficients_cubelist.extract_strict("emos_coefficient_beta")
+        beta_cube = self.coefficients_cubelist.extract_cube("emos_coefficient_beta")
         beta_values = np.atleast_2d(beta_cube.data * beta_cube.data)
         beta_values = beta_values.T if beta_cube.data.ndim != 1 else beta_values
 
         a_and_b = np.hstack(
             (
                 np.atleast_2d(
-                    self.coefficients_cubelist.extract_strict(
+                    self.coefficients_cubelist.extract_cube(
                         "emos_coefficient_alpha"
                     ).data
                 ).T,
@@ -1449,15 +1450,15 @@ class CalibratedForecastDistributionParameters(BasePlugin):
 
         scale_factor = 1
         if self.standardise_cubelist:
-            scale_factor = self.standardise_cubelist.extract_strict("ysig").data**2 / self.standardise_cubelist.extract_strict("fsig").data**2
+            scale_factor = self.standardise_cubelist.extract_cube("ysig").data**2 / self.standardise_cubelist.extract_cube("fsig").data**2
 
         # Calculating the scale parameter, based on the raw variance S^2,
         # where predicted variance = c + dS^2, where c = (gamma)^2 and
         # d = (delta)^2
         scale_parameter = (
-            self.coefficients_cubelist.extract_strict("emos_coefficient_gamma").data
+            self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
             ** 2
-            + self.coefficients_cubelist.extract_strict("emos_coefficient_delta").data
+            + self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
             ** 2
             * forecast_var.data*scale_factor
         ).astype(np.float32)

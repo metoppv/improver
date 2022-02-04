@@ -36,19 +36,19 @@ Regression (NGR)."""
 from improver import cli
 
 # Creates the value_converter that clize needs.
-inputcoeffs = cli.create_constrained_inputcubelist_converter(
-    "emos_coefficient_alpha",
-    "emos_coefficient_beta",
-    "emos_coefficient_gamma",
-    "emos_coefficient_delta",
-)
+# inputcoeffs = cli.create_constrained_inputcubelist_converter(
+#     "emos_coefficient_alpha",
+#     "emos_coefficient_beta",
+#     "emos_coefficient_gamma",
+#     "emos_coefficient_delta",
+# )
 
 
 @cli.clizefy
 @cli.with_output
 def process(
     cube: cli.inputcube,
-    coefficients: inputcoeffs = None,
+    coefficients: cli.inputcubelist = None,
     land_sea_mask: cli.inputcube = None,
     *,
     realizations_count: int = None,
