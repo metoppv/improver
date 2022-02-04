@@ -69,7 +69,7 @@ def run_cli(cli_name, verbose=True):
     def run_function(args):
         if not checksum_ignore():
             verify_checksums(args)
-        cli.main("improver", cli_name, *args, verbose=verbose)
+        return cli.main("improver", cli_name, *args, verbose=verbose)
 
     return run_function
 

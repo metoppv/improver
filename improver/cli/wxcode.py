@@ -63,11 +63,11 @@ def process(
             the decision tree. It will only be used if the decision tree
             provided has threshold values defined with an associated period.
         check_tree (bool):
-            If set the decision tree will be checked to see if it conforms to
-            the expected format; the only other argument required is the path
-            to the decision tree. If the tree is found to be valid the required
-            inputs will be listed. Setting this flag will prevent the CLI
-            performing any other actions.
+            If set, the decision tree will be checked to see if it conforms to
+            the expected format and that all nodes can be reached; the only other
+            argument required is the path to the decision tree. If the tree is found
+            to be valid the required inputs will be listed. Setting this flag will
+            prevent the CLI performing any other actions.
 
     Returns:
         iris.cube.Cube:
