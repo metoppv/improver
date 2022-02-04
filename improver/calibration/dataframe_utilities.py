@@ -326,17 +326,15 @@ def _prepare_dataframes(
         keep="last",
     )
     # Sort to ensure a consistent ordering after removing duplicates.
-    forecast_df.sort_values(
-        by=["blend_time", "percentile", "wmo_id"], inplace=True, ignore_index=True,
+    forecast_df = forecast_df.sort_values(
+        by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
     )
 
     # Remove truth duplicates.
     truth_cols = ["diagnostic", "time", "wmo_id"]
     truth_df = truth_df.drop_duplicates(subset=truth_cols, keep="last",)
     # Sort to ensure a consistent ordering after removing duplicates.
-    truth_df.sort_values(
-        by=truth_cols, inplace=True, ignore_index=True,
-    )
+    truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
 
     # Find the common set of WMO IDs.
     common_wmo_ids = sorted(
