@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the wxcode CLI"""
+import re
 
 import pytest
 
@@ -187,3 +188,24 @@ def test_no_lightning(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize(
+    "wxtree,expected",
+    (
+        ("wx_decision_tree.json", "Decision tree OK\nRequired inputs are:"),
+        ("bad_wx_decision_tree.json", "Unreachable node 'unreachable'"),
+    ),
+)
+def test_trees(wxtree, expected):
+    """Test the check-tree option"""
+    kgo_dir = acc.kgo_root() / "wxcode"
+    args = [
+        "--wxtree",
+        kgo_dir / wxtree,
+        "--check-tree",
+        "--target-period",
+        "3600",
+    ]
+    result = run_cli(args)
+    assert re.match(expected, result)
