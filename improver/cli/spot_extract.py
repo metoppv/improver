@@ -38,8 +38,6 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcube,
-    #lapse_rate: cli.inputcube = None,
-    #neighbour_cube: cli.inputcube,
     apply_lapse_rate_correction=False,
     land_constraint=False,
     similar_altitude=False,
@@ -57,15 +55,15 @@ def process(
     and that of the grid point from which the temperature data is extracted.
 
     Args:
-        neighbour_cube (iris.cube.Cube):
-            Cube of spot-data neighbours and the spot site information.
-        cube (iris.cube.Cube):
-            Cube containing the diagnostic data to be extracted.
-        lapse_rate (iris.cube.Cube):
-            Optional cube containing temperature lapse rates. If this cube is
+        cubes (iris.cube.Cube):
+            A list of cubes containing the diagnostic data to be extracted,
+            the lapse rate (optional) and the neighbour cube. Where the lapse
+            rate cube contains temperature lapse rates. If this cube is
             provided and a screen temperature cube is being processed, the
             lapse rates will be used to adjust the temperature to better
             represent each spot's site-altitude.
+            And the neighbour cube is a cube of spot-data neighbours and
+            the spot site information.
         apply_lapse_rate_correction (bool):
             Use to apply a lapse-rate correction to screen temperature data so
             that the data are a better match the altitude of the spot site for
