@@ -37,10 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    neighbour_cube: cli.inputcube,
-    cube: cli.inputcube,
-    lapse_rate: cli.inputcube = None,
-    *,
+    *cubes: cli.inputcube,
+    #lapse_rate: cli.inputcube = None,
+    #neighbour_cube: cli.inputcube,
     apply_lapse_rate_correction=False,
     land_constraint=False,
     similar_altitude=False,
@@ -142,6 +141,9 @@ def process(
     from improver.utilities.cube_extraction import extract_subcube
     from improver.utilities.cube_manipulation import collapse_realizations
 
+    neighbour_cube = cubes[-1]
+    cube = cubes[0]
+
     if realization_collapse:
         cube = collapse_realizations(cube)
     neighbour_selection_method = NeighbourSelection(
@@ -195,13 +197,13 @@ def process(
                 raise ValueError(msg)
 
     # Check whether a lapse rate cube has been provided
-    if apply_lapse_rate_correction and lapse_rate:
-        plugin = SpotLapseRateAdjust(
-            neighbour_selection_method=neighbour_selection_method
-        )
-        result = plugin(result, neighbour_cube, lapse_rate)
-    elif apply_lapse_rate_correction and not lapse_rate:
-        if not suppress_warnings:
+    if apply_lapse_rate_correction:
+        if len(cubes) == 3:
+            plugin = SpotLapseRateAdjust(
+                neighbour_selection_method=neighbour_selection_method
+            )
+            result = plugin(result, neighbour_cube, cubes[-2])
+        elif not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was not provided, but the option to "
                 "apply the lapse rate correction was enabled. No lapse rate "
