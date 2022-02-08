@@ -12,7 +12,7 @@ The reliability calibration tables returned by this plugin are structured as sho
        Auxiliary coordinates:
             table_row_name                            -                   x                   -                           -                             -
        Scalar coordinates:
-            cycle_hour: 22
+            forecast_reference_time: 2017-11-11 00:00:00, bound=(2017-11-10 00:00:00, 2017-11-11 00:00:00)
             forecast_period: 68400 seconds
        Attributes:
             institution: Met Office

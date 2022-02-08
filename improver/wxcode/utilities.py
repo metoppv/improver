@@ -34,6 +34,7 @@ from collections import OrderedDict
 from typing import Any, Dict, List, Optional
 
 import iris
+import numpy as np
 from iris.cube import Cube
 
 REQUIRED_KEY_WORDS = [
@@ -393,6 +394,10 @@ def check_tree(
         raise ValueError("Decision tree is not a dictionary")
 
     issues = []
+    start_node = list(wxtree.keys())[0]
+    all_targets = np.array(
+        [(n["if_true"], n["if_false"]) for n in wxtree.values()]
+    ).flatten()
     wxtree = update_tree_thresholds(wxtree, target_period)
     valid_codes = list(WX_DICT.keys())
 
@@ -402,6 +407,10 @@ def check_tree(
         for entry in wxtree[node]:
             if entry not in all_key_words:
                 issues.append(f"Node {node} contains unknown key '{entry}'")
+
+        # Check that this node is reachable, or is the start_node
+        if not ((node == start_node) or node in all_targets):
+            issues.append(f"Unreachable node '{node}'")
 
         # Check that if_diagnostic_missing key points at a if_true or if_false
         # node
