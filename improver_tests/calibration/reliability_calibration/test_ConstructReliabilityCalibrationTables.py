@@ -43,8 +43,8 @@ from improver.calibration.reliability_calibration import (
 )
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
-    set_up_probability_cube,
     construct_scalar_time_coords,
+    set_up_probability_cube,
 )
 from improver.utilities.cube_manipulation import MergeCubes
 
@@ -121,9 +121,7 @@ class Test_Setup(unittest.TestCase):
         truths_spot_list = iris.cube.CubeList()
         for day in range(5, 7):
             time_coords = construct_scalar_time_coords(
-                datetime(2017, 11, day, 4, 0),
-                None,
-                datetime(2017, 11, day, 0, 0),
+                datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 0, 0),
             )
             time_coords = [t[0] for t in time_coords]
             forecasts_spot_list.append(
@@ -140,9 +138,7 @@ class Test_Setup(unittest.TestCase):
                 )
             )
             time_coords = construct_scalar_time_coords(
-                datetime(2017, 11, day, 4, 0),
-                None,
-                datetime(2017, 11, day, 4, 0),
+                datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 4, 0),
             )
             time_coords = [t[0] for t in time_coords]
             truths_spot_list.append(
@@ -480,12 +476,9 @@ class Test__create_reliability_table_cube(Test_Setup):
         self.assertEqual(result.name(), "reliability_calibration_table")
         self.assertEqual(result.attributes, self.expected_attributes)
 
-
     def test_valid_inputs_spot(self):
         """Tests correct reliability cube generated from spot cube."""
-        forecast_slice = next(
-            self.forecast_spot_1.slices_over("air_temperature")
-        )
+        forecast_slice = next(self.forecast_spot_1.slices_over("air_temperature"))
         result = Plugin()._create_reliability_table_cube(
             forecast_slice, forecast_slice.coord(var_name="threshold")
         )
@@ -512,21 +505,14 @@ class Test__populate_reliability_bins(Test_Setup):
         self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
         assert_array_equal(result, self.expected_table)
 
-
     def test_table_values_spot_cube(self):
         """Test the reliability table returned has the expected values for the
         given spot inputs."""
-        forecast_slice = next(
-            self.forecast_spot_1.slices_over("air_temperature")
-        )
-        truth_slice = next(
-            self.truth_spot_1.slices_over("air_temperature")
-        )
+        forecast_slice = next(self.forecast_spot_1.slices_over("air_temperature"))
+        truth_slice = next(self.truth_spot_1.slices_over("air_temperature"))
         result = Plugin(
             single_value_lower_limit=True, single_value_upper_limit=True
-        )._populate_masked_reliability_bins(
-            forecast_slice.data, truth_slice.data
-        )
+        )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
         self.assertSequenceEqual(result.shape, self.expected_table_shape_spot)
         assert_array_equal(result, self.expected_table.reshape((3, 5, 9)))
 
@@ -581,7 +567,6 @@ class Test_process(Test_Setup):
 
         assert_array_equal(result[0].data, expected)
 
-
     def test_table_values_spot(self):
         """Test that cube values are as expected for spot, when process has
         sliced the inputs up for processing and then summed the contributions
@@ -594,7 +579,6 @@ class Test_process(Test_Setup):
             single_value_lower_limit=True, single_value_upper_limit=True
         ).process(self.forecasts_spot, self.truths_spot)
         assert_array_equal(result[0].data, expected.reshape((3, 5, 9)))
-
 
     def test_table_values_masked_truth(self):
         """Test, similar to test_table_values, using masked arrays. The
