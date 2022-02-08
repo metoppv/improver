@@ -315,12 +315,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         self, forecast: Union[MaskedArray, ndarray], truth: Union[MaskedArray, ndarray]
     ) -> MaskedArray:
         """
-        For an x-y slice at a single validity time and threshold, populate
+        For a spatial slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
 
         Args:
             forecast:
-                An array containing data over an xy slice for a single validity
+                An array containing data over a spatial slice for a single validity
                 time and threshold.
             truth:
                 An array containing a thresholded gridded truth at an
@@ -330,8 +330,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             An array containing reliability table data for a single time
             and threshold. The leading dimension corresponds to the rows
             of a calibration table, the second dimension to the number of
-            probability bins, and the trailing dimensions are the spatial
-            dimensions of the forecast and truth cubes (which are
+            probability bins, and the trailing dimension(s) are the spatial
+            dimension(s) of the forecast and truth cubes (which are
             equivalent).
         """
         observation_counts = []
@@ -348,7 +348,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             observation_counts.append(observation_mask)
             forecast_probabilities.append(forecasts_probability_values)
             forecast_counts.append(forecast_mask)
-
         reliability_table = np.ma.stack(
             [
                 np.ma.stack(observation_counts),

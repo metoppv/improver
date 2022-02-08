@@ -77,7 +77,8 @@ class Test_Setup(unittest.TestCase):
         # Threshold the truths, giving fields of zeroes and ones.
         truth_data_a = (truth_data > thresholds[0]).astype(int)
         truth_data_b = (truth_data > thresholds[1]).astype(int)
-        truth_data = np.stack([truth_data_a, truth_data_b])
+        truth_data_grid = np.stack([truth_data_a, truth_data_b])
+        truth_data_spot = np.stack([truth_data_a.ravel(), truth_data_b.ravel()])
 
         self.forecast_1 = set_up_probability_cube(forecast_data, thresholds)
         self.forecast_2 = set_up_probability_cube(
@@ -86,45 +87,38 @@ class Test_Setup(unittest.TestCase):
             time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0),
         )
-        self.forecasts = MergeCubes()([self.forecast_1, self.forecast_2])
+        self.forecasts_grid = MergeCubes()([self.forecast_1, self.forecast_2])
         self.truth_1 = set_up_probability_cube(
-            truth_data, thresholds, frt=datetime(2017, 11, 10, 4, 0)
+            truth_data_grid, thresholds, frt=datetime(2017, 11, 10, 4, 0)
         )
         self.truth_2 = set_up_probability_cube(
-            truth_data,
+            truth_data_grid,
             thresholds,
             time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 4, 0),
         )
-        self.truths = MergeCubes()([self.truth_1, self.truth_2])
+        self.truths_grid = MergeCubes()([self.truth_1, self.truth_2])
 
-        masked_array = np.zeros(truth_data.shape, dtype=bool)
+        masked_array = np.zeros(truth_data_grid.shape, dtype=bool)
         masked_array[:, 0, :2] = True
-        masked_truth_data_1 = np.ma.array(truth_data, mask=masked_array)
-        masked_array = np.zeros(truth_data.shape, dtype=bool)
+        masked_truth_data_1 = np.ma.array(truth_data_grid, mask=masked_array)
+        masked_array = np.zeros(truth_data_grid.shape, dtype=bool)
         masked_array[:, :2, 0] = True
-        masked_truth_data_2 = np.ma.array(truth_data, mask=masked_array)
+        masked_truth_data_2 = np.ma.array(truth_data_grid, mask=masked_array)
 
-        ECC_TEMPERATURE_THRESHOLDS = np.array([8, 10, 12], dtype=np.float32)
-        ECC_SPOT_PROBABILITIES = np.array(
-            [
-                [1.0, 0.9, 1.0, 0.8, 0.9, 0.5, 0.5, 0.2, 0.0],
-                [1.0, 0.5, 1.0, 0.5, 0.5, 0.3, 0.2, 0.0, 0.0],
-                [1.0, 0.2, 0.5, 0.2, 0.0, 0.1, 0.0, 0.0, 0.0],
-            ],
-            dtype=np.float32,
-        )
         dummy_point_locations = np.arange(9).astype(np.float32)
         dummy_string_ids = [f"{i}" for i in range(9)]
-
         threshold_coord = DimCoord(
-            ECC_TEMPERATURE_THRESHOLDS,
+            thresholds,
             standard_name="air_temperature",
             var_name="threshold",
-            units="degC",
+            units="K",
             attributes={"spp__relative_to_threshold": "above"},
         )
-        forecast_spot_cube_list = iris.cube.CubeList()
+
+        spot_probabilities = forecast_data.reshape((2, 9))
+        forecasts_spot_list = iris.cube.CubeList()
+        truths_spot_list = iris.cube.CubeList()
         for day in range(5, 7):
             time_coords = construct_scalar_time_coords(
                 datetime(2017, 11, day, 4, 0),
@@ -132,9 +126,9 @@ class Test_Setup(unittest.TestCase):
                 datetime(2017, 11, day, 0, 0),
             )
             time_coords = [t[0] for t in time_coords]
-            forecast_spot_cube_list.append(
+            forecasts_spot_list.append(
                 build_spotdata_cube(
-                    ECC_SPOT_PROBABILITIES,
+                    spot_probabilities,
                     name="probability_of_air_temperature_above_threshold",
                     units="1",
                     altitude=dummy_point_locations,
@@ -145,9 +139,32 @@ class Test_Setup(unittest.TestCase):
                     scalar_coords=time_coords,
                 )
             )
-        self.forecast_spot_cube_1 = forecast_spot_cube_list[0]
-        self.forecast_spot_cube_2 = forecast_spot_cube_list[1]
-        self.forecast_spot_cubes = forecast_spot_cube_list.merge_cube()
+            time_coords = construct_scalar_time_coords(
+                datetime(2017, 11, day, 4, 0),
+                None,
+                datetime(2017, 11, day, 4, 0),
+            )
+            time_coords = [t[0] for t in time_coords]
+            truths_spot_list.append(
+                build_spotdata_cube(
+                    truth_data_spot,
+                    name="probability_of_air_temperature_above_threshold",
+                    units="1",
+                    altitude=dummy_point_locations,
+                    latitude=dummy_point_locations,
+                    longitude=dummy_point_locations,
+                    wmo_id=dummy_string_ids,
+                    additional_dims=[threshold_coord],
+                    scalar_coords=time_coords,
+                )
+            )
+        self.forecast_spot_1 = forecasts_spot_list[0]
+        self.forecast_spot_2 = forecasts_spot_list[1]
+        self.forecasts_spot = forecasts_spot_list.merge_cube()
+
+        self.truth_spot_1 = truths_spot_list[0]
+        self.truth_spot_2 = truths_spot_list[1]
+        self.truths_spot = truths_spot_list.merge_cube()
 
         self.masked_truth_1 = set_up_probability_cube(
             masked_truth_data_1, thresholds, frt=datetime(2017, 11, 10, 4, 0)
@@ -159,7 +176,7 @@ class Test_Setup(unittest.TestCase):
             frt=datetime(2017, 11, 11, 4, 0),
         )
         self.masked_truths = MergeCubes()([self.masked_truth_1, self.masked_truth_2])
-        self.expected_threshold_coord = self.forecasts.coord(var_name="threshold")
+        self.expected_threshold_coord = self.forecasts_grid.coord(var_name="threshold")
         self.expected_table_shape_grid = (3, 5, 3, 3)
         self.expected_table_shape_spot = (3, 5, 9)
         self.expected_attributes = {
@@ -466,9 +483,9 @@ class Test__create_reliability_table_cube(Test_Setup):
 
     def test_valid_inputs_spot(self):
         """Tests correct reliability cube generated from spot cube."""
-
-        forecast_slice = next(self.forecast_spot_cube_1.slices_over("air_temperature"))
-        print(f" fcst slice: {forecast_slice}")
+        forecast_slice = next(
+            self.forecast_spot_1.slices_over("air_temperature")
+        )
         result = Plugin()._create_reliability_table_cube(
             forecast_slice, forecast_slice.coord(var_name="threshold")
         )
@@ -482,9 +499,9 @@ class Test__populate_reliability_bins(Test_Setup):
 
     """Test the _populate_reliability_bins method."""
 
-    def test_table_values(self):
+    def test_table_values_grid(self):
         """Test the reliability table returned has the expected values for the
-        given inputs."""
+        given grid inputs."""
 
         forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
         truth_slice = next(self.truth_1.slices_over("air_temperature"))
@@ -494,6 +511,24 @@ class Test__populate_reliability_bins(Test_Setup):
 
         self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
         assert_array_equal(result, self.expected_table)
+
+
+    def test_table_values_spot_cube(self):
+        """Test the reliability table returned has the expected values for the
+        given spot inputs."""
+        forecast_slice = next(
+            self.forecast_spot_1.slices_over("air_temperature")
+        )
+        truth_slice = next(
+            self.truth_spot_1.slices_over("air_temperature")
+        )
+        result = Plugin(
+            single_value_lower_limit=True, single_value_upper_limit=True
+        )._populate_masked_reliability_bins(
+            forecast_slice.data, truth_slice.data
+        )
+        self.assertSequenceEqual(result.shape, self.expected_table_shape_spot)
+        assert_array_equal(result, self.expected_table.reshape((3, 5, 9)))
 
 
 class Test__populate_masked_reliability_bins(Test_Setup):
@@ -525,27 +560,41 @@ class Test_process(Test_Setup):
     def test_return_type(self):
         """Test the process method returns a reliability table cube."""
 
-        result = Plugin().process(self.forecasts, self.truths)
+        result = Plugin().process(self.forecasts_grid, self.truths_grid)
 
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "reliability_calibration_table")
         self.assertEqual(result.coord("air_temperature"), self.expected_threshold_coord)
         self.assertEqual(result.coord_dims("air_temperature")[0], 0)
 
-    def test_table_values(self):
-        """Test that cube values are as expected when process has sliced the
-        inputs up for processing and then summed the contributions from the
-        two dates. Note that the values tested here are for only one of the
-        two processed thresholds (283K). The results contain contributions
-        from two forecast/truth pairs."""
+    def test_table_values_grid(self):
+        """Test that cube values are as expected for grid, when process has
+        sliced the inputs up for processing and then summed the contributions
+        from the two dates. Note that the values tested here are for only one
+        of the two processed thresholds (283K). The results contain
+        contributions from two forecast/truth pairs."""
 
         expected = np.sum([self.expected_table, self.expected_table], axis=0)
         result = Plugin(
             single_value_lower_limit=True, single_value_upper_limit=True
-        ).process(self.forecasts, self.truths)
-        result.coord('spot_index')
+        ).process(self.forecasts_grid, self.truths_grid)
 
         assert_array_equal(result[0].data, expected)
+
+
+    def test_table_values_spot(self):
+        """Test that cube values are as expected for spot, when process has
+        sliced the inputs up for processing and then summed the contributions
+        from the two dates. Note that the values tested here are for only one
+        of the two processed thresholds (283K). The results contain
+        contributions from two forecast/truth pairs."""
+
+        expected = np.sum([self.expected_table, self.expected_table], axis=0)
+        result = Plugin(
+            single_value_lower_limit=True, single_value_upper_limit=True
+        ).process(self.forecasts_spot, self.truths_spot)
+        assert_array_equal(result[0].data, expected.reshape((3, 5, 9)))
+
 
     def test_table_values_masked_truth(self):
         """Test, similar to test_table_values, using masked arrays. The
@@ -589,7 +638,7 @@ class Test_process(Test_Setup):
         expected_mask[:, :, 0, 0] = True
         result = Plugin(
             single_value_lower_limit=True, single_value_upper_limit=True
-        ).process(self.forecasts, self.masked_truths)
+        ).process(self.forecasts_grid, self.masked_truths)
         self.assertIsInstance(result.data, np.ma.MaskedArray)
         assert_array_equal(result[0].data.data, expected)
         assert_array_equal(result[0].data.mask, expected_mask)
@@ -600,10 +649,10 @@ class Test_process(Test_Setup):
         """Test that an exception is raised if the forecast and truth cubes
         have differing threshold coordinates."""
 
-        self.truths = self.truths[:, 0, ...]
+        self.truths_grid = self.truths_grid[:, 0, ...]
         msg = "Threshold coordinates differ between forecasts and truths."
         with self.assertRaisesRegex(ValueError, msg):
-            Plugin().process(self.forecasts, self.truths)
+            Plugin().process(self.forecasts_grid, self.truths_grid)
 
 
 if __name__ == "__main__":
