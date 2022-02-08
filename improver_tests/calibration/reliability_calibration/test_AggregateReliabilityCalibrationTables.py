@@ -56,7 +56,7 @@ class Test_Aggregation(Test_Setup):
 
         super().setUp()
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
-            self.forecasts, self.expected_threshold_coord
+            self.forecasts_grid, self.expected_threshold_coord
         )
         self.reliability_cube = reliability_cube_format.copy(data=self.expected_table)
         self.different_frt = self.reliability_cube.copy()
