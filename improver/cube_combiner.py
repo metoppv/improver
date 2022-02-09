@@ -127,9 +127,9 @@ class Combine(BasePlugin):
                 raise ValueError(
                     f"Minimum realizations must be at least 1, not {self.minimum_realizations}"
                 )
-            from improver.utilities import FilterRealizations
+            from improver.utilities import filter_realizations
 
-            cube = FilterRealizations()(cubes)
+            cube = filter_realizations(cubes)
             realization_count = len(cube.coord("realization").points)
             if realization_count < self.minimum_realizations:
                 raise ValueError(

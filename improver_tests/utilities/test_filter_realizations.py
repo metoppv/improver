@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Unit tests for the "utilities.FilterRealizations" plugin.
+Unit tests for the "utilities.filter_realizations" function.
 """
 from datetime import datetime
 
@@ -38,7 +38,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities import FilterRealizations
+from improver.utilities import filter_realizations
 
 
 @pytest.fixture(name="realization_cubes")
@@ -63,12 +63,12 @@ def realization_cubes_fixture() -> CubeList:
 
 
 @pytest.mark.parametrize("short_realizations", [0, 1, 2, 3])
-def test_FilterRealizations(realization_cubes, short_realizations):
-    """Run FilterRealizations with realization time series where 0 or more are short of the
+def test_filter_realizations(realization_cubes, short_realizations):
+    """Run filter_realizations with realization time series where 0 or more are short of the
     final time step"""
     cubes = CubeList(realization_cubes[:-short_realizations])
     cubes.append(realization_cubes[-short_realizations][:-1])
-    result = FilterRealizations().process(cubes)
+    result = filter_realizations(cubes)
     assert isinstance(result, Cube)
     assert np.allclose(cubes[0].coord("time").points, result.coord("time").points)
     assert np.allclose(
@@ -77,12 +77,12 @@ def test_FilterRealizations(realization_cubes, short_realizations):
 
 
 def test_different_time_lengths(realization_cubes):
-    """Run FilterRealizations with realization time series where two are short of differing
+    """Run filter_realizations with realization time series where two are short of differing
     time steps"""
     cubes = CubeList(realization_cubes[:2])
     cubes.append(realization_cubes[2][1:])
     cubes.append(realization_cubes[3][:-1])
-    result = FilterRealizations().process(cubes)
+    result = filter_realizations(cubes)
     assert isinstance(result, Cube)
     assert np.allclose(cubes[0].coord("time").points, result.coord("time").points)
     assert np.allclose(result.coord("realization").points, [0, 1])
