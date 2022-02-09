@@ -103,17 +103,25 @@ def test_filtering_realizations(realization_cubes, short_realizations):
 
 
 @pytest.mark.parametrize(
-    "minimum_realizations, msg",
+    "minimum_realizations, error_class, msg",
     (
-        (0, "Minimum realizations must be at least 1, not 0"),
-        (-1, "Minimum realizations must be at least 1, not -1"),
-        (5, "After filtering, number of realizations 4 is less than 5"),
-        ("kittens", r"invalid literal for int\(\) with base 10: 'kittens'"),
+        (0, ValueError, "Minimum realizations must be at least 1, not 0"),
+        ("0", ValueError, "Minimum realizations must be at least 1, not 0"),
+        (-1, ValueError, "Minimum realizations must be at least 1, not -1"),
+        (5, ValueError, "After filtering, number of realizations 4 is less than 5"),
+        ("kittens", ValueError, r"invalid literal for int\(\) with base 10: 'kittens'"),
+        (
+            ValueError,
+            TypeError,
+            r"int\(\) argument must be a string, a bytes-like object or a number, not 'type'",
+        ),
     ),
 )
-def test_minimum_realizations_exceptions(minimum_realizations, msg, realization_cubes):
+def test_minimum_realizations_exceptions(
+    minimum_realizations, error_class, msg, realization_cubes
+):
     """Ensure specifying too few realizations will raise an error"""
-    with pytest.raises(ValueError, match=msg):
+    with pytest.raises(error_class, match=msg):
         Combine("+", minimum_realizations=minimum_realizations)(realization_cubes)
 
 
