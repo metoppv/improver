@@ -398,8 +398,8 @@ intersphinx_mapping = {
     "https://scitools-iris.readthedocs.io/en/latest/": None,
     "https://scitools.org.uk/cartopy/docs/latest/": None,
     "https://scitools.org.uk/cf-units/docs/latest/": None,
-    "https://docs.scipy.org/doc/numpy/": None,
-    "https://docs.scipy.org/doc/scipy/reference/": None,
+    "https://numpy.org/doc/stable/": None,
+    "https://docs.scipy.org/doc/scipy-1.6.2/reference/": None,
     "https://pandas.pydata.org/pandas-docs/dev/": None,
 }
 
