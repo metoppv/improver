@@ -33,7 +33,7 @@ from datetime import datetime
 
 import numpy as np
 import pytest
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
 
 from improver.cube_combiner import Combine, CubeCombiner, CubeMultiplier
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -83,15 +83,41 @@ def test_init(
         assert result.plugin.broadcast_to_threshold == broadcast_to_threshold
 
 
+@pytest.mark.parametrize("short_realizations", [0, 1, 2, 3])
+def test_filtering_realizations(realization_cubes, short_realizations):
+    """Run Combine with minimum_realizations and a realization time series where 0 or more are
+    short of the final time step"""
+    if short_realizations == 0:
+        cubes = realization_cubes
+        expected_realization_points = [0, 1, 2, 3]
+    else:
+        cubes = CubeList(realization_cubes[:-short_realizations])
+        cubes.append(realization_cubes[-short_realizations][:-1])
+        expected_realization_points = [0, 1, 2, 3][:-short_realizations]
+    result = Combine(
+        "+", new_name="name", minimum_realizations=1, broadcast_to_threshold=False,
+    )(cubes)
+    assert isinstance(result, Cube)
+    assert np.allclose(result.coord("realization").points, expected_realization_points)
+    assert np.allclose(result.data, 3)
+
+
 @pytest.mark.parametrize(
     "minimum_realizations, msg",
     (
         (0, "Minimum realizations must be at least 1, not 0"),
         (-1, "Minimum realizations must be at least 1, not -1"),
         (5, "After filtering, number of realizations 4 is less than 5"),
+        ("kittens", r"invalid literal for int\(\) with base 10: 'kittens'"),
     ),
 )
 def test_minimum_realizations_exceptions(minimum_realizations, msg, realization_cubes):
     """Ensure specifying too few realizations will raise an error"""
     with pytest.raises(ValueError, match=msg):
         Combine("+", minimum_realizations=minimum_realizations)(realization_cubes)
+
+
+def test_empty_cubelist():
+    """Ensure supplying an empty CubeList raises an error"""
+    with pytest.raises(TypeError, match="A cube is needed to be combined."):
+        Combine("+")(CubeList())
