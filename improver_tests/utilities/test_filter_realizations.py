@@ -76,9 +76,7 @@ def test_filter_realizations(realization_cubes, short_realizations):
     result = filter_realizations(cubes)
     assert isinstance(result, Cube)
     assert np.allclose(cubes[0].coord("time").points, result.coord("time").points)
-    assert np.allclose(
-        result.coord("realization").points, expected_realization_points
-    )
+    assert np.allclose(result.coord("realization").points, expected_realization_points)
 
 
 def test_different_time_lengths(realization_cubes):
