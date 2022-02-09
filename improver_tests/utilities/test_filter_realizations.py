@@ -66,13 +66,18 @@ def realization_cubes_fixture() -> CubeList:
 def test_filter_realizations(realization_cubes, short_realizations):
     """Run filter_realizations with realization time series where 0 or more are short of the
     final time step"""
-    cubes = CubeList(realization_cubes[:-short_realizations])
-    cubes.append(realization_cubes[-short_realizations][:-1])
+    if short_realizations == 0:
+        cubes = realization_cubes
+        expected_realization_points = [0, 1, 2, 3]
+    else:
+        cubes = CubeList(realization_cubes[:-short_realizations])
+        cubes.append(realization_cubes[-short_realizations][:-1])
+        expected_realization_points = [0, 1, 2, 3][:-short_realizations]
     result = filter_realizations(cubes)
     assert isinstance(result, Cube)
     assert np.allclose(cubes[0].coord("time").points, result.coord("time").points)
     assert np.allclose(
-        result.coord("realization").points, [0, 1, 2, 3][:-short_realizations]
+        result.coord("realization").points, expected_realization_points
     )
 
 
