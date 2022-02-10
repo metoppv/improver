@@ -40,6 +40,7 @@ from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.utilities import (
     find_blend_dim_coord,
     get_coords_to_remove,
+    set_record_run_attr,
     update_blended_metadata,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -148,3 +149,54 @@ def test_update_blended_metadata(model_cube):
     # check frt has been updated via fp proxy - input had 3 hours lead time,
     # output has 2 hours lead time relative to current cycle time
     assert collapsed_cube.coord("forecast_period").points[0] == 2 * 3600
+
+
+def test_set_record_run_attr_basic(model_cube):
+    """Test basic use case where the record_run_attr is constructed from other
+    information on the cubes."""
+    record_run_attr = "mosg__model_run"
+    model_id_attr = "mosg__model_configuration"
+    cubes = [model_cube[0], model_cube[1]]
+    for cube in cubes:
+        cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
+
+    expected = "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:"
+
+    set_record_run_attr(cubes, record_run_attr, model_id_attr)
+
+    for cube in cubes:
+        assert cube.attributes[record_run_attr] == expected
+
+
+def test_set_record_run_attr_existing_attribute(model_cube):
+    """Test the case in which the cubes already have record_run_attr entries
+    and these must be combined to create a new shared attribute."""
+    record_run_attr = "mosg__model_run"
+    model_id_attr = "mosg__model_configuration"
+    cubes = [model_cube[0], model_cube[1]]
+    for cube in cubes:
+        cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
+        cycle = datetime.utcfromtimestamp(
+            cube.coord("forecast_reference_time").points[0]
+        )
+        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+        run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:"
+        cube.attributes.update({record_run_attr: run_attr})
+
+    expected = "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:"
+
+    set_record_run_attr(cubes, record_run_attr, model_id_attr)
+
+    for cube in cubes:
+        assert cube.attributes[record_run_attr] == expected
+
+
+def test_set_record_run_attr_exception(model_cube):
+    """Test an exception is raised if no model_id_attr is set on the input
+    cubes."""
+    record_run_attr = "mosg__model_run"
+    model_id_attr = "mosg__model_configuration"
+    cubes = [model_cube[0], model_cube[1]]
+
+    with pytest.raises(Exception, match="Failure to record run information"):
+        set_record_run_attr(cubes, record_run_attr, model_id_attr)

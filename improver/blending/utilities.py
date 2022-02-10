@@ -30,10 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities to support weighted blending"""
 
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -225,3 +226,47 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
         cycletime, time_unit=frt_units, calendar=frt_calendar
     )
     return round_close(cycletime_point, dtype=np.int64)
+
+
+def set_record_run_attr(
+    cubelist: CubeList, record_run_attr: str, model_id_attr: str
+) -> None:
+    """Set a model-cycle record attribute. From a list of cubes, model IDs and
+    cycle times are extracted. These are combined to create a shared record run
+    attribute that is applied to each cube in preparation for blending / combining
+    the cubes. The resulting blend will have a record of the latest cycle for
+    each model that contributed.
+
+    The cubes are modified in place.
+
+    Args:
+        cubelist:
+            Cubes from which to obtain model and cycle information, and to which
+            the resulting run record attribute is added.
+        record_run_attr:
+            The name of the record run attribute that is to be created.
+        model_id_attr:
+            The name of the attribute that contains the source model information.
+    """
+    cycle_strings = []
+    for cube in cubelist:
+        if record_run_attr in cube.attributes:
+            cycle_strings.extend(cube.attributes[record_run_attr].splitlines())
+            continue
+        cycle = datetime.utcfromtimestamp(
+            cube.coord("forecast_reference_time").points[0]
+        )
+        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+        if model_id_attr not in cube.attributes:
+            raise Exception(
+                f"Failure to record run information in '{record_run_attr}' "
+                "during blend: no model id attribute found in cube. "
+                f"Cube attributes: {cube.attributes}"
+            )
+        blending_weight = ""  # TODO: include actual blending weight here.
+        cycle_strings.append(
+            f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
+        )
+    cycle_strings.sort()
+    for cube in cubelist:
+        cube.attributes[record_run_attr] = "\n".join(cycle_strings)
