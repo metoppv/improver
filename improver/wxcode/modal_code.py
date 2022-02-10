@@ -38,6 +38,7 @@ from numpy import ndarray
 from scipy import stats
 
 from improver import BasePlugin
+from improver.blending.utilities import set_record_run_attr
 from improver.utilities.cube_manipulation import MergeCubes
 
 from ..metadata.forecast_times import forecast_period_coord
@@ -73,7 +74,7 @@ class ModalWeatherCode(BasePlugin):
     covered by the input files.
     """
 
-    def __init__(self, model_id_attr: str = None):
+    def __init__(self, model_id_attr: str = None, record_run_attr: str = None):
         """
         Set up plugin and create an aggregator instance for reuse
 
@@ -82,10 +83,14 @@ class ModalWeatherCode(BasePlugin):
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
                 a space-separated string.
+            record_run_attr:
+                Name of attribute used to record models and cycles used in
+                constructing the weather symbols.
         """
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
 
         self.model_id_attr = model_id_attr
+        self.record_run_attr = record_run_attr
 
         # Create the expected cell method for use with single cube inputs
         # that do not pass through the aggregator.
@@ -204,6 +209,11 @@ class ModalWeatherCode(BasePlugin):
             A single weather code cube with time bounds that span those of
             the input weather code cubes.
         """
+        # Set the record_run attribute on all cubes. This will survive the
+        # merge and be present on the output.
+        if self.record_run_attr is not None and self.model_id_attr is not None:
+            set_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
+
         cube = MergeCubes()(cubes)
         self._unify_day_and_night(cube)
 
