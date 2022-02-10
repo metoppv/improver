@@ -393,7 +393,7 @@ class Test_create_unified_frt_coord(Test_Aggregation):
         points."""
 
         frt = "forecast_reference_time"
-        frt_coord = self.forecasts.coord(frt)
+        frt_coord = self.forecasts_grid.coord(frt)
 
         expected_points = self.forecast_2.coord(frt).points[0]
         expected_bounds = [[self.forecast_1.coord(frt).points[0], expected_points]]
