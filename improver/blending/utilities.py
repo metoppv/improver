@@ -35,6 +35,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -256,16 +257,33 @@ def set_record_run_attr(
                 if model_attr not in cycle_strings:
                     cycle_strings.append(model_attr)
             continue
-        cycle = datetime.utcfromtimestamp(
-            cube.coord("forecast_reference_time").points[0]
-        )
-        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+
+        # Determine of the cube has been blended.
+        try:
+            cube.coord("blend_time")
+        except CoordinateNotFoundError:
+            pass
+        else:
+            raise Exception(
+                "This cube has been through model blending but there is no "
+                f"record_run attribute. This indicates cube {cube.name()} has "
+                "been previously model blended without recording the cycles "
+                "from which data was taken. It is not possible to create a "
+                "record_run attribute."
+            )
+
         if model_id_attr not in cube.attributes:
             raise Exception(
                 f"Failure to record run information in '{record_run_attr}' "
                 "during blend: no model id attribute found in cube. "
                 f"Cube attributes: {cube.attributes}"
             )
+
+        cycle = datetime.utcfromtimestamp(
+            cube.coord("forecast_reference_time").points[0]
+        )
+        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+
         blending_weight = ""  # TODO: include actual blending weight here.
         run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
         if run_attr not in cycle_strings:
