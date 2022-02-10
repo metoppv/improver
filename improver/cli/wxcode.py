@@ -40,6 +40,7 @@ def process(
     *cubes: cli.inputcube,
     wxtree: cli.inputjson = None,
     model_id_attr: str = None,
+    record_run_attr: str = None,
     target_period: int = None,
     check_tree: bool = False,
 ):
@@ -55,6 +56,9 @@ def process(
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
             a space-separated string.
+        record_run_attr:
+            Name of attribute used to record models and cycles used in
+            constructing the weather symbols.
         target_period:
             The period in seconds that the weather symbol being produced should
             represent. This should correspond with any period diagnostics, e.g.
@@ -86,5 +90,8 @@ def process(
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
     return WeatherSymbols(
-        wxtree, model_id_attr=model_id_attr, target_period=target_period
+        wxtree,
+        model_id_attr=model_id_attr,
+        record_run_attr=record_run_attr,
+        target_period=target_period,
     )(CubeList(cubes))
