@@ -151,16 +151,26 @@ def test_update_blended_metadata(model_cube):
     assert collapsed_cube.coord("forecast_period").points[0] == 2 * 3600
 
 
-def test_set_record_run_attr_basic(model_cube):
-    """Test basic use case where the record_run_attr is constructed from other
-    information on the cubes."""
+@pytest.mark.parametrize(
+    "indices, expected",
+    (
+        ([0, 1], "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:"),
+        ([0, 0], "uk_det:20171110T0100Z:"),
+    ),
+)
+def test_set_record_run_attr_basic(model_cube, indices, expected):
+    """Test use case where the record_run_attr is constructed from other
+    information on the cubes. There are two tests here:
+
+      - cubes with unique attributes that are combined
+      - cubes with identical attributes attributes that are combined such that
+        only a single entry is returned."""
+
     record_run_attr = "mosg__model_run"
     model_id_attr = "mosg__model_configuration"
-    cubes = [model_cube[0], model_cube[1]]
+    cubes = [model_cube[index] for index in indices]
     for cube in cubes:
         cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
-
-    expected = "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:"
 
     set_record_run_attr(cubes, record_run_attr, model_id_attr)
 
@@ -168,22 +178,45 @@ def test_set_record_run_attr_basic(model_cube):
         assert cube.attributes[record_run_attr] == expected
 
 
-def test_set_record_run_attr_existing_attribute(model_cube):
+@pytest.mark.parametrize(
+    "existing, expected",
+    (
+        (
+            ["uk_det:20171110T0100Z:", "uk_ens:20171110T0100Z:"],
+            "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:",
+        ),
+        (
+            [
+                "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:",
+                "uk_ens:20171110T0100Z:",
+            ],
+            "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:",
+        ),
+        (
+            ["uk_det:20171110T0100Z:", "uk_det:20171110T0100Z:"],
+            "uk_det:20171110T0100Z:",
+        ),
+    ),
+)
+def test_set_record_run_attr_existing_attribute(model_cube, existing, expected):
     """Test the case in which the cubes already have record_run_attr entries
-    and these must be combined to create a new shared attribute."""
+    and these must be combined to create a new shared attribute. There are three
+    tests here:
+
+      - cubes with unique model_run attributes that are combined
+      - cubes with distinct but overlapping model_run attributes from which the
+        elements are combined without duplicates
+      - cubes with identical model_run attributes that are combined such that
+        only a single entry is returned.
+
+    The test cubes are only vehicles for the attributes in this test, such that
+    the attributes imposed do not necessarily match the other cube metadata."""
+
     record_run_attr = "mosg__model_run"
     model_id_attr = "mosg__model_configuration"
     cubes = [model_cube[0], model_cube[1]]
-    for cube in cubes:
-        cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
-        cycle = datetime.utcfromtimestamp(
-            cube.coord("forecast_reference_time").points[0]
-        )
-        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
-        run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:"
+    for run_attr, cube in zip(existing, cubes):
         cube.attributes.update({record_run_attr: run_attr})
-
-    expected = "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:"
 
     set_record_run_attr(cubes, record_run_attr, model_id_attr)
 

@@ -251,7 +251,10 @@ def set_record_run_attr(
     cycle_strings = []
     for cube in cubelist:
         if record_run_attr in cube.attributes:
-            cycle_strings.extend(cube.attributes[record_run_attr].splitlines())
+            model_attrs = cube.attributes[record_run_attr].splitlines()
+            for model_attr in model_attrs:
+                if model_attr not in cycle_strings:
+                    cycle_strings.append(model_attr)
             continue
         cycle = datetime.utcfromtimestamp(
             cube.coord("forecast_reference_time").points[0]
@@ -264,9 +267,10 @@ def set_record_run_attr(
                 f"Cube attributes: {cube.attributes}"
             )
         blending_weight = ""  # TODO: include actual blending weight here.
-        cycle_strings.append(
-            f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
-        )
+        run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
+        if run_attr not in cycle_strings:
+            cycle_strings.append(run_attr)
+
     cycle_strings.sort()
     for cube in cubelist:
         cube.attributes[record_run_attr] = "\n".join(cycle_strings)
