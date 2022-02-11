@@ -1286,6 +1286,9 @@ class Test_create_symbol_cube(IrisTest):
             data, np.array([288, 290, 292], dtype=np.float32)
         )
         self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
+        self.cube.attributes[
+            "mosg__model_run"
+        ] = "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:"
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
@@ -1310,6 +1313,25 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertArrayEqual(
+            result.attributes["mosg__model_configuration"], "uk_det uk_ens"
+        )
+        self.assertTrue((result.data.mask).all())
+
+    def test_record_run_attr(self):
+        """Test cube is constructed with appropriate metadata with
+        model_id_attr attribute"""
+        self.plugin.template_cube = self.cube
+        self.plugin.model_id_attr = "mosg__model_configuration"
+        self.plugin.record_run_attr = "mosg__model_run"
+        result = self.plugin.create_symbol_cube([self.cube])
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
+        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertArrayEqual(
+            result.attributes["mosg__model_run"],
+            "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
+        )
         self.assertArrayEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )

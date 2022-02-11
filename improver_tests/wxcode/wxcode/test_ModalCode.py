@@ -46,12 +46,18 @@ from improver.wxcode.modal_code import ModalWeatherCode
 from . import set_up_wxcube
 
 MODEL_ID_ATTR = "mosg__model_configuration"
+RECORD_RUN_ATTR = "mosg__model_run"
 TARGET_TIME = dt(2020, 6, 15, 18)
+TIME_FORMAT = "%Y%m%dT%H%MZ"
 
 
 @pytest.fixture(name="wxcode_series")
 def wxcode_series_fixture(
-    data, cube_type, offset_reference_times: bool, model_id_attr: bool,
+    data,
+    cube_type,
+    offset_reference_times: bool,
+    model_id_attr: bool,
+    record_run_attr: bool,
 ) -> Tuple[bool, CubeList]:
     """Generate a time series of weather code cubes for combination to create
     a period representative code. When offset_reference_times is set, each
@@ -97,12 +103,37 @@ def wxcode_series_fixture(
                     scalar_coords=time_coords,
                 )
             )
+
+        # Add a blendtime coordinate as UK weather symbols are constructed
+        # from model blended data.
+        blend_time = wxcubes[-1].coord("forecast_reference_time").copy()
+        blend_time.rename("blend_time")
+        wxcubes[-1].add_aux_coord(blend_time)
+
         if model_id_attr:
-            [c.attributes.update({MODEL_ID_ATTR: "uk_ens"}) for c in wxcubes]
-            wxcubes[0].attributes.update({MODEL_ID_ATTR: "uk_det uk_ens"})
-    return model_id_attr, wxcubes
+            if i == 0:
+                wxcubes[-1].attributes.update({MODEL_ID_ATTR: "uk_det uk_ens"})
+            else:
+                wxcubes[-1].attributes.update({MODEL_ID_ATTR: "uk_ens"})
+
+        if record_run_attr:
+            ukv_time = wxfrt - timedelta(hours=1)
+            enukx_time = wxfrt - timedelta(hours=3)
+            if i == 0:
+                wxcubes[-1].attributes.update(
+                    {
+                        RECORD_RUN_ATTR: f"uk_det:{ukv_time:{TIME_FORMAT}}:\nuk_ens:{enukx_time:{TIME_FORMAT}}:"  # noqa: E501
+                    }
+                )
+            else:
+                wxcubes[-1].attributes.update(
+                    {RECORD_RUN_ATTR: f"uk_ens:{enukx_time:{TIME_FORMAT}}:"}
+                )
+
+    return model_id_attr, record_run_attr, wxcubes
 
 
+@pytest.mark.parametrize("record_run_attr", [False])
 @pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
@@ -141,11 +172,12 @@ def wxcode_series_fixture(
 )
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
-    _, wxcode_cubes = wxcode_series
+    _, _, wxcode_cubes = wxcode_series
     result = ModalWeatherCode()(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
+@pytest.mark.parametrize("record_run_attr", [False, True])
 @pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
@@ -164,12 +196,13 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    model_id_attr, wxcode_cubes = wxcode_series
+    model_id_attr, record_run_attr, wxcode_cubes = wxcode_series
 
+    kwargs = {}
     if model_id_attr:
-        kwargs = {"model_id_attr": MODEL_ID_ATTR}
-    else:
-        kwargs = {}
+        kwargs.update({"model_id_attr": MODEL_ID_ATTR})
+    if record_run_attr:
+        kwargs.update({"record_run_attr": RECORD_RUN_ATTR})
 
     result = ModalWeatherCode(**kwargs)(wxcode_cubes)
 
