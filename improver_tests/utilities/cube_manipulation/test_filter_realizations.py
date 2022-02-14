@@ -38,7 +38,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities import filter_realizations
+from improver.utilities.cube_manipulation import filter_realizations
 
 
 @pytest.fixture(name="realization_cubes")

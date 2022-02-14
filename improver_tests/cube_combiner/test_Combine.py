@@ -71,9 +71,9 @@ def test_init(
     """Ensure the class initialises as expected"""
     result = Combine(
         operation,
-        new_name="name",
-        minimum_realizations=minimum_realizations,
         broadcast_to_threshold=broadcast_to_threshold,
+        minimum_realizations=minimum_realizations,
+        new_name="name",
     )
     assert isinstance(result.plugin, expected_instance)
     assert result.new_name == "name"
@@ -95,7 +95,7 @@ def test_filtering_realizations(realization_cubes, short_realizations):
         cubes.append(realization_cubes[-short_realizations][:-1])
         expected_realization_points = [0, 1, 2, 3][:-short_realizations]
     result = Combine(
-        "+", new_name="name", minimum_realizations=1, broadcast_to_threshold=False,
+        "+", broadcast_to_threshold=False, minimum_realizations=1, new_name="name"
     )(cubes)
     assert isinstance(result, Cube)
     assert np.allclose(result.coord("realization").points, expected_realization_points)
@@ -108,7 +108,12 @@ def test_filtering_realizations(realization_cubes, short_realizations):
         (0, ValueError, "Minimum realizations must be at least 1, not 0"),
         ("0", ValueError, "Minimum realizations must be at least 1, not 0"),
         (-1, ValueError, "Minimum realizations must be at least 1, not -1"),
-        (5, ValueError, "After filtering, number of realizations 4 is less than 5"),
+        (
+            5,
+            ValueError,
+            "After filtering, number of realizations 4 is less than the minimum number allowed "
+            r"\(5\)",
+        ),
         ("kittens", ValueError, r"invalid literal for int\(\) with base 10: 'kittens'"),
         (
             ValueError,

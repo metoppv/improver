@@ -49,6 +49,7 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
+    filter_realizations,
 )
 
 
@@ -65,17 +66,15 @@ class Combine(BasePlugin):
     def __init__(
         self,
         operation: str,
+        broadcast_to_threshold: bool = False,
         minimum_realizations: Union[str, int, None] = None,
         new_name: str = None,
-        broadcast_to_threshold: bool = False,
     ):
         r"""
         Args:
             operation (str):
                 An operation to use in combining input cubes. One of:
                 +, -, \*, add, subtract, multiply, min, max, mean
-            new_name (str):
-                New name for the resulting dataset.
             broadcast_to_threshold (bool):
                 If True, broadcast input cubes to the threshold coord prior to combining -
                 a threshold coord must already exist on the first input cube.
@@ -84,6 +83,8 @@ class Combine(BasePlugin):
                 include all available lead times are combined. If the number of realizations that
                 meet this criteria are fewer than this integer, an error will be raised.
                 Minimum value is 1.
+            new_name (str):
+                New name for the resulting dataset.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -114,6 +115,9 @@ class Combine(BasePlugin):
                 Returns a cube with the combined data.
 
         Raises:
+            TypeError:
+                If input list of cubes is empty
+
             ValueError:
                 If minimum_realizations aren't met, or less than one were requested.
         """
@@ -122,23 +126,23 @@ class Combine(BasePlugin):
         if self.new_name is None:
             self.new_name = cubes[0].name()
 
-        if self.minimum_realizations is not None:
+        if self.minimum_realizations is None:
+            filtered_cubes = cubes
+        else:
             if self.minimum_realizations < 1:
                 raise ValueError(
                     f"Minimum realizations must be at least 1, not {self.minimum_realizations}"
                 )
-            from improver.utilities import filter_realizations
 
             cube = filter_realizations(cubes)
             realization_count = len(cube.coord("realization").points)
             if realization_count < self.minimum_realizations:
                 raise ValueError(
                     f"After filtering, number of realizations {realization_count} "
-                    f"is less than {self.minimum_realizations}"
+                    "is less than the minimum number of realizations allowed "
+                    f"({self.minimum_realizations})"
                 )
             filtered_cubes = cube.slices_over("time")
-        else:
-            filtered_cubes = cubes
 
         return self.plugin(CubeList(filtered_cubes), self.new_name)
 

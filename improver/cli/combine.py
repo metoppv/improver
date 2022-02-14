@@ -77,7 +77,7 @@ def process(
 
     return Combine(
         operation,
-        new_name=new_name,
         broadcast_to_threshold=broadcast_to_threshold,
         minimum_realizations=minimum_realizations,
+        new_name=new_name,
     )(CubeList(cubes))
