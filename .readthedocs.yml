@@ -10,5 +10,3 @@ conda:
 
 python:
     system_packages: true
-formats:
-    - htmlzip
