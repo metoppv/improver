@@ -550,7 +550,7 @@ class WeatherSymbols(BasePlugin):
             optional_attributes.update(
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
             )
-        if self.record_run_attr is not None and self.model_id_attr is not None:
+        if self.record_run_attr:
             set_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
             optional_attributes.update(
                 {self.record_run_attr: cubes[0].attributes[self.record_run_attr]}

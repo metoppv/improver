@@ -35,7 +35,6 @@ from typing import Dict, List, Optional
 
 import numpy as np
 from iris.cube import Cube, CubeList
-from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -46,6 +45,7 @@ from improver.metadata.constants.attributes import (
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
+from improver.utilities.cube_checker import is_model_blended
 from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
@@ -248,7 +248,20 @@ def set_record_run_attr(
             The name of the record run attribute that is to be created.
         model_id_attr:
             The name of the attribute that contains the source model information.
+
+    Raises:
+        ValueError: If model_id_attr is not set and is required to construct a
+                    new record_run_attr.
     """
+    if model_id_attr is None and not all(
+        [record_run_attr in cube.attributes for cube in cubelist]
+    ):
+        raise ValueError(
+            f"Not all input cubes contain an existing {record_run_attr} attribute. "
+            "A model_id_attr argument must be provided to enable the construction "
+            f"of a new {record_run_attr} attribute."
+        )
+
     cycle_strings = []
     for cube in cubelist:
         if record_run_attr in cube.attributes:
@@ -258,12 +271,7 @@ def set_record_run_attr(
                     cycle_strings.append(model_attr)
             continue
 
-        # Determine if the cube has been blended.
-        try:
-            cube.coord("blend_time")
-        except CoordinateNotFoundError:
-            pass
-        else:
+        if is_model_blended(cube):
             raise Exception(
                 "This cube has been through model blending but there is no "
                 f"record_run attribute. This indicates cube {cube.name()} has "

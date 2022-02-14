@@ -130,7 +130,7 @@ def wxcode_series_fixture(
                     {RECORD_RUN_ATTR: f"uk_ens:{enukx_time:{TIME_FORMAT}}:"}
                 )
 
-    return model_id_attr, record_run_attr, wxcubes
+    return model_id_attr, record_run_attr, offset_reference_times, wxcubes
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
@@ -172,7 +172,7 @@ def wxcode_series_fixture(
 )
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
-    _, _, wxcode_cubes = wxcode_series
+    _, _, _, wxcode_cubes = wxcode_series
     result = ModalWeatherCode()(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
@@ -196,7 +196,7 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    model_id_attr, record_run_attr, wxcode_cubes = wxcode_series
+    model_id_attr, record_run_attr, offset_reference_times, wxcode_cubes = wxcode_series
 
     kwargs = {}
     if model_id_attr:
@@ -216,6 +216,17 @@ def test_metadata(wxcode_series):
         expected_forecast_period,
     ]
     expected_cell_method = ["mode", "time"]
+    expected_model_id_attr = "uk_det uk_ens"
+    expected_record_det = "uk_det:20200614T2300Z:\n"
+    expected_record_ens = "uk_ens:20200614T{}00Z:"
+
+    # Expected record_run attribute contains all contributing cycle times.
+    if offset_reference_times and len(wxcode_cubes) > 1:
+        expected_record_run_attr = expected_record_det + "\n".join(
+            [expected_record_ens.format(value) for value in range(10, 22)]
+        )
+    else:
+        expected_record_run_attr = expected_record_det + expected_record_ens.format(21)
 
     assert result.coord("time").points[0] == as_utc_timestamp(expected_time)
     assert result.coord("time").bounds[0][0] == as_utc_timestamp(expected_bounds[0])
@@ -231,6 +242,10 @@ def test_metadata(wxcode_series):
     assert result.cell_methods[0].method == expected_cell_method[0]
     assert result.cell_methods[0].coord_names[0] == expected_cell_method[1]
     if model_id_attr:
-        assert result.attributes[MODEL_ID_ATTR] == "uk_det uk_ens"
+        assert result.attributes[MODEL_ID_ATTR] == expected_model_id_attr
     else:
         assert MODEL_ID_ATTR not in result.attributes.keys()
+    if record_run_attr:
+        assert result.attributes[RECORD_RUN_ATTR] == expected_record_run_attr
+    else:
+        assert RECORD_RUN_ATTR not in result.attributes.keys()

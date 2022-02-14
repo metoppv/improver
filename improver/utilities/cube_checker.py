@@ -199,3 +199,25 @@ def spatial_coords_match(first_cube: Cube, second_cube: Cube) -> bool:
     return first_cube.coord(axis="x") == second_cube.coord(
         axis="x"
     ) and first_cube.coord(axis="y") == second_cube.coord(axis="y")
+
+
+def is_model_blended(cube: Cube) -> bool:
+    """
+    Determine whether a cube has been through model blending by looking for a
+    "blend_time" coordinate. This doesn't guarantee that multiple models have
+    contributed to the blend, only that it has been through the model blending
+    process.
+
+    Args:
+        cube:
+            The cube to test.
+
+    Returns:
+        True if the cube has been through model blending, false if not.
+    """
+    try:
+        cube.coord("blend_time")
+    except CoordinateNotFoundError:
+        return False
+    else:
+        return True
