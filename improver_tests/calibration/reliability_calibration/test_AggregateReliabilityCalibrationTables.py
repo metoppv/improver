@@ -30,8 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the AggregateReliabilityCalibrationTables plugin."""
 
-import unittest
-
 import numpy as np
 import pytest
 from numpy.testing import assert_array_equal
