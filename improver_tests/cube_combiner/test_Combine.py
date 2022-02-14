@@ -111,8 +111,8 @@ def test_filtering_realizations(realization_cubes, short_realizations):
         (
             5,
             ValueError,
-            "After filtering, number of realizations 4 is less than the minimum number allowed "
-            r"\(5\)",
+            "After filtering, number of realizations 4 is less than the minimum number of "
+            r"realizations allowed \(5\)",
         ),
         ("kittens", ValueError, r"invalid literal for int\(\) with base 10: 'kittens'"),
         (

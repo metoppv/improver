@@ -91,7 +91,8 @@ def test_minimum_realizations(tmp_path, realizations, gives_error):
     if gives_error:
         with pytest.raises(
             ValueError,
-            match=f"After filtering, number of realizations 3 is less than {realizations}",
+            match="After filtering, number of realizations 3 is less than the minimum number "
+            rf"of realizations allowed \({realizations}\)",
         ):
             run_cli(args)
     else:
