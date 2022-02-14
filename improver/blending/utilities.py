@@ -258,7 +258,7 @@ def set_record_run_attr(
                     cycle_strings.append(model_attr)
             continue
 
-        # Determine of the cube has been blended.
+        # Determine if the cube has been blended.
         try:
             cube.coord("blend_time")
         except CoordinateNotFoundError:
