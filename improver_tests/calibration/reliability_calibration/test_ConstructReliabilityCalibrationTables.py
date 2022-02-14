@@ -237,7 +237,6 @@ def test_metadata_with_incomplete_inputs(forecast_grid, expected_attributes):
     """Test the metadata returned is complete and as expected when the
     forecast cube does not contain all the required metadata to copy."""
     forecast_1 = forecast_grid[0]
-    print(forecast_1)
     result = Plugin._define_metadata(forecast_1)
     assert isinstance(result, dict)
     assert result == expected_attributes
@@ -263,7 +262,6 @@ def test_valid_inputs_spot(
 ):
     """Tests correct reliability cube generated from spot cube."""
     forecast_spot_1 = forecast_spot[0]
-    print(forecast_spot_1)
     forecast_slice = next(forecast_spot_1.slices_over("air_temperature"))
     result = Plugin()._create_reliability_table_cube(
         forecast_slice, forecast_slice.coord(var_name="threshold")
