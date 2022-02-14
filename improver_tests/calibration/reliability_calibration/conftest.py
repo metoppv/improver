@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Fixtures for construct and aggregate reliability calibration tests."""
+"""Fixtures for reliability calibration tests."""
 
 from datetime import datetime
 
@@ -43,21 +43,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
 )
 from improver.utilities.cube_manipulation import MergeCubes
-
-"""Create forecast and truth cubes for use in testing the reliability
-calibration plugin. Two forecast and two truth cubes are created, each
-pair containing the same data but given different forecast reference
-times and validity times. These times maintain the same forecast period
-for each forecast cube.
-
-The truth data for reliability calibration is thresholded data, giving
-fields of zeroes and ones.
-
-Each forecast cube in conjunction with the contemporaneous truth cube
-will be used to produce a reliability calibration table. When testing
-the process method here we expect the final reliability calibration
-table for a given threshold (we are only using 283K in the value
-comparisons) to be the sum of two of these identical tables."""
 
 _thresholds = [283, 288]
 _dummy_point_locations = np.arange(9).astype(np.float32)
