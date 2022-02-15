@@ -101,7 +101,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             msg = "{} is not a valid neighbourhood_method.".format(neighbourhood_method)
             raise ValueError(msg)
         if weighted_mode and neighbourhood_method != "circular":
-            msg = "weighted_mode can only be used if neighbourhood_method is circular"
+            msg = (
+                "weighted_mode can only be used if neighbourhood_method is circular."
+                f" weighted_mode provided: {weighted_mode}, "
+                f"neighbourhood_method provided: {neighbourhood_method}."
+            )
+            print(msg)
             raise ValueError(msg)
         self.weighted_mode = weighted_mode
         self.sum_only = sum_only

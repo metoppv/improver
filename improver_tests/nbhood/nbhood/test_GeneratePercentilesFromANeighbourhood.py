@@ -484,7 +484,10 @@ class Test_process(IrisTest):
         self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
-        message = "The use of masked data is not yet implemented."
+        message = (
+            "The use of masked input cubes is not yet implemented in "
+            "the GeneratePercentilesFromANeighbourhood plugin."
+        )
         with self.assertRaisesRegex(NotImplementedError, message):
             GeneratePercentilesFromANeighbourhood(
                 radius, percentiles=percentiles
