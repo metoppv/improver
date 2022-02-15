@@ -62,6 +62,7 @@ below:
 * Caroline Sandford (Met Office, UK)
 * Victoria Smart (Met Office, UK)
 * Eleanor Smith (Met Office, UK)
+* Marcus Spelman (Met Office, UK)
 * Belinda Trotta (Bureau of Meteorology, Australia)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
