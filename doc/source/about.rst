@@ -67,12 +67,13 @@ Here we give a simple example of using an IMPROVER CLI to threshold data, moving
 
 .. code:: console
 
-    bin/improver threshold input_file.nc output_file.nc 5 10 15 20 --threshold_units m/s
+    bin/improver threshold input.nc --threshold-values 5,10,15,20 --threshold-units m/s --output output.nc
 
 
-* input_file.nc is a netCDF file containing a forecast diagnostic data cube, e.g. wind speeds across an x-y grid at a given time.
+* input.nc is a netCDF file containing a forecast diagnostic data cube, e.g. wind speeds across an x-y grid at a given time.
 * for each threshold specified (5, 10, 15, 20 m/s) a new x-y grid of data will be created. Each point in the grid will contain a 0 if the input wind speed at that point was below the threshold, or 1 if it was above the threshold.
-* output_file.nc will be a new netCDF file containing the resulting data cube with an additional leading dimension that corresponds to the given thresholds (5, 10, 15, 20 m/s).
+* the threshold units specifies the units of the provided thresholds (m/s) and these will be converted to match the units of the original cube before calculating the probability space.
+* output.nc will be a new netCDF file containing the resulting data cube with an additional leading dimension that corresponds to the given thresholds (5, 10, 15, 20 m/s).
 
 This simple example covers one step in a processing chain. Additional information about using any CLI can be found on the command line using `\\-\\-help` (or `-h`), e.g.:
 
