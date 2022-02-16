@@ -225,7 +225,14 @@ def wxcode_inputs_fixture(
 
 def run_wxcode_test(expected: str, wxcode_inputs: CubeList) -> None:
     """Runs the WeatherSymbols plugin with the supplied inputs and asserts that the resulting
-    weather code matches the expected symbol"""
+    weather code matches the expected symbol
+
+    Args:
+        expected:
+            Weather symbol meaning that we expect the WeatherSymbols plugin to produce
+        wxcode_inputs:
+            All the input cubes to give to the plugin
+    """
     result = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=3600)(
         wxcode_inputs
     )
