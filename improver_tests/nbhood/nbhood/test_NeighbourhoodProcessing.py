@@ -46,13 +46,6 @@ class Test__init__(IrisTest):
 
     """Test the __init__ method of NeighbourhoodProcessing."""
 
-    def test_neighbourhood_method_exists(self):
-        """Test that no exception is raised if the requested neighbourhood
-         method exists."""
-        neighbourhood_method = "square"
-        radii = 10000
-        NBHood(neighbourhood_method, radii, weighted_mode=True)
-
     def test_neighbourhood_method_does_not_exist(self):
         """Test that desired error message is raised, if the neighbourhood
         method does not exist."""
