@@ -215,9 +215,4 @@ def is_model_blended(cube: Cube) -> bool:
     Returns:
         True if the cube has been through model blending, false if not.
     """
-    try:
-        cube.coord("blend_time")
-    except CoordinateNotFoundError:
-        return False
-    else:
-        return True
+    return "blend_time" in [c.name() for c in cube.coords()]
