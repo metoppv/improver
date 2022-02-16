@@ -38,7 +38,7 @@ import numpy as np
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.cube_combiner import CubeCombiner
+from improver.cube_combiner import Combine, CubeCombiner
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
@@ -157,6 +157,18 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         input_copy = deepcopy(cubelist)
         result = plugin.process(cubelist, "new_cube_name")
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), "new_cube_name")
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertCubeListEqual(input_copy, cubelist)
+
+    def test_basic_with_Combine(self):
+        """Test that the basic test also works through the Combine plugin."""
+        plugin = Combine("+", new_name="new_cube_name")
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        input_copy = deepcopy(cubelist)
+        result = plugin.process(cubelist)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "new_cube_name")
         expected_data = np.full((2, 2), 1.1, dtype=np.float32)

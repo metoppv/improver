@@ -179,6 +179,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         plugin = GeneratePercentilesFromANeighbourhood(2000)
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(self.cube, kernel)
+
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -485,6 +486,408 @@ class Test_process(IrisTest):
         percentiles = np.array([10, 50, 90])
         radius = 2000.0
         message = "The use of masked data is not yet implemented."
+        with self.assertRaisesRegex(NotImplementedError, message):
+            GeneratePercentilesFromANeighbourhood(
+                radius, percentiles=percentiles
+            ).process(self.cube)
+
+    def test_single_point_low_percentiles(self):
+        """Test behaviour with low percentiles."""
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.2, 1.0, 1.0],
+                    [1.0, 0.2, 0.2, 0.2, 1.0],
+                    [1.0, 1.0, 0.2, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 0.4, 0.4, 0.4, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.8, 1.0, 1.0],
+                    [1.0, 0.8, 0.8, 0.8, 1.0],
+                    [1.0, 1.0, 0.8, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+        self.cube.data[2, 2] = 0
+
+        percentiles = np.array([5, 10, 20])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(self.cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_point_pair(self):
+        """Test behaviour for two nearby non-zero grid cells."""
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 0.0, 0.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+        self.cube.data[2, 2] = 0
+        self.cube.data[2, 1] = 0
+
+        percentiles = np.array([25, 50, 75])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(self.cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_number_of_percentiles_equals_number_of_points(self):
+        """Test when the number of percentiles is equal to the number of points
+        used to construct the percentiles."""
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.2, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.2, 0.2, 0.2, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.2, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.4, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.4, 0.4, 0.4, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.4, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.6, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.6, 0.6, 0.6, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.6, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.8, 0.8, 0.8, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+
+        data = np.ones((7, 7), dtype=np.float32)
+        data[3, 3] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        percentiles = np.array([5, 10, 15, 20, 25])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_number_of_points_half_of_number_of_percentiles(self):
+        """Test when the number of points is half the number of percentiles."""
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.1, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.1, 0.1, 0.1, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.1, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.2, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.2, 0.2, 0.2, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.2, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.3, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.3, 0.3, 0.3, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.3, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.4, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.4, 0.4, 0.4, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.4, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.5, 0.5, 0.5, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.5, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.6, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.6, 0.6, 0.6, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.6, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.7, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.7, 0.7, 0.7, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.7, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.8, 0.8, 0.8, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.8, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.9, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.9, 0.9, 0.9, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 0.9, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+
+        data = np.ones((7, 7), dtype=np.float32)
+        data[3, 3] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+
+        percentiles = np.array([2.5, 5, 7.5, 10, 12.5, 15, 17.5, 20, 22.5, 25])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_circle_bigger_than_domain(self):
+        """Test that an exception is raised if the circle requested is bigger
+        than the size of the domain."""
+
+        self.cube.data[2, 2] = 0
+        radius = 50000.0
+        msg = "Distance of {}m exceeds max domain distance".format(radius)
+        with self.assertRaisesRegex(ValueError, msg):
+            GeneratePercentilesFromANeighbourhood(radius).process(self.cube)
+
+    def test_single_point(self):
+        """Test behaviour for a single non-zero grid cell."""
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 0.4, 0.4, 0.4, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multi_point_multitimes(self):
+        """Test behaviour for points over multiple times."""
+
+        data = np.ones((5, 5), dtype=np.float32)
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        time_points = [
+            datetime(2017, 11, 10, 2),
+            datetime(2017, 11, 10, 3),
+        ]
+        cube = add_coordinate(
+            cube, coord_points=time_points, coord_name="time", is_datetime="true",
+        )
+        cube.data[0, 2, 2] = 0
+        cube.data[1, 2, 1] = 0
+
+        expected = np.array(
+            [
+                [
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 0.4, 1.0, 1.0],
+                        [1.0, 0.4, 0.4, 0.4, 1.0],
+                        [1.0, 1.0, 0.4, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 0.4, 1.0, 1.0, 1.0],
+                        [0.4, 0.4, 0.4, 1.0, 1.0],
+                        [1.0, 0.4, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                ],
+                [
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                ],
+                [
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                ],
+            ]
+        )
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_single_point_lat_long(self):
+        """Test behaviour for a single grid cell on lat long grid."""
+
+        data = np.ones((16, 16), dtype=np.float32)
+        data[7, 7] = 0
+        cube = set_up_variable_cube(data, spatial_grid="latlon",)
+
+        msg = "Unable to convert from"
+        radius = 6000.0
+        with self.assertRaisesRegex(ValueError, msg):
+            GeneratePercentilesFromANeighbourhood(radius).process(cube)
+
+    def test_single_point_masked_to_null(self):
+        """Test behaviour with a masked non-zero point.
+        The underlying numpy.percentile base behaviour does not support
+        masked arrays so raise an error.
+        """
+        mask = np.zeros_like(self.cube.data)
+        mask[2, 2] = 1
+        self.cube.data = np.ma.masked_array(self.cube.data, mask=mask)
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.0
+        message = (
+            "The use of masked input cubes is not yet implemented in "
+            "the GeneratePercentilesFromANeighbourhood plugin."
+        )
         with self.assertRaisesRegex(NotImplementedError, message):
             GeneratePercentilesFromANeighbourhood(
                 radius, percentiles=percentiles

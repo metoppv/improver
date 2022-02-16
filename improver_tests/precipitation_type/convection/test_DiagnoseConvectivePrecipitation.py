@@ -219,7 +219,7 @@ class Test__calculate_convective_ratio(IrisTest):
 
     def test_circular_neighbourhood_weighted_mode(self):
         """Test a circular neighbourhood with the weighted_mode
-        set to True."""
+        set to False."""
         expected = np.array(
             [
                 [0.0, 0.0, 0.0, 0.0],
