@@ -60,8 +60,8 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         neighbourhood_method: str,
         radii: Union[float, List[float]],
         lead_times: Optional[List] = None,
-        weighted_mode: bool = True,
-        sum_or_fraction: str = "fraction",
+        weighted_mode: bool = False,
+        sum_only: bool = False,
         re_mask: bool = True,
     ) -> None:
         """
@@ -84,13 +84,8 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction:
-                Identifier for whether sum or fraction should be returned from
-                neighbourhooding. The sum represents the sum of the
-                neighbourhood. The fraction represents the sum of the
-                neighbourhood divided by the neighbourhood area.
-                "fraction" is the default.
-                Valid options are "sum" or "fraction".
+            sum_only:
+                If true, return neighbourhood sum instead of mean.
             re_mask:
                 If re_mask is True, the original un-neighbourhood processed
                 mask is applied to mask out the neighbourhood processed cube.
@@ -105,23 +100,18 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         else:
             msg = "{} is not a valid neighbourhood_method.".format(neighbourhood_method)
             raise ValueError(msg)
-
-        self.weighted_mode = weighted_mode
-        if sum_or_fraction not in ["sum", "fraction"]:
+        if weighted_mode and neighbourhood_method != "circular":
             msg = (
-                "The neighbourhood output can either be in the form of a "
-                "sum of all the points in the neighbourhood or a fraction "
-                "of the sum of the neighbourhood divided by the "
-                "neighbourhood area. The {} option is invalid. "
-                "Valid options are 'sum' or 'fraction'."
+                "weighted_mode can only be used if neighbourhood_method is circular."
+                f" weighted_mode provided: {weighted_mode}, "
+                f"neighbourhood_method provided: {neighbourhood_method}."
             )
             raise ValueError(msg)
-        self.sum_or_fraction = sum_or_fraction
+        self.weighted_mode = weighted_mode
+        self.sum_only = sum_only
         self.re_mask = re_mask
 
-    def _calculate_neighbourhood(
-        self, data: ndarray, mask: ndarray, sum_only: bool, re_mask: bool
-    ) -> ndarray:
+    def _calculate_neighbourhood(self, data: ndarray, mask: ndarray) -> ndarray:
         """
         Apply neighbourhood processing.
 
@@ -130,17 +120,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 Input data array.
             mask:
                 Mask of valid input data elements.
-            sum_only:
-                If true, return neighbourhood sum instead of mean.
-            re_mask:
-                If true, reapply the original mask and return
-                `numpy.ma.MaskedArray`.
 
         Returns:
             Array containing the smoothed field after the square
             neighbourhood method has been applied.
         """
-        if not sum_only:
+        if not self.sum_only:
             min_val = np.nanmin(data)
             max_val = np.nanmax(data)
 
@@ -176,7 +161,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             data = boxsum(data, self.nb_size, mode="constant")
         elif self.neighbourhood_method == "circular":
             data = correlate(data, self.kernel, mode="nearest")
-        if not sum_only:
+        if not self.sum_only:
             # Calculate neighbourhood totals for mask.
             if self.neighbourhood_method == "square":
                 area_sum = boxsum(area_mask, self.nb_size, mode="constant")
@@ -199,7 +184,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             data_dtype = np.float32
         data = data.astype(data_dtype)
 
-        if re_mask:
+        if self.re_mask:
             data = np.ma.masked_array(data, data_mask, copy=False)
 
         return data
@@ -250,10 +235,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         result_slices = iris.cube.CubeList()
         for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
             cube_slice.data = self._calculate_neighbourhood(
-                cube_slice.data,
-                mask_cube_data,
-                self.sum_or_fraction == "sum",
-                self.re_mask,
+                cube_slice.data, mask_cube_data
             )
             result_slices.append(cube_slice)
         neighbourhood_averaged_cube = result_slices.merge_cube()

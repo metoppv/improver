@@ -66,7 +66,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         fuzzy_factor: Optional[float] = None,
         comparison_operator: str = ">",
         lead_times: Optional[List[float]] = None,
-        weighted_mode: bool = True,
+        weighted_mode: bool = False,
         use_adjacent_grid_square_differences: bool = True,
     ) -> None:
         """
