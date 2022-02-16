@@ -238,6 +238,10 @@ def run_wxcode_test(expected: str, wxcode_inputs: CubeList) -> None:
     )
     assert WX_DICT[int(result.data)] == expected
 
+    assert isinstance(result, iris.cube.Cube)
+    assert result.attributes["weather_code_meaning"] == " ".join(WX_DICT.values())
+    assert result.dtype == np.int32
+
 
 @pytest.mark.parametrize(
     "hail_accum, hail_rate, lightning, rain, rain_vic, shower_condition, sleet, sleet_vic, snow, snow_vic",
