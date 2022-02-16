@@ -106,7 +106,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 f" weighted_mode provided: {weighted_mode}, "
                 f"neighbourhood_method provided: {neighbourhood_method}."
             )
-            print(msg)
             raise ValueError(msg)
         self.weighted_mode = weighted_mode
         self.sum_only = sum_only
