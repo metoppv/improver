@@ -31,7 +31,7 @@
 """Utilities to support weighted blending"""
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -230,7 +230,7 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
 
 
 def set_record_run_attr(
-    cubelist: CubeList, record_run_attr: str, model_id_attr: str
+    cubelist: CubeList, record_run_attr: str, model_id_attr: Union[str, None]
 ) -> None:
     """Set a model-cycle record attribute. From a list of cubes, model IDs and
     cycle times are extracted. These are combined to create a shared record run
@@ -253,7 +253,7 @@ def set_record_run_attr(
         ValueError: If model_id_attr is not set and is required to construct a
                     new record_run_attr.
     """
-    if model_id_attr is None and not all(
+    if not model_id_attr and not all(
         [record_run_attr in cube.attributes for cube in cubelist]
     ):
         raise ValueError(

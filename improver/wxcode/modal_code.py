@@ -211,7 +211,7 @@ class ModalWeatherCode(BasePlugin):
         """
         # Set the record_run attribute on all cubes. This will survive the
         # merge and be present on the output.
-        if self.record_run_attr is not None:
+        if self.record_run_attr:
             set_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
 
         cube = MergeCubes()(cubes)
