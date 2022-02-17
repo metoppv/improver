@@ -254,7 +254,7 @@ def set_record_run_attr(
         each input cube.
       - Some of the input cubes have been previously cycle or model blended, and
         some have not. The model_id_attr argument must be provided so that those
-        cubes without an existing record_run atttribute can be interogated for
+        cubes without an existing record_run attribute can be interrogated for
         their model identifier.
 
     The cubes are modified in place.
