@@ -1294,19 +1294,20 @@ class Test_create_symbol_cube(IrisTest):
         self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
 
     def test_basic(self):
-        """Test cube is constructed with appropriate metadata without
-        model_id_attr attribute"""
+        """Test cube is constructed with appropriate metadata without setting
+        the model_id_attr or record_run attributes"""
         self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertNotIn("mosg__model_configuration", result.attributes)
+        self.assertNotIn("mosg__model_run", result.attributes)
         self.assertTrue((result.data.mask).all())
 
     def test_model_id_attr(self):
-        """Test cube is constructed with appropriate metadata with
-        model_id_attr attribute"""
+        """Test cube is constructed with appropriate metadata with just the
+        model_id_attr attribute set"""
         self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_symbol_cube([self.cube])
@@ -1316,11 +1317,12 @@ class Test_create_symbol_cube(IrisTest):
         self.assertArrayEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
+        self.assertNotIn("mosg__model_run", result.attributes)
         self.assertTrue((result.data.mask).all())
 
     def test_record_run_attr(self):
-        """Test cube is constructed with appropriate metadata with
-        model_id_attr attribute"""
+        """Test cube is constructed with appropriate metadata when setting both
+        the model_id_attr and record_run attributes"""
         self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
         self.plugin.record_run_attr = "mosg__model_run"

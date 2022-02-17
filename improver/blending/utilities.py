@@ -31,7 +31,7 @@
 """Utilities to support weighted blending"""
 
 from datetime import datetime
-from typing import Dict, List, Optional, Union
+from typing import Dict, List, Optional
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -230,13 +230,32 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
 
 
 def set_record_run_attr(
-    cubelist: CubeList, record_run_attr: str, model_id_attr: Union[str, None]
+    cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
 ) -> None:
-    """Set a model-cycle record attribute. From a list of cubes, model IDs and
-    cycle times are extracted. These are combined to create a shared record run
-    attribute that is applied to each cube in preparation for blending / combining
-    the cubes. The resulting blend will have a record of the latest cycle for
-    each model that contributed.
+    """Set a record_run attribute that records the model identifier and
+    forecast reference time of each cube in the cubelist. From the list of cubes,
+    pre-existing record_run attributes, model IDs and forecast reference
+    times are extracted as required to build a new record_run attribute.
+
+    The new attribute is applied to each cube in the cubelist in preparation
+    for blending / combining the cubes. The resulting composite product will
+    have a record of the contributing models and their associated forecast
+    reference times.
+
+    There are three ways this method may work:
+
+      - None of the input cubes have been previously cycle or model blended.
+        The model_id_attr argument must be provided to enable the model
+        identifiers to be extracted and used in conjunction with the forecast
+        reference time to build the record_run attribute.
+      - All of the input cubes have been previously cycle or model blended. The
+        model_id_attr argument is not required as a new record_run attribute
+        will be constructed by combining the existing record_run attributes on
+        each input cube.
+      - Some of the input cubes have been previously cycle or model blended, and
+        some have not. The model_id_attr argument must be provided so that those
+        cubes without an existing record_run atttribute can be interogated for
+        their model identifier.
 
     The cubes are modified in place.
 
@@ -252,6 +271,10 @@ def set_record_run_attr(
     Raises:
         ValueError: If model_id_attr is not set and is required to construct a
                     new record_run_attr.
+        Exception: A cube has previously been model blended but contains no
+                   record_run_attr.
+        Exception: The model_id_attr name provided is not present on one or more
+                   of the input cubes.
     """
     if not model_id_attr and not all(
         [record_run_attr in cube.attributes for cube in cubelist]

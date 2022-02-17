@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing a plugin to calculate the modal weather code in a period."""
 
+from typing import Optional
+
 import iris
 import numpy as np
 from iris.analysis import Aggregator
@@ -74,7 +76,9 @@ class ModalWeatherCode(BasePlugin):
     covered by the input files.
     """
 
-    def __init__(self, model_id_attr: str = None, record_run_attr: str = None):
+    def __init__(
+        self, model_id_attr: Optional[str] = None, record_run_attr: Optional[str] = None
+    ):
         """
         Set up plugin and create an aggregator instance for reuse
 
