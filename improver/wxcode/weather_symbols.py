@@ -43,6 +43,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.blending.utilities import set_record_run_attr
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
@@ -98,6 +99,7 @@ class WeatherSymbols(BasePlugin):
         self,
         wxtree: dict,
         model_id_attr: Optional[str] = None,
+        record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
     ) -> None:
         """
@@ -113,6 +115,9 @@ class WeatherSymbols(BasePlugin):
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
                 a space-separated string.
+            record_run_attr:
+                Name of attribute used to record models and cycles used in
+                constructing the weather symbols.
             target_period:
                 The period in seconds that the weather symbol being produced should
                 represent. This should correspond with any period diagnostics, e.g.
@@ -129,6 +134,7 @@ class WeatherSymbols(BasePlugin):
         """
 
         self.model_id_attr = model_id_attr
+        self.record_run_attr = record_run_attr
         self.start_node = list(wxtree.keys())[0]
         self.target_period = target_period
         self.queries = update_tree_thresholds(wxtree, target_period)
@@ -543,6 +549,11 @@ class WeatherSymbols(BasePlugin):
         if self.model_id_attr:
             optional_attributes.update(
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
+            )
+        if self.record_run_attr:
+            set_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
+            optional_attributes.update(
+                {self.record_run_attr: cubes[0].attributes[self.record_run_attr]}
             )
 
         symbols = create_new_diagnostic_cube(
