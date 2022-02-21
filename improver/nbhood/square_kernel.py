@@ -116,7 +116,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         self.sum_only = sum_only
         self.re_mask = re_mask
 
-    def _calculate_neighbourhood(self, data: ndarray, mask: ndarray = None) -> ndarray:
+    def _calculate_neighbourhood(
+        self, data: ndarray, mask: ndarray = None
+    ) -> Union[ndarray, np.ma.MaskedArray]:
         """
         Apply neighbourhood processing.
 
