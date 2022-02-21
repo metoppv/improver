@@ -440,7 +440,7 @@ def no_op(*args, **kwargs):
 def improver_run_workflow(
     workflow: inputjson,
     *,
-    scheduler="processes",
+    scheduler=None,
     num_workers: int = None,
     no_clobber=False,
     verbose=False,
@@ -500,8 +500,24 @@ def improver_run_workflow(
             target = "waiter-" + tokenize(tsk)
             dsk[target] = tsk
 
+    # create Dask DAG
+    dag = Delayed(target, dsk)
+
     # execute DAG
-    result = Delayed(target, dsk).compute(scheduler=scheduler, num_workers=num_workers)
+    if scheduler in ("distributed", "dask.distributed"):
+        from dask.distributed import (
+            Client,
+            LocalCluster,
+        )
+
+        # create Dask LocalCluster and set it as the default scheduler
+        cluster = LocalCluster(
+            n_workers=num_workers, processes=True, threads_per_worker=1
+        )
+        client = Client(cluster)
+        result = dag.compute()
+    else:
+        result = dag.compute(scheduler=scheduler, num_workers=num_workers, chunksize=1)
     return result
 
 
