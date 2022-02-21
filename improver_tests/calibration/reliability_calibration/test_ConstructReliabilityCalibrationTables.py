@@ -30,614 +30,390 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the ConstructReliabilityCalibrationTables plugin."""
 
-import unittest
-from datetime import datetime
-
 import iris
 import numpy as np
-from iris.coords import DimCoord
+import pytest
+from iris.coords import AuxCoord, DimCoord
+from iris.cube import Cube
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as Plugin,
 )
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.synthetic_data.set_up_test_cubes import (
-    construct_scalar_time_coords,
-    set_up_probability_cube,
-)
-from improver.utilities.cube_manipulation import MergeCubes
+
+"""Create forecast and truth cubes for use in testing the reliability
+calibration plugin. Two forecast and two truth cubes are created, each
+pair containing the same data but given different forecast reference
+times and validity times. These times maintain the same forecast period
+for each forecast cube.
+
+The truth data for reliability calibration is thresholded data, giving
+fields of zeroes and ones.
+
+Each forecast cube in conjunction with the contemporaneous truth cube
+will be used to produce a reliability calibration table. When testing
+the process method here we expect the final reliability calibration
+table for a given threshold (we are only using 283K in the value
+comparisons) to be the sum of two of these identical tables."""
 
 
-class Test_Setup(unittest.TestCase):
-
-    """Test class for the Test_ConstructReliabilityCalibrationTables tests,
-    setting up cubes to use as inputs."""
-
-    def setUp(self):
-        """Create forecast and truth cubes for use in testing the reliability
-        calibration plugin. Two forecast and two truth cubes are created, each
-        pair containing the same data but given different forecast reference
-        times and validity times. These times maintain the same forecast period
-        for each forecast cube.
-
-        The truth data for reliability calibration is thresholded data, giving
-        fields of zeroes and ones.
-
-        Each forecast cube in conjunction with the contemporaneous truth cube
-        will be used to produce a reliability calibration table. When testing
-        the process method here we expect the final reliability calibration
-        table for a given threshold (we are only using 283K in the value
-        comparisons) to be the sum of two of these identical tables."""
-
-        thresholds = [283, 288]
-        forecast_data = np.arange(9, dtype=np.float32).reshape(3, 3) / 8.0
-        forecast_data = np.stack([forecast_data, forecast_data])
-        truth_data = np.linspace(281, 285, 9, dtype=np.float32).reshape(3, 3)
-        # Threshold the truths, giving fields of zeroes and ones.
-        truth_data_a = (truth_data > thresholds[0]).astype(int)
-        truth_data_b = (truth_data > thresholds[1]).astype(int)
-        truth_data_grid = np.stack([truth_data_a, truth_data_b])
-        truth_data_spot = np.stack([truth_data_a.ravel(), truth_data_b.ravel()])
-
-        self.forecast_1 = set_up_probability_cube(forecast_data, thresholds)
-        self.forecast_2 = set_up_probability_cube(
-            forecast_data,
-            thresholds,
-            time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 0, 0),
-        )
-        self.forecasts_grid = MergeCubes()([self.forecast_1, self.forecast_2])
-        self.truth_1 = set_up_probability_cube(
-            truth_data_grid, thresholds, frt=datetime(2017, 11, 10, 4, 0)
-        )
-        self.truth_2 = set_up_probability_cube(
-            truth_data_grid,
-            thresholds,
-            time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 4, 0),
-        )
-        self.truths_grid = MergeCubes()([self.truth_1, self.truth_2])
-
-        masked_array = np.zeros(truth_data_grid.shape, dtype=bool)
-        masked_array[:, 0, :2] = True
-        masked_truth_data_1 = np.ma.array(truth_data_grid, mask=masked_array)
-        masked_array = np.zeros(truth_data_grid.shape, dtype=bool)
-        masked_array[:, :2, 0] = True
-        masked_truth_data_2 = np.ma.array(truth_data_grid, mask=masked_array)
-
-        dummy_point_locations = np.arange(9).astype(np.float32)
-        dummy_string_ids = [f"{i}" for i in range(9)]
-        threshold_coord = DimCoord(
-            thresholds,
-            standard_name="air_temperature",
-            var_name="threshold",
-            units="K",
-            attributes={"spp__relative_to_threshold": "above"},
-        )
-
-        spot_probabilities = forecast_data.reshape((2, 9))
-        forecasts_spot_list = iris.cube.CubeList()
-        truths_spot_list = iris.cube.CubeList()
-        for day in range(5, 7):
-            time_coords = construct_scalar_time_coords(
-                datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 0, 0),
-            )
-            time_coords = [t[0] for t in time_coords]
-            forecasts_spot_list.append(
-                build_spotdata_cube(
-                    spot_probabilities,
-                    name="probability_of_air_temperature_above_threshold",
-                    units="1",
-                    altitude=dummy_point_locations,
-                    latitude=dummy_point_locations,
-                    longitude=dummy_point_locations,
-                    wmo_id=dummy_string_ids,
-                    additional_dims=[threshold_coord],
-                    scalar_coords=time_coords,
-                )
-            )
-            time_coords = construct_scalar_time_coords(
-                datetime(2017, 11, day, 4, 0), None, datetime(2017, 11, day, 4, 0),
-            )
-            time_coords = [t[0] for t in time_coords]
-            truths_spot_list.append(
-                build_spotdata_cube(
-                    truth_data_spot,
-                    name="probability_of_air_temperature_above_threshold",
-                    units="1",
-                    altitude=dummy_point_locations,
-                    latitude=dummy_point_locations,
-                    longitude=dummy_point_locations,
-                    wmo_id=dummy_string_ids,
-                    additional_dims=[threshold_coord],
-                    scalar_coords=time_coords,
-                )
-            )
-        self.forecast_spot_1 = forecasts_spot_list[0]
-        self.forecast_spot_2 = forecasts_spot_list[1]
-        self.forecasts_spot = forecasts_spot_list.merge_cube()
-
-        self.truth_spot_1 = truths_spot_list[0]
-        self.truth_spot_2 = truths_spot_list[1]
-        self.truths_spot = truths_spot_list.merge_cube()
-
-        self.masked_truth_1 = set_up_probability_cube(
-            masked_truth_data_1, thresholds, frt=datetime(2017, 11, 10, 4, 0)
-        )
-        self.masked_truth_2 = set_up_probability_cube(
-            masked_truth_data_2,
-            thresholds,
-            time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 4, 0),
-        )
-        self.masked_truths = MergeCubes()([self.masked_truth_1, self.masked_truth_2])
-        self.expected_threshold_coord = self.forecasts_grid.coord(var_name="threshold")
-        self.expected_table_shape_grid = (3, 5, 3, 3)
-        self.expected_table_shape_spot = (3, 5, 9)
-        self.expected_attributes = {
-            "title": "Reliability calibration data table",
-            "source": "IMPROVER",
-            "institution": "unknown",
-        }
-
-        # Note the structure of the expected_table is non-trivial to interpret
-        # due to the dimension ordering.
-        self.expected_table = np.array(
-            [
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.125, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.375, 0.5, 0.625], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-                [
-                    [[1.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-            ],
-            dtype=np.float32,
-        )
-        self.expected_table_for_mask = np.array(
-            [
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.375, 0.5, 0.625], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [1.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-            ],
-            dtype=np.float32,
-        )
+def test_init_using_defaults():
+    """Test init method without providing any arguments."""
+    plugin = Plugin()
+    assert len(plugin.probability_bins) == 5
+    assert plugin.expected_table_shape == (3, 5)
 
 
-class Test__init__(unittest.TestCase):
-
-    """Test the __init__ method."""
-
-    def test_using_defaults(self):
-        """Test without providing any arguments."""
-        plugin = Plugin()
-        self.assertEqual(len(plugin.probability_bins), 5)
-        self.assertEqual(plugin.expected_table_shape, (3, 5))
-
-    def test_with_arguments(self):
-        """Test with specified arguments."""
-        plugin = Plugin(
-            n_probability_bins=4,
-            single_value_lower_limit=False,
-            single_value_upper_limit=False,
-        )
-        self.assertEqual(len(plugin.probability_bins), 4)
-        self.assertEqual(plugin.expected_table_shape, (3, 4))
+def test_init_with_arguments():
+    """Test init method with specified arguments."""
+    plugin = Plugin(
+        n_probability_bins=4,
+        single_value_lower_limit=False,
+        single_value_upper_limit=False,
+    )
+    assert len(plugin.probability_bins) == 4
+    assert plugin.expected_table_shape, (3, 4)
 
 
-class Test__repr__(unittest.TestCase):
+def test_dpb_without_single_value_limits():
+    """Test the generation of probability bins without single value end
+    bins. The range 0 to 1 will be divided into 4 equally sized bins."""
+    expected = np.array(
+        [[0.0, 0.24999999], [0.25, 0.49999997], [0.5, 0.74999994], [0.75, 1.0]]
+    )
+    result = Plugin()._define_probability_bins(
+        n_probability_bins=4,
+        single_value_lower_limit=False,
+        single_value_upper_limit=False,
+    )
+    assert_allclose(result, expected)
 
-    """Test the __repr__ method."""
 
-    def test_basic(self):
-        """Test repr is as expected."""
-        plugin = Plugin(
+def test_dpb_with_both_single_value_limits():
+    """Test the generation of probability bins with both upper and lower
+    single value end bins. The range 0 to 1 will be divided into 2 equally
+    sized bins, with 2 end bins holding values approximately equal to 0 and 1."""
+    expected = np.array(
+        [
+            [0.0000000e00, 1.0000000e-06],
+            [1.0000001e-06, 4.9999997e-01],
+            [5.0000000e-01, 9.9999893e-01],
+            [9.9999899e-01, 1.0000000e00],
+        ]
+    )
+    result = Plugin()._define_probability_bins(
+        n_probability_bins=4,
+        single_value_lower_limit=True,
+        single_value_upper_limit=True,
+    )
+    assert_allclose(result, expected)
+
+
+def test_dpb_with_lower_single_value_limit():
+    """Test the generation of probability bins with only the lower single value
+    limit bin. The range 0 to 1 will be divided into 4 equally sized bins,
+    with 1 lower bin holding values approximately equal to 0."""
+    expected = np.array(
+        [
+            [0.0000000e00, 1.0000000e-06],
+            [1.0000001e-06, 3.3333331e-01],
+            [3.3333334e-01, 6.6666663e-01],
+            [6.6666669e-01, 1.0000000e00],
+        ],
+        dtype=np.float32,
+    )
+
+    result = Plugin()._define_probability_bins(
+        n_probability_bins=4,
+        single_value_lower_limit=True,
+        single_value_upper_limit=False,
+    )
+    assert_allclose(result, expected)
+
+
+def test_dpb_with_upper_single_value_limit():
+    """Test the generation of probability bins with only the upper single value
+    limit bin. The range 0 to 1 will be divided into 4 equally sized bins,
+    with 1 upper bin holding values approximately equal to 1."""
+    expected = np.array(
+        [
+            [0.0, 0.3333333],
+            [0.33333334, 0.6666666],
+            [0.6666667, 0.9999989],
+            [0.999999, 1.0],
+        ],
+        dtype=np.float32,
+    )
+
+    result = Plugin()._define_probability_bins(
+        n_probability_bins=4,
+        single_value_lower_limit=False,
+        single_value_upper_limit=True,
+    )
+    assert_allclose(result, expected)
+
+
+def test_dpb_with_both_single_value_limits_too_few_bins():
+    """In this test both lower and uppper single_value_limits are requested
+    whilst also trying to use 2 bins. This would leave no bins to cover the
+    range 0 to 1, so an error is raised."""
+
+    msg = (
+        "Cannot use both single_value_lower_limit and "
+        "single_value_upper_limit with 2 or fewer probability bins."
+    )
+    with pytest.raises(ValueError, match=msg):
+        Plugin()._define_probability_bins(
             n_probability_bins=2,
-            single_value_lower_limit=False,
-            single_value_upper_limit=False,
-        )
-        self.assertEqual(
-            str(plugin),
-            "<ConstructReliabilityCalibrationTables: probability_bins: "
-            "[0.00 --> 0.50], [0.50 --> 1.00]>",
-        )
-
-
-class Test__define_probability_bins(unittest.TestCase):
-
-    """Test the _define_probability_bins method."""
-
-    @staticmethod
-    def test_without_single_value_limits():
-        """Test the generation of probability bins without single value end
-        bins. The range 0 to 1 will be divided into 4 equally sized bins."""
-        expected = np.array(
-            [[0.0, 0.24999999], [0.25, 0.49999997], [0.5, 0.74999994], [0.75, 1.0]]
-        )
-        result = Plugin()._define_probability_bins(
-            n_probability_bins=4,
-            single_value_lower_limit=False,
-            single_value_upper_limit=False,
-        )
-        assert_allclose(result, expected)
-
-    @staticmethod
-    def test_with_both_single_value_limits():
-        """Test the generation of probability bins with both upper and lower
-        single value end bins. The range 0 to 1 will be divided into 2 equally
-        sized bins, with 2 end bins holding values approximately equal to 0 and 1."""
-        expected = np.array(
-            [
-                [0.0000000e00, 1.0000000e-06],
-                [1.0000001e-06, 4.9999997e-01],
-                [5.0000000e-01, 9.9999893e-01],
-                [9.9999899e-01, 1.0000000e00],
-            ]
-        )
-        result = Plugin()._define_probability_bins(
-            n_probability_bins=4,
             single_value_lower_limit=True,
             single_value_upper_limit=True,
         )
-        assert_allclose(result, expected)
 
-    @staticmethod
-    def test_with_lower_single_value_limit():
-        """Test the generation of probability bins with only the lower single value
-        limit bin. The range 0 to 1 will be divided into 4 equally sized bins,
-        with 1 lower bin holding values approximately equal to 0."""
-        expected = np.array(
+
+def test_cpb_coordinate_no_single_value_bins():
+    """Test the probability_bins coordinate has the expected values and
+    type with no single value lower and upper bins."""
+    expected_bounds = np.array([[0, 0.5], [0.5, 1]])
+    expected_points = np.mean(expected_bounds, axis=1)
+    plugin = Plugin(n_probability_bins=2,)
+    result = plugin._create_probability_bins_coord()
+
+    assert isinstance(result, iris.coords.DimCoord)
+    assert_allclose(result.points, expected_points)
+    assert_allclose(result.bounds, expected_bounds)
+
+
+def test_cpb_coordinate_single_value_bins():
+    """Test the probability_bins coordinate has the expected values and
+    type when using the single value lower and upper bins."""
+    expected_bounds = np.array(
+        [
+            [0.0000000e00, 1.0000000e-06],
+            [1.0000001e-06, 4.9999997e-01],
+            [5.0000000e-01, 9.9999893e-01],
+            [9.9999899e-01, 1.0000000e00],
+        ]
+    )
+    expected_points = np.mean(expected_bounds, axis=1)
+    plugin = Plugin(
+        n_probability_bins=4,
+        single_value_lower_limit=True,
+        single_value_upper_limit=True,
+    )
+    result = plugin._create_probability_bins_coord()
+
+    assert isinstance(result, DimCoord)
+    assert_allclose(result.points, expected_points)
+    assert_allclose(result.bounds, expected_bounds)
+
+
+def test_crt_coordinates():
+    """Test the reliability table coordinates have the expected values and
+    type."""
+    expected_indices = np.array([0, 1, 2], dtype=np.int32)
+    expected_names = np.array(
+        ["observation_count", "sum_of_forecast_probabilities", "forecast_count"]
+    )
+    index_coord, name_coord = Plugin()._create_reliability_table_coords()
+
+    assert isinstance(index_coord, DimCoord)
+    assert isinstance(name_coord, AuxCoord)
+    assert_array_equal(index_coord.points, expected_indices)
+    assert_array_equal(name_coord.points, expected_names)
+
+
+def test_metadata_with_complete_inputs(forecast_grid, expected_attributes):
+    """Test the metadata returned is complete and as expected when the
+    forecast cube contains the required metadata to copy."""
+    forecast_1 = forecast_grid[0]
+    forecast_1.attributes["institution"] = "Kitten Inc"
+    expected_attributes["institution"] = "Kitten Inc"
+    result = Plugin._define_metadata(forecast_1)
+    assert isinstance(result, dict)
+    assert result == expected_attributes
+
+
+def test_metadata_with_incomplete_inputs(forecast_grid, expected_attributes):
+    """Test the metadata returned is complete and as expected when the
+    forecast cube does not contain all the required metadata to copy."""
+    forecast_1 = forecast_grid[0]
+    result = Plugin._define_metadata(forecast_1)
+    assert isinstance(result, dict)
+    assert result == expected_attributes
+
+
+def test_valid_inputs_grid(
+    forecast_grid, expected_attributes, expected_table_shape_grid
+):
+    """Tests correct reliability cube generated from grid cube."""
+    forecast_1 = forecast_grid[0]
+    forecast_slice = next(forecast_1.slices_over("air_temperature"))
+    result = Plugin()._create_reliability_table_cube(
+        forecast_slice, forecast_slice.coord(var_name="threshold")
+    )
+    assert isinstance(result, Cube)
+    assert result.shape == expected_table_shape_grid
+    assert result.name() == "reliability_calibration_table"
+    assert result.attributes == expected_attributes
+
+
+def test_valid_inputs_spot(
+    forecast_spot, expected_attributes, expected_table_shape_spot
+):
+    """Tests correct reliability cube generated from spot cube."""
+    forecast_spot_1 = forecast_spot[0]
+    forecast_slice = next(forecast_spot_1.slices_over("air_temperature"))
+    result = Plugin()._create_reliability_table_cube(
+        forecast_slice, forecast_slice.coord(var_name="threshold")
+    )
+    assert isinstance(result, Cube)
+    assert result.shape == expected_table_shape_spot
+    assert result.name() == "reliability_calibration_table"
+    assert result.attributes == expected_attributes
+
+
+def test_prb_table_values_grid(
+    forecast_grid, truth_grid, expected_table, expected_table_shape_grid
+):
+    """Test the reliability table returned has the expected values for the
+    given grid inputs."""
+    forecast_1 = forecast_grid[0]
+    truth_1 = truth_grid[0]
+    forecast_slice = next(forecast_1.slices_over("air_temperature"))
+    truth_slice = next(truth_1.slices_over("air_temperature"))
+    result = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
+
+    assert result.shape == expected_table_shape_grid
+    assert_array_equal(result, expected_table)
+
+
+def test_prb_table_values_spot_cube(
+    forecast_spot, truth_spot, expected_table, expected_table_shape_spot
+):
+    """Test the reliability table returned has the expected values for the
+    given spot inputs."""
+    forecast_spot_1 = forecast_spot[0]
+    forecast_slice = next(forecast_spot_1.slices_over("air_temperature"))
+    truth_spot_1 = truth_spot[0]
+    truth_slice = next(truth_spot_1.slices_over("air_temperature"))
+    result = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
+    assert result.shape == expected_table_shape_spot
+    assert_array_equal(result, expected_table.reshape((3, 5, 9)))
+
+
+def test_pmrb_table_values_masked_truth(
+    forecast_grid, masked_truths, expected_table_for_mask, expected_table_shape_grid
+):
+    """Test the reliability table returned has the expected values when a
+    masked truth is input."""
+    forecast_1 = forecast_grid[0]
+    masked_truth_1 = masked_truths[0]
+    forecast_slice = next(forecast_1.slices_over("air_temperature"))
+    truth_slice = next(masked_truth_1.slices_over("air_temperature"))
+    result = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
+
+    assert result.shape == expected_table_shape_grid
+    assert np.ma.is_masked(result)
+    assert_array_equal(result.data, expected_table_for_mask)
+    expected_mask = np.zeros(expected_table_for_mask.shape, dtype=bool)
+    expected_mask[:, :, 0, :2] = True
+    assert_array_equal(result.mask, expected_mask)
+
+
+def test_process_return_type(forecast_grid, truth_grid):
+    """Test the process method returns a reliability table cube."""
+    result = Plugin().process(forecast_grid, truth_grid)
+    assert isinstance(result, iris.cube.Cube)
+    assert result.name() == "reliability_calibration_table"
+    assert result.coord("air_temperature") == forecast_grid.coord(var_name="threshold")
+    assert result.coord_dims("air_temperature")[0] == 0
+
+
+def test_process_table_values_grid(forecast_grid, truth_grid, expected_table):
+    """Test that cube values are as expected for grid, when process has
+    sliced the inputs up for processing and then summed the contributions
+    from the two dates. Note that the values tested here are for only one
+    of the two processed thresholds (283K). The results contain
+    contributions from two forecast/truth pairs."""
+    expected = np.sum([expected_table, expected_table], axis=0)
+    result = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    ).process(forecast_grid, truth_grid)
+    assert_array_equal(result[0].data, expected)
+
+
+def test_process_table_values_spot(expected_table, forecast_spot, truth_spot):
+    """Test that cube values are as expected for spot, when process has
+    sliced the inputs up for processing and then summed the contributions
+    from the two dates. Note that the values tested here are for only one
+    of the two processed thresholds (283K). The results contain
+    contributions from two forecast/truth pairs."""
+    expected = np.sum([expected_table, expected_table], axis=0)
+    result = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    ).process(forecast_spot, truth_spot)
+    assert_array_equal(result[0].data, expected.reshape((3, 5, 9)))
+
+
+def test_table_values_masked_truth(
+    forecast_grid, masked_truths, expected_table_for_mask
+):
+    """Test, similar to test_table_values, using masked arrays. The
+    mask is different for different timesteps, reflecting the potential
+    for masked areas in e.g. a radar truth to differ between timesteps.
+    At timestep 1, two grid points are masked. At timestep 2, two
+    grid points are also masked with one masked grid point in common
+    between timesteps. As a result, only one grid point is masked (
+    within the upper left corner) within the resulting reliability table."""
+    expected_table_for_second_mask = np.array(
+        [
             [
-                [0.0000000e00, 1.0000000e-06],
-                [1.0000001e-06, 3.3333331e-01],
-                [3.3333334e-01, 6.6666663e-01],
-                [6.6666669e-01, 1.0000000e00],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
             ],
-            dtype=np.float32,
-        )
-
-        result = Plugin()._define_probability_bins(
-            n_probability_bins=4,
-            single_value_lower_limit=True,
-            single_value_upper_limit=False,
-        )
-        assert_allclose(result, expected)
-
-    @staticmethod
-    def test_with_upper_single_value_limit():
-        """Test the generation of probability bins with only the upper single value
-        limit bin. The range 0 to 1 will be divided into 4 equally sized bins,
-        with 1 upper bin holding values approximately equal to 1."""
-        expected = np.array(
             [
-                [0.0, 0.3333333],
-                [0.33333334, 0.6666666],
-                [0.6666667, 0.9999989],
-                [0.999999, 1.0],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.125, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.5, 0.625], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
             ],
-            dtype=np.float32,
-        )
-
-        result = Plugin()._define_probability_bins(
-            n_probability_bins=4,
-            single_value_lower_limit=False,
-            single_value_upper_limit=True,
-        )
-        assert_allclose(result, expected)
-
-    def test_with_both_single_value_limits_too_few_bins(self):
-        """In this test both lower and uppper single_value_limits are requested
-        whilst also trying to use 2 bins. This would leave no bins to cover the
-        range 0 to 1, so an error is raised."""
-
-        msg = (
-            "Cannot use both single_value_lower_limit and "
-            "single_value_upper_limit with 2 or fewer probability bins."
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin()._define_probability_bins(
-                n_probability_bins=2,
-                single_value_lower_limit=True,
-                single_value_upper_limit=True,
-            )
-
-
-class Test__create_probability_bins_coord(unittest.TestCase):
-
-    """Test the _create_probability_bins_coord method."""
-
-    def test_coordinate_no_single_value_bins(self):
-        """Test the probability_bins coordinate has the expected values and
-        type with no single value lower and upper bins."""
-        expected_bounds = np.array([[0, 0.5], [0.5, 1]])
-        expected_points = np.mean(expected_bounds, axis=1)
-        plugin = Plugin(n_probability_bins=2,)
-        result = plugin._create_probability_bins_coord()
-
-        self.assertIsInstance(result, iris.coords.DimCoord)
-        assert_allclose(result.points, expected_points)
-        assert_allclose(result.bounds, expected_bounds)
-
-    def test_coordinate_single_value_bins(self):
-        """Test the probability_bins coordinate has the expected values and
-        type when using the single value lower and upper bins."""
-        expected_bounds = np.array(
             [
-                [0.0000000e00, 1.0000000e-06],
-                [1.0000001e-06, 4.9999997e-01],
-                [5.0000000e-01, 9.9999893e-01],
-                [9.9999899e-01, 1.0000000e00],
-            ]
-        )
-        expected_points = np.mean(expected_bounds, axis=1)
-        plugin = Plugin(
-            n_probability_bins=4,
-            single_value_lower_limit=True,
-            single_value_upper_limit=True,
-        )
-        result = plugin._create_probability_bins_coord()
-
-        self.assertIsInstance(result, iris.coords.DimCoord)
-        assert_allclose(result.points, expected_points)
-        assert_allclose(result.bounds, expected_bounds)
-
-
-class Test__create_reliability_table_coords(unittest.TestCase):
-
-    """Test the _create_reliability_table_coords method."""
-
-    def test_coordinates(self):
-        """Test the reliability table coordinates have the expected values and
-        type."""
-        expected_indices = np.array([0, 1, 2], dtype=np.int32)
-        expected_names = np.array(
-            ["observation_count", "sum_of_forecast_probabilities", "forecast_count"]
-        )
-        index_coord, name_coord = Plugin()._create_reliability_table_coords()
-
-        self.assertIsInstance(index_coord, iris.coords.DimCoord)
-        self.assertIsInstance(name_coord, iris.coords.AuxCoord)
-        assert_array_equal(index_coord.points, expected_indices)
-        assert_array_equal(name_coord.points, expected_names)
-
-
-class Test__define_metadata(Test_Setup):
-
-    """Test the _define_metadata method."""
-
-    def test_metadata_with_complete_inputs(self):
-        """Test the metadata returned is complete and as expected when the
-        forecast cube contains the required metadata to copy."""
-
-        self.forecast_1.attributes["institution"] = "Kitten Inc"
-        self.expected_attributes["institution"] = "Kitten Inc"
-
-        result = Plugin._define_metadata(self.forecast_1)
-
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result, self.expected_attributes)
-
-    def test_metadata_with_incomplete_inputs(self):
-        """Test the metadata returned is complete and as expected when the
-        forecast cube does not contain all the required metadata to copy."""
-
-        result = Plugin._define_metadata(self.forecast_1)
-
-        self.assertIsInstance(result, dict)
-        self.assertEqual(result, self.expected_attributes)
-
-
-class Test__create_reliability_table_cube(Test_Setup):
-
-    """Test the _create_reliability_table_cube method."""
-
-    def test_valid_inputs_grid(self):
-        """Tests correct reliability cube generated from grid cube."""
-
-        forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
-        result = Plugin()._create_reliability_table_cube(
-            forecast_slice, forecast_slice.coord(var_name="threshold")
-        )
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
-        self.assertEqual(result.name(), "reliability_calibration_table")
-        self.assertEqual(result.attributes, self.expected_attributes)
-
-    def test_valid_inputs_spot(self):
-        """Tests correct reliability cube generated from spot cube."""
-        forecast_slice = next(self.forecast_spot_1.slices_over("air_temperature"))
-        result = Plugin()._create_reliability_table_cube(
-            forecast_slice, forecast_slice.coord(var_name="threshold")
-        )
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertSequenceEqual(result.shape, self.expected_table_shape_spot)
-        self.assertEqual(result.name(), "reliability_calibration_table")
-        self.assertEqual(result.attributes, self.expected_attributes)
-
-
-class Test__populate_reliability_bins(Test_Setup):
-
-    """Test the _populate_reliability_bins method."""
-
-    def test_table_values_grid(self):
-        """Test the reliability table returned has the expected values for the
-        given grid inputs."""
-
-        forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
-        truth_slice = next(self.truth_1.slices_over("air_temperature"))
-        result = Plugin(
-            single_value_lower_limit=True, single_value_upper_limit=True
-        )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
-
-        self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
-        assert_array_equal(result, self.expected_table)
-
-    def test_table_values_spot_cube(self):
-        """Test the reliability table returned has the expected values for the
-        given spot inputs."""
-        forecast_slice = next(self.forecast_spot_1.slices_over("air_temperature"))
-        truth_slice = next(self.truth_spot_1.slices_over("air_temperature"))
-        result = Plugin(
-            single_value_lower_limit=True, single_value_upper_limit=True
-        )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
-        self.assertSequenceEqual(result.shape, self.expected_table_shape_spot)
-        assert_array_equal(result, self.expected_table.reshape((3, 5, 9)))
-
-
-class Test__populate_masked_reliability_bins(Test_Setup):
-
-    """Test the _populate_masked_reliability_bins method."""
-
-    def test_table_values_masked_truth(self):
-        """Test the reliability table returned has the expected values when a
-        masked truth is input."""
-
-        forecast_slice = next(self.forecast_1.slices_over("air_temperature"))
-        truth_slice = next(self.masked_truth_1.slices_over("air_temperature"))
-        result = Plugin(
-            single_value_lower_limit=True, single_value_upper_limit=True
-        )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
-
-        self.assertSequenceEqual(result.shape, self.expected_table_shape_grid)
-        self.assertTrue(np.ma.is_masked(result))
-        assert_array_equal(result.data, self.expected_table_for_mask)
-        expected_mask = np.zeros(self.expected_table_for_mask.shape, dtype=bool)
-        expected_mask[:, :, 0, :2] = True
-        assert_array_equal(result.mask, expected_mask)
-
-
-class Test_process(Test_Setup):
-
-    """Test the process method."""
-
-    def test_return_type(self):
-        """Test the process method returns a reliability table cube."""
-
-        result = Plugin().process(self.forecasts_grid, self.truths_grid)
-
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "reliability_calibration_table")
-        self.assertEqual(result.coord("air_temperature"), self.expected_threshold_coord)
-        self.assertEqual(result.coord_dims("air_temperature")[0], 0)
-
-    def test_table_values_grid(self):
-        """Test that cube values are as expected for grid, when process has
-        sliced the inputs up for processing and then summed the contributions
-        from the two dates. Note that the values tested here are for only one
-        of the two processed thresholds (283K). The results contain
-        contributions from two forecast/truth pairs."""
-
-        expected = np.sum([self.expected_table, self.expected_table], axis=0)
-        result = Plugin(
-            single_value_lower_limit=True, single_value_upper_limit=True
-        ).process(self.forecasts_grid, self.truths_grid)
-
-        assert_array_equal(result[0].data, expected)
-
-    def test_table_values_spot(self):
-        """Test that cube values are as expected for spot, when process has
-        sliced the inputs up for processing and then summed the contributions
-        from the two dates. Note that the values tested here are for only one
-        of the two processed thresholds (283K). The results contain
-        contributions from two forecast/truth pairs."""
-
-        expected = np.sum([self.expected_table, self.expected_table], axis=0)
-        result = Plugin(
-            single_value_lower_limit=True, single_value_upper_limit=True
-        ).process(self.forecasts_spot, self.truths_spot)
-        assert_array_equal(result[0].data, expected.reshape((3, 5, 9)))
-
-    def test_table_values_masked_truth(self):
-        """Test, similar to test_table_values, using masked arrays. The
-        mask is different for different timesteps, reflecting the potential
-        for masked areas in e.g. a radar truth to differ between timesteps.
-        At timestep 1, two grid points are masked. At timestep 2, two
-        grid points are also masked with one masked grid point in common
-        between timesteps. As a result, only one grid point is masked (
-        within the upper left corner) within the resulting reliability table."""
-
-        expected_table_for_second_mask = np.array(
-            [
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.125, 0.25], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.5, 0.625], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.75, 0.875, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
-                [
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
-                    [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
-                ],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 1.0, 1.0], [0.0, 0.0, 0.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 1.0, 1.0], [0.0, 0.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [1.0, 1.0, 0.0]],
+                [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [0.0, 0.0, 1.0]],
             ],
-            dtype=np.float32,
-        )
-        expected = np.sum(
-            [self.expected_table_for_mask, expected_table_for_second_mask], axis=0
-        )
-        expected_mask = np.zeros(expected.shape, dtype=bool)
-        expected_mask[:, :, 0, 0] = True
-        result = Plugin(
-            single_value_lower_limit=True, single_value_upper_limit=True
-        ).process(self.forecasts_grid, self.masked_truths)
-        self.assertIsInstance(result.data, np.ma.MaskedArray)
-        assert_array_equal(result[0].data.data, expected)
-        assert_array_equal(result[0].data.mask, expected_mask)
-        # Different thresholds must have the same mask.
-        assert_array_equal(result[0].data.mask, result[1].data.mask)
-
-    def test_mismatching_threshold_coordinates(self):
-        """Test that an exception is raised if the forecast and truth cubes
-        have differing threshold coordinates."""
-
-        self.truths_grid = self.truths_grid[:, 0, ...]
-        msg = "Threshold coordinates differ between forecasts and truths."
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin().process(self.forecasts_grid, self.truths_grid)
+        ],
+        dtype=np.float32,
+    )
+    expected = np.sum([expected_table_for_mask, expected_table_for_second_mask], axis=0)
+    expected_mask = np.zeros(expected.shape, dtype=bool)
+    expected_mask[:, :, 0, 0] = True
+    result = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    ).process(forecast_grid, masked_truths)
+    assert isinstance(result.data, np.ma.MaskedArray)
+    assert_array_equal(result[0].data.data, expected)
+    assert_array_equal(result[0].data.mask, expected_mask)
+    # Different thresholds must have the same mask.
+    assert_array_equal(result[0].data.mask, result[1].data.mask)
 
 
-if __name__ == "__main__":
-    unittest.main()
+def test_process_mismatching_threshold_coordinates(truth_grid, forecast_grid):
+    """Test that an exception is raised if the forecast and truth cubes
+    have differing threshold coordinates."""
+    truths_grid = truth_grid[:, 0, ...]
+    msg = "Threshold coordinates differ between forecasts and truths."
+    with pytest.raises(ValueError, match=msg):
+        Plugin().process(forecast_grid, truths_grid)
