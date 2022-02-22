@@ -17,8 +17,8 @@ jobs:
         fetch-depth: 0
     - name: update date
       run: |
-        last_year = date --date='1 year ago' +%Y
-        this_year = date +"%Y"
+        last_year=$(date --date='1 year ago' +%Y)
+        this_year=$(date +"%Y")
         find . -type f -exec sed -i'' -e 's/2017-${last_year}/2017-${this_year}/g' {} +
     - name: create pull request
       id: cpr
