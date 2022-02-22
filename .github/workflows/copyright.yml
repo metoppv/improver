@@ -4,9 +4,8 @@ on:
     push:
 #  schedule:
 #    - cron: '00 03 1 1 * *'
-##   To test:
+#  To test:
 #    - cron: '00 13 22 2 * *'
-  workflow_dispatch:
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
