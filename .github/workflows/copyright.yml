@@ -24,6 +24,9 @@ jobs:
       id: cpr
       uses: peter-evans/create-pull-request@v3.12.1
       with:
+        committer: GitHub <noreply@github.com>
+        author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
+        signoff: false
         commit-message: Update of copyright dates.
         branch: Copyright_dates
         delete-branch: true
