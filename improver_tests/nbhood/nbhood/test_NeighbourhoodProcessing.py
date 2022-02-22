@@ -117,15 +117,7 @@ class Test__calculate_neighbourhood(IrisTest):
                 [np.nan, 1.000000, 0.750000, 0.750000, 0.50],
             ]
         )
-        self.expected_mask = np.array(
-            [
-                [True, True, False, False, True],
-                [True, False, False, False, True],
-                [True, True, False, False, False],
-                [True, True, False, False, True],
-                [True, True, False, False, True],
-            ]
-        )
+        self.expected_mask = ~self.mask.astype(bool)
 
     def test_basic_square(self):
         """Test the _calculate_neighbourhood method with a square neighbourhood."""
@@ -314,7 +306,9 @@ class Test__calculate_neighbourhood(IrisTest):
         passed in and re-masking is applied."""
         plugin = NeighbourhoodProcessing("square", self.RADIUS)
         plugin.nb_size = self.nbhood_size
-        result = plugin._calculate_neighbourhood(self.data_for_masked_tests, self.mask)
+        result = plugin._calculate_neighbourhood(
+            self.data_for_masked_tests, mask=self.mask
+        )
         self.assertArrayAlmostEqual(result.data, self.expected_array)
         self.assertArrayAlmostEqual(result.mask, self.expected_mask)
 
