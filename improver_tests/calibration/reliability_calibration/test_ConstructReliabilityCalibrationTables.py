@@ -237,74 +237,55 @@ def test_metadata_with_incomplete_inputs(forecast_grid, expected_attributes):
     """Test the metadata returned is complete and as expected when the
     forecast cube does not contain all the required metadata to copy."""
     forecast_1 = forecast_grid[0]
-    print(forecast_1)
     result = Plugin._define_metadata(forecast_1)
     assert isinstance(result, dict)
     assert result == expected_attributes
 
 
-def test_valid_inputs_grid(
-    forecast_grid, expected_attributes, expected_table_shape_grid
-):
-    """Tests correct reliability cube generated from grid cube."""
-    forecast_1 = forecast_grid[0]
+@pytest.mark.parametrize(
+    "input_cube, expected_shape",
+    [
+        ("forecast_grid", "expected_table_shape_grid"),
+        ("forecast_spot", "expected_table_shape_spot"),
+    ],
+)
+def test_valid_inputs(request, expected_attributes, input_cube, expected_shape):
+    # request, expected_attributes,
+    """Tests correct reliability cube generated."""
+    forecast_1 = request.getfixturevalue(input_cube)[0]
     forecast_slice = next(forecast_1.slices_over("air_temperature"))
     result = Plugin()._create_reliability_table_cube(
         forecast_slice, forecast_slice.coord(var_name="threshold")
     )
     assert isinstance(result, Cube)
-    assert result.shape == expected_table_shape_grid
+    assert result.shape == request.getfixturevalue(expected_shape)
     assert result.name() == "reliability_calibration_table"
     assert result.attributes == expected_attributes
 
 
-def test_valid_inputs_spot(
-    forecast_spot, expected_attributes, expected_table_shape_spot
-):
-    """Tests correct reliability cube generated from spot cube."""
-    forecast_spot_1 = forecast_spot[0]
-    print(forecast_spot_1)
-    forecast_slice = next(forecast_spot_1.slices_over("air_temperature"))
-    result = Plugin()._create_reliability_table_cube(
-        forecast_slice, forecast_slice.coord(var_name="threshold")
-    )
-    assert isinstance(result, Cube)
-    assert result.shape == expected_table_shape_spot
-    assert result.name() == "reliability_calibration_table"
-    assert result.attributes == expected_attributes
-
-
-def test_prb_table_values_grid(
-    forecast_grid, truth_grid, expected_table, expected_table_shape_grid
+@pytest.mark.parametrize(
+    "forecast, truth, expected_table_shape",
+    [
+        ("forecast_grid", "truth_grid", "expected_table_shape_grid"),
+        ("forecast_spot", "truth_spot", "expected_table_shape_spot"),
+    ],
+)
+def test_prb_table_values(
+    request, expected_table, forecast, truth, expected_table_shape,
 ):
     """Test the reliability table returned has the expected values for the
-    given grid inputs."""
-    forecast_1 = forecast_grid[0]
-    truth_1 = truth_grid[0]
+    given inputs."""
+    forecast_1 = request.getfixturevalue(forecast)[0]
+    truth_1 = request.getfixturevalue(truth)[0]
     forecast_slice = next(forecast_1.slices_over("air_temperature"))
     truth_slice = next(truth_1.slices_over("air_temperature"))
     result = Plugin(
         single_value_lower_limit=True, single_value_upper_limit=True
     )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
 
-    assert result.shape == expected_table_shape_grid
-    assert_array_equal(result, expected_table)
-
-
-def test_prb_table_values_spot_cube(
-    forecast_spot, truth_spot, expected_table, expected_table_shape_spot
-):
-    """Test the reliability table returned has the expected values for the
-    given spot inputs."""
-    forecast_spot_1 = forecast_spot[0]
-    forecast_slice = next(forecast_spot_1.slices_over("air_temperature"))
-    truth_spot_1 = truth_spot[0]
-    truth_slice = next(truth_spot_1.slices_over("air_temperature"))
-    result = Plugin(
-        single_value_lower_limit=True, single_value_upper_limit=True
-    )._populate_masked_reliability_bins(forecast_slice.data, truth_slice.data)
-    assert result.shape == expected_table_shape_spot
-    assert_array_equal(result, expected_table.reshape((3, 5, 9)))
+    expected_table_shape = request.getfixturevalue(expected_table_shape)
+    assert result.shape == expected_table_shape
+    assert_array_equal(result, expected_table.reshape(expected_table_shape))
 
 
 def test_pmrb_table_values_masked_truth(
@@ -337,8 +318,15 @@ def test_process_return_type(forecast_grid, truth_grid):
     assert result.coord_dims("air_temperature")[0] == 0
 
 
-def test_process_table_values_grid(forecast_grid, truth_grid, expected_table):
-    """Test that cube values are as expected for grid, when process has
+@pytest.mark.parametrize(
+    "forecast, truth, expected_shape",
+    [
+        ("forecast_grid", "truth_grid", "expected_table_shape_grid"),
+        ("forecast_spot", "truth_spot", "expected_table_shape_spot"),
+    ],
+)
+def test_process_table_values(request, expected_table, forecast, truth, expected_shape):
+    """Test that cube values are as expected, when process has
     sliced the inputs up for processing and then summed the contributions
     from the two dates. Note that the values tested here are for only one
     of the two processed thresholds (283K). The results contain
@@ -346,21 +334,10 @@ def test_process_table_values_grid(forecast_grid, truth_grid, expected_table):
     expected = np.sum([expected_table, expected_table], axis=0)
     result = Plugin(
         single_value_lower_limit=True, single_value_upper_limit=True
-    ).process(forecast_grid, truth_grid)
-    assert_array_equal(result[0].data, expected)
-
-
-def test_process_table_values_spot(expected_table, forecast_spot, truth_spot):
-    """Test that cube values are as expected for spot, when process has
-    sliced the inputs up for processing and then summed the contributions
-    from the two dates. Note that the values tested here are for only one
-    of the two processed thresholds (283K). The results contain
-    contributions from two forecast/truth pairs."""
-    expected = np.sum([expected_table, expected_table], axis=0)
-    result = Plugin(
-        single_value_lower_limit=True, single_value_upper_limit=True
-    ).process(forecast_spot, truth_spot)
-    assert_array_equal(result[0].data, expected.reshape((3, 5, 9)))
+    ).process(request.getfixturevalue(forecast), request.getfixturevalue(truth),)
+    assert_array_equal(
+        result[0].data, expected.reshape(request.getfixturevalue(expected_shape))
+    )
 
 
 def test_table_values_masked_truth(

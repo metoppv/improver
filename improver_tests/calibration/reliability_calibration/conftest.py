@@ -143,11 +143,8 @@ def forecast_spot(forecast_grid):
 
 @pytest.fixture
 def truth_spot(truth_grid):
-    print(truth_grid)
-    print(truth_grid.data.shape)
     truth_data_spot = truth_grid[0, ...].data.reshape((2, 9))
-    print(truth_data_spot.shape)
-    print(truth_data_spot)
+    truth_data_spot = truth_grid[0, ...].data.reshape((2, 9))
     truths_spot_list = CubeList()
     for day in range(5, 7):
         time_coords = construct_scalar_time_coords(
