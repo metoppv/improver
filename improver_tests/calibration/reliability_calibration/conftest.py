@@ -311,9 +311,7 @@ def lat_lon_collapse():
 
 @pytest.fixture
 def reliability_table_agg(forecast_grid, truth_grid):
-    reliability_cube_format = CalPlugin().process(
-        forecast_grid, truth_grid
-    )
+    reliability_cube_format = CalPlugin().process(forecast_grid, truth_grid)
     reliability_cube_format = reliability_cube_format.collapsed(
         [
             reliability_cube_format.coord(axis="x"),
@@ -322,16 +320,18 @@ def reliability_table_agg(forecast_grid, truth_grid):
         iris.analysis.SUM,
     )
     reliability_data = np.array(
-        [[
-            [0, 0, 250, 500, 750],  # Observation count
-            [0, 250, 500, 750, 1000],  # Sum of forecast probability
-            [1000, 1000, 1000, 1000, 1000],  # Forecast count
-        ],
         [
-            [250, 500, 750, 1000, 1000],  # Observation count
-            [0, 250, 500, 750, 1000],  # Sum of forecast probability
-            [1000, 1000, 1000, 1000, 1000],  # Forecast count
-        ]],
+            [
+                [0, 0, 250, 500, 750],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ],
+            [
+                [250, 500, 750, 1000, 1000],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ],
+        ],
         dtype=np.float32,
     )
     reliability_table_agg = reliability_cube_format.copy(data=reliability_data)
