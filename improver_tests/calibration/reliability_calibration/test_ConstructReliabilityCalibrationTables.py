@@ -249,7 +249,7 @@ def test_metadata_with_incomplete_inputs(forecast_grid, expected_attributes):
         ("forecast_spot", "expected_table_shape_spot"),
     ],
 )
-def test_valid_inputs(expected_attributes, input_cube, expected_shape, request):
+def test_valid_inputs(request, expected_attributes, input_cube, expected_shape):
     # request, expected_attributes,
     """Tests correct reliability cube generated."""
     forecast_1 = request.getfixturevalue(input_cube)[0]
