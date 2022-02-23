@@ -16,10 +16,10 @@ jobs:
     steps:
     - name: Checkout repo
       uses: actions/checkout@v2
-    - name: Configure git
-      uses: cylc/release-actions/configure-git@v1
-    - name: Checkout PR branch
-      uses: cylc/release-actions/checkout-copyright-branch@v1
+#    - name: Configure git
+#      uses: cylc/release-actions/configure-git@v1
+#    - name: Checkout PR branch
+#      uses: cylc/release-actions/checkout-copyright-branch@v1
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
