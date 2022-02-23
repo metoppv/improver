@@ -250,12 +250,28 @@ def expected_table_for_mask():
 
 RelTableInputs = namedtuple("RelTableInputs", ["forecast", "truth", "expected_shape"])
 
+
 @pytest.fixture(params=["grid", "spot"])
 def create_rel_table_inputs(
-    request, forecast_grid, forecast_spot, truth_grid, truth_spot, expected_table_shape_grid, expected_table_shape_spot):
+    request,
+    forecast_grid,
+    forecast_spot,
+    truth_grid,
+    truth_spot,
+    expected_table_shape_grid,
+    expected_table_shape_spot,
+):
     if request.param == "grid":
-        return RelTableInputs(forecast=forecast_grid, truth=truth_grid, expected_shape=expected_table_shape_grid)
-    return RelTableInputs(forecast=forecast_spot, truth=truth_spot, expected_shape=expected_table_shape_spot)
+        return RelTableInputs(
+            forecast=forecast_grid,
+            truth=truth_grid,
+            expected_shape=expected_table_shape_grid,
+        )
+    return RelTableInputs(
+        forecast=forecast_spot,
+        truth=truth_spot,
+        expected_shape=expected_table_shape_spot,
+    )
 
 
 @pytest.fixture
