@@ -33,6 +33,9 @@
 from datetime import datetime
 
 import iris
+from collections import namedtuple
+from datetime import datetime
+
 import numpy as np
 import pytest
 from iris.coords import DimCoord
@@ -144,7 +147,6 @@ def forecast_spot(forecast_grid):
 @pytest.fixture
 def truth_spot(truth_grid):
     truth_data_spot = truth_grid[0, ...].data.reshape((2, 9))
-    truth_data_spot = truth_grid[0, ...].data.reshape((2, 9))
     truths_spot_list = CubeList()
     for day in range(5, 7):
         time_coords = construct_scalar_time_coords(
@@ -249,6 +251,31 @@ def expected_table_for_mask():
             ],
         ],
         dtype=np.float32,
+    )
+
+RelTableInputs = namedtuple("RelTableInputs", ["forecast", "truth", "expected_shape"])
+
+
+@pytest.fixture(params=["grid", "spot"])
+def create_rel_table_inputs(
+    request,
+    forecast_grid,
+    forecast_spot,
+    truth_grid,
+    truth_spot,
+    expected_table_shape_grid,
+    expected_table_shape_spot,
+):
+    if request.param == "grid":
+        return RelTableInputs(
+            forecast=forecast_grid,
+            truth=truth_grid,
+            expected_shape=expected_table_shape_grid,
+        )
+    return RelTableInputs(
+        forecast=forecast_spot,
+        truth=truth_spot,
+        expected_shape=expected_table_shape_spot,
     )
 
 

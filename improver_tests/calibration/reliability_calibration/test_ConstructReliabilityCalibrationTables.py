@@ -242,48 +242,32 @@ def test_metadata_with_incomplete_inputs(forecast_grid, expected_attributes):
     assert result == expected_attributes
 
 
-@pytest.mark.parametrize(
-    "input_cube, expected_shape",
-    [
-        ("forecast_grid", "expected_table_shape_grid"),
-        ("forecast_spot", "expected_table_shape_spot"),
-    ],
-)
-def test_valid_inputs(request, expected_attributes, input_cube, expected_shape):
-    # request, expected_attributes,
-    """Tests correct reliability cube generated."""
-    forecast_1 = request.getfixturevalue(input_cube)[0]
+def test_valid_inputs(create_rel_table_inputs, expected_attributes):
+    """Tests correct reliability cube generated. Parameterized using
+    `create_rel_table_inputs` fixture."""
+    forecast_1 = create_rel_table_inputs.forecast[0]
     forecast_slice = next(forecast_1.slices_over("air_temperature"))
     result = Plugin()._create_reliability_table_cube(
         forecast_slice, forecast_slice.coord(var_name="threshold")
     )
     assert isinstance(result, Cube)
-    assert result.shape == request.getfixturevalue(expected_shape)
+    assert result.shape == create_rel_table_inputs.expected_shape
     assert result.name() == "reliability_calibration_table"
     assert result.attributes == expected_attributes
 
 
-@pytest.mark.parametrize(
-    "forecast, truth, expected_table_shape",
-    [
-        ("forecast_grid", "truth_grid", "expected_table_shape_grid"),
-        ("forecast_spot", "truth_spot", "expected_table_shape_spot"),
-    ],
-)
-def test_prb_table_values(
-    request, expected_table, forecast, truth, expected_table_shape,
-):
+def test_prb_table_values(create_rel_table_inputs, expected_table):
     """Test the reliability table returned has the expected values for the
-    given inputs."""
-    forecast_1 = request.getfixturevalue(forecast)[0]
-    truth_1 = request.getfixturevalue(truth)[0]
+    given inputs. Parameterized using `create_rel_table_inputs` fixture."""
+    forecast_1 = create_rel_table_inputs.forecast[0]
+    truth_1 = create_rel_table_inputs.truth[0]
     forecast_slice = next(forecast_1.slices_over("air_temperature"))
     truth_slice = next(truth_1.slices_over("air_temperature"))
     result = Plugin(
         single_value_lower_limit=True, single_value_upper_limit=True
     )._populate_reliability_bins(forecast_slice.data, truth_slice.data)
 
-    expected_table_shape = request.getfixturevalue(expected_table_shape)
+    expected_table_shape = create_rel_table_inputs.expected_shape
     assert result.shape == expected_table_shape
     assert_array_equal(result, expected_table.reshape(expected_table_shape))
 
@@ -318,25 +302,20 @@ def test_process_return_type(forecast_grid, truth_grid):
     assert result.coord_dims("air_temperature")[0] == 0
 
 
-@pytest.mark.parametrize(
-    "forecast, truth, expected_shape",
-    [
-        ("forecast_grid", "truth_grid", "expected_table_shape_grid"),
-        ("forecast_spot", "truth_spot", "expected_table_shape_spot"),
-    ],
-)
-def test_process_table_values(request, expected_table, forecast, truth, expected_shape):
+def test_process_table_values(create_rel_table_inputs, expected_table):
     """Test that cube values are as expected, when process has
     sliced the inputs up for processing and then summed the contributions
     from the two dates. Note that the values tested here are for only one
     of the two processed thresholds (283K). The results contain
-    contributions from two forecast/truth pairs."""
+    contributions from two forecast/truth pairs.
+
+    Parameterized using `create_rel_table_inputs` fixture."""
     expected = np.sum([expected_table, expected_table], axis=0)
     result = Plugin(
         single_value_lower_limit=True, single_value_upper_limit=True
-    ).process(request.getfixturevalue(forecast), request.getfixturevalue(truth),)
+    ).process(create_rel_table_inputs.forecast, create_rel_table_inputs.truth)
     assert_array_equal(
-        result[0].data, expected.reshape(request.getfixturevalue(expected_shape))
+        result[0].data, expected.reshape(create_rel_table_inputs.expected_shape)
     )
 
 
