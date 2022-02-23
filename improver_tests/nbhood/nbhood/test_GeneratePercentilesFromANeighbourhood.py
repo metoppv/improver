@@ -179,6 +179,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         plugin = GeneratePercentilesFromANeighbourhood(2000)
         plugin.percentiles = np.array([10, 50, 90])
         result = plugin.pad_and_unpad_cube(self.cube, kernel)
+
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 

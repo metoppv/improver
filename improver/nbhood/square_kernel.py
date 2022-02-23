@@ -43,7 +43,6 @@ from improver.nbhood.circular_kernel import (
     circular_kernel,
 )
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
-from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.neighbourhood_tools import boxsum
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
@@ -93,6 +92,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 mask is not applied. Therefore, the neighbourhood processing
                 may result in values being present in areas that were
                 originally masked.
+
+        Raises:
+            ValueError: If the neighbourhood_method is not either
+                        "square" or "circular".
+            ValueError: If the weighted_mode is used with a
+                        neighbourhood_method that is not "circular".
         """
         super().__init__(radii, lead_times=lead_times)
         if neighbourhood_method in ["square", "circular"]:
@@ -111,7 +116,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         self.sum_only = sum_only
         self.re_mask = re_mask
 
-    def _calculate_neighbourhood(self, data: ndarray, mask: ndarray) -> ndarray:
+    def _calculate_neighbourhood(
+        self, data: ndarray, mask: ndarray = None
+    ) -> Union[ndarray, np.ma.MaskedArray]:
         """
         Apply neighbourhood processing.
 
@@ -122,7 +129,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 Mask of valid input data elements.
 
         Returns:
-            Array containing the smoothed field after the square
+            Array containing the smoothed field after the
             neighbourhood method has been applied.
         """
         if not self.sum_only:
@@ -191,26 +198,28 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
     def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
         """
-        Call the methods required to apply a square neighbourhood
-        method to a cube.
+        Call the methods required to apply a neighbourhood processing to a cube.
 
-        The steps undertaken are:
+        Applies neighbourhood processing to each 2D x-y-slice of the input cube.
 
-        1. Set up cubes by determining, if the arrays are masked.
-        2. Pad the input array with a halo and then calculate the neighbourhood
-           of the haloed array.
-        3. Remove the halo from the neighbourhooded array and deal with a mask,
-           if required.
+        If the input cube is masked the neighbourhood sum is calculated from
+        the total of the unmasked data in the neighbourhood around each grid
+        point. The neighbourhood mean is then calculated by dividing the
+        neighbourhood sum at each grid point by the total number of valid grid
+        points that contributed to that sum. If a mask_cube is provided then
+        this is used to mask each x-y-slice prior to the neighburhood sum
+        or mean being calculated.
+
 
         Args:
             cube:
-                Cube containing the array to which the square neighbourhood
+                Cube containing the array to which the neighbourhood processing
                 will be applied.
             mask_cube:
                 Cube containing the array to be used as a mask.
 
         Returns:
-            Cube containing the smoothed field after the square
+            Cube containing the smoothed field after the
             neighbourhood method has been applied.
         """
         super().process(cube)
@@ -219,8 +228,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         # If the data is masked, the mask will be processed as well as the
         # original_data * mask array.
         check_radius_against_distance(cube, self.radius)
-        original_attributes = cube.attributes
-        original_methods = cube.cell_methods
+
         grid_cells = distance_to_number_of_grid_cells(cube, self.radius)
         if self.neighbourhood_method == "circular":
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
@@ -240,10 +248,4 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             result_slices.append(cube_slice)
         neighbourhood_averaged_cube = result_slices.merge_cube()
 
-        neighbourhood_averaged_cube.cell_methods = original_methods
-        neighbourhood_averaged_cube.attributes = original_attributes
-
-        neighbourhood_averaged_cube = check_cube_coordinates(
-            cube, neighbourhood_averaged_cube
-        )
         return neighbourhood_averaged_cube
