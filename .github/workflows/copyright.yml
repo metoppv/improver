@@ -9,7 +9,7 @@ on:
 
 jobs:
   update-copyright:
-    if: github.repository_owner == 'Kat-90'
+#    if: github.repository_owner == 'Kat-90'
 #    if: github.repository_owner == 'metoppv'
     runs-on: ubuntu-latest
     timeout-minutes: 10
