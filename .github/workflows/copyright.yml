@@ -1,6 +1,8 @@
 name: Copyright update
 on:
     push:
+      paths-ignore:
+        - .github/workflows/copyright.yml
 #  schedule:
 #    - cron: '00 03 1 1 * *'
 #  To test:
