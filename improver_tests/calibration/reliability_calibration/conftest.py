@@ -33,11 +33,15 @@
 from collections import namedtuple
 from datetime import datetime
 
+import iris
 import numpy as np
 import pytest
 from iris.coords import DimCoord
 from iris.cube import CubeList
 
+from improver.calibration.reliability_calibration import (
+    ConstructReliabilityCalibrationTables as CalPlugin,
+)
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
@@ -327,5 +331,60 @@ def lat_lon_collapse():
             [0.0, 0.0, 1.0, 2.0, 1.0],
             [0.0, 0.375, 1.5, 1.625, 1.0],
             [1.0, 2.0, 3.0, 2.0, 1.0],
+        ]
+    )
+
+
+@pytest.fixture
+def reliability_table_agg(forecast_grid, truth_grid):
+    reliability_cube_format = CalPlugin().process(forecast_grid, truth_grid)
+    reliability_cube_format = reliability_cube_format.collapsed(
+        [
+            reliability_cube_format.coord(axis="x"),
+            reliability_cube_format.coord(axis="y"),
+        ],
+        iris.analysis.SUM,
+    )
+    reliability_data = np.array(
+        [
+            [
+                [0, 0, 250, 500, 750],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ],
+            [
+                [250, 500, 750, 1000, 1000],  # Observation count
+                [0, 250, 500, 750, 1000],  # Sum of forecast probability
+                [1000, 1000, 1000, 1000, 1000],  # Forecast count
+            ],
+        ],
+        dtype=np.float32,
+    )
+    reliability_table_agg = reliability_cube_format.copy(data=reliability_data)
+    return reliability_table_agg
+
+
+@pytest.fixture
+def probability_bin_coord(reliability_table_agg):
+    return reliability_table_agg.coord("probability_bin")
+
+
+@pytest.fixture
+def default_obs_counts():
+    return np.array([0, 250, 500, 750, 1000], dtype=np.float32)
+
+
+@pytest.fixture
+def default_fcst_counts():
+    return np.array([1000, 1000, 1000, 1000, 1000], dtype=np.float32)
+
+
+@pytest.fixture
+def expected_enforced_monotonic():
+    return np.array(
+        [
+            [0, 250, 500, 1750],  # Observation count
+            [0, 250, 500, 1750],  # Sum of forecast probability
+            [1000, 1000, 1000, 2000],  # Forecast count
         ]
     )
