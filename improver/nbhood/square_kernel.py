@@ -38,7 +38,6 @@ from iris.cube import Cube
 from numpy import ndarray
 from scipy.ndimage.filters import correlate
 
-from improver import PostProcessingPlugin
 from improver.nbhood.circular_kernel import (
     check_radius_against_distance,
     circular_kernel,

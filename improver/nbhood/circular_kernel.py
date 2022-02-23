@@ -37,7 +37,6 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver import PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
 from improver.utilities.cube_checker import (

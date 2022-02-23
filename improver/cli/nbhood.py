@@ -152,7 +152,7 @@ def process(
             lead_times=lead_times,
             weighted_mode=weighted_mode,
             sum_only=area_sum,
-            re_mask=remask,
+            re_mask=True,
         )(cube, mask_cube=mask)
     elif neighbourhood_output == "percentiles":
         result = GeneratePercentilesFromANeighbourhood(

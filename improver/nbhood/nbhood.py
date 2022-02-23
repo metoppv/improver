@@ -36,11 +36,11 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.forecast_times import forecast_period_coord
 
 
-class BaseNeighbourhoodProcessing(BasePlugin):
+class BaseNeighbourhoodProcessing(PostProcessingPlugin):
     """
     A base class used to set up neighbourhood radii for a given cube
     based on the forecast period of that cube if required.
