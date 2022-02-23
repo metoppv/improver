@@ -39,6 +39,7 @@ import numpy as np
 import scipy
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
@@ -282,11 +283,20 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         non_spatial_coords = ["forecast_period", diagnostic]
 
         # Construct a list of coordinates in the desired order
-        dim_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
-        dim_coords_and_dims = _get_coords_and_dims(dim_coords)
         aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
-        dim_coords_and_dims.append((reliability_index_coord, 0))
         aux_coords_and_dims.append((reliability_name_coord, 0))
+        spatial_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
+        spatial_coords_and_dims = _get_coords_and_dims(spatial_coords)
+        try:
+            spot_index_coord = _get_coords_and_dims(["spot_index"])
+            wmo_id_coord = _get_coords_and_dims(["wmo_id"])
+        except CoordinateNotFoundError:
+            dim_coords_and_dims = spatial_coords_and_dims
+        else:
+            dim_coords_and_dims = spot_index_coord
+            aux_coords_and_dims.extend(spatial_coords_and_dims + wmo_id_coord)
+
+        dim_coords_and_dims.append((reliability_index_coord, 0))
         dim_coords_and_dims.append((probability_bins_coord, 1))
 
         reliability_cube = iris.cube.Cube(
@@ -305,12 +315,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         self, forecast: Union[MaskedArray, ndarray], truth: Union[MaskedArray, ndarray]
     ) -> MaskedArray:
         """
-        For an x-y slice at a single validity time and threshold, populate
+        For a spatial slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
 
         Args:
             forecast:
-                An array containing data over an xy slice for a single validity
+                An array containing data over a spatial slice for a single validity
                 time and threshold.
             truth:
                 An array containing a thresholded gridded truth at an
@@ -320,8 +330,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             An array containing reliability table data for a single time
             and threshold. The leading dimension corresponds to the rows
             of a calibration table, the second dimension to the number of
-            probability bins, and the trailing dimensions are the spatial
-            dimensions of the forecast and truth cubes (which are
+            probability bins, and the trailing dimension(s) are the spatial
+            dimension(s) of the forecast and truth cubes (which are
             equivalent).
         """
         observation_counts = []
@@ -338,7 +348,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             observation_counts.append(observation_mask)
             forecast_probabilities.append(forecasts_probability_values)
             forecast_counts.append(forecast_mask)
-
         reliability_table = np.ma.stack(
             [
                 np.ma.stack(observation_counts),
