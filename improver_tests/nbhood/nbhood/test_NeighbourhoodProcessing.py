@@ -378,7 +378,7 @@ class Test_process(IrisTest):
         self.assertDictEqual(result.attributes, self.cube.attributes)
 
     def test_cube_metadata(self):
-        """Test that the square neighbourhood processing is successful."""
+        """Test the result has the correct attributes and cell methods"""
         neighbourhood_method = "square"
         radii = 2000
         self.cube.attributes = {"Conventions": "CF-1.5"}
