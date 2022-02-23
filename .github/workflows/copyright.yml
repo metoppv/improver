@@ -23,7 +23,7 @@ jobs:
       id: cpr
       uses: peter-evans/create-pull-request@v3.12.1
       with:
-        token: ${{ secrets.PAT }}
+        token: ${{ secrets.GITHUB_TOKEN }}
         committer: GitHub <noreply@github.com>
         author: ${{ github.actor }} <${{ github.actor }}@users.noreply.github.com>
         signoff: false
