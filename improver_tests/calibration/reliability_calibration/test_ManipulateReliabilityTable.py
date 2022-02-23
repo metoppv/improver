@@ -59,7 +59,7 @@ def test_init_with_invalid_minimum_forecast_count():
         Plugin(minimum_forecast_count=0)
 
 
-def test_monotonic_no_undersampled_bins(
+def test_cub_monotonic_no_undersampled_bins(
     default_obs_counts, default_fcst_counts, probability_bin_coord
 ):
     """Test no bins are combined when no bins are under-sampled and all bin
@@ -76,7 +76,7 @@ def test_monotonic_no_undersampled_bins(
     assert result[3] == probability_bin_coord
 
 
-def test_poorly_sampled_bins(probability_bin_coord):
+def test_cub_poorly_sampled_bins(probability_bin_coord):
     """Test when all bins are poorly sampled and the minimum forecast count
     cannot be reached."""
     obs_count = forecast_probability_sum = np.array([0, 2, 5, 8, 10], dtype=np.float32)
@@ -100,7 +100,7 @@ def test_poorly_sampled_bins(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_one_undersampled_bin_at_top(probability_bin_coord):
+def test_cub_one_undersampled_bin_at_top(probability_bin_coord):
     """Test when the highest probability bin is under-sampled."""
     obs_count = forecast_probability_sum = np.array(
         [0, 250, 500, 750, 100], dtype=np.float32
@@ -127,7 +127,7 @@ def test_one_undersampled_bin_at_top(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_one_undersampled_bin_at_bottom(default_obs_counts, probability_bin_coord):
+def test_cub_one_undersampled_bin_at_bottom(default_obs_counts, probability_bin_coord):
     """Test when the lowest probability bin is under-sampled."""
     obs_count = forecast_probability_sum = default_obs_counts
     forecast_count = np.array([100, 1000, 1000, 1000, 1000], dtype=np.float32)
@@ -152,7 +152,7 @@ def test_one_undersampled_bin_at_bottom(default_obs_counts, probability_bin_coor
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_one_undersampled_bin_lower_neighbour(probability_bin_coord):
+def test_cub_one_undersampled_bin_lower_neighbour(probability_bin_coord):
     """Test for one under-sampled bin that is combined with its lower
     neighbour."""
     obs_count = np.array([0, 250, 50, 1500, 1000], dtype=np.float32)
@@ -179,7 +179,7 @@ def test_one_undersampled_bin_lower_neighbour(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_one_undersampled_bin_upper_neighbour(probability_bin_coord):
+def test_cub_one_undersampled_bin_upper_neighbour(probability_bin_coord):
     """Test for one under-sampled bin that is combined with its upper
     neighbour."""
     obs_count = np.array([0, 500, 50, 750, 1000], dtype=np.float32)
@@ -206,7 +206,7 @@ def test_one_undersampled_bin_upper_neighbour(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_two_undersampled_bins(probability_bin_coord):
+def test_cub_two_undersampled_bins(probability_bin_coord):
     """Test when two bins are under-sampled."""
     obs_count = np.array([0, 12, 250, 75, 250], dtype=np.float32)
     forecast_probability_sum = np.array([0, 12, 250, 75, 250], dtype=np.float32)
@@ -232,7 +232,7 @@ def test_two_undersampled_bins(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_two_equal_undersampled_bins(probability_bin_coord):
+def test_cub_two_equal_undersampled_bins(probability_bin_coord):
     """Test when two bins are under-sampled and the under-sampled bins have
     an equal forecast count."""
     obs_count = np.array([0, 25, 250, 75, 250], dtype=np.float32)
@@ -260,7 +260,7 @@ def test_two_equal_undersampled_bins(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_three_equal_undersampled_bin_neighbours(probability_bin_coord):
+def test_cub_three_equal_undersampled_bin_neighbours(probability_bin_coord):
     """Test when three neighbouring bins are under-sampled."""
     obs_count = np.array([0, 25, 50, 75, 250], dtype=np.float32)
     forecast_probability_sum = np.array([0, 25, 50, 75, 250], dtype=np.float32)
@@ -287,7 +287,7 @@ def test_three_equal_undersampled_bin_neighbours(probability_bin_coord):
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_one_non_monotonic_bin_pair(
+def test_cbp_one_non_monotonic_bin_pair(
     default_obs_counts,
     default_fcst_counts,
     probability_bin_coord,
@@ -308,7 +308,7 @@ def test_one_non_monotonic_bin_pair(
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
 
-def test_two_non_monotonic_bin_pairs(
+def test_cbp_two_non_monotonic_bin_pairs(
     default_obs_counts,
     default_fcst_counts,
     probability_bin_coord,
@@ -409,7 +409,7 @@ def test_process_combine_undersampled_bins_monotonic(reliability_table_agg):
     )
 
 
-def test_combine_undersampled_bins_non_monotonic(reliability_table_agg):
+def test_process_combine_undersampled_bins_non_monotonic(reliability_table_agg):
     """Test expected values are returned when a bin is below the minimum
     forecast count when the observed frequency is non-monotonic."""
 
@@ -438,7 +438,7 @@ def test_combine_undersampled_bins_non_monotonic(reliability_table_agg):
     )
 
 
-def test_highest_bin_non_monotonic(reliability_table_agg):
+def test_process_highest_bin_non_monotonic(reliability_table_agg):
     """Test expected values are returned where the highest observation
     count bin is non-monotonic."""
 
@@ -469,7 +469,7 @@ def test_highest_bin_non_monotonic(reliability_table_agg):
     )
 
 
-def test_central_bin_non_monotonic(reliability_table_agg):
+def test_process_central_bin_non_monotonic(reliability_table_agg):
     """Test expected values are returned where a central observation
     count bin is non-monotonic."""
 
@@ -500,7 +500,7 @@ def test_central_bin_non_monotonic(reliability_table_agg):
     )
 
 
-def test_upper_bins_non_monotonic(reliability_table_agg):
+def test_process_upper_bins_non_monotonic(reliability_table_agg):
     """Test expected values are returned where the upper observation
     count bins are non-monotonic."""
     expected_data = np.array(
@@ -530,7 +530,7 @@ def test_upper_bins_non_monotonic(reliability_table_agg):
     )
 
 
-def test_lowest_bin_non_monotonic(reliability_table_agg):
+def test_process_lowest_bin_non_monotonic(reliability_table_agg):
     """Test expected values are returned where the lowest observation
     count bin is non-monotonic."""
     expected_data = np.array(
