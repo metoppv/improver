@@ -30,12 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Fixtures for reliability calibration tests."""
 
-from datetime import datetime
-
-import iris
 from collections import namedtuple
 from datetime import datetime
 
+import iris
 import numpy as np
 import pytest
 from iris.coords import DimCoord
@@ -252,6 +250,7 @@ def expected_table_for_mask():
         ],
         dtype=np.float32,
     )
+
 
 RelTableInputs = namedtuple("RelTableInputs", ["forecast", "truth", "expected_shape"])
 
