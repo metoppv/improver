@@ -501,7 +501,7 @@ class Test_process(IrisTest):
         self.expected = np.ma.masked_invalid(self.expected)
         result = Plugin().process(self.percentile_cube)
         self.assertArrayAlmostEqual(result.data.data, self.expected.data)
-        self.assertArrayAlmostEqual(result.data.mask, self.expected.mask)
+        self.assertArrayEqual(result.data.mask, self.expected.mask)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_masked_input_data_non_nans(self):
@@ -515,7 +515,7 @@ class Test_process(IrisTest):
         self.expected = np.ma.masked_invalid(self.expected)
         result = Plugin().process(self.percentile_cube)
         self.assertArrayAlmostEqual(result.data.data, self.expected.data)
-        self.assertArrayAlmostEqual(result.data.mask, self.expected.mask)
+        self.assertArrayEqual(result.data.mask, self.expected.mask)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):

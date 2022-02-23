@@ -315,7 +315,7 @@ class ResamplePercentiles(BasePlugin):
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(
-                percentile_cube.data, original_mask
+                percentile_cube.data, mask=original_mask
             )
         return percentile_cube
 
@@ -620,7 +620,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(
-                percentile_cube.data, original_mask
+                percentile_cube.data, mask=original_mask
             )
         return percentile_cube
 
@@ -1348,13 +1348,13 @@ class EnsembleReordering(BasePlugin):
     @staticmethod
     def _check_input_cube_masks(post_processed_forecast, raw_forecast):
         """
-        Checks that if hte raw_forecast is masked the post_processed_forecast
+        Checks that if the raw_forecast is masked the post_processed_forecast
         is also masked. The code supports the post_processed_forecast being
         masked even if the raw_forecast isn't masked, but not vice versa.
 
         If both post_processed_forecast and raw_forecast are masked checks
         that both input cubes have the same mask applied to each
-        x-y slice of both cubes.
+        x-y slice.
 
         Args:
             post_processed_forecast:
@@ -1396,8 +1396,10 @@ class EnsembleReordering(BasePlugin):
             post_processed_forecast.data
         ):
             message = (
-                "The raw_forecast is masked but the "
-                "post_processed_forecast forecast isn't."
+                "The raw_forecast provided has a mask, but the "
+                "post_processed_forecast isn't masked. The "
+                "post_processed_forecast and the raw_forecast should "
+                "have the same mask applied to them."
             )
             raise (ValueError(message))
 
@@ -1435,14 +1437,15 @@ class EnsembleReordering(BasePlugin):
             input percentiles. This cube contains the same ensemble
             realization numbers as the raw forecast.
         """
-        self._check_input_cube_masks(post_processed_forecast, raw_forecast)
-
         percentile_coord_name = find_percentile_coordinate(
             post_processed_forecast
         ).name()
 
         enforce_coordinate_ordering(post_processed_forecast, percentile_coord_name)
         enforce_coordinate_ordering(raw_forecast, "realization")
+
+        self._check_input_cube_masks(post_processed_forecast, raw_forecast)
+
         raw_forecast = self._recycle_raw_ensemble_realizations(
             post_processed_forecast, raw_forecast, percentile_coord_name
         )

@@ -399,7 +399,7 @@ class Test__check_input_cube_masks(IrisTest):
         )
 
     def test_unmasked_data(self):
-        """Test umasked data does not raise any errors."""
+        """Test unmasked data does not raise any errors."""
         Plugin._check_input_cube_masks(self.post_processed_percentiles, self.raw_cube)
 
     def test_only_one_post_processed_forecast_masked(self):
@@ -419,7 +419,9 @@ class Test__check_input_cube_masks(IrisTest):
         self.raw_cube.data[:, 0, 0] = np.nan
         self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
         message = (
-            "The raw_forecast is masked but the post_processed_forecast forecast isn't."
+            "The raw_forecast provided has a mask, but the post_processed_forecast "
+            "isn't masked. The post_processed_forecast and the raw_forecast "
+            "should have the same mask applied to them."
         )
         with self.assertRaisesRegex(ValueError, message):
             Plugin._check_input_cube_masks(
@@ -520,7 +522,7 @@ class Test_process(IrisTest):
         correctly re-ordered to match the source realizations, when the
         input data is masked.
         """
-        # Assuming inptu data and raw ensemble are masked in the same way.
+        # Assuming input data and raw ensemble are masked in the same way.
         self.raw_cube.data[:, 0, 0] = np.nan
         self.raw_cube.data = np.ma.masked_invalid(self.raw_cube.data)
         self.post_processed_percentiles.data[:, 0, 0] = np.nan
@@ -535,7 +537,7 @@ class Test_process(IrisTest):
             result.coord("realization"), self.raw_cube.coord("realization")
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(result.data.mask, expected_data.mask)
+        self.assertArrayEqual(result.data.mask, expected_data.mask)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_basic_masked_input_data_not_nans(self):
@@ -543,9 +545,9 @@ class Test_process(IrisTest):
         Test that the plugin returns an iris.cube.Cube, the cube has a
         realization coordinate with specific realization numbers and is
         correctly re-ordered to match the source realizations, when the
-        input data is masked.
+        input data is masked and the masked data is not a nan.
         """
-        # Assuming inptu data and raw ensemble are masked in the same way.
+        # Assuming input data and raw ensemble are masked in the same way.
         self.raw_cube.data[:, 0, 0] = 1000
         self.raw_cube.data = np.ma.masked_equal(self.raw_cube.data, 1000)
         self.post_processed_percentiles.data[:, 0, 0] = 1000
@@ -560,7 +562,7 @@ class Test_process(IrisTest):
             result.coord("realization"), self.raw_cube.coord("realization")
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(result.data.mask, expected_data.mask)
+        self.assertArrayEqual(result.data.mask, expected_data.mask)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_1d_cube_random_ordering(self):
