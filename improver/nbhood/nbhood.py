@@ -50,7 +50,7 @@ class BaseNeighbourhoodProcessing(BasePlugin):
         self, radii: Union[float, List[float]], lead_times: Optional[List] = None,
     ) -> None:
         """
-        Create a base neighbourhod processing plugins which process radii
+        Create a base neighbourhood processing plugin that processes radii
         related arguments.
 
             radii:
@@ -107,6 +107,9 @@ class BaseNeighbourhoodProcessing(BasePlugin):
             cube:
                 Cube to apply a neighbourhood processing method.
 
+        Returns:
+            cube:
+                The unaltered input cube.
         """
 
         if np.isnan(cube.data).any():
@@ -117,3 +120,4 @@ class BaseNeighbourhoodProcessing(BasePlugin):
             fp_coord = forecast_period_coord(cube)
             fp_coord.convert_units("hours")
             self.radius = self._find_radii(cube_lead_times=fp_coord.points)
+        return cube

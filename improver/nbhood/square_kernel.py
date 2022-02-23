@@ -51,7 +51,7 @@ from improver.utilities.spatial import (
 )
 
 
-class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing):
+class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
     """Class for applying neighbourhood processing to produce a smoothed field
     within the chosen neighbourhood."""
 
@@ -100,20 +100,26 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
             ValueError: If the weighted_mode is used with a
                         neighbourhood_method that is not "circular".
         """
-        super(NeighbourhoodProcessing, self).__init__(radii, lead_times=lead_times)
+        super().__init__(radii, lead_times=lead_times)
         if neighbourhood_method in ["square", "circular"]:
             self.neighbourhood_method = neighbourhood_method
         else:
             msg = "{} is not a valid neighbourhood_method.".format(neighbourhood_method)
             raise ValueError(msg)
         if weighted_mode and neighbourhood_method != "circular":
-            msg = "weighted_mode can only be used if neighbourhood_method is circular"
+            msg = (
+                "weighted_mode can only be used if neighbourhood_method is circular."
+                f" weighted_mode provided: {weighted_mode}, "
+                f"neighbourhood_method provided: {neighbourhood_method}."
+            )
             raise ValueError(msg)
         self.weighted_mode = weighted_mode
         self.sum_only = sum_only
         self.re_mask = re_mask
 
-    def _calculate_neighbourhood(self, data: ndarray, mask: ndarray = None) -> ndarray:
+    def _calculate_neighbourhood(
+        self, data: ndarray, mask: ndarray = None
+    ) -> Union[ndarray, np.ma.MaskedArray]:
         """
         Apply neighbourhood processing.
 
@@ -217,7 +223,7 @@ class NeighbourhoodProcessing(PostProcessingPlugin, BaseNeighbourhoodProcessing)
             Cube containing the smoothed field after the
             neighbourhood method has been applied.
         """
-        super(NeighbourhoodProcessing, self).process(cube)
+        super().process(cube)
         check_if_grid_is_equal_area(cube)
 
         # If the data is masked, the mask will be processed as well as the

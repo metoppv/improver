@@ -474,9 +474,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         and forecasts. In this case, the position (lat/lon/alt) from the
         forecast will be used."""
         df = self.truth_subset_df.copy()
-        df.at[::3, "altitude"] = 45
-        df.at[::3, "latitude"] = 52
-        df.at[::3, "longitude"] = -12
+        df.loc[::3, "altitude"] = 45
+        df.loc[::3, "latitude"] = 52
+        df.loc[::3, "longitude"] = -12
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             df,

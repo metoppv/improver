@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the wxcode CLI"""
+import re
 
 import pytest
 
@@ -62,7 +63,7 @@ def test_basic(tmp_path):
     param_paths = [
         kgo_dir / "basic" / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS
     ]
-    wxtree = kgo_dir / "wx_decision_tree_1h.json"
+    wxtree = kgo_dir / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -70,6 +71,8 @@ def test_basic(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--target-period",
+        "3600",
         "--output",
         output_path,
     ]
@@ -89,7 +92,7 @@ def test_native_units(tmp_path):
         kgo_dir / "native_units" / f"probability_of_{p}_threshold.nc"
         for p in ALL_PARAMS
     ]
-    wxtree = kgo_dir / "wx_decision_tree_1h.json"
+    wxtree = kgo_dir / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -97,6 +100,8 @@ def test_native_units(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--target-period",
+        "3600",
         "--output",
         output_path,
     ]
@@ -112,7 +117,7 @@ def test_global(tmp_path):
     param_paths = [
         kgo_dir / "global" / f"probability_of_{p}_threshold.nc" for p in params
     ]
-    wxtree = kgo_dir / "wx_decision_tree_3h.json"
+    wxtree = kgo_dir / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -120,6 +125,8 @@ def test_global(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--target-period",
+        "10800",
         "--output",
         output_path,
     ]
@@ -139,7 +146,7 @@ def test_insufficient_files(tmp_path):
     param_paths = [
         kgo_dir / "global" / f"probability_of_{p}_threshold.nc" for p in params
     ]
-    wxtree = kgo_dir / "wx_decision_tree_3h.json"
+    wxtree = kgo_dir / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -147,6 +154,8 @@ def test_insufficient_files(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--target-period",
+        "10800",
         "--output",
         output_path,
     ]
@@ -164,7 +173,7 @@ def test_no_lightning(tmp_path):
         for p in ALL_PARAMS
         if "lightning" not in p
     ]
-    wxtree = kgo_dir / "wx_decision_tree_1h.json"
+    wxtree = kgo_dir / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
@@ -172,8 +181,31 @@ def test_no_lightning(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--target-period",
+        "3600",
         "--output",
         output_path,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize(
+    "wxtree,expected",
+    (
+        ("wx_decision_tree.json", "Decision tree OK\nRequired inputs are:"),
+        ("bad_wx_decision_tree.json", "Unreachable node 'unreachable'"),
+    ),
+)
+def test_trees(wxtree, expected):
+    """Test the check-tree option"""
+    kgo_dir = acc.kgo_root() / "wxcode"
+    args = [
+        "--wxtree",
+        kgo_dir / wxtree,
+        "--check-tree",
+        "--target-period",
+        "3600",
+    ]
+    result = run_cli(args)
+    assert re.match(expected, result)

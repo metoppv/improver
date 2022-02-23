@@ -72,19 +72,19 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.data = np.array(
             [
                 [
-                    [225.568115, 236.818115, 248.068115],
-                    [259.318115, 270.568115, 281.818115],
-                    [293.068115, 304.318115, 315.568115],
+                    [225.5681, 236.8181, 248.0681],
+                    [259.3181, 270.5681, 281.8181],
+                    [293.0681, 304.3181, 315.5681],
                 ],
                 [
-                    [229.483322, 240.733322, 251.983322],
-                    [263.233307, 274.483307, 285.733307],
-                    [296.983307, 308.233307, 319.483307],
+                    [229.4833, 240.7333, 251.9833],
+                    [263.2333, 274.4833, 285.7333],
+                    [296.9833, 308.2333, 319.4833],
                 ],
                 [
-                    [233.398529, 244.648529, 255.898529],
-                    [267.148499, 278.398499, 289.648499],
-                    [300.898499, 312.148499, 323.398499],
+                    [233.3985, 244.6485, 255.8985],
+                    [267.1485, 278.3985, 289.6485],
+                    [300.8985, 312.1485, 323.3985],
                 ],
             ],
             dtype=np.float32,
@@ -94,7 +94,7 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN
         )
         self.scale_parameter = self.temperature_cube.collapsed(
-            "realization", iris.analysis.VARIANCE
+            "realization", iris.analysis.STD_DEV,
         )
         self.percentiles = [10, 50, 90]
 
@@ -104,8 +104,8 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         Test that the plugin returns an Iris.cube.Cube matching the expected
         data values when a cubes containing location and scale parameters are
         passed in, which are equivalent to the ensemble mean and ensemble
-        variance. The resulting data values are the percentiles, which have
-        been generated.
+        standard deviation. The resulting data values are the percentiles, which
+        have been generated.
         """
         result = Plugin()._location_and_scale_parameters_to_percentiles(
             self.location_parameter,
@@ -185,10 +185,10 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
         Test that the plugin returns an iris.cube.Cube matching the expected
         data values when cubes containing the location parameter and scale
-        parameter are passed in. In this test, the ensemble mean and variance
-        is used as a proxy for the location and scale parameter. The resulting
-        data values are the percentiles, which have been generated using a
-        truncated normal distribution.
+        parameter are passed in. In this test, the ensemble mean and standard
+        deviation is used as a proxy for the location and scale parameter.
+        The resulting data values are the percentiles, which have been
+        generated using a truncated normal distribution.
         """
         data = np.array(
             [
@@ -202,19 +202,19 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         expected_data = np.array(
             [
                 [
-                    [1.3042759, 1.3042759, 1.3042759],
-                    [1.3042759, 1.3042759, 1.3042759],
-                    [1.3042759, 1.3042759, 1.3042759],
+                    [1.0121, 1.0121, 1.0121],
+                    [1.0121, 1.0121, 1.0121],
+                    [1.0121, 1.0121, 1.0121],
                 ],
                 [
-                    [3.0300407, 3.0300407, 3.0300407],
-                    [3.0300407, 3.0300407, 3.0300407],
-                    [3.0300407, 3.0300407, 3.0300407],
+                    [3.1677, 3.1677, 3.1677],
+                    [3.1677, 3.1677, 3.1677],
+                    [3.1677, 3.1677, 3.1677],
                 ],
                 [
-                    [4.8261294, 4.8261294, 4.8261294],
-                    [4.8261294, 4.8261294, 4.8261294],
-                    [4.8261294, 4.8261294, 4.8261294],
+                    [5.6412, 5.6412, 5.6412],
+                    [5.6412, 5.6412, 5.6412],
+                    [5.6412, 5.6412, 5.6412],
                 ],
             ]
         )
@@ -225,31 +225,31 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
             "realization", iris.analysis.MEAN
         )
         current_forecast_predictor.data = current_forecast_predictor.data + 1
-        # Use an adjusted version of the ensemble variance as a proxy for the
+        # Use an adjusted version of the ensemble standard deviation as a proxy for the
         # scale parameter for the truncated normal distribution.
-        current_forecast_variance = self.temperature_cube.collapsed(
-            "realization", iris.analysis.VARIANCE
+        current_forecast_stddev = self.temperature_cube.collapsed(
+            "realization", iris.analysis.STD_DEV,
         )
-        current_forecast_variance.data = current_forecast_variance.data + 1
+        current_forecast_stddev.data = current_forecast_stddev.data + 1
         plugin = Plugin(
             distribution="truncnorm",
             shape_parameters=np.array([0, np.inf], dtype=np.float32),
         )
         result = plugin._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
-            current_forecast_variance,
+            current_forecast_stddev,
             self.temperature_cube,
             self.percentiles,
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_simple_data(self):
         """
         Test that the plugin returns the expected values for the generated
         percentiles when an idealised set of data values between 1 and 3
-        is used to create the mean (location parameter) and the variance
+        is used to create the mean (location parameter) and the standard deviation
         (scale parameter).
         """
         data = np.array(
@@ -280,16 +280,16 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_predictor = self.temperature_cube.collapsed(
             "realization", iris.analysis.MEAN
         )
-        current_forecast_variance = self.temperature_cube.collapsed(
-            "realization", iris.analysis.VARIANCE
+        current_forecast_stddev = self.temperature_cube.collapsed(
+            "realization", iris.analysis.STD_DEV
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
-            current_forecast_variance,
+            current_forecast_stddev,
             self.temperature_cube,
             self.percentiles,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
     @ManageWarnings(
         ignored_messages=[
@@ -322,16 +322,16 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_predictor = self.temperature_cube.collapsed(
             "realization", iris.analysis.MEAN
         )
-        current_forecast_variance = self.temperature_cube.collapsed(
-            "realization", iris.analysis.VARIANCE
+        current_forecast_stddev = self.temperature_cube.collapsed(
+            "realization", iris.analysis.STD_DEV
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
-            current_forecast_variance,
+            current_forecast_stddev,
             self.temperature_cube,
             self.percentiles,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
     @ManageWarnings(
         ignored_messages=[
@@ -368,16 +368,16 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         current_forecast_predictor = self.temperature_cube.collapsed(
             "realization", iris.analysis.MEAN
         )
-        current_forecast_variance = self.temperature_cube.collapsed(
-            "realization", iris.analysis.VARIANCE
+        current_forecast_stddev = self.temperature_cube.collapsed(
+            "realization", iris.analysis.STD_DEV
         )
         result = Plugin()._location_and_scale_parameters_to_percentiles(
             current_forecast_predictor,
-            current_forecast_variance,
+            current_forecast_stddev,
             self.temperature_cube,
             self.percentiles,
         )
-        self.assertArrayAlmostEqual(result.data, expected_data)
+        np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_many_percentiles(self):
@@ -415,24 +415,19 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
         data values when a cube containing mean (location parameter) and
-        variance (scale parameter) is passed in. The resulting data values are
+        standard deviation (scale parameter) is passed in. The resulting data values are
         the percentiles, which have been generated for a spot forecast.
         """
         data = np.reshape(self.data, (3, 9))
         cube = set_up_spot_test_cube()
 
         current_forecast_predictor = cube.collapsed("realization", iris.analysis.MEAN)
-        current_forecast_variance = cube.collapsed(
-            "realization", iris.analysis.VARIANCE
-        )
+        current_forecast_stddev = cube.collapsed("realization", iris.analysis.STD_DEV)
         result = Plugin()._location_and_scale_parameters_to_percentiles(
-            current_forecast_predictor,
-            current_forecast_variance,
-            cube,
-            self.percentiles,
+            current_forecast_predictor, current_forecast_stddev, cube, self.percentiles,
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, data)
+        np.testing.assert_allclose(result.data, data, rtol=1.0e-4)
 
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_scalar_realisation_percentile(self):
@@ -458,9 +453,7 @@ class Test_process(IrisTest):
         """Set up temperature cube."""
         self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
         self.forecast_predictor = self.cube.collapsed("realization", iris.analysis.MEAN)
-        self.forecast_variance = self.cube.collapsed(
-            "realization", iris.analysis.VARIANCE
-        )
+        self.forecast_stddev = self.cube.collapsed("realization", iris.analysis.STD_DEV)
         self.no_of_percentiles = len(self.cube.coord("realization").points)
 
     @ManageWarnings(
@@ -473,7 +466,7 @@ class Test_process(IrisTest):
         """Test that the plugin returns an Iris.cube.Cube."""
         result = Plugin().process(
             self.forecast_predictor,
-            self.forecast_variance,
+            self.forecast_stddev,
             self.cube,
             no_of_percentiles=self.no_of_percentiles,
         )
@@ -512,7 +505,7 @@ class Test_process(IrisTest):
 
         result = Plugin().process(
             self.forecast_predictor,
-            self.forecast_variance,
+            self.forecast_stddev,
             self.cube,
             no_of_percentiles=self.no_of_percentiles,
         )
@@ -554,7 +547,7 @@ class Test_process(IrisTest):
 
         result = Plugin().process(
             self.forecast_predictor,
-            self.forecast_variance,
+            self.forecast_stddev,
             self.cube,
             percentiles=percentiles,
         )
@@ -579,7 +572,7 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             Plugin().process(
                 self.forecast_predictor,
-                self.forecast_variance,
+                self.forecast_stddev,
                 self.cube,
                 no_of_percentiles=self.no_of_percentiles,
                 percentiles=percentiles,

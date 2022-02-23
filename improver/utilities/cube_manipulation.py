@@ -617,3 +617,31 @@ def expand_bounds(
             result_coord.points = result_coord.points.astype(FLOAT_DTYPE)
 
     return result_cube
+
+
+def filter_realizations(cubes: CubeList) -> Cube:
+    """For a given list of cubes, identifies the set of times, filters out any realizations
+    that are not present at all times and returns a merged cube of the result.
+
+    Args:
+        cubes:
+            List of cubes to be filtered
+
+    Returns:
+        Cube:
+            Filtered and merged cube
+
+    """
+    times = set()
+    realizations = set()
+    for cube in cubes:
+        times.update([c.point for c in cube.coord("time").cells()])
+        realizations.update(cube.coord("realization").points)
+    filtered_cubes = CubeList()
+    for realization in realizations:
+        realization_cube = cubes.extract(
+            iris.Constraint(realization=realization)
+        ).merge_cube()
+        if set([c.point for c in realization_cube.coord("time").cells()]) == times:
+            filtered_cubes.append(realization_cube)
+    return filtered_cubes.merge_cube()

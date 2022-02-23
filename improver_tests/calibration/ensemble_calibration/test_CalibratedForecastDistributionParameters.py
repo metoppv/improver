@@ -169,9 +169,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
         self.expected_scale_param_mean = np.array(
             [
-                [0.2316, 0.2342, 0.0168],
-                [0.0271, 0.0237, 0.0168],
-                [0.0634, 0.1151, 0.0116],
+                [0.4813, 0.4840, 0.1295],
+                [0.1647, 0.1538, 0.1295],
+                [0.2517, 0.3393, 0.1076],
             ],
             dtype=np.float32,
         )
@@ -188,7 +188,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         )
 
         self.expected_scale_param_realizations_sites = np.array(
-            [0, 0, 0, 0], dtype=np.float32
+            [0.0005, 0.0005, 0.0005, 0.0005], dtype=np.float32
         )
 
         self.expected_loc_param_mean_alt = np.array(
@@ -202,9 +202,9 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
         self.expected_scale_param_mean_alt = np.array(
             [
-                [0.4347, 0.4396, 0.0308],
-                [0.0503, 0.0438, 0.0308],
-                [0.1184, 0.2157, 0.0211],
+                [0.6593, 0.663, 0.1756],
+                [0.2242, 0.2093, 0.1756],
+                [0.3441, 0.4645, 0.1452],
             ],
             dtype=np.float32,
         )
@@ -219,7 +219,7 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
         self.expected_scale_param_mean_cube = set_up_variable_cube(
             self.expected_scale_param_mean,
             name="scale_parameter",
-            units="Kelvin^2",
+            units="K",
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
 

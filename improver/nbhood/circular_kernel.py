@@ -112,9 +112,7 @@ def circular_kernel(ranges: int, weighted_mode: bool) -> ndarray:
     return kernel
 
 
-class GeneratePercentilesFromANeighbourhood(
-    PostProcessingPlugin, BaseNeighbourhoodProcessing
-):
+class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
     """Class for generating percentiles from a circular neighbourhood."""
 
@@ -126,9 +124,9 @@ class GeneratePercentilesFromANeighbourhood(
     ) -> None:
         """
         Create a neighbourhood processing subclass that generates percentiles
-        from calculating percentiles from a 2D circular neighbourhood.
-        A maximum kernel radius of 500 grid cells is imposed in order to
-        avoid computational ineffiency and possible memory errors.
+        from a 2D circular neighbourhood. A maximum kernel radius of 500
+        grid cells is imposed in order to avoid computational inefficiency and
+        possible memory errors.
 
         Args:
             radii:
@@ -144,9 +142,7 @@ class GeneratePercentilesFromANeighbourhood(
                 Percentile values at which to calculate; if not provided uses
                 DEFAULT_PERCENTILES.
         """
-        super(GeneratePercentilesFromANeighbourhood, self).__init__(
-            radii, lead_times=lead_times
-        )
+        super().__init__(radii, lead_times=lead_times)
         try:
             self.percentiles = tuple(percentiles)
         except TypeError:
@@ -289,7 +285,7 @@ class GeneratePercentilesFromANeighbourhood(
 
         return pctcube
 
-    def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
         Method to apply a circular kernel to the data within the input cube in
         order to derive percentiles over the kernel.
@@ -302,9 +298,12 @@ class GeneratePercentilesFromANeighbourhood(
             Cube containing the percentile fields.
             Has percentile as an added dimension.
         """
-        super(GeneratePercentilesFromANeighbourhood, self).process(cube)
+        super().process(cube)
         if np.ma.is_masked(cube.data):
-            msg = "The use of masked data is not yet implemented."
+            msg = (
+                "The use of masked input cubes is not yet implemented in"
+                " the GeneratePercentilesFromANeighbourhood plugin."
+            )
             raise NotImplementedError(msg)
 
         # Check that the cube has an equal area grid.

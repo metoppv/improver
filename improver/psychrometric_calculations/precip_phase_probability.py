@@ -69,7 +69,6 @@ class PrecipPhaseProbability(BasePlugin):
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
-        self._nbhood_shape = "circular"
         self.radius = radius
 
     def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:

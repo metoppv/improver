@@ -1130,7 +1130,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             IndexError: if the cube and landsea_mask shapes are not compatible.
         """
         try:
-            cube.data[..., ~landsea_mask.data.astype(np.bool)] = np.nan
+            cube.data[..., ~landsea_mask.data.astype(bool)] = np.nan
         except IndexError as err:
             msg = "Cube and landsea_mask shapes are not compatible. {}".format(err)
             raise IndexError(msg)
@@ -1380,7 +1380,6 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             forecast_var,
             number_of_realizations,
         )
-
         return coefficients_cubelist
 
 
@@ -1581,9 +1580,10 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         )
 
         # Calculating the scale parameter, based on the raw variance S^2,
-        # where predicted variance = c + dS^2, where c = (gamma)^2 and
-        # d = (delta)^2
-        scale_parameter = (
+        # where predicted scale parameter (or equivalently standard deviation
+        # for a normal distribution) = sqrt(c + dS^2), where c = (gamma)^2 and
+        # d = (delta)^2.
+        scale_parameter = np.sqrt(
             self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
             * self.coefficients_cubelist.extract_cube("emos_coefficient_gamma").data
             + self.coefficients_cubelist.extract_cube("emos_coefficient_delta").data
@@ -1622,7 +1622,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         )
         scale_parameter_cube = create_new_diagnostic_cube(
             "scale_parameter",
-            f"({template_cube.units})^2",
+            template_cube.units,
             template_cube,
             template_cube.attributes,
             data=scale_parameter,
