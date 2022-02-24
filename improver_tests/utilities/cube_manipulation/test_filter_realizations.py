@@ -60,7 +60,10 @@ def realization_cubes_fixture() -> CubeList:
         )
     cube = cubes.merge_cube()
     sliced_cubes = CubeList(cube.slices_over("realization"))
-    [s.attributes.update({"history": f"20171110T{i:02d}00Z"}) for i, s in enumerate(sliced_cubes)]
+    [
+        s.attributes.update({"history": f"20171110T{i:02d}00Z"})
+        for i, s in enumerate(sliced_cubes)
+    ]
     return sliced_cubes
 
 
