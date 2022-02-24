@@ -4,7 +4,7 @@ on:
   schedule:
 #    - cron: '00 03 1 1 * *' # Every Jan 1st @ 03:00 UTC
 #  To test:
-    - cron: '32 15 24 2 *'
+    - cron: '45 15 24 2 *'
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
