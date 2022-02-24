@@ -30,8 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing thresholding classes."""
 
-import operator
-from typing import Any, Callable, Dict, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -45,6 +44,7 @@ from improver.metadata.probabilistic import (
     probability_is_above_or_below,
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
 
 
@@ -163,7 +163,7 @@ class BasicThreshold(PostProcessingPlugin):
             )
             self._check_fuzzy_bounds()
 
-        self.comparison_operator_dict = self._comparison_operator_dict()
+        self.comparison_operator_dict = comparison_operator_dict()
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
 
@@ -202,39 +202,6 @@ class BasicThreshold(PostProcessingPlugin):
                     "!( {} <= {} <= {} )".format(bounds[0], thr, bounds[1])
                 )
                 raise ValueError(bounds_msg)
-
-    @staticmethod
-    def _comparison_operator_dict() -> Dict[str, Any]:
-        """Generate dictionary linking string comparison operators to functions.
-        Each key contains a dict of:
-        - 'function': The operator function for this comparison_operator,
-        - 'spp_string': Comparison_Operator string for use in CF-convention metadata
-        """
-        comparison_operator_dict = {}
-        comparison_operator_dict.update(
-            dict.fromkeys(
-                ["ge", "GE", ">="],
-                {"function": operator.ge, "spp_string": "greater_than_or_equal_to"},
-            )
-        )
-        comparison_operator_dict.update(
-            dict.fromkeys(
-                ["gt", "GT", ">"],
-                {"function": operator.gt, "spp_string": "greater_than"},
-            )
-        )
-        comparison_operator_dict.update(
-            dict.fromkeys(
-                ["le", "LE", "<="],
-                {"function": operator.le, "spp_string": "less_than_or_equal_to"},
-            )
-        )
-        comparison_operator_dict.update(
-            dict.fromkeys(
-                ["lt", "LT", "<"], {"function": operator.lt, "spp_string": "less_than"}
-            )
-        )
-        return comparison_operator_dict
 
     def _add_threshold_coord(self, cube: Cube, threshold: float) -> None:
         """
