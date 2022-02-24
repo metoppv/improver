@@ -59,7 +59,9 @@ def realization_cubes_fixture() -> CubeList:
             )
         )
     cube = cubes.merge_cube()
-    return CubeList(cube.slices_over("realization"))
+    sliced_cubes = CubeList(cube.slices_over("realization"))
+    [s.attributes.update({"history": f"20171110T{i:02d}00Z"}) for i, s in enumerate(sliced_cubes)]
+    return sliced_cubes
 
 
 @pytest.mark.parametrize("short_realizations", [0, 1, 2, 3])
@@ -77,6 +79,12 @@ def test_filter_realizations(realization_cubes, short_realizations):
     assert isinstance(result, Cube)
     assert np.allclose(cubes[0].coord("time").points, result.coord("time").points)
     assert np.allclose(result.coord("realization").points, expected_realization_points)
+    if short_realizations == 3:
+        # History attribute is retained if there are no differing values
+        assert result.attributes["history"] == cubes[0].attributes["history"]
+    else:
+        # History attribute is removed if differing values are supplied
+        assert "history" not in result.attributes.keys()
 
 
 def test_different_time_lengths(realization_cubes):

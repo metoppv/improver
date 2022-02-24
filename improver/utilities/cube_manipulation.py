@@ -644,4 +644,4 @@ def filter_realizations(cubes: CubeList) -> Cube:
         )
         if set([c.point for c in realization_cube.coord("time").cells()]) == times:
             filtered_cubes.append(realization_cube)
-    return filtered_cubes.merge_cube()
+    return MergeCubes()(filtered_cubes)
