@@ -17,6 +17,7 @@ jobs:
         fetch-depth: 0
     - name: update date
       run: |
+        git checkout -b copyright_dates
         last_year=$(date --date='1 year ago' +%Y)
         this_year=$(date +"%Y")
         find . -type f -exec sed -i'' -e "s|2017-${last_year}|2017-${this_year}|g" {} +
@@ -29,7 +30,7 @@ jobs:
     - name: pull-request
       uses: repo-sync/pull-request@v2
       with:
-        destination_branch: "copyright_dates"
+        destination_branch: "master"
         pr_title: 'Updating copyright dates for new year'
         pr_body: |
           Update copyright dates
