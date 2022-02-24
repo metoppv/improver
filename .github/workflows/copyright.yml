@@ -2,9 +2,9 @@ name: Copyright update
 on:
     push:
 #  schedule:
-#    - cron: '00 03 1 1 * *'
+#    - cron: '00 03 1 1 * *' # Every Jan 1st @ 03:00 UTC
 #  To test:
-#    - cron: '00 13 22 2 * *'
+#    - cron: '00 13 24 2 * *'
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
@@ -22,6 +22,8 @@ jobs:
         find . -type f -exec sed -i'' -e "s|2017-${last_year}|2017-${this_year}|g" {} +
     - name: Commit & push
       run: |
+        git config user.name github-actions
+        git config user.email github-actions@github.com
         git commit -a -m "Update copyright year" -m "Workflow: ${{ github.workflow }}, run: ${{ github.run_number }}"
         git push
     - name: pull-request
