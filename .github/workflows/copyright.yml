@@ -4,7 +4,7 @@ on:
   schedule:
 #    - cron: '00 03 1 1 * *' # Every Jan 1st @ 03:00 UTC
 #  To test:
-    - cron: '45 15 24 2 *'
+    - cron: '15 16 24 2 *'
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
@@ -21,7 +21,7 @@ jobs:
         last_year=$(date --date='1 year ago' +%Y)
         this_year=$(date +"%Y")
         find . -type f -exec sed -i'' -e "s|2017-${last_year}|2017-${this_year}|g" {} +
-        find ./doc/source/conf.py -type f -exec sed -i'' -e "s|${last_year}, Met Office|${this_year}, Met Office|g" {} +
+#        find ./doc/source/conf.py -type f -exec sed -i'' -e "s|${last_year}, Met Office|${this_year}, Met Office|g" {} +
     - name: Commit & push
       run: |
         git config user.name github-actions
