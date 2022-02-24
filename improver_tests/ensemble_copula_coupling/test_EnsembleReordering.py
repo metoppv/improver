@@ -383,7 +383,7 @@ class Test_rank_ecc(IrisTest):
 
 class Test__check_input_cube_masks(IrisTest):
 
-    """Test the EnsembleReordering plugin."""
+    """Test the _check_input_cube_masks method in the EnsembleReordering plugin."""
 
     def setUp(self):
         """

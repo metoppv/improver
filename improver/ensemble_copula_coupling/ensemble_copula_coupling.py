@@ -1377,16 +1377,16 @@ class EnsembleReordering(BasePlugin):
         if np.ma.is_masked(post_processed_forecast.data) and np.ma.is_masked(
             raw_forecast.data
         ):
-            for slice in post_processed_forecast.data.mask[1:, ...]:
-                if np.any(slice != post_processed_forecast.data.mask[0]):
+            for aslice in post_processed_forecast.data.mask[1:, ...]:
+                if np.any(aslice != post_processed_forecast.data.mask[0]):
 
                     message = (
                         "The post_processed_forecast does not have same"
                         " mask on all x-y slices"
                     )
                     raise (ValueError(message))
-            for slice in raw_forecast.data.mask[0:, ...]:
-                if np.any(slice != post_processed_forecast.data.mask[0]):
+            for aslice in raw_forecast.data.mask[0:, ...]:
+                if np.any(aslice != post_processed_forecast.data.mask[0]):
                     message = (
                         "The raw_forecast x-y slices do not all have the"
                         " same mask as the post_processed_forecast."
