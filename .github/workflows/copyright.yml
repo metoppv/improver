@@ -26,7 +26,7 @@ jobs:
         git config user.name github-actions
         git config user.email github-actions@github.com
         git commit -a -m "Update copyright year" -m "Workflow: ${{ github.workflow }}, run: ${{ github.run_number }}"
-        git push
+        git push -u origin copyright_dates
     - name: pull-request
       uses: repo-sync/pull-request@v2
       with:
