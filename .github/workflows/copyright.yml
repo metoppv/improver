@@ -21,7 +21,7 @@ jobs:
         this_year=$(date +"%Y")
         find . -type f -exec sed -i'' -e 's/2017-${last_year}/2017-${this_year}/g' {} +
     - name: pull-request
-        uses: repo-sync/pull-request@v2
-        with:
-          destination_branch: "master"
-          github_token: ${{ secrets.GITHUB_TOKEN }}
+      uses: repo-sync/pull-request@v2
+      with:
+        destination_branch: "master"
+        github_token: ${{ secrets.GITHUB_TOKEN }}
