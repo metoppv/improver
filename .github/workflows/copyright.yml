@@ -3,7 +3,7 @@ name: Copyright update
 on:
   push:
   schedule:
-    - cron: '15 16 25 2 *'
+    - cron: '15 8 25 2 *'
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
