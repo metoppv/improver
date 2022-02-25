@@ -336,15 +336,7 @@ def lat_lon_collapse():
 
 
 @pytest.fixture
-def reliability_table_agg(forecast_grid, truth_grid):
-    reliability_cube_format = CalPlugin().process(forecast_grid, truth_grid)
-    reliability_cube_format = reliability_cube_format.collapsed(
-        [
-            reliability_cube_format.coord(axis="x"),
-            reliability_cube_format.coord(axis="y"),
-        ],
-        iris.analysis.SUM,
-    )
+def reliability_data():
     reliability_data = np.array(
         [
             [
@@ -360,8 +352,56 @@ def reliability_table_agg(forecast_grid, truth_grid):
         ],
         dtype=np.float32,
     )
+    return reliability_data
+
+
+@pytest.fixture
+def reliability_table_agg(forecast_grid, truth_grid, reliability_data):
+    reliability_cube_format = CalPlugin().process(forecast_grid, truth_grid)
+    reliability_cube_format = reliability_cube_format.collapsed(
+        [
+            reliability_cube_format.coord(axis="x"),
+            reliability_cube_format.coord(axis="y"),
+        ],
+        iris.analysis.SUM,
+    )
     reliability_table_agg = reliability_cube_format.copy(data=reliability_data)
     return reliability_table_agg
+
+
+@pytest.fixture
+def reliability_table_point_spot(forecast_spot, truth_spot, reliability_data):
+    reliability_cube_format = CalPlugin().process(forecast_spot, truth_spot)
+    data = np.stack([reliability_data] * 9, axis=-1)
+    reliability_table = reliability_cube_format.copy(data=data)
+    print(reliability_table)
+    print(reliability_table.data.shape)
+    return reliability_table
+
+
+@pytest.fixture
+def reliability_table_point_grid(forecast_grid, truth_grid, reliability_data):
+    reliability_cube_format = CalPlugin().process(forecast_grid, truth_grid)
+    data = np.stack(
+        [np.stack([reliability_data] * 3, axis=-1)] * 3, axis=-1
+    )
+    reliability_table = reliability_cube_format.copy(data=data)
+    return reliability_table
+
+
+@pytest.fixture(params=["agg", "point_spot", "point_grid"])
+def create_rel_tables(
+    request,
+    reliability_table_agg,
+    reliability_table_point_spot,
+    reliability_table_point_grid,
+):
+    if request.param == "agg":
+        return reliability_table_agg
+    elif request.param == "point_spot":
+        return reliability_table_point_spot
+    else:
+        return reliability_table_point_grid
 
 
 @pytest.fixture

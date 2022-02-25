@@ -620,17 +620,17 @@ class ManipulateReliabilityTable(BasePlugin):
     constant observation frequency.
     """
 
-    def __init__(self, point_by_point: bool, minimum_forecast_count: int = 200) -> None:
+    def __init__(self, minimum_forecast_count: int = 200, point_by_point: bool = False) -> None:
         """
         Initialise class for manipulating a reliability table.
 
         Args:
-            point_by_point:
-                Whether to process each point in the input cube independently.
             minimum_forecast_count:
                 The minimum number of forecast counts in a forecast probability
                 bin for it to be used in calibration.
                 The default value of 200 is that used in Flowerdew 2014.
+            point_by_point:
+                Whether to process each point in the input cube independently.
 
         Raises:
             ValueError: If minimum_forecast_count is less than 1.
@@ -640,13 +640,13 @@ class ManipulateReliabilityTable(BasePlugin):
             preserving spatial structure. Tellus, Ser. A Dyn. Meteorol.
             Oceanogr. 66.
         """
-        self.point_by_point = point_by_point
         if minimum_forecast_count < 1:
             raise ValueError(
                 "The minimum_forecast_count must be at least 1 as empty "
                 "bins in the reliability table are not handled."
             )
         self.minimum_forecast_count = minimum_forecast_count
+        self.point_by_point = point_by_point
 
     @staticmethod
     def _extract_reliability_table_components(

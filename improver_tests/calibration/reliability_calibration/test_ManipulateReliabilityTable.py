@@ -369,13 +369,14 @@ def test_acof_non_monotonic_higher_forecast_count_on_left():
     assert_array_equal(result.data, expected_result)
 
 
-def test_process_no_change(reliability_table_agg):
-    """Test with no changes required to preserve monotonicity"""
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, reliability_table_agg[1].data)
-    assert result[1].coords() == reliability_table_agg[1].coords()
+def test_process_no_change(create_rel_tables):
+    """Test with no changes required to preserve monotonicity. Parameterized
+    using `create_rel_tables` fixture."""
+    result = Plugin().process(create_rel_tables.copy())
+    assert_array_equal(result[0].data, create_rel_tables[0].data)
+    assert result[0].coords() == create_rel_tables[0].coords()
+    assert_array_equal(result[1].data, create_rel_tables[1].data)
+    assert result[1].coords() == create_rel_tables[1].coords()
 
 
 def test_process_combine_undersampled_bins_monotonic(reliability_table_agg):
