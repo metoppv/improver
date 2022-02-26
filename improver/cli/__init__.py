@@ -367,7 +367,7 @@ def with_output(
     if output and result:
         save_netcdf(result, output, compression_level, least_significant_digit)
         if tee:
-            return ObjectAsStr(result, output)
+            return result
         return
     return result
 
@@ -522,7 +522,10 @@ def improver_run_workflow(
         result = dag.compute()
     else:
         result = dag.compute(scheduler=scheduler, num_workers=num_workers, chunksize=1)
-    return result
+    try:
+        return result.original_object
+    except AttributeError:
+        return result
 
 
 def _cli_items():
