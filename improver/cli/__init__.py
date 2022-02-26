@@ -410,9 +410,13 @@ def improver_help(prog_name: parameters.pass_name, command=None, *, usage=False)
 
 def command_executor(output, *argv, verbose=False, dry_run=False):
     if argv[0] == "improver":
-        result = execute_command(
-            SUBCOMMANDS_DISPATCHER, *argv, verbose=verbose, dry_run=dry_run
-        )
+        import dask.config
+
+        # revert to single-threaded scheduler for execution of each sub-ommand
+        with dask.config.set(scheduler="single-threaded"):
+            result = execute_command(
+                SUBCOMMANDS_DISPATCHER, *argv, verbose=verbose, dry_run=dry_run
+            )
         if result is None:
             # assume it's sufficient to pass along the output instead
             result = output
