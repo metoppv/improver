@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown Copyright 2017-2022 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "IMPROVER"
-copyright = "2019, Met Office"
+copyright = "2022, Met Office"
 author = "Met Office"
 
 # The version info for the project you're documenting, acts as replacement for
