@@ -120,7 +120,10 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         self, data: ndarray, mask: ndarray = None
     ) -> Union[ndarray, np.ma.MaskedArray]:
         """
-        Apply neighbourhood processing.
+        Apply neighbourhood processing. Ensures that masked data does not
+        contribute to the neighbourhood result. Masked data is either data that
+        is masked in the input data array or that corresponds to zeros in the
+        input mask.
 
         Args:
             data:
@@ -136,15 +139,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             min_val = np.nanmin(data)
             max_val = np.nanmax(data)
 
-        # Use 64-bit types for enough precision in accumulations.
-        area_mask_dtype = np.int64
-        if mask is None:
-            area_mask = np.ones(data.shape, dtype=area_mask_dtype)
-        else:
-            area_mask = np.array(mask, dtype=area_mask_dtype, copy=False)
-
         # Data mask to be eventually used for re-masking.
         # (This is OK even if mask is None, it gives a scalar False mask then.)
+        # Invalid data where the mask provided == 0.
         data_mask = mask == 0
         if isinstance(data, np.ma.MaskedArray):
             # Include data mask if masked array.
@@ -155,33 +152,35 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         if issubclass(data.dtype.type, np.complexfloating):
             data_dtype = np.complex128
         else:
+            # Use 64-bit types for enough precision in accumulations.
             data_dtype = np.float64
         data = np.array(data, dtype=data_dtype)
 
-        # Replace invalid elements with zeros.
-        nan_mask = np.isnan(data)
-        zero_mask = nan_mask | data_mask
-        np.copyto(area_mask, 0, where=zero_mask)
-        np.copyto(data, 0, where=zero_mask)
+        # Replace invalid elements with zeros so they don't count towards
+        # neighbourhood sum
+        valid_data_mask = np.ones(data.shape, dtype=np.int64)
+        valid_data_mask[data_mask] = 0
+        data[data_mask] = 0
         # Calculate neighbourhood totals for input data.
         if self.neighbourhood_method == "square":
             data = boxsum(data, self.nb_size, mode="constant")
         elif self.neighbourhood_method == "circular":
             data = correlate(data, self.kernel, mode="nearest")
         if not self.sum_only:
-            # Calculate neighbourhood totals for mask.
+            # Calculate neighbourhood totals for valid mask.
             if self.neighbourhood_method == "square":
-                area_sum = boxsum(area_mask, self.nb_size, mode="constant")
+                area_sum = boxsum(valid_data_mask, self.nb_size, mode="constant")
             elif self.neighbourhood_method == "circular":
                 area_sum = correlate(
-                    area_mask.astype(np.float32), self.kernel, mode="nearest"
+                    valid_data_mask.astype(np.float32), self.kernel, mode="nearest"
                 )
 
             with np.errstate(divide="ignore", invalid="ignore"):
                 # Calculate neighbourhood mean.
                 data = data / area_sum
-            mask_invalid = (area_sum == 0) | nan_mask
-            np.copyto(data, np.nan, where=mask_invalid)
+            # For points where all data in the neighbourhood is masked,
+            # set result to nan
+            data[area_sum == 0] = np.nan
             data = data.clip(min_val, max_val)
 
         # Output type.
@@ -216,7 +215,8 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 Cube containing the array to which the neighbourhood processing
                 will be applied.
             mask_cube:
-                Cube containing the array to be used as a mask.
+                Cube containing the array to be used as a mask. Zero values in
+                this array are taken as points to be masked.
 
         Returns:
             Cube containing the smoothed field after the
