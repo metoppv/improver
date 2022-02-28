@@ -2,7 +2,7 @@ name: Copyright update
 
 on:
   schedule:
-    - cron: '00 09 28 02 *'
+    - cron: '00 03 01 01 *' # Every Jan 1st @ 03:00 UTC
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
@@ -39,4 +39,3 @@ jobs:
         pr_reviewer: "Kat-90"
         pr_assignee: "Kat-90"
         github_token: ${{ secrets.GITHUB_TOKEN }}
-
