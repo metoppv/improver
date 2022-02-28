@@ -32,6 +32,7 @@
 
 import pathlib
 import shlex
+import time
 from collections import OrderedDict
 from functools import partial
 
@@ -480,6 +481,31 @@ def unbracket(args):
     return outargs
 
 
+class TimeIt:
+    def __init__(self, verbose=False):
+        self._verbose = verbose
+        self._elapsed = None
+        self._start = None
+
+    def __enter__(self):
+        self._start = time.perf_counter()
+        return self
+
+    def __exit__(self, *args):
+        self._elapsed = time.perf_counter() - self._start
+        if self._verbose:
+            print(str(self))
+
+    @property
+    def elapsed(self):
+        """Return elapsed time in seconds."""
+        return self._elapsed
+
+    def __str__(self):
+        """Print elapsed time in seconds."""
+        return f"Run-time: {self._elapsed}s"
+
+
 def execute_command(dispatcher, prog_name, *args, verbose=False, dry_run=False):
     """Common entry point for command execution."""
     args = list(args)
@@ -495,15 +521,19 @@ def execute_command(dispatcher, prog_name, *args, verbose=False, dry_run=False):
             arg = ObjectAsStr(arg)
         args[i] = arg
 
-    if verbose or dry_run:
-        print(" ".join([shlex.quote(x) for x in (prog_name, *args)]))
+    msg = " ".join([shlex.quote(x) for x in (prog_name, *args)])
     if dry_run:
+        if verbose:
+            print(msg)
         return args
 
-    result = dispatcher(prog_name, *args)
+    with TimeIt() as timeit:
+        result = dispatcher(prog_name, *args)
 
-    if verbose and result is not None:
-        print(ObjectAsStr.obj_to_name(result))
+    if verbose:
+        print(f"{timeit}; {msg}")
+        if result is not None:
+            print(ObjectAsStr.obj_to_name(result))
     return result
 
 
