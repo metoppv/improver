@@ -370,12 +370,15 @@ def reliability_table_agg(forecast_grid, truth_grid, reliability_data):
 
 
 @pytest.fixture
+def reliability_table_slice(reliability_table_agg):
+    return next(reliability_table_agg.slices_over("air_temperature"))
+
+
+@pytest.fixture
 def reliability_table_point_spot(forecast_spot, truth_spot, reliability_data):
     reliability_cube_format = CalPlugin().process(forecast_spot, truth_spot)
     data = np.stack([reliability_data] * 9, axis=-1)
     reliability_table = reliability_cube_format.copy(data=data)
-    print(reliability_table)
-    print(reliability_table.data.shape)
     return reliability_table
 
 
@@ -389,19 +392,27 @@ def reliability_table_point_grid(forecast_grid, truth_grid, reliability_data):
     return reliability_table
 
 
-@pytest.fixture(params=["agg", "point_spot", "point_grid"])
-def create_rel_tables(
+RelTables = namedtuple("RelTables", ["table", "indicies0", "indicies1"])
+
+
+@pytest.fixture(params=["point_spot", "point_grid"])
+def create_rel_tables_point(
     request,
-    reliability_table_agg,
     reliability_table_point_spot,
     reliability_table_point_grid,
 ):
-    if request.param == "agg":
-        return reliability_table_agg
-    elif request.param == "point_spot":
-        return reliability_table_point_spot
+    if request.param == "point_spot":
+        return RelTables(
+            table=reliability_table_point_spot,
+            indicies0=(0, slice(0, None), slice(0, None), 0),
+            indicies1=(0, slice(0, None), slice(0, None), 1),
+        )
     else:
-        return reliability_table_point_grid
+        return RelTables(
+            table=reliability_table_point_grid,
+            indicies0=(0, slice(0, None), slice(0, None), 0, 0),
+            indicies1=(0, slice(0, None), slice(0, None), 0, 1),
+        )
 
 
 @pytest.fixture
