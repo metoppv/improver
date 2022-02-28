@@ -128,3 +128,15 @@ def test_invert_probabilities(
     )
     assert expected_name in result.name()
     assert_almost_equal(result.data, expected_inverted_probabilities)
+
+
+@pytest.mark.parametrize("inequality", ["greater_than"])
+def test_no_threshold_coordinate(probability_cube):
+    """Test an exception is raised if no threshold coordinate is found."""
+
+    cube = probability_cube[0]
+    threshold = cube.coord(var_name="threshold")
+    cube.remove_coord(threshold)
+
+    with pytest.raises(ValueError, match="Cube does not have a threshold coordinate"):
+        invert_probabilities(cube)
