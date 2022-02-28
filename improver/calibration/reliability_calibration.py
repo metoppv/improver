@@ -1037,17 +1037,9 @@ class ManipulateReliabilityTable(BasePlugin):
         for rel_table_threshold in reliability_table.slices_over(threshold_coord):
             if self.point_by_point:
                 rel_table_processed = iris.cube.CubeList()
-                coord_order = [
-                    c.name() for c in rel_table_threshold.coords(dim_coords=True)
-                ]
                 for rel_table_point in rel_table_threshold.slices_over([y_name, x_name]):
-                    rel_table_processed.append(
-                        self._enforce_min_count_and_montonicity(rel_table_point)
-                    )
-                rel_table_processed = rel_table_processed.merge_cube()
-                enforce_coordinate_ordering(
-                    rel_table_processed, coord_order,
-                )
+                    rel_table_point_emcam = self._enforce_min_count_and_montonicity(rel_table_point)
+                    rel_table_processed.append(rel_table_point_emcam)
             else:
                 rel_table_processed = self._enforce_min_count_and_montonicity(
                     rel_table_threshold
