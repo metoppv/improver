@@ -1,9 +1,8 @@
 name: Copyright update
 
 on:
-  push:
   schedule:
-    - cron: '0,10,20,30,40,50 * * * *'
+    - cron: '00 09 28 02 *'
 jobs:
   Update-Copyright-Date:
     runs-on: ubuntu-latest
