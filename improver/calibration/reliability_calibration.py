@@ -632,6 +632,8 @@ class ManipulateReliabilityTable(BasePlugin):
                 The default value of 200 is that used in Flowerdew 2014.
             point_by_point:
                 Whether to process each point in the input cube independently.
+                Please note this option is memory intensive and is unsuitable
+                for gridded input
 
         Raises:
             ValueError: If minimum_forecast_count is less than 1.
