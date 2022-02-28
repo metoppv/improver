@@ -78,10 +78,6 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         resulting in a cube with a "topographic_zone" coordinate which is
         returned from this plugin.
 
-        The resulting cube can be returned which has a
-        "topographic_zone" coordinate, with each slice over the
-        "topographic_zone" masked using the input mask cube.
-
         Otherwise if weights are provided then you can weight between
         adjacent bands when you collapse the new "topographic_zone" coordinate.
         This takes into account the result from the neighbourhood processing to
