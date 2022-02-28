@@ -78,7 +78,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         resulting in a cube with a "topographic_zone" coordinate which is
         returned from this plugin.
 
-        Otherwise if weights are provided then you can weight between
+        However, if weights are provided then you can weight between
         adjacent bands when you collapse the new "topographic_zone" coordinate.
         This takes into account the result from the neighbourhood processing to
         adjust the weights for points in a "topographic_zone" that don't have
