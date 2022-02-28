@@ -70,9 +70,7 @@ def process(
             dimension gained through masking. These weights must have been
             created using a land-sea mask. (Optional).
         neighbourhood_shape (str):
-            Name of the neighbourhood method to use. Only a "circular"
-            neighbourhood shape is applicable for calculating "percentiles"
-            output.
+            Name of the neighbourhood method to use.
             Options: "circular", "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to

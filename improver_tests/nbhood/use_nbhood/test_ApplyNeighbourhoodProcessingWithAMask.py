@@ -262,7 +262,7 @@ class Test_process(unittest.TestCase):
             expected_result, expected_mask
         )
 
-    def test_basic_no_collapse(self):
+    def test_basic_no_collapse_square(self):
         """Test process for a cube with 1 threshold and no collapse.
         This test shows the result of neighbourhood processing the same input
         data three times with the three different masks for the different
@@ -299,7 +299,7 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.coords(), expected_coords)
         self.assertEqual(result.metadata, self.cube.metadata)
 
-    def test_basic_collapse(self):
+    def test_basic_collapse_square(self):
         """Test process for a cube with 1 threshold and collapsing the topographic_zones.
         This test shows the result of neighbourhood processing the same input
         data three times with the three different masks for the different

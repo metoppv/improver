@@ -66,7 +66,7 @@ def test_basic(tmp_path):
 
 
 @pytest.mark.slow
-def test_collapse_bands(tmp_path):
+def test_collapse_bands_square(tmp_path):
     """Test with collapsing orographic bands"""
     kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic_collapse_bands"
     kgo_path = kgo_dir / "kgo_collapsed.nc"

@@ -78,7 +78,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         resulting in a cube with a "topographic_zone" coordinate which is
         returned from this plugin.
 
-        The re_mask option can be used to return the resulting cube with a
+        The resulting cube can be returned which has a
         "topographic_zone" coordinate, with each slice over the
         "topographic_zone" masked using the input mask cube.
 

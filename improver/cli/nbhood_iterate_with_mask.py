@@ -60,9 +60,6 @@ def process(
     to separate slices over the input cube. These intermediate masked datasets
     are then concatenated, resulting in a dataset that has been processed
     using multiple masks and has gained an extra dimension from the masking.
-    There is also an option to re-mask the output dataset, so that after
-    neighbourhood processing non-zero values are only present for unmasked
-    grid points.
     If weights are given the masking dimension that we gain will be collapsed
     using a weighted average.
 
@@ -78,9 +75,7 @@ def process(
             String matching the name of the coordinate that will be used
             for masking.
         neighbourhood_shape (str):
-            Name of the neighbourhood method to use. Only a "circular"
-            neighbourhood shape is applicable for calculating "percentiles"
-            output.
+            Name of the neighbourhood method to use.
             Options: "circular", "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to

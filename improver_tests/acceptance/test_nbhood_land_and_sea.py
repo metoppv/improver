@@ -41,7 +41,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
+def test_basic_square(tmp_path):
     """Test basic land-sea without topographic bands"""
     kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
     kgo_path = kgo_dir / "kgo.nc"
@@ -218,7 +218,7 @@ def test_landsea_only(tmp_path, landsea):
 
 
 @pytest.mark.slow
-def test_topographic_bands_probabilities(tmp_path):
+def test_topographic_bands_probabilities_square(tmp_path):
     """Test topographic banding of probabilities"""
     kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/topographic_bands"
     kgo_path = kgo_dir / "kgo_probs.nc"
