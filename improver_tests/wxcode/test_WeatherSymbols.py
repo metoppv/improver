@@ -248,6 +248,7 @@ def run_wxcode_test(
     )
 
     assert isinstance(result, iris.cube.Cube)
+    assert all(result.attributes["weather_code"] == list(WX_DICT.keys()))
     assert result.attributes["weather_code_meaning"] == " ".join(WX_DICT.values())
     assert result.dtype == np.int32
 
