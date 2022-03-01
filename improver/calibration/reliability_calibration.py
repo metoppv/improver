@@ -54,10 +54,7 @@ from improver.metadata.probabilistic import (
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.utilities.cube_manipulation import (
-    MergeCubes,
-    collapsed,
-)
+from improver.utilities.cube_manipulation import MergeCubes, collapsed
 
 
 class ConstructReliabilityCalibrationTables(BasePlugin):
