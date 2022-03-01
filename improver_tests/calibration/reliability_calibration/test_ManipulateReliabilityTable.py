@@ -386,16 +386,12 @@ def test_emcam_combine_undersampled_bins_monotonic(reliability_table_slice):
             [0, 250, 50, 375, 1000],  # Sum of forecast probability
             [1000, 1000, 100, 500, 1000],  # Forecast count
         ],
-        dtype=np.float32
+        dtype=np.float32,
     )
     result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
     assert_array_equal(result.data, expected_data)
-    assert_allclose(
-        result.coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result.coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
 def test_emcam_combine_undersampled_bins_non_monotonic(reliability_table_slice):
@@ -413,17 +409,13 @@ def test_emcam_combine_undersampled_bins_non_monotonic(reliability_table_slice):
             [750, 250, 50, 375, 1000],  # Sum of forecast probability
             [1000, 1000, 100, 500, 1000],  # Forecast count
         ],
-        dtype=np.float32
+        dtype=np.float32,
     )
 
     result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
     assert_array_equal(result.data, expected_data)
-    assert_allclose(
-        result.coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result.coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
 def test_emcam_highest_bin_non_monotonic(reliability_table_slice):
@@ -447,12 +439,8 @@ def test_emcam_highest_bin_non_monotonic(reliability_table_slice):
 
     result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
     assert_array_equal(result.data, expected_data)
-    assert_allclose(
-        result.coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result.coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
 def test_emcam_central_bin_non_monotonic(reliability_table_slice):
@@ -475,12 +463,8 @@ def test_emcam_central_bin_non_monotonic(reliability_table_slice):
 
     result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
     assert_array_equal(result.data, expected_data)
-    assert_allclose(
-        result.coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result.coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
 def test_emcam_upper_bins_non_monotonic(reliability_table_slice):
@@ -503,12 +487,8 @@ def test_emcam_upper_bins_non_monotonic(reliability_table_slice):
 
     result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
     assert_array_equal(result.data, expected_data)
-    assert_allclose(
-        result.coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result.coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
 def test_emcam_lowest_bin_non_monotonic(reliability_table_slice):
@@ -533,12 +513,8 @@ def test_emcam_lowest_bin_non_monotonic(reliability_table_slice):
     )
     result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
     assert_array_equal(result.data, expected_data)
-    assert_allclose(
-        result.coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result.coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
 def test_process_no_change_agg(reliability_table_agg):
@@ -562,7 +538,7 @@ def test_process_no_change_point(create_rel_tables_point):
     expected = rel_table.data[create_rel_tables_point.indicies0]
     assert all([np.array_equal(cube.data, expected) for cube in result[0]])
 
-    coords_exclude = ['latitude', 'longitude', 'spot_index', 'wmo_id']
+    coords_exclude = ["latitude", "longitude", "spot_index", "wmo_id"]
     coords_table = [c for c in rel_table[0].coords() if c.name() not in coords_exclude]
     # Ensure coords are in the same order
     coords_result = [result[0][0].coords(c.name())[0] for c in coords_table]

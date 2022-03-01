@@ -385,9 +385,7 @@ def reliability_table_point_spot(forecast_spot, truth_spot, reliability_data):
 @pytest.fixture
 def reliability_table_point_grid(forecast_grid, truth_grid, reliability_data):
     reliability_cube_format = CalPlugin().process(forecast_grid, truth_grid)
-    data = np.stack(
-        [np.stack([reliability_data] * 3, axis=-1)] * 3, axis=-1
-    )
+    data = np.stack([np.stack([reliability_data] * 3, axis=-1)] * 3, axis=-1)
     reliability_table = reliability_cube_format.copy(data=data)
     return reliability_table
 
@@ -397,9 +395,7 @@ RelTables = namedtuple("RelTables", ["table", "indicies0", "indicies1"])
 
 @pytest.fixture(params=["point_spot", "point_grid"])
 def create_rel_tables_point(
-    request,
-    reliability_table_point_spot,
-    reliability_table_point_grid,
+    request, reliability_table_point_spot, reliability_table_point_grid,
 ):
     if request.param == "point_spot":
         return RelTables(

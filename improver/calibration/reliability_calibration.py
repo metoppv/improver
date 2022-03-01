@@ -44,7 +44,6 @@ from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.calibration.utilities import (
     check_forecast_consistency,
     create_unified_frt_coord,
@@ -55,7 +54,10 @@ from improver.metadata.probabilistic import (
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.utilities.cube_manipulation import MergeCubes, collapsed
+from improver.utilities.cube_manipulation import (
+    MergeCubes,
+    collapsed,
+)
 
 
 class ConstructReliabilityCalibrationTables(BasePlugin):
@@ -621,7 +623,9 @@ class ManipulateReliabilityTable(BasePlugin):
     constant observation frequency.
     """
 
-    def __init__(self, minimum_forecast_count: int = 200, point_by_point: bool = False) -> None:
+    def __init__(
+        self, minimum_forecast_count: int = 200, point_by_point: bool = False
+    ) -> None:
         """
         Initialise class for manipulating a reliability table.
 
@@ -1039,8 +1043,12 @@ class ManipulateReliabilityTable(BasePlugin):
         for rel_table_threshold in reliability_table.slices_over(threshold_coord):
             if self.point_by_point:
                 rel_table_processed = iris.cube.CubeList()
-                for rel_table_point in rel_table_threshold.slices_over([y_name, x_name]):
-                    rel_table_point_emcam = self._enforce_min_count_and_montonicity(rel_table_point)
+                for rel_table_point in rel_table_threshold.slices_over(
+                    [y_name, x_name]
+                ):
+                    rel_table_point_emcam = self._enforce_min_count_and_montonicity(
+                        rel_table_point
+                    )
                     rel_table_processed.append(rel_table_point_emcam)
             else:
                 rel_table_processed = self._enforce_min_count_and_montonicity(
