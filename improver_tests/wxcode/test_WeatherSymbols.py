@@ -114,13 +114,13 @@ def wxcode_inputs_fixture(
     )
 
     rainfall_cube = set_up_probability_cube(
-        np.array(rain).reshape(3, 1, 1).astype(np.float32),
+        np.ma.masked_invalid(rain).reshape(3, 1, 1).astype(np.float32),
         variable_name="thickness_of_rainfall_amount",
         **precip_kwargs,
     )
 
     rainfall_vicinity_cube = set_up_probability_cube(
-        np.array(rain_vic).reshape(3, 1, 1).astype(np.float32),
+        np.ma.masked_invalid(rain_vic).reshape(3, 1, 1).astype(np.float32),
         variable_name="thickness_of_rainfall_amount_in_vicinity",
         **precip_kwargs,
     )
@@ -243,9 +243,12 @@ def run_wxcode_test(
     result = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=3600)(
         wxcode_inputs
     )
-    assert WX_DICT[int(result.data)] == expected.format(day_night=day_night).replace(
-        "Sunny_Night", "Clear_Night"
-    )
+    if expected == "Masked":
+        assert result.data.mask
+    else:
+        assert WX_DICT[int(result.data)] == expected.format(day_night=day_night).replace(
+            "Sunny_Night", "Clear_Night"
+        )
 
     assert isinstance(result, iris.cube.Cube)
     assert all(result.attributes["weather_code"] == list(WX_DICT.keys()))
@@ -350,6 +353,7 @@ def test_snow_routes(wxcode_inputs, day_night, expected):
 @pytest.mark.parametrize(
     "expected, shower_condition, rain, rain_vic",
     (
+        ("Masked", 0, [np.nan, np.nan, np.nan], [np.nan, np.nan, np.nan],),
         ("Sunny_{day_night}", 0, [0, 0, 0], [0, 0, 0],),
         ("Heavy_Rain", 0, [1, 1, 1], [1, 1, 1],),
         ("Heavy_Shower_{day_night}", 1, [1, 1, 1], [1, 1, 1],),
