@@ -68,12 +68,15 @@ def wxcode_inputs_fixture(
     snow: List[float],
     snow_vic: List[float],
     vis: List[float],
+    hour: int,
 ):
-    """Set up cubes and constraints required for Weather Symbols."""
+    """
+    Set up cubes and constraints required for Weather Symbols. Each cube has one spatial point.
+    """
 
-    time = dt(2017, 10, 10, 12, 0)
+    time = dt(2017, 10, 10, hour, 0)
     time_bounds = [time - timedelta(hours=1), time]
-    frt = dt(2017, 10, 10, 6, 0)
+    frt = dt(2017, 10, 9, 18, 0)
     standard_kwargs = {"time": time, "frt": frt}
     time_window_kwargs = standard_kwargs.copy()
     time_window_kwargs.update({"time_bounds": time_bounds})
@@ -223,7 +226,9 @@ def wxcode_inputs_fixture(
     return cubes
 
 
-def run_wxcode_test(expected: str, wxcode_inputs: CubeList) -> None:
+def run_wxcode_test(
+    expected: str, wxcode_inputs: CubeList, day_night: str = "Day"
+) -> None:
     """Runs the WeatherSymbols plugin with the supplied inputs and asserts that the resulting
     weather code matches the expected symbol
 
@@ -232,17 +237,22 @@ def run_wxcode_test(expected: str, wxcode_inputs: CubeList) -> None:
             Weather symbol meaning that we expect the WeatherSymbols plugin to produce
         wxcode_inputs:
             All the input cubes to give to the plugin
+        day_night:
+            Fills {day_night} in expected string (Also changes Sunny to Clear)
     """
     result = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=3600)(
         wxcode_inputs
     )
-    assert WX_DICT[int(result.data)] == expected
+    assert WX_DICT[int(result.data)] == expected.format(day_night=day_night).replace(
+        "Sunny_Night", "Clear_Night"
+    )
 
     assert isinstance(result, iris.cube.Cube)
     assert result.attributes["weather_code_meaning"] == " ".join(WX_DICT.values())
     assert result.dtype == np.int32
 
 
+@pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
     "hail_accum, hail_rate, lightning, rain, rain_vic, shower_condition, sleet, sleet_vic, snow, snow_vic",
     ((0, 0, 0, [0, 0, 0], [0, 0, 0], 0, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0],),),
@@ -250,19 +260,20 @@ def run_wxcode_test(expected: str, wxcode_inputs: CubeList) -> None:
 @pytest.mark.parametrize(
     "expected, cloud, low_cloud, vis",
     (
-        ("Sunny_Day", [0, 0], 0, [0, 0]),
-        ("Partly_Cloudy_Day", [1, 0], 0, [0, 0]),
+        ("Sunny_{day_night}", [0, 0], 0, [0, 0]),
+        ("Partly_Cloudy_{day_night}", [1, 0], 0, [0, 0]),
         ("Cloudy", [1, 1], 0, [0, 0]),
         ("Overcast", [1, 1], 1, [0, 0]),
         ("Mist", [1, 1], 1, [0, 1]),
         ("Fog", [1, 1], 1, [1, 1]),
     ),
 )
-def test_dry_routes(wxcode_inputs, expected):
+def test_dry_routes(wxcode_inputs, day_night, expected):
     """Tests that each route to a non-precipitating symbol can be traversed"""
-    run_wxcode_test(expected, wxcode_inputs)
+    run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
 
 
+@pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
     "cloud, low_cloud, rain_vic, sleet_vic, snow_vic, vis",
     (([0, 0], 0, [1, 1, 0], [0, 0, 0], [0, 0, 0], [0, 0],),),
@@ -275,18 +286,19 @@ def test_dry_routes(wxcode_inputs, expected):
         ("Light_Rain", 0.6, 0.6, 0, [0.7, 0.7, 0], 0, [0, 0, 0], [0, 0, 0]),
         ("Sleet", 0.6, 0.6, 0, [0, 0, 0], 0, [0.7, 0.7, 0], [0, 0, 0]),
         ("Light_Snow", 0.6, 0.6, 0, [0, 0, 0], 0, [0, 0, 0], [0.7, 0.7, 0]),
-        ("Hail_Shower_Day", 1, 1, 0, [0, 0, 0], 1, [0, 0, 0], [0, 0, 0]),
+        ("Hail_Shower_{day_night}", 1, 1, 0, [0, 0, 0], 1, [0, 0, 0], [0, 0, 0]),
         ("Thunder", 0, 0, 1, [0, 0, 0], 0, [0, 0, 0], [0, 0, 0]),
-        ("Thunder_Shower_Day", 0, 0, 1, [0, 0, 0], 1, [0, 0, 0], [0, 0, 0]),
+        ("Thunder_Shower_{day_night}", 0, 0, 1, [0, 0, 0], 1, [0, 0, 0], [0, 0, 0]),
     ),
 )
-def test_lightning_and_hail_routes(wxcode_inputs, expected):
+def test_lightning_and_hail_routes(wxcode_inputs, day_night, expected):
     """Tests that each route through the lightning and hail tree can be traversed.
     Note that the background state is light-precip-in-vicinity and that there are three non-hail
     tests where hail is present but not dominant."""
-    run_wxcode_test(expected, wxcode_inputs)
+    run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
 
 
+@pytest.mark.parametrize("hour", (12, 0))
 @pytest.mark.parametrize(
     "cloud, hail_accum, hail_rate, lightning, rain_vic, shower_condition, sleet_vic, snow_vic",
     (([1, 1], 0, 0, 0, [0, 0, 0], 0, [0, 0, 0], [0, 0, 0],),),
@@ -307,6 +319,7 @@ def test_drizzle_routes(wxcode_inputs, expected):
     run_wxcode_test(expected, wxcode_inputs)
 
 
+@pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
     "cloud, hail_accum, hail_rate, lightning, low_cloud, rain, rain_vic, sleet, sleet_vic, vis",
     (([0, 0], 0, 0, 0, 0, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0],),),
@@ -314,20 +327,21 @@ def test_drizzle_routes(wxcode_inputs, expected):
 @pytest.mark.parametrize(
     "expected, shower_condition, snow, snow_vic",
     (
-        ("Sunny_Day", 0, [0, 0, 0], [0, 0, 0],),
+        ("Sunny_{day_night}", 0, [0, 0, 0], [0, 0, 0],),
         ("Heavy_Snow", 0, [1, 1, 1], [1, 1, 1],),
-        ("Heavy_Snow_Shower_Day", 1, [1, 1, 1], [1, 1, 1],),
+        ("Heavy_Snow_Shower_{day_night}", 1, [1, 1, 1], [1, 1, 1],),
         ("Heavy_Snow", 0, [1, 1, 0], [1, 1, 1],),
         ("Light_Snow", 0, [1, 1, 0], [1, 1, 0],),
-        ("Heavy_Snow_Shower_Day", 1, [1, 1, 0], [1, 1, 1],),
-        ("Light_Snow_Shower_Day", 1, [1, 1, 0], [1, 1, 0],),
+        ("Heavy_Snow_Shower_{day_night}", 1, [1, 1, 0], [1, 1, 1],),
+        ("Light_Snow_Shower_{day_night}", 1, [1, 1, 0], [1, 1, 0],),
     ),
 )
-def test_snow_routes(wxcode_inputs, expected):
+def test_snow_routes(wxcode_inputs, day_night, expected):
     """Tests that each route to a snow symbol can be traversed."""
-    run_wxcode_test(expected, wxcode_inputs)
+    run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
 
 
+@pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
     "cloud, hail_accum, hail_rate, lightning, low_cloud, sleet, sleet_vic, snow, snow_vic, vis",
     (([0, 0], 0, 0, 0, 0, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0],),),
@@ -335,20 +349,21 @@ def test_snow_routes(wxcode_inputs, expected):
 @pytest.mark.parametrize(
     "expected, shower_condition, rain, rain_vic",
     (
-        ("Sunny_Day", 0, [0, 0, 0], [0, 0, 0],),
+        ("Sunny_{day_night}", 0, [0, 0, 0], [0, 0, 0],),
         ("Heavy_Rain", 0, [1, 1, 1], [1, 1, 1],),
-        ("Heavy_Shower_Day", 1, [1, 1, 1], [1, 1, 1],),
+        ("Heavy_Shower_{day_night}", 1, [1, 1, 1], [1, 1, 1],),
         ("Heavy_Rain", 0, [1, 1, 0], [1, 1, 1],),
         ("Light_Rain", 0, [1, 1, 0], [1, 1, 0],),
-        ("Heavy_Shower_Day", 1, [1, 1, 0], [1, 1, 1],),
-        ("Light_Shower_Day", 1, [1, 1, 0], [1, 1, 0],),
+        ("Heavy_Shower_{day_night}", 1, [1, 1, 0], [1, 1, 1],),
+        ("Light_Shower_{day_night}", 1, [1, 1, 0], [1, 1, 0],),
     ),
 )
-def test_rain_routes(wxcode_inputs, expected):
+def test_rain_routes(wxcode_inputs, day_night, expected):
     """Tests that each route to a rain symbol can be traversed."""
-    run_wxcode_test(expected, wxcode_inputs)
+    run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
 
 
+@pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
     "cloud, hail_accum, hail_rate, lightning, low_cloud, rain, rain_vic, snow, snow_vic, vis",
     (([0, 0], 0, 0, 0, 0, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0],),),
@@ -356,12 +371,12 @@ def test_rain_routes(wxcode_inputs, expected):
 @pytest.mark.parametrize(
     "expected, shower_condition, sleet, sleet_vic",
     (
-        ("Sunny_Day", 0, [0, 0, 0], [0, 0, 0],),
-        ("Sleet_Shower_Day", 1, [1, 1, 1], [1, 1, 1],),
+        ("Sunny_{day_night}", 0, [0, 0, 0], [0, 0, 0],),
+        ("Sleet_Shower_{day_night}", 1, [1, 1, 1], [1, 1, 1],),
         ("Sleet", 0, [1, 1, 0], [1, 1, 0],),
-        ("Sleet_Shower_Day", 1, [1, 1, 0], [1, 1, 0],),
+        ("Sleet_Shower_{day_night}", 1, [1, 1, 0], [1, 1, 0],),
     ),
 )
-def test_sleet_routes(wxcode_inputs, expected):
+def test_sleet_routes(wxcode_inputs, day_night, expected):
     """Tests that each route to a sleet symbol can be traversed."""
-    run_wxcode_test(expected, wxcode_inputs)
+    run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
