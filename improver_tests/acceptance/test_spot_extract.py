@@ -61,8 +61,8 @@ def test_nearest_uk(tmp_path, neighbour_cube, extra_args, kgo_file):
     kgo_path = kgo_dir / f"outputs/{kgo_file}"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         *extra_args,
@@ -82,9 +82,9 @@ def test_lapse_rate_adjusted_uk(tmp_path):
     kgo_path = kgo_dir / "outputs/lapse_rate_adjusted_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
         lapse_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -104,9 +104,9 @@ def test_lapse_adjusting_multiple_percentile_input(tmp_path):
     kgo_path = kgo_dir / "outputs/lapse_adjusted_multiple_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
         lapse_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -123,7 +123,7 @@ def test_global_extract_on_uk_grid(tmp_path):
     neighbour_path = kgo_dir / "inputs/all_methods_global.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, "--output", output_path]
+    args = [diag_path, neighbour_path, "--output", output_path]
     with pytest.raises(ValueError, match=".*same grid.*"):
         run_cli(args)
 
@@ -134,7 +134,7 @@ def test_nearest_minimum_dz_unavailable(tmp_path):
     neighbour_path = kgo_dir / "inputs/nearest_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
-    args = [neighbour_path, diag_path, "--output", output_path, "--similar-altitude"]
+    args = [diag_path, neighbour_path, "--output", output_path, "--similar-altitude"]
     with pytest.raises(ValueError, match=".*neighbour_selection_method.*"):
         run_cli(args)
 
@@ -148,9 +148,9 @@ def test_lapse_rate_mismatch(tmp_path):
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
         lapse_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -170,9 +170,9 @@ def test_lapse_rate_wrong_height(tmp_path):
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate_no_height.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
         lapse_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -191,8 +191,8 @@ def test_new_spot_title(tmp_path):
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures_amended_metadata.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--new-title",
         UK_SPOT_TITLE,
         "--output",
@@ -210,9 +210,9 @@ def test_lapse_rate_non_temperature(tmp_path):
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
         lapse_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -229,8 +229,8 @@ def test_multiple_constraints(tmp_path):
     kgo_path = kgo_dir / "outputs/mindz_land_constraint_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         "--similar-altitude",
@@ -250,8 +250,8 @@ def test_percentile_thresholded_input(tmp_path):
     kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         threshold_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -271,8 +271,8 @@ def test_percentile_percentile_input(tmp_path):
     kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         threshold_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -291,8 +291,8 @@ def test_percentile_unavailable(tmp_path):
     threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         threshold_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -310,8 +310,8 @@ def test_percentile_deterministic(tmp_path):
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -338,8 +338,8 @@ def test_percentile_deterministic_quiet(tmp_path):
     kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -364,8 +364,8 @@ def test_multiple_percentile_thresholded_input(tmp_path):
     kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         threshold_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -385,8 +385,8 @@ def test_multiple_percentile_percentile_input(tmp_path):
     kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         threshold_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -406,8 +406,8 @@ def test_percentile_realization_input(tmp_path):
     kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         realization_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -427,8 +427,8 @@ def test_multiple_percentile_realization_input(tmp_path):
     kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         realization_path,
+        neighbour_path,
         "--output",
         output_path,
         "--extract-percentiles",
@@ -448,9 +448,9 @@ def test_invalid_lapse_rate(tmp_path):
     lapse_path = diag_path
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
         lapse_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -468,8 +468,8 @@ def test_no_lapse_rate_data(tmp_path):
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         "--apply-lapse-rate-correction",
@@ -489,8 +489,8 @@ def test_percentile_from_threshold_with_realizations(tmp_path):
     kgo_path = kgo_dir / "outputs/with_realization_collapse.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         "--realization-collapse",
@@ -513,8 +513,8 @@ def test_local_timezone_extraction(tmp_path):
     kgo_path = kgo_dir / "outputs/engluk_localtime_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--new-title",
         "MOGREPS-G Spot Values",
         "--output",
@@ -536,8 +536,8 @@ def test_multi_time_input(tmp_path):
     kgo_path = kgo_dir / "outputs/multi_time_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
-        neighbour_path,
         diag_path,
+        neighbour_path,
         "--output",
         output_path,
         "--new-title",

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown Copyright 2017-2021 Met Office.
@@ -29,42 +28,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate modal weather symbols over periods."""
+"""Fixtures for calibration utilities tests."""
 
-from improver import cli
+from ..reliability_calibration.conftest import (
+    different_frt,
+    expected_table,
+    forecast_grid,
+    reliability_cube,
+)
 
-
-@cli.clizefy
-@cli.with_output
-def process(
-    *cubes: cli.inputcube, model_id_attr: str = None, record_run_attr: str = None
-):
-    """Generates a modal weather symbol for the period covered by the input
-    weather symbol cubes. Where there are different weather codes available
-    for night and day, the modal code returned is always a day code, regardless
-    of the times covered by the input files.
-
-    Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing weather symbols cubes that cover the period
-            over which a modal symbol is desired.
-        model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        record_run_attr:
-            Name of attribute used to record models and cycles used in
-            constructing the weather symbols.
-
-    Returns:
-        iris.cube.Cube:
-            A cube of modal weather symbols over a period.
-    """
-    from improver.wxcode.modal_code import ModalWeatherCode
-
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
-
-    return ModalWeatherCode(
-        model_id_attr=model_id_attr, record_run_attr=record_run_attr,
-    )(cubes)
+_ = forecast_grid, reliability_cube, different_frt, expected_table
