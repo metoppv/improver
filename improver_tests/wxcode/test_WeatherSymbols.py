@@ -63,6 +63,8 @@ def standard_kwargs(hour: int) -> dict:
         "frt": frt,
         "standard_grid_metadata": "uk_ens",
         "attributes": {
+            "mosg__model_configuration": "uk_det uk_ens",
+            "mosg__model_run": "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
             "source": "Unit test",
             "institution": "Met Office",
             "title": "Post-Processed IMPROVER unit test",
@@ -257,6 +259,7 @@ def run_wxcode_test(
     wxcode_inputs: CubeList,
     day_night: str = "Day",
     model_id_attr: Optional[str] = None,
+    record_run_attr: Optional[str] = None,
 ) -> None:
     """Runs the WeatherSymbols plugin with the supplied inputs and asserts that the resulting
     weather code matches the expected symbol
@@ -270,9 +273,14 @@ def run_wxcode_test(
             Fills {day_night} in expected string (Also changes Sunny to Clear)
         model_id_attr:
             Argument for WeatherSymbols. Triggers checking for this attribute on output cube.
+        record_run_attr:
+            Argument for WeatherSymbols. Triggers checking for this attribute on output cube.
     """
     result = WeatherSymbols(
-        wxtree=wxcode_decision_tree(), model_id_attr=model_id_attr, target_period=3600
+        wxtree=wxcode_decision_tree(),
+        model_id_attr=model_id_attr,
+        target_period=3600,
+        record_run_attr=record_run_attr,
     )(wxcode_inputs)
     if expected == "Masked":
         assert result.data.mask
@@ -289,7 +297,12 @@ def run_wxcode_test(
     assert attributes.pop("institution") == "Met Office"
     assert attributes.pop("title") == "Post-Processed IMPROVER unit test"
     if model_id_attr:
-        assert attributes.pop(model_id_attr) == "uk_ens"
+        assert attributes.pop(model_id_attr) == "uk_det uk_ens"
+    if record_run_attr:
+        assert (
+            attributes.pop(record_run_attr)
+            == "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:"
+        )
     assert not attributes
 
     assert result.dtype == np.int32
@@ -301,6 +314,7 @@ def run_wxcode_test(
             break
 
 
+@pytest.mark.parametrize("record_run_attr", (None, "mosg__model_run"))
 @pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
 @pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
@@ -318,10 +332,14 @@ def run_wxcode_test(
         ("Fog", [1, 1], 1, [1, 1]),
     ),
 )
-def test_dry_routes(wxcode_inputs, day_night, model_id_attr, expected):
+def test_dry_routes(wxcode_inputs, day_night, model_id_attr, record_run_attr, expected):
     """Tests that each route to a non-precipitating symbol can be traversed"""
     run_wxcode_test(
-        expected, wxcode_inputs, day_night=day_night, model_id_attr=model_id_attr
+        expected,
+        wxcode_inputs,
+        day_night=day_night,
+        model_id_attr=model_id_attr,
+        record_run_attr=record_run_attr,
     )
 
 
