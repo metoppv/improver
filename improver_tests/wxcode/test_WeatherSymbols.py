@@ -46,7 +46,6 @@ from improver.metadata.probabilistic import (
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
-
 from improver_tests.wxcode import wxcode_decision_tree
 
 
@@ -133,7 +132,7 @@ def wxcode_inputs_fixture(
     )
 
     cubes = CubeList(
-        [cloud_cube, cloud_low_cube, visibility_cube, shower_condition_cube,]
+        [cloud_cube, cloud_low_cube, visibility_cube, shower_condition_cube]
         + precipitation_cubes(
             hail_accum,
             hail_rate,
@@ -314,7 +313,8 @@ def run_wxcode_test(
 @pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
 @pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
-    "hail_accum, hail_rate, lightning, rain, rain_vic, shower_condition, sleet, sleet_vic, snow, snow_vic",
+    "hail_accum, hail_rate, lightning, rain, rain_vic, shower_condition, sleet, sleet_vic, "
+    "snow, snow_vic",
     ((0, 0, 0, [0, 0, 0], [0, 0, 0], 0, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0],),),
 )
 @pytest.mark.parametrize(

@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Decision tree for testing the weather code plugin."""
-from typing import Dict, Any
+from typing import Any, Dict
 
 
 def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
@@ -45,7 +45,8 @@ def wxcode_decision_tree() -> Dict[str, Dict[str, Any]]:
             "condition_combination": "",
             "diagnostic_conditions": ["above"],
             "diagnostic_fields": [
-                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold"
+                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity"
+                "_above_threshold"
             ],
             "diagnostic_thresholds": [[0.0, "m-2"]],
             "if_diagnostic_missing": "if_false",
