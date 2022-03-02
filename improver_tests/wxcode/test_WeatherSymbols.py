@@ -32,7 +32,7 @@
 
 from datetime import datetime as dt
 from datetime import timedelta
-from typing import List
+from typing import List, Tuple, Type
 
 import iris
 import numpy as np
@@ -51,6 +51,23 @@ from improver.wxcode.utilities import WX_DICT
 from improver.wxcode.weather_symbols import WeatherSymbols
 
 from improver_tests.wxcode import wxcode_decision_tree
+
+
+def standard_kwargs(hour: int) -> dict:
+    """Generate kwargs describing time and frt for making an instantaneous cube"""
+    time = dt(2017, 10, 10, hour, 0)
+    frt = dt(2017, 10, 9, 18, 0)
+    kwargs = {"time": time, "frt": frt}
+    return kwargs
+
+
+def time_window_kwargs(hour: int) -> dict:
+    """Generate kwargs describing time, time_bounds and frt for making a time-window cube"""
+    kwargs = standard_kwargs(hour).copy()
+    time = kwargs["time"]
+    time_bounds = [time - timedelta(hours=1), time]
+    kwargs.update({"time_bounds": time_bounds})
+    return kwargs
 
 
 @pytest.fixture(name="wxcode_inputs")
@@ -74,101 +91,12 @@ def wxcode_inputs_fixture(
     Set up cubes and constraints required for Weather Symbols. Each cube has one spatial point.
     """
 
-    time = dt(2017, 10, 10, hour, 0)
-    time_bounds = [time - timedelta(hours=1), time]
-    frt = dt(2017, 10, 9, 18, 0)
-    standard_kwargs = {"time": time, "frt": frt}
-    time_window_kwargs = standard_kwargs.copy()
-    time_window_kwargs.update({"time_bounds": time_bounds})
-
-    precip_kwargs = time_window_kwargs.copy()
-    precip_kwargs.update(
-        {
-            "thresholds": np.array([0.03e-03, 0.1e-03, 1.0e-03], dtype=np.float32),
-            "threshold_units": "m",
-        }
-    )
-
-    snowfall_cube = set_up_probability_cube(
-        np.array(snow).reshape(3, 1, 1).astype(np.float32),
-        variable_name="lwe_thickness_of_snowfall_amount",
-        **precip_kwargs,
-    )
-
-    snowfall_vicinity_cube = set_up_probability_cube(
-        np.array(snow_vic).reshape(3, 1, 1).astype(np.float32),
-        variable_name="lwe_thickness_of_snowfall_amount_in_vicinity",
-        **precip_kwargs,
-    )
-
-    sleetfall_cube = set_up_probability_cube(
-        np.array(sleet).reshape(3, 1, 1).astype(np.float32),
-        variable_name="lwe_thickness_of_sleetfall_amount",
-        **precip_kwargs,
-    )
-
-    sleetfall_vicinity_cube = set_up_probability_cube(
-        np.array(sleet_vic).reshape(3, 1, 1).astype(np.float32),
-        variable_name="lwe_thickness_of_sleetfall_amount_in_vicinity",
-        **precip_kwargs,
-    )
-
-    rainfall_cube = set_up_probability_cube(
-        np.ma.masked_invalid(rain).reshape(3, 1, 1).astype(np.float32),
-        variable_name="thickness_of_rainfall_amount",
-        **precip_kwargs,
-    )
-
-    rainfall_vicinity_cube = set_up_probability_cube(
-        np.ma.masked_invalid(rain_vic).reshape(3, 1, 1).astype(np.float32),
-        variable_name="thickness_of_rainfall_amount_in_vicinity",
-        **precip_kwargs,
-    )
-
-    precip_data = (
-        np.maximum.reduce([snow, sleet, rain]).reshape((3, 1, 1)).astype(np.float32)
-    )
-
-    precip_cube = set_up_probability_cube(
-        precip_data,
-        variable_name="lwe_thickness_of_precipitation_amount",
-        **precip_kwargs,
-    )
-
-    precip_data = (
-        np.maximum.reduce([snow_vic, sleet_vic, rain_vic])
-        .reshape((3, 1, 1))
-        .astype(np.float32)
-    )
-
-    precip_vicinity_cube = set_up_probability_cube(
-        precip_data,
-        variable_name="lwe_thickness_of_precipitation_amount_in_vicinity",
-        **precip_kwargs,
-    )
-
-    hail_rate_cube = set_up_probability_cube(
-        np.array(hail_rate).reshape(1, 1, 1).astype(np.float32),
-        thresholds=np.array([2.777777e-07], dtype=np.float32),
-        variable_name="lwe_graupel_and_hail_fall_rate_in_vicinity",
-        threshold_units="m s-1",
-        **time_window_kwargs,
-    )
-
-    hail_accum_cube = set_up_probability_cube(
-        np.array(hail_accum).reshape(1, 1, 1).astype(np.float32),
-        thresholds=np.array([0.1e-03], dtype=np.float32),
-        variable_name="lwe_thickness_of_graupel_and_hail_fall_amount",
-        threshold_units="m",
-        **time_window_kwargs,
-    )
-
     cloud_cube = set_up_probability_cube(
         np.array(cloud).reshape(2, 1, 1).astype(np.float32),
         thresholds=np.array([0.1875, 0.8125], dtype=np.float32),
         variable_name="low_and_medium_type_cloud_area_fraction",
         threshold_units="1",
-        **standard_kwargs,
+        **standard_kwargs(hour),
     )
 
     cloud_low_cube = set_up_probability_cube(
@@ -176,7 +104,7 @@ def wxcode_inputs_fixture(
         thresholds=np.array([0.85], dtype=np.float32),
         variable_name="low_type_cloud_area_fraction",
         threshold_units="1",
-        **standard_kwargs,
+        **standard_kwargs(hour),
     )
 
     visibility_cube = set_up_probability_cube(
@@ -185,7 +113,7 @@ def wxcode_inputs_fixture(
         variable_name="visibility_in_air",
         threshold_units="m",
         spp__relative_to_threshold="below",
-        **standard_kwargs,
+        **standard_kwargs(hour),
     )
 
     lightning_cube = set_up_probability_cube(
@@ -193,7 +121,7 @@ def wxcode_inputs_fixture(
         thresholds=np.array([0.0], dtype=np.float32),
         variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
         threshold_units="m-2",
-        **time_window_kwargs,
+        **time_window_kwargs(hour),
     )
 
     shower_condition_cube = set_up_probability_cube(
@@ -201,29 +129,118 @@ def wxcode_inputs_fixture(
         thresholds=np.array([1.0], dtype=np.float32),
         variable_name="shower_condition",
         threshold_units="1",
-        **standard_kwargs,
+        **standard_kwargs(hour),
     )
 
     cubes = CubeList(
         [
-            snowfall_cube,
-            snowfall_vicinity_cube,
-            sleetfall_cube,
-            sleetfall_vicinity_cube,
-            rainfall_cube,
-            rainfall_vicinity_cube,
-            precip_cube,
-            precip_vicinity_cube,
             cloud_cube,
             cloud_low_cube,
             visibility_cube,
             shower_condition_cube,
             lightning_cube,
-            hail_rate_cube,
-            hail_accum_cube,
         ]
+        + precipitation_cubes(
+            hail_accum,
+            hail_rate,
+            rain,
+            rain_vic,
+            sleet,
+            sleet_vic,
+            snow,
+            snow_vic,
+            hour,
+        )
     )
     return cubes
+
+
+def precipitation_cubes(
+    hail_accum, hail_rate, rain, rain_vic, sleet, sleet_vic, snow, snow_vic, hour,
+) -> CubeList:
+    precip_kwargs = time_window_kwargs(hour).copy()
+    precip_kwargs.update(
+        {
+            "thresholds": np.array([0.03e-03, 0.1e-03, 1.0e-03], dtype=np.float32),
+            "threshold_units": "m",
+        }
+    )
+    snowfall_cube = set_up_probability_cube(
+        np.array(snow).reshape(3, 1, 1).astype(np.float32),
+        variable_name="lwe_thickness_of_snowfall_amount",
+        **precip_kwargs,
+    )
+    snowfall_vicinity_cube = set_up_probability_cube(
+        np.array(snow_vic).reshape(3, 1, 1).astype(np.float32),
+        variable_name="lwe_thickness_of_snowfall_amount_in_vicinity",
+        **precip_kwargs,
+    )
+    sleetfall_cube = set_up_probability_cube(
+        np.array(sleet).reshape(3, 1, 1).astype(np.float32),
+        variable_name="lwe_thickness_of_sleetfall_amount",
+        **precip_kwargs,
+    )
+    sleetfall_vicinity_cube = set_up_probability_cube(
+        np.array(sleet_vic).reshape(3, 1, 1).astype(np.float32),
+        variable_name="lwe_thickness_of_sleetfall_amount_in_vicinity",
+        **precip_kwargs,
+    )
+    rainfall_cube = set_up_probability_cube(
+        np.ma.masked_invalid(rain).reshape(3, 1, 1).astype(np.float32),
+        variable_name="thickness_of_rainfall_amount",
+        **precip_kwargs,
+    )
+    rainfall_vicinity_cube = set_up_probability_cube(
+        np.ma.masked_invalid(rain_vic).reshape(3, 1, 1).astype(np.float32),
+        variable_name="thickness_of_rainfall_amount_in_vicinity",
+        **precip_kwargs,
+    )
+    precip_data = (
+        np.maximum.reduce([snow, sleet, rain]).reshape((3, 1, 1)).astype(np.float32)
+    )
+    precip_cube = set_up_probability_cube(
+        precip_data,
+        variable_name="lwe_thickness_of_precipitation_amount",
+        **precip_kwargs,
+    )
+    precip_data = (
+        np.maximum.reduce([snow_vic, sleet_vic, rain_vic])
+        .reshape((3, 1, 1))
+        .astype(np.float32)
+    )
+    precip_vicinity_cube = set_up_probability_cube(
+        precip_data,
+        variable_name="lwe_thickness_of_precipitation_amount_in_vicinity",
+        **precip_kwargs,
+    )
+    hail_rate_cube = set_up_probability_cube(
+        np.array(hail_rate).reshape(1, 1, 1).astype(np.float32),
+        thresholds=np.array([2.777777e-07], dtype=np.float32),
+        variable_name="lwe_graupel_and_hail_fall_rate_in_vicinity",
+        threshold_units="m s-1",
+        **time_window_kwargs(hour),
+    )
+    hail_accum_cube = set_up_probability_cube(
+        np.array(hail_accum).reshape(1, 1, 1).astype(np.float32),
+        thresholds=np.array([0.1e-03], dtype=np.float32),
+        variable_name="lwe_thickness_of_graupel_and_hail_fall_amount",
+        threshold_units="m",
+        **time_window_kwargs(hour),
+    )
+    return CubeList(
+        [
+            hail_accum_cube,
+            hail_rate_cube,
+            precip_cube,
+            precip_vicinity_cube,
+            rainfall_cube,
+            rainfall_vicinity_cube,
+            sleetfall_cube,
+            sleetfall_vicinity_cube,
+            snowfall_cube,
+            snowfall_vicinity_cube,
+        ]
+    )
 
 
 def run_wxcode_test(
@@ -246,9 +263,9 @@ def run_wxcode_test(
     if expected == "Masked":
         assert result.data.mask
     else:
-        assert WX_DICT[int(result.data)] == expected.format(day_night=day_night).replace(
-            "Sunny_Night", "Clear_Night"
-        )
+        assert WX_DICT[int(result.data)] == expected.format(
+            day_night=day_night
+        ).replace("Sunny_Night", "Clear_Night")
 
     assert isinstance(result, iris.cube.Cube)
     assert all(result.attributes["weather_code"] == list(WX_DICT.keys()))
