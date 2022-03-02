@@ -38,13 +38,9 @@ import iris
 import numpy as np
 import pytest
 from cf_units import Unit
-from iris.coords import AuxCoord
 from iris.cube import CubeList
-from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
-    find_threshold_coordinate,
-    get_threshold_coord_name_from_probability_name,
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
