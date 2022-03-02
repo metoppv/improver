@@ -402,3 +402,96 @@ def test_rain_routes(wxcode_inputs, day_night, expected):
 def test_sleet_routes(wxcode_inputs, day_night, expected):
     """Tests that each route to a sleet symbol can be traversed."""
     run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
+
+
+def change_one_time(cubes: CubeList) -> Tuple[Type[ValueError], str]:
+    """Shifts the time point on the first cube forward by one hour"""
+    time = cubes[0].coord("time").points.copy()
+    time += 3600
+    cubes[0].coord("time").points = time
+    return (
+        ValueError,
+        "Weather symbol input cubes are valid at different times; \n" "\\['.*'\\]",
+    )
+
+
+def change_one_time_bound(cubes: CubeList) -> Tuple[Type[ValueError], str]:
+    """Shifts the lower time bound on the first cube with time bounds backwards by one hour"""
+    for cube in cubes:
+        if cube.coord("time").has_bounds():
+            for coord in ["time", "forecast_period"]:
+                bounds = cube.coord(coord).bounds.copy()
+                bounds[0][0] -= 3600
+                cube.coord(coord).bounds = bounds
+            break
+    return (
+        ValueError,
+        "Period diagnostics with different periods have been provided as "
+        "input to the weather symbols code. Period diagnostics must all "
+        "describe the same period to be used together.\n"
+        "\\['.*'\\]",
+    )
+
+
+def change_all_time_bounds(cubes: CubeList) -> Tuple[Type[ValueError], str]:
+    """Shifts the lower time bound on all cubes with time bounds backwards by one hour"""
+    for cube in cubes:
+        if cube.coord("time").has_bounds():
+            for coord in ["time", "forecast_period"]:
+                bounds = cube.coord(coord).bounds.copy()
+                bounds[0][0] -= 3600
+                cube.coord(coord).bounds = bounds
+    return (
+        ValueError,
+        "Diagnostic periods \\(7200\\) do not match "
+        "the user specified target_period \\(3600\\).",
+    )
+
+
+def exclude_bounded_vars(cubes: CubeList) -> Tuple[None, None]:
+    """Removes bounds from cubes so they appear to be instantaneous"""
+    for cube in cubes:
+        if cube.coord("time").has_bounds():
+            for coord in ["time", "forecast_period"]:
+                cube.coord(coord).bounds = None
+    return None, None
+
+
+@pytest.mark.parametrize(
+    "hour, cloud, hail_accum, hail_rate, lightning, low_cloud, rain, rain_vic",
+    ((0, [0, 0], 0, 0, 0, 0, [0, 0, 0], [0, 0, 0],),),
+)
+@pytest.mark.parametrize(
+    "shower_condition, sleet, sleet_vic, snow, snow_vic, vis",
+    ((0, [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0, 0], [0, 0],),),
+)
+@pytest.mark.parametrize(
+    "modifier",
+    (
+        None,
+        change_one_time,
+        change_one_time_bound,
+        change_all_time_bounds,
+        exclude_bounded_vars,
+    ),
+)
+def test_check_coincidence(wxcode_inputs, modifier):
+    """Tests that the check_coincidence method raises the expected errors"""
+    plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=3600)
+    if modifier:
+        error_type, error_msg = modifier(wxcode_inputs)
+    else:
+        error_type, error_msg = (None, None)
+
+    if error_type:
+        with pytest.raises(error_type, match=error_msg):
+            plugin.check_coincidence(wxcode_inputs)
+    else:
+        for cube in reversed(wxcode_inputs):
+            if cube.coord("time").has_bounds():
+                expected_template_name = wxcode_inputs[-1].name()
+                break
+        else:
+            expected_template_name = wxcode_inputs[0].name()
+        plugin.check_coincidence(wxcode_inputs)
+        assert expected_template_name in plugin.template_cube.name()
