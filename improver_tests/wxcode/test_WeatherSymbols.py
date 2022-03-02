@@ -45,6 +45,7 @@ from iris.tests import IrisTest
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
+    get_diagnostic_cube_name_from_probability_name,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.wxcode.utilities import WX_DICT
@@ -438,18 +439,19 @@ def test_sleet_routes(wxcode_inputs, day_night, expected):
     run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
 
 
-def change_one_time(cubes: CubeList) -> Tuple[Type[ValueError], str]:
+def change_one_time(cubes: CubeList) -> Tuple[CubeList, Type[Exception], str]:
     """Shifts the time point on the first cube forward by one hour"""
     time = cubes[0].coord("time").points.copy()
     time += 3600
     cubes[0].coord("time").points = time
     return (
+        cubes,
         ValueError,
         "Weather symbol input cubes are valid at different times; \n" "\\['.*'\\]",
     )
 
 
-def change_one_time_bound(cubes: CubeList) -> Tuple[Type[ValueError], str]:
+def change_one_time_bound(cubes: CubeList) -> Tuple[CubeList, Type[Exception], str]:
     """Shifts the lower time bound on the first cube with time bounds backwards by one hour"""
     for cube in cubes:
         if cube.coord("time").has_bounds():
@@ -459,6 +461,7 @@ def change_one_time_bound(cubes: CubeList) -> Tuple[Type[ValueError], str]:
                 cube.coord(coord).bounds = bounds
             break
     return (
+        cubes,
         ValueError,
         "Period diagnostics with different periods have been provided as "
         "input to the weather symbols code. Period diagnostics must all "
@@ -467,7 +470,7 @@ def change_one_time_bound(cubes: CubeList) -> Tuple[Type[ValueError], str]:
     )
 
 
-def change_all_time_bounds(cubes: CubeList) -> Tuple[Type[ValueError], str]:
+def change_all_time_bounds(cubes: CubeList) -> Tuple[CubeList, Type[Exception], str]:
     """Shifts the lower time bound on all cubes with time bounds backwards by one hour"""
     for cube in cubes:
         if cube.coord("time").has_bounds():
@@ -476,19 +479,73 @@ def change_all_time_bounds(cubes: CubeList) -> Tuple[Type[ValueError], str]:
                 bounds[0][0] -= 3600
                 cube.coord(coord).bounds = bounds
     return (
+        cubes,
         ValueError,
         "Diagnostic periods \\(7200\\) do not match "
         "the user specified target_period \\(3600\\).",
     )
 
 
-def exclude_bounded_vars(cubes: CubeList) -> Tuple[None, None]:
+def exclude_bounded_vars(cubes: CubeList) -> Tuple[CubeList, None, None]:
     """Removes bounds from cubes so they appear to be instantaneous"""
     for cube in cubes:
         if cube.coord("time").has_bounds():
             for coord in ["time", "forecast_period"]:
                 cube.coord(coord).bounds = None
-    return None, None
+    return cubes, None, None
+
+
+def exclude_required_cube(cubes: CubeList) -> Tuple[CubeList, Type[Exception], str]:
+    """Strips out the required cloud cube from the CubeList"""
+    cubes = CubeList(
+        cube
+        for cube in cubes
+        if "low_and_medium_type_cloud_area_fraction"
+        != get_diagnostic_cube_name_from_probability_name(cube.name())
+    )
+    return (
+        cubes,
+        IOError,
+        "Weather Symbols input cubes are missing",
+    )
+
+
+def exclude_cloud_threshold(cubes: CubeList) -> Tuple[CubeList, Type[Exception], str]:
+    """Strips out the highest threshold from the cloud cube"""
+    (cloud_index,) = [
+        i
+        for i, cube in enumerate(cubes)
+        if "low_and_medium_type_cloud_area_fraction"
+        == get_diagnostic_cube_name_from_probability_name(cube.name())
+    ]
+    cloud_cube = cubes.pop(cloud_index)
+    cubes.append(cloud_cube[:-1])
+    return (
+        cubes,
+        IOError,
+        "Weather Symbols input cubes are missing",
+    )
+
+
+def sets_rain_units_as_incompatible(
+    cubes: CubeList,
+) -> Tuple[CubeList, Type[Exception], str]:
+    """The rain accumulation units are changed to a rate, which cannot be converted to the
+    required units"""
+    (rain_index,) = [
+        i
+        for i, cube in enumerate(cubes)
+        if "thickness_of_rainfall_amount"
+        == get_diagnostic_cube_name_from_probability_name(cube.name())
+    ]
+    rain_cube = cubes.pop(rain_index)
+    rain_cube.coord(var_name="threshold").units = Unit("m s-1")
+    cubes.append(rain_cube)
+    return (
+        cubes,
+        ValueError,
+        "Unable to convert from",
+    )
 
 
 @pytest.mark.parametrize(
@@ -507,25 +564,30 @@ def exclude_bounded_vars(cubes: CubeList) -> Tuple[None, None]:
         change_one_time_bound,
         change_all_time_bounds,
         exclude_bounded_vars,
+        exclude_required_cube,
+        exclude_cloud_threshold,
+        sets_rain_units_as_incompatible,
     ),
 )
-def test_check_coincidence(wxcode_inputs, modifier):
-    """Tests that the check_coincidence method raises the expected errors"""
+def test_exceptions(wxcode_inputs, modifier):
+    """Tests that the plugin raises the expected errors and that the check_coincidence method
+    selects the expected template cube"""
     plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=3600)
     if modifier:
-        error_type, error_msg = modifier(wxcode_inputs)
+        cubes, error_type, error_msg = modifier(wxcode_inputs)
     else:
-        error_type, error_msg = (None, None)
+        cubes, error_type, error_msg = (wxcode_inputs, None, None)
 
     if error_type:
         with pytest.raises(error_type, match=error_msg):
-            plugin.check_coincidence(wxcode_inputs)
+            plugin(cubes)
     else:
-        for cube in reversed(wxcode_inputs):
+        for cube in reversed(cubes):
             if cube.coord("time").has_bounds():
-                expected_template_name = wxcode_inputs[-1].name()
+                expected_template_name = cubes[-1].name()
                 break
         else:
-            expected_template_name = wxcode_inputs[0].name()
-        plugin.check_coincidence(wxcode_inputs)
+            expected_template_name = cubes[0].name()
+        plugin(cubes)
+        # Confirm that check_coincidence has selected the right template cube
         assert expected_template_name in plugin.template_cube.name()
