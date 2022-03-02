@@ -32,7 +32,7 @@
 
 from datetime import datetime as dt
 from datetime import timedelta
-from typing import List, Tuple, Type
+from typing import List, Optional, Tuple, Type
 
 import iris
 import numpy as np
@@ -57,7 +57,16 @@ def standard_kwargs(hour: int) -> dict:
     """Generate kwargs describing time and frt for making an instantaneous cube"""
     time = dt(2017, 10, 10, hour, 0)
     frt = dt(2017, 10, 9, 18, 0)
-    kwargs = {"time": time, "frt": frt}
+    kwargs = {
+        "time": time,
+        "frt": frt,
+        "standard_grid_metadata": "uk_ens",
+        "attributes": {
+            "source": "Unit test",
+            "institution": "Met Office",
+            "title": "Post-Processed IMPROVER unit test",
+        },
+    }
     return kwargs
 
 
@@ -116,14 +125,6 @@ def wxcode_inputs_fixture(
         **standard_kwargs(hour),
     )
 
-    lightning_cube = set_up_probability_cube(
-        np.array(lightning).reshape(1, 1, 1).astype(np.float32),
-        thresholds=np.array([0.0], dtype=np.float32),
-        variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
-        threshold_units="m-2",
-        **time_window_kwargs(hour),
-    )
-
     shower_condition_cube = set_up_probability_cube(
         np.array(shower_condition).reshape(1, 1, 1).astype(np.float32),
         thresholds=np.array([1.0], dtype=np.float32),
@@ -133,13 +134,7 @@ def wxcode_inputs_fixture(
     )
 
     cubes = CubeList(
-        [
-            cloud_cube,
-            cloud_low_cube,
-            visibility_cube,
-            shower_condition_cube,
-            lightning_cube,
-        ]
+        [cloud_cube, cloud_low_cube, visibility_cube, shower_condition_cube,]
         + precipitation_cubes(
             hail_accum,
             hail_rate,
@@ -152,6 +147,16 @@ def wxcode_inputs_fixture(
             hour,
         )
     )
+
+    if lightning is not None:
+        lightning_cube = set_up_probability_cube(
+            np.array(lightning).reshape(1, 1, 1).astype(np.float32),
+            thresholds=np.array([0.0], dtype=np.float32),
+            variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
+            threshold_units="m-2",
+            **time_window_kwargs(hour),
+        )
+        cubes.append(lightning_cube)
     return cubes
 
 
@@ -213,24 +218,8 @@ def precipitation_cubes(
         variable_name="lwe_thickness_of_precipitation_amount_in_vicinity",
         **precip_kwargs,
     )
-    hail_rate_cube = set_up_probability_cube(
-        np.array(hail_rate).reshape(1, 1, 1).astype(np.float32),
-        thresholds=np.array([2.777777e-07], dtype=np.float32),
-        variable_name="lwe_graupel_and_hail_fall_rate_in_vicinity",
-        threshold_units="m s-1",
-        **time_window_kwargs(hour),
-    )
-    hail_accum_cube = set_up_probability_cube(
-        np.array(hail_accum).reshape(1, 1, 1).astype(np.float32),
-        thresholds=np.array([0.1e-03], dtype=np.float32),
-        variable_name="lwe_thickness_of_graupel_and_hail_fall_amount",
-        threshold_units="m",
-        **time_window_kwargs(hour),
-    )
-    return CubeList(
+    cubes = CubeList(
         [
-            hail_accum_cube,
-            hail_rate_cube,
             precip_cube,
             precip_vicinity_cube,
             rainfall_cube,
@@ -241,10 +230,32 @@ def precipitation_cubes(
             snowfall_vicinity_cube,
         ]
     )
+    if hail_rate is not None:
+        hail_rate_cube = set_up_probability_cube(
+            np.array(hail_rate).reshape(1, 1, 1).astype(np.float32),
+            thresholds=np.array([2.777777e-07], dtype=np.float32),
+            variable_name="lwe_graupel_and_hail_fall_rate_in_vicinity",
+            threshold_units="m s-1",
+            **time_window_kwargs(hour),
+        )
+        cubes.append(hail_rate_cube)
+    if hail_accum:
+        hail_accum_cube = set_up_probability_cube(
+            np.array(hail_accum).reshape(1, 1, 1).astype(np.float32),
+            thresholds=np.array([0.1e-03], dtype=np.float32),
+            variable_name="lwe_thickness_of_graupel_and_hail_fall_amount",
+            threshold_units="m",
+            **time_window_kwargs(hour),
+        )
+        cubes.append(hail_accum_cube)
+    return cubes
 
 
 def run_wxcode_test(
-    expected: str, wxcode_inputs: CubeList, day_night: str = "Day"
+    expected: str,
+    wxcode_inputs: CubeList,
+    day_night: str = "Day",
+    model_id_attr: Optional[str] = None,
 ) -> None:
     """Runs the WeatherSymbols plugin with the supplied inputs and asserts that the resulting
     weather code matches the expected symbol
@@ -256,10 +267,12 @@ def run_wxcode_test(
             All the input cubes to give to the plugin
         day_night:
             Fills {day_night} in expected string (Also changes Sunny to Clear)
+        model_id_attr:
+            Argument for WeatherSymbols. Triggers checking for this attribute on output cube.
     """
-    result = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=3600)(
-        wxcode_inputs
-    )
+    result = WeatherSymbols(
+        wxtree=wxcode_decision_tree(), model_id_attr=model_id_attr, target_period=3600
+    )(wxcode_inputs)
     if expected == "Masked":
         assert result.data.mask
     else:
@@ -268,11 +281,26 @@ def run_wxcode_test(
         ).replace("Sunny_Night", "Clear_Night")
 
     assert isinstance(result, iris.cube.Cube)
-    assert all(result.attributes["weather_code"] == list(WX_DICT.keys()))
-    assert result.attributes["weather_code_meaning"] == " ".join(WX_DICT.values())
+    attributes = result.attributes.copy()
+    assert all(attributes.pop("weather_code") == list(WX_DICT.keys()))
+    assert attributes.pop("weather_code_meaning") == " ".join(WX_DICT.values())
+    assert attributes.pop("source") == "Unit test"
+    assert attributes.pop("institution") == "Met Office"
+    assert attributes.pop("title") == "Post-Processed IMPROVER unit test"
+    if model_id_attr:
+        assert attributes.pop(model_id_attr) == "uk_ens"
+    assert not attributes
+
     assert result.dtype == np.int32
 
+    for cube in wxcode_inputs:
+        if cube.coord("time").has_bounds():
+            for coord in ["time", "forecast_period"]:
+                assert result.coord(coord) == cube.coord(coord)
+            break
 
+
+@pytest.mark.parametrize("model_id_attr", (None, "mosg__model_configuration"))
 @pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
 @pytest.mark.parametrize(
     "hail_accum, hail_rate, lightning, rain, rain_vic, shower_condition, sleet, sleet_vic, snow, snow_vic",
@@ -289,9 +317,11 @@ def run_wxcode_test(
         ("Fog", [1, 1], 1, [1, 1]),
     ),
 )
-def test_dry_routes(wxcode_inputs, day_night, expected):
+def test_dry_routes(wxcode_inputs, day_night, model_id_attr, expected):
     """Tests that each route to a non-precipitating symbol can be traversed"""
-    run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
+    run_wxcode_test(
+        expected, wxcode_inputs, day_night=day_night, model_id_attr=model_id_attr
+    )
 
 
 @pytest.mark.parametrize("hour, day_night", ((12, "Day"), (0, "Night")))
@@ -303,17 +333,21 @@ def test_dry_routes(wxcode_inputs, day_night, expected):
     "expected, hail_accum, hail_rate, lightning, rain, shower_condition, sleet, snow",
     (
         ("Light_Rain", 0, 0, 0, [1, 1, 0], 0, [0, 0, 0], [0, 0, 0]),
+        ("Light_Rain", None, None, None, [1, 1, 0], 0, [0, 0, 0], [0, 0, 0]),
         ("Hail", 1, 1, 0, [0, 0, 0], 0, [0, 0, 0], [0, 0, 0]),
+        ("Hail", 1, 1, None, [0, 0, 0], 0, [0, 0, 0], [0, 0, 0]),
         ("Light_Rain", 0.6, 0.6, 0, [0.7, 0.7, 0], 0, [0, 0, 0], [0, 0, 0]),
         ("Sleet", 0.6, 0.6, 0, [0, 0, 0], 0, [0.7, 0.7, 0], [0, 0, 0]),
         ("Light_Snow", 0.6, 0.6, 0, [0, 0, 0], 0, [0, 0, 0], [0.7, 0.7, 0]),
         ("Hail_Shower_{day_night}", 1, 1, 0, [0, 0, 0], 1, [0, 0, 0], [0, 0, 0]),
         ("Thunder", 0, 0, 1, [0, 0, 0], 0, [0, 0, 0], [0, 0, 0]),
+        ("Thunder", None, None, 1, [0, 0, 0], 0, [0, 0, 0], [0, 0, 0]),
         ("Thunder_Shower_{day_night}", 0, 0, 1, [0, 0, 0], 1, [0, 0, 0], [0, 0, 0]),
     ),
 )
 def test_lightning_and_hail_routes(wxcode_inputs, day_night, expected):
-    """Tests that each route through the lightning and hail tree can be traversed.
+    """Tests that each route through the lightning and hail tree can be traversed. Includes
+    tests for when these optional diagnostics are missing (None).
     Note that the background state is light-precip-in-vicinity and that there are three non-hail
     tests where hail is present but not dominant."""
     run_wxcode_test(expected, wxcode_inputs, day_night=day_night)
