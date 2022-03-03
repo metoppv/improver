@@ -41,6 +41,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.probability_manipulation import (
     comparison_operator_dict,
     invert_probabilities,
+    to_threshold_inequality,
 )
 
 ComparisonResult = namedtuple("ComparisonResult", ["function", "spp_string", "inverse"])
@@ -89,6 +90,25 @@ def test_comparison_operator_dict(inequalities, expected):
         assert result["inverse"] == expected.inverse
 
 
+def test_comparison_operator_keys():
+    """Test that only the expected keys are contained within the comparison
+    operator dictionary, and that each contains a further dictionary containing
+    the expected types."""
+    expected_keys = sorted(
+        ["ge", "GE", ">=", "gt", "GT", ">", "le", "LE", "<=", "lt", "LT", "<"]
+    )
+    expected_subkeys = sorted(["function", "spp_string", "inverse"])
+    result = comparison_operator_dict()
+
+    assert isinstance(result, dict)
+    assert sorted(result.keys()) == expected_keys
+    for k, v in result.items():
+        assert sorted(v.keys()) == expected_subkeys
+        assert v["function"].__module__ == "_operator"
+        assert isinstance(v["spp_string"], str)
+        assert isinstance(v["inverse"], str)
+
+
 @pytest.fixture
 def probability_cube(inequality):
     """Set up probability cube"""
@@ -105,6 +125,34 @@ def probability_cube(inequality):
 @pytest.fixture
 def expected_inverted_probabilities():
     return np.linspace(1.0, 0.3, 8).reshape(2, 2, 2).astype(np.float32)
+
+
+@pytest.mark.parametrize("above", [True, False])
+@pytest.mark.parametrize(
+    "inequality, etype, inverted_attr",
+    (
+        ("greater_than_or_equal_to", "above", "less_than"),
+        ("greater_than", "above", "less_than_or_equal_to"),
+        ("less_than_or_equal_to", "below", "greater_than"),
+        ("less_than", "below", "greater_than_or_equal_to"),
+    ),
+)
+def test_to_threshold_inequality(
+    probability_cube, etype, inverted_attr, above, expected_inverted_probabilities
+):
+    """Test function returns probabilities with the target threshold inequality."""
+
+    def threshold_attr(cube):
+        return cube.coord(var_name="threshold").attributes["spp__relative_to_threshold"]
+
+    ref_attr = threshold_attr(probability_cube)
+    result = to_threshold_inequality(probability_cube, above=above)
+    result_attr = threshold_attr(result)
+
+    if (etype == "above" and above) or (etype == "below" and not above):
+        assert result_attr == ref_attr
+    else:
+        assert result_attr == inverted_attr
 
 
 @pytest.mark.parametrize(

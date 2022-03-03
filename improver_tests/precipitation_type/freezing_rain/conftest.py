@@ -44,6 +44,7 @@ COMMON_ATTRS = {
     "title": "Post-Processed IMPROVER unit test",
 }
 PERIOD_TIMEBOUNDS = (datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0))
+PARAMS = ["instantaneous", "period"]
 
 
 def setup_cube(
@@ -114,7 +115,7 @@ def temperature_cube(period, inequality="greater_than"):
     return setup_cube(data, thresholds, threshold_units, cube_name, time_bounds)
 
 
-@pytest.fixture(params=["instantaneous", "period"])
+@pytest.fixture(params=PARAMS)
 def input_cubes(request):
     """Return rain, sleet, and air temperature cubes as an iris CubeList. This
     fixture is parameterised such that any test using it will be run with both
@@ -124,7 +125,7 @@ def input_cubes(request):
     )
 
 
-@pytest.fixture(params=["instantaneous", "period"])
+@pytest.fixture(params=PARAMS)
 def precipitation_only(request):
     """Return rain and sleet cubes as a tuple. This fixture is parameterised
     such that any test using it will be run with both instantaneous and period
@@ -132,7 +133,7 @@ def precipitation_only(request):
     return precipitation_cubes(request.param)
 
 
-@pytest.fixture(params=["instantaneous", "period"])
+@pytest.fixture(params=PARAMS)
 def temperature_only(request):
     """Return an air temperature cube. This fixture is parameterised such that
     any test using it will be run with both instantaneous and period air
@@ -140,7 +141,7 @@ def temperature_only(request):
     return temperature_cube(request.param)
 
 
-@pytest.fixture(params=["instantaneous", "period"])
+@pytest.fixture(params=PARAMS)
 def temperature_below(request):
     """Return an air temperature cube that has thresholds created using a
     "less than" inequality. This fixture is parameterised such that any test

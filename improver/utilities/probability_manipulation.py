@@ -42,6 +42,7 @@ def comparison_operator_dict() -> Dict[str, Any]:
     Each key contains a dict of:
     - 'function': The operator function for this comparison_operator,
     - 'spp_string': Comparison_Operator string for use in CF-convention metadata
+    - 'inverse': The inverse operator, i.e. ge has an inverse of lt.
     """
     comparison_operator_dict = {}
     comparison_operator_dict.update(
@@ -77,6 +78,47 @@ def comparison_operator_dict() -> Dict[str, Any]:
         )
     )
     return comparison_operator_dict
+
+
+def to_threshold_inequality(cube: Cube, above: bool = True) -> Cube:
+    """Takes a cube and a target relative to threshold inequality; above or not
+    above. The function returns probabilities in relation to the threshold values
+    with the target inequality.
+
+    The threshold inequality is limited to being above (above=True) or below
+    (above=False) a threshold, rather than more specific targets such as
+    "greater_than_or_equal_to". It is not possible to flip probabilities from
+    e.g. "less_than_or_equal_to" to "greater_than_or_equal_to", only to
+    "greater_than". As such the operation will use the valid inversion that
+    achieves the broader target inequality.
+
+    Args:
+        cube:
+            A probability cube with a threshold coordinate.
+        above:
+            Targets an above (gt, ge) threshold inequality if True, otherwise
+            targets a below (lt, le) threshold inequality if False.
+
+    Reurns:
+        A cube with the probabilities relative to the threshold values with
+        the target inequality.
+    """
+    try:
+        threshold = cube.coord(var_name="threshold")
+    except CoordinateNotFoundError:
+        raise ValueError(
+            "Cube does not have a threshold coordinate, probabilities "
+            "cannot be inverted if present."
+        )
+
+    inequality = threshold.attributes["spp__relative_to_threshold"]
+    spp_lookup = comparison_operator_dict()
+    above_attr = [spp_lookup[ineq]["spp_string"] for ineq in ["ge", "gt"]]
+    below_attr = [spp_lookup[ineq]["spp_string"] for ineq in ["le", "lt"]]
+
+    if (inequality in below_attr and above) or (inequality in above_attr and not above):
+        return invert_probabilities(cube)
+    return cube
 
 
 def invert_probabilities(cube: Cube) -> Cube:

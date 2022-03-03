@@ -41,10 +41,7 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_extraction import extract_subcube
-from improver.utilities.probability_manipulation import (
-    comparison_operator_dict,
-    invert_probabilities,
-)
+from improver.utilities.probability_manipulation import to_threshold_inequality
 
 
 class FreezingRain(PostProcessingPlugin):
@@ -123,11 +120,7 @@ class FreezingRain(PostProcessingPlugin):
 
         # Ensure probabilities relate to temperatures below a threshold
         temperature_threshold = self.temperature.coord(var_name="threshold")
-        inequality = temperature_threshold.attributes["spp__relative_to_threshold"]
-        spp_lookup = comparison_operator_dict()
-        greater_attr = [spp_lookup[ineq]["spp_string"] for ineq in ["ge", "gt"]]
-        if inequality in greater_attr:
-            self.temperature = invert_probabilities(self.temperature)
+        self.temperature = to_threshold_inequality(self.temperature, above=False)
 
         # Simplify the temperature cube to the critical threshold of 273.15K,
         # the freezing point of water under typical pressures.
@@ -156,7 +149,7 @@ class FreezingRain(PostProcessingPlugin):
         Raises:
             ValueError: If two input cubes have the same name.
             ValueError: If rain, sleet, and temperature cubes cannot be
-                        distinquished by their names.
+                        distinguished by their names.
         """
         cube_names = [cube.name() for cube in input_cubes]
         if not sorted(list(set(cube_names))) == sorted(cube_names):
