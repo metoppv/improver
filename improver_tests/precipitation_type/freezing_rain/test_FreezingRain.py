@@ -195,3 +195,28 @@ def test_no_freezing_threshold(input_cubes):
 
     with pytest.raises(ValueError, match="No 0 Celsius or equivalent threshold"):
         FreezingRain()(input_cubes)
+
+
+def test_realization_matching(
+    precipitation_multi_realization,
+    temperature_multi_realization,
+    expected_probabilities,
+):
+    """Test that only common realizations are used when combining precipitation
+    and temperature cubes. In this case the temperature cube has an additional
+    realization that is not used, with only 2 realizations present in the
+    freezing rain cube."""
+    cubes = iris.cube.CubeList(
+        [*precipitation_multi_realization, temperature_multi_realization]
+    )
+
+    # Sourcing cubes from independently parameterised fixtures, so we will get
+    # a mix of period and instantaneous precip / temperature diagnostics. We
+    # only want to use the matching types.
+    if not all([cube.coord("time").has_bounds() for cube in cubes]):
+        return
+    result = FreezingRain()(cubes)
+
+    assert all(result.coord("realization").points == [0, 1])
+    assert_almost_equal(result.data[0], expected_probabilities)
+    assert_almost_equal(result.data[1], expected_probabilities)

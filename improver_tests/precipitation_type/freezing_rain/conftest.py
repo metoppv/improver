@@ -36,7 +36,10 @@ import iris
 import numpy as np
 import pytest
 
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_probability_cube,
+)
 
 COMMON_ATTRS = {
     "source": "Unit test",
@@ -134,11 +137,34 @@ def precipitation_only(request):
 
 
 @pytest.fixture(params=PARAMS)
+def precipitation_multi_realization(request):
+    """Return multi-realization rain and sleet cubes as a tuple. This fixture
+    is parameterised such that any test using it will be run with both
+    instantaneous and period diagnostics."""
+    rain, sleet = precipitation_cubes(request.param)
+    rain = add_coordinate(rain, [0, 1], "realization", coord_units=1, dtype=np.int32)
+    sleet = add_coordinate(sleet, [0, 1], "realization", coord_units=1, dtype=np.int32)
+    return rain, sleet
+
+
+@pytest.fixture(params=PARAMS)
 def temperature_only(request):
     """Return an air temperature cube. This fixture is parameterised such that
     any test using it will be run with both instantaneous and period air
     temperature as an input."""
     return temperature_cube(request.param)
+
+
+@pytest.fixture(params=PARAMS)
+def temperature_multi_realization(request):
+    """Return a multi-realization air temperature cube. This fixture is
+    parameterised such that any test using it will be run with both instantaneous
+    and period air temperature as an input."""
+    temperature = temperature_cube(request.param)
+    temperature = add_coordinate(
+        temperature, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
+    )
+    return temperature
 
 
 @pytest.fixture(params=PARAMS)
