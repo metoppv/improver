@@ -390,7 +390,7 @@ def reliability_table_point_grid(forecast_grid, truth_grid, reliability_data):
     return reliability_table
 
 
-RelTables = namedtuple("RelTables", ["table", "indicies0", "indicies1"])
+RelTables = namedtuple("RelTables", ["table", "indices0", "indices1"])
 
 
 @pytest.fixture(params=["point_spot", "point_grid"])
@@ -400,14 +400,14 @@ def create_rel_tables_point(
     if request.param == "point_spot":
         return RelTables(
             table=reliability_table_point_spot,
-            indicies0=(0, slice(0, None), slice(0, None), 0),
-            indicies1=(0, slice(0, None), slice(0, None), 1),
+            indices0=(0, slice(0, None), slice(0, None), 0),
+            indices1=(0, slice(0, None), slice(0, None), 1),
         )
     else:
         return RelTables(
             table=reliability_table_point_grid,
-            indicies0=(0, slice(0, None), slice(0, None), 0, 0),
-            indicies1=(0, slice(0, None), slice(0, None), 0, 1),
+            indices0=(0, slice(0, None), slice(0, None), 0, 0),
+            indices1=(0, slice(0, None), slice(0, None), 0, 1),
         )
 
 

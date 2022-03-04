@@ -521,7 +521,6 @@ def test_process_no_change_agg(reliability_table_agg):
     """Test with no changes required to preserve monotonicity. Parameterized
     using `create_rel_tables` fixture."""
     result = Plugin().process(reliability_table_agg.copy())
-    print(result[0].data)
     assert_array_equal(result[0].data, reliability_table_agg[0].data)
     assert result[0].coords() == reliability_table_agg[0].coords()
     assert_array_equal(result[1].data, reliability_table_agg[1].data)
@@ -535,7 +534,7 @@ def test_process_no_change_point(create_rel_tables_point):
     result = Plugin(point_by_point=True).process(rel_table.copy())
 
     assert all(len(result_list) == 9 for result_list in result)
-    expected = rel_table.data[create_rel_tables_point.indicies0]
+    expected = rel_table.data[create_rel_tables_point.indices0]
     assert all([np.array_equal(cube.data, expected) for cube in result[0]])
 
     coords_exclude = ["latitude", "longitude", "spot_index", "wmo_id"]
@@ -556,9 +555,7 @@ def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
         [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
     )
     rel_table = create_rel_tables_point.table
-    # print(rel_table.data.shape)
-    # print(rel_table.data[create_rel_tables_point.indicies].shape)
-    rel_table.data[create_rel_tables_point.indicies0] = np.array(
+    rel_table.data[create_rel_tables_point.indices0] = np.array(
         [
             [750, 250, 50, 375, 1000],  # Observation count
             [750, 250, 50, 375, 1000],  # Sum of forecast probability
@@ -575,5 +572,5 @@ def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
         result[0][0].coord("probability_bin").bounds, expected_bin_coord_bounds
     )
     # Check the unchanged data remains unchanged
-    expected = rel_table.data[create_rel_tables_point.indicies1]
+    expected = rel_table.data[create_rel_tables_point.indices1]
     assert all([np.array_equal(cube.data, expected) for cube in result[0][1:]])
