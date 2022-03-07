@@ -30,9 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests of probability_manipulation utilities"""
 
-import operator
-from collections import namedtuple
-
 import numpy as np
 import pytest
 from numpy.testing import assert_almost_equal
@@ -44,69 +41,24 @@ from improver.utilities.probability_manipulation import (
     to_threshold_inequality,
 )
 
-ComparisonResult = namedtuple("ComparisonResult", ["function", "spp_string", "inverse"])
-
-
-@pytest.mark.parametrize(
-    "inequalities, expected",
-    (
-        (
-            ("ge", "GE", ">="),
-            ComparisonResult(
-                function=operator.ge,
-                spp_string="greater_than_or_equal_to",
-                inverse="lt",
-            ),
-        ),
-        (
-            ("gt", "GT", ">"),
-            ComparisonResult(
-                function=operator.gt, spp_string="greater_than", inverse="le",
-            ),
-        ),
-        (
-            ("le", "LE", "<="),
-            ComparisonResult(
-                function=operator.le, spp_string="less_than_or_equal_to", inverse="gt",
-            ),
-        ),
-        (
-            ("lt", "LT", "<"),
-            ComparisonResult(
-                function=operator.lt, spp_string="less_than", inverse="ge",
-            ),
-        ),
-    ),
-)
-def test_comparison_operator_dict(inequalities, expected):
-    """Test that calling this function returns a dictionary containing
-    the expected values / functions."""
-    for inequality in inequalities:
-        result = comparison_operator_dict()[inequality]
-
-        assert isinstance(result, dict)
-        assert result["function"] == expected.function
-        assert result["spp_string"] == expected.spp_string
-        assert result["inverse"] == expected.inverse
-
 
 def test_comparison_operator_keys():
     """Test that only the expected keys are contained within the comparison
-    operator dictionary, and that each contains a further dictionary containing
-    the expected types."""
+    operator dictionary, and that each contains a namedtuple containing
+    the expected elements."""
     expected_keys = sorted(
         ["ge", "GE", ">=", "gt", "GT", ">", "le", "LE", "<=", "lt", "LT", "<"]
     )
-    expected_subkeys = sorted(["function", "spp_string", "inverse"])
+    expected_items = ("function", "spp_string", "inverse")
     result = comparison_operator_dict()
 
     assert isinstance(result, dict)
     assert sorted(result.keys()) == expected_keys
     for k, v in result.items():
-        assert sorted(v.keys()) == expected_subkeys
-        assert v["function"].__module__ == "_operator"
-        assert isinstance(v["spp_string"], str)
-        assert isinstance(v["inverse"], str)
+        assert v._fields == expected_items
+        assert v.function.__module__ == "_operator"
+        assert isinstance(v.spp_string, str)
+        assert isinstance(v.inverse, str)
 
 
 @pytest.fixture
@@ -129,16 +81,20 @@ def expected_inverted_probabilities():
 
 @pytest.mark.parametrize("above", [True, False])
 @pytest.mark.parametrize(
-    "inequality, etype, inverted_attr",
+    "inequality, expected_above, inverted_attr",
     (
-        ("greater_than_or_equal_to", "above", "less_than"),
-        ("greater_than", "above", "less_than_or_equal_to"),
-        ("less_than_or_equal_to", "below", "greater_than"),
-        ("less_than", "below", "greater_than_or_equal_to"),
+        ("greater_than_or_equal_to", True, "less_than"),
+        ("greater_than", True, "less_than_or_equal_to"),
+        ("less_than_or_equal_to", False, "greater_than"),
+        ("less_than", False, "greater_than_or_equal_to"),
     ),
 )
 def test_to_threshold_inequality(
-    probability_cube, etype, inverted_attr, above, expected_inverted_probabilities
+    probability_cube,
+    expected_above,
+    inverted_attr,
+    above,
+    expected_inverted_probabilities,
 ):
     """Test function returns probabilities with the target threshold inequality."""
 
@@ -149,7 +105,7 @@ def test_to_threshold_inequality(
     result = to_threshold_inequality(probability_cube, above=above)
     result_attr = threshold_attr(result)
 
-    if (etype == "above" and above) or (etype == "below" and not above):
+    if expected_above == above:
         assert result_attr == ref_attr
     else:
         assert result_attr == inverted_attr

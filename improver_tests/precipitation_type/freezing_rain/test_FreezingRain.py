@@ -42,6 +42,7 @@ from improver.precipitation_type.freezing_rain import FreezingRain
 RATE_NAME = "lwe_freezing_rainrate"
 ACCUM_NAME = "thickness_of_lwe_freezing_rainfall_amount"
 PROB_NAME = "probability_of_{}_above_threshold"
+TIME_WINDOW_TYPE = ["instantaneous", "period"]
 
 
 def modify_coordinate(cube, coord):
@@ -75,6 +76,7 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
             assert result.coord(var_name="threshold").units == "mm hr-1"
 
 
+@pytest.mark.parametrize("period", ["instantaneous"])
 @pytest.mark.parametrize("n_cubes", [1, 2, 4])
 def test_wrong_number_of_cubes(temperature_only, n_cubes):
     """Test that an exception is raised if fewer or more than 3 cubes are
@@ -86,6 +88,7 @@ def test_wrong_number_of_cubes(temperature_only, n_cubes):
         FreezingRain()(cubes)
 
 
+@pytest.mark.parametrize("period", ["instantaneous"])
 def test_duplicate_cubes(temperature_only):
     """Test that an exception is raised if duplicate cubes are passed in."""
     cubes = iris.cube.CubeList([*[temperature_only] * 3])
@@ -169,6 +172,7 @@ def test_differing_precipitation_thresholds(input_cubes):
         FreezingRain()(input_cubes)
 
 
+@pytest.mark.parametrize("period", TIME_WINDOW_TYPE)
 def test_temperatures_below_thresholds(
     precipitation_only, temperature_below, expected_probabilities
 ):
@@ -177,11 +181,6 @@ def test_temperatures_below_thresholds(
     inverted within the plugin."""
     cubes = iris.cube.CubeList([*precipitation_only, temperature_below])
 
-    # Sourcing cubes from independently parameterised fixtures, so we will get
-    # a mix of period and instantaneous precip / temperature diagnostics. We
-    # only want to use the matching types.
-    if not all([cube.coord("time").has_bounds() for cube in cubes]):
-        return
     result = FreezingRain()(cubes)
     assert_almost_equal(result.data, expected_probabilities)
 
@@ -197,6 +196,7 @@ def test_no_freezing_threshold(input_cubes):
         FreezingRain()(input_cubes)
 
 
+@pytest.mark.parametrize("period", TIME_WINDOW_TYPE)
 def test_realization_matching(
     precipitation_multi_realization,
     temperature_multi_realization,
@@ -205,16 +205,10 @@ def test_realization_matching(
     """Test that only common realizations are used when combining precipitation
     and temperature cubes. In this case the temperature cube has an additional
     realization that is not used, with only 2 realizations present in the
-    freezing rain cube."""
+    resulting freezing rain cube."""
     cubes = iris.cube.CubeList(
         [*precipitation_multi_realization, temperature_multi_realization]
     )
-
-    # Sourcing cubes from independently parameterised fixtures, so we will get
-    # a mix of period and instantaneous precip / temperature diagnostics. We
-    # only want to use the matching types.
-    if not all([cube.coord("time").has_bounds() for cube in cubes]):
-        return
     result = FreezingRain()(cubes)
 
     assert all(result.coord("realization").points == [0, 1])

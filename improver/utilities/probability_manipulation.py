@@ -31,50 +31,52 @@
 """Module for utilities that manipulate probabilities."""
 
 import operator
-from typing import Any, Dict
+from collections import namedtuple
+from typing import Dict
 
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 
-def comparison_operator_dict() -> Dict[str, Any]:
+def comparison_operator_dict() -> Dict[str, namedtuple]:
     """Generate dictionary linking string comparison operators to functions.
     Each key contains a dict of:
     - 'function': The operator function for this comparison_operator,
     - 'spp_string': Comparison_Operator string for use in CF-convention metadata
     - 'inverse': The inverse operator, i.e. ge has an inverse of lt.
     """
+
+    inequality = namedtuple("inequality", "function, spp_string, inverse")
+
     comparison_operator_dict = {}
     comparison_operator_dict.update(
         dict.fromkeys(
             ["ge", "GE", ">="],
-            {
-                "function": operator.ge,
-                "spp_string": "greater_than_or_equal_to",
-                "inverse": "lt",
-            },
+            inequality(
+                function=operator.ge,
+                spp_string="greater_than_or_equal_to",
+                inverse="lt",
+            ),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["gt", "GT", ">"],
-            {"function": operator.gt, "spp_string": "greater_than", "inverse": "le"},
+            inequality(function=operator.gt, spp_string="greater_than", inverse="le",),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["le", "LE", "<="],
-            {
-                "function": operator.le,
-                "spp_string": "less_than_or_equal_to",
-                "inverse": "gt",
-            },
+            inequality(
+                function=operator.le, spp_string="less_than_or_equal_to", inverse="gt",
+            ),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["lt", "LT", "<"],
-            {"function": operator.lt, "spp_string": "less_than", "inverse": "ge"},
+            inequality(function=operator.lt, spp_string="less_than", inverse="ge",),
         )
     )
     return comparison_operator_dict
@@ -113,8 +115,8 @@ def to_threshold_inequality(cube: Cube, above: bool = True) -> Cube:
 
     inequality = threshold.attributes["spp__relative_to_threshold"]
     spp_lookup = comparison_operator_dict()
-    above_attr = [spp_lookup[ineq]["spp_string"] for ineq in ["ge", "gt"]]
-    below_attr = [spp_lookup[ineq]["spp_string"] for ineq in ["le", "lt"]]
+    above_attr = [spp_lookup[ineq].spp_string for ineq in ["ge", "gt"]]
+    below_attr = [spp_lookup[ineq].spp_string for ineq in ["le", "lt"]]
 
     if (inequality in below_attr and above) or (inequality in above_attr and not above):
         return invert_probabilities(cube)
@@ -149,12 +151,12 @@ def invert_probabilities(cube: Cube) -> Cube:
     inequality = threshold.attributes["spp__relative_to_threshold"]
     (inverse,) = set(
         [
-            value["inverse"]
+            value.inverse
             for key, value in comparison_operator_lookup.items()
-            if value["spp_string"] == inequality
+            if value.spp_string == inequality
         ]
     )
-    new_inequality = comparison_operator_lookup[inverse]["spp_string"]
+    new_inequality = comparison_operator_lookup[inverse].spp_string
     inverted_probabilities = cube.copy(data=(1.0 - cube.data))
     inverted_probabilities.coord(threshold).attributes[
         "spp__relative_to_threshold"

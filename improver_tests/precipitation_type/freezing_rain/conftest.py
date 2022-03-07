@@ -47,7 +47,6 @@ COMMON_ATTRS = {
     "title": "Post-Processed IMPROVER unit test",
 }
 PERIOD_TIMEBOUNDS = (datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0))
-PARAMS = ["instantaneous", "period"]
 
 
 def setup_cube(
@@ -118,7 +117,7 @@ def temperature_cube(period, inequality="greater_than"):
     return setup_cube(data, thresholds, threshold_units, cube_name, time_bounds)
 
 
-@pytest.fixture(params=PARAMS)
+@pytest.fixture(params=["instantaneous", "period"])
 def input_cubes(request):
     """Return rain, sleet, and air temperature cubes as an iris CubeList. This
     fixture is parameterised such that any test using it will be run with both
@@ -128,52 +127,52 @@ def input_cubes(request):
     )
 
 
-@pytest.fixture(params=PARAMS)
-def precipitation_only(request):
+@pytest.fixture
+def precipitation_only(period):
     """Return rain and sleet cubes as a tuple. This fixture is parameterised
     such that any test using it will be run with both instantaneous and period
     diagnostics."""
-    return precipitation_cubes(request.param)
+    return precipitation_cubes(period)
 
 
-@pytest.fixture(params=PARAMS)
-def precipitation_multi_realization(request):
+@pytest.fixture
+def precipitation_multi_realization(period):
     """Return multi-realization rain and sleet cubes as a tuple. This fixture
     is parameterised such that any test using it will be run with both
     instantaneous and period diagnostics."""
-    rain, sleet = precipitation_cubes(request.param)
+    rain, sleet = precipitation_cubes(period)
     rain = add_coordinate(rain, [0, 1], "realization", coord_units=1, dtype=np.int32)
     sleet = add_coordinate(sleet, [0, 1], "realization", coord_units=1, dtype=np.int32)
     return rain, sleet
 
 
-@pytest.fixture(params=PARAMS)
-def temperature_only(request):
+@pytest.fixture
+def temperature_only(period):
     """Return an air temperature cube. This fixture is parameterised such that
     any test using it will be run with both instantaneous and period air
     temperature as an input."""
-    return temperature_cube(request.param)
+    return temperature_cube(period)
 
 
-@pytest.fixture(params=PARAMS)
-def temperature_multi_realization(request):
+@pytest.fixture
+def temperature_multi_realization(period):
     """Return a multi-realization air temperature cube. This fixture is
     parameterised such that any test using it will be run with both instantaneous
     and period air temperature as an input."""
-    temperature = temperature_cube(request.param)
+    temperature = temperature_cube(period)
     temperature = add_coordinate(
         temperature, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
     )
     return temperature
 
 
-@pytest.fixture(params=PARAMS)
-def temperature_below(request):
+@pytest.fixture
+def temperature_below(period):
     """Return an air temperature cube that has thresholds created using a
     "less than" inequality. This fixture is parameterised such that any test
     using it will be run with both instantaneous and period air temperature as
     an input."""
-    return temperature_cube(request.param, inequality="less_than")
+    return temperature_cube(period, inequality="less_than")
 
 
 @pytest.fixture

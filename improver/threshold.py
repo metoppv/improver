@@ -251,7 +251,7 @@ class BasicThreshold(PostProcessingPlugin):
         """
         threshold_coord = cube.coord(self.threshold_coord_name)
         threshold_coord.attributes.update(
-            {"spp__relative_to_threshold": self.comparison_operator["spp_string"]}
+            {"spp__relative_to_threshold": self.comparison_operator.spp_string}
         )
         if cube.cell_methods:
             format_cell_methods_for_probability(cube, self.threshold_coord_name)
@@ -306,7 +306,7 @@ class BasicThreshold(PostProcessingPlugin):
             # if upper and lower bounds are equal, set a deterministic 0/1
             # probability based on exceedance of the threshold
             if bounds[0] == bounds[1]:
-                truth_value = self.comparison_operator["function"](cube.data, threshold)
+                truth_value = self.comparison_operator.function(cube.data, threshold)
             # otherwise, scale exceedance probabilities linearly between 0/1
             # at the min/max fuzzy bounds and 0.5 at the threshold value
             else:
@@ -329,7 +329,7 @@ class BasicThreshold(PostProcessingPlugin):
                 # less_than_or_equal_to the threshold (rather than
                 # greater_than or greater_than_or_equal_to), invert
                 # the exceedance probability
-                if "less_than" in self.comparison_operator["spp_string"]:
+                if "less_than" in self.comparison_operator.spp_string:
                     truth_value = 1.0 - truth_value
 
             truth_value = truth_value.astype(FLOAT_DTYPE)
@@ -464,7 +464,7 @@ class LatitudeDependentThreshold(BasicThreshold):
 
         # Add a scalar axis for the longitude axis so that numpy's array-
         # broadcasting knows what we want to do
-        truth_value = self.comparison_operator["function"](
+        truth_value = self.comparison_operator.function(
             cube.data, np.expand_dims(threshold_over_latitude, 1),
         )
 
