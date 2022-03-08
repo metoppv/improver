@@ -41,10 +41,13 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic_square(tmp_path):
+@pytest.mark.parametrize(
+    "kgo_name, shape", (("kgo.nc", "square"), ("kgo_circular.nc", "circular")),
+)
+def test_basic(tmp_path, kgo_name, shape):
     """Test basic land-sea without topographic bands"""
     kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / kgo_name
     input_path = kgo_dir / "input.nc"
     mask_path = kgo_dir / "ukvx_landmask.nc"
     output_path = tmp_path / "output.nc"
@@ -52,28 +55,7 @@ def test_basic_square(tmp_path):
         input_path,
         mask_path,
         "--neighbourhood-shape",
-        "square",
-        "--radii",
-        "20000",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_basic_circular(tmp_path):
-    """Test basic land-sea without topographic bands"""
-    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/no_topographic_bands"
-    kgo_path = kgo_dir / "kgo_circular.nc"
-    input_path = kgo_dir / "input.nc"
-    mask_path = kgo_dir / "ukvx_landmask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        "--neighbourhood-shape",
-        "circular",
+        shape,
         "--radii",
         "20000",
         "--output",
@@ -218,10 +200,14 @@ def test_landsea_only(tmp_path, landsea):
 
 
 @pytest.mark.slow
-def test_topographic_bands_probabilities_square(tmp_path):
+@pytest.mark.parametrize(
+    "kgo_name, shape",
+    (("kgo_probs.nc", "square"), ("kgo_probs_circular.nc", "circular")),
+)
+def test_topographic_bands_probabilities(tmp_path, kgo_name, shape):
     """Test topographic banding of probabilities"""
     kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/topographic_bands"
-    kgo_path = kgo_dir / "kgo_probs.nc"
+    kgo_path = kgo_dir / kgo_name
     input_path = kgo_dir / "input_probs.nc"
     mask_path = kgo_dir / "../topographic_bands/topographic_bands_land.nc"
     weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
@@ -231,31 +217,7 @@ def test_topographic_bands_probabilities_square(tmp_path):
         mask_path,
         weights_path,
         "--neighbourhood-shape",
-        "square",
-        "--radii",
-        "20000",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-@pytest.mark.slow
-def test_topographic_bands_probabilities_circular(tmp_path):
-    """Test topographic banding of probabilities"""
-    kgo_dir = acc.kgo_root() / "nbhood-land-and-sea/topographic_bands"
-    kgo_path = kgo_dir / "kgo_probs_circular.nc"
-    input_path = kgo_dir / "input_probs.nc"
-    mask_path = kgo_dir / "../topographic_bands/topographic_bands_land.nc"
-    weights_path = kgo_dir / "../topographic_bands/weights_land.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        weights_path,
-        "--neighbourhood-shape",
-        "circular",
+        shape,
         "--radii",
         "20000",
         "--output",

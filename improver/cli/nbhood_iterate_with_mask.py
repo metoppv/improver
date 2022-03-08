@@ -47,7 +47,6 @@ def process(
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
-    remask=False,
 ):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
