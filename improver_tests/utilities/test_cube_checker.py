@@ -46,7 +46,6 @@ from improver.utilities.cube_checker import (
     check_cube_coordinates,
     check_for_x_and_y_axes,
     find_dimension_coordinate_mismatch,
-    is_model_blended,
     spatial_coords_match,
 )
 
@@ -300,30 +299,6 @@ class Test_spatial_coords_match(IrisTest):
         y_coord.points = [y * 1.01 for y in y_coord.points]
         result = spatial_coords_match(self.cube_a, cube_c)
         self.assertFalse(result)
-
-
-class Test_is_model_blended(unittest.TestCase):
-
-    """Test is_model_blended behaves as expected."""
-
-    def setUp(self):
-        """Set up a cube."""
-        data = np.ones((1, 5, 5), dtype=np.float32)
-        cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea",
-        )
-        self.cube_without = cube
-        blend_time = cube.coord("forecast_reference_time").copy()
-        blend_time.rename("blend_time")
-        self.cube_with = cube.copy()
-        self.cube_with.add_aux_coord(blend_time)
-
-    def test_basic(self):
-        """Test correct result is returned for cube with and without a
-        blend_time coordinate."""
-
-        self.assertFalse(is_model_blended(self.cube_without))
-        self.assertTrue(is_model_blended(self.cube_with))
 
 
 if __name__ == "__main__":
