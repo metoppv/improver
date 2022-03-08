@@ -264,19 +264,3 @@ def test_set_record_run_attr_exception_model_id(model_cube):
 
     with pytest.raises(Exception, match="Failure to record run information"):
         set_record_run_attr(cubes, record_run_attr, model_id_attr)
-
-
-def test_set_record_run_attr_exception_blended(model_cube):
-    """Test an exception is raised if an input cube has been through model
-    blending but has no record_run attribute. It is not possible to create a
-    record_run attribute in this case as the source cycle information has been
-    lost on this input cube."""
-    record_run_attr = "mosg__model_run"
-    model_id_attr = "mosg__model_configuration"
-    cubes = [model_cube[0], model_cube[1]]
-    blend_time = cubes[0].coord("forecast_reference_time").copy()
-    blend_time.rename("blend_time")
-    cubes[0].add_aux_coord(blend_time)
-
-    with pytest.raises(Exception, match="This cube has been through model blending"):
-        set_record_run_attr(cubes, record_run_attr, model_id_attr)

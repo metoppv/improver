@@ -45,7 +45,6 @@ from improver.metadata.constants.attributes import (
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
-from improver.utilities.cube_checker import is_model_blended
 from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
@@ -244,18 +243,18 @@ def set_record_run_attr(
 
     There are three ways this method may work:
 
-      - None of the input cubes have been previously cycle or model blended.
+      - None of the input cubes have an existing record_run attribute.
         The model_id_attr argument must be provided to enable the model
         identifiers to be extracted and used in conjunction with the forecast
         reference time to build the record_run attribute.
-      - All of the input cubes have been previously cycle or model blended. The
+      - All of the input cubes have an existing record_run attribute. The
         model_id_attr argument is not required as a new record_run attribute
         will be constructed by combining the existing record_run attributes on
         each input cube.
-      - Some of the input cubes have been previously cycle or model blended, and
-        some have not. The model_id_attr argument must be provided so that those
-        cubes without an existing record_run attribute can be interrogated for
-        their model identifier.
+      - Some of the input cubes have an existing record_run attribute, and some
+        have not. The model_id_attr argument must be provided so that those cubes
+        without an existing record_run attribute can be interrogated for their
+        model identifier.
 
     The cubes are modified in place.
 
@@ -271,8 +270,6 @@ def set_record_run_attr(
     Raises:
         ValueError: If model_id_attr is not set and is required to construct a
                     new record_run_attr.
-        Exception: A cube has previously been model blended but contains no
-                   record_run_attr.
         Exception: The model_id_attr name provided is not present on one or more
                    of the input cubes.
     """
@@ -293,15 +290,6 @@ def set_record_run_attr(
                 if model_attr not in cycle_strings:
                     cycle_strings.append(model_attr)
             continue
-
-        if is_model_blended(cube):
-            raise Exception(
-                "This cube has been through model blending but there is no "
-                f"record_run attribute. This indicates cube {cube.name()} has "
-                "been previously model blended without recording the cycles "
-                "from which data was taken. It is not possible to create a "
-                "record_run attribute."
-            )
 
         if model_id_attr not in cube.attributes:
             raise Exception(
