@@ -70,6 +70,8 @@ def test_expected(tmp_path, test_path):
         *input_paths,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
         "--output",
         output_path,
     ]

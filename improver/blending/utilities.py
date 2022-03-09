@@ -30,10 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Utilities to support weighted blending"""
 
+from datetime import datetime
 from typing import Dict, List, Optional
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -225,3 +226,88 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
         cycletime, time_unit=frt_units, calendar=frt_calendar
     )
     return round_close(cycletime_point, dtype=np.int64)
+
+
+def set_record_run_attr(
+    cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
+) -> None:
+    """Set a record_run attribute that records the model identifier and
+    forecast reference time of each cube in the cubelist. From the list of cubes,
+    pre-existing record_run attributes, model IDs and forecast reference
+    times are extracted as required to build a new record_run attribute.
+
+    The new attribute is applied to each cube in the cubelist in preparation
+    for blending / combining the cubes. The resulting composite product will
+    have a record of the contributing models and their associated forecast
+    reference times.
+
+    There are three ways this method may work:
+
+      - None of the input cubes have an existing record_run attribute.
+        The model_id_attr argument must be provided to enable the model
+        identifiers to be extracted and used in conjunction with the forecast
+        reference time to build the record_run attribute.
+      - All of the input cubes have an existing record_run attribute. The
+        model_id_attr argument is not required as a new record_run attribute
+        will be constructed by combining the existing record_run attributes on
+        each input cube.
+      - Some of the input cubes have an existing record_run attribute, and some
+        have not. The model_id_attr argument must be provided so that those cubes
+        without an existing record_run attribute can be interrogated for their
+        model identifier.
+
+    The cubes are modified in place.
+
+    Args:
+        cubelist:
+            Cubes from which to obtain model and cycle information, and to which
+            the resulting run record attribute is added.
+        record_run_attr:
+            The name of the record run attribute that is to be created.
+        model_id_attr:
+            The name of the attribute that contains the source model information.
+
+    Raises:
+        ValueError: If model_id_attr is not set and is required to construct a
+                    new record_run_attr.
+        Exception: The model_id_attr name provided is not present on one or more
+                   of the input cubes.
+    """
+    if not model_id_attr and not all(
+        [record_run_attr in cube.attributes for cube in cubelist]
+    ):
+        raise ValueError(
+            f"Not all input cubes contain an existing {record_run_attr} attribute. "
+            "A model_id_attr argument must be provided to enable the construction "
+            f"of a new {record_run_attr} attribute."
+        )
+
+    cycle_strings = []
+    for cube in cubelist:
+        if record_run_attr in cube.attributes:
+            model_attrs = cube.attributes[record_run_attr].splitlines()
+            for model_attr in model_attrs:
+                if model_attr not in cycle_strings:
+                    cycle_strings.append(model_attr)
+            continue
+
+        if model_id_attr not in cube.attributes:
+            raise Exception(
+                f"Failure to record run information in '{record_run_attr}' "
+                "during blend: no model id attribute found in cube. "
+                f"Cube attributes: {cube.attributes}"
+            )
+
+        cycle = datetime.utcfromtimestamp(
+            cube.coord("forecast_reference_time").points[0]
+        )
+        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+
+        blending_weight = ""  # TODO: include actual blending weight here.
+        run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
+        if run_attr not in cycle_strings:
+            cycle_strings.append(run_attr)
+
+    cycle_strings.sort()
+    for cube in cubelist:
+        cube.attributes[record_run_attr] = "\n".join(cycle_strings)

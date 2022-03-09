@@ -639,9 +639,9 @@ def filter_realizations(cubes: CubeList) -> Cube:
         realizations.update(cube.coord("realization").points)
     filtered_cubes = CubeList()
     for realization in realizations:
-        realization_cube = cubes.extract(
-            iris.Constraint(realization=realization)
-        ).merge_cube()
+        realization_cube = MergeCubes()(
+            cubes.extract(iris.Constraint(realization=realization))
+        )
         if set([c.point for c in realization_cube.coord("time").cells()]) == times:
             filtered_cubes.append(realization_cube)
-    return filtered_cubes.merge_cube()
+    return MergeCubes()(filtered_cubes)
