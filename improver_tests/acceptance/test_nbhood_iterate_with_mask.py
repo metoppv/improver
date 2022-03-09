@@ -54,6 +54,8 @@ def test_basic(tmp_path):
         mask_path,
         "--coord-for-masking",
         "topographic_zone",
+        "--neighbourhood-shape",
+        "square",
         "--radii",
         "20000",
         "--output",
@@ -64,10 +66,14 @@ def test_basic(tmp_path):
 
 
 @pytest.mark.slow
-def test_collapse_bands(tmp_path):
+@pytest.mark.parametrize(
+    "kgo_name, shape",
+    (("kgo_collapsed.nc", "square"), ("kgo_collapsed_circular.nc", "circular")),
+)
+def test_collapse_bands(tmp_path, kgo_name, shape):
     """Test with collapsing orographic bands"""
     kgo_dir = acc.kgo_root() / "nbhood-iterate-with-mask/basic_collapse_bands"
-    kgo_path = kgo_dir / "kgo_collapsed.nc"
+    kgo_path = kgo_dir / kgo_name
     input_path = kgo_dir / "thresholded_input.nc"
     mask_path = kgo_dir / "orographic_bands_mask.nc"
     weights_path = kgo_dir / "orographic_bands_weights.nc"
@@ -78,6 +84,8 @@ def test_collapse_bands(tmp_path):
         weights_path,
         "--coord-for-masking",
         "topographic_zone",
+        "--neighbourhood-shape",
+        shape,
         "--radii",
         "10000",
         "--output",

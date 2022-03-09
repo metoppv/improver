@@ -42,6 +42,7 @@ def process(
     mask: cli.inputcube,
     weights: cli.inputcube = None,
     *,
+    neighbourhood_shape,
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
@@ -68,6 +69,9 @@ def process(
             A cube containing the weights which are used for collapsing the
             dimension gained through masking. These weights must have been
             created using a land-sea mask. (Optional).
+        neighbourhood_shape (str):
+            Name of the neighbourhood method to use.
+            Options: "circular", "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to
             apply.
@@ -169,7 +173,7 @@ def process(
     if land_only.data.max() > 0.0:
         if masking_coordinate is None:
             result_land = NeighbourhoodProcessing(
-                "square",
+                neighbourhood_shape,
                 radius_or_radii,
                 lead_times=lead_times,
                 sum_only=area_sum,
@@ -178,18 +182,18 @@ def process(
         else:
             result_land = ApplyNeighbourhoodProcessingWithAMask(
                 masking_coordinate,
+                neighbourhood_shape,
                 radius_or_radii,
                 lead_times=lead_times,
                 collapse_weights=weights,
                 sum_only=area_sum,
-                re_mask=False,
             )(cube, mask)
         result = result_land
 
     # Section for neighbourhood processing sea points.
     if sea_only.data.max() > 0.0:
         result_sea = NeighbourhoodProcessing(
-            "square",
+            neighbourhood_shape,
             radius_or_radii,
             lead_times=lead_times,
             sum_only=area_sum,

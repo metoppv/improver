@@ -152,30 +152,6 @@ def test_masked_square_external(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_masked_square_remask(tmp_path):
-    """Test square neighbourhooding with an external mask and re-masking"""
-    kgo_dir = acc.kgo_root() / "nbhood/mask"
-    kgo_path = kgo_dir / "kgo_re_mask.nc"
-    input_path = kgo_dir / "input.nc"
-    mask_path = kgo_dir / "mask.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        mask_path,
-        "--neighbourhood-output",
-        "probabilities",
-        "--neighbourhood-shape",
-        "square",
-        "--radii",
-        "20000",
-        "--remask",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
 def test_wind_direction(tmp_path):
     """Test wind direction neighbourhooding"""
     kgo_dir = acc.kgo_root() / "nbhood/wind_direction"
