@@ -486,7 +486,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             Cube containing the occurrences within a vicinity for each
             xy 2d slice, which have been merged back together.
         """
-        if self.land_mask_cube and not spatial_coords_match(cube, self.land_mask_cube):
+        if self.land_mask_cube and not spatial_coords_match(
+            [cube, self.land_mask_cube]
+        ):
             raise ValueError(
                 "Supplied cube do not have the same spatial coordinates and land mask"
             )
