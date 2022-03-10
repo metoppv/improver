@@ -101,9 +101,12 @@ def to_threshold_inequality(cube: Cube, above: bool = True) -> Cube:
             Targets an above (gt, ge) threshold inequality if True, otherwise
             targets a below (lt, le) threshold inequality if False.
 
-    Reurns:
+    Returns:
         A cube with the probabilities relative to the threshold values with
         the target inequality.
+
+    Raised:
+        ValueError: If the input cube has no threshold coordinate.
     """
     try:
         threshold = cube.coord(var_name="threshold")

@@ -102,7 +102,7 @@ class FreezingRain(PostProcessingPlugin):
         (self.sleet,) = input_cubes.extract(sleet_name)
         (self.temperature,) = input_cubes.extract(temperature_name)
 
-        if not spatial_coords_match(self.rain, self.sleet):
+        if not spatial_coords_match([self.rain, self.sleet, self.temperature]):
             raise ValueError("Input cubes are not on the same grid")
         if (
             not self.rain.coord("time")

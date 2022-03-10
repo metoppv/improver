@@ -472,7 +472,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         enforce_coordinate_ordering(
             self.timezone_cube, ["UTC_offset"], anchor_start=False
         )
-        if not spatial_coords_match(input_cube, self.timezone_cube):
+        if not spatial_coords_match([input_cube, self.timezone_cube]):
             raise ValueError(
                 "Spatial coordinates on input_cube and timezone_cube do not match."
             )

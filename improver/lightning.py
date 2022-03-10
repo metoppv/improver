@@ -117,7 +117,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             raise ValueError(
                 "Supplied cubes must have the same forecast reference times"
             )
-        if not spatial_coords_match(cape, precip):
+        if not spatial_coords_match([cape, precip]):
             raise ValueError("Supplied cubes do not have the same spatial coordinates")
         return cape, precip
 
