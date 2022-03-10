@@ -120,8 +120,10 @@ def process(
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
     from improver.nbhood import radius_by_lead_time
-    from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
-    from improver.nbhood.square_kernel import NeighbourhoodProcessing
+    from improver.nbhood.nbhood import (
+        GeneratePercentilesFromANeighbourhood,
+        NeighbourhoodProcessing,
+    )
     from improver.utilities.pad_spatial import remove_cube_halo
     from improver.wind_calculations.wind_direction import WindDirection
 

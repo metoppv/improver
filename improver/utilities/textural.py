@@ -45,7 +45,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.nbhood.square_kernel import NeighbourhoodProcessing
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapse_realizations
 

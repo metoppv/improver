@@ -38,7 +38,7 @@ from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 
-from improver.nbhood.square_kernel import NeighbourhoodProcessing
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 

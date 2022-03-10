@@ -28,9 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the
-nbhood.circular_kernel.GeneratePercentilesFromANeighbourhood
-plugin."""
+"""Unit tests for the nbhood.nbhood.GeneratePercentilesFromANeighbourhood plugin."""
 
 
 import unittest
@@ -42,7 +40,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.constants import DEFAULT_PERCENTILES
-from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
+from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,

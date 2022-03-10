@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
+from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.utilities.cube_checker import spatial_coords_match
 
 

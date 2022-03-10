@@ -38,7 +38,7 @@ import numpy.ma as ma
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
-from improver.nbhood.square_kernel import NeighbourhoodProcessing
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
