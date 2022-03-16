@@ -518,8 +518,7 @@ def test_emcam_lowest_bin_non_monotonic(reliability_table_slice):
 
 
 def test_process_no_change_agg(reliability_table_agg):
-    """Test with no changes required to preserve monotonicity. Parameterized
-    using `create_rel_tables` fixture."""
+    """Test with no changes required to preserve monotonicity."""
     result = Plugin().process(reliability_table_agg.copy())
     assert_array_equal(result[0].data, reliability_table_agg[0].data)
     assert result[0].coords() == reliability_table_agg[0].coords()
@@ -545,10 +544,10 @@ def test_process_no_change_point(create_rel_tables_point):
 
 
 def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
-    """Test expected values are returned when one slice contains a bin is below
-    the minimum forecast count when the observed frequency is non-monotonic and
-    remaining data, which requires no change, is not changed. Parameterized
-    using `create_rel_tables` fixture."""
+    """Test expected values are returned when one slice contains a bin that is
+    below the minimum forecast count, whilst the observed frequency is
+    non-monotonic. Test that remaining data, which requires no change, is not
+    changed. Parameterized using `create_rel_tables` fixture."""
     expected_data = np.array([[1000, 425, 1000], [1000, 425, 1000], [2000, 600, 1000]])
     expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
