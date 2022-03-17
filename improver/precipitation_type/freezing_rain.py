@@ -33,7 +33,6 @@
 from typing import Optional, Tuple
 
 import iris
-import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
@@ -177,12 +176,14 @@ class FreezingRain(PostProcessingPlugin):
         """Picks out the realizations that are common to the rain, sleet, and
         temperature cubes. Ensure the threshold coordinate leads the returned
         cubes (if a dimension coordinate) such that broadcasting across
-        realizations works.
+        thresholds works.
+
+        Raises:
+            ValueError: If the input cubes have no shared realizations.
         """
 
         def _match_realizations_and_order(target):
-            realizations = reference.coord("realization").points
-            constraint = iris.Constraint(realization=realizations)
+            constraint = iris.Constraint(realization=common_realizations)
             matched = target.extract(constraint)
             enforce_coordinate_ordering(
                 matched, matched.coord(var_name="threshold").name(), anchor_start=True
@@ -196,9 +197,13 @@ class FreezingRain(PostProcessingPlugin):
         except CoordinateNotFoundError:
             return
 
-        reference = cubes[
-            np.argmin([cube.coord("realization").shape[0] for cube in cubes])
-        ]
+        common_realizations = set(cubes[0].coord("realization").points)
+        for cube in cubes[1:]:
+            common_realizations.intersection_update(cube.coord("realization").points)
+        if not common_realizations:
+            raise ValueError("Input cubes share no common realizations.")
+
+        del cubes
         self.rain = _match_realizations_and_order(self.rain)
         self.sleet = _match_realizations_and_order(self.sleet)
         self.temperature = _match_realizations_and_order(self.temperature)
@@ -213,7 +218,6 @@ class FreezingRain(PostProcessingPlugin):
         Returns:
             Cube of freezing rain probabilities.
         """
-
         freezing_rain_prob = (self.rain.data + self.sleet.data) * self.temperature.data
         diagnostic_name = self.sleet.name().replace("sleet", "freezing_rain")
         threshold_name = (

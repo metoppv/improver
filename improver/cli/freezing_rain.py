@@ -41,8 +41,8 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     and temperature probabilities.
 
     P(freezing_rain rate or accumulation > threshold) = (
-        (P(rain rate or accmulation >  threshold) +
-         P(sleet rate or accmulation >  threshold)) * P(temperature < 0C)
+        (P(rain rate or accumulation >  threshold) +
+         P(sleet rate or accumulation >  threshold)) * P(temperature < 0C)
 
     Args:
         cubes (iris.cube.CubeList or list):
