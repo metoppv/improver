@@ -32,7 +32,6 @@
 
 
 import unittest
-from datetime import datetime
 
 import iris
 import numpy as np
@@ -387,18 +386,38 @@ class Test_process(IrisTest):
         ).process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_multi_point_multitimes(self):
-        """Test behaviour for points over multiple times."""
+    def test_single_point_single_percentile(self):
+        """Test behaviour for a single non-zero grid cell."""
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ]
+            ]
+        )
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        percentiles = np.array([50])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multi_point_multireals(self):
+        """Test behaviour for points over multiple realizations."""
 
         data = np.ones((5, 5), dtype=np.float32)
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-        ]
-        cube = add_coordinate(
-            cube, coord_points=time_points, coord_name="time", is_datetime="true",
-        )
+        reals_points = np.array([0, 1], dtype=np.int32)
+        cube = add_coordinate(cube, coord_points=reals_points, coord_name="realization")
         cube.data[0, 2, 2] = 0
         cube.data[1, 2, 1] = 0
 
@@ -414,29 +433,27 @@ class Test_process(IrisTest):
                     ],
                     [
                         [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                ],
+                [
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
                         [1.0, 0.4, 1.0, 1.0, 1.0],
                         [0.4, 0.4, 0.4, 1.0, 1.0],
                         [1.0, 0.4, 1.0, 1.0, 1.0],
                         [1.0, 1.0, 1.0, 1.0, 1.0],
                     ],
-                ],
-                [
-                    [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                    ],
-                    [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                    ],
-                ],
-                [
                     [
                         [1.0, 1.0, 1.0, 1.0, 1.0],
                         [1.0, 1.0, 1.0, 1.0, 1.0],

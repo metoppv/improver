@@ -428,10 +428,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 DEFAULT_PERCENTILES.
         """
         super().__init__(radii, lead_times=lead_times)
-        try:
-            self.percentiles = tuple(percentiles)
-        except TypeError:
-            self.percentiles = (percentiles,)
+        self.percentiles = tuple(percentiles)
 
     def pad_and_unpad_cube(self, slice_2d: Cube, kernel: ndarray) -> Cube:
         """
