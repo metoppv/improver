@@ -391,13 +391,11 @@ class Test_process(IrisTest):
 
         expected = np.array(
             [
-                [
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                    [1.0, 1.0, 1.0, 1.0, 1.0],
-                ]
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
             ]
         )
 
@@ -476,6 +474,48 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multi_point_single_real(self):
+        """Test behaviour for points over a single realization."""
+
+        data = np.ones((5, 5), dtype=np.float32)
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        reals_points = np.array([0], dtype=np.int32)
+        cube = add_coordinate(cube, coord_points=reals_points, coord_name="realization")
+        cube.data[2, 2] = 0
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 0.4, 0.4, 0.4, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):

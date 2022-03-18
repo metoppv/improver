@@ -565,7 +565,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                 overwrite_input=True,
             )
 
-        return pctcube
+        return iris.util.squeeze(pctcube)
 
     def process(self, cube: Cube) -> Cube:
         """
@@ -613,11 +613,9 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         # Arrange cube, so that the coordinate order is:
         # realization, percentile, other coordinates.
         required_order = []
-        if result.coords("realization"):
-            if result.coords("realization", dimensions=[]):
-                result = iris.util.new_axis(result, "realization")
+        if result.coords("realization", dim_coords=True):
             required_order.append(result.coord_dims("realization")[0])
-        if result.coords("percentile"):
+        if result.coords("percentile", dim_coords=True):
             required_order.append(result.coord_dims("percentile")[0])
         other_coords = []
         for coord in result.dim_coords:
