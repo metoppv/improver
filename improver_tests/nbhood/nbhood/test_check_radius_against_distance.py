@@ -28,14 +28,14 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for nbhood.circular_kernel.check_radius_against_distance."""
+"""Unit tests for nbhood.nbhood.check_radius_against_distance."""
 
 import unittest
 
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.nbhood.circular_kernel import check_radius_against_distance
+from improver.nbhood.nbhood import check_radius_against_distance
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 

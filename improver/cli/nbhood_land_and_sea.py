@@ -107,7 +107,7 @@ def process(
     """
     import numpy as np
 
-    from improver.nbhood.square_kernel import NeighbourhoodProcessing
+    from improver.nbhood.nbhood import NeighbourhoodProcessing
     from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
     masking_coordinate = None

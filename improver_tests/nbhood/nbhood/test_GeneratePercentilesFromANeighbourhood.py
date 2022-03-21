@@ -28,13 +28,10 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the
-nbhood.circular_kernel.GeneratePercentilesFromANeighbourhood
-plugin."""
+"""Unit tests for the nbhood.nbhood.GeneratePercentilesFromANeighbourhood plugin."""
 
 
 import unittest
-from datetime import datetime
 
 import iris
 import numpy as np
@@ -42,7 +39,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.constants import DEFAULT_PERCENTILES
-from improver.nbhood.circular_kernel import GeneratePercentilesFromANeighbourhood
+from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
@@ -389,18 +386,36 @@ class Test_process(IrisTest):
         ).process(cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    def test_multi_point_multitimes(self):
-        """Test behaviour for points over multiple times."""
+    def test_single_point_single_percentile(self):
+        """Test behaviour for a single non-zero grid cell."""
+
+        expected = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
+
+        data = np.ones((5, 5), dtype=np.float32)
+        data[2, 2] = 0
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        percentiles = np.array([50])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multi_point_multireals(self):
+        """Test behaviour for points over multiple realizations."""
 
         data = np.ones((5, 5), dtype=np.float32)
         cube = set_up_variable_cube(data, spatial_grid="equalarea",)
-        time_points = [
-            datetime(2017, 11, 10, 2),
-            datetime(2017, 11, 10, 3),
-        ]
-        cube = add_coordinate(
-            cube, coord_points=time_points, coord_name="time", is_datetime="true",
-        )
+        reals_points = np.array([0, 1], dtype=np.int32)
+        cube = add_coordinate(cube, coord_points=reals_points, coord_name="realization")
         cube.data[0, 2, 2] = 0
         cube.data[1, 2, 1] = 0
 
@@ -416,29 +431,27 @@ class Test_process(IrisTest):
                     ],
                     [
                         [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                    ],
+                ],
+                [
+                    [
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
                         [1.0, 0.4, 1.0, 1.0, 1.0],
                         [0.4, 0.4, 0.4, 1.0, 1.0],
                         [1.0, 0.4, 1.0, 1.0, 1.0],
                         [1.0, 1.0, 1.0, 1.0, 1.0],
                     ],
-                ],
-                [
-                    [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                    ],
-                    [
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                    ],
-                ],
-                [
                     [
                         [1.0, 1.0, 1.0, 1.0, 1.0],
                         [1.0, 1.0, 1.0, 1.0, 1.0],
@@ -461,6 +474,48 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_multi_point_single_real(self):
+        """Test behaviour for points over a single realization."""
+
+        data = np.ones((5, 5), dtype=np.float32)
+        cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        reals_points = np.array([0], dtype=np.int32)
+        cube = add_coordinate(cube, coord_points=reals_points, coord_name="realization")
+        cube.data[2, 2] = 0
+
+        expected = np.array(
+            [
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 0.4, 0.4, 0.4, 1.0],
+                    [1.0, 1.0, 0.4, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+                [
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                    [1.0, 1.0, 1.0, 1.0, 1.0],
+                ],
+            ]
+        )
+        percentiles = np.array([10, 50, 90])
+        radius = 2000.0
+        result = GeneratePercentilesFromANeighbourhood(
+            radius, percentiles=percentiles
+        ).process(cube)
+
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_single_point_lat_long(self):
