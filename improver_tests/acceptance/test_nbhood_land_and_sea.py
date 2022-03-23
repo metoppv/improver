@@ -76,8 +76,6 @@ def test_radii_with_lead_times(tmp_path):
     args = [
         input_path,
         mask_path,
-        "--neighbourhood-shape",
-        "square",
         "--radii",
         "18000,54000,90000,162000",
         "--lead-times",

@@ -162,8 +162,6 @@ def test_wind_direction(tmp_path):
         input_path,
         "--neighbourhood-output",
         "probabilities",
-        "--neighbourhood-shape",
-        "square",
         "--radii",
         "20000",
         "--degrees-as-complex",
