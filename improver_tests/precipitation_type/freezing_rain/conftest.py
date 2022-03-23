@@ -161,7 +161,7 @@ def temperature_multi_realization(period):
     and period air temperature as an input."""
     temperature = temperature_cube(period)
     temperature = add_coordinate(
-        temperature, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
+        temperature, [1, 2, 3], "realization", coord_units=1, dtype=np.int32
     )
     return temperature
 

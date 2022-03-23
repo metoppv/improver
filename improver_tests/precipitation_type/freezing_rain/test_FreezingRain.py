@@ -211,6 +211,18 @@ def test_realization_matching(
     )
     result = FreezingRain()(cubes)
 
-    assert all(result.coord("realization").points == [0, 1])
-    assert_almost_equal(result.data[0], expected_probabilities)
-    assert_almost_equal(result.data[1], expected_probabilities)
+    assert all(result.coord("realization").points == [1])
+    assert_almost_equal(result.data, expected_probabilities)
+
+
+@pytest.mark.parametrize("period", TIME_WINDOW_TYPE)
+def test_no_realization_matching(
+    precipitation_multi_realization, temperature_multi_realization,
+):
+    """Test that an error is raised if the inputs have no common realizations."""
+    cubes = iris.cube.CubeList(
+        [*precipitation_multi_realization, temperature_multi_realization]
+    )
+    temperature_multi_realization.coord("realization").points = [10, 11, 12]
+    with pytest.raises(ValueError, match="Input cubes share no common realizations."):
+        FreezingRain()(cubes)
