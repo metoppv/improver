@@ -369,16 +369,7 @@ def test_acof_non_monotonic_higher_forecast_count_on_left():
     assert_array_equal(result.data, expected_result)
 
 
-def test_process_no_change(reliability_table_agg):
-    """Test with no changes required to preserve monotonicity"""
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, reliability_table_agg[1].data)
-    assert result[1].coords() == reliability_table_agg[1].coords()
-
-
-def test_process_combine_undersampled_bins_monotonic(reliability_table_agg):
+def test_emcam_combine_undersampled_bins_monotonic(reliability_table_slice):
     """Test expected values are returned when a bin is below the minimum
     forecast count when the observed frequency is monotonic."""
 
@@ -389,27 +380,21 @@ def test_process_combine_undersampled_bins_monotonic(reliability_table_agg):
     expected_bin_coord_bounds = np.array(
         [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
     )
-    reliability_table_agg.data[1] = np.array(
+    reliability_table_slice.data = np.array(
         [
             [0, 250, 50, 375, 1000],  # Observation count
             [0, 250, 50, 375, 1000],  # Sum of forecast probability
             [1000, 1000, 100, 500, 1000],  # Forecast count
-        ]
+        ],
+        dtype=np.float32,
     )
-
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, expected_data)
-    assert_allclose(
-        result[1].coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
+    assert_array_equal(result.data, expected_data)
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
-def test_process_combine_undersampled_bins_non_monotonic(reliability_table_agg):
+def test_emcam_combine_undersampled_bins_non_monotonic(reliability_table_slice):
     """Test expected values are returned when a bin is below the minimum
     forecast count when the observed frequency is non-monotonic."""
 
@@ -418,27 +403,22 @@ def test_process_combine_undersampled_bins_non_monotonic(reliability_table_agg):
     expected_bin_coord_bounds = np.array(
         [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
     )
-    reliability_table_agg.data[1] = np.array(
+    reliability_table_slice.data = np.array(
         [
             [750, 250, 50, 375, 1000],  # Observation count
             [750, 250, 50, 375, 1000],  # Sum of forecast probability
             [1000, 1000, 100, 500, 1000],  # Forecast count
-        ]
+        ],
+        dtype=np.float32,
     )
 
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, expected_data)
-    assert_allclose(
-        result[1].coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
+    assert_array_equal(result.data, expected_data)
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
-def test_process_highest_bin_non_monotonic(reliability_table_agg):
+def test_emcam_highest_bin_non_monotonic(reliability_table_slice):
     """Test expected values are returned where the highest observation
     count bin is non-monotonic."""
 
@@ -449,7 +429,7 @@ def test_process_highest_bin_non_monotonic(reliability_table_agg):
     expected_bin_coord_bounds = np.array(
         [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
     )
-    reliability_table_agg.data[1] = np.array(
+    reliability_table_slice.data = np.array(
         [
             [0, 250, 500, 1000, 750],  # Observation count
             [0, 250, 500, 750, 1000],  # Sum of forecast probability
@@ -457,22 +437,15 @@ def test_process_highest_bin_non_monotonic(reliability_table_agg):
         ]
     )
 
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, expected_data)
-    assert_allclose(
-        result[1].coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
+    assert_array_equal(result.data, expected_data)
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
-def test_process_central_bin_non_monotonic(reliability_table_agg):
+def test_emcam_central_bin_non_monotonic(reliability_table_slice):
     """Test expected values are returned where a central observation
     count bin is non-monotonic."""
-
     expected_data = np.array(
         [[0, 750, 750, 1000], [0, 750, 750, 1000], [1000, 2000, 1000, 1000]]
     )
@@ -480,7 +453,7 @@ def test_process_central_bin_non_monotonic(reliability_table_agg):
     expected_bin_coord_bounds = np.array(
         [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
     )
-    reliability_table_agg.data[1] = np.array(
+    reliability_table_slice.data = np.array(
         [
             [0, 500, 250, 750, 1000],  # Observation count
             [0, 250, 500, 750, 1000],  # Sum of forecast probability
@@ -488,19 +461,13 @@ def test_process_central_bin_non_monotonic(reliability_table_agg):
         ]
     )
 
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, expected_data)
-    assert_allclose(
-        result[1].coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
+    assert_array_equal(result.data, expected_data)
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
-def test_process_upper_bins_non_monotonic(reliability_table_agg):
+def test_emcam_upper_bins_non_monotonic(reliability_table_slice):
     """Test expected values are returned where the upper observation
     count bins are non-monotonic."""
     expected_data = np.array(
@@ -510,7 +477,7 @@ def test_process_upper_bins_non_monotonic(reliability_table_agg):
     expected_bin_coord_bounds = np.array(
         [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
     )
-    reliability_table_agg.data[1] = np.array(
+    reliability_table_slice.data = np.array(
         [
             [0, 1000, 750, 500, 250],  # Observation count
             [0, 250, 500, 750, 1000],  # Sum of forecast probability
@@ -518,19 +485,13 @@ def test_process_upper_bins_non_monotonic(reliability_table_agg):
         ]
     )
 
-    result = Plugin().process(reliability_table_agg.copy())
-    assert_array_equal(result[0].data, reliability_table_agg[0].data)
-    assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, expected_data)
-    assert_allclose(
-        result[1].coord("probability_bin").points, expected_bin_coord_points
-    )
-    assert_allclose(
-        result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
-    )
+    result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
+    assert_array_equal(result.data, expected_data)
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
 
 
-def test_process_lowest_bin_non_monotonic(reliability_table_agg):
+def test_emcam_lowest_bin_non_monotonic(reliability_table_slice):
     """Test expected values are returned where the lowest observation
     count bin is non-monotonic."""
     expected_data = np.array(
@@ -543,20 +504,72 @@ def test_process_lowest_bin_non_monotonic(reliability_table_agg):
         [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
     )
 
-    reliability_table_agg.data[1] = np.array(
+    reliability_table_slice.data = np.array(
         [
             [1000, 0, 250, 500, 750],  # Observation count
             [0, 250, 500, 750, 1000],  # Sum of forecast probability
             [1000, 1000, 1000, 1000, 1000],  # Forecast count
         ]
     )
+    result = Plugin()._enforce_min_count_and_montonicity(reliability_table_slice.copy())
+    assert_array_equal(result.data, expected_data)
+    assert_allclose(result.coord("probability_bin").points, expected_bin_coord_points)
+    assert_allclose(result.coord("probability_bin").bounds, expected_bin_coord_bounds)
+
+
+def test_process_no_change_agg(reliability_table_agg):
+    """Test with no changes required to preserve monotonicity."""
     result = Plugin().process(reliability_table_agg.copy())
     assert_array_equal(result[0].data, reliability_table_agg[0].data)
     assert result[0].coords() == reliability_table_agg[0].coords()
-    assert_array_equal(result[1].data, expected_data)
+    assert_array_equal(result[1].data, reliability_table_agg[1].data)
+    assert result[1].coords() == reliability_table_agg[1].coords()
+
+
+def test_process_no_change_point(create_rel_tables_point):
+    """Test with no changes required to preserve monotonicity. Parameterized
+    using `create_rel_tables` fixture."""
+    rel_table = create_rel_tables_point.table
+    result = Plugin(point_by_point=True).process(rel_table.copy())
+
+    assert all(len(result_list) == 9 for result_list in result)
+    expected = rel_table.data[create_rel_tables_point.indices0]
+    assert all([np.array_equal(cube.data, expected) for cube in result[0]])
+
+    coords_exclude = ["latitude", "longitude", "spot_index", "wmo_id"]
+    coords_table = [c for c in rel_table[0].coords() if c.name() not in coords_exclude]
+    # Ensure coords are in the same order
+    coords_result = [result[0][0].coords(c.name())[0] for c in coords_table]
+    assert coords_table == coords_result
+
+
+def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
+    """Test expected values are returned when one slice contains a bin that is
+    below the minimum forecast count, whilst the observed frequency is
+    non-monotonic. Test that remaining data, which requires no change, is not
+    changed. Parameterized using `create_rel_tables` fixture."""
+    expected_data = np.array([[1000, 425, 1000], [1000, 425, 1000], [2000, 600, 1000]])
+    expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
+    expected_bin_coord_bounds = np.array(
+        [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+    )
+    rel_table = create_rel_tables_point.table
+    rel_table.data[create_rel_tables_point.indices0] = np.array(
+        [
+            [750, 250, 50, 375, 1000],  # Observation count
+            [750, 250, 50, 375, 1000],  # Sum of forecast probability
+            [1000, 1000, 100, 500, 1000],  # Forecast count
+        ]
+    )
+
+    result = Plugin(point_by_point=True).process(rel_table.copy())
+    assert_array_equal(result[0][0].data, expected_data)
     assert_allclose(
-        result[1].coord("probability_bin").points, expected_bin_coord_points
+        result[0][0].coord("probability_bin").points, expected_bin_coord_points
     )
     assert_allclose(
-        result[1].coord("probability_bin").bounds, expected_bin_coord_bounds
+        result[0][0].coord("probability_bin").bounds, expected_bin_coord_bounds
     )
+    # Check the unchanged data remains unchanged
+    expected = rel_table.data[create_rel_tables_point.indices1]
+    assert all([np.array_equal(cube.data, expected) for cube in result[0][1:]])

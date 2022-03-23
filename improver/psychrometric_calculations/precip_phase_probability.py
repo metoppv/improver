@@ -103,7 +103,7 @@ class PrecipPhaseProbability(BasePlugin):
         if len(cubes) != 2:
             raise ValueError(f"Expected 2 cubes, found {len(cubes)}")
 
-        if not spatial_coords_match(cubes[0], cubes[1]):
+        if not spatial_coords_match(cubes):
             raise ValueError(
                 "Spatial coords mismatch between " f"{cubes[0]} and " f"{cubes[1]}"
             )

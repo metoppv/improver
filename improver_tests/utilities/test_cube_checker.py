@@ -249,14 +249,24 @@ class Test_spatial_coords_match(IrisTest):
             data_b, "precipitation_amount", "kg m^-2", "equalarea",
         )
 
-    def test_basic(self):
+    def test_single_cube(self):
+        """Test that True is returned if a single cube is provided as input."""
+        result = spatial_coords_match([self.cube_a])
+        self.assertTrue(result)
+
+    def test_matching(self):
         """Test bool return when given one cube twice."""
-        result = spatial_coords_match(self.cube_a, self.cube_a)
+        result = spatial_coords_match([self.cube_a, self.cube_a])
+        self.assertTrue(result)
+
+    def test_matching_multiple(self):
+        """Test when given more than two cubes to test, these matching."""
+        result = spatial_coords_match([self.cube_a, self.cube_a, self.cube_a])
         self.assertTrue(result)
 
     def test_copy(self):
         """Test when given one cube copied."""
-        result = spatial_coords_match(self.cube_a, self.cube_a.copy())
+        result = spatial_coords_match([self.cube_a, self.cube_a.copy()])
         self.assertTrue(result)
 
     def test_other_coord_diffs(self):
@@ -264,7 +274,7 @@ class Test_spatial_coords_match(IrisTest):
         cube_c = self.cube_a.copy()
         r_coord = cube_c.coord("realization")
         r_coord.points = [r * 2 for r in r_coord.points]
-        result = spatial_coords_match(self.cube_a, cube_c)
+        result = spatial_coords_match([self.cube_a, cube_c])
         self.assertTrue(result)
 
     def test_other_coord_bigger_diffs(self):
@@ -276,28 +286,35 @@ class Test_spatial_coords_match(IrisTest):
         )
         r_coord = cube_c.coord("realization")
         r_coord.points = [r * 2 for r in r_coord.points]
-        result = spatial_coords_match(self.cube_a, cube_c)
+        result = spatial_coords_match([self.cube_a, cube_c])
         self.assertTrue(result)
 
     def test_unmatching(self):
         """Test when given two spatially different cubes of same resolution."""
-        result = spatial_coords_match(self.cube_a, self.cube_b)
+        result = spatial_coords_match([self.cube_a, self.cube_b])
+        self.assertFalse(result)
+
+    def test_unmatching_multiple(self):
+        """Test when given more than two cubes to test, these unmatching."""
+        result = spatial_coords_match([self.cube_a, self.cube_b, self.cube_a])
         self.assertFalse(result)
 
     def test_unmatching_x(self):
-        """Test when given two spatially different cubes of same length."""
+        """Test when given two cubes of the same shape, but with differing
+        x coordinate values."""
         cube_c = self.cube_a.copy()
         x_coord = cube_c.coord(axis="x")
         x_coord.points = [x * 2.0 for x in x_coord.points]
-        result = spatial_coords_match(self.cube_a, cube_c)
+        result = spatial_coords_match([self.cube_a, cube_c])
         self.assertFalse(result)
 
     def test_unmatching_y(self):
-        """Test when given two spatially different cubes of same length."""
+        """Test when given two cubes of the same shape, but with differing
+        y coordinate values."""
         cube_c = self.cube_a.copy()
         y_coord = cube_c.coord(axis="y")
         y_coord.points = [y * 1.01 for y in y_coord.points]
-        result = spatial_coords_match(self.cube_a, cube_c)
+        result = spatial_coords_match([self.cube_a, cube_c])
         self.assertFalse(result)
 
 
