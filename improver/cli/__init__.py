@@ -335,7 +335,7 @@ def with_output(
     wrapped,
     *args,
     output=None,
-    tee=False,
+    pass_through_output=False,
     compression_level=1,
     least_significant_digit: int = None,
     **kwargs,
@@ -357,7 +357,7 @@ def with_output(
         output (str, optional):
             Output file name. If not supplied, the output object will be
             printed instead.
-        tee (bool):
+        pass_through_output (bool):
             Pass through the output object even if saved to file.
             Used in pipelines of commands if intermediate output needs to be saved.
         compression_level (int):
@@ -378,7 +378,7 @@ def with_output(
 
     if output and result:
         save_netcdf(result, output, compression_level, least_significant_digit)
-        if tee:
+        if pass_through_output:
             return ObjectAsStr(result, output)
         return
     return result
