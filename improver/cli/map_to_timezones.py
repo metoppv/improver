@@ -30,6 +30,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to map multiple forecast times into a local time grid"""
+import os
 
 from improver import cli
 
@@ -46,7 +47,9 @@ def process(
             The "local" time of the output cube as %Y%m%dT%H%M. This will form a
             scalar "time_in_local_timezone" coord on the output cube, while the "time"
             coord will be auxillary to the spatial coords and will show the UTC time
-            that matches the local_time at each point.
+            that matches the local_time at each point.  This can also be provided in
+            the form of a filepath where the 'local_time' is denoted in this format
+            at the beginning of the basename.
         cubes (list of iris.cube.Cube):
             Source data to be remapped onto time-zones. Must contain an exact 1-to-1
             mapping of times to time-zones. Multiple input files will be merged into one
@@ -67,5 +70,6 @@ def process(
     timezone_cube = cubes[-1]
     cubes = cubes[:-1]
 
+    local_time = os.path.basename(local_time)[:13]
     local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
     return TimezoneExtraction()(cubes, timezone_cube, local_datetime)
