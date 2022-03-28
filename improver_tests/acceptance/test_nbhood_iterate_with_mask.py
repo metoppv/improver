@@ -54,8 +54,6 @@ def test_basic(tmp_path):
         mask_path,
         "--coord-for-masking",
         "topographic_zone",
-        "--neighbourhood-shape",
-        "square",
         "--radii",
         "20000",
         "--output",

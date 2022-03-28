@@ -42,7 +42,7 @@ def process(
     mask: cli.inputcube = None,
     *,
     neighbourhood_output,
-    neighbourhood_shape,
+    neighbourhood_shape="square",
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     degrees_as_complex=False,
@@ -76,6 +76,7 @@ def process(
             neighbourhood shape is applicable for calculating "percentiles"
             output.
             Options: "circular", "square".
+            Default: "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to
             apply.

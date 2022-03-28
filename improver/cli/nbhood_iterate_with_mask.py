@@ -43,7 +43,7 @@ def process(
     weights: cli.inputcube = None,
     *,
     coord_for_masking,
-    neighbourhood_shape,
+    neighbourhood_shape="square",
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
@@ -76,6 +76,7 @@ def process(
         neighbourhood_shape (str):
             Name of the neighbourhood method to use.
             Options: "circular", "square".
+            Default: "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to
             apply.
