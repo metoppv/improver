@@ -676,5 +676,7 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period
     )
+    forecast_cube.attributes["cube_type"] = "forecast"
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
+    truth_cube.attributes["cube_type"] = "observations"
     return forecast_cube, truth_cube
