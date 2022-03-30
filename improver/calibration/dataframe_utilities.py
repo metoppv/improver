@@ -577,16 +577,7 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
             time_bounds = [adate - period, adate]
 
         time_coord = _define_time_coord(adate, time_bounds)
-        height_coord = _define_height_coord(time_df["height"].values[0])
-
-        frt_coord = AuxCoord(
-            np.array(
-                time_df["forecast_reference_time"].values[0].timestamp(),
-                dtype=TIME_COORDS["forecast_reference_time"].dtype,
-            ),
-            "forecast_reference_time",
-            units=TIME_COORDS["forecast_reference_time"].units,
-        )        
+        height_coord = _define_height_coord(time_df["height"].values[0]) 
 
         if VAR_TYPE == "threshold":
             for var_val in sorted(df[VAR_TYPE].unique()):
