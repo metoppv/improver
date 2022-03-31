@@ -90,6 +90,8 @@ class SetupSharedDataFrames(ImproverTest):
 
         self.wmo_ids = ["03002", "03003", "03004"]
         self.percentiles = np.array([25.0, 50.0, 75.0], dtype=np.float32)
+        self.realizations = np.array([0, 1, 2], dtype=np.int32)
+        self.thresholds = np.array([0, 0.2, 0.5], dtype=np.float32)
         diag = "air_temperature"
         self.cf_name = "air_temperature"
         self.latitudes = np.array([50.0, 60.0, 70.0], dtype=np.float32)
@@ -120,6 +122,14 @@ class SetupSharedDataFrames(ImproverTest):
         }
 
         self.forecast_df = pd.DataFrame(df_dict)
+        threshold_df = self.forecast_df.drop(columns=["percentile"])
+        threshold_df["threshold"] = np.tile(np.repeat(self.thresholds, 3), 3)
+        threshold_df["forecast"] = threshold_df["forecast"] / threshold_df["forecast"].max()
+        self.forecast_df_threshold = threshold_df
+
+        realization_df = self.forecast_df.drop(columns=["percentile"])
+        realization_df["realization"] = np.tile(np.repeat(self.realizations, 3), 3)
+        self.forecast_df_realization = realization_df
 
         data = np.array([6.8, 2.7, 21.2], dtype=np.float32)
         self.truth_data = np.tile(data, 3)
@@ -232,6 +242,13 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
                 cubes.append(cube)
 
         self.expected_period_forecast = cubes.merge_cube()
+        self.expected_period_forecast.attributes["cube_type"] = "forecast"
+        threshold_fc = self.expected_period_forecast.copy()
+        threshold_fc.coord("realization").rename("threshold")
+        threshold_fc.coord("threshold").units = 1
+        threshold_fc.coord("threshold").points = self.thresholds
+        threshold_fc.data = threshold_fc.data / np.max(threshold_fc.data)
+        self.expected_period_forecast_threshold = threshold_fc
         self.expected_instantaneous_forecast = self.expected_period_forecast.copy()
         for coord in ["forecast_period", "time"]:
             self.expected_instantaneous_forecast.coord(coord).bounds = None
@@ -271,9 +288,24 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
                     scalar_coords=[time_coord, self.height_coord],
                 )
             )
+
         self.expected_period_truth = cubes.merge_cube()
+        self.expected_period_truth.attributes["cube_type"] = "observations"
         self.expected_instantaneous_truth = self.expected_period_truth.copy()
         self.expected_instantaneous_truth.coord("time").bounds = None
+
+        threshold_cubes = iris.cube.CubeList()
+        for threshold in self.thresholds:
+            threshold_cube = self.expected_period_truth.copy()
+            threshold_cube.data = (threshold_cube.data > threshold).astype(np.int32)
+            threshold_coord = iris.coords.DimCoord(
+                np.float32(threshold), long_name="threshold", units=1
+            )
+            threshold_cube.add_aux_coord(threshold_coord)
+            threshold_cubes.append(threshold_cube)
+        
+        self.expected_period_truth_threshold = threshold_cubes.merge_cube()
+
 
 
 class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
@@ -388,6 +420,33 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test the expected cubes are generated from the input dataframes."""
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+
+    def test_threshold(self):
+        """Test the expected threshold cubes are generated from the input dataframes."""
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_threshold,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast_threshold)
+        self.assertCubeEqual(result[1], self.expected_period_truth_threshold)
+
+    def test_realization(self):
+        """Test the expected realization cubes are generated from the input dataframes."""
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_realization,
             self.truth_subset_df,
             self.cycletime,
             self.forecast_period,

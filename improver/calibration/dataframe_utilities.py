@@ -39,6 +39,7 @@ into an iris cube.
 """
 from heapq import merge
 from typing import List, Optional, Sequence, Tuple
+from matplotlib.pyplot import get
 
 import numpy as np
 import pandas as pd
@@ -59,9 +60,6 @@ ALT_PERCENTILE_COLUMNS = [
     "realization",
     "threshold",
 ]
-
-# set a default
-VAR_TYPE = None
 
 FORECAST_DATAFRAME_COLUMNS = [
     "altitude",
@@ -270,6 +268,41 @@ def _training_dates_for_calibration(
     )
 
 
+def get_var_type(df: DataFrame) -> str:
+    """Check which of ALT_PERCENTILE_COLUMNS exists in the dataframe.
+    
+    Args:
+        df:
+            DataFrame expected to contain exactly one of ALT_PERCENTILE_COLUMNS.
+    
+    Returns:
+        var_type:
+            The member of ALT_PERCENTILE_COLUMNS found in the dataframe columns.
+
+    Raises:
+        ValueError:
+            If none of the allowed columns are present, or more than one is present.
+    """
+    var_type = None
+    for variable in ALT_PERCENTILE_COLUMNS:
+        try:
+            df[variable]
+            if var_type is not None:
+                msg = (f"More than one column of {ALT_PERCENTILE_COLUMNS} exists in the input dataset")
+                raise ValueError(msg)
+            var_type = variable
+        except:
+            continue
+
+    # check if one of the data-columns was found
+    if var_type is None:
+        msg = (
+            f"None of the columns {ALT_PERCENTILE_COLUMNS} exists in the input dataset"
+        )
+        raise ValueError(msg)
+
+    return var_type
+
 def _prepare_dataframes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
@@ -309,26 +342,10 @@ def _prepare_dataframes(
         A sanitised version of the forecasts and truth dataframes that
         are ready for conversion to cubes.
     """
-    global VAR_TYPE
-    # AS: modify the FORECAST_DATAFRAME_COLUMNS based on one of three
-    # AS: ensure this fails if none of the 3 alternatives are presnet
-    for variable in ALT_PERCENTILE_COLUMNS:
-        try:
-            forecast_df[variable]
-            FORECAST_DATAFRAME_COLUMNS.append(variable)
-            FORECAST_DATAFRAME_COLUMNS.sort()
-            VAR_TYPE = variable
-        except:
-            continue
 
-    # check if one of the data-columns was found
-    if VAR_TYPE is None:
-        msg = (
-            f"VAR_TYPE did not get set, ensure one of the colums {ALT_PERCENTILE_COLUMNS} exists in the input dataset"
-        )
-        raise ValueError(msg)
+    var_type = get_var_type(forecast_df)
 
-    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
+    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS + [var_type])
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
 
     # Filter to select only one experiment
@@ -349,15 +366,15 @@ def _prepare_dataframes(
         forecast_df = forecast_df[np.logical_or.reduce(indices)]
 
     if var_subset:
-        indices = [np.isclose(forecast_df[VAR_TYPE], float(p)) for p in var_subset]
+        indices = [np.isclose(forecast_df[var_type], float(p)) for p in var_subset]
         forecast_df = forecast_df[np.logical_or.reduce(indices)]
 
     # Check the percentiles can be considered to be equally space quantiles.
-    if VAR_TYPE == "percentile":
+    if var_type == "percentile":
         _quantile_check(forecast_df)
 
     # Remove forecast duplicates.
-    forecast_cols = ["diagnostic", "forecast_period", VAR_TYPE, "time", "wmo_id"]
+    forecast_cols = ["diagnostic", "forecast_period", var_type, "time", "wmo_id"]
     if "station_id" in forecast_df.columns:
         forecast_cols.append("station_id")
     forecast_df = forecast_df.drop_duplicates(
@@ -365,7 +382,7 @@ def _prepare_dataframes(
         keep="last",
     )
     # Sort to ensure a consistent ordering after removing duplicates.
-    sort_cols = ["blend_time", VAR_TYPE, "wmo_id"]
+    sort_cols = ["blend_time", var_type, "wmo_id"]
     if "station_id" in forecast_df:
         sort_cols.append("station_id")
     forecast_df.sort_values(
@@ -418,7 +435,7 @@ def _prepare_dataframes(
         ]
     if "station_id" in forecast_df.columns:
         subset_cols.append("station_id")
-    if VAR_TYPE == "threshold":
+    if var_type == "threshold":
         subset_cols.append("threshold")
     forecast_subset = forecast_df[subset_cols].drop_duplicates()
 
@@ -455,7 +472,17 @@ def forecast_dataframe_to_cube(
     """
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
-    cubelist = CubeList()
+    cube_list_2d = []
+
+    var_type = get_var_type(df)
+    if var_type == "percentile":
+        unit = "%"
+    else:
+        unit = '1'
+    if var_type == "realization":
+        datatype = np.int32
+    else:
+        datatype = np.float32
 
     for adate in training_dates:
         time_df = df.loc[(df["time"] == adate) & (df["forecast_period"] == fp_point)]
@@ -502,18 +529,14 @@ def forecast_dataframe_to_cube(
             units=TIME_COORDS["forecast_reference_time"].units,
         )
 
-        # what do units become for different things? 
-        if VAR_TYPE == "percentile":
-            unit = "%"
-        else:
-            unit = '1'
-
-        var_cubelist = CubeList()
-        for var_val in sorted(df[VAR_TYPE].unique()):
+        var_cubelist = []
+        for var_val in sorted(time_df[var_type].unique()):
             var_coord = DimCoord(
-                np.float32(var_val), long_name=VAR_TYPE, units=unit
+                datatype(var_val), long_name=var_type, units=unit
             )
-            var_df = time_df.loc[time_df[VAR_TYPE] == var_val]
+            # rename so that we populate the standard name if possible
+            var_coord.rename(var_type)
+            var_df = time_df.loc[time_df[var_type] == var_val]
             cube = build_spotdata_cube(
                 var_df["forecast"].astype(np.float32),
                 var_df["cf_name"].values[0],
@@ -524,26 +547,32 @@ def forecast_dataframe_to_cube(
                 var_df["wmo_id"].values.astype("U5"),
                 scalar_coords=[
                     time_coord,
-                    fp_coord,
-                    var_coord,
                     frt_coord,
+                    fp_coord,
+                    var_coord,                      
                     height_coord,
                 ],
             )
             var_cubelist.append(cube)
-        cube = var_cubelist.merge_cube()
-        cubelist.append(cube)
+        cube_list_2d.append(var_cubelist)
 
-    if not cubelist:
+
+    if not cube_list_2d:
         return
-    cube = cubelist.merge_cube()
-    if VAR_TYPE == "percentile":
+    time_list = CubeList()
+    for var_list in zip(*cube_list_2d):
+        var_cube = CubeList(list(var_list)).merge_cube()
+        time_list.append(var_cube)
+    cube = time_list.merge_cube()
+
+    cube.attributes["cube_type"] = "forecast"
+    if var_type == "percentile":
         return RebadgePercentilesAsRealizations()(cube)
     else:
         return cube
 
 
-def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
+def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex, var_type: str = "percentile") -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
     Args:
@@ -553,7 +582,8 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
             height, period and units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
-
+        var_type:
+            One of ALT_PERCENTILE_COLUMNS
     Returns:
         Cube containing the truths from the training period.
     """
@@ -579,14 +609,14 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
         time_coord = _define_time_coord(adate, time_bounds)
         height_coord = _define_height_coord(time_df["height"].values[0]) 
 
-        if VAR_TYPE == "threshold":
-            for var_val in sorted(df[VAR_TYPE].unique()):
+        if var_type == "threshold":
+            for var_val in sorted(df[var_type].unique()):
                 var_coord = DimCoord(
-                    np.float32(var_val), long_name=VAR_TYPE, units=1
+                    np.float32(var_val), long_name=var_type, units=1
                 )
-                var_df = time_df.loc[time_df[VAR_TYPE] == var_val]
+                var_df = time_df.loc[time_df[var_type] == var_val]
                 cube = build_spotdata_cube(
-                    var_df["ob_value"].astype(np.float32),
+                    (var_df["ob_value"] > var_val).astype(np.int32),
                     var_df["cf_name"].values[0],
                     var_df["units"].values[0],
                     var_df["altitude"].astype(np.float32),
@@ -608,10 +638,13 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
                 scalar_coords=[time_coord, height_coord],
             )
             cubelist.append(cube)
-
+    
     if not cubelist:
         return
-    return cubelist.merge_cube()
+
+    cube = cubelist.merge_cube()
+    cube.attributes["cube_type"] = "observations"
+    return cube
 
 
 def forecast_and_truth_dataframes_to_cubes(
@@ -667,7 +700,6 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period
     )
-    forecast_cube.attributes["cube_type"] = "forecast"
-    truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
-    truth_cube.attributes["cube_type"] = "observations"
+    var_type = get_var_type(forecast_df)
+    truth_cube = truth_dataframe_to_cube(truth_df, training_dates, var_type)
     return forecast_cube, truth_cube
