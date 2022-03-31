@@ -37,24 +37,19 @@ into an iris cube.
 
 
 """
-from heapq import merge
 from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
 import pandas as pd
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
-from matplotlib.pyplot import get
 from pandas.core.frame import DataFrame
 from pandas.core.indexes.datetimes import DatetimeIndex
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
 )
-from improver.ensemble_copula_coupling.utilities import (
-    choose_set_of_percentiles,
-    create_cube_with_percentiles,
-)
+from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
@@ -273,11 +268,11 @@ def _training_dates_for_calibration(
 
 def get_var_type(df: DataFrame) -> str:
     """Check which of ALT_PERCENTILE_COLUMNS exists in the dataframe.
-    
+
     Args:
         df:
             DataFrame expected to contain exactly one of ALT_PERCENTILE_COLUMNS.
-    
+
     Returns:
         var_type:
             The member of ALT_PERCENTILE_COLUMNS found in the dataframe columns.
@@ -290,7 +285,10 @@ def get_var_type(df: DataFrame) -> str:
     for variable in ALT_PERCENTILE_COLUMNS:
         if variable in df.columns:
             if var_type is not None:
-                msg = f"More than one column of {ALT_PERCENTILE_COLUMNS} exists in the input dataset"
+                msg = (
+                    f"More than one column of {ALT_PERCENTILE_COLUMNS} "
+                    "exists in the input dataset"
+                )
                 raise ValueError(msg)
             var_type = variable
         else:
@@ -299,7 +297,8 @@ def get_var_type(df: DataFrame) -> str:
     # check if one of the data-columns was found
     if var_type is None:
         msg = (
-            f"None of the columns {ALT_PERCENTILE_COLUMNS} exists in the input dataset"
+            f"None of the columns {ALT_PERCENTILE_COLUMNS} "
+            "exists in the input dataset"
         )
         raise ValueError(msg)
 
@@ -460,8 +459,9 @@ def forecast_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile (or realization/probability), diagnostic, latitude, longitude, period,
-            height, cf_name, units. Any other columns are ignored.
+            wmo_id, percentile (or realization/probability), diagnostic,
+            latitude, longitude, period, height, cf_name, units. Any other
+            columns are ignored.
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
@@ -677,7 +677,7 @@ def forecast_and_truth_dataframes_to_cubes(
             The set of percentiles to be used for estimating EMOS coefficients.
             These should be a set of equally spaced quantiles.
         var_subset:
-            The set of realizations/probailities used 
+            The set of realizations/probailities used
         experiment:
             A value within the experiment column to select from the forecast
             table.
