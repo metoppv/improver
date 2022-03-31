@@ -124,7 +124,9 @@ class SetupSharedDataFrames(ImproverTest):
         self.forecast_df = pd.DataFrame(df_dict)
         threshold_df = self.forecast_df.drop(columns=["percentile"])
         threshold_df["threshold"] = np.tile(np.repeat(self.thresholds, 3), 3)
-        threshold_df["forecast"] = threshold_df["forecast"] / threshold_df["forecast"].max()
+        threshold_df["forecast"] = (
+            threshold_df["forecast"] / threshold_df["forecast"].max()
+        )
         self.forecast_df_threshold = threshold_df
 
         realization_df = self.forecast_df.drop(columns=["percentile"])
@@ -303,9 +305,8 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
             )
             threshold_cube.add_aux_coord(threshold_coord)
             threshold_cubes.append(threshold_cube)
-        
-        self.expected_period_truth_threshold = threshold_cubes.merge_cube()
 
+        self.expected_period_truth_threshold = threshold_cubes.merge_cube()
 
 
 class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
@@ -428,7 +429,6 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
-
 
     def test_threshold(self):
         """Test the expected threshold cubes are generated from the input dataframes."""
