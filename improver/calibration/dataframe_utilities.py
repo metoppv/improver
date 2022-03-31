@@ -288,13 +288,12 @@ def get_var_type(df: DataFrame) -> str:
     """
     var_type = None
     for variable in ALT_PERCENTILE_COLUMNS:
-        try:
-            df[variable]
+        if variable in df.columns:
             if var_type is not None:
                 msg = f"More than one column of {ALT_PERCENTILE_COLUMNS} exists in the input dataset"
                 raise ValueError(msg)
             var_type = variable
-        except:
+        else:
             continue
 
     # check if one of the data-columns was found
