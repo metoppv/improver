@@ -483,7 +483,34 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.forecast_period,
                 self.training_length,
             )
-        
+
+    def test_station_id(self):
+        """Test the expected cubes are generated from the input dataframes
+        when inputs contain station_id."""
+        forecast_df = self.forecast_df.copy()
+        forecast_df = forecast_df.loc[forecast_df["wmo_id"].isin(self.wmo_ids[:-1])]
+        forecast_df["station_id"] = forecast_df["wmo_id"].copy()
+        truth_df = self.truth_subset_df.copy()
+        truth_df = truth_df.loc[truth_df["wmo_id"].isin(self.wmo_ids[1:])]
+        truth_df["station_id"] = truth_df["wmo_id"].copy()
+        site_id_values = np.array([0], dtype=np.int32)
+        expected_forecast = self.expected_period_forecast[:, :, [1]].copy()
+        expected_forecast.coord("spot_index").points = site_id_values
+        expected_truth = self.expected_period_truth[:, [1]].copy()
+        expected_truth.coord("spot_index").points = site_id_values
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        print(result[0].coords("spot_index"))
+        print(expected_forecast.coords("spot_index"))
+        self.assertCubeEqual(result[0], expected_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
+
     def test_multiday_forecast_period(self):
         """Test for a multi-day forecast period to ensure that the
         validity times within the training dataset are always in

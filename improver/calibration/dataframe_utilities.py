@@ -397,7 +397,7 @@ def _prepare_dataframes(
     truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
     if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):
-        # Find the common set of WMO IDs.
+        # Find the common set of station ids.
         common_station_ids = sorted(
             set(forecast_df["station_id"].unique()).intersection(
                 truth_df["station_id"].unique()
