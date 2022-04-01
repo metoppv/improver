@@ -483,8 +483,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
                 self.forecast_period,
                 self.training_length,
             )
-
-
+        
     def test_multiday_forecast_period(self):
         """Test for a multi-day forecast period to ensure that the
         validity times within the training dataset are always in

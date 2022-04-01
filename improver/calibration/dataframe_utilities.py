@@ -309,7 +309,6 @@ def _prepare_dataframes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
     percentiles: Optional[List[float]] = None,
-    var_subset: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare dataframes for conversion to cubes by: 1) checking
@@ -334,8 +333,6 @@ def _prepare_dataframes(
             Any other columns are ignored.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
-        var_subet:
-            The set of realizations/probabilites to be used
         experiment:
             A value within the experiment column to select from the forecast
             table.
@@ -365,10 +362,6 @@ def _prepare_dataframes(
     # Extract the required percentiles.
     if percentiles:
         indices = [np.isclose(forecast_df["percentile"], float(p)) for p in percentiles]
-        forecast_df = forecast_df[np.logical_or.reduce(indices)]
-
-    if var_subset:
-        indices = [np.isclose(forecast_df[var_type], float(p)) for p in var_subset]
         forecast_df = forecast_df[np.logical_or.reduce(indices)]
 
     # Check the percentiles can be considered to be equally space quantiles.
