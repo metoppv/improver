@@ -456,6 +456,35 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
+    def test_error_column_missing(self):
+        """Test that an error is raised if dataframe does not contain one of
+        ALT_PERCENTILE_COLUMNS."""
+        msg = "None of the columns"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                self.forecast_df.drop(columns=["percentile"]),
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_error_multiple_columns(self):
+        """Test that an error is raised if dataframe contains more than one of
+        ALT_PERCENTILE_COLUMNS."""
+        msg = "More than one column"
+        df = self.forecast_df.copy()
+        df["realization"] = 0
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                df,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+
     def test_multiday_forecast_period(self):
         """Test for a multi-day forecast period to ensure that the
         validity times within the training dataset are always in
