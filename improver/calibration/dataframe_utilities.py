@@ -554,6 +554,7 @@ def forecast_dataframe_to_cube(
             var_cubelist.append(cube)
         cube_list_2d.append(var_cubelist)
 
+    # merge the cubes in two steps, otherwise frt_coord does not merge correctly
     if not cube_list_2d:
         return
     time_list = CubeList()
