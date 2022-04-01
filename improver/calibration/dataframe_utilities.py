@@ -652,7 +652,6 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_period: int,
     training_length: int,
     percentiles: Optional[List[float]] = None,
-    var_subset: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
@@ -677,8 +676,6 @@ def forecast_and_truth_dataframes_to_cubes(
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
             These should be a set of equally spaced quantiles.
-        var_subset:
-            The set of realizations/probailities used
         experiment:
             A value within the experiment column to select from the forecast
             table.
