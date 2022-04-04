@@ -244,7 +244,6 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
                 cubes.append(cube)
 
         self.expected_period_forecast = cubes.merge_cube()
-        self.expected_period_forecast.attributes["cube_type"] = "forecast"
         threshold_fc = self.expected_period_forecast.copy()
         threshold_fc.coord("realization").rename("threshold")
         threshold_fc.coord("threshold").units = 1
@@ -292,7 +291,6 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
             )
 
         self.expected_period_truth = cubes.merge_cube()
-        self.expected_period_truth.attributes["cube_type"] = "observations"
         self.expected_instantaneous_truth = self.expected_period_truth.copy()
         self.expected_instantaneous_truth.coord("time").bounds = None
 

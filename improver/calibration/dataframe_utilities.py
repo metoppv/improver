@@ -556,7 +556,6 @@ def forecast_dataframe_to_cube(
         time_list.append(var_cube)
     cube = time_list.merge_cube()
 
-    cube.attributes["cube_type"] = "forecast"
     if var_type == "percentile":
         return RebadgePercentilesAsRealizations()(cube)
     else:
@@ -634,7 +633,6 @@ def truth_dataframe_to_cube(
         return
 
     cube = cubelist.merge_cube()
-    cube.attributes["cube_type"] = "observations"
     return cube
 
 
