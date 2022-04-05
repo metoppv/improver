@@ -465,7 +465,7 @@ def forecast_dataframe_to_cube(
     """
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
-    cube_list_2d = []
+    cubelist = CubeList()
 
     var_type = get_var_type(df)
     if var_type == "percentile":
@@ -522,7 +522,6 @@ def forecast_dataframe_to_cube(
             units=TIME_COORDS["forecast_reference_time"].units,
         )
 
-        var_cubelist = []
         for var_val in sorted(time_df[var_type].unique()):
             var_coord = DimCoord(datatype(var_val), long_name=var_type, units=unit)
             # rename so that we populate the standard name if possible
@@ -544,17 +543,11 @@ def forecast_dataframe_to_cube(
                     height_coord,
                 ],
             )
-            var_cubelist.append(cube)
-        cube_list_2d.append(var_cubelist)
+            cubelist.append(cube)
 
-    # merge the cubes in two steps, otherwise frt_coord does not merge correctly
-    if not cube_list_2d:
+    if not cubelist:
         return
-    time_list = CubeList()
-    for var_list in zip(*cube_list_2d):
-        var_cube = CubeList(list(var_list)).merge_cube()
-        time_list.append(var_cube)
-    cube = time_list.merge_cube()
+    cube = cubelist.merge_cube()
 
     if var_type == "percentile":
         return RebadgePercentilesAsRealizations()(cube)
