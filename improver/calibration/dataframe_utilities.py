@@ -53,7 +53,7 @@ from improver.ensemble_copula_coupling.utilities import choose_set_of_percentile
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
-ALT_PERCENTILE_COLUMNS = [
+REPRESENTATION_COLUMNS = [
     "percentile",
     "realization",
     "threshold",
@@ -266,39 +266,38 @@ def _training_dates_for_calibration(
     )
 
 
-def get_var_type(df: DataFrame) -> str:
-    """Check which of ALT_PERCENTILE_COLUMNS exists in the dataframe.
+def get_forecast_representation(df: DataFrame) -> str:
+    """Check which of REPRESENTATION_COLUMNS (percentile, threshold, or realization) 
+    exists in the dataframe.
 
     Args:
         df:
-            DataFrame expected to contain exactly one of ALT_PERCENTILE_COLUMNS.
+            DataFrame expected to contain exactly one of REPRESENTATION_COLUMNS.
 
     Returns:
         var_type:
-            The member of ALT_PERCENTILE_COLUMNS found in the dataframe columns.
+            The member of REPRESENTATION_COLUMNS found in the dataframe columns.
 
     Raises:
         ValueError:
             If none of the allowed columns are present, or more than one is present.
     """
     var_type = None
-    for variable in ALT_PERCENTILE_COLUMNS:
+    for variable in REPRESENTATION_COLUMNS:
         if variable in df.columns:
             if var_type is not None:
                 msg = (
-                    f"More than one column of {ALT_PERCENTILE_COLUMNS} "
+                    f"More than one column of {REPRESENTATION_COLUMNS} "
                     "exists in the input dataset"
                 )
                 raise ValueError(msg)
             var_type = variable
-        else:
-            continue
 
     # check if one of the data-columns was found
     if var_type is None:
         msg = (
-            f"None of the columns {ALT_PERCENTILE_COLUMNS} "
-            "exists in the input dataset"
+            f"None of the columns {REPRESENTATION_COLUMNS} "
+            "exist in the input dataset"
         )
         raise ValueError(msg)
 
@@ -342,7 +341,7 @@ def _prepare_dataframes(
         are ready for conversion to cubes.
     """
 
-    var_type = get_var_type(forecast_df)
+    var_type = get_forecast_representation(forecast_df)
 
     _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS + [var_type])
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
@@ -377,8 +376,8 @@ def _prepare_dataframes(
     sort_cols = ["blend_time", var_type, "wmo_id"]
     if "station_id" in forecast_df:
         sort_cols.append("station_id")
-    forecast_df.sort_values(
-        by=sort_cols, inplace=True, ignore_index=True,
+    forecast_df = forecast_df.sort_values(
+        by=sort_cols, ignore_index=True,
     )
 
     # Remove truth duplicates.
@@ -452,7 +451,7 @@ def forecast_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile (or realization/probability), diagnostic,
+            wmo_id, one of percentile, realization or probability, diagnostic,
             latitude, longitude, period, height, cf_name, units. Any other
             columns are ignored.
         training_dates:
@@ -467,15 +466,9 @@ def forecast_dataframe_to_cube(
 
     cubelist = CubeList()
 
-    var_type = get_var_type(df)
-    if var_type == "percentile":
-        unit = "%"
-    else:
-        unit = "1"
-    if var_type == "realization":
-        datatype = np.int32
-    else:
-        datatype = np.float32
+    var_type = get_forecast_representation(df)
+    unit = "%" if var_type == "percentile" else "1" 
+    datatype = np.int32 if var_type == "realization" else np.float32
 
     for adate in training_dates:
         time_df = df.loc[(df["time"] == adate) & (df["forecast_period"] == fp_point)]
@@ -568,7 +561,7 @@ def truth_dataframe_to_cube(
         training_dates:
             Datetimes spanning the training period.
         var_type:
-            One of ALT_PERCENTILE_COLUMNS
+            One of REPRESENTATION_COLUMNS
     Returns:
         Cube containing the truths from the training period.
     """
@@ -595,7 +588,7 @@ def truth_dataframe_to_cube(
         height_coord = _define_height_coord(time_df["height"].values[0])
 
         if var_type == "threshold":
-            for var_val in sorted(df[var_type].unique()):
+            for var_val in sorted(time_df[var_type].unique()):
                 var_coord = DimCoord(np.float32(var_val), long_name=var_type, units=1)
                 var_df = time_df.loc[time_df[var_type] == var_val]
                 cube = build_spotdata_cube(
@@ -625,8 +618,7 @@ def truth_dataframe_to_cube(
     if not cubelist:
         return
 
-    cube = cubelist.merge_cube()
-    return cube
+    return cubelist.merge_cube()
 
 
 def forecast_and_truth_dataframes_to_cubes(
@@ -679,6 +671,6 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period
     )
-    var_type = get_var_type(forecast_df)
+    var_type = get_forecast_representation(forecast_df)
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates, var_type)
     return forecast_cube, truth_cube
