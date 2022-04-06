@@ -69,7 +69,6 @@ class PrecipPhaseProbability(BasePlugin):
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
-        self._nbhood_shape = "circular"
         self.radius = radius
 
     def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
@@ -115,7 +114,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.param = "snow"
             self.comparator = operator.gt
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[80.0]
+                self.radius, percentiles=[80.0]
             )
         else:
             extracted_cube = cubes.extract("altitude_of_rain_falling_level")
@@ -130,7 +129,7 @@ class PrecipPhaseProbability(BasePlugin):
             # We want rain at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[20.0]
+                self.radius, percentiles=[20.0]
             )
 
         orography_name = "surface_altitude"

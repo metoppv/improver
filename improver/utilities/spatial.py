@@ -114,7 +114,7 @@ def calculate_grid_spacing(
 
 def distance_to_number_of_grid_cells(
     cube: Cube, distance: float, axis: str = "x", return_int: bool = True
-) -> float:
+) -> Union[float, int]:
     """
     Return the number of grid cells in the x and y direction based on the
     input distance in metres.  Requires an equal-area grid on which the spacing

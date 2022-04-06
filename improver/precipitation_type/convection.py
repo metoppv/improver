@@ -66,7 +66,7 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         fuzzy_factor: Optional[float] = None,
         comparison_operator: str = ">",
         lead_times: Optional[List[float]] = None,
-        weighted_mode: bool = True,
+        weighted_mode: bool = False,
         use_adjacent_grid_square_differences: bool = True,
     ) -> None:
         """
@@ -189,8 +189,8 @@ class DiagnoseConvectivePrecipitation(BasePlugin):
         # Ignore runtime warnings from divide by 0 errors.
         with np.errstate(invalid="ignore", divide="ignore"):
             convective_ratio = np.divide(
-                neighbourhooded_cube_dict[self.higher_threshold].data,
-                neighbourhooded_cube_dict[self.lower_threshold].data,
+                neighbourhooded_cube_dict[self.higher_threshold].data.data,
+                neighbourhooded_cube_dict[self.lower_threshold].data.data,
             )
 
         infinity_condition = np.sum(np.isinf(convective_ratio)) > 0.0
