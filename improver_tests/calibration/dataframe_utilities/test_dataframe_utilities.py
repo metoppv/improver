@@ -34,6 +34,7 @@ module.
 
 """
 import unittest
+from improver.utilities.probability_manipulation import comparison_operator_dict
 
 import iris
 import numpy as np
@@ -436,6 +437,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             self.cycletime,
             self.forecast_period,
             self.training_length,
+            comparison_operator=">"
         )
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast_threshold)
@@ -456,7 +458,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_error_column_missing(self):
         """Test that an error is raised if dataframe does not contain one of
-        ALT_PERCENTILE_COLUMNS."""
+        REPRESENTATION_COLUMNS."""
         msg = "None of the columns"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
@@ -469,7 +471,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_error_multiple_columns(self):
         """Test that an error is raised if dataframe contains more than one of
-        ALT_PERCENTILE_COLUMNS."""
+        REPRESENTATION_COLUMNS."""
         msg = "More than one column"
         df = self.forecast_df.copy()
         df["realization"] = 0
@@ -504,8 +506,6 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        print(result[0].coords("spot_index"))
-        print(expected_forecast.coords("spot_index"))
         self.assertCubeEqual(result[0], expected_forecast)
         self.assertCubeEqual(result[1], expected_truth)
 
