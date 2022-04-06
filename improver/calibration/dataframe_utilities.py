@@ -323,7 +323,8 @@ def _prepare_dataframes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, altitude,
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold, or 
+            realization), diagnostic, latitude, longitude, altitude,
             period, height, cf_name, units and experiment. Any other
             columns are ignored.
         truth_df:
@@ -451,9 +452,9 @@ def forecast_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, one of percentile, realization or probability, diagnostic,
-            latitude, longitude, period, height, cf_name, units. Any other
-            columns are ignored.
+            wmo_id, REPRESENTATION_COLUMNS (percentile, threshold, or
+            realization), diagnostic, latitude, longitude, period, height,
+            cf_name, units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
@@ -561,7 +562,7 @@ def truth_dataframe_to_cube(
         training_dates:
             Datetimes spanning the training period.
         var_type:
-            One of REPRESENTATION_COLUMNS
+            One of REPRESENTATION_COLUMNS (percentile, threshold, or realization)
     Returns:
         Cube containing the truths from the training period.
     """
@@ -637,7 +638,8 @@ def forecast_and_truth_dataframes_to_cubes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, period,
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold, 
+            or realization) , diagnostic, latitude, longitude, period,
             height, cf_name, units. Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
