@@ -345,7 +345,9 @@ def _prepare_dataframes(
 
     representation_type = get_forecast_representation(forecast_df)
 
-    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS + [representation_type])
+    _dataframe_column_check(
+        forecast_df, FORECAST_DATAFRAME_COLUMNS + [representation_type]
+    )
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
 
     # Filter to select only one experiment
@@ -370,7 +372,13 @@ def _prepare_dataframes(
         _quantile_check(forecast_df)
 
     # Remove forecast duplicates.
-    forecast_cols = ["diagnostic", "forecast_period", representation_type, "time", "wmo_id"]
+    forecast_cols = [
+        "diagnostic",
+        "forecast_period",
+        representation_type,
+        "time",
+        "wmo_id",
+    ]
     if "station_id" in forecast_df.columns:
         forecast_cols.append("station_id")
     forecast_df = forecast_df.drop_duplicates(subset=forecast_cols, keep="last",)
@@ -378,9 +386,7 @@ def _prepare_dataframes(
     sort_cols = ["blend_time", representation_type, "wmo_id"]
     if "station_id" in forecast_df:
         sort_cols.append("station_id")
-    forecast_df = forecast_df.sort_values(
-        by=sort_cols, ignore_index=True,
-    )
+    forecast_df = forecast_df.sort_values(by=sort_cols, ignore_index=True,)
 
     # Remove truth duplicates.
     truth_cols = ["diagnostic", "time", "wmo_id"]
@@ -443,7 +449,10 @@ def _prepare_dataframes(
 
 
 def forecast_dataframe_to_cube(
-    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int, comparison_operator: Optional[str] = None
+    df: DataFrame,
+    training_dates: DatetimeIndex,
+    forecast_period: int,
+    comparison_operator: Optional[str] = None,
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -481,13 +490,17 @@ def forecast_dataframe_to_cube(
     operator_dict = comparison_operator_dict()
     representation_type = get_forecast_representation(df)
     if (representation_type == "threshold") and (comparison_operator is None):
-        raise ValueError("Representation type is threshold, so comparison_operator must be specified.")
+        raise ValueError(
+            "Representation type is threshold, so comparison_operator must be specified."
+        )
 
-    if (representation_type == "threshold") and (comparison_operator not in operator_dict):
+    if (representation_type == "threshold") and (
+        comparison_operator not in operator_dict
+    ):
         dict_keys = ", ".join(operator_dict.keys())
         raise ValueError(f"Representation type must be one of {dict_keys}.")
 
-    if (representation_type == "threshold"):
+    if representation_type == "threshold":
         spp_string = operator_dict[comparison_operator].spp_string
 
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
@@ -543,12 +556,21 @@ def forecast_dataframe_to_cube(
             var_df = time_df.loc[time_df[representation_type] == var_val]
             cf_name = var_df["cf_name"].values[0]
             if representation_type == "threshold":
-                var_coord = DimCoord(np.float32(var_val), standard_name=cf_name, var_name = "threshold", units="1")
+                var_coord = DimCoord(
+                    np.float32(var_val),
+                    standard_name=cf_name,
+                    var_name="threshold",
+                    units="1",
+                )
                 var_coord.attributes.update({"spp__relative_to_threshold": spp_string})
             elif representation_type == "percentile":
-                var_coord = DimCoord(np.float32(var_val), long_name="percentile", units="%")
+                var_coord = DimCoord(
+                    np.float32(var_val), long_name="percentile", units="%"
+                )
             else:
-                var_coord = DimCoord(np.int32(var_val), standard_name="realization", units="1")
+                var_coord = DimCoord(
+                    np.int32(var_val), standard_name="realization", units="1"
+                )
 
             if representation_type == "threshold":
                 comparison_string = "above" if "greater" in spp_string else "below"
@@ -585,8 +607,10 @@ def forecast_dataframe_to_cube(
 
 
 def truth_dataframe_to_cube(
-    df: DataFrame, training_dates: DatetimeIndex, representation_type: str = "percentile", 
-    comparison_operator: Optional[str] = None
+    df: DataFrame,
+    training_dates: DatetimeIndex,
+    representation_type: str = "percentile",
+    comparison_operator: Optional[str] = None,
 ) -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
@@ -617,13 +641,17 @@ def truth_dataframe_to_cube(
 
     operator_dict = comparison_operator_dict()
     if (representation_type == "threshold") and (comparison_operator is None):
-        raise ValueError("Representation type is threshold, so comparison_operator must be specified.")
+        raise ValueError(
+            "Representation type is threshold, so comparison_operator must be specified."
+        )
 
-    if (representation_type == "threshold") and (comparison_operator not in operator_dict):
+    if (representation_type == "threshold") and (
+        comparison_operator not in operator_dict
+    ):
         dict_keys = ", ".join(operator_dict.keys())
         raise ValueError(f"Representation type must be one of {dict_keys}.")
 
-    if (representation_type == "threshold"):
+    if representation_type == "threshold":
         comparison_function = operator_dict[comparison_operator].function
         spp_string = operator_dict[comparison_operator].spp_string
 
@@ -654,7 +682,12 @@ def truth_dataframe_to_cube(
                 var_df = time_df.loc[time_df[representation_type] == var_val]
 
                 cf_name = var_df["cf_name"].values[0]
-                var_coord = DimCoord(np.float32(var_val), standard_name=cf_name, var_name = "threshold", units="1")
+                var_coord = DimCoord(
+                    np.float32(var_val),
+                    standard_name=cf_name,
+                    var_name="threshold",
+                    units="1",
+                )
                 var_coord.attributes.update({"spp__relative_to_threshold": spp_string})
 
                 comparison_string = "above" if "greater" in spp_string else "below"
@@ -698,7 +731,7 @@ def forecast_and_truth_dataframes_to_cubes(
     training_length: int,
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
-    comparison_operator: Optional[str] = None
+    comparison_operator: Optional[str] = None,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
     truth DataFrame into an iris Cube.
@@ -747,5 +780,7 @@ def forecast_and_truth_dataframes_to_cubes(
         forecast_df, training_dates, forecast_period, comparison_operator
     )
     representation_type = get_forecast_representation(forecast_df)
-    truth_cube = truth_dataframe_to_cube(truth_df, training_dates, representation_type, comparison_operator)
+    truth_cube = truth_dataframe_to_cube(
+        truth_df, training_dates, representation_type, comparison_operator
+    )
     return forecast_cube, truth_cube

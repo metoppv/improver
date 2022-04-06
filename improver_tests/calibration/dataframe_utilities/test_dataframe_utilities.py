@@ -251,7 +251,9 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
         threshold_fc.coord(self.cf_name).var_name = "threshold"
         threshold_fc.coord(self.cf_name).units = "1"
         threshold_fc.coord(self.cf_name).points = self.thresholds
-        threshold_fc.coord(self.cf_name).attributes["spp__relative_to_threshold"] = "greater_than"
+        threshold_fc.coord(self.cf_name).attributes[
+            "spp__relative_to_threshold"
+        ] = "greater_than"
         threshold_fc.data = threshold_fc.data / np.max(threshold_fc.data)
         self.expected_period_forecast_threshold = threshold_fc
         self.expected_instantaneous_forecast = self.expected_period_forecast.copy()
@@ -304,9 +306,12 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
             threshold_cube.rename(f"probability_of_{self.cf_name}_above_threshold")
             threshold_cube.data = (threshold_cube.data > threshold).astype(np.int32)
             threshold_coord = iris.coords.DimCoord(
-                np.float32(threshold), standard_name=self.cf_name, var_name='threshold', units="1"
+                np.float32(threshold),
+                standard_name=self.cf_name,
+                var_name="threshold",
+                units="1",
             )
-            threshold_coord.attributes['spp__relative_to_threshold'] = 'greater_than'
+            threshold_coord.attributes["spp__relative_to_threshold"] = "greater_than"
             threshold_cube.add_aux_coord(threshold_coord)
             threshold_cubes.append(threshold_cube)
 
@@ -442,7 +447,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             self.cycletime,
             self.forecast_period,
             self.training_length,
-            comparison_operator=">"
+            comparison_operator=">",
         )
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast_threshold)
