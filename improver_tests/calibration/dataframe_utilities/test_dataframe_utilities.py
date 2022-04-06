@@ -246,9 +246,12 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
 
         self.expected_period_forecast = cubes.merge_cube()
         threshold_fc = self.expected_period_forecast.copy()
-        threshold_fc.coord("realization").rename("threshold")
-        threshold_fc.coord("threshold").units = 1
-        threshold_fc.coord("threshold").points = self.thresholds
+        threshold_fc.rename(f"probability_of_{self.cf_name}_above_threshold")
+        threshold_fc.coord("realization").rename(self.cf_name)
+        threshold_fc.coord(self.cf_name).var_name = "threshold"
+        threshold_fc.coord(self.cf_name).units = "1"
+        threshold_fc.coord(self.cf_name).points = self.thresholds
+        threshold_fc.coord(self.cf_name).attributes["spp__relative_to_threshold"] = "greater_than"
         threshold_fc.data = threshold_fc.data / np.max(threshold_fc.data)
         self.expected_period_forecast_threshold = threshold_fc
         self.expected_instantaneous_forecast = self.expected_period_forecast.copy()
@@ -298,10 +301,12 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
         threshold_cubes = iris.cube.CubeList()
         for threshold in self.thresholds:
             threshold_cube = self.expected_period_truth.copy()
+            threshold_cube.rename(f"probability_of_{self.cf_name}_above_threshold")
             threshold_cube.data = (threshold_cube.data > threshold).astype(np.int32)
             threshold_coord = iris.coords.DimCoord(
-                np.float32(threshold), long_name="threshold", units=1
+                np.float32(threshold), standard_name=self.cf_name, var_name='threshold', units="1"
             )
+            threshold_coord.attributes['spp__relative_to_threshold'] = 'greater_than'
             threshold_cube.add_aux_coord(threshold_coord)
             threshold_cubes.append(threshold_cube)
 
