@@ -268,7 +268,7 @@ def _training_dates_for_calibration(
 
 
 def get_forecast_representation(df: DataFrame) -> str:
-    """Check which of REPRESENTATION_COLUMNS (percentile, threshold, or realization) 
+    """Check which of REPRESENTATION_COLUMNS (percentile, threshold, or realization)
     exists in the dataframe.
 
     Args:
@@ -313,7 +313,7 @@ def _prepare_dataframes(
 ) -> Tuple[DataFrame, DataFrame]:
     """Prepare dataframes for conversion to cubes by: 1) checking which forecast
     representation is present, 2) checking that the expected columns are present,
-    3) (Optionally) checking the percentiles are as expected, 4) removing 
+    3) (Optionally) checking the percentiles are as expected, 4) removing
     duplicates from the forecast and truth, 5) finding the sites common to
     both the forecast and truth dataframes and 6) replacing and supplementing
     the truth dataframe with information from the forecast dataframe. Note that
@@ -324,7 +324,7 @@ def _prepare_dataframes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold, or 
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold, or
             realization), diagnostic, latitude, longitude, altitude,
             period, height, cf_name, units and experiment. Any other
             columns are ignored.
@@ -473,14 +473,14 @@ def forecast_dataframe_to_cube(
         Cube containing the forecasts from the training period.
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by 
+            comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
     Returns:
         Cube containing the truths from the training period.
 
     Raises:
-        ValueError: 
-            If forecast representation is threshold, and comparison operator is 
+        ValueError:
+            If forecast representation is threshold, and comparison operator is
             not provided.
         ValueError:
             If comparison_operator is not a key of the dict returned by
@@ -625,14 +625,14 @@ def truth_dataframe_to_cube(
             One of REPRESENTATION_COLUMNS (percentile, threshold, or realization)
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by 
+            comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
     Returns:
         Cube containing the truths from the training period.
 
     Raises:
-        ValueError: 
-            If forecast representation is threshold, and comparison operator is 
+        ValueError:
+            If forecast representation is threshold, and comparison operator is
             not provided.
         ValueError:
             If comparison_operator is not a key of the dict returned by
@@ -740,7 +740,7 @@ def forecast_and_truth_dataframes_to_cubes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold, 
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold,
             or realization) , diagnostic, latitude, longitude, period,
             height, cf_name, units. Any other columns are ignored.
         truth_df:
@@ -761,7 +761,7 @@ def forecast_and_truth_dataframes_to_cubes(
             table.
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by 
+            comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
 
 

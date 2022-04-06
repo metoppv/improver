@@ -34,7 +34,6 @@ module.
 
 """
 import unittest
-from improver.utilities.probability_manipulation import comparison_operator_dict
 
 import iris
 import numpy as np
