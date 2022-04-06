@@ -473,8 +473,7 @@ def forecast_dataframe_to_cube(
         Cube containing the forecasts from the training period.
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
+            comparison operator by :func:`~improver.utilities.comparison_operator_dict`
     Returns:
         Cube containing the truths from the training period.
 
@@ -484,7 +483,7 @@ def forecast_dataframe_to_cube(
             not provided.
         ValueError:
             If comparison_operator is not a key of the dict returned by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
+            :func:`~improver.utilities.comparison_operator_dict`
     """
 
     operator_dict = comparison_operator_dict()
@@ -625,8 +624,7 @@ def truth_dataframe_to_cube(
             One of REPRESENTATION_COLUMNS (percentile, threshold, or realization)
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
+            comparison operator by :func:`~improver.utilities.comparison_operator_dict`
     Returns:
         Cube containing the truths from the training period.
 
@@ -636,7 +634,7 @@ def truth_dataframe_to_cube(
             not provided.
         ValueError:
             If comparison_operator is not a key of the dict returned by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
+            :func:`~improver.utilities.comparison_operator_dict`
     """
 
     operator_dict = comparison_operator_dict()
@@ -761,8 +759,7 @@ def forecast_and_truth_dataframes_to_cubes(
             table.
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
+            comparison operator by :func:`~improver.utilities.comparison_operator_dict`
 
 
     Returns:
