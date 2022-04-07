@@ -573,13 +573,15 @@ def forecast_dataframe_to_cube(
             if representation_type == "threshold":
                 comparison_string = "above" if "greater" in spp_string else "below"
                 cube_name = f"probability_of_{cf_name}_{comparison_string}_threshold"
+                units = "1"
             else:
                 cube_name = cf_name
+                units = var_df["units"].values[0]
 
             cube = build_spotdata_cube(
                 var_df["forecast"].astype(np.float32),
                 cube_name,
-                var_df["units"].values[0],
+                units,
                 var_df["altitude"].astype(np.float32),
                 var_df["latitude"].astype(np.float32),
                 var_df["longitude"].astype(np.float32),
@@ -694,7 +696,7 @@ def truth_dataframe_to_cube(
                 cube = build_spotdata_cube(
                     comparison_function(var_df["ob_value"], var_val).astype(np.int32),
                     cube_name,
-                    var_df["units"].values[0],
+                    "1",
                     var_df["altitude"].astype(np.float32),
                     var_df["latitude"].astype(np.float32),
                     var_df["longitude"].astype(np.float32),
