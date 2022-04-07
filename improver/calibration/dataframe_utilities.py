@@ -475,9 +475,7 @@ def forecast_dataframe_to_cube(
             A string such as "<", "lt", "LT", etc that can be interpreted as a
             comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
-    Returns:
-        Cube containing the truths from the training period.
-
+            
     Raises:
         ValueError:
             If forecast representation is threshold, and comparison operator is
