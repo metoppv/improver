@@ -248,7 +248,7 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
         threshold_fc.rename(f"probability_of_{self.cf_name}_above_threshold")
         threshold_fc.coord("realization").rename(self.cf_name)
         threshold_fc.coord(self.cf_name).var_name = "threshold"
-        threshold_fc.coord(self.cf_name).units = "1"
+        threshold_fc.coord(self.cf_name).units = "Celsius"
         threshold_fc.coord(self.cf_name).points = self.thresholds
         threshold_fc.coord(self.cf_name).attributes[
             "spp__relative_to_threshold"
@@ -308,7 +308,7 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
                 np.float32(threshold),
                 standard_name=self.cf_name,
                 var_name="threshold",
-                units="1",
+                units="Celsius",
             )
             threshold_coord.attributes["spp__relative_to_threshold"] = "greater_than"
             threshold_cube.add_aux_coord(threshold_coord)

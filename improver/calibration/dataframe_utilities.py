@@ -475,7 +475,7 @@ def forecast_dataframe_to_cube(
             A string such as "<", "lt", "LT", etc that can be interpreted as a
             comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
-            
+
     Raises:
         ValueError:
             If forecast representation is threshold, and comparison operator is
@@ -558,7 +558,7 @@ def forecast_dataframe_to_cube(
                     np.float32(var_val),
                     standard_name=cf_name,
                     var_name="threshold",
-                    units="1",
+                    units=var_df["units"].values[0],
                 )
                 var_coord.attributes.update({"spp__relative_to_threshold": spp_string})
             elif representation_type == "percentile":
@@ -684,7 +684,7 @@ def truth_dataframe_to_cube(
                     np.float32(var_val),
                     standard_name=cf_name,
                     var_name="threshold",
-                    units="1",
+                    units=var_df["units"].values[0],
                 )
                 var_coord.attributes.update({"spp__relative_to_threshold": spp_string})
 
