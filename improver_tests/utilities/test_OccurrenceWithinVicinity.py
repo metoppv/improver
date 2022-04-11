@@ -398,3 +398,12 @@ def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
+
+
+def test_two_radii_provided_exception(cube):
+    """Test an exception is raised if both radius and grid_point_radius are
+    provided as arguments."""
+    with pytest.raises(
+        ValueError, match="Only one of radius or grid_point_radius should be set"
+    ):
+        OccurrenceWithinVicinity(radius=2000, grid_point_radius=2)
