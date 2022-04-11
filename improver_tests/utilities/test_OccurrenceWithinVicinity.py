@@ -82,17 +82,14 @@ def cube_fixture() -> Cube:
     )
 
 
-DISTANCE = 2000
+RADIUS = 2000
+GRID_POINT_RADIUS = 1
 
 
-def test_repr():
-    """Test that the __repr__ returns the expected string."""
-    result = str(OccurrenceWithinVicinity(10000))
-    msg = "<OccurrenceWithinVicinity: distance: 10000>"
-    assert result == msg
-
-
-def test_basic(cube):
+@pytest.mark.parametrize(
+    "kwargs", ({"radius": RADIUS}, {"grid_point_radius": GRID_POINT_RADIUS})
+)
+def test_basic(cube, kwargs):
     """Test for binary events to determine where there is an occurrence
     within the vicinity."""
     expected = np.array(
@@ -106,7 +103,7 @@ def test_basic(cube):
     )
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 1.0
-    result = OccurrenceWithinVicinity(DISTANCE).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
@@ -125,12 +122,15 @@ def test_fuzzy(cube):
     )
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 0.5
-    result = OccurrenceWithinVicinity(DISTANCE).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
 
-def test_different_distance(cube):
+@pytest.mark.parametrize(
+    "kwargs", ({"radius": 2 * RADIUS}, {"grid_point_radius": 2 * GRID_POINT_RADIUS})
+)
+def test_different_distance(cube, kwargs):
     """Test for binary events to determine where there is an occurrence
     within the vicinity for an alternative distance."""
     expected = np.array(
@@ -144,8 +144,7 @@ def test_different_distance(cube):
     )
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 1.0
-    distance = 4000.0
-    result = OccurrenceWithinVicinity(distance).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
@@ -167,7 +166,7 @@ def test_masked_data(cube):
     mask = np.zeros((5, 5))
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
-    result = OccurrenceWithinVicinity(DISTANCE).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data.data, expected)
@@ -189,7 +188,7 @@ def test_with_land_mask(cube, land_mask_cube):
     cube.data[2, 3] = 1.0  # would cross mask
     cube.data[0, 4] = 10.0  # would not cross mask
     result = OccurrenceWithinVicinity(
-        DISTANCE, land_mask_cube=land_mask_cube
+        radius=RADIUS, land_mask_cube=land_mask_cube
     ).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert ~isinstance(result.data, np.ma.core.MaskedArray)
@@ -214,7 +213,7 @@ def test_with_land_mask_and_mask(cube, land_mask_cube):
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
     result = OccurrenceWithinVicinity(
-        DISTANCE, land_mask_cube=land_mask_cube
+        RADIUS, land_mask_cube=land_mask_cube
     ).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
@@ -230,7 +229,7 @@ def test_with_invalid_land_mask_name(land_mask_cube):
         ValueError,
         match="Expected land_mask_cube to be called land_binary_mask, not kittens",
     ):
-        OccurrenceWithinVicinity(DISTANCE, land_mask_cube=bad_mask_cube)
+        OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=bad_mask_cube)
 
 
 def test_with_invalid_land_mask_coords(cube, land_mask_cube):
@@ -243,7 +242,7 @@ def test_with_invalid_land_mask_coords(cube, land_mask_cube):
         ValueError,
         match="Supplied cube do not have the same spatial coordinates and land mask",
     ):
-        OccurrenceWithinVicinity(DISTANCE, land_mask_cube=bad_mask_cube)(cube)
+        OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=bad_mask_cube)(cube)
 
 
 @pytest.fixture(name="cube_with_realizations")
@@ -310,7 +309,7 @@ def test_with_multiple_realizations_and_times(
     cube.data[0, 0, 2, 1] = 1.0
     cube.data[1, 1, 1, 3] = 1.0
     orig_shape = cube.data.copy().shape
-    result = OccurrenceWithinVicinity(DISTANCE, land)(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
@@ -340,7 +339,7 @@ def test_with_multiple_realizations(request, cube_with_realizations, land_fixtur
     )
     cube.data[0, 2, 1] = 1.0
     cube.data[1, 1, 3] = 1.0
-    result = OccurrenceWithinVicinity(DISTANCE, land)(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
@@ -372,7 +371,7 @@ def test_with_multiple_times(request, cube_with_realizations, land_fixture):
     cube.data[0, 2, 1] = 1.0
     cube.data[1, 1, 3] = 1.0
     orig_shape = cube.data.shape
-    result = OccurrenceWithinVicinity(DISTANCE, land)(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
@@ -395,7 +394,7 @@ def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     cube = cube[0]
     cube.data[2, 1] = 1.0
     orig_shape = cube.data.shape
-    result = OccurrenceWithinVicinity(DISTANCE, land)(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
