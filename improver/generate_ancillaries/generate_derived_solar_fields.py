@@ -67,7 +67,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         accumulation_period: int,
         temporal_spacing: int = DEFAULT_TEMPORAL_SPACING_IN_MINUTES,
         altitude: Optional[Union[Cube, float]] = 0.0,
-        linke_turbidity_climatology: Optional[Union[Cube, float]] = 3.0,
+        linke_turbidity: Optional[Union[Cube, float]] = 3.0,
     ) -> Cube:
         """Calculate the gridded clearsky solar radiation by integrating clearsky solar irradiance
         values over the specified time-period, and on the specified grid.
@@ -86,13 +86,11 @@ class GenerateClearskySolarRadiation(BasePlugin):
             altitude:
                 Altitude data used in the evaluation of the clearsky solar irradiance values,
                 specified in metres.
-            linke_turbidity_climatology:
+            linke_turbidity:
                 Linke turbidity data used in the evaluation of the clearsky solar irradiance
                 values. Linke turbidity is a dimensionless quantity that accounts for the
                 atmospheric scattering of radiation due to aerosols and water vapour, relative
-                to a dry atmosphere. The linke turbidity climatology data is assumed to a time
-                dimension that represents the day-of-year from which the associated climatological
-                linke turbidity values can be interpolated to the specified valid-time.
+                to a dry atmosphere.
 
         Returns:
             A cube containing the clearsky solar radiation accumulated over the specified

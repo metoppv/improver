@@ -43,7 +43,7 @@ def process(
     *,
     temporal_spacing: int = 30,
     altitude: cli.inputcube = 0.0,
-    linke_turbidity_climatology: cli.inputcube = 3.0,
+    linke_turbidity: cli.inputcube = 3.0,
 ):
     """Generate a cube containing clearsky solar radiation data, evaluated on the target grid
     for the specified time and accumulation period. Accumulated clearsky solar radiation is used
@@ -64,13 +64,11 @@ def process(
         altitude:
             Altitude data used in the evaluation of the clearsky solar irradiance values,
             specified in metres.
-        linke_turbidity_climatology:
+        linke_turbidity:
             Linke turbidity data used in the evaluation of the clearsky solar irradiance
             values. Linke turbidity is a dimensionless quantity that accounts for the
             atmospheric scattering of radiation due to aerosols and water vapour, relative
-            to a dry atmosphere. The linke turbidity climatology data is assumed to a time
-            dimension that represents the day-of-year from which the associated climatological
-            linke turbidity values can be interpolated to the specified valid-time.
+            to a dry atmosphere.
 
     Returns:
         iris.cube.Cube:
@@ -88,5 +86,5 @@ def process(
         accumulation_period,
         temporal_spacing,
         altitude=altitude,
-        linke_turbidity_climatology=linke_turbidity_climatology,
+        linke_turbidity=linke_turbidity,
     )
