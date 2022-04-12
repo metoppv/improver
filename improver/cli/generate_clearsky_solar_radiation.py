@@ -29,3 +29,64 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run GenerateClearSkySolarRadiation ancillary generation."""
+from datetime import datetime, timezone
+
+from improver import cli
+
+
+@cli.clizefy
+@cli.with_output
+def process(
+    target_grid: cli.inputcube,
+    time: str,
+    accumulation_period: int,
+    *,
+    temporal_spacing: int = 30,
+    altitude: cli.inputcube = 0.0,
+    linke_turbidity_climatology: cli.inputcube = 3.0,
+):
+    """Generate clearsky solar radiation data. The clearsky solar radiation is evaluated on the
+    target grid for specified time and accumulation period. The clearsky solar radiation data is
+    used as an input to the RainForests calibration for rainfall.
+
+    Args:
+        target_grid:
+            A cube with the desired grid.
+        time:
+            A datetime specified in the format YYYYMMDDTHHMMZ at which to calculate the
+            accumulated clearsky solar radiation.
+        accumulation_period:
+            The period over which the accumulation is calculated, specified in hours.
+        temporal_spacing:
+            The spacing between irradiance values used in the evaluation of accumulated
+            solar radiation, specified in minutes.
+        altitude:
+            Altitude data to use in the evaluation of clearsky solar irradiance, which is
+            intergated to give the accumulated solar radiation.
+        linke_turbidity_climatology:
+            Linke turbidity climatology data used in the evaluation of solar irradiance.
+            Linke turbidity is a dimensionless value that accounts for relative atmospheric
+            scattering of radiation due to aerosols and water vapour.
+            The linke turbidity climatology must contain a time dimension that represents
+            the day-of-year, from which the associated climatological linke turbidity values
+            can be interpolated to for the specified time.
+
+    Returns:
+        iris.cube.Cube:
+            A cube containing clearsky solar radiation accumulated over the specified
+            period, on the same spatial grid as target_grid.
+    """
+    from improver.generate_ancillaries.generate_derived_solar_fields import (
+        GenerateClearskySolarRadiation,
+    )
+
+    time = datetime.strptime(time, "%Y%m%dT%H%MZ").replace(tzinfo=timezone.utc)
+
+    return GenerateClearskySolarRadiation()(
+        target_grid,
+        time,
+        accumulation_period,
+        temporal_spacing,
+        altitude=altitude,
+        linke_turbidity_climatology=linke_turbidity_climatology,
+    )

@@ -30,15 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
 from datetime import datetime
+from typing import Optional, Union
 
 from iris.cube import Cube
 
 from improver import BasePlugin
 
+DEFAULT_TEMPORAL_SPACING_IN_MINUTES = 30
+
+
 class GenerateSolarTime(BasePlugin):
     """A plugin to evaluate local solar time."""
 
-    def process(self, target_grid: Cube, time:datetime) -> Cube:
+    def process(self, target_grid: Cube, time: datetime) -> Cube:
         """Calculate the local solar time associated with the specified time.
 
         Args:
@@ -54,3 +58,44 @@ class GenerateSolarTime(BasePlugin):
         """
         pass
 
+
+class GenerateClearskySolarRadiation(BasePlugin):
+    """A plugin to evaluate clearsky solar radiation."""
+
+    def process(
+        self,
+        target_grid: Cube,
+        time: datetime,
+        accumulation_period: int,
+        temporal_spacing: int = DEFAULT_TEMPORAL_SPACING_IN_MINUTES,
+        altitude: Optional[Union[Cube, float]] = 0.0,
+        linke_turbidity_climatology: Optional[Union[Cube, float]] = 3.0,
+    ) -> Cube:
+        """Calculate the gridded clear sky radiation data by integrating clear sky irradiance
+        over the specified time_period.
+        Args:
+            target_grid:
+                A cube with the desired grid.
+            time:
+                A datetime specified at which to calculate the accumulated clearsky solar
+                radiation.
+            accumulation_period:
+                Number of hours over which the solar radiation accumulation is defined.
+            temporal_spacing:
+                Spacing between irradiance times used in the evaluation of the
+                accumulated solar radiation, specified in mins.
+            altitude:
+                Altitude data to use in the evaluation of solar irradiance values, specified in
+                metres.
+            linke_turbidity_climatology:
+                Linke turbidity climatology data used in the evaluation of solar irradiance.
+                Linke turbidity is a dimensionless quantity that accounts for relative atmospheric
+                scattering of radiation due to aerosols and water vapour. It is assumed the
+                linke turbidity data contains a time dimension that represents the day-of-year,
+                from which the associated climatological linke turbidity values can be interpolated
+                to for the specified time.
+        Returns:
+            A cube containing clearsky solar radiation accumulated over the specified
+            period, on the same spatial grid as target_grid.
+        """
+        pass

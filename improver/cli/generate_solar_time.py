@@ -31,20 +31,24 @@
 """Script to run GenerateSolarTime ancillary generation."""
 
 from datetime import datetime, timezone
+
 from improver import cli
+
 
 @cli.clizefy
 @cli.with_output
 def process(target_grid: cli.inputcube, time: str):
     """Generate local solar time data on the target grid for specified time.
-    The local solar time data is used as an input to the RainForests calibration for
-    rainfall.
+    The local solar time data is used as an input to the RainForests calibration
+    for rainfall.
+
     Args:
         target_grid:
             A cube with the desired grid.
         time:
             A datetime specified in the format YYYYMMDDTHHMMZ at which to calculate the
             accumulated clearsky solar radiation.
+
     Returns:
         iris.cube.Cube:
             A cube containing local solar time.
