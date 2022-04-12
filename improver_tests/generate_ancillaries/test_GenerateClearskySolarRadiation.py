@@ -30,11 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the GenerateClearskySolarRadiation plugin."""
 
+from datetime import datetime, timedelta, timezone
+
 import numpy as np
 import pytest
 from iris.cube import Cube
 
 from improver.generate_ancillaries.generate_derived_solar_fields import (
+    CLEARSKY_SOLAR_RADIATION_CF_NAME,
     GenerateClearskySolarRadiation,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -121,3 +124,39 @@ def test__initialise_input_cubes(
         GenerateClearskySolarRadiation()._initialise_input_cubes(
             target_grid, None, linke_turbidity_on_alternate_grid
         )
+
+@pytest.mark.parametrize("accumulation_period", [1, 3, 24])
+@pytest.mark.parametrize("surface_altitude", [None, "surface_altitude_data"])
+@pytest.mark.parametrize("linke_turbidity", [None, "linke_turbidity_data"])
+def test_process(request, target_grid, accumulation_period, surface_altitude, linke_turbidity):
+    """Test process method returns cubes with correct structure."""
+    time = datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc)
+
+    optional_vars = {}
+    if surface_altitude is not None:
+        optional_vars["surface_altitude"] = request.getfixturevalue(surface_altitude)
+    if linke_turbidity is not None:
+        optional_vars["linke_turbidity"] = request.getfixturevalue(linke_turbidity)
+
+    result = GenerateClearskySolarRadiation()(
+        target_grid, time, accumulation_period, **optional_vars
+    )
+
+    # Check vertical coordinate
+    if surface_altitude is None:
+        assert np.isclose(result.coord("altitude").points[0], 0.0)
+    else:
+        assert np.isclose(result.coord("height").points[0], 0.0)
+
+    # Check time value match inputs
+    assert result.coord("time").points[0] == time.timestamp()
+    assert timedelta(
+        seconds=int(
+            result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
+        )
+    ) == timedelta(hours=accumulation_period)
+
+    # Check variable attributes
+    assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
+    assert result.units == "W s m-2"
+

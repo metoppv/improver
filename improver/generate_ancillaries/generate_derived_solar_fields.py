@@ -266,7 +266,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         if isinstance(linke_turbidity, Cube):
             if not spatial_coords_match([target_grid, linke_turbidity]):
                 raise ValueError(
-                    "linke_turbidity_climatology spatial coordinates do not match target_grid"
+                    "linke_turbidity spatial coordinates do not match target_grid"
                 )
             # we will work with numpy array for calculating irradiance.
             linke_turbidity_data = linke_turbidity.data
