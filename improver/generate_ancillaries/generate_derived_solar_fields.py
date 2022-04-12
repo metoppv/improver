@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2022 Met Office.
+# (C) British Crown Copyright 2017-2021 Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,8 +69,8 @@ class GenerateClearskySolarRadiation(BasePlugin):
         altitude: Optional[Union[Cube, float]] = 0.0,
         linke_turbidity_climatology: Optional[Union[Cube, float]] = 3.0,
     ) -> Cube:
-        """Calculate the gridded clear sky radiation data by integrating clear sky irradiance
-        over the specified time-period.
+        """Calculate the gridded clearsky solar radiation by integrating clearsky solar irradiance
+        values over the specified time-period, and on the specified grid.
 
         Args:
             target_grid:
