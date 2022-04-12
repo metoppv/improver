@@ -29,3 +29,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
+from datetime import datetime
+
+from iris.cube import Cube
+
+from improver import BasePlugin
+
+class GenerateSolarTime(BasePlugin):
+    """A plugin to evaluate local solar time."""
+
+    def process(self, target_grid: Cube, time:datetime) -> Cube:
+        """Calculate the local solar time associated with the specified time.
+
+        Args:
+            target_grid:
+                A cube with the desired grid.
+            time:
+                A datetime specified at which to calculate the accumulated clearsky solar
+                radiation.
+
+        Returns:
+            Solar time cube.
+
+        """
+        pass
+
