@@ -142,7 +142,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         """Get evenly-spaced times over the specied time period at which
         to evaluate irradiance values which will later be integrated to
         give accumulated solar-radiation values.
-        
+
         Args:
             time:
                 Datetime specifying the end of the accumulation period.
@@ -152,7 +152,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
             temporal_spacing:
                 Spacing between irradiance times used in the evaluation of the
                 accumulated solar radiation, specified in minutes.
-        
+
         Returns:
             A list of datetimes.
         """
@@ -166,10 +166,14 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         accumulation_start_time = time - timedelta(hours=accumulation_period)
         time_step = timedelta(minutes=temporal_spacing)
-        n_time_steps = timedelta(hours=accumulation_period) // timedelta(minutes=temporal_spacing)
+        n_time_steps = timedelta(hours=accumulation_period) // timedelta(
+            minutes=temporal_spacing
+        )
 
-        return [accumulation_start_time + step * time_step for step in range(n_time_steps + 1)]
-
+        return [
+            accumulation_start_time + step * time_step
+            for step in range(n_time_steps + 1)
+        ]
 
     def _get_solar_radiation_cube(
         self,
@@ -196,7 +200,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 Flag denoting whether solar radiation is defined at mean-sea-level
                 or at the Earth's surface. The appropriate vertical coordinate will
                 be assigned accordingly.
-        
+
         Returns:
             Cube containing clearsky solar radaition.
         """
@@ -317,6 +321,10 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 target_grid.coord(axis="X").shape[0],
             ),
             dtype=np.float32,
+        )
+
+        irradiance_times = self._get_irradiance_times(
+            time, accumulation_period, temporal_spacing
         )
 
         solar_radiation_cube = self._get_solar_radiation_cube(
