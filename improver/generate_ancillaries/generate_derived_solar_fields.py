@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
 from datetime import datetime, timedelta
-from typing import Tuple
+from typing import List, Tuple
 
 import cf_units
 import numpy as np
@@ -45,7 +45,9 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import spatial_coords_match
 
+MINUTES_IN_HOUR = 60
 DEFAULT_TEMPORAL_SPACING_IN_MINUTES = 30
+
 CLEARSKY_SOLAR_RADIATION_CF_NAME = (
     "integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time"
 )
@@ -134,6 +136,41 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         return surface_altitude, linke_turbidity
 
+    def _get_irradiance_times(self,
+        time: datetime, accumulation_period: int, temporal_spacing: int
+    ) -> List[datetime]:
+        """Get evenly-spaced times over the specied time period at which
+        to evaluate irradiance values which will later be integrated to
+        give accumulated solar-radiation values.
+        
+        Args:
+            time:
+                Datetime specifying the end of the accumulation period.
+            accumulation_period:
+                Time window over which solar radiation is to be accumulated,
+                specified in hours.
+            temporal_spacing:
+                Spacing between irradiance times used in the evaluation of the
+                accumulated solar radiation, specified in minutes.
+        
+        Returns:
+            A list of datetimes.
+        """
+        if accumulation_period * MINUTES_IN_HOUR % temporal_spacing != 0:
+            raise ValueError(
+                (
+                    f"accumulation_period in minutes ({accumulation_period} * 60) must be integer "
+                    f"multiple of temporal_spacing ({temporal_spacing})."
+                )
+            )
+
+        accumulation_start_time = time - timedelta(hours=accumulation_period)
+        time_step = timedelta(minutes=temporal_spacing)
+        n_time_steps = timedelta(hours=accumulation_period) // timedelta(minutes=temporal_spacing)
+
+        return [accumulation_start_time + step * time_step for step in range(n_time_steps + 1)]
+
+
     def _get_solar_radiation_cube(
         self,
         solar_radiation_data: ndarray,
@@ -142,7 +179,8 @@ class GenerateClearskySolarRadiation(BasePlugin):
         accumulation_period: int,
         at_mean_sea_level: str,
     ) -> Cube:
-        """Create cube for the specified time, on the target grid.
+        """Create a cube of accumulated clearsky solar radiation.
+
         Args:
             solar_radiation_data:
                 Solar radiation data.
@@ -150,17 +188,17 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 Cube containing spatial grid over which the solar radiation
                 has been calculated.
             time:
-                Time corresponding to the solar radiation accumulations.
+                Time corresponding to the solar radiation accumulation.
             accumulation_period:
                 Time window over which solar radiation has been accumulated,
-                expressed as the number of hours.
+                specified in hours.
             at_mean_sea_level:
                 Flag denoting whether solar radiation is defined at mean-sea-level
                 or at the Earth's surface. The appropriate vertical coordinate will
                 be assigned accordingly.
+        
         Returns:
-            Cube containing clearsky solar radaition data for the specified time
-            and accumulation_period.
+            Cube containing clearsky solar radaition.
         """
         X_coord = target_grid.coord(axis="X")
         Y_coord = target_grid.coord(axis="Y")

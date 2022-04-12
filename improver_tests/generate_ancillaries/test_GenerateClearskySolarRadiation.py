@@ -31,6 +31,7 @@
 """Unit tests for the GenerateClearskySolarRadiation plugin."""
 
 from datetime import datetime, timedelta, timezone
+from itertools import accumulate
 
 import numpy as np
 import pytest
@@ -124,6 +125,34 @@ def test__initialise_input_cubes(
         GenerateClearskySolarRadiation()._initialise_input_cubes(
             target_grid, None, linke_turbidity_on_alternate_grid
         )
+
+def test__get_irradiance_times():
+    
+    time = datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc)
+    accumulation_period = 3 # in hours
+    temporal_spacing = 60 # in mins
+
+    expected_times = [
+        datetime(2021, 12, 31, 21, 00, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 22, 00, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 23, 00, tzinfo=timezone.utc),
+        datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc),
+    ]
+    result = GenerateClearskySolarRadiation()._get_irradiance_times(time, accumulation_period, temporal_spacing)
+    assert np.all(result == expected_times)
+
+    accumulation_period = 1
+    expected_times = [
+        datetime(2021, 12, 31, 23, 00, tzinfo=timezone.utc),
+        datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc),
+    ]
+    result = GenerateClearskySolarRadiation()._get_irradiance_times(time, accumulation_period, temporal_spacing)
+    assert np.all(result == expected_times)
+
+    misaligned_temporal_spcaing = 19
+    with pytest.raises(ValueError, match="must be integer multiple"):
+        GenerateClearskySolarRadiation()._get_irradiance_times(time, accumulation_period, misaligned_temporal_spcaing)
+
 
 @pytest.mark.parametrize("accumulation_period", [1, 3, 24])
 @pytest.mark.parametrize("surface_altitude", [None, "surface_altitude_data"])
