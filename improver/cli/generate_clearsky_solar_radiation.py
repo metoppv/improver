@@ -45,36 +45,36 @@ def process(
     altitude: cli.inputcube = 0.0,
     linke_turbidity_climatology: cli.inputcube = 3.0,
 ):
-    """Generate clearsky solar radiation data. The clearsky solar radiation is evaluated on the
-    target grid for specified time and accumulation period. The clearsky solar radiation data is
-    used as an input to the RainForests calibration for rainfall.
+    """Generate a cube containing clearsky solar radiation data, evaluated on the target grid
+    for the specified time and accumulation period. Accumulated clearsky solar radiation is used
+    as an input to the RainForests calibration for rainfall.
 
     Args:
         target_grid:
-            A cube with the desired grid.
+            A cube containing the desired spatial grid.
         time:
-            A datetime specified in the format YYYYMMDDTHHMMZ at which to calculate the
-            accumulated clearsky solar radiation.
+            A datetime specified in the format YYYYMMDDTHHMMZ at which to evaluate the
+            accumulated clearsky solar radiation. This time is taken to be the end of
+            the accumulation period.
         accumulation_period:
-            The period over which the accumulation is calculated, specified in hours.
+            The number of hours over which the solar radiation accumulation is defined.
         temporal_spacing:
-            The spacing between irradiance values used in the evaluation of accumulated
-            solar radiation, specified in minutes.
+            The temporal spacing between irradiance values used in the evaluation of the
+            accumulated solar radiation, specified in minutes.
         altitude:
-            Altitude data to use in the evaluation of clearsky solar irradiance, which is
-            intergated to give the accumulated solar radiation.
+            Altitude data used in the evaluation of the clearsky solar irradiance values,
+            specified in metres.
         linke_turbidity_climatology:
-            Linke turbidity climatology data used in the evaluation of solar irradiance.
-            Linke turbidity is a dimensionless value that accounts for relative atmospheric
-            scattering of radiation due to aerosols and water vapour.
-            The linke turbidity climatology must contain a time dimension that represents
-            the day-of-year, from which the associated climatological linke turbidity values
-            can be interpolated to for the specified time.
+            Linke turbidity data used in the evaluation of the clearsky solar irradiance
+            values. Linke turbidity is a dimensionless quantity that accounts for the
+            atmospheric scattering of radiation due to aerosols and water vapour, relative
+            to a dry atmosphere. The linke turbidity climatology data is assumed to a time
+            dimension that represents the day-of-year from which the associated climatological
+            linke turbidity values can be interpolated to the specified valid-time.
 
     Returns:
         iris.cube.Cube:
-            A cube containing clearsky solar radiation accumulated over the specified
-            period, on the same spatial grid as target_grid.
+            A cube containing accumulated clearsky solar radiation.
     """
     from improver.generate_ancillaries.generate_derived_solar_fields import (
         GenerateClearskySolarRadiation,

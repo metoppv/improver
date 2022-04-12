@@ -43,18 +43,16 @@ class GenerateSolarTime(BasePlugin):
     """A plugin to evaluate local solar time."""
 
     def process(self, target_grid: Cube, time: datetime) -> Cube:
-        """Calculate the local solar time associated with the specified time.
+        """Calculate the local solar time over the specified grid.
 
         Args:
             target_grid:
-                A cube with the desired grid.
+                A cube containing the desired spatial grid.
             time:
-                A datetime specified at which to calculate the accumulated clearsky solar
-                radiation.
+                The valid time at which to evaluate the local solar time.
 
         Returns:
-            Solar time cube.
-
+            A cube containing local solar time, on the same spatial grid as target_grid.
         """
         pass
 
@@ -72,30 +70,32 @@ class GenerateClearskySolarRadiation(BasePlugin):
         linke_turbidity_climatology: Optional[Union[Cube, float]] = 3.0,
     ) -> Cube:
         """Calculate the gridded clear sky radiation data by integrating clear sky irradiance
-        over the specified time_period.
+        over the specified time-period.
+
         Args:
             target_grid:
-                A cube with the desired grid.
+                A cube containing the desired spatial grid.
             time:
-                A datetime specified at which to calculate the accumulated clearsky solar
-                radiation.
+                The valid time at which to evaluate the accumulated clearsky solar
+                radiation. This time is taken to be the end of the accumulation period.
             accumulation_period:
-                Number of hours over which the solar radiation accumulation is defined.
+                The number of hours over which the solar radiation accumulation is defined.
             temporal_spacing:
-                Spacing between irradiance times used in the evaluation of the
-                accumulated solar radiation, specified in mins.
+                The spacing between irradiance times used in the evaluation of the accumulated
+                solar radiation, specified in mins.
             altitude:
-                Altitude data to use in the evaluation of solar irradiance values, specified in
-                metres.
+                Altitude data used in the evaluation of the clearsky solar irradiance values,
+                specified in metres.
             linke_turbidity_climatology:
-                Linke turbidity climatology data used in the evaluation of solar irradiance.
-                Linke turbidity is a dimensionless quantity that accounts for relative atmospheric
-                scattering of radiation due to aerosols and water vapour. It is assumed the
-                linke turbidity data contains a time dimension that represents the day-of-year,
-                from which the associated climatological linke turbidity values can be interpolated
-                to for the specified time.
+                Linke turbidity data used in the evaluation of the clearsky solar irradiance
+                values. Linke turbidity is a dimensionless quantity that accounts for the
+                atmospheric scattering of radiation due to aerosols and water vapour, relative
+                to a dry atmosphere. The linke turbidity climatology data is assumed to a time
+                dimension that represents the day-of-year from which the associated climatological
+                linke turbidity values can be interpolated to the specified valid-time.
+
         Returns:
-            A cube containing clearsky solar radiation accumulated over the specified
+            A cube containing the clearsky solar radiation accumulated over the specified
             period, on the same spatial grid as target_grid.
         """
         pass
