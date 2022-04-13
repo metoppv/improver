@@ -461,13 +461,13 @@ def forecast_dataframe_to_cube(
             Datetimes spanning the training period.
         forecast_period:
             Forecast period in seconds as an integer.
-
-    Returns:
-        Cube containing the forecasts from the training period.
         comparison_operator:
             A string such as "<", "lt", "LT", etc that can be interpreted as a
             comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
+
+    Returns:
+        Cube containing the forecasts from the training period.
 
     Raises:
         ValueError:
