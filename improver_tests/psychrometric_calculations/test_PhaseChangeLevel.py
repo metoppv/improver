@@ -89,21 +89,6 @@ class Test__init__(IrisTest):
             PhaseChangeLevel(phase_change)
 
 
-class Test__repr__(IrisTest):
-
-    """Test the repr method."""
-
-    def test_basic(self):
-        """Test that the __repr__ returns the expected string."""
-        result = str(PhaseChangeLevel(phase_change="snow-sleet"))
-        msg = (
-            "<PhaseChangeLevel: "
-            "falling_level_threshold:90.0,"
-            " grid_point_radius: 2>"
-        )
-        self.assertEqual(result, msg)
-
-
 class Test_find_falling_level(IrisTest):
 
     """Test the find_falling_level method."""
@@ -431,16 +416,6 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         expected_data = self.cube.data.copy()
         result = plugin.find_max_in_nbhood_orography(cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
-
-    def test_error_lat_lon(self):
-        """Test the function fails when radius is not zero and grid is lat-lon."""
-        cube = self.cube_latlon
-        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
-        with self.assertRaisesRegex(
-            ValueError,
-            r"Unable to convert from 'Unit\('degrees'\)' to 'Unit\('metres'\)'.",
-        ):
-            plugin.find_max_in_nbhood_orography(cube)
 
 
 class Test_process(IrisTest):

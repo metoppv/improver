@@ -391,22 +391,36 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
 class OccurrenceWithinVicinity(PostProcessingPlugin):
 
-    """Calculate whether a phenomenon occurs within the specified distance."""
+    """Calculate whether a phenomenon occurs within the specified radius. This
+    radius can be given as a radius in metres, or as a number of grid points.
+    A radius in metres may be used with data on a equal areas projection only.
+    A grid_point_radius will work with any projection but the effective kernel
+    shape in real space may be irregular. Users must be aware of this when
+    choosing whether to use this plugin with a non-equal areas projection."""
 
-    def __init__(self, distance: float, land_mask_cube: Cube = None) -> None:
+    def __init__(
+        self,
+        radius: float = None,
+        grid_point_radius: int = None,
+        land_mask_cube: Cube = None,
+    ) -> None:
         """
-        Initialise the class.
-
         Args:
-            distance:
-                Distance in metres used to define the vicinity within which to
+            radius:
+                Radius in metres used to define the vicinity within which to
                 search for an occurrence.
+            grid_point_radius:
+                Alternatively, a number of grid points that defines the vicinity
+                radius over which to search for an occurence.
             land_mask_cube:
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
         """
-        self.distance = distance
+        if radius is not None and grid_point_radius is not None:
+            raise ValueError("Only one of radius or grid_point_radius should be set")
+        self.radius = radius
+        self.grid_point_radius = grid_point_radius
         if land_mask_cube:
             if land_mask_cube.name() != "land_binary_mask":
                 raise ValueError(
@@ -418,14 +432,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.land_mask = None
         self.land_mask_cube = land_mask_cube
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = "<OccurrenceWithinVicinity: distance: {}>"
-        return result.format(self.distance)
-
     def maximum_within_vicinity(self, cube: Cube) -> Cube:
         """
-        Find grid points where a phenomenon occurs within a defined distance.
+        Find grid points where a phenomenon occurs within a defined radius.
         The occurrences within this vicinity are maximised, such that all
         grid points within the vicinity are recorded as having an occurrence.
         For non-binary fields, if the vicinity of two occurrences overlap,
@@ -440,15 +449,19 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Returns:
             Cube where the occurrences have been spatially spread, so that
             they're equally likely to have occurred anywhere within the
-            vicinity defined using the specified distance.
+            vicinity defined using the specified radius.
         """
-        grid_spacing = distance_to_number_of_grid_cells(cube, self.distance)
+        if self.radius:
+            grid_point_radius = distance_to_number_of_grid_cells(cube, self.radius)
+        elif self.grid_point_radius is not None:
+            grid_point_radius = self.grid_point_radius
+        else:
+            grid_point_radius = 0
 
-        # Convert the number of grid points (i.e. grid_spacing) represented
-        # by self.distance, e.g. where grid_spacing=1 is an increment to
-        # a central point, into grid_cells which is the total number of points
-        # within the defined vicinity along the y axis e.g grid_cells=3.
-        grid_cells = (2 * grid_spacing) + 1
+        # Convert the grid_point_radius into a number of points along an edge
+        # length, including the central point, e.g. grid_point_radius = 1,
+        # points along the edge = 3
+        grid_points = (2 * grid_point_radius) + 1
 
         max_cube = cube.copy()
         unmasked_cube_data = cube.data.copy()
@@ -460,12 +473,12 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             for match in (True, False):
                 matched_data = unmasked_cube_data.copy()
                 matched_data[self.land_mask != match] = -np.inf
-                matched_max_data = maximum_filter(matched_data, size=grid_cells)
+                matched_max_data = maximum_filter(matched_data, size=grid_points)
                 max_data = np.where(self.land_mask == match, matched_max_data, max_data)
         else:
             # The following command finds the maximum value for each grid point
             # from within a square of length "size"
-            max_data = maximum_filter(unmasked_cube_data, size=grid_cells)
+            max_data = maximum_filter(unmasked_cube_data, size=grid_points)
         if np.ma.is_masked(cube.data):
             # Update only the unmasked values
             max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
