@@ -29,8 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to find the relative position of the sun."""
-
-import datetime as dt
+from datetime import datetime, timedelta, timezone
 from typing import Union
 
 import iris
@@ -44,6 +43,28 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
+
+HOURS_IN_DAY = 24
+
+
+def get_day_of_year(time: datetime) -> int:
+    """Get day of the year from given datetimes."""
+    if time.tzinfo is None:
+        start_of_year = datetime(time.year, 1, 1)
+    else:
+        start_of_year = datetime(time.year, 1, 1, tzinfo=timezone.utc)
+    return (time - start_of_year).days
+
+
+def get_utc_hour(time: datetime) -> float:
+    """Get utc_hour from datetime."""
+    # Round times to nearest minute by adding seconds component to times
+    rounded_time = time + timedelta(seconds=time.second)
+    # Want to avoid the situation where rounding time takes us into the next day.
+    if rounded_time.day != time.day:
+        return float(HOURS_IN_DAY)
+    else:
+        return (rounded_time.hour * 60.0 + rounded_time.minute) / 60.0
 
 
 def calc_solar_declination(day_of_year: int) -> float:
@@ -322,9 +343,8 @@ class DayNightMask(BasePlugin):
         modified_masks = iris.cube.CubeList()
         for mask_cube in daynight_mask.slices_over("time"):
             dtval = mask_cube.coord("time").cell(0).point
-            day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
-            dtval = dtval + dt.timedelta(seconds=dtval.second)
-            utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
+            day_of_year = get_day_of_year(dtval)
+            utc_hour = get_utc_hour(dtval)
             trg_crs = lat_lon_determine(mask_cube)
             # Grids that are not Lat Lon
             if trg_crs is not None:

@@ -31,6 +31,7 @@
 """Unit tests for the solar calculations in solar.py """
 
 import unittest
+from datetime import datetime, timezone
 
 import numpy as np
 from iris.tests import IrisTest
@@ -40,7 +41,45 @@ from improver.utilities.solar import (
     calc_solar_elevation,
     calc_solar_hour_angle,
     daynight_terminator,
+    get_day_of_year,
+    get_utc_hour,
 )
+
+
+class Test_get_day_of_year(IrisTest):
+    """Test day of year extraction."""
+
+    def test_get_day_of_year(self):
+        datetimes = [
+            datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            datetime(2020, 2, 29, 1, 0, 0, tzinfo=timezone.utc),
+            datetime(2021, 3, 1, 0, 0, 50, tzinfo=timezone.utc),
+            datetime(2020, 3, 1, 0, 0, 29, tzinfo=timezone.utc),
+            datetime(2021, 12, 31, 23, 58, 59, tzinfo=timezone.utc),
+            datetime(2020, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        ]
+
+        expected_result = np.array([0, 59, 59, 60, 364, 365], dtype=int)
+        result = [get_day_of_year(dt) for dt in datetimes]
+        self.assertArrayEqual(result, expected_result)
+
+
+class Test_get_utc_hour(IrisTest):
+    """Test utc hour extraction."""
+
+    def test_get_utc_hour(self):
+        datetimes = [
+            datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
+            datetime(2020, 2, 29, 1, 0, 0, tzinfo=timezone.utc),
+            datetime(2021, 3, 1, 0, 0, 50, tzinfo=timezone.utc),
+            datetime(2020, 3, 1, 0, 0, 29, tzinfo=timezone.utc),
+            datetime(2021, 12, 31, 23, 58, 59, tzinfo=timezone.utc),
+            datetime(2020, 12, 31, 23, 59, 59, tzinfo=timezone.utc),
+        ]
+
+        expected_result = np.array([0.0, 1.0, 1.0 / 60.0, 0.0, 24.0 - 1.0 / 60.0, 24.0])
+        result = [get_utc_hour(dt) for dt in datetimes]
+        self.assertArrayEqual(result, expected_result)
 
 
 class Test_calc_solar_declination(IrisTest):

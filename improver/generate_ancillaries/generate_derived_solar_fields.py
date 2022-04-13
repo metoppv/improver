@@ -43,9 +43,9 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.solar import calc_solar_elevation, get_utc_hour, get_day_of_year
-from improver.utilities.spatial import transform_grid_to_lat_lon
 from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.solar import calc_solar_elevation, get_day_of_year, get_utc_hour
+from improver.utilities.spatial import transform_grid_to_lat_lon
 
 SECONDS_IN_MINUTE = 60
 MINUTES_IN_HOUR = 60
@@ -55,6 +55,7 @@ CLEARSKY_SOLAR_RADIATION_CF_NAME = (
     "integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time"
 )
 CLEARSKY_SOLAR_RADIATION_BRUCE_NAME = "clearsky_solar_radiation"
+
 
 class GenerateSolarTime(BasePlugin):
     """A plugin to evaluate local solar time."""
@@ -185,13 +186,16 @@ class GenerateClearskySolarRadiation(BasePlugin):
         surface_altitude: Union[ndarray, float],
         linke_turbidity: Union[ndarray, float],
     ) -> ndarray:
-        """Calculate the clearsky global horizontal irradiance using the Perez & Ineichen (2002) [1, 2]
-        formulation. Note that the formulation here neglects the Perez enhancement that can
-        be found in the literature; see PvLib issue (https://github.com/pvlib/pvlib-python/issues/435)
-        for details.
-        Note: this method produces values that exceed the incoming extra-terrestrial irradiance
-        for large altitude (> 5000m). Here we limit the the value to not exceed the incoming irradiance;
-        consequently, irradiance values at these altitudes are an over-estimate.
+        """Calculate the clearsky global horizontal irradiance using the Perez
+        & Ineichen (2002) [1, 2] formulation. Note that the formulation here
+        neglects the Perez enhancement that can be found in the literature; see
+        PvLib issue (https://github.com/pvlib/pvlib-python/issues/435) for details.
+
+        Note: this method produces values that exceed the incoming extra-terrestrial
+        irradiance for large altitude values (> 5000m). Here we limit the the value to
+        not exceed the incoming irradiance. Caution should be used for irradiance values
+        at large altitudes as they are likely to over-estimate.
+
         Args:
             zenith_angle:
                 zenith_angle angle in degrees.
@@ -200,10 +204,13 @@ class GenerateClearskySolarRadiation(BasePlugin):
             surface_altitude:
                 Grid box elevation.
             linke_turbidity:
-                Linke_turbidity value is a dimensionless value that characterises the atmospheres
-                ability to scatter incoming radiation relative to a dry atmosphere.
+                Linke_turbidity value is a dimensionless value that characterises the
+                atmospheres ability to scatter incoming radiation relative to a dry
+                atmosphere.
+
         Returns:
             Clearsky global horizontal irradiance values.
+
         References:
             [1] INEICHEN, Pierre, PEREZ, R. "A new airmass independent formulation
             for the Linke turbidity coefficient", Solar Energy, vol. 73, p. 151-157,
@@ -212,9 +219,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
             Clear Sky Models: Implementation and Analysis", Sandia National
             Laboratories, SAND2012-2389, 2012.
         """
-        return np.zeros(
-            shape=zenith_angle.shape, dtype=np.float32
-        )
+        return np.zeros(shape=zenith_angle.shape, dtype=np.float32)
 
     def _calc_clearsky_solar_radiation_data(
         self,
@@ -258,7 +263,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
             day_of_year = get_day_of_year(time_step)
             utc_hour = get_utc_hour(time_step)
 
-            zenith_angle = 90.0 - calc_solar_elevation(lats, lons, day_of_year, utc_hour)
+            zenith_angle = 90.0 - calc_solar_elevation(
+                lats, lons, day_of_year, utc_hour
+            )
 
             irradiance_data[time_index, :, :] = self._calc_clearsky_ineichen(
                 zenith_angle,
@@ -274,7 +281,6 @@ class GenerateClearskySolarRadiation(BasePlugin):
         )
 
         return solar_radiation_data
-
 
     def _create_solar_radiation_cube(
         self,
