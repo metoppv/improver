@@ -300,24 +300,6 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
         self.expected_instantaneous_truth = self.expected_period_truth.copy()
         self.expected_instantaneous_truth.coord("time").bounds = None
 
-        threshold_cubes = iris.cube.CubeList()
-        for threshold in self.thresholds:
-            threshold_cube = self.expected_period_truth.copy()
-            threshold_cube.rename(f"probability_of_{self.cf_name}_above_threshold")
-            threshold_cube.data = (threshold_cube.data > threshold).astype(np.int32)
-            threshold_cube.units = "1"
-            threshold_coord = iris.coords.DimCoord(
-                np.float32(threshold),
-                standard_name=self.cf_name,
-                var_name="threshold",
-                units="Celsius",
-            )
-            threshold_coord.attributes["spp__relative_to_threshold"] = "greater_than"
-            threshold_cube.add_aux_coord(threshold_coord)
-            threshold_cubes.append(threshold_cube)
-
-        self.expected_period_truth_threshold = threshold_cubes.merge_cube()
-
 
 class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
 
@@ -452,7 +434,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         )
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast_threshold)
-        self.assertCubeEqual(result[1], self.expected_period_truth_threshold)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
 
     def test_realization(self):
         """Test the expected realization cubes are generated from the input dataframes."""

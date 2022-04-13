@@ -606,10 +606,7 @@ def forecast_dataframe_to_cube(
         return cube
 
 
-def truth_dataframe_to_cube(
-    df: DataFrame,
-    training_dates: DatetimeIndex,
-) -> Cube:
+def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
     Args:
@@ -727,7 +724,5 @@ def forecast_and_truth_dataframes_to_cubes(
     forecast_cube = forecast_dataframe_to_cube(
         forecast_df, training_dates, forecast_period, comparison_operator
     )
-    truth_cube = truth_dataframe_to_cube(
-        truth_df, training_dates
-    )
+    truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube
