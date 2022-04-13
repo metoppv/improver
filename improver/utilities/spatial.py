@@ -417,7 +417,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
         """
-        if radius and grid_point_radius:
+        if radius is not None and grid_point_radius is not None:
             raise ValueError("Only one of radius or grid_point_radius should be set")
         self.radius = radius
         self.grid_point_radius = grid_point_radius
@@ -453,8 +453,10 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         """
         if self.radius:
             grid_point_radius = distance_to_number_of_grid_cells(cube, self.radius)
-        else:
+        elif self.grid_point_radius is not None:
             grid_point_radius = self.grid_point_radius
+        else:
+            grid_point_radius = 0
 
         # Convert the grid_point_radius into a number of points along an edge
         # length, including the central point, e.g. grid_point_radius = 1,

@@ -36,6 +36,7 @@ from typing import Tuple
 import numpy as np
 import pytest
 from iris.cube import Cube
+from numpy import ndarray
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -58,26 +59,50 @@ def land_mask_cube_generator(shape: Tuple[int, int] = (5, 5)) -> Cube:
     )
 
 
-@pytest.fixture(name="all_land_cube")
-def land_mask_cube_44_fixture() -> Cube:
+@pytest.fixture
+def all_land_cube() -> Cube:
     cube = land_mask_cube_generator((4, 4))
     cube.data = np.zeros_like(cube.data)
     return cube
 
 
-@pytest.fixture(name="land_mask_cube")
-def land_mask_cube_55_fixture() -> Cube:
+@pytest.fixture
+def land_mask_cube() -> Cube:
     cube = land_mask_cube_generator()
     return cube
 
 
-@pytest.fixture(name="cube")
-def cube_fixture() -> Cube:
+@pytest.fixture
+def binary_expected() -> ndarray:
+    return np.array(
+        [
+            [1.0, 1.0, 1.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0, 1.0],
+            [0.0, 0.0, 1.0, 1.0, 1.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
+    )
+
+
+@pytest.fixture
+def cube() -> Cube:
     """Sets up a cube for testing"""
     return set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
         spatial_grid="equalarea",
         grid_spacing=2000.0,
+        domain_corner=(0.0, 0.0),
+    )
+
+
+@pytest.fixture
+def latlon_cube() -> Cube:
+    """Sets up a lat-lon cube for testing"""
+    return set_up_variable_cube(
+        np.zeros((5, 5), dtype=np.float32),
+        spatial_grid="latlon",
+        grid_spacing=1.0,
         domain_corner=(0.0, 0.0),
     )
 
@@ -89,22 +114,41 @@ GRID_POINT_RADIUS = 1
 @pytest.mark.parametrize(
     "kwargs", ({"radius": RADIUS}, {"grid_point_radius": GRID_POINT_RADIUS})
 )
-def test_basic(cube, kwargs):
+def test_basic(cube, binary_expected, kwargs):
     """Test for binary events to determine where there is an occurrence
     within the vicinity."""
-    expected = np.array(
-        [
-            [1.0, 1.0, 1.0, 0.0, 0.0],
-            [1.0, 1.0, 1.0, 1.0, 1.0],
-            [0.0, 0.0, 1.0, 1.0, 1.0],
-            [0.0, 0.0, 1.0, 1.0, 1.0],
-            [0.0, 0.0, 0.0, 0.0, 0.0],
-        ]
-    )
+
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 1.0
     result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
     assert isinstance(result, Cube)
+    assert np.allclose(result.data, binary_expected)
+
+
+def test_basic_latlon(latlon_cube, binary_expected):
+    """Test for occurrence in vicinity calculation on a lat-lon (non equal
+    area) grid using a grid_point_radius."""
+
+    latlon_cube.data[0, 1] = 1.0
+    latlon_cube.data[2, 3] = 1.0
+    result = OccurrenceWithinVicinity(
+        grid_point_radius=GRID_POINT_RADIUS
+    ).maximum_within_vicinity(latlon_cube)
+    assert isinstance(result, Cube)
+    assert np.allclose(result.data, binary_expected)
+
+
+@pytest.mark.parametrize("fixture_name", ["cube", "latlon_cube"])
+@pytest.mark.parametrize("keyword", ["radius", "grid_point_radius"])
+@pytest.mark.parametrize("value", [0, None])
+def test_zero_radius(request, fixture_name, keyword, value):
+    """Test that if a zero radius / grid point radius, or no radius / grid point
+    radius is provided, the input data is returned unchanged. This test uses
+    both an equal area and latlon grid as a 0 radius can be applied to both."""
+    cube = request.getfixturevalue(fixture_name)
+    kwargs = {keyword: value}
+    expected = cube.data.copy()
+    result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
     assert np.allclose(result.data, expected)
 
 
@@ -400,10 +444,11 @@ def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     assert np.allclose(result.data, expected)
 
 
-def test_two_radii_provided_exception(cube):
+@pytest.mark.parametrize("radius", [0, 2000])
+def test_two_radii_provided_exception(cube, radius):
     """Test an exception is raised if both radius and grid_point_radius are
     provided as arguments."""
     with pytest.raises(
         ValueError, match="Only one of radius or grid_point_radius should be set"
     ):
-        OccurrenceWithinVicinity(radius=2000, grid_point_radius=2)
+        OccurrenceWithinVicinity(radius=radius, grid_point_radius=2)
