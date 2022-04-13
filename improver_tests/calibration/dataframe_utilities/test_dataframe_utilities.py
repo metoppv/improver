@@ -497,18 +497,18 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_station_id(self):
         """Test that when station_id is present, both station_id and wmo_id
-        are used to match sites between forecast and observation data."""
+        are used to match sites between forecast and truth data."""
         forecast_df = self.forecast_df.copy()
         forecast_df = forecast_df.loc[forecast_df["wmo_id"].isin(self.wmo_ids[:-1])]
-        forecast_df["station_id"] = forecast_df["wmo_id"].copy()
+        forecast_df["station_id"] = forecast_df["wmo_id"] + "0"
         truth_df = self.truth_subset_df.copy()
         truth_df = truth_df.loc[truth_df["wmo_id"].isin(self.wmo_ids[1:])]
-        truth_df["station_id"] = truth_df["wmo_id"].copy()
+        truth_df["station_id"] = truth_df["wmo_id"] + "0"
         site_id_values = np.array([0], dtype=np.int32)
         expected_forecast = self.expected_period_forecast[:, :, [1]].copy()
         expected_forecast.coord("spot_index").points = site_id_values
         unique_id_coord = iris.coords.AuxCoord(
-            [self.wmo_ids[1]],
+            [self.wmo_ids[1] + "0"],
             long_name="station_id",
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
@@ -519,6 +519,20 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         site_id_dim = expected_truth.coord_dims("spot_index")[0]
         expected_truth.add_aux_coord(unique_id_coord, site_id_dim)
         expected_truth.coord("spot_index").points = site_id_values
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], expected_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
+        forecast_df["wmo_id"] = "00000"
+        truth_df["wmo_id"] = "00000"
+        expected_truth.coord("wmo_id").points = ["00000"]
+        expected_forecast.coord("wmo_id").points = ["00000"]
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,
             truth_df,
