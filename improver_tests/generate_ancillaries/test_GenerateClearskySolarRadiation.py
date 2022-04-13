@@ -42,6 +42,8 @@ from improver.generate_ancillaries.generate_derived_solar_fields import (
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
+MAX_EXTRA_TERRESTRIAL_IRRADIANCE = 1367.7 * (1 + 0.033)
+
 
 @pytest.fixture
 def target_grid() -> Cube:

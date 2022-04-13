@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
+import warnings
 from datetime import datetime, timedelta, timezone
 from typing import List, Tuple, Union
 
@@ -183,6 +184,39 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         return irradiance_times
 
+    def _calc_air_mass(self, zenith: ndarray) -> ndarray:
+        """Calculate the relative airmass using the Kasten & Young (1989) [1, 2] parameterization.
+        The relative airmass is a dimensionless quantity representing the relative thickness of
+        atmosphere compared the shortest possible path through the full depth of the atmosphere
+        corresponding to zenith = 0.
+        Args:
+            zenith:
+                Zenith angle in degrees.
+        Returns:
+            Relative air mass for given zenith angle.
+        References:
+        [1] F. Kasten and A. T. Young, "Revised Optical Air-Mass Tables and
+        Approximation Formula", Applied Optics, vol. 28, p. 4735-4738, 1989.
+        [2] M. Reno, C. Hansen, and J. Stein, "Global Horizontal Irradiance
+        Clear Sky Models: Implementation and Analysis", Sandia National
+        Laboratories, SAND2012-2389, 2012.
+        """
+        # For angles with zenith > 90, the air_mass is ill-defined. Here we
+        #  acknowledge that these values will result in invalid values in the
+        #  power calculation.
+        zenith_above_horizon = np.where(zenith > 90, np.nan, zenith)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value encountered in power")
+
+            air_mass = 1.0 / (
+                np.cos(np.radians(zenith_above_horizon))
+                + 0.50572 * (96.07995 - zenith_above_horizon) ** (-1.6364)
+            )
+        # Remove nans_associated with zenith > 90.0 degrees
+        air_mass = np.nan_to_num(air_mass)
+
+        return air_mass
+
     def _calc_clearsky_ineichen(
         self,
         zenith_angle: ndarray,
@@ -223,7 +257,35 @@ class GenerateClearskySolarRadiation(BasePlugin):
             Clear Sky Models: Implementation and Analysis", Sandia National
             Laboratories, SAND2012-2389, 2012.
         """
-        return np.zeros(shape=zenith_angle.shape, dtype=np.float32)
+        # Day of year as an angular quantity.
+        theta0 = 2 * np.pi * day_of_year / 365.0
+        # Irradiance at the top of the atmosphere.
+        extra_terrestrial_irradiance = 1367.7 * (1 + 0.033 * np.cos(theta0))
+        # Air mass specifies the path length through the atmosphere relative
+        # to the direct vertical.
+        air_mass = self._calc_air_mass(zenith_angle)
+        # Model params
+        fh1 = np.exp(-1.0 * surface_altitude / 8000.0)
+        fh2 = np.exp(-1.0 * surface_altitude / 1250.0)
+        cg1 = 0.0000509 * surface_altitude + 0.868
+        cg2 = 0.0000392 * surface_altitude + 0.0387
+        # Set below horizon zenith angles to zero.
+        cos_zenith = np.maximum(np.cos(np.radians(zenith_angle)), 0)
+        # Calculate global horizontal irradiance as per Ineichen-Perez model.
+        global_horizontal_irradiance = (
+            cg1
+            * extra_terrestrial_irradiance
+            * cos_zenith
+            * np.exp(-1.0 * cg2 * air_mass * (fh1 + fh2 * (linke_turbidity - 1)))
+        )
+        # Model at very large elevations will produce irradiance values that exceed
+        # extra-terrestrial irradiance. Here we cap the possible irradiance to that
+        # of the incoming extra-terrestrial irradiance.
+        global_horizontal_irradiance = np.minimum(
+            global_horizontal_irradiance, extra_terrestrial_irradiance
+        )
+
+        return global_horizontal_irradiance
 
     def _calc_clearsky_solar_radiation_data(
         self,
