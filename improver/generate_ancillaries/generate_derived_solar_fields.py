@@ -189,7 +189,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         the same spatial grid points as target_grid.
 
         Args:
-            target_cube:
+            target_grid:
                 Cube containing the target spatial grid on which to evaluate irradiance.
             irradiance_times:
                 Datetimes at which to evaluate the irradiance data.
