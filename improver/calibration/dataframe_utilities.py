@@ -283,26 +283,18 @@ def get_forecast_representation(df: DataFrame) -> str:
         ValueError:
             If none of the allowed columns are present, or more than one is present.
     """
-    representation_type = None
-    for variable in REPRESENTATION_COLUMNS:
-        if variable in df.columns:
-            if representation_type is not None:
-                msg = (
-                    f"More than one column of {REPRESENTATION_COLUMNS} "
-                    "exists in the input dataset"
-                )
-                raise ValueError(msg)
-            representation_type = variable
-
-    # check if one of the data-columns was found
-    if representation_type is None:
-        msg = (
+    representations = set(REPRESENTATION_COLUMNS) & set(df.columns)
+    if len(representations) > 1:
+        raise ValueError(
+            f"More than one column of {REPRESENTATION_COLUMNS} "
+            "exists in the input dataset"
+        )
+    if len(representations) == 0:
+        raise ValueError(
             f"None of the columns {REPRESENTATION_COLUMNS} "
             "exist in the input dataset"
         )
-        raise ValueError(msg)
-
-    return representation_type
+    return representations.pop()
 
 
 def _prepare_dataframes(
