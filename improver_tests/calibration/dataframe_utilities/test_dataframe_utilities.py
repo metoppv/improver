@@ -91,7 +91,7 @@ class SetupSharedDataFrames(ImproverTest):
         self.wmo_ids = ["03002", "03003", "03004"]
         self.percentiles = np.array([25.0, 50.0, 75.0], dtype=np.float32)
         self.realizations = np.array([0, 1, 2], dtype=np.int32)
-        self.thresholds = np.array([0, 0.2, 0.5], dtype=np.float32)
+        self.thresholds = np.array([10, 20, 30], dtype=np.float32)
         diag = "air_temperature"
         self.cf_name = "air_temperature"
         self.latitudes = np.array([50.0, 60.0, 70.0], dtype=np.float32)
@@ -124,7 +124,7 @@ class SetupSharedDataFrames(ImproverTest):
         self.forecast_df = pd.DataFrame(df_dict)
         threshold_df = self.forecast_df.drop(columns=["percentile"])
         threshold_df["threshold"] = np.tile(np.repeat(self.thresholds, 3), 3)
-        threshold_df["forecast"] = (
+        threshold_df["forecast"] = 1 - (
             threshold_df["forecast"] / threshold_df["forecast"].max()
         )
         self.forecast_df_threshold = threshold_df
@@ -254,7 +254,7 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
         threshold_fc.coord(self.cf_name).attributes[
             "spp__relative_to_threshold"
         ] = "greater_than"
-        threshold_fc.data = threshold_fc.data / np.max(threshold_fc.data)
+        threshold_fc.data = 1 - threshold_fc.data / np.max(threshold_fc.data)
         self.expected_period_forecast_threshold = threshold_fc
         self.expected_instantaneous_forecast = self.expected_period_forecast.copy()
         for coord in ["forecast_period", "time"]:
