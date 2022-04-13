@@ -507,7 +507,17 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         site_id_values = np.array([0], dtype=np.int32)
         expected_forecast = self.expected_period_forecast[:, :, [1]].copy()
         expected_forecast.coord("spot_index").points = site_id_values
+        unique_id_coord = iris.coords.AuxCoord(
+            [self.wmo_ids[1]],
+            long_name="station_id",
+            units="no_unit",
+            attributes={"unique_site_identifier": "true"},
+        )
+        site_id_dim = expected_forecast.coord_dims("spot_index")[0]
+        expected_forecast.add_aux_coord(unique_id_coord, site_id_dim)
         expected_truth = self.expected_period_truth[:, [1]].copy()
+        site_id_dim = expected_truth.coord_dims("spot_index")[0]
+        expected_truth.add_aux_coord(unique_id_coord, site_id_dim)
         expected_truth.coord("spot_index").points = site_id_values
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,

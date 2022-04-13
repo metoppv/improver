@@ -578,6 +578,13 @@ def forecast_dataframe_to_cube(
                 cube_name = cf_name
                 units = var_df["units"].values[0]
 
+            if "station_id" in var_df.columns:
+                unique_site_id = var_df["station_id"].values.astype("<U8")
+                unique_site_id_key = "station_id"
+            else:
+                unique_site_id = None
+                unique_site_id_key = None
+
             cube = build_spotdata_cube(
                 var_df["forecast"].astype(np.float32),
                 cube_name,
@@ -586,6 +593,8 @@ def forecast_dataframe_to_cube(
                 var_df["latitude"].astype(np.float32),
                 var_df["longitude"].astype(np.float32),
                 var_df["wmo_id"].values.astype("U5"),
+                unique_site_id,
+                unique_site_id_key,
                 scalar_coords=[
                     time_coord,
                     frt_coord,
@@ -693,6 +702,13 @@ def truth_dataframe_to_cube(
                 comparison_string = "above" if "greater" in spp_string else "below"
                 cube_name = f"probability_of_{cf_name}_{comparison_string}_threshold"
 
+                if "station_id" in var_df.columns:
+                    unique_site_id = var_df["station_id"].values.astype("<U8")
+                    unique_site_id_key = "station_id"
+                else:
+                    unique_site_id = None
+                    unique_site_id_key = None
+
                 cube = build_spotdata_cube(
                     comparison_function(var_df["ob_value"], var_val).astype(np.int32),
                     cube_name,
@@ -701,10 +717,20 @@ def truth_dataframe_to_cube(
                     var_df["latitude"].astype(np.float32),
                     var_df["longitude"].astype(np.float32),
                     var_df["wmo_id"].values.astype("U5"),
+                    unique_site_id,
+                    unique_site_id_key,
                     scalar_coords=[time_coord, height_coord, var_coord],
                 )
                 cubelist.append(cube)
         else:
+
+            if "station_id" in time_df.columns:
+                unique_site_id = time_df["station_id"].values.astype("<U8")
+                unique_site_id_key = "station_id"
+            else:
+                unique_site_id = None
+                unique_site_id_key = None
+
             cube = build_spotdata_cube(
                 time_df["ob_value"].astype(np.float32),
                 time_df["cf_name"].values[0],
@@ -713,6 +739,8 @@ def truth_dataframe_to_cube(
                 time_df["latitude"].astype(np.float32),
                 time_df["longitude"].astype(np.float32),
                 time_df["wmo_id"].values.astype("U5"),
+                unique_site_id,
+                unique_site_id_key,
                 scalar_coords=[time_coord, height_coord],
             )
             cubelist.append(cube)
