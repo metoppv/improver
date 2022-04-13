@@ -784,7 +784,6 @@ def forecast_and_truth_dataframes_to_cubes(
             comparison operator by
             :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
 
-
     Returns:
         Forecasts and truths for the training period in Cube format.
     """
