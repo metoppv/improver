@@ -496,8 +496,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             )
 
     def test_station_id(self):
-        """Test the expected cubes are generated from the input dataframes
-        when inputs contain station_id."""
+        """Test that when station_id is present, both station_id and wmo_id
+        are used to match sites between forecast and observation data."""
         forecast_df = self.forecast_df.copy()
         forecast_df = forecast_df.loc[forecast_df["wmo_id"].isin(self.wmo_ids[:-1])]
         forecast_df["station_id"] = forecast_df["wmo_id"].copy()
