@@ -287,7 +287,8 @@ def get_forecast_representation(df: DataFrame) -> str:
     if len(representations) > 1:
         raise ValueError(
             f"More than one column of {REPRESENTATION_COLUMNS} "
-            "exists in the input dataset"
+            "exists in the input dataset. The columns present are "
+            "{representations}."
         )
     if len(representations) == 0:
         raise ValueError(
