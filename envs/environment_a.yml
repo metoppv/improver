@@ -28,7 +28,7 @@ dependencies:
   # Development
   - astroid
   - bandit
-  - black=19.10b0
+  - black>=22.3.0
   - codacy-coverage
   - filelock
   - flake8
