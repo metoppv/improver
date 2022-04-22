@@ -178,6 +178,49 @@ def _quantile_check(df: DataFrame) -> None:
         raise ValueError(msg)
 
 
+def _fill_missing_entries(df, key_cols, static_cols):
+    """Fill the input dataframe with rows that correspond to missing entries. The
+    expected entries are computed using all combinations of the values within the
+    "key_cols". In practice, this will allow support for creating entries for times
+    that are missing when a new site with a WMO ID is added.
+
+    Args:
+        df: DataFrame to be filled with rows corresponding to missing entries.
+        key_cols: The key columns within the dataframe. All combinations of the
+            values within these columns are expected exist, otherwise, an
+            entry will be created.
+        static_cols: The names of the columns that are considered "static" and
+            therefore can be reliably filled using other entries for the given WMO ID.
+
+    Returns:
+        DataFrame where any missing combination of the "key_cols" will have been
+        created.
+    """
+    # Create a dataframe with rows for all possible combinations of wmo_id, time and percentile.
+    # This results in rows with NaNs being created in the dataframe.
+    unique_vals_from_key_cols = [df[c].unique() for c in key_cols]
+    new_index = pd.MultiIndex.from_product(unique_vals_from_key_cols, names=key_cols)
+    df = df.set_index(key_cols).reindex(new_index).reset_index(level=key_cols)
+
+    # Fill the NaNs within the static columns for each wmo_id.
+    filled_df = (
+        df.groupby("wmo_id")[key_cols + static_cols]
+        .fillna(method="ffill")
+        .fillna(method="bfill")
+    )
+    df = df.drop(columns=static_cols)
+    df = df.merge(filled_df, on=key_cols)
+    # wmo_ids_with_nan = df[df.isna().any(axis=1)]["wmo_id"].unique()
+    # for wmo_id in wmo_ids_with_nan:
+    #     df.loc[df["wmo_id"] == wmo_id, static_cols] = df.loc[df["wmo_id"] == wmo_id, static_cols].fillna(method="ffill").fillna(method="bfill")
+
+    # Fill the blend_time and forecast_reference_time columns.
+    if "forecast_period" in df.columns:
+        for col in ["blend_time", "forecast_reference_time"]:
+            df[col] = df["time"] - df["forecast_period"]
+    return df
+
+
 def _define_time_coord(
     adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None,
 ) -> DimCoord:
@@ -392,6 +435,7 @@ def _prepare_dataframes(
     common_wmo_ids = sorted(
         set(forecast_df["wmo_id"].unique()).intersection(truth_df["wmo_id"].unique())
     )
+
     forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
     truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
@@ -410,6 +454,36 @@ def _prepare_dataframes(
 
     # Ensure time in truths is present in forecasts.
     truth_df = truth_df[truth_df["time"].isin(forecast_df["time"].unique())]
+
+    # Fill in any missing instances of the "key_cols". This allows support for the
+    # introduction of new sites within the forecast_df and truth_df.
+    key_cols = ["wmo_id", "time", "percentile"]
+    static_cols = [
+        "forecast_period",
+        "latitude",
+        "longitude",
+        "altitude",
+        "diagnostic",
+        "period",
+        "height",
+        "cf_name",
+        "units",
+        "experiment",
+    ]
+    forecast_df = _fill_missing_entries(forecast_df, key_cols, static_cols)
+    key_cols = ["wmo_id", "time"]
+    static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
+    truth_df = _fill_missing_entries(truth_df, key_cols, static_cols)
+    # Sort to ensure a consistent ordering after filling in missing entries.
+    forecast_df = forecast_df.sort_values(
+        by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
+    )
+    truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
+
+    # Want to find where wmo_ids that are present for each time.
+    # number_of_times = forecast_df["time"].nunique()
+    # wmo_df = forecast_df[["wmo_id", "time"]].drop_duplicates()["wmo_id"].value_counts()
+    # common_wmo_ids = sorted(wmo_df[wmo_df == number_of_times].index.tolist())
 
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df

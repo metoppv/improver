@@ -666,6 +666,101 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast[:, 1:])
         self.assertCubeEqual(result[1], self.expected_period_truth[1:])
 
+    def test_new_site_with_only_one_forecast_and_truth(self):
+        """Test for a site that has a forecast and truth data point for the most
+        recent time only."""
+        self.expected_period_forecast.data[:, :2, -1] = np.nan
+        self.expected_period_truth.data[:2, -1] = np.nan
+
+        df = self.forecast_df.copy()
+        condition = (df["time"].isin([self.time1, self.time2])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        forecast_df = df.drop(df[condition].index)
+        df = self.truth_subset_df.copy()
+        condition = (df["time"].isin([self.time1, self.time2])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        truth_df = df.drop(df[condition].index)
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+
+    def test_old_site_with_only_one_forecast_and_truth(self):
+        """Test for a site that has a forecast and truth data point for the oldest
+        time only."""
+        self.expected_period_forecast.data[:, 1:, -1] = np.nan
+        self.expected_period_truth.data[1:, -1] = np.nan
+
+        df = self.forecast_df.copy()
+        condition = (df["time"].isin([self.time2, self.time3])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        forecast_df = df.drop(df[condition].index)
+        df = self.truth_subset_df.copy()
+        condition = (df["time"].isin([self.time2, self.time3])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        truth_df = df.drop(df[condition].index)
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_sites_no_overlapping_dates(self):
+        """Test for when there are sites with no overlapping dates within the
+        forecasts and the truths."""
+        self.expected_period_forecast.data[:, 0, 0] = np.nan
+        self.expected_period_forecast.data[:, 2, 2] = np.nan
+        self.expected_period_truth.data[0, 0] = np.nan
+        self.expected_period_truth.data[2, 2] = np.nan
+
+        df = self.forecast_df.copy()
+        condition1 = (df["time"].isin([self.time1])) & (
+            df["wmo_id"] == self.wmo_ids[0]
+        )
+        condition2 = (df["time"].isin([self.time3])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        forecast_df = df.drop(df[condition1].index | df[condition2].index)
+
+        df = self.truth_subset_df.copy()
+        condition1 = (df["time"].isin([self.time1])) & (
+            df["wmo_id"] == self.wmo_ids[0]
+        )
+        condition2 = (df["time"].isin([self.time3])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        truth_df = df.drop(df[condition1].index | df[condition2].index)
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
     def test_percentile_extract(self):
         """Test the desired percentiles are extracted."""
         expected_period_forecast = self.expected_period_forecast[::2]
