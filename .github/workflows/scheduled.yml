@@ -1,3 +1,5 @@
+# Note that this file intentionally uses no cache, see
+# https://github.com/metoppv/improver/pull/1651#issue-1108889073
 name: Scheduled Tests
 
 on:
