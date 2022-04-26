@@ -31,17 +31,11 @@
 """Test wide setup and configuration"""
 
 import pytest
+from threadpoolctl import threadpool_limits
 
 
 @pytest.fixture(autouse=True)
-def env_setup(monkeypatch):
-    """
-    Set environment variables to restrict math libraries to a single thread.
-    For details, see Dask documentation:
-    https://docs.dask.org/en/stable/array-best-practices.html#avoid-oversubscribing-threads
-    """
-    monkeypatch.setenv("OMP_NUM_THREADS", "1")
-    monkeypatch.setenv("OPENBLAS_NUM_THREADS", "1")
-    monkeypatch.setenv("MKL_NUM_THREADS", "1")
-    monkeypatch.setenv("VECLIB_MAXIMUM_THREADS", "1")
-    monkeypatch.setenv("NUMEXPR_NUM_THREADS", "1")
+def thread_control(monkeypatch):
+    with threadpool_limits(limits=1):
+        yield
+    return
