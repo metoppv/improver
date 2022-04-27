@@ -425,7 +425,7 @@ def _prepare_dataframes(
     ]
     if "station_id" in forecast_df.columns:
         subset_cols.append("station_id")
-    # if units not present in truth_df, copy from forecast_df    
+    # if units not present in truth_df, copy from forecast_df
     if "units" not in truth_df.columns:
         subset_cols.append("units")
     forecast_subset = forecast_df[subset_cols].drop_duplicates()
