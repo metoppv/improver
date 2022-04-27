@@ -493,6 +493,26 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], expected_forecast)
         self.assertCubeEqual(result[1], expected_truth)
 
+    def test_units_in_truth(self):
+        """Test that if truth_df contains a units column, it is used 
+        for units of truth output cube."""
+        truth_df = self.truth_subset_df.copy()
+        truth_df["units"] = "Fahrenheit"
+        truth_df["ob_value"] = truth_df["ob_value"] + 30
+        expected_truth = self.expected_period_truth.copy()
+        expected_truth.units = "Fahrenheit"
+        expected_truth.data = expected_truth.data + 30
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
+
     def test_multiday_forecast_period(self):
         """Test for a multi-day forecast period to ensure that the
         validity times within the training dataset are always in
