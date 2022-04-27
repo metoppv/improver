@@ -422,7 +422,6 @@ def _prepare_dataframes(
         "period",
         "height",
         "cf_name",
-        "units",
         "time",
         "diagnostic",
     ]
