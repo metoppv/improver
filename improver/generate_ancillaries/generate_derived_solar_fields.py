@@ -204,7 +204,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         # For angles with zenith > 90, the air_mass is ill-defined. Here we
         #  acknowledge that these values will result in invalid values in the
         #  power calculation.
-        zenith_above_horizon = np.where(zenith > 90, np.nan, zenith)
+        zenith_above_horizon = np.where(np.abs(zenith) >= 90, np.nan, zenith)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "invalid value encountered in power")
 
