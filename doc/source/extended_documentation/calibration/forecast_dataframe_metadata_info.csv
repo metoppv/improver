@@ -8,9 +8,12 @@ latitude,float32,The latitude in degrees.
 longitude,float32,The longitude in degrees.
 time,"datetime64[ns,UTC]",The validity time of the forecasts. Signifies the end of the forecast period for period diagnostics.
 wmo_id,object,The five digit WMO ID.
+station_id,object or int,Optional additional site identifier.
 cf_name,object,The CF name for the diagnostic. From DataFrames consisting of one diagnostic this is expected to be constant.
 units,object,The units of the forecast value. From DataFrames consisting of one diagnostic this is expected to be constant.
 percentile,float64,The percentile value.
+threshold,float64,The threshold value.
+realization,int,The realization number.
 period,timedelta64[ns],The period the forecast valid is over. Set to missing data for instantaneous forecasts.
 height,float32,The height of the forecast value. From DataFrames consisting of one diagnostic this is expected to be constant.
 diagnostic,category,The name of the diagnostic. From DataFrames consisting of one diagnostic this is expected to be constant.
