@@ -57,7 +57,6 @@ from improver.utilities.probability_manipulation import comparison_operator_dict
 REPRESENTATION_COLUMNS = [
     "percentile",
     "realization",
-    "threshold",
 ]
 
 FORECAST_DATAFRAME_COLUMNS = [
@@ -268,7 +267,7 @@ def _training_dates_for_calibration(
 
 
 def get_forecast_representation(df: DataFrame) -> str:
-    """Check which of REPRESENTATION_COLUMNS (percentile, threshold, or realization)
+    """Check which of REPRESENTATION_COLUMNS (percentile or realization)
     exists in the dataframe.
 
     Args:
@@ -317,7 +316,7 @@ def _prepare_dataframes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold, or
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile or
             realization), diagnostic, latitude, longitude, altitude,
             period, height, cf_name, units and experiment. Any other
             columns are ignored.
@@ -451,8 +450,8 @@ def forecast_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, REPRESENTATION_COLUMNS (percentile, threshold, or
-            realization), diagnostic, latitude, longitude, period, height,
+            wmo_id, REPRESENTATION_COLUMNS (percentile or realization),
+            diagnostic, latitude, longitude, period, height,
             cf_name, units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
@@ -465,31 +464,9 @@ def forecast_dataframe_to_cube(
 
     Returns:
         Cube containing the forecasts from the training period.
-
-    Raises:
-        ValueError:
-            If forecast representation is threshold, and comparison operator is
-            not provided.
-        ValueError:
-            If comparison_operator is not a key of the dict returned by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
     """
 
-    operator_dict = comparison_operator_dict()
     representation_type = get_forecast_representation(df)
-    if (representation_type == "threshold") and (comparison_operator is None):
-        raise ValueError(
-            "Representation type is threshold, so comparison_operator must be specified."
-        )
-
-    if (representation_type == "threshold") and (
-        comparison_operator not in operator_dict
-    ):
-        dict_keys = ", ".join(operator_dict.keys())
-        raise ValueError(f"Representation type must be one of {dict_keys}.")
-
-    if representation_type == "threshold":
-        spp_string = operator_dict[comparison_operator].spp_string
 
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
@@ -543,15 +520,7 @@ def forecast_dataframe_to_cube(
         for var_val in sorted(time_df[representation_type].unique()):
             var_df = time_df.loc[time_df[representation_type] == var_val]
             cf_name = var_df["cf_name"].values[0]
-            if representation_type == "threshold":
-                var_coord = DimCoord(
-                    np.float32(var_val),
-                    standard_name=cf_name,
-                    var_name="threshold",
-                    units=var_df["units"].values[0],
-                )
-                var_coord.attributes.update({"spp__relative_to_threshold": spp_string})
-            elif representation_type == "percentile":
+            if representation_type == "percentile":
                 var_coord = DimCoord(
                     np.float32(var_val), long_name="percentile", units="%"
                 )
@@ -559,14 +528,6 @@ def forecast_dataframe_to_cube(
                 var_coord = DimCoord(
                     np.int32(var_val), standard_name="realization", units="1"
                 )
-
-            if representation_type == "threshold":
-                comparison_string = "above" if "greater" in spp_string else "below"
-                cube_name = f"probability_of_{cf_name}_{comparison_string}_threshold"
-                units = "1"
-            else:
-                cube_name = cf_name
-                units = var_df["units"].values[0]
 
             if "station_id" in var_df.columns:
                 unique_site_id = var_df["station_id"].values.astype("<U8")
@@ -577,8 +538,8 @@ def forecast_dataframe_to_cube(
 
             cube = build_spotdata_cube(
                 var_df["forecast"].astype(np.float32),
-                cube_name,
-                units,
+                cf_name,
+                var_df["units"].values[0],
                 var_df["altitude"].astype(np.float32),
                 var_df["latitude"].astype(np.float32),
                 var_df["longitude"].astype(np.float32),
@@ -676,7 +637,6 @@ def forecast_and_truth_dataframes_to_cubes(
     training_length: int,
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
-    comparison_operator: Optional[str] = None,
 ) -> Tuple[Cube, Cube]:
     """Convert a forecast DataFrame into an iris Cube and a
     truth DataFrame into an iris Cube.
@@ -685,9 +645,9 @@ def forecast_and_truth_dataframes_to_cubes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, one of REPRESENTATION_COLUMNS (percentile, threshold,
-            or realization) , diagnostic, latitude, longitude, period,
-            height, cf_name, units. Any other columns are ignored.
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile or realization),
+            diagnostic, latitude, longitude, period, height, cf_name, units.
+            Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
@@ -704,10 +664,6 @@ def forecast_and_truth_dataframes_to_cubes(
         experiment:
             A value within the experiment column to select from the forecast
             table.
-        comparison_operator:
-            A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
 
     Returns:
         Forecasts and truths for the training period in Cube format.
@@ -721,7 +677,7 @@ def forecast_and_truth_dataframes_to_cubes(
     )
 
     forecast_cube = forecast_dataframe_to_cube(
-        forecast_df, training_dates, forecast_period, comparison_operator
+        forecast_df, training_dates, forecast_period
     )
     truth_cube = truth_dataframe_to_cube(truth_df, training_dates)
     return forecast_cube, truth_cube
