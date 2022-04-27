@@ -52,7 +52,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.utilities.probability_manipulation import comparison_operator_dict
 
 REPRESENTATION_COLUMNS = [
     "percentile",
@@ -426,6 +425,9 @@ def _prepare_dataframes(
     ]
     if "station_id" in forecast_df.columns:
         subset_cols.append("station_id")
+    # if units not present in truth_df, copy from forecast_df    
+    if "units" not in truth_df.columns:
+        subset_cols.append("units")
     forecast_subset = forecast_df[subset_cols].drop_duplicates()
 
     # Use "right" to fill in any missing observations in the truth dataframe
