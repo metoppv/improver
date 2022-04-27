@@ -494,7 +494,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[1], expected_truth)
 
     def test_units_in_truth(self):
-        """Test that if truth_df contains a units column, it is used 
+        """Test that if truth_df contains a units column, it is used
         for units of truth output cube."""
         truth_df = self.truth_subset_df.copy()
         truth_df["units"] = "Fahrenheit"
