@@ -182,7 +182,8 @@ def _fill_missing_entries(df, key_cols, static_cols):
     """Fill the input dataframe with rows that correspond to missing entries. The
     expected entries are computed using all combinations of the values within the
     "key_cols". In practice, this will allow support for creating entries for times
-    that are missing when a new site with a WMO ID is added.
+    that are missing when a new site with a WMO ID is added. If the dataframe provided
+    is completely empty, then the empty dataframe is returned.
 
     Args:
         df: DataFrame to be filled with rows corresponding to missing entries.
@@ -196,6 +197,9 @@ def _fill_missing_entries(df, key_cols, static_cols):
         DataFrame where any missing combination of the "key_cols" will have been
         created.
     """
+    if df.empty:
+        return df
+
     # Create a dataframe with rows for all possible combinations of wmo_id, time and percentile.
     # This results in rows with NaNs being created in the dataframe.
     unique_vals_from_key_cols = [df[c].unique() for c in key_cols]
@@ -457,9 +461,8 @@ def _prepare_dataframes(
 
     # Fill in any missing instances of the "key_cols". This allows support for the
     # introduction of new sites within the forecast_df and truth_df.
-    key_cols = ["wmo_id", "time", "percentile"]
+    key_cols = ["wmo_id", "time", "forecast_period", "percentile"]
     static_cols = [
-        "forecast_period",
         "latitude",
         "longitude",
         "altitude",

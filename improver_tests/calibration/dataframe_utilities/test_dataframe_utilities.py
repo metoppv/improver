@@ -553,14 +553,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             "timedelta64[ns]"
         )
         for coord in ["forecast_reference_time", "blend_time"]:
-            forecast_df[coord] = forecast_df[coord].replace(
-                to_replace={
-                    self.frt1: self.frt1 - pd.Timedelta(1, days=1),
-                    self.frt2: self.frt2 - pd.Timedelta(1, days=1),
-                    self.frt3: self.frt3 - pd.Timedelta(1, days=1),
-                }
-            )
-
+            forecast_df[coord] = forecast_df[coord] - pd.Timedelta(1, unit="days")
         fp_int = pd.Timedelta(forecast_period, "s").total_seconds()
         self.expected_period_forecast.coord("forecast_period").points = np.array(
             fp_int, dtype=TIME_COORDS["forecast_period"].dtype
@@ -569,7 +562,11 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             [fp_int - self.period.total_seconds(), fp_int],
             dtype=TIME_COORDS["forecast_period"].dtype,
         )
-
+        # Subtract number of seconds in a day.
+        self.expected_period_forecast.coord("forecast_reference_time").points = (
+            self.expected_period_forecast.coord("forecast_reference_time").points
+            - 86400
+        )
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,
             self.truth_subset_df,
@@ -694,7 +691,6 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
-
     def test_old_site_with_only_one_forecast_and_truth(self):
         """Test for a site that has a forecast and truth data point for the oldest
         time only."""
@@ -732,21 +728,13 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.expected_period_truth.data[2, 2] = np.nan
 
         df = self.forecast_df.copy()
-        condition1 = (df["time"].isin([self.time1])) & (
-            df["wmo_id"] == self.wmo_ids[0]
-        )
-        condition2 = (df["time"].isin([self.time3])) & (
-            df["wmo_id"] == self.wmo_ids[2]
-        )
+        condition1 = (df["time"].isin([self.time1])) & (df["wmo_id"] == self.wmo_ids[0])
+        condition2 = (df["time"].isin([self.time3])) & (df["wmo_id"] == self.wmo_ids[2])
         forecast_df = df.drop(df[condition1].index | df[condition2].index)
 
         df = self.truth_subset_df.copy()
-        condition1 = (df["time"].isin([self.time1])) & (
-            df["wmo_id"] == self.wmo_ids[0]
-        )
-        condition2 = (df["time"].isin([self.time3])) & (
-            df["wmo_id"] == self.wmo_ids[2]
-        )
+        condition1 = (df["time"].isin([self.time1])) & (df["wmo_id"] == self.wmo_ids[0])
+        condition2 = (df["time"].isin([self.time3])) & (df["wmo_id"] == self.wmo_ids[2])
         truth_df = df.drop(df[condition1].index | df[condition2].index)
 
         result = forecast_and_truth_dataframes_to_cubes(

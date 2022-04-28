@@ -41,6 +41,7 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 from improver.utilities.temporal import iris_time_to_datetime
 
@@ -224,7 +225,14 @@ def filter_non_matching_cubes(
             "between the historic forecasts and the truths."
         )
         raise ValueError(msg)
-    return (matching_historic_forecasts.merge_cube(), matching_truths.merge_cube())
+
+    hf_coord_names = [c.name() for c in historic_forecast.coords(dim_coords=True)]
+    truth_coord_names = [c.name() for c in truth.coords(dim_coords=True)]
+    hf_cube = matching_historic_forecasts.merge_cube()
+    truth_cube = matching_truths.merge_cube()
+    enforce_coordinate_ordering(hf_cube, hf_coord_names)
+    enforce_coordinate_ordering(truth_cube, truth_coord_names)
+    return (hf_cube, truth_cube)
 
 
 def create_unified_frt_coord(forecast_reference_time: DimCoord) -> DimCoord:
@@ -410,3 +418,66 @@ def broadcast_data_to_time_coord(cubelist: CubeList) -> List[ndarray]:
 
         broadcasted_data.append(data)
     return broadcasted_data
+
+
+def check_data_sufficiency(
+    historic_forecasts: Cube,
+    truths: Cube,
+    point_by_point: bool,
+    proportion_of_nans: float,
+):
+    """Check whether there is sufficient valid data (i.e. values that are not NaN)
+    within the historic forecasts and truths, in order to robustly compute EMOS
+    coefficients.
+
+    Args:
+        historic_forecasts:
+            Cube containing historic forcasts.
+        truths:
+            Cube containing truths.
+        point_by_point:
+            If True, coefficients are calculated independently for each
+            point within the input cube by creating an initial guess and
+            minimising each grid point independently.
+        proportion_of_nans:
+            The proportion of the matching historic forecast-truth pairs that
+            are allowed to be NaN.
+
+    Raises:
+        ValueError: If the proportion of NaNs is higher than allowable for a site,
+            if using point_by_point.
+        ValueError: If the proportion of NaNs are higher than allowable when
+            considering all sites.
+    """
+    if not historic_forecasts.coords("wmo_id"):
+        return
+
+    if point_by_point:
+        truths_data = np.broadcast_to(truths.data, historic_forecasts.shape)
+        index = np.isnan(historic_forecasts.data) & np.isnan(truths_data)
+        wmo_id_axis = historic_forecasts.coord_dims("wmo_id")[0]
+        non_wmo_id_axes = list(range(len(historic_forecasts.shape)))
+        non_wmo_id_axes.pop(wmo_id_axis)
+        detected_proportion = np.count_nonzero(
+            index, axis=tuple(non_wmo_id_axes)
+        ) / np.prod(np.array(index.shape)[non_wmo_id_axes])
+        if any(detected_proportion > proportion_of_nans):
+            number_of_sites = np.sum(detected_proportion > proportion_of_nans)
+            msg = (
+                f"{number_of_sites} sites have a proportion of NaNs that is "
+                f"higher than the allowable proportion of NaNs within the "
+                f"historic forecasts and truth pairs is {proportion_of_nans}. "
+                f"The maximum proportion of NaNs is {np.amax(detected_proportion)}."
+            )
+            raise ValueError(msg)
+    else:
+        truths_data = np.broadcast_to(truths.data, historic_forecasts.shape)
+        index = np.isnan(historic_forecasts.data) & np.isnan(truths_data)
+        detected_proportion = np.count_nonzero(index) / index.size
+        if detected_proportion > proportion_of_nans:
+            msg = (
+                f"The proportion of NaNs detected is {detected_proportion}. "
+                f"This is higher than the allowable proportion of NaNs within the "
+                f"historic forecasts and truth pairs: {proportion_of_nans}."
+            )
+            raise ValueError(msg)

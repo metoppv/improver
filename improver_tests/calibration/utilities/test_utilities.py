@@ -46,6 +46,7 @@ from numpy.testing import assert_array_equal
 
 from improver.calibration.utilities import (
     broadcast_data_to_time_coord,
+    check_data_sufficiency,
     check_forecast_consistency,
     check_predictor,
     convert_cube_data_to_2d,
@@ -306,6 +307,8 @@ class Test__filter_non_matching_cubes(SetupCubes):
         self.partial_historic_forecasts = (
             self.historic_forecasts[:2] + self.historic_forecasts[3:]
         ).merge_cube()
+        # Ensure the forecast coordinates are in the order: realization, time, lat, lon.
+        self.partial_historic_forecasts.transpose([1, 0, 2, 3])
         self.partial_truth = (self.truth[:2] + self.truth[3:]).merge_cube()
 
     def test_all_matching(self):
@@ -362,6 +365,7 @@ class Test__filter_non_matching_cubes(SetupCubes):
         expected_historical_forecasts = iris.cube.CubeList(
             [self.historic_forecasts[index] for index in (1, 3, 4)]
         ).merge_cube()
+        expected_historical_forecasts.transpose([1, 0, 2, 3])
         expected_truth = iris.cube.CubeList(
             [self.truth[index] for index in (1, 3, 4)]
         ).merge_cube()
@@ -744,6 +748,122 @@ class Test_broadcast_data_to_time_coord(IrisTest):
         self.assertEqual(len(results), 2)
         self.assertTupleEqual(results[0].shape, self.forecast[:, 0].shape)
         self.assertTupleEqual(results[1].shape, self.altitude.shape)
+
+
+class Test_check_data_sufficiency(SetupCubes):
+    """Test the _check_data_sufficiency function."""
+
+    def setUp(self):
+        """Set up for testing."""
+        super().setUp()
+        self.hf_with_nans = self.historic_forecast_spot_cube.copy()
+        self.truth_with_nans = self.truth_spot_cube.copy()
+        for site_index in range(len(self.hf_with_nans.coord("wmo_id").points)):
+            self.hf_with_nans.data[:, : site_index + 2, site_index] = np.nan
+        for site_index in range(len(self.truth_with_nans.coord("wmo_id").points)):
+            self.truth_with_nans.data[: site_index + 2, site_index] = np.nan
+        self.point_by_point = False
+        self.proportion_of_nans = 0.5
+
+    def test_gridded(self):
+        """Test providing gridded historic forecasts and truths."""
+        check_data_sufficiency(
+            self.historic_temperature_forecast_cube,
+            self.temperature_truth_cube,
+            self.point_by_point,
+            self.proportion_of_nans,
+        )
+
+    def test_spot(self):
+        """Test providing spot historic forecasts and truths."""
+        check_data_sufficiency(
+            self.historic_forecast_spot_cube,
+            self.truth_spot_cube,
+            self.point_by_point,
+            self.proportion_of_nans,
+        )
+
+    def test_spot_nans(self):
+        """Test providing spot historic forecasts and truths with
+        a proportion of NaNs above the allowable proportion."""
+        msg = (
+            "The proportion of NaNs detected is 0.7. This is higher than "
+            "the allowable proportion of NaNs within the historic forecasts "
+            "and truth pairs: 0.5."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            check_data_sufficiency(
+                self.hf_with_nans,
+                self.truth_with_nans,
+                self.point_by_point,
+                self.proportion_of_nans,
+            )
+
+    def test_spot_nans_alternative_proportion(self):
+        """Test providing spot historic forecasts and truths with
+        a proportion of NaNs above the allowable proportion for an
+        alternative choice of proportion."""
+        proportion_of_nans = 0.3
+        msg = (
+            "The proportion of NaNs detected is 0.7. This is higher than "
+            "the allowable proportion of NaNs within the historic forecasts "
+            "and truth pairs: 0.3."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            check_data_sufficiency(
+                self.hf_with_nans,
+                self.truth_with_nans,
+                self.point_by_point,
+                proportion_of_nans,
+            )
+
+    def test_spot_point_by_point(self):
+        """Test providing spot historic forecasts and truths when using
+        point-by-point processing."""
+        point_by_point = True
+        check_data_sufficiency(
+            self.historic_forecast_spot_cube,
+            self.truth_spot_cube,
+            point_by_point,
+            self.proportion_of_nans,
+        )
+
+    def test_spot_point_by_point_nans(self):
+        """Test providing spot historic forecasts and truths when using
+        point-by-point processing with a proportion of NaNs above the
+        allowable proportion."""
+        point_by_point = True
+        msg = (
+            "3 sites have a proportion of NaNs that is higher than the "
+            "allowable proportion of NaNs within the historic forecasts "
+            "and truth pairs is 0.5. The maximum proportion of NaNs is 1.0."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            check_data_sufficiency(
+                self.hf_with_nans,
+                self.truth_with_nans,
+                point_by_point,
+                self.proportion_of_nans,
+            )
+
+    def test_spot_point_by_point_nans_alternative_proportion(self):
+        """Test providing spot historic forecasts and truths when using
+        point-by-point processing with a proportion of NaNs above the
+        allowable proportion for an alternative choice of proportion."""
+        proportion_of_nans = 0.7
+        point_by_point = True
+        msg = (
+            "2 sites have a proportion of NaNs that is higher than the "
+            "allowable proportion of NaNs within the historic forecasts "
+            "and truth pairs is 0.7. The maximum proportion of NaNs is 1.0."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            check_data_sufficiency(
+                self.hf_with_nans,
+                self.truth_with_nans,
+                point_by_point,
+                proportion_of_nans,
+            )
 
 
 if __name__ == "__main__":
