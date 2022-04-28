@@ -41,8 +41,8 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
 
 

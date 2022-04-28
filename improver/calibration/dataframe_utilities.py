@@ -478,7 +478,7 @@ def _prepare_dataframes(
         by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
     )
     truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
-    
+
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df
     subset_cols = [
