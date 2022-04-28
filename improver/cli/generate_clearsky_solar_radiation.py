@@ -38,10 +38,10 @@ from improver import cli
 @cli.with_output
 def process(
     target_grid: cli.inputcube,
-    time: str,
+    time,
     accumulation_period: int,
     *,
-    temporal_spacing: int = 30,
+    temporal_spacing = 30,
     altitude: cli.inputcube = 0.0,
     linke_turbidity: cli.inputcube = 3.0,
 ):
@@ -50,21 +50,21 @@ def process(
     as an input to the RainForests calibration for rainfall.
 
     Args:
-        target_grid:
+        target_grid (iris.cube.Cube):
             A cube containing the desired spatial grid.
-        time:
+        time (str):
             A datetime specified in the format YYYYMMDDTHHMMZ at which to evaluate the
             accumulated clearsky solar radiation. This time is taken to be the end of
             the accumulation period.
-        accumulation_period:
+        accumulation_period (int):
             The number of hours over which the solar radiation accumulation is defined.
-        temporal_spacing:
+        temporal_spacing (int):
             The temporal spacing between irradiance values used in the evaluation of the
             accumulated solar radiation, specified in minutes.
-        altitude:
+        altitude (iris.cube.Cube):
             Altitude data used in the evaluation of the clearsky solar irradiance values,
             specified in metres.
-        linke_turbidity:
+        linke_turbidity (iris.cube.Cube):
             Linke turbidity data used in the evaluation of the clearsky solar irradiance
             values. Linke turbidity is a dimensionless quantity that accounts for the
             atmospheric scattering of radiation due to aerosols and water vapour, relative
