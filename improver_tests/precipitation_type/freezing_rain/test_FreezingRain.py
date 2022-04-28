@@ -60,7 +60,9 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
 
     input_cubes = list(itertools.permutations(input_cubes))
     for cubes in input_cubes:
-        result = FreezingRain()(iris.cube.CubeList(cubes))
+        result = FreezingRain(model_id_attr="mosg__model_configuration")(
+            iris.cube.CubeList(cubes)
+        )
 
         assert_almost_equal(result.data, expected_probabilities)
         assert isinstance(result, Cube)
@@ -74,6 +76,22 @@ def test_expected_result(input_cubes, expected_probabilities, expected_attribute
             assert result.name() == PROB_NAME.format(RATE_NAME)
             assert result.coord(var_name="threshold").name() == RATE_NAME
             assert result.coord(var_name="threshold").units == "mm hr-1"
+
+
+@pytest.mark.parametrize("period", ["instantaneous"])
+def test_model_config_attribute(
+    precipitation_only, temperature_only, expected_attributes
+):
+    """Test that the returned model configuration attribute is correct when the
+    inputs are derived from a mixture of models."""
+
+    expected_attributes.update({"mosg__model_configuration": "uk_det uk_ens"})
+    temperature_only.attributes["mosg__model_configuration"] = "uk_ens"
+    cubes = iris.cube.CubeList([*precipitation_only, temperature_only])
+    result = FreezingRain(model_id_attr="mosg__model_configuration")(
+        iris.cube.CubeList(cubes)
+    )
+    assert result.attributes == expected_attributes
 
 
 @pytest.mark.parametrize("period", ["instantaneous"])

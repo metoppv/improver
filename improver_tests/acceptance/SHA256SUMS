@@ -310,12 +310,14 @@ b6a8de4957150515b8b3186cce6c3ccb3582bae80fe5f880e0f7eb32cafba615  ./nbhood-itera
 37de58ea52c442d1312ce1a2c6b824d45ba19cbff2f1be38f632bbe40ca73acb  ./nbhood-iterate-with-mask/basic/kgo_basic.nc
 8c7777d8c776ccb701c5ac275f8628ae044d48356cfb5de2b306ca47b309c943  ./nbhood-iterate-with-mask/basic/mask.nc
 9485926dbbe775a9a474aba013c60acb26f6947c98c1a698e183e2d3f5d19f8d  ./nbhood-iterate-with-mask/basic_collapse_bands/kgo_collapsed.nc
+dffc69fdd2197b855cc6170d176fa7b2d9d39a94f8ce954d09006683e010344b  ./nbhood-iterate-with-mask/basic_collapse_bands/kgo_collapsed_circular.nc
 7694bb92e04b213cda84d5d5e79f20fd7012923bd67bf453ce8f7bde80c041e2  ./nbhood-iterate-with-mask/basic_collapse_bands/orographic_bands_mask.nc
 555f3e6786cda285c50216355afcca674a9d75542f2c00199eaea66ef476c02f  ./nbhood-iterate-with-mask/basic_collapse_bands/orographic_bands_weights.nc
 e597c3ed26b22051489fb7f933bf075b1b7ce337f83ace4721f6db1ec20ec2c2  ./nbhood-iterate-with-mask/basic_collapse_bands/thresholded_input.nc
 9a190f93d852314a0ef1cdc9d234f777c81fd593498ef8acc59a7f6886a581cf  ./nbhood-iterate-with-mask/collapse_store_intermediate/kgo_pre_collapse.nc
 4ff685ca34daa7eccc49e6d85fbe33c972b32eaf0a0f0af040e21697b52173fd  ./nbhood-land-and-sea/no_topographic_bands/input.nc
 c44f8f22f9445b9e3a809a6ecc796d2e1576bfc4a16e8abe9d3f48b4c434e4da  ./nbhood-land-and-sea/no_topographic_bands/kgo.nc
+49a97e7f20fbd476346e7e62857020dc7a68c0d16dfbb959df93f5cce95cc579  ./nbhood-land-and-sea/no_topographic_bands/kgo_circular.nc
 f4e12249b781f0b055d0d5ef02aecd9fcc2d6ee5a2fc7b5a2320afc8f6179a93  ./nbhood-land-and-sea/no_topographic_bands/land_only/input.nc
 abddba9fe2a29adc06d20c0485fb71133e942ab5dfa7c0617f35a2d5efa41692  ./nbhood-land-and-sea/no_topographic_bands/land_only/kgo.nc
 591f4d2b52b4646e8d90ee1ee4a0e841cd0e821d87179e53f0aefaff4ed01ca4  ./nbhood-land-and-sea/no_topographic_bands/land_only/ukvx_landmask.nc
@@ -329,6 +331,7 @@ af9990f120348667153cde9872d343445d573d9221666b5d46abd78beb2dbb94  ./nbhood-land-
 4c3fa51272fe7d3a2ed93b16bc1a315d8edbfb67f1dd3b616d4d53a43692e012  ./nbhood-land-and-sea/topographic_bands/kgo.nc
 da5add1a8ee2121c4da81e73c512c9a0ab3c1fe91283cbbb51369b4506b2dd03  ./nbhood-land-and-sea/topographic_bands/kgo_land.nc
 1354d4b3ba9e90123662ea77ee2034fb50d2410a2f4008be9f6ea7c78d0ad1b3  ./nbhood-land-and-sea/topographic_bands/kgo_probs.nc
+0fe811e5281d34cc070e5fc9cb2b36ba691e0a42c8440bc997cafc86d0371788  ./nbhood-land-and-sea/topographic_bands/kgo_probs_circular.nc
 dcca00e1ab7e751de4da02c3097930becd850a742dd9c84f6d762301d4ee2a93  ./nbhood-land-and-sea/topographic_bands/topographic_bands_any_surface.nc
 63be6777d2941a373db95f37516aee18c4a22e77cf85de62fe086de032cf71bc  ./nbhood-land-and-sea/topographic_bands/topographic_bands_land.nc
 fee00437131d2367dc317e5b0fff44e65e03371b8f096bf1ac0d4cc7253693c9  ./nbhood-land-and-sea/topographic_bands/ukvx_landmask.nc
@@ -342,9 +345,8 @@ b3f74d83ab680c9800c0c767831de1f170b121d8ded6cdc37db8d8fe5e9b0070  ./nbhood/basic
 22d3728372043d9b5333ac5823a2c9e355db8ede6e7266a94e4c8cb17f34cfc9  ./nbhood/halo/kgo.nc
 83eba940194875126a6a455b1700aef81eaac0afc40cb20ebbff698ee436fa73  ./nbhood/mask/input.nc
 2867efbd7cba8592a98d5eba8caa1f13fca20d85fb0730ddfca1ca1a98a1ed57  ./nbhood/mask/input_masked.nc
-7bca1665dccc70d2767a444981eeece37b1c36e1cf8dac97605e5f778d2961ac  ./nbhood/mask/kgo_external_masked.nc
-2c44fdec57ea9d19ece56d28522c88d82f4f454be24984715246fa73ccc2b6ec  ./nbhood/mask/kgo_masked.nc
-59cd097e12f346cb103fffe7d2208068be262aa33a9f2f74dca1a14276016cc4  ./nbhood/mask/kgo_re_mask.nc
+5d27b767c86671b176ea6180e6608b22202aaad1564f658f2b3999a7b46bd36a  ./nbhood/mask/kgo_external_masked.nc
+0bab68194852947cb01e36431a0ef4319e3d5385f690308d46fb2cb1f67bcc54  ./nbhood/mask/kgo_masked.nc
 51436871de0a3a89a49395979d7d3f33eac39532381496244d49d0a27dfa1a0d  ./nbhood/mask/mask.nc
 76c1276afe044fbfac517ffb59cc600ab360b754d448277fa7a581a9710d5e4d  ./nbhood/percentile/input_circular_percentile.nc
 9f55225d6f8888c4a0c807df74dfc34ce1969eb0b37ac814bd55d3d79675d95b  ./nbhood/percentile/kgo_circular_percentile.nc

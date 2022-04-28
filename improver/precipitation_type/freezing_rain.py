@@ -37,6 +37,7 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
+from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -225,13 +226,20 @@ class FreezingRain(PostProcessingPlugin):
             .name()
             .replace("sleet", "freezing_rain")
         )
+        mandatory_attributes = generate_mandatory_attributes(
+            CubeList([self.rain, self.sleet])
+        )
+        optional_attributes = {}
+        if self.model_id_attr:
+            optional_attributes = update_model_id_attr_attribute(
+                CubeList([self.rain, self.sleet, self.temperature]), self.model_id_attr
+            )
         freezing_rain_cube = create_new_diagnostic_cube(
             diagnostic_name,
             "1",
             template_cube=self.sleet,
-            mandatory_attributes=generate_mandatory_attributes(
-                CubeList([self.rain, self.sleet]), model_id_attr=self.model_id_attr,
-            ),
+            mandatory_attributes=mandatory_attributes,
+            optional_attributes=optional_attributes,
             data=freezing_rain_prob,
         )
         freezing_rain_cube.coord(var_name="threshold").rename(threshold_name)

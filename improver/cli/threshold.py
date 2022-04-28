@@ -147,7 +147,7 @@ def process(
     if vicinity is not None:
         # smooth thresholded occurrences over local vicinity
         each_threshold_func_list.append(
-            OccurrenceWithinVicinity(vicinity, land_mask_cube=land_sea_mask)
+            OccurrenceWithinVicinity(radius=vicinity, land_mask_cube=land_sea_mask)
         )
     elif land_sea_mask:
         raise ValueError("Cannot apply land-mask cube without in-vicinity processing")

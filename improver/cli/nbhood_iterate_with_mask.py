@@ -43,10 +43,10 @@ def process(
     weights: cli.inputcube = None,
     *,
     coord_for_masking,
+    neighbourhood_shape="square",
     radii: cli.comma_separated_list,
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
-    remask=False,
 ):
     """Runs neighbourhooding processing iterating over a coordinate by mask.
 
@@ -59,9 +59,6 @@ def process(
     to separate slices over the input cube. These intermediate masked datasets
     are then concatenated, resulting in a dataset that has been processed
     using multiple masks and has gained an extra dimension from the masking.
-    There is also an option to re-mask the output dataset, so that after
-    neighbourhood processing non-zero values are only present for unmasked
-    grid points.
     If weights are given the masking dimension that we gain will be collapsed
     using a weighted average.
 
@@ -76,6 +73,10 @@ def process(
         coord_for_masking (str):
             String matching the name of the coordinate that will be used
             for masking.
+        neighbourhood_shape (str):
+            Name of the neighbourhood method to use.
+            Options: "circular", "square".
+            Default: "square".
         radii (list of float):
             The radius or a list of radii in metres of the neighbourhood to
             apply.
@@ -88,12 +89,7 @@ def process(
             lead_times. Lead times must be given as integer values.
         area_sum (bool):
             Return sum rather than fraction over the neighbourhood area.
-        remask (bool):
-            Include this option to apply the original un-neighbourhood
-            processed mask to the neighbourhood processed cube.
-            Otherwise the original un-neighbourhood processed mask
-            is not applied. Therefore, the neighbourhood processing may result
-            in values being present in area that were originally masked.
+
 
     Returns:
         iris.cube.Cube:
@@ -102,17 +98,15 @@ def process(
     from improver.nbhood import radius_by_lead_time
     from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
 
-    sum_or_fraction = "sum" if area_sum else "fraction"
-
     radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
 
     result = ApplyNeighbourhoodProcessingWithAMask(
         coord_for_masking,
+        neighbourhood_shape,
         radius_or_radii,
         lead_times=lead_times,
         collapse_weights=weights,
-        sum_or_fraction=sum_or_fraction,
-        re_mask=remask,
+        sum_only=area_sum,
     )(cube, mask)
 
     return result

@@ -45,6 +45,7 @@ COMMON_ATTRS = {
     "source": "Unit test",
     "institution": "Met Office",
     "title": "Post-Processed IMPROVER unit test",
+    "mosg__model_configuration": "uk_det",
 }
 PERIOD_TIMEBOUNDS = (datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0))
 
@@ -190,4 +191,5 @@ def expected_attributes():
         "source": "Unit test",
         "institution": "Met Office",
         "title": "Post-Processed IMPROVER unit test",
+        "mosg__model_configuration": "uk_det",
     }

@@ -29,6 +29,7 @@ dependencies:
   - astroid
   - bandit
   - black=19.10b0
+  - click=8.0.2
   - filelock
   - flake8
   - isort=5
