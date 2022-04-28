@@ -214,9 +214,6 @@ def _fill_missing_entries(df, key_cols, static_cols):
     )
     df = df.drop(columns=static_cols)
     df = df.merge(filled_df, on=key_cols)
-    # wmo_ids_with_nan = df[df.isna().any(axis=1)]["wmo_id"].unique()
-    # for wmo_id in wmo_ids_with_nan:
-    #     df.loc[df["wmo_id"] == wmo_id, static_cols] = df.loc[df["wmo_id"] == wmo_id, static_cols].fillna(method="ffill").fillna(method="bfill")
 
     # Fill the blend_time and forecast_reference_time columns.
     if "forecast_period" in df.columns:
@@ -439,7 +436,6 @@ def _prepare_dataframes(
     common_wmo_ids = sorted(
         set(forecast_df["wmo_id"].unique()).intersection(truth_df["wmo_id"].unique())
     )
-
     forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
     truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
@@ -482,12 +478,7 @@ def _prepare_dataframes(
         by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
     )
     truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
-
-    # Want to find where wmo_ids that are present for each time.
-    # number_of_times = forecast_df["time"].nunique()
-    # wmo_df = forecast_df[["wmo_id", "time"]].drop_duplicates()["wmo_id"].value_counts()
-    # common_wmo_ids = sorted(wmo_df[wmo_df == number_of_times].index.tolist())
-
+    
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df
     subset_cols = [
