@@ -41,6 +41,8 @@ from improver.generate_ancillaries.generate_derived_solar_fields import (
     GenerateClearskySolarRadiation,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.solar import calc_solar_elevation
+from improver.utilities.spatial import get_grid_y_x_values
 
 
 @pytest.fixture
@@ -188,6 +190,67 @@ def test__calc_air_mass():
     )
 
     assert np.allclose(values, expected_values)
+
+
+def test__calc_clearsky_ineichen(target_grid):
+    """Test irradiance calc over a range of sample values. Note
+    all values here have been evaluated by hand."""
+    zenith = np.array([0, 60, 90])
+
+    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
+        zenith_angle=zenith, day_of_year=0, surface_altitude=0, linke_turbidity=3
+    )
+    expected_values = np.array([1091.9529, 486.4359, 0.0])
+    assert np.allclose(result, expected_values)
+
+    # Test for different day-of-year
+    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
+        zenith_angle=zenith, day_of_year=180, surface_altitude=0, linke_turbidity=3
+    )
+    expected_values = np.array([1022.2189, 455.3712, 0.0])
+    assert np.allclose(result, expected_values)
+
+    # Test for different linke-turbidity value
+    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
+        zenith_angle=zenith, day_of_year=0, surface_altitude=0, linke_turbidity=1
+    )
+    expected_values = np.array([1179.8004, 567.6262, 0.0])
+    assert np.allclose(result, expected_values)
+
+    # Test for different surface_altitude value
+    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
+        zenith_angle=zenith, day_of_year=0, surface_altitude=1000, linke_turbidity=3
+    )
+    expected_values = np.array([1130.1020, 492.2152, 0.0])
+    assert np.allclose(result, expected_values)
+
+    # Test for extreme surface_altitude value
+    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
+        zenith_angle=zenith, day_of_year=0, surface_altitude=8000, linke_turbidity=3
+    )
+    expected_values = np.array([1412.8340, 694.0237, 0.0])
+    assert np.allclose(result, expected_values)
+
+    lats, lons = get_grid_y_x_values(target_grid)
+
+    zenith_angle = 90.0 - calc_solar_elevation(lats, lons, day_of_year=0, utc_hour=12)
+    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
+        zenith_angle=zenith_angle, day_of_year=0, surface_altitude=0, linke_turbidity=3
+    )
+    # For even surface_altitude, check that max irradiance occurs for minimum zenith_angle
+    assert np.unravel_index(
+        np.argmax(result, axis=None), result.shape
+    ) == np.unravel_index(np.argmin(zenith_angle, axis=None), zenith_angle.shape)
+    # For even surface_altitude, check that larger irradiance value at adjacent sites, occurs for
+    # the location with the smaller zenith angle.
+    assert np.all(
+        (result[:, 1:] - result[:, :-1] > 0)
+        == (zenith_angle[:, 1:] - zenith_angle[:, :-1] < 0)
+    )
+    assert np.all(
+        (result[1:, :] - result[:-1, :] > 0)
+        == (zenith_angle[1:, :] - zenith_angle[:-1, :] < 0)
+    )
 
 
 def test__calc_clearsky_solar_radiation_data(
