@@ -578,6 +578,20 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
+    def test_empty_forecast_dataframe(self):
+        """Test the behaviour if an empty forecast dataframe is provided."""
+        forecast_df = self.forecast_df.drop(self.forecast_df.index)
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertIsNone(result[0])
+        self.assertIsNone(result[1])
+
     def test_site_absent_from_forecast(self):
         """Test for when a site is absent from the forecast dataframe."""
         df = self.forecast_df.copy()
