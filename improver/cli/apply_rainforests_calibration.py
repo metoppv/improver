@@ -29,3 +29,65 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to apply rainforests calibration."""
+
+from improver import cli
+
+
+@cli.clizefy
+@cli.with_output
+def process(
+    forecast: cli.inputcube,
+    *features: cli.inputcube,
+    model_config: cli.inputjson,
+    error_percentiles_count=19,
+    output_realizations_count=199,
+    n_threads=1,
+):
+    """
+    Calibrate an ensemble forecast using the Rainforests method.
+
+    This calibration is done in a situation dependent fashion using a series of
+    decision-tree models to construct representative error distributions which are
+    then used to map each input ensemble member onto a series of realisable values.
+    These series collectively form a super-ensemble, from which realizations a sampled
+    to produce the calibrated forecast.
+
+    Args:
+        forecast (iris.cube.Cube):
+            Cube containing the forecast to be calibrated.
+        features (iris.cube.Cubelist):
+            Cubelist containing the feature variables used by the decision tree
+            models from which error percentules are derived.
+        model_config (dict):
+            Dictionary containing RainForests model configuration data.
+        error_percentiles_count (int):
+            The number of error percentiles to apply to each ensemble realization.
+            The resulting super-ensemble will be of size = forecast.realization.size *
+            error_percentiles_count.
+        output_realizations_count (int):
+            The number of realizations to output for the calibrated ensemble.
+            These realizations are sampled by taking equispaced percentiles
+            from the super-ensemble. If None is supplied, then all realizations
+            from the super-ensemble will be returned.
+        n_threads (int):
+            Number of threads to initialise tree model objects with.
+
+    Returns:
+        iris.cube.Cube:
+            The forecast cube following calibration.
+    """
+    from improver.calibration.rainforest_calibration import (
+        ApplyRainForestsCalibration,
+        initialise_model_config,
+    )
+
+    (error_thresholds, tree_models,) = initialise_model_config(model_config, n_threads)
+
+    return ApplyRainForestsCalibration().process(
+        forecast,
+        features,
+        error_thresholds,
+        tree_models,
+        error_percentiles_count=error_percentiles_count,
+        output_realizations_count=output_realizations_count,
+    )

@@ -30,16 +30,100 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """RainForests calibration Plugins."""
 
-from typing import Any, List
+import importlib
+import warnings
+from typing import Any, List, Tuple
 
+import numpy as np
 from iris.cube import Cube, CubeList
+from lightgbm import Booster
 from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 
+if importlib.util.find_spec("treelite") is not None:
+    from treelite_runtime.predictor import Predictor
+
+    TREELITE_ENABLED = True
+else:
+    warnings.warn(
+        "Module treelite_runtime unavailable. Defaulting to using lightgbm Boosters."
+    )
+    TREELITE_ENABLED = False
+
+
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
 DEFAULT_OUTPUT_REALIZATIONS_COUNT = 199
+
+
+def initialise_model_config(
+    model_config_dict: dict, nthreads: int
+) -> Tuple[ndarray, List[Any]]:
+    """Initialise the tree model variables used in the application of RainForests
+    Calibration.
+
+    Args:
+        model_config_dict:
+            Dictionary containing Rainforests model configuration variables.
+        nthreads:
+            Number of threads to use when initialising tree-model objects.
+
+
+    Dictionary is of format::
+
+        {
+            "-50.0" : {
+                "lightgbm_model" : "<path_to_lightgbm_model_object>",
+                "treelite_model" : "<path_to_treelite_model_object>"
+            },
+            "-25.0" : {
+                "lightgbm_model" : "<path_to_lightgbm_model_object>",
+                "treelite_model" : "<path_to_treelite_model_object>"
+            },
+            ...,
+            "50.0" : {
+                "lightgbm_model" : "<path_to_lightgbm_model_object>",
+                "treelite_model" : "<path_to_treelite_model_object>"
+            }
+        }
+
+    The keys specify the error threshold value, while the associated values
+    are the path to the corresponding tree-model objects for that threshold.
+
+    Treelite Predictors are returned if treelite_runtime is an installed dependency and
+    an associated path has been supplied for all thresholds, otherwise lightgbm the
+    Boosters are returned.
+
+    Returns:
+        - numpy array containing the error threshold values.
+        - list of tree-model objects to be used in calibration process.
+    """
+    error_thresholds = list(model_config_dict.keys())
+
+    lightgbm_model_filenames = [
+        model_config_dict[threshold].get("lightgbm_model")
+        for threshold in error_thresholds
+    ]
+    treelite_model_filenames = [
+        model_config_dict[threshold].get("treelite_model")
+        for threshold in error_thresholds
+    ]
+    if (None not in treelite_model_filenames) and TREELITE_ENABLED:
+        tree_models = [
+            Predictor(libpath=file, verbose=False, nthread=nthreads)
+            for file in treelite_model_filenames
+        ]
+    else:
+        tree_models = [
+            Booster(model_file=file).reset_parameter({"num_threads": nthreads})
+            for file in lightgbm_model_filenames
+        ]
+
+    error_thresholds = np.array(error_thresholds, dtype=np.float32)
+
+    return error_thresholds, tree_models
+
 
 class TrainRainForestsTreeModels(BasePlugin):
     """Class to train tree models for use in RainForests calibration."""
