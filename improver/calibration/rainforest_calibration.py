@@ -32,11 +32,14 @@
 
 import warnings
 from collections import OrderedDict
+from typing import Optional, Tuple
 
 import numpy as np
+from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
+from improver.utilities.cube_manipulation import compare_coords
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
@@ -126,6 +129,166 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 for file in lightgbm_model_filenames
             ]
 
+    def _check_num_features(self, features: CubeList) -> None:
+        """Check that the correct number of features has been passed into the model."""
+        sample_tree_model = self.tree_models[0]
+        if self.treelite_enabled:
+            from treelite_runtime import Predictor
+
+            if isinstance(sample_tree_model, Predictor):
+                expected_num_features = sample_tree_model.num_feature
+            else:
+                expected_num_features = sample_tree_model.num_feature()
+        else:
+            expected_num_features = sample_tree_model.num_feature()
+
+        if expected_num_features != len(features):
+            raise ValueError(
+                "Number of expected features does not match number of feature cubes."
+            )
+
+    # Does this belong somewhere else?
+    def _add_coordinate_to_cube(
+        self,
+        input_cube: Cube,
+        new_coord: DimCoord,
+        new_dim_location: Optional[int] = None,
+        copy_metadata: Optional[bool] = True,
+    ) -> Cube:
+        """Create a copy of input cube with an additional dimension coordinate
+        added to the cube at the specified axis. The data from input cube is broadcast
+        over this new dimension.
+        Args:
+            input cube:
+                cube to add realization dimension to.
+            new_coord:
+                new coordinate to add to input cube.
+            new_dim_location:
+                position in cube.data to position the new dimension coord.
+            copy_metadata:
+                flag as to whether to carry metadata over to output cube.
+
+        Returns:
+            output_cube
+        """
+        input_dim_count = len(input_cube.dim_coords)
+
+        new_dim_coords = list(input_cube.dim_coords) + [new_coord]
+        new_dims = list(range(input_dim_count + 1))
+        new_dim_coords_and_dims = list(zip(new_dim_coords, new_dims))
+
+        aux_coords = input_cube.aux_coords
+        aux_coord_dims = [input_cube.coord_dims(coord.name()) for coord in aux_coords]
+        new_aux_coords_and_dims = list(zip(aux_coords, aux_coord_dims))
+
+        new_coord_size = len(new_coord.points)
+        new_data = np.broadcast_to(
+            input_cube.data, shape=(new_coord_size,) + input_cube.shape
+        )
+        new_data = input_cube.data[..., np.newaxis] * np.ones(
+            shape=new_coord_size, dtype=input_cube.dtype
+        )
+
+        output_cube = Cube(
+            new_data,
+            dim_coords_and_dims=new_dim_coords_and_dims,
+            aux_coords_and_dims=new_aux_coords_and_dims,
+        )
+        if copy_metadata:
+            output_cube.metadata = input_cube.metadata
+
+        if new_dim_location is not None:
+            final_dim_order = np.insert(
+                np.arange(input_dim_count), new_dim_location, values=input_dim_count
+            )
+            output_cube.transpose(final_dim_order)
+
+        return output_cube
+
+    def _align_feature_variables(
+        self, feature_cubes: CubeList, forecast_cube: Cube
+    ) -> Tuple[CubeList, Cube]:
+        """Ensure that feature cubes have consistent dimension coordinates. If
+        realization dimension present in any cube, all cubes lacking this dimension
+        will have realization dimension added and broadcast along this new dimension.
+
+        Args:
+            feature_cubes:
+                cube list containing feature variables to align.
+            forecast_cube:
+                cube containing the forecast variable to align.
+
+        Returns:
+            - feature_cubes with realization coordinate added to each cube if absent
+            - forecast_cube with realization coordinate added if absent
+
+        Raises:
+            ValueError:
+                if feature/forecast variables have inconsistent dimension coordinates
+                (excluding realization dimension), or if feature/forecast variables have
+                different length realization coordinate over cubes containing this coordinate.
+        """
+        combined_cubes = CubeList(list([*feature_cubes, forecast_cube]))
+
+        # Compare feature cube coordinates, raise error if dim-coords don't match
+        compare_feature_coords = compare_coords(
+            combined_cubes, ignored_coords=["realization"]
+        )
+        misaligned_dim_coords = [
+            coord_info["coord"]
+            for misaligned_coords in compare_feature_coords
+            for coord, coord_info in misaligned_coords.items()
+            if coord_info["data_dims"] is not None
+        ]
+        if misaligned_dim_coords:
+            raise ValueError(
+                f"Dimension coords do not match between: {misaligned_dim_coords}"
+            )
+
+        # Compare realization coordinates across cubes where present;
+        # raise error if realization coordinates don't match, otherwise set
+        # common_realization_coord to broadcast over.
+        realization_coords = {
+            variable.name(): variable.coords("realization")
+            for variable in combined_cubes
+            if variable.coords("realization")
+        }
+        if not realization_coords:
+            # Case I: realization_coords is empty. Add single realization dim to all cubes.
+            common_realization_coord = DimCoord(
+                [0], standard_name="realization", units=1, var_name="realization"
+            )
+        else:
+            # Case II: realization_coords is not empty.
+            variables_with_realization = list(realization_coords.keys())
+            sample_variable = variables_with_realization[0]
+            sample_realization = realization_coords[sample_variable][0]
+            misaligned_realizations = [
+                feature
+                for feature in variables_with_realization[1:]
+                if realization_coords[feature][0] != sample_realization
+            ]
+            if misaligned_realizations:
+                misaligned_realizations.append(sample_variable)
+                raise ValueError(
+                    f"Realization coords  do not match between: {misaligned_realizations}"
+                )
+            common_realization_coord = sample_realization
+
+        # Add realization coord to cubes where absent by broadcasting along this dimension
+        aligned_cubes = CubeList()
+        for i_cube, cube in enumerate(combined_cubes):
+            if not cube.coords("realization"):
+                cube = combined_cubes[i_cube]
+                expanded_cube = self._add_coordinate_to_cube(
+                    cube, common_realization_coord, new_dim_location=0
+                )
+                aligned_cubes.append(expanded_cube)
+            else:
+                aligned_cubes.append(combined_cubes[i_cube])
+
+        return aligned_cubes[:-1], aligned_cubes[-1]
+
     def process(
         self,
         forecast_cube: Cube,
@@ -177,6 +340,28 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         Returns:
             The calibrated forecast cube.
         """
+        # Check that tree-model object available for each error threshold.
+        if len(self.error_thresholds) != len(self.tree_models):
+            raise ValueError(
+                "tree_models must be of the same size as error_thresholds."
+            )
+
+        # Check that the correct number of feature variables has been supplied.
+        self._check_num_features(feature_cubes)
+
+        # Align forecast and feature datasets
+        aligned_features, aligned_forecast = self._align_feature_variables(
+            feature_cubes, forecast_cube
+        )
+
+        # Evaluate the error CDF using tree-models.
+
+        # Extract error percentiles from error CDF.
+
+        # Apply error to forecast cube.
+
+        # Combine sub-ensembles into a single consolidated ensemble.
+
         # Until calibration processing steps are added, the behaviour here will be to return
         # the forecast cube without calibration. This will enable other integration work to
         # proceed concurrently with development of this Plugin.
