@@ -250,6 +250,23 @@ def inputpath(to_convert):
     return maybe_coerce_with(pathlib.Path, to_convert)
 
 
+@value_converter
+def inputdatetime(to_convert):
+    """Converts string to datetime or returns passed object.
+
+    Args:
+        to_convert (string or datetime):
+            datetime represented as string of the format YYYYMMDDTHHMMZ
+
+    Returns:
+        (datetime): datetime object
+
+    """
+    from improver.utilities.temporal import cycletime_to_datetime
+
+    return maybe_coerce_with(cycletime_to_datetime, to_convert)
+
+
 def create_constrained_inputcubelist_converter(*constraints):
     """Makes function that the input constraints are used in a loop.
 

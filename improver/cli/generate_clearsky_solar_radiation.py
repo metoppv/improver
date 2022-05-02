@@ -29,7 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run GenerateClearSkySolarRadiation ancillary generation."""
-from datetime import datetime, timezone
 
 from improver import cli
 
@@ -38,7 +37,7 @@ from improver import cli
 @cli.with_output
 def process(
     target_grid: cli.inputcube,
-    time,
+    time: cli.inputdatetime,
     accumulation_period: int,
     *,
     temporal_spacing: int = 30,
@@ -77,8 +76,6 @@ def process(
     from improver.generate_ancillaries.generate_derived_solar_fields import (
         GenerateClearskySolarRadiation,
     )
-
-    time = datetime.strptime(time, "%Y%m%dT%H%MZ").replace(tzinfo=timezone.utc)
 
     return GenerateClearskySolarRadiation()(
         target_grid,

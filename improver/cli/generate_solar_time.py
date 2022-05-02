@@ -30,14 +30,12 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to run GenerateSolarTime ancillary generation."""
 
-from datetime import datetime, timezone
-
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(target_grid: cli.inputcube, time):
+def process(target_grid: cli.inputcube, time: cli.inputdatetime):
     """Generate a cube containing local solar time, evaluated on the target grid for
     specified time. Local solar time is used as an input to the RainForests calibration
     for rainfall.
@@ -56,7 +54,5 @@ def process(target_grid: cli.inputcube, time):
     from improver.generate_ancillaries.generate_derived_solar_fields import (
         GenerateSolarTime,
     )
-
-    time = datetime.strptime(time, "%Y%m%dT%H%MZ").replace(tzinfo=timezone.utc)
 
     return GenerateSolarTime()(target_grid, time)
