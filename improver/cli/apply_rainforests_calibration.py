@@ -39,9 +39,9 @@ def process(
     forecast: cli.inputcube,
     *features: cli.inputcube,
     model_config: cli.inputjson,
-    error_percentiles_count=19,
-    output_realizations_count=199,
-    n_threads=1,
+    error_percentiles_count: int = 19,
+    output_realizations_count: int = 199,
+    n_threads: int = 1,
 ):
     """
     Calibrate an ensemble forecast using the Rainforests method.
