@@ -41,7 +41,7 @@ def process(
     time,
     accumulation_period: int,
     *,
-    temporal_spacing=30,
+    temporal_spacing: int = 30,
     altitude: cli.inputcube = 0.0,
     linke_turbidity: cli.inputcube = 3.0,
 ):
