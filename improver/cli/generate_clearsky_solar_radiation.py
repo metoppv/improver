@@ -40,9 +40,9 @@ def process(
     time: cli.inputdatetime,
     accumulation_period: int,
     *,
+    altitude: cli.inputcube = None,
+    linke_turbidity: cli.inputcube = None,
     temporal_spacing: int = 30,
-    altitude: cli.inputcube = 0.0,
-    linke_turbidity: cli.inputcube = 3.0,
 ):
     """Generate a cube containing clearsky solar radiation data, evaluated on the target grid
     for the specified time and accumulation period. Accumulated clearsky solar radiation is used
@@ -57,9 +57,6 @@ def process(
             the accumulation period.
         accumulation_period (int):
             The number of hours over which the solar radiation accumulation is defined.
-        temporal_spacing (int):
-            The temporal spacing between irradiance values used in the evaluation of the
-            accumulated solar radiation, specified in minutes.
         altitude (iris.cube.Cube):
             Altitude data used in the evaluation of the clearsky solar irradiance values,
             specified in metres.
@@ -68,6 +65,9 @@ def process(
             values. Linke turbidity is a dimensionless quantity that accounts for the
             atmospheric scattering of radiation due to aerosols and water vapour, relative
             to a dry atmosphere.
+        temporal_spacing (int):
+            The temporal spacing between irradiance values used in the evaluation of the
+            accumulated solar radiation, specified in minutes.
 
     Returns:
         iris.cube.Cube:
@@ -77,11 +77,19 @@ def process(
         GenerateClearskySolarRadiation,
     )
 
+    if altitude is None:
+        # Create altitude cube using target_grid as template.
+        pass
+    
+    if linke_turbidity is None:
+        # Create altitude cube using target_grid as template.
+        pass
+
     return GenerateClearskySolarRadiation()(
         target_grid,
         time,
         accumulation_period,
-        temporal_spacing,
         altitude=altitude,
         linke_turbidity=linke_turbidity,
+        temporal_spacing=temporal_spacing,
     )

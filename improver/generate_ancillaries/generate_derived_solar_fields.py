@@ -65,9 +65,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
         target_grid: Cube,
         time: datetime,
         accumulation_period: int,
+        altitude: Cube,
+        linke_turbidity: Cube,
         temporal_spacing: int = DEFAULT_TEMPORAL_SPACING_IN_MINUTES,
-        altitude: Optional[Union[Cube, float]] = 0.0,
-        linke_turbidity: Optional[Union[Cube, float]] = 3.0,
     ) -> Cube:
         """Calculate the gridded clearsky solar radiation by integrating clearsky solar irradiance
         values over the specified time-period, and on the specified grid.
