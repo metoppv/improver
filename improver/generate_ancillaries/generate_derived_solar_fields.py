@@ -30,8 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
 from datetime import datetime
-from typing import Optional, Union
 
+import numpy as np
 from iris.cube import Cube
 
 from improver import BasePlugin
@@ -59,6 +59,42 @@ class GenerateSolarTime(BasePlugin):
 
 class GenerateClearskySolarRadiation(BasePlugin):
     """A plugin to evaluate clearsky solar radiation."""
+
+    def cube_from_target_grid(
+        target_grid: Cube,
+        constant_value: float,
+        variable_name: str,
+        variable_units: str,
+    ) -> Cube:
+        """Create a constant valued cube using the spatial coords from the target_grid.
+
+        Args:
+            target_grid:
+                A cube containing the desired spatial grid.
+            constant_value:
+                The constant value to assign to the new cube.
+            variable_name:
+                The variable name to assign to the new cube.
+            variable_units:
+                The units to assign to the new cube.
+        Returns:
+            A constant value cube defined on over the same spatial grid as the target_grid.
+        """
+        X_coord = target_grid.coord(axis="X")
+        Y_coord = target_grid.coord(axis="Y")
+
+        data = constant_value * np.ones(
+            shape=(*Y_coord.shape, *X_coord.shape), dtype=np.float32
+        )
+
+        cube = Cube(
+            data,
+            var_name=variable_name,
+            units=variable_units,
+            dim_coords_and_dims=[(Y_coord, 0), (X_coord, 1)],
+        )
+
+        return cube
 
     def process(
         self,

@@ -77,13 +77,19 @@ def process(
         GenerateClearskySolarRadiation,
     )
 
+    clearsky_plugin = GenerateClearskySolarRadiation()
+
     if altitude is None:
         # Create altitude cube using target_grid as template.
-        pass
-    
+        altitude = clearsky_plugin.cube_from_target_grid(
+            target_grid, 0.0, "altitude", "m"
+        )
+
     if linke_turbidity is None:
         # Create altitude cube using target_grid as template.
-        pass
+        linke_turbidity = clearsky_plugin.cube_from_target_grid(
+            target_grid, 3.0, "linke-turbidity", "1"
+        )
 
     return GenerateClearskySolarRadiation()(
         target_grid,
