@@ -83,9 +83,9 @@ def test_model_config_attribute(
     precipitation_only, temperature_only, expected_attributes
 ):
     """Test that the returned model configuration attribute is correct when the
-    inputs are derived from a mixture of models."""
+    inputs are derived from a mixture of models. The uk_ens attribute of the
+    temperature input should be ignored."""
 
-    expected_attributes.update({"mosg__model_configuration": "uk_det uk_ens"})
     temperature_only.attributes["mosg__model_configuration"] = "uk_ens"
     cubes = iris.cube.CubeList([*precipitation_only, temperature_only])
     result = FreezingRain(model_id_attr="mosg__model_configuration")(

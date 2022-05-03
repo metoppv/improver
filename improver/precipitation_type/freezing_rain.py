@@ -231,8 +231,12 @@ class FreezingRain(PostProcessingPlugin):
         )
         optional_attributes = {}
         if self.model_id_attr:
+            # Rain and sleet will always be derived from the same model, but temperature
+            # may be diagnosed from a different model when creating a nowcast forecast.
+            # The output in such a case is fundamentally a nowcast product, so we exclude
+            # the temperature diagnostic when determining the model_id_attr.
             optional_attributes = update_model_id_attr_attribute(
-                CubeList([self.rain, self.sleet, self.temperature]), self.model_id_attr
+                CubeList([self.rain, self.sleet]), self.model_id_attr
             )
         freezing_rain_cube = create_new_diagnostic_cube(
             diagnostic_name,
