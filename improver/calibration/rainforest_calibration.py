@@ -35,15 +35,58 @@ from collections import OrderedDict
 from typing import Optional, Tuple
 
 import numpy as np
+import pandas as pd
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
+from numpy import ndarray
+from pandas import DataFrame
 
 from improver import PostProcessingPlugin
+from improver.cli import generate_percentiles
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertProbabilitiesToPercentiles,
+    RebadgePercentilesAsRealizations,
+)
+from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
+)
 from improver.utilities.cube_manipulation import compare_coords
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
 DEFAULT_OUTPUT_REALIZATIONS_COUNT = 100
+
+
+def make_increasing(input_array: ndarray) -> ndarray:
+    """Make np.arry monotone increasing in the first dimension.
+
+    Args:
+        input_array: the array to make monotone
+
+    Returns:
+        array: an array of same shape as the input, where np.diff(axis=0)
+        is non-negative
+    """
+    upper = np.maximum.accumulate(input_array, axis=0)
+    lower = np.flip(np.minimum.accumulate(np.flip(input_array, axis=0), axis=0), axis=0)
+    return 0.5 * (upper + lower)
+
+
+def make_decreasing(input_array: ndarray) -> ndarray:
+    """Make np.arry monotone decreasing in the first dimension.
+
+    Args:
+        input_array: the array to make monotone
+
+    Returns:
+        array: an array of same shape as the input, where np.diff(axis=0)
+        is non-negative
+    """
+    lower = np.minimum.accumulate(input_array, axis=0)
+    upper = np.flip(np.maximum.accumulate(np.flip(input_array, axis=0), axis=0), axis=0)
+    return 0.5 * (upper + lower)
 
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
@@ -75,7 +118,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     "lightgbm_model" : "<path_to_lightgbm_model_object>",
                     "treelite_model" : "<path_to_treelite_model_object>"
                 }
-            }
 
         The keys specify the error threshold value, while the associated values
         are the path to the corresponding tree-model objects for that threshold.
@@ -289,6 +331,300 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         return aligned_cubes[:-1], aligned_cubes[-1]
 
+    def _prepare_error_probability_cube(self, forecast_cube):
+        """Initialise a cube with the same dimensions as the input forecast_cube,
+        with an additional threshold dimension added as the leading dimension.
+
+        Args:
+            forecast_cube:
+                Cube containing the forecast to be calibrated.
+
+        Returns:
+            An empty probability cube.
+        """
+        # Create a template for error CDF, with threshold the leading dimension.
+        error_probability_cube = create_new_diagnostic_cube(
+            name=f"probability_of_forecast_error_of_{forecast_cube.name()}_above_threshold",
+            units="1",
+            template_cube=forecast_cube,
+            mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
+        )
+        threshold_coord = DimCoord(
+            self.error_thresholds,
+            long_name="threshold",
+            units=forecast_cube.units,
+            attributes={"spp__relative_to_threshold": "above"},
+        )
+        error_probability_cube = self._add_coordinate_to_cube(
+            error_probability_cube,
+            threshold_coord,
+            new_dim_location=0,
+            copy_metadata=True,
+        )
+
+        return error_probability_cube
+
+    def _prepare_features_dataframe(self, feature_cubes: Cube) -> DataFrame:
+        """Convert gridded feature cubes into a dataframe, with feature variables
+        sorted alphabettically.
+
+        Args:
+            feature_cubes:
+                Cubelist containing the independent feature variables for prediction.
+
+        Returns:
+            Dataframe containing flattened feature variables.
+
+        Raises:
+            ValueError:
+                If flattened cubes have differing length.
+        """
+        # Get the names of features and sort alphabetically
+        feature_variables = [cube.name() for cube in feature_cubes]
+        feature_variables.sort()
+
+        # Unpack the cube-data into dataframe to feed into the tree-models.
+        features_df = pd.DataFrame()
+        for feature in feature_variables:
+            cube = feature_cubes.extract_cube(feature)
+            print(cube.name(), cube.units)
+            print(f"Flattening: {cube.name()}")
+            data = cube.data.flatten()
+            if (len(features_df) > 0) and (len(data) != len(features_df)):
+                raise RuntimeError("Input cubes have differing sizes.")
+            features_df[feature] = data
+
+        print(f"Cube -> dataframe complete: \n{features_df.dtypes}")
+
+        return features_df
+
+    def _get_error_probabilities(
+        self, forecast_cube: Cube, feature_cubes: CubeList,
+    ) -> Cube:
+        """Evaluate the error exceedence probabilities for forecast_cube from tree_models and
+        the associated feature_cubes.
+
+        Args:
+            forecast_cube:
+                Cube containing the variable to be calibrated.
+            feature_cubes:
+                Cubelist containing the independent feature variables for prediction.
+
+        Returns:
+            A cube containing error exceedence probabilities.
+
+        Raises:
+            ValueError:
+                If an unsupported model object is passed. Expects lightgbm Booster, or
+                treelite_runtime Predictor (if treelite dependency is available).
+        """
+        from lightgbm import Booster
+
+        if self.treelite_enabled:
+            from treelite_runtime import DMatrix, Predictor
+
+        error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
+
+        features_df = self._prepare_features_dataframe(feature_cubes)
+
+        if isinstance(self.tree_models[0], Booster):
+            print("Using light-gbm model:")
+            # Use GBDT models for calculation.
+            input_dataset = features_df
+        elif self.treelite_enabled:
+            if isinstance(self.tree_models[0], Predictor):
+                print("Using treelite model:")
+                # Use treelite models for calculation.
+                input_dataset = DMatrix(features_df.values)
+            else:
+                raise ValueError("Unsupported model object passed.")
+        else:
+            raise ValueError("Unsupported model object passed.")
+
+        for threshold_index, model in enumerate(self.tree_models):
+            print(
+                f"Calculating Pr(error > {self.error_thresholds[threshold_index]:0.4f} mm)"
+            )
+            prediction = model.predict(input_dataset)
+            error_probability_cube.data[threshold_index, ...] = np.reshape(
+                prediction, forecast_cube.data.shape
+            )
+            print(f"min: {prediction.min()}, max: {prediction.max()}")
+
+        print("Enforcing monotonicity.")
+        error_probability_cube.data = make_decreasing(error_probability_cube.data)
+
+        return error_probability_cube
+
+    def _extract_error_percentiles(
+        self, error_probability_cube, error_percentiles_count
+    ):
+        """Extract error percentile values from the error exceedence probabilities.
+
+        Args:
+            error_probability_cube:
+                A cube containing error exceedence probabilities.
+            error_percentiles_count:
+                The number of error percentiles to extract. The resulting percentiles
+                will be evenly spaced on the interval (0, 100).
+
+        Returns:
+            Cube containing percentile values for the error distributions.
+        """
+        error_percentiles = choose_set_of_percentiles(
+            error_percentiles_count, sampling="quantile",
+        )
+        error_percentiles_cube = ConvertProbabilitiesToPercentiles().process(
+            error_probability_cube, percentiles=error_percentiles
+        )
+
+        return error_percentiles_cube
+
+    def _apply_error_to_forecast(
+        self, forecast_cube: Cube, error_percentiles_cube: Cube
+    ) -> Cube:
+        """Apply the error distributions (as error percentiles) to the forecast cube. The result
+        is a series (sub-ensemble) of values for each forecast realization.
+
+        Args:
+            forecast_cube:
+                Cube containing the forecast to be calibrated.
+            error_percentiles_cube:
+                Cube containing percentile values for the error distributions.
+        Returns:
+            Cube containing the forecast sub-ensembles.
+        """
+        # Apply the error_percentiles to the forecast_cube
+        forecast_subensembles_data = (
+            forecast_cube.data[:, np.newaxis] + error_percentiles_cube.data
+        )
+        # Negative can values arise when the forecast is between error thresholds.
+        # When there is a lower bound on the observable value (0.0 in the case of rainfall),
+        # error thresholds below the forecast value should have probability of exceedence
+        # of 1, however it is possible that when forecast value is between thresholds that
+        # the linear interpolation in mapping from probabilities to percentiles, can give
+        # percentile values that lie below the forecast value. Consequently, when applied
+        # to the forecast, these result in negative values in the sub-ensemble.
+        forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
+        # Return cube containing forecast subensembles
+        return create_new_diagnostic_cube(
+            name=forecast_cube.name(),
+            units=forecast_cube.units,
+            template_cube=error_percentiles_cube,
+            mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
+            optional_attributes=forecast_cube.attributes,
+            data=forecast_subensembles_data,
+        )
+
+    def _stack_subensembles(self, forecast_subensembles: Cube) -> Cube:
+        """Stacking the realization and percentile dimensions in forecast_subensemble
+        into a single realization dimension. Realization and percentile are assumed to
+        be the first and second dimensions respectively.
+
+        Args:
+            input_cube:
+                Cube containing the forecast_subensembles.
+
+        Returns:
+            Cube containing single realization dimension in place of the realization
+            and percentile dimensions in forecast_subensemble.
+
+        Raises:
+            ValueError:
+                if realization and percentile are not the first and second
+                dimensions.
+        """
+        realization_percentile_dims = (
+            *forecast_subensembles.coord_dims("realization"),
+            *forecast_subensembles.coord_dims("percentile"),
+        )
+        if realization_percentile_dims != (0, 1):
+            raise ValueError("Invalid dimension coordinate ordering.")
+        realization_size = len(forecast_subensembles.coord("realization").points)
+        percentile_size = len(forecast_subensembles.coord("percentile").points)
+        new_realization_coord = DimCoord(
+            points=np.arange(realization_size * percentile_size, dtype=np.int32),
+            standard_name="realization",
+            units="1",
+        )
+        # As we are stacking the first two dimensions, we need to subtract 1 from all
+        # dimension position values.
+        dim_coords_and_dims = [(new_realization_coord, 0)]
+        dim_coords = forecast_subensembles.coords(dim_coords=True)
+        for coord in dim_coords:
+            if coord.name() not in ["realization", "percentile"]:
+                dims = tuple(
+                    d - 1 for d in forecast_subensembles.coord_dims(coord.name())
+                )
+                dim_coords_and_dims.append((coord, dims))
+        aux_coords_and_dims = []
+        aux_coords = forecast_subensembles.coords(dim_coords=False)
+        for coord in aux_coords:
+            dims = tuple(d - 1 for d in forecast_subensembles.coord_dims(coord.name()))
+            aux_coords_and_dims.append((coord, dims))
+        # Stack the first two dimensions.
+        superensemble_data = np.reshape(
+            forecast_subensembles.data, (-1,) + forecast_subensembles.data.shape[2:]
+        )
+        superensemble_cube = Cube(
+            superensemble_data,
+            standard_name=forecast_subensembles.standard_name,
+            long_name=forecast_subensembles.long_name,
+            var_name=forecast_subensembles.var_name,
+            units=forecast_subensembles.units,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+            attributes=forecast_subensembles.attributes,
+        )
+        return superensemble_cube
+
+    def _combine_subensembles(
+        self, forecast_subensembles: Cube, output_realizations_count: int
+    ) -> Cube:
+        """Combine the forecast sub-ensembles into a single ensemble. This is done by
+        first stacking the sub-ensembles into a single super-ensemble and then resampling
+        the super-ensemble to produce a subset of output realizations.
+
+        Args:
+            forecast_subensembles:
+                Cube containing a series of forecast sub-ensembles.
+            output_realizations_count:
+                The number of ensemble realizations that will be extracted from the
+                super-ensemble. If realizations_count is None, all realizations will
+                be returned.
+
+        Returns:
+            Cube containing single realization dimension.
+        """
+        print("Flattening ensemble dimensions")
+        superensemble_cube = self._stack_subensembles(forecast_subensembles)
+
+        if output_realizations_count is None:
+            warnings.warn(
+                Warning(
+                    "output_realizations_count not specified. Returning all realizations from the "
+                    "full super-ensemble."
+                )
+            )
+            return superensemble_cube
+
+        print(superensemble_cube)
+
+        print(
+            "Remapping to subset of realizations specified by output_realizations_count."
+        )
+        output_percentiles = choose_set_of_percentiles(
+            output_realizations_count, sampling="quantile",
+        )
+        percentile_cube = generate_percentiles.process(
+            superensemble_cube,
+            coordinates="realization",
+            percentiles=output_percentiles,
+        )
+        reduced_ensemble = RebadgePercentilesAsRealizations()(percentile_cube)
+
+        return reduced_ensemble
+
     def process(
         self,
         forecast_cube: Cube,
@@ -339,6 +675,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         Returns:
             The calibrated forecast cube.
+
+        Raises:
+            ValueError:
+                If the number of tree-models is inconsistent with the number of error
+                thresholds.
         """
         # Check that tree-model object available for each error threshold.
         if len(self.error_thresholds) != len(self.tree_models):
@@ -355,14 +696,21 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         )
 
         # Evaluate the error CDF using tree-models.
+        error_CDF = self._get_error_probabilities(aligned_forecast, aligned_features)
 
         # Extract error percentiles from error CDF.
+        error_percentiles = self._extract_error_percentiles(
+            error_CDF, error_percentiles_count
+        )
 
         # Apply error to forecast cube.
+        forecast_subensembles = self._apply_error_to_forecast(
+            aligned_forecast, error_percentiles
+        )
 
         # Combine sub-ensembles into a single consolidated ensemble.
+        calibrated_output = self._combine_subensembles(
+            forecast_subensembles, output_realizations_count
+        )
 
-        # Until calibration processing steps are added, the behaviour here will be to return
-        # the forecast cube without calibration. This will enable other integration work to
-        # proceed concurrently with development of this Plugin.
-        return forecast_cube
+        return calibrated_output
