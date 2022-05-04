@@ -86,7 +86,6 @@ def process(
     if altitude is None:
         # Create altitude cube using target_grid as template.
         altitude_data = np.zeros(shape=target_grid.shape, dtype=np.float32)
-
         altitude = create_new_diagnostic_cube(
             name="surface_altitude",
             units="m",
@@ -97,8 +96,8 @@ def process(
         )
 
     if linke_turbidity is None:
+        # Create linke_turbidity cube using target_grid as template.
         linke_turbidity_data = 3.0 * np.ones(shape=target_grid.shape, dtype=np.float32)
-        # Create altitude cube using target_grid as template.
         linke_turbidity = create_new_diagnostic_cube(
             name="linke_turbidity",
             units="1",
