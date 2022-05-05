@@ -35,7 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(target_grid: cli.inputcube, time: cli.inputdatetime):
+def process(target_grid: cli.inputcube, *, time: cli.inputdatetime):
     """Generate a cube containing local solar time, evaluated on the target grid for
     specified time. Local solar time is used as an input to the RainForests calibration
     for rainfall.
