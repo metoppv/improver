@@ -120,7 +120,7 @@ def test_basic(cube, binary_expected, kwargs):
 
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 1.0
-    result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(**kwargs).process(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, binary_expected)
 
@@ -131,24 +131,23 @@ def test_basic_latlon(latlon_cube, binary_expected):
 
     latlon_cube.data[0, 1] = 1.0
     latlon_cube.data[2, 3] = 1.0
-    result = OccurrenceWithinVicinity(
-        grid_point_radius=GRID_POINT_RADIUS
-    ).maximum_within_vicinity(latlon_cube)
+    result = OccurrenceWithinVicinity(grid_point_radius=GRID_POINT_RADIUS).process(
+        latlon_cube
+    )
     assert isinstance(result, Cube)
     assert np.allclose(result.data, binary_expected)
 
 
 @pytest.mark.parametrize("fixture_name", ["cube", "latlon_cube"])
 @pytest.mark.parametrize("keyword", ["radius", "grid_point_radius"])
-@pytest.mark.parametrize("value", [0, None])
-def test_zero_radius(request, fixture_name, keyword, value):
-    """Test that if a zero radius / grid point radius, or no radius / grid point
-    radius is provided, the input data is returned unchanged. This test uses
-    both an equal area and latlon grid as a 0 radius can be applied to both."""
+def test_zero_radius(request, fixture_name, keyword):
+    """Test that if a zero radius / grid point radius is provided, the input
+    data is returned unchanged. This test uses both an equal area and latlon
+    grid as a 0 radius can be applied to both."""
     cube = request.getfixturevalue(fixture_name)
-    kwargs = {keyword: value}
+    kwargs = {keyword: 0}
     expected = cube.data.copy()
-    result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(**kwargs).process(cube)
     assert np.allclose(result.data, expected)
 
 
@@ -166,7 +165,7 @@ def test_fuzzy(cube):
     )
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 0.5
-    result = OccurrenceWithinVicinity(radius=RADIUS).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS).process(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
@@ -188,7 +187,7 @@ def test_different_distance(cube, kwargs):
     )
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 1.0
-    result = OccurrenceWithinVicinity(**kwargs).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(**kwargs).process(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
@@ -210,7 +209,7 @@ def test_masked_data(cube):
     mask = np.zeros((5, 5))
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
-    result = OccurrenceWithinVicinity(radius=RADIUS).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(radius=RADIUS).process(cube)
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data.data, expected)
@@ -233,7 +232,7 @@ def test_with_land_mask(cube, land_mask_cube):
     cube.data[0, 4] = 10.0  # would not cross mask
     result = OccurrenceWithinVicinity(
         radius=RADIUS, land_mask_cube=land_mask_cube
-    ).maximum_within_vicinity(cube)
+    ).process(cube)
     assert isinstance(result, Cube)
     assert ~isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data, expected)
@@ -256,9 +255,9 @@ def test_with_land_mask_and_mask(cube, land_mask_cube):
     mask = np.zeros((5, 5))
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
-    result = OccurrenceWithinVicinity(
-        RADIUS, land_mask_cube=land_mask_cube
-    ).maximum_within_vicinity(cube)
+    result = OccurrenceWithinVicinity(RADIUS, land_mask_cube=land_mask_cube).process(
+        cube
+    )
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data.data, expected)
@@ -452,3 +451,12 @@ def test_two_radii_provided_exception(cube, radius):
         ValueError, match="Only one of radius or grid_point_radius should be set"
     ):
         OccurrenceWithinVicinity(radius=radius, grid_point_radius=2)
+
+
+def test_no_radii_provided_exception(cube):
+    """Test an exception is raised if neither radius nor grid_point_radius are
+    provided as arguments."""
+    with pytest.raises(
+        ValueError, match="One of radius or grid_point_radius should be set"
+    ):
+        OccurrenceWithinVicinity()
