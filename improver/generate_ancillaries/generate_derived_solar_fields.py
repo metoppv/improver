@@ -64,7 +64,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         target_grid: Cube,
         time: datetime,
         accumulation_period: int,
-        altitude: Cube,
+        surface_altitude: Cube,
         linke_turbidity: Cube,
         temporal_spacing: int = DEFAULT_TEMPORAL_SPACING_IN_MINUTES,
     ) -> Cube:
@@ -82,8 +82,8 @@ class GenerateClearskySolarRadiation(BasePlugin):
             temporal_spacing:
                 The spacing between irradiance times used in the evaluation of the accumulated
                 solar radiation, specified in mins.
-            altitude:
-                Altitude data used in the evaluation of the clearsky solar irradiance values,
+            surface_altitude:
+                Surface altitude data used in the evaluation of the clearsky solar irradiance values,
                 specified in metres.
             linke_turbidity:
                 Linke turbidity data used in the evaluation of the clearsky solar irradiance

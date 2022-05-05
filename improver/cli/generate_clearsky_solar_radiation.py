@@ -40,7 +40,7 @@ def process(
     time: cli.inputdatetime,
     accumulation_period: int,
     *,
-    altitude: cli.inputcube = None,
+    surface_altitude: cli.inputcube = None,
     linke_turbidity: cli.inputcube = None,
     temporal_spacing: int = 30,
 ):
@@ -57,8 +57,8 @@ def process(
             the accumulation period.
         accumulation_period (int):
             The number of hours over which the solar radiation accumulation is defined.
-        altitude (iris.cube.Cube):
-            Altitude data used in the evaluation of the clearsky solar irradiance values,
+        surface_altitude (iris.cube.Cube):
+            Surface altitude data used in the evaluation of the clearsky solar irradiance values,
             specified in metres.
         linke_turbidity (iris.cube.Cube):
             Linke turbidity data used in the evaluation of the clearsky solar irradiance
@@ -83,16 +83,16 @@ def process(
         generate_mandatory_attributes,
     )
 
-    if altitude is None:
-        # Create altitude cube using target_grid as template.
-        altitude_data = np.zeros(shape=target_grid.shape, dtype=np.float32)
-        altitude = create_new_diagnostic_cube(
+    if surface_altitude is None:
+        # Create surface_altitude cube using target_grid as template.
+        surface_altitude_data = np.zeros(shape=target_grid.shape, dtype=np.float32)
+        surface_altitude = create_new_diagnostic_cube(
             name="surface_altitude",
             units="m",
             template_cube=target_grid,
             mandatory_attributes=generate_mandatory_attributes([target_grid]),
             optional_attributes=target_grid.attributes,
-            data=altitude_data,
+            data=surface_altitude_data,
         )
 
     if linke_turbidity is None:
@@ -111,7 +111,7 @@ def process(
         target_grid,
         time,
         accumulation_period,
-        altitude=altitude,
+        surface_altitude=surface_altitude,
         linke_turbidity=linke_turbidity,
         temporal_spacing=temporal_spacing,
     )
