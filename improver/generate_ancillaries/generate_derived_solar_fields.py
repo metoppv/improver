@@ -80,11 +80,11 @@ class GenerateClearskySolarRadiation(BasePlugin):
             accumulation_period:
                 The number of hours over which the solar radiation accumulation is defined.
             temporal_spacing:
-                The spacing between irradiance times used in the evaluation of the accumulated
-                solar radiation, specified in mins.
+                The time stepping, specified in mins, used in the integration of solar irradiance
+                to produce the accumulated solar radiation.
             surface_altitude:
-                Surface altitude data used in the evaluation of the clearsky solar irradiance values,
-                specified in metres.
+                Surface altitude data, specified in metres, used in the evaluation of the clearsky
+                solar irradiance values.
             linke_turbidity:
                 Linke turbidity data used in the evaluation of the clearsky solar irradiance
                 values. Linke turbidity is a dimensionless quantity that accounts for the

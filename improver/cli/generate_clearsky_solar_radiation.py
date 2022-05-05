@@ -58,16 +58,16 @@ def process(
         accumulation_period (int):
             The number of hours over which the solar radiation accumulation is defined.
         surface_altitude (iris.cube.Cube):
-            Surface altitude data used in the evaluation of the clearsky solar irradiance values,
-            specified in metres.
+            Surface altitude data, specified in metres, used in the evaluation of the clearsky
+            solar irradiance values.
         linke_turbidity (iris.cube.Cube):
             Linke turbidity data used in the evaluation of the clearsky solar irradiance
             values. Linke turbidity is a dimensionless quantity that accounts for the
             atmospheric scattering of radiation due to aerosols and water vapour, relative
             to a dry atmosphere.
         temporal_spacing (int):
-            The temporal spacing between irradiance values used in the evaluation of the
-            accumulated solar radiation, specified in minutes.
+            The time stepping, specified in mins, used in the integration of solar irradiance
+            to produce the accumulated solar radiation.
 
     Returns:
         iris.cube.Cube:
