@@ -73,39 +73,9 @@ def process(
         iris.cube.Cube:
             A cube containing accumulated clearsky solar radiation.
     """
-    import numpy as np
-
     from improver.generate_ancillaries.generate_derived_solar_fields import (
         GenerateClearskySolarRadiation,
     )
-    from improver.metadata.utilities import (
-        create_new_diagnostic_cube,
-        generate_mandatory_attributes,
-    )
-
-    if surface_altitude is None:
-        # Create surface_altitude cube using target_grid as template.
-        surface_altitude_data = np.zeros(shape=target_grid.shape, dtype=np.float32)
-        surface_altitude = create_new_diagnostic_cube(
-            name="surface_altitude",
-            units="m",
-            template_cube=target_grid,
-            mandatory_attributes=generate_mandatory_attributes([target_grid]),
-            optional_attributes=target_grid.attributes,
-            data=surface_altitude_data,
-        )
-
-    if linke_turbidity is None:
-        # Create linke_turbidity cube using target_grid as template.
-        linke_turbidity_data = 3.0 * np.ones(shape=target_grid.shape, dtype=np.float32)
-        linke_turbidity = create_new_diagnostic_cube(
-            name="linke_turbidity",
-            units="1",
-            template_cube=target_grid,
-            mandatory_attributes=generate_mandatory_attributes([target_grid]),
-            optional_attributes=target_grid.attributes,
-            data=linke_turbidity_data,
-        )
 
     return GenerateClearskySolarRadiation()(
         target_grid,
