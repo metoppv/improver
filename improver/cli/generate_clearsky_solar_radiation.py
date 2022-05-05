@@ -37,11 +37,11 @@ from improver import cli
 @cli.with_output
 def process(
     target_grid: cli.inputcube,
-    time: cli.inputdatetime,
-    accumulation_period: int,
-    *,
     surface_altitude: cli.inputcube = None,
     linke_turbidity: cli.inputcube = None,
+    *,
+    time: cli.inputdatetime,
+    accumulation_period: int,
     temporal_spacing: int = 30,
 ):
     """Generate a cube containing clearsky solar radiation data, evaluated on the target grid
@@ -51,12 +51,6 @@ def process(
     Args:
         target_grid (iris.cube.Cube):
             A cube containing the desired spatial grid.
-        time (str):
-            A datetime specified in the format YYYYMMDDTHHMMZ at which to evaluate the
-            accumulated clearsky solar radiation. This time is taken to be the end of
-            the accumulation period.
-        accumulation_period (int):
-            The number of hours over which the solar radiation accumulation is defined.
         surface_altitude (iris.cube.Cube):
             Surface altitude data, specified in metres, used in the evaluation of the clearsky
             solar irradiance values.
@@ -65,6 +59,12 @@ def process(
             values. Linke turbidity is a dimensionless quantity that accounts for the
             atmospheric scattering of radiation due to aerosols and water vapour, relative
             to a dry atmosphere.
+        time (str):
+            A datetime specified in the format YYYYMMDDTHHMMZ at which to evaluate the
+            accumulated clearsky solar radiation. This time is taken to be the end of
+            the accumulation period.
+        accumulation_period (int):
+            The number of hours over which the solar radiation accumulation is defined.
         temporal_spacing (int):
             The time stepping, specified in mins, used in the integration of solar irradiance
             to produce the accumulated solar radiation.
