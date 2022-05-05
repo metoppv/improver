@@ -71,7 +71,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
     ) -> Tuple[Cube, Cube]:
         """Assign default values to input cubes where none have been passed, and ensure
         that all cubes are defined over consistent spatial grid.
-        
+
         Args:
             target_grid:
                 A cube containing the desired spatial grid.
@@ -86,7 +86,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         Raises:
             ValueError:
-                If surface_altitude or linke_turbidity have inconsistent spatial cooords
+                If surface_altitude or linke_turbidity have inconsistent spatial coords
                 relative to target_grid.
         """
         if surface_altitude is None:
