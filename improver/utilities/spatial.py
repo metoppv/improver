@@ -419,6 +419,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         """
         if radius is not None and grid_point_radius is not None:
             raise ValueError("Only one of radius or grid_point_radius should be set")
+        if radius is None and grid_point_radius is None:
+            raise ValueError("One of radius or grid_point_radius should be set")
+
         self.radius = radius
         self.grid_point_radius = grid_point_radius
         if land_mask_cube:
@@ -451,17 +454,10 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             they're equally likely to have occurred anywhere within the
             vicinity defined using the specified radius.
         """
-        if self.radius:
-            grid_point_radius = distance_to_number_of_grid_cells(cube, self.radius)
-        elif self.grid_point_radius is not None:
-            grid_point_radius = self.grid_point_radius
-        else:
-            grid_point_radius = 0
-
         # Convert the grid_point_radius into a number of points along an edge
         # length, including the central point, e.g. grid_point_radius = 1,
         # points along the edge = 3
-        grid_points = (2 * grid_point_radius) + 1
+        grid_points = (2 * self.grid_point_radius) + 1
 
         max_cube = cube.copy()
         unmasked_cube_data = cube.data.copy()
@@ -486,6 +482,25 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             max_cube.data = max_data
         return max_cube
 
+    def set_grid_point_radius(self, cube):
+        """
+        Set the grid_point_radius if it has not been provided in this form.
+        If a radius has been provided as a physical distance, convert this into
+        a number of grid points. If the radius distance is 0, set the grid point
+        radius to 0.
+
+        Args:
+            cube:
+                Thresholded cube.
+        """
+        if self.grid_point_radius is None:
+            if self.radius != 0:
+                self.grid_point_radius = distance_to_number_of_grid_cells(
+                    cube, self.radius
+                )
+            else:
+                self.grid_point_radius = 0
+
     def process(self, cube: Cube) -> Cube:
         """
         Ensure that the cube passed to the maximum_within_vicinity method is
@@ -505,6 +520,8 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             raise ValueError(
                 "Supplied cube do not have the same spatial coordinates and land mask"
             )
+
+        self.set_grid_point_radius(cube)
         max_cubes = CubeList([])
         for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
             max_cubes.append(self.maximum_within_vicinity(cube_slice))
