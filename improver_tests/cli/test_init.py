@@ -46,6 +46,7 @@ from improver.cli import (
     inputcube,
     inputcube_nolazy,
     inputcubelist,
+    inputdatetime,
     inputjson,
     maybe_coerce_with,
     run_main,
@@ -189,6 +190,17 @@ class Test_inputjson(unittest.TestCase):
         result = inputjson("foo")
         m.assert_called_with(improver.utilities.cli_utilities.load_json_or_none, "foo")
         self.assertEqual(result, {"mocked": 1})
+
+
+class Test_inputdatetime(unittest.TestCase):
+    """Tests the input datetime function"""
+
+    @patch("improver.cli.maybe_coerce_with", return_value="return")
+    def test_basic(self, m):
+        """Tests that input cube calls load_cube with the string"""
+        result = inputdatetime("foo")
+        m.assert_called_with(improver.utilities.temporal.cycletime_to_datetime, "foo")
+        self.assertEqual(result, "return")
 
 
 class Test_with_output(unittest.TestCase):
