@@ -113,13 +113,15 @@ def latlon_cube() -> Cube:
 
 @pytest.fixture
 def radius_coord() -> AuxCoord:
-    return AuxCoord([RADIUS], units="m", long_name="radius_of_vicinity",)
+    return AuxCoord(
+        np.array([RADIUS], dtype=np.float32), units="m", long_name="radius_of_vicinity",
+    )
 
 
 @pytest.fixture
 def grid_point_radius_coord() -> AuxCoord:
     return AuxCoord(
-        [GRID_POINT_RADIUS],
+        np.array([GRID_POINT_RADIUS], dtype=np.float32),
         units="1",
         long_name="radius_of_vicinity",
         attributes={
@@ -153,7 +155,7 @@ def test_metadata(cube, radius_coord, grid_point_radius_coord):
     for test in range(2):
         result = plugin.process(cube)
         assert isinstance(result, Cube)
-        # assert result.coord("radius_of_vicinity") == radius_coord
+        assert result.coord("radius_of_vicinity") == radius_coord
         assert "in_vicinity" in result.name()
 
     # defining the grid point radius
@@ -163,7 +165,7 @@ def test_metadata(cube, radius_coord, grid_point_radius_coord):
     for test in range(2):
         result = plugin.process(cube)
         assert isinstance(result, Cube)
-        # assert result.coord("radius_of_vicinity") == grid_point_radius_coord
+        assert result.coord("radius_of_vicinity") == grid_point_radius_coord
         assert "in_vicinity" in result.name()
 
 

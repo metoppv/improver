@@ -507,7 +507,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.native_grid_point_radius = True
             return self.grid_point_radius
 
-    def add_vicinity_coordinate(self, cube):
+    def _add_vicinity_coordinate(self, cube):
         """
         Add a coordinate to the returned cube that records the vicinity radius
         that has been applied to the data.
@@ -563,7 +563,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
         # Put dimensions back if they were there before.
         result_cube = check_cube_coordinates(cube, result_cube)
-        # self.add_vicinity_coordinate(result_cube)
+
+        # Add a coordinate recording the vicinity radius applied to the data.
+        self._add_vicinity_coordinate(result_cube)
         if is_probability(result_cube):
             result_cube.rename(in_vicinity_name_format(result_cube.name()))
         else:

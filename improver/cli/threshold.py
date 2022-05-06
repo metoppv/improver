@@ -110,7 +110,6 @@ def process(
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
     """
-    from improver.metadata.probabilistic import in_vicinity_name_format
     from improver.threshold import BasicThreshold
     from improver.utilities.cube_manipulation import collapse_realizations
     from improver.utilities.spatial import OccurrenceWithinVicinity
