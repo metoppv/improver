@@ -81,7 +81,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 Input linke-turbidity value.
 
         Returns:
-            - Cube containing surface alitiude, defined on the same grid as target_grid.
+            - Cube containing surface altitude, defined on the same grid as target_grid.
             - Cube containing linke-turbidity, defined on the same grid as target_grid.
 
         Raises:

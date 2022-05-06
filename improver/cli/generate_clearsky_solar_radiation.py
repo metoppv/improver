@@ -53,12 +53,14 @@ def process(
             A cube containing the desired spatial grid.
         surface_altitude (iris.cube.Cube):
             Surface altitude data, specified in metres, used in the evaluation of the clearsky
-            solar irradiance values.
+            solar irradiance values. If not provided, a cube with constant value 0.0 m is used,
+            created from target_grid.
         linke_turbidity (iris.cube.Cube):
             Linke turbidity data used in the evaluation of the clearsky solar irradiance
             values. Linke turbidity is a dimensionless quantity that accounts for the
             atmospheric scattering of radiation due to aerosols and water vapour, relative
-            to a dry atmosphere.
+            to a dry atmosphere. If not provided, a cube with constant value 3.0 is used,
+            created from target_grid.
         time (str):
             A datetime specified in the format YYYYMMDDTHHMMZ at which to evaluate the
             accumulated clearsky solar radiation. This time is taken to be the end of
