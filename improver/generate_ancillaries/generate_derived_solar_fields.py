@@ -29,11 +29,14 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
-from datetime import datetime
+from datetime import datetime, timedelta
 from typing import Tuple
 
+import cf_units
 import numpy as np
+from iris.coords import AuxCoord
 from iris.cube import Cube
+from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -43,6 +46,10 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_checker import spatial_coords_match
 
 DEFAULT_TEMPORAL_SPACING_IN_MINUTES = 30
+CLEARSKY_SOLAR_RADIATION_CF_NAME = (
+    "integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time"
+)
+CLEARSKY_SOLAR_RADIATION_BRUCE_NAME = "clearsky_solar_radiation"
 
 
 class GenerateSolarTime(BasePlugin):
@@ -127,6 +134,78 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         return surface_altitude, linke_turbidity
 
+    def _get_solar_radiation_cube(
+        self,
+        solar_radiation_data: ndarray,
+        target_grid: Cube,
+        time: datetime,
+        accumulation_period: int,
+        at_mean_sea_level: str,
+    ) -> Cube:
+        """Create cube for the specified time, on the target grid.
+        Args:
+            solar_radiation_data:
+                Solar radiation data.
+            target_grid:
+                Cube containing spatial grid over which the solar radiation
+                has been calculated.
+            time:
+                Time corresponding to the solar radiation accumulations.
+            accumulation_period:
+                Time window over which solar radiation has been accumulated,
+                expressed as the number of hours.
+            at_mean_sea_level:
+                Flag denoting whether solar radiation is defined at mean-sea-level
+                or at the Earth's surface. The appropriate vertical coordinate will
+                be assigned accordingly.
+        Returns:
+            Cube containing clearsky solar radaition data for the specified time
+            and accumulation_period.
+        """
+        X_coord = target_grid.coord(axis="X")
+        Y_coord = target_grid.coord(axis="Y")
+
+        time_lower_bounds = np.array(
+            (time - timedelta(hours=accumulation_period)).timestamp(), dtype=np.int64
+        )
+        time_upper_bounds = np.array(time.timestamp(), dtype=np.int64)
+
+        time_coord = AuxCoord(
+            time_upper_bounds,
+            bounds=np.array([time_lower_bounds, time_upper_bounds]),
+            standard_name="time",
+            units=cf_units.Unit(
+                "seconds since 1970-01-01 00:00:00 UTC",
+                calendar=cf_units.CALENDAR_STANDARD,
+            ),
+        )
+
+        # Add vertical coordinate to indicate whether solar radiation is evaluated at mean_sea_level
+        # or at altitude.
+        if at_mean_sea_level:
+            vertical_coord = "altitude"
+        else:
+            vertical_coord = "height"
+        Z_coord = AuxCoord(
+            np.float32(0.0),
+            standard_name=vertical_coord,
+            units="m",
+            attributes={"positive": "up"},
+        )
+
+        attrs = generate_mandatory_attributes([target_grid])
+
+        solar_radiation_cube = Cube(
+            solar_radiation_data,
+            long_name=CLEARSKY_SOLAR_RADIATION_CF_NAME,
+            units="W s m-2",
+            dim_coords_and_dims=[(Y_coord, 0), (X_coord, 1)],
+            aux_coords_and_dims=[(time_coord, None), (Z_coord, None)],
+            attributes=attrs,
+        )
+
+        return solar_radiation_cube
+
     def process(
         self,
         target_grid: Cube,
@@ -167,4 +246,47 @@ class GenerateClearskySolarRadiation(BasePlugin):
             target_grid, surface_altitude, linke_turbidity
         )
 
-        pass
+        # Assuming the altitude data is on the same grid as target grid
+        if isinstance(surface_altitude, Cube):
+            if not spatial_coords_match([target_grid, surface_altitude]):
+                raise ValueError(
+                    "altitude spatial coordinates do not match target_grid"
+                )
+            # we will work with numpy array for calculating irradiance.
+            altitude_data = surface_altitude.data
+        else:
+            altitude_data = surface_altitude
+        # Altitude specifier is used for cf-like naming of output variable
+        if np.allclose(altitude_data, 0.0):
+            at_mean_sea_level = True
+        else:
+            at_mean_sea_level = False
+
+        # Assuming the linke-turbidity data is on the same grid as target grid,
+        if isinstance(linke_turbidity, Cube):
+            if not spatial_coords_match([target_grid, linke_turbidity]):
+                raise ValueError(
+                    "linke_turbidity_climatology spatial coordinates do not match target_grid"
+                )
+            # we will work with numpy array for calculating irradiance.
+            linke_turbidity_data = linke_turbidity.data
+        else:
+            linke_turbidity_data = linke_turbidity
+
+        solar_radiation_data = np.zeros(
+            shape=(
+                target_grid.coord(axis="Y").shape[0],
+                target_grid.coord(axis="X").shape[0],
+            ),
+            dtype=np.float32,
+        )
+
+        solar_radiation_cube = self._get_solar_radiation_cube(
+            solar_radiation_data,
+            target_grid,
+            time,
+            accumulation_period,
+            at_mean_sea_level,
+        )
+
+        return solar_radiation_cube
