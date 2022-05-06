@@ -41,7 +41,7 @@ def process(
     model_config: cli.inputjson,
     error_percentiles_count: int = 19,
     output_realizations_count: int = 199,
-    n_threads: int = 1,
+    nthreads: int = 1,
 ):
     """
     Calibrate an ensemble forecast using the Rainforests method.
@@ -57,7 +57,7 @@ def process(
             Cube containing the forecast to be calibrated.
         features (iris.cube.Cubelist):
             Cubelist containing the feature variables used by the decision tree
-            models from which error percentules are derived.
+            models for creating error distributions.
         model_config (dict):
             Dictionary containing RainForests model configuration data.
         error_percentiles_count (int):
@@ -69,25 +69,18 @@ def process(
             These realizations are sampled by taking equispaced percentiles
             from the super-ensemble. If None is supplied, then all realizations
             from the super-ensemble will be returned.
-        n_threads (int):
+        nthreads (int):
             Number of threads to initialise tree model objects with.
 
     Returns:
         iris.cube.Cube:
             The forecast cube following calibration.
     """
-    from improver.calibration.rainforest_calibration import (
-        ApplyRainForestsCalibration,
-        initialise_model_config,
-    )
+    from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
-    (error_thresholds, tree_models,) = initialise_model_config(model_config, n_threads)
-
-    return ApplyRainForestsCalibration().process(
+    return ApplyRainForestsCalibration(model_config, nthreads).process(
         forecast,
         features,
-        error_thresholds,
-        tree_models,
         error_percentiles_count=error_percentiles_count,
         output_realizations_count=output_realizations_count,
     )
