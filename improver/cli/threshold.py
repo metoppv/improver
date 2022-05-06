@@ -159,7 +159,7 @@ def process(
     elif collapse_coord is not None:
         raise ValueError("Cannot collapse over non-realization coordinate")
 
-    result = BasicThreshold(
+    return BasicThreshold(
         thresholds,
         fuzzy_factor=fuzzy_factor,
         fuzzy_bounds=fuzzy_bounds,
@@ -167,8 +167,3 @@ def process(
         comparison_operator=comparison_operator,
         each_threshold_func=each_threshold_func_list,
     )(cube)
-
-    if vicinity is not None:
-        result.rename(in_vicinity_name_format(result.name()))
-
-    return result
