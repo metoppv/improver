@@ -39,13 +39,14 @@ import netCDF4
 import numpy as np
 from cartopy.crs import CRS
 from cf_units import Unit
-from iris.coords import CellMethod
+from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 
@@ -436,7 +437,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.land_mask = None
         self.land_mask_cube = land_mask_cube
 
-    def maximum_within_vicinity(self, cube: Cube) -> Cube:
+    def maximum_within_vicinity(self, cube: Cube, grid_point_radius) -> Cube:
         """
         Find grid points where a phenomenon occurs within a defined radius.
         The occurrences within this vicinity are maximised, such that all
@@ -458,7 +459,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         # Convert the grid_point_radius into a number of points along an edge
         # length, including the central point, e.g. grid_point_radius = 1,
         # points along the edge = 3
-        grid_points = (2 * self.grid_point_radius) + 1
+        grid_points = (2 * grid_point_radius) + 1
 
         cube_dtype = cube.data.dtype
         cube_fill_value = netCDF4.default_fillvals.get(cube_dtype.str[1:], np.inf)
@@ -498,12 +499,39 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Thresholded cube.
         """
         if self.grid_point_radius is None:
+            self.native_grid_point_radius = False
             if self.radius != 0:
-                self.grid_point_radius = distance_to_number_of_grid_cells(
-                    cube, self.radius
-                )
-            else:
-                self.grid_point_radius = 0
+                return distance_to_number_of_grid_cells(cube, self.radius)
+            return 0
+        else:
+            self.native_grid_point_radius = True
+            return self.grid_point_radius
+
+    def add_vicinity_coordinate(self, cube):
+        """
+        Add a coordinate to the returned cube that records the vicinity radius
+        that has been applied to the data.
+
+        Args:
+            cube:
+                Vicinity processed cube.
+        """
+        if self.native_grid_point_radius:
+            point = np.array(self.grid_point_radius, dtype=np.float32)
+            units = "1"
+            attributes = {
+                "comment": "Units of 1 indicate radius of vicinity is defined "
+                "in grid points rather than physical distance"
+            }
+        else:
+            point = np.array(self.radius, dtype=np.float32)
+            units = "m"
+            attributes = {}
+
+        coord = AuxCoord(
+            point, units=units, long_name="radius_of_vicinity", attributes=attributes
+        )
+        cube.add_aux_coord(coord)
 
     def process(self, cube: Cube) -> Cube:
         """
@@ -525,14 +553,21 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 "Supplied cube do not have the same spatial coordinates and land mask"
             )
 
-        self.set_grid_point_radius(cube)
+        grid_point_radius = self.set_grid_point_radius(cube)
         max_cubes = CubeList([])
         for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-            max_cubes.append(self.maximum_within_vicinity(cube_slice))
+            max_cubes.append(
+                self.maximum_within_vicinity(cube_slice, grid_point_radius)
+            )
         result_cube = max_cubes.merge_cube()
 
         # Put dimensions back if they were there before.
         result_cube = check_cube_coordinates(cube, result_cube)
+        # self.add_vicinity_coordinate(result_cube)
+        if is_probability(result_cube):
+            result_cube.rename(in_vicinity_name_format(result_cube.name()))
+        else:
+            result_cube.rename(f"{result_cube.name()}_in_vicinity")
         return result_cube
 
 

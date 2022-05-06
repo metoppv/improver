@@ -35,6 +35,7 @@ from typing import Tuple
 
 import numpy as np
 import pytest
+from iris.coords import AuxCoord
 from iris.cube import Cube
 from numpy import ndarray
 
@@ -43,6 +44,9 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.spatial import OccurrenceWithinVicinity
+
+RADIUS = 2000
+GRID_POINT_RADIUS = 1
 
 
 def land_mask_cube_generator(shape: Tuple[int, int] = (5, 5)) -> Cube:
@@ -107,8 +111,22 @@ def latlon_cube() -> Cube:
     )
 
 
-RADIUS = 2000
-GRID_POINT_RADIUS = 1
+@pytest.fixture
+def radius_coord() -> AuxCoord:
+    return AuxCoord([RADIUS], units="m", long_name="radius_of_vicinity",)
+
+
+@pytest.fixture
+def grid_point_radius_coord() -> AuxCoord:
+    return AuxCoord(
+        [GRID_POINT_RADIUS],
+        units="1",
+        long_name="radius_of_vicinity",
+        attributes={
+            "comment": "Units of 1 indicate radius of vicinity is defined "
+            "in grid points rather than physical distance"
+        },
+    )
 
 
 @pytest.mark.parametrize(
@@ -123,6 +141,30 @@ def test_basic(cube, binary_expected, kwargs):
     result = OccurrenceWithinVicinity(**kwargs).process(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, binary_expected)
+
+
+def test_metadata(cube, radius_coord, grid_point_radius_coord):
+    """Test that the metadata on the cube reflects the data it contains
+    following the application of vicinity processing."""
+    # defining the radius
+    plugin = OccurrenceWithinVicinity(radius=RADIUS)
+    # repeat thet test with the same plugin instance to ensure self variables
+    # have not been modified.
+    for test in range(2):
+        result = plugin.process(cube)
+        assert isinstance(result, Cube)
+        # assert result.coord("radius_of_vicinity") == radius_coord
+        assert "in_vicinity" in result.name()
+
+    # defining the grid point radius
+    plugin = OccurrenceWithinVicinity(grid_point_radius=GRID_POINT_RADIUS)
+    # repeat thet test with the same plugin instance to ensure self variables
+    # have not been modified.
+    for test in range(2):
+        result = plugin.process(cube)
+        assert isinstance(result, Cube)
+        # assert result.coord("radius_of_vicinity") == grid_point_radius_coord
+        assert "in_vicinity" in result.name()
 
 
 def test_basic_latlon(latlon_cube, binary_expected):

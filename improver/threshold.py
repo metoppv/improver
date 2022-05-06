@@ -245,24 +245,39 @@ class BasicThreshold(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
-    def _update_metadata(self, cube: Cube) -> None:
+    def _update_metadata(
+        self, cube: Cube, update_cell_methods=True, update_name=True
+    ) -> None:
         """Rename the cube and add attributes to the threshold coordinate
         after merging
+
+        Args:
+            cube:
+                Cube containing thresholded data
+            update_cell_methods:
+                If True (default) update the cell methods to reflect the
+                thresholding.
+            update_name:
+                If True (default) update the cube name to indicate that the
+                data is now thresholded.
         """
         threshold_coord = cube.coord(self.threshold_coord_name)
         threshold_coord.attributes.update(
             {"spp__relative_to_threshold": self.comparison_operator.spp_string}
         )
-        if cube.cell_methods:
-            format_cell_methods_for_probability(cube, self.threshold_coord_name)
-
-        cube.rename(
-            "probability_of_{parameter}_{relative_to}_threshold".format(
-                parameter=self.threshold_coord_name,
-                relative_to=probability_is_above_or_below(cube),
-            )
-        )
         cube.units = Unit(1)
+
+        if update_cell_methods:
+            if cube.cell_methods:
+                format_cell_methods_for_probability(cube, self.threshold_coord_name)
+
+        if update_name:
+            cube.rename(
+                "probability_of_{parameter}_{relative_to}_threshold".format(
+                    parameter=self.threshold_coord_name,
+                    relative_to=probability_is_above_or_below(cube),
+                )
+            )
 
     def process(self, input_cube: Cube) -> Cube:
         """Convert each point to a truth value based on provided threshold
@@ -342,6 +357,7 @@ class BasicThreshold(PostProcessingPlugin):
 
             self._add_threshold_coord(cube, threshold)
             cube.coord(var_name="threshold").convert_units(input_cube.units)
+            self._update_metadata(cube, update_cell_methods=False)
 
             for func in self.each_threshold_func:
                 cube = func(cube)
@@ -354,9 +370,8 @@ class BasicThreshold(PostProcessingPlugin):
             var_name="threshold"
         ).points.astype(FLOAT_DTYPE)
 
-        self._update_metadata(cube)
+        self._update_metadata(cube, update_name=False)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
-
         return cube
 
 
