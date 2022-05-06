@@ -125,6 +125,7 @@ def test__initialise_input_cubes(
             target_grid, None, linke_turbidity_on_alternate_grid
         )
 
+
 def test__get_irradiance_times():
 
     time = datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc)
@@ -160,30 +161,40 @@ def test__get_irradiance_times():
 
 
 @pytest.mark.parametrize("accumulation_period", [1, 3, 24])
-@pytest.mark.parametrize("surface_altitude", [None, "surface_altitude_data"])
-@pytest.mark.parametrize("linke_turbidity", [None, "linke_turbidity_data"])
-def test_process(request, target_grid, accumulation_period, surface_altitude, linke_turbidity):
+@pytest.mark.parametrize("surface_altitude_cube", [None, "surface_altitude"])
+@pytest.mark.parametrize("linke_turbidity_cube", [None, "linke_turbidity"])
+def test_process(
+    request,
+    target_grid,
+    accumulation_period,
+    surface_altitude_cube,
+    linke_turbidity_cube,
+):
     """Test process method returns cubes with correct structure."""
-    time = datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc)
+    time = datetime(2022, 1, 1, 00, 00)
 
     optional_vars = {}
-    if surface_altitude is not None:
-        optional_vars["surface_altitude"] = request.getfixturevalue(surface_altitude)
-    if linke_turbidity is not None:
-        optional_vars["linke_turbidity"] = request.getfixturevalue(linke_turbidity)
+    if surface_altitude_cube is not None:
+        optional_vars["surface_altitude"] = request.getfixturevalue(
+            surface_altitude_cube
+        )
+    if linke_turbidity_cube is not None:
+        optional_vars["linke_turbidity"] = request.getfixturevalue(linke_turbidity_cube)
 
     result = GenerateClearskySolarRadiation()(
         target_grid, time, accumulation_period, **optional_vars
     )
 
     # Check vertical coordinate
-    if surface_altitude is None:
+    if surface_altitude_cube is None:
         assert np.isclose(result.coord("altitude").points[0], 0.0)
     else:
         assert np.isclose(result.coord("height").points[0], 0.0)
 
     # Check time value match inputs
-    assert result.coord("time").points[0] == time.timestamp()
+    assert (
+        result.coord("time").points[0] == time.replace(tzinfo=timezone.utc).timestamp()
+    )
     assert timedelta(
         seconds=int(
             result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
@@ -193,4 +204,3 @@ def test_process(request, target_grid, accumulation_period, surface_altitude, li
     # Check variable attributes
     assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
     assert result.units == "W s m-2"
-

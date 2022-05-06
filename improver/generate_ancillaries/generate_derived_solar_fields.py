@@ -29,8 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
-from datetime import datetime, timedelta
-from typing import List, Tuple, Union
+from datetime import datetime, timedelta, timezone
+from typing import Tuple
 
 import cf_units
 import numpy as np
@@ -182,8 +182,8 @@ class GenerateClearskySolarRadiation(BasePlugin):
         self,
         target_grid: Cube,
         irradiance_times: ndarray,
-        altitude: Union[ndarray, float],
-        linke_turbidity: Union[ndarray, float],
+        surface_altitude: ndarray,
+        linke_turbidity: ndarray,
     ) -> ndarray:
         """Evaluated the gridded irradiance data over the specified period, calculated on
         the same spatial grid points as target_grid.
@@ -245,9 +245,14 @@ class GenerateClearskySolarRadiation(BasePlugin):
         Y_coord = target_grid.coord(axis="Y")
 
         time_lower_bounds = np.array(
-            (time - timedelta(hours=accumulation_period)).timestamp(), dtype=np.int64
+            (time - timedelta(hours=accumulation_period))
+            .replace(tzinfo=timezone.utc)
+            .timestamp(),
+            dtype=np.int64,
         )
-        time_upper_bounds = np.array(time.timestamp(), dtype=np.int64)
+        time_upper_bounds = np.array(
+            time.replace(tzinfo=timezone.utc).timestamp(), dtype=np.int64
+        )
 
         time_coord = AuxCoord(
             time_upper_bounds,
@@ -325,39 +330,18 @@ class GenerateClearskySolarRadiation(BasePlugin):
             target_grid, surface_altitude, linke_turbidity
         )
 
-        # Assuming the altitude data is on the same grid as target grid
-        if isinstance(surface_altitude, Cube):
-            if not spatial_coords_match([target_grid, surface_altitude]):
-                raise ValueError(
-                    "altitude spatial coordinates do not match target_grid"
-                )
-            # we will work with numpy array for calculating irradiance.
-            altitude_data = surface_altitude.data
-        else:
-            altitude_data = surface_altitude
         # Altitude specifier is used for cf-like naming of output variable
-        if np.allclose(altitude_data, 0.0):
+        if np.allclose(surface_altitude.data, 0.0):
             at_mean_sea_level = True
         else:
             at_mean_sea_level = False
-
-        # Assuming the linke-turbidity data is on the same grid as target grid,
-        if isinstance(linke_turbidity, Cube):
-            if not spatial_coords_match([target_grid, linke_turbidity]):
-                raise ValueError(
-                    "linke_turbidity spatial coordinates do not match target_grid"
-                )
-            # we will work with numpy array for calculating irradiance.
-            linke_turbidity_data = linke_turbidity.data
-        else:
-            linke_turbidity_data = linke_turbidity
 
         irradiance_times = self._get_irradiance_times(
             time, accumulation_period, temporal_spacing
         )
 
         irradiance_data = self._calc_clearsky_irradiance_data(
-            target_grid, irradiance_times, altitude_data, linke_turbidity_data
+            target_grid, irradiance_times, surface_altitude.data, linke_turbidity.data
         )
 
         # integrate the irradiance data along the time dimension to get the
