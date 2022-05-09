@@ -39,7 +39,7 @@ from improver import BasePlugin, PostProcessingPlugin
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
-DEFAULT_OUTPUT_REALIZATIONS_COUNT = 199
+DEFAULT_OUTPUT_REALIZATIONS_COUNT = 100
 
 
 class TrainRainForestsTreeModels(BasePlugin):
