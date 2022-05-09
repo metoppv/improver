@@ -49,8 +49,8 @@ def process(
     This calibration is done in a situation dependent fashion using a series of
     decision-tree models to construct representative error distributions which are
     then used to map each input ensemble member onto a series of realisable values.
-    These series collectively form a super-ensemble, from which realizations a sampled
-    to produce the calibrated forecast.
+    These series collectively form a super-ensemble, from which realizations are
+    sampled to produce the calibrated forecast.
 
     Args:
         forecast (iris.cube.Cube):

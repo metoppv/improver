@@ -92,7 +92,7 @@ def test__init_treelite_models(monkeypatch, treelite_model_config, error_thresho
     assert np.all(result.error_thresholds == error_thresholds)
 
     # Model type should default to lightgbm if there are any treelite models
-    # missing across all thresholds
+    # missing across any thresholds
     treelite_model_config["0.0000"].pop("treelite_model", None)
     result = ApplyRainForestsCalibration(treelite_model_config, nthreads=8)
 
