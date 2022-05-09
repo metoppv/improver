@@ -93,7 +93,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         from lightgbm import Booster
 
         if importlib.util.find_spec("treelite") is not None:
-            from treelite_runtime.predictor import Predictor
+            from treelite_runtime import Predictor
 
             self.treelite_enabled = True
         else:
