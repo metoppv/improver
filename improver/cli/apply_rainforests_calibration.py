@@ -40,7 +40,7 @@ def process(
     *features: cli.inputcube,
     model_config: cli.inputjson,
     error_percentiles_count: int = 19,
-    output_realizations_count: int = 199,
+    output_realizations_count: int = 100,
     nthreads: int = 1,
 ):
     """
