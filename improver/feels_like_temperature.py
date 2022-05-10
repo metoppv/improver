@@ -166,10 +166,10 @@ def _feels_like_temperature(
     combination of the wind chill index and Steadman's apparent temperature
     equation as follows:
 
-    If temperature < 10 degress C: The feels like temperature is equal to
+    If temperature < 10 degrees C: The feels like temperature is equal to
     the wind chill.
 
-    If temperature > 20 degress C: The feels like temperature is equal to
+    If temperature > 20 degrees C: The feels like temperature is equal to
     the apparent temperature.
 
     If 10 <= temperature <= 20 degrees C: A weighting (alpha) is calculated
