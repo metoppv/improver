@@ -19,7 +19,8 @@ time; wmo_id; diagnostic; latitude; longitude; period; height;
 cf_name; units; experiment; and exactly one of percentile or realization.
 Optionally, the DataFrame may also contain station_id. If the
 truth DataFrame also contains station_id, then forecast and truth data
-will be matched using both wmo_id and station_id. Other columns will be ignored.
+will be matched using both wmo_id and station_id. The station_id data may be
+either string or int. Any other columns not mentioned above will be ignored.
 
 A summary of the expected contents of a forecast table is shown below.
 
@@ -67,7 +68,8 @@ If the forecast DataFrame also contains station_id, then forecast and truth data
 will be matched using both wmo_id and station_id. Other columns will be 
 ignored. If the truth DataFrame contains a units column, then it will be used 
 for the units of the output truth cube. Otherwise, the units of the truth cube
-will be copied from the units of the forecast DataFrame.
+will be copied from the units of the forecast DataFrame. The station_id data may be
+either string or int. Any other columns not mentioned above will be ignored.
 
 A summary of the expected contents of a truth table is shown below.
 
