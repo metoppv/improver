@@ -526,7 +526,7 @@ def forecast_dataframe_to_cube(
                 var_coord = DimCoord(
                     np.float32(var_val), long_name="percentile", units="%"
                 )
-            else:
+            elif representation_type == "realization":
                 var_coord = DimCoord(
                     np.int32(var_val), standard_name="realization", units="1"
                 )
@@ -564,8 +564,7 @@ def forecast_dataframe_to_cube(
 
     if representation_type == "percentile":
         return RebadgePercentilesAsRealizations()(cube)
-    else:
-        return cube
+    return cube
 
 
 def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
