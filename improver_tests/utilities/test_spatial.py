@@ -505,11 +505,8 @@ class Test_lat_lon_determine(Test_common_functions):
 
 
 class Test_transform_grid_to_lat_lon(IrisTest):
-    """
-    Test function that transforms the points in the cube
-    into grid of latitudes and longitudes
-
-    """
+    """Test function that transforms the points in the cube
+    into grid of latitudes and longitudes."""
 
     def setUp(self):
         """Set up the cube."""
@@ -522,20 +519,42 @@ class Test_transform_grid_to_lat_lon(IrisTest):
             grid_spacing=2000000,
             domain_corner=(-1000000, -1000000),
         )
-
-    def test_transform_grid(self):
-        """
-        Test transformation of grid
-        """
-        expected_lons = np.array(
+        self.expected_lons = np.array(
             [-15.23434831, 10.23434831, -22.21952954, 17.21952954]
         ).reshape(2, 2)
-        expected_lats = np.array(
+        self.expected_lats = np.array(
             [45.10433161, 45.10433161, 62.57973333, 62.57973333]
         ).reshape(2, 2)
-        plugin = transform_grid_to_lat_lon
-        result_lats, result_lons = plugin(self.cube)
+
+    def test_transform_grid(self):
+        """Test transformation of grid for equal area grid with spatial
+        coordinates defined in metres."""
+        result_lats, result_lons = transform_grid_to_lat_lon(self.cube)
         self.assertIsInstance(result_lats, np.ndarray)
         self.assertIsInstance(result_lons, np.ndarray)
-        assert_almost_equal(result_lons, expected_lons)
-        assert_almost_equal(result_lats, expected_lats)
+        assert_almost_equal(result_lons, self.expected_lons)
+        assert_almost_equal(result_lats, self.expected_lats)
+
+    def test_non_metre_input(self):
+        """Test transformation of grid for equal area grid with spatial
+        coordinates defined in kilometres."""
+
+        self.cube.coord(axis="x").convert_units("km")
+        self.cube.coord(axis="y").convert_units("km")
+
+        result_lats, result_lons = transform_grid_to_lat_lon(self.cube)
+        self.assertIsInstance(result_lats, np.ndarray)
+        self.assertIsInstance(result_lons, np.ndarray)
+        assert_almost_equal(result_lons, self.expected_lons)
+        assert_almost_equal(result_lats, self.expected_lats)
+
+    def test_exception_for_degrees_input(self):
+        """Test that an exception is raised if the input cube has spatial
+        coordinates with units that cannot be converted to the default unit of
+        the projection."""
+        self.cube.coord(axis="x").units = "degrees"
+        msg = (
+            "Cube passed to transform_grid_to_lat_lon does not have an x coordinate"
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            transform_grid_to_lat_lon(self.cube)
