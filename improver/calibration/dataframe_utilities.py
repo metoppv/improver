@@ -375,7 +375,7 @@ def _prepare_dataframes(
     forecast_df = forecast_df.drop_duplicates(subset=forecast_cols, keep="last",)
     # Sort to ensure a consistent ordering after removing duplicates.
     sort_cols = ["blend_time", representation_type, "wmo_id"]
-    if "station_id" in forecast_df:
+    if "station_id" in forecast_df.columns:
         sort_cols.append("station_id")
     forecast_df = forecast_df.sort_values(by=sort_cols, ignore_index=True,)
 
