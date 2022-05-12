@@ -123,6 +123,31 @@ def test__init__(
         assert f"{threshold:06.4f}" in model.model_file
 
 
+def test__check_num_features_lightgbm(ensemble_features, dummy_lightgbm_models):
+    """Test number of features expected by tree_models matches features passed in."""
+
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.tree_models, _ = dummy_lightgbm_models
+
+    plugin._check_num_features(ensemble_features)
+
+    with pytest.raises(ValueError):
+        plugin._check_num_features(ensemble_features[:-1])
+
+
+@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
+def test__check_num_features_treelite(ensemble_features, dummy_treelite_models):
+    """Test number of features expected by tree_models matches features passed in."""
+
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.tree_models, _ = dummy_treelite_models
+
+    plugin._check_num_features(ensemble_features)
+
+    with pytest.raises(ValueError):
+        plugin._check_num_features(ensemble_features[:-1])
+
+
 def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast):
     """Check cube alignment when using feature and forecast variables when realization
     coordinate present in some cube variables."""
@@ -270,3 +295,252 @@ def test_add_coordinate(
         assert output_cube.coord_dims("realization") == (output_cube.ndim - 1,)
     else:
         assert output_cube.coord_dims("realization") == (new_dim_location,)
+
+
+def test__prepare_error_probability_cube(
+    ensemble_forecast, error_thresholds, error_threshold_cube
+):
+    """Test the preparation of error probability cube from input
+    forecast cube."""
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.error_thresholds = error_thresholds
+    result = plugin._prepare_error_probability_cube(ensemble_forecast)
+
+    assert result.long_name == error_threshold_cube.long_name
+    assert result.units == error_threshold_cube.units
+    assert result.coords() == error_threshold_cube.coords()
+    assert result.attributes == error_threshold_cube.attributes
+
+
+def test__prepare_features_dataframe(ensemble_features):
+    """Test dataframe preparation given set of feature cubes."""
+    # Note: Clearsky solar radiation cube does not have realization
+    # dimension, so without calling _align_feature_variables it will
+    # will differ in length from all other cubes.
+
+    # With clearsky solar cube present, function should fail due to
+    # differing size of underlying arrays.
+    with pytest.raises(RuntimeError):
+        ApplyRainForestsCalibration(
+            model_config_dict={}, threads=1
+        )._prepare_features_dataframe(ensemble_features)
+
+    # Drop clearsky solar cube so that all cubes now have the same size.
+    ensemble_features = ensemble_features[:-1]
+    feature_names = [cube.name() for cube in ensemble_features]
+    expected_size = ensemble_features.extract_cube(
+        "lwe_thickness_of_precipitation_amount"
+    ).data.size
+
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._prepare_features_dataframe(ensemble_features)
+
+    assert list(result.columns) == list(sorted(feature_names))
+    assert len(result) == expected_size
+
+
+def test_make_decreasing():
+    """Test that make_increasing returns an array that is non-decreasing
+    in the first dimension."""
+    input_array = np.array([[5, 5], [4, 3], [3, 4], [2, 2], [1, 1]])
+    expected = np.array([[5, 5], [4, 3.5], [3, 3.5], [2, 2], [1, 1]])
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._make_decreasing(input_array)
+    assert np.allclose(expected, result)
+
+
+def test__calculate_error_probabilities_lightgbm(
+    ensemble_features, ensemble_forecast, dummy_lightgbm_models
+):
+    """Test calculation of error probability cube when using lightgbm Boosters."""
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+
+    aligned_features, aligned_forecast = plugin._align_feature_variables(
+        ensemble_features, ensemble_forecast
+    )
+
+    result = plugin._calculate_error_probabilities(aligned_forecast, aligned_features)
+
+    # Check that data has sensible probability values
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 1.0)
+    assert np.all(np.isfinite(result.data))
+    # Check that data is monotonically decreasing
+    assert np.all((result.data[1:, :, :, :] - result.data[:-1, :, :, :]) <= 0.0)
+
+
+@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
+def test__calculate_error_probabilities_treelite(
+    ensemble_features, ensemble_forecast, dummy_treelite_models
+):
+    """Test calculation of error probability cube when using treelite Predictors."""
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
+
+    aligned_features, aligned_forecast = plugin._align_feature_variables(
+        ensemble_features, ensemble_forecast
+    )
+
+    result = plugin._calculate_error_probabilities(aligned_forecast, aligned_features)
+
+    # Check that data has sensible probability values
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 1.0)
+    assert np.all(np.isfinite(result.data))
+    # Check that data is monotonically decreasing
+    assert np.all((result.data[1:, :, :, :] - result.data[:-1, :, :, :]) <= 0.0)
+
+
+def test__extract_error_percentiles(error_threshold_cube, error_percentile_cube):
+
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._extract_error_percentiles(error_threshold_cube, 4)
+
+    assert result.long_name == error_percentile_cube.long_name
+    assert result.units == error_percentile_cube.units
+    assert result.coords() == error_percentile_cube.coords()
+    assert result.attributes == error_percentile_cube.attributes
+
+
+def test__apply_error_to_forecast(ensemble_forecast, error_percentile_cube):
+
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._apply_error_to_forecast(ensemble_forecast, error_percentile_cube)
+
+    assert result.standard_name == ensemble_forecast.standard_name
+    assert result.long_name == ensemble_forecast.long_name
+    assert result.var_name == ensemble_forecast.var_name
+    assert result.units == ensemble_forecast.units
+
+    assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
+    assert result.coords(dim_coords=True) == error_percentile_cube.coords(
+        dim_coords=True
+    )
+
+    assert result.attributes == ensemble_forecast.attributes
+
+    assert np.all(result.data >= 0.0)
+
+
+def test__stack_subensembles(error_percentile_cube):
+
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._stack_subensembles(error_percentile_cube)
+
+    assert (
+        compare_coords(
+            [result, error_percentile_cube],
+            ignored_coords=["realization", "percentile"],
+        )
+        == EMPTY_COMPARSION_DICT
+    )
+    assert result.coords("percentile") == []
+    assert np.all(
+        result.coord("realization").points
+        == np.arange(
+            error_percentile_cube.coord("realization").points.size
+            * error_percentile_cube.coord("percentile").points.size
+        )
+    )
+    assert result.coords(dim_coords=False) == error_percentile_cube.coords(
+        dim_coords=False
+    )
+    assert result.attributes == error_percentile_cube.attributes
+
+
+def test__combine_subensembles(error_percentile_cube):
+
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._combine_subensembles(error_percentile_cube, output_realizations_count=None)
+
+    assert np.all(
+        result.coord("realization").points
+        == np.arange(
+            error_percentile_cube.coord("realization").points.size
+            * error_percentile_cube.coord("percentile").points.size
+        )
+    )
+
+    result = ApplyRainForestsCalibration(
+        model_config_dict={}, threads=1
+    )._combine_subensembles(error_percentile_cube, output_realizations_count=10)
+
+    assert np.all(result.coord("realization").points == np.arange(10))
+
+
+def test_process_with_lightgbm(
+    ensemble_forecast, ensemble_features, dummy_lightgbm_models
+):
+
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+
+    for output_realization_count in (None, 10):
+        result = plugin.process(
+            ensemble_forecast,
+            ensemble_features,
+            error_percentiles_count=4,
+            output_realizations_count=output_realization_count,
+        )
+
+    assert result.standard_name == ensemble_forecast.standard_name
+    assert result.long_name == ensemble_forecast.long_name
+    assert result.var_name == ensemble_forecast.var_name
+    assert result.units == ensemble_forecast.units
+
+    assert (
+        compare_coords([result, ensemble_forecast], ignored_coords=["realization"])
+        == EMPTY_COMPARSION_DICT
+    )
+    if output_realization_count is None:
+        assert (
+            result.coord("realization").points.size
+            == 4 * ensemble_forecast.coord("realization").points.size
+        )
+    else:
+        assert result.coord("realization").points.size == output_realization_count
+    assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
+    assert result.attributes == ensemble_forecast.attributes
+
+
+@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
+def test_process_with_treelite(
+    ensemble_forecast, ensemble_features, dummy_treelite_models
+):
+
+    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
+
+    for output_realization_count in (None, 10):
+        result = plugin.process(
+            ensemble_forecast,
+            ensemble_features,
+            error_percentiles_count=4,
+            output_realizations_count=output_realization_count,
+        )
+
+    assert result.standard_name == ensemble_forecast.standard_name
+    assert result.long_name == ensemble_forecast.long_name
+    assert result.var_name == ensemble_forecast.var_name
+    assert result.units == ensemble_forecast.units
+
+    assert (
+        compare_coords([result, ensemble_forecast], ignored_coords=["realization"])
+        == EMPTY_COMPARSION_DICT
+    )
+    if output_realization_count is None:
+        assert (
+            result.coord("realization").points.size
+            == 4 * ensemble_forecast.coord("realization").points.size
+        )
+    else:
+        assert result.coord("realization").points.size == output_realization_count
+    assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
+    assert result.attributes == ensemble_forecast.attributes

@@ -59,36 +59,6 @@ DEFAULT_ERROR_PERCENTILES_COUNT = 19
 DEFAULT_OUTPUT_REALIZATIONS_COUNT = 100
 
 
-def make_increasing(input_array: ndarray) -> ndarray:
-    """Make np.arry monotone increasing in the first dimension.
-
-    Args:
-        input_array: the array to make monotone
-
-    Returns:
-        array: an array of same shape as the input, where np.diff(axis=0)
-        is non-negative
-    """
-    upper = np.maximum.accumulate(input_array, axis=0)
-    lower = np.flip(np.minimum.accumulate(np.flip(input_array, axis=0), axis=0), axis=0)
-    return 0.5 * (upper + lower)
-
-
-def make_decreasing(input_array: ndarray) -> ndarray:
-    """Make np.arry monotone decreasing in the first dimension.
-
-    Args:
-        input_array: the array to make monotone
-
-    Returns:
-        array: an array of same shape as the input, where np.diff(axis=0)
-        is non-negative
-    """
-    lower = np.minimum.accumulate(input_array, axis=0)
-    upper = np.flip(np.maximum.accumulate(np.flip(input_array, axis=0), axis=0), axis=0)
-    return 0.5 * (upper + lower)
-
-
 class ApplyRainForestsCalibration(PostProcessingPlugin):
     """Class to calibrate input forecast given a series of RainForests tree models."""
 
@@ -351,7 +321,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         )
         threshold_coord = DimCoord(
             self.error_thresholds,
-            long_name="threshold",
+            long_name=f"forecast_error_of_{forecast_cube.name()}",
+            var_name="threshold",
             units=forecast_cube.units,
             attributes={"spp__relative_to_threshold": "above"},
         )
@@ -387,18 +358,30 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         features_df = pd.DataFrame()
         for feature in feature_variables:
             cube = feature_cubes.extract_cube(feature)
-            print(cube.name(), cube.units)
-            print(f"Flattening: {cube.name()}")
             data = cube.data.flatten()
             if (len(features_df) > 0) and (len(data) != len(features_df)):
                 raise RuntimeError("Input cubes have differing sizes.")
             features_df[feature] = data
 
-        print(f"Cube -> dataframe complete: \n{features_df.dtypes}")
-
         return features_df
 
-    def _get_error_probabilities(
+    def _make_decreasing(self, input_array: ndarray) -> ndarray:
+        """Make np.array monotone decreasing in the first dimension.
+
+        Args:
+            input_array: the array to make monotone
+
+        Returns:
+            array: an array of same shape as the input, where np.diff(axis=0)
+            is non-negative
+        """
+        lower = np.minimum.accumulate(input_array, axis=0)
+        upper = np.flip(
+            np.maximum.accumulate(np.flip(input_array, axis=0), axis=0), axis=0
+        )
+        return 0.5 * (upper + lower)
+
+    def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
     ) -> Cube:
         """Evaluate the error exceedence probabilities for forecast_cube from tree_models and
@@ -428,12 +411,10 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         features_df = self._prepare_features_dataframe(feature_cubes)
 
         if isinstance(self.tree_models[0], Booster):
-            print("Using light-gbm model:")
             # Use GBDT models for calculation.
             input_dataset = features_df
         elif self.treelite_enabled:
             if isinstance(self.tree_models[0], Predictor):
-                print("Using treelite model:")
                 # Use treelite models for calculation.
                 input_dataset = DMatrix(features_df.values)
             else:
@@ -442,17 +423,13 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             raise ValueError("Unsupported model object passed.")
 
         for threshold_index, model in enumerate(self.tree_models):
-            print(
-                f"Calculating Pr(error > {self.error_thresholds[threshold_index]:0.4f} mm)"
-            )
             prediction = model.predict(input_dataset)
             error_probability_cube.data[threshold_index, ...] = np.reshape(
                 prediction, forecast_cube.data.shape
             )
-            print(f"min: {prediction.min()}, max: {prediction.max()}")
 
-        print("Enforcing monotonicity.")
-        error_probability_cube.data = make_decreasing(error_probability_cube.data)
+        # Enforcing monotonicity
+        error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
 
         return error_probability_cube
 
@@ -579,7 +556,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         return superensemble_cube
 
     def _combine_subensembles(
-        self, forecast_subensembles: Cube, output_realizations_count: int
+        self, forecast_subensembles: Cube, output_realizations_count: Optional[int]
     ) -> Cube:
         """Combine the forecast sub-ensembles into a single ensemble. This is done by
         first stacking the sub-ensembles into a single super-ensemble and then resampling
@@ -596,7 +573,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         Returns:
             Cube containing single realization dimension.
         """
-        print("Flattening ensemble dimensions")
         superensemble_cube = self._stack_subensembles(forecast_subensembles)
 
         if output_realizations_count is None:
@@ -608,11 +584,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             )
             return superensemble_cube
 
-        print(superensemble_cube)
-
-        print(
-            "Remapping to subset of realizations specified by output_realizations_count."
-        )
         output_percentiles = choose_set_of_percentiles(
             output_realizations_count, sampling="quantile",
         )
@@ -696,7 +667,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         )
 
         # Evaluate the error CDF using tree-models.
-        error_CDF = self._get_error_probabilities(aligned_forecast, aligned_features)
+        error_CDF = self._calculate_error_probabilities(
+            aligned_forecast, aligned_features
+        )
 
         # Extract error percentiles from error CDF.
         error_percentiles = self._extract_error_percentiles(

@@ -30,10 +30,23 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Fixtures for rainforests calibration."""
 import numpy as np
+import pandas as pd
 import pytest
+from iris import Constraint
 from iris.cube import CubeList
 
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_percentile_cube,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
+
+ATTRIBUTES = {
+    "title": "Test forecast",
+    "source": "IMPROVER",
+    "institution": "Australian Bureau of Meteorology",
+}
 
 
 @pytest.fixture
@@ -65,7 +78,7 @@ def gen_forecast_cubes(realizations):
         name="lwe_thickness_of_precipitation_amount",
         units="m",
         realizations=realizations,
-        attributes={"title": "Test forecast cube"},
+        attributes=ATTRIBUTES,
     )
 
 
@@ -81,37 +94,42 @@ def gen_feature_cubes(realizations):
         name="cape",
         units="J kg-1",
         realizations=realizations,
+        attributes=ATTRIBUTES,
     )
     precipitation_accumulation_from_convection = set_up_variable_cube(
         np.maximum(0, np.random.normal(0.001, 0.001, data_shape)).astype(np.float32),
         name="lwe_thickness_of_convective_precipitation_amount",
         units="m",
         realizations=realizations,
+        attributes=ATTRIBUTES,
     )
     precipitation_accumulation = set_up_variable_cube(
         np.maximum(0, np.random.normal(0.002, 0.001, data_shape)).astype(np.float32),
         name="lwe_thickness_of_precipitation_amount",
         units="m",
         realizations=realizations,
+        attributes=ATTRIBUTES,
     )
     wind_speed = set_up_variable_cube(
         np.maximum(0, np.random.normal(5, 5, data_shape)).astype(np.float32),
         name="wind_speed",
         units="m s-1",
         realizations=realizations,
+        attributes=ATTRIBUTES,
     )
     clearsky_solar_rad = set_up_variable_cube(
         np.maximum(0, np.random.normal(5000000, 2000000, (10, 10))).astype(np.float32),
-        name="clearsky_solar_radiation",
-        units="J m-2",
+        name="integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time",
+        units="W s m-2",
+        attributes=ATTRIBUTES,
     )
     return CubeList(
         [
             cape,
             precipitation_accumulation_from_convection,
             precipitation_accumulation,
-            clearsky_solar_rad,
             wind_speed,
+            clearsky_solar_rad,
         ]
     )
 
@@ -134,3 +152,135 @@ def deterministic_forecast():
 @pytest.fixture
 def deterministic_features():
     return gen_feature_cubes(realizations=None)
+
+
+def get_dummy_training_data(features, forecast):
+
+    # Set column names for reference in training
+    fcst_column = forecast.name()
+    obs_column = fcst_column + "_obs"
+    train_columns = [cube.name() for cube in features]
+    train_columns.sort()
+
+    training_data = pd.DataFrame()
+    # Initialise feature variables
+    for cube in (*features, forecast):
+        # Initialise forecast variable
+        if cube.coords("realization"):
+            training_data[cube.name()] = cube.extract(
+                Constraint(realization=0)
+            ).data.flatten()
+        else:
+            training_data[cube.name()] = cube.data.flatten()
+    # mock y data so that it is correlated with predicted precipitation_accumulation
+    # and other variables, with some noise
+    non_target_columns = list(set(training_data.columns) - set(list(fcst_column)))
+    rng = np.random.default_rng(0)
+    training_data[obs_column] = (
+        training_data[fcst_column] + training_data[non_target_columns].sum(axis=1) / 5
+    )
+    training_data[obs_column] += rng.normal(
+        0, training_data[obs_column].std(), len(training_data)
+    )
+    # rescale to have same mean and standard deviation as prediction
+    training_data[obs_column] = (
+        training_data[obs_column] - training_data[obs_column].mean()
+    ) / training_data[obs_column].std()
+    training_data[obs_column] = (
+        training_data[obs_column] * training_data[fcst_column].std()
+        + training_data[fcst_column].mean()
+    )
+    return training_data, fcst_column, obs_column, train_columns
+
+
+@pytest.fixture
+def dummy_lightgbm_models(ensemble_features, ensemble_forecast, error_thresholds):
+    import lightgbm
+
+    training_data, fcst_column, obs_column, train_columns = get_dummy_training_data(
+        ensemble_features, ensemble_forecast
+    )
+    # train a model for each threshold
+    tree_models = []
+    params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
+    training_columns = train_columns
+    for threshold in error_thresholds:
+        data = lightgbm.Dataset(
+            training_data[training_columns],
+            label=(
+                training_data[obs_column] - training_data[fcst_column] > threshold
+            ).astype(int),
+        )
+        booster = lightgbm.train(params, data, num_boost_round=10)
+        tree_models.append(booster)
+
+    return tree_models, error_thresholds
+
+
+@pytest.fixture
+def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
+    import treelite
+    import treelite_runtime
+
+    lightgbm_models, error_thresholds = dummy_lightgbm_models
+    tree_models = []
+    for model in lightgbm_models:
+        treelite_model = treelite.Model.from_lightgbm(model)
+        treelite_model.export_lib(
+            toolchain="gcc",
+            libpath=str(tmp_path / "model.so"),
+            verbose=False,
+            params={"parallel_comp": 8, "quantize": 1},
+        )
+        predictor = treelite_runtime.Predictor(
+            str(tmp_path / "model.so"), verbose=True, nthread=1
+        )
+        tree_models.append(predictor)
+
+    return tree_models, error_thresholds
+
+
+@pytest.fixture
+def error_threshold_cube(error_thresholds):
+
+    probability_values = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0])
+    other_dims = np.ones((10, 10))
+    probability_data = probability_values[..., None, None] * other_dims[None, :, :]
+
+    probability_cube = set_up_probability_cube(
+        probability_data.astype(np.float32),
+        thresholds=error_thresholds,
+        variable_name="forecast_error_of_lwe_thickness_of_precipitation_amount",
+        threshold_units="m",
+        attributes=ATTRIBUTES,
+        spp__relative_to_threshold="above",
+    )
+    return add_coordinate(
+        probability_cube,
+        coord_points=np.arange(5),
+        coord_name="realization",
+        coord_units="1",
+        order=[1, 0, 2, 3],
+    )
+
+
+@pytest.fixture
+def error_percentile_cube(error_thresholds):
+
+    other_dims = np.ones((10, 10))
+    percentile_data = error_thresholds[1:-1, None, None] * other_dims[None, :, :]
+
+    percentile_cube = set_up_percentile_cube(
+        percentile_data.astype(np.float32),
+        percentiles=np.array([20.0, 40.0, 60.0, 80.0], dtype=np.float32),
+        name="forecast_error_of_lwe_thickness_of_precipitation_amount",
+        units="m",
+        attributes=ATTRIBUTES,
+    )
+    return add_coordinate(
+        percentile_cube,
+        coord_points=np.arange(5),
+        coord_name="realization",
+        coord_units="1",
+        order=[0, 1, 2, 3],
+    )
