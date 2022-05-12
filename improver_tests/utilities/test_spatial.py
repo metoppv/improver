@@ -553,8 +553,6 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         coordinates with units that cannot be converted to the default unit of
         the projection."""
         self.cube.coord(axis="x").units = "degrees"
-        msg = (
-            "Cube passed to transform_grid_to_lat_lon does not have an x coordinate"
-        )
+        msg = "Cube passed to transform_grid_to_lat_lon does not have an x coordinate"
         with self.assertRaisesRegex(ValueError, msg):
             transform_grid_to_lat_lon(self.cube)
