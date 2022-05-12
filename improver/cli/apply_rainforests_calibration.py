@@ -41,7 +41,7 @@ def process(
     model_config: cli.inputjson,
     error_percentiles_count: int = 19,
     output_realizations_count: int = 100,
-    nthreads: int = 1,
+    threads: int = 1,
 ):
     """
     Calibrate an ensemble forecast using the Rainforests method.
@@ -69,8 +69,8 @@ def process(
             These realizations are sampled by taking equispaced percentiles
             from the super-ensemble. If None is supplied, then all realizations
             from the super-ensemble will be returned.
-        nthreads (int):
-            Number of threads to initialise tree model objects with.
+        threads (int):
+            Number of threads to use during prediction with tree-model objects.
 
     Returns:
         iris.cube.Cube:
@@ -78,7 +78,7 @@ def process(
     """
     from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
-    return ApplyRainForestsCalibration(model_config, nthreads).process(
+    return ApplyRainForestsCalibration(model_config, threads).process(
         forecast,
         features,
         error_percentiles_count=error_percentiles_count,
