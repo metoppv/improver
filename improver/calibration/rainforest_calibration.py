@@ -92,7 +92,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             )
             self.treelite_enabled = False
 
+        # Dictionary keys are strings which we will use for iterating across the
+        # config dictionary, however we cast these as float to provide the error
+        # thresholds to use in processing.
         error_thresholds = list(model_config_dict.keys())
+        self.error_thresholds = np.array(error_thresholds, dtype=np.float32)
 
         lightgbm_model_filenames = [
             model_config_dict[threshold].get("lightgbm_model")
@@ -112,8 +116,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 Booster(model_file=file).reset_parameter({"num_threads": threads})
                 for file in lightgbm_model_filenames
             ]
-
-        self.error_thresholds = np.array(error_thresholds, dtype=np.float32)
 
     def process(
         self,

@@ -44,7 +44,11 @@ def process(
     threads: int = 1,
 ):
     """
-    Calibrate an ensemble forecast using the Rainforests method.
+    Calibrate a forecast cube using the Rainforests method.
+
+    Ensemble forecasts must be in realization representation. Deterministic forecasts
+    can be processed to produce a pseudo-ensemble; a realization dimension will be added
+    to deterministic forecast cubes if one is not already present.
 
     This calibration is done in a situation dependent fashion using a series of
     decision-tree models to construct representative error distributions which are
@@ -53,11 +57,15 @@ def process(
     sampled to produce the calibrated forecast.
 
     Args:
-        forecast (iris.cube.Cube):
-            Cube containing the forecast to be calibrated.
-        features (iris.cube.Cubelist):
-            Cubelist containing the feature variables used by the decision tree
-            models for creating error distributions.
+        forecast_cube (iris.cube.Cube):
+            Cube containing the forecast to be calibrated; must be as realizations.
+        feature_cubes (iris.cube.Cubelist):
+            Cubelist containing the feature variables (physical parameters) used as inputs
+            to the tree-models for the generation of the associated error distributions.
+            Feature cubes are expected to have the same dimensions as forecast_cube, with
+            the exception of the realization dimension. Where the feature_cube contains a
+            realization dimension this is expected to be consistent, otherwise the cube will
+            be broadcast along the realization dimension.
         model_config (dict):
             Dictionary containing RainForests model configuration data.
         error_percentiles_count (int):
@@ -76,11 +84,13 @@ def process(
         iris.cube.Cube:
             The forecast cube following calibration.
     """
+    from iris.cube import CubeList
+
     from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
     return ApplyRainForestsCalibration(model_config, threads).process(
         forecast,
-        features,
+        CubeList(features),
         error_percentiles_count=error_percentiles_count,
         output_realizations_count=output_realizations_count,
     )
