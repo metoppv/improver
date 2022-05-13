@@ -129,8 +129,8 @@ def _calculate_apparent_temperature(
     This function looks up a value for the saturation vapour pressure of
     water vapour using the temperature and a table of values. These tabulated
     values are found using lookup_svp and are corrected to the saturated
-    vapour pressure in air using pressure_correct_svp, both functions are from
-    the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
+    vapour pressure in air using pressure_correct_svp, taken from the Goff-Gratch
+    method.
 
     Args:
         temperature:
