@@ -443,7 +443,6 @@ def forecast_dataframe_to_cube(
     df: DataFrame,
     training_dates: DatetimeIndex,
     forecast_period: int,
-    comparison_operator: Optional[str] = None,
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -459,10 +458,6 @@ def forecast_dataframe_to_cube(
             Datetimes spanning the training period.
         forecast_period:
             Forecast period in seconds as an integer.
-        comparison_operator:
-            A string such as "<", "lt", "LT", etc that can be interpreted as a
-            comparison operator by
-            :func:`~improver.utilities.probability_manipulation.comparison_operator_dict`
 
     Returns:
         Cube containing the forecasts from the training period.
