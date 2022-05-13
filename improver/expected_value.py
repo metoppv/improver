@@ -30,17 +30,39 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Calculation of expected value from a probability distribution."""
 
+import iris.analysis
 from iris.cube import Cube
+from iris.coords import CellMethod
 
 from improver import PostProcessingPlugin
+from improver.metadata.probabilistic import is_percentile, is_probability
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    RebadgePercentilesAsRealizations,
+)
+from improver.utilities.cube_manipulation import collapsed
 
 
 class ExpectedValue(PostProcessingPlugin):
     """Calculation of expected value from a probability distribution"""
 
-    def __init__(self) -> None:
-        return
-
     def process(self, cube: Cube) -> Cube:
-        """Process implementation."""
-        return cube
+        """Expected value calculation and metadata updates.
+
+        Args:
+            cube:
+                Probabilistic data with a realization or percentile representation.
+
+        Returns:
+            Expected value of probability distribution. Same shape as input cube
+            but with realization/percentile coordinate removed.
+        """
+        if is_percentile(cube):
+            cube = RebadgePercentilesAsRealizations().process(cube)
+        if is_probability(cube):
+            raise NotImplementedError(
+                "Handling of threshold cubes is not yet implemented"
+            )
+        mean_cube = collapsed(cube, "realization", iris.analysis.MEAN)
+        mean_cube.remove_coord("realization")
+        mean_cube.add_cell_method(CellMethod("mean", coords="realization"))
+        return mean_cube
