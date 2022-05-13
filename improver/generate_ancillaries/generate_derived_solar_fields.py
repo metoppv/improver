@@ -185,16 +185,16 @@ class GenerateClearskySolarRadiation(BasePlugin):
         linke_turbidity: ndarray,
         temporal_spacing: int,
     ) -> ndarray:
-        """Evaluated the gridded irradiance data over the specified period, calculated on
-        the same spatial grid points as target_grid.
+        """Evaluate the gridded clearsky solar radiation data over the specified period,
+        calculated on the same spatial grid points as target_grid.
 
         Args:
             target_grid:
                 Cube containing the target spatial grid on which to evaluate irradiance.
             irradiance_times:
                 Datetimes at which to evaluate the irradiance data.
-            altitude:
-                Altitude data, specified in metres.
+            surface_altitude:
+                Surface altitude data, specified in metres.
             linke_turbidity:
                 Linke turbidity data.
             temporal_spacing:
@@ -229,7 +229,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         target_grid: Cube,
         time: datetime,
         accumulation_period: int,
-        at_mean_sea_level: str,
+        at_mean_sea_level: bool,
     ) -> Cube:
         """Create a cube of accumulated clearsky solar radiation.
 

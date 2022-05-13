@@ -163,47 +163,58 @@ def test__irradiance_times():
         )
 
 
-@pytest.mark.parametrize("accumulation_period", [1, 3, 24])
-@pytest.mark.parametrize("surface_altitude_cube", [None, "surface_altitude"])
-@pytest.mark.parametrize("linke_turbidity_cube", [None, "linke_turbidity"])
-def test_process(
-    request,
-    target_grid,
-    accumulation_period,
-    surface_altitude_cube,
-    linke_turbidity_cube,
-):
+def test__create_solar_radiation_cube(target_grid):
+
+    solar_radiation_data = np.zeros_like(target_grid.data)
+    time = datetime(2022, 1, 1, 0, 0)
+    accumulation_period = 24
+
+    for at_mean_sea_level in (True, False):
+        result = GenerateClearskySolarRadiation()._create_solar_radiation_cube(
+            solar_radiation_data,
+            target_grid,
+            time,
+            accumulation_period,
+            at_mean_sea_level,
+        )
+        if at_mean_sea_level:
+            assert np.isclose(result.coord("altitude").points[0], 0.0)
+        else:
+            assert np.isclose(result.coord("height").points[0], 0.0)
+
+        # Check time value match inputs
+        assert (
+            result.coord("time").points[0]
+            == time.replace(tzinfo=timezone.utc).timestamp()
+        )
+        assert timedelta(
+            seconds=int(
+                result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
+            )
+        ) == timedelta(hours=accumulation_period)
+
+        # Check that the dim coords are the spatial coords only, matching those from target_grid
+        assert result.coords(dim_coords=True) == [
+            target_grid.coord(axis="Y"),
+            target_grid.coord(axis="X"),
+        ]
+
+        # Check variable attributes
+        assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
+        assert result.units == "W s m-2"
+
+
+def test_process(target_grid, surface_altitude):
     """Test process method returns cubes with correct structure."""
     time = datetime(2022, 1, 1, 0, 0)
+    accumulation_period = 24
 
-    optional_vars = {}
-    if surface_altitude_cube is not None:
-        optional_vars["surface_altitude"] = request.getfixturevalue(
-            surface_altitude_cube
-        )
-    if linke_turbidity_cube is not None:
-        optional_vars["linke_turbidity"] = request.getfixturevalue(linke_turbidity_cube)
+    # Check that default behaviour results in cube with altitude for z-coord.
+    result = GenerateClearskySolarRadiation()(target_grid, time, accumulation_period,)
+    assert np.isclose(result.coord("altitude").points[0], 0.0)
 
+    # Check that non-zero surface_altitude results in cube with height for z-coord.
     result = GenerateClearskySolarRadiation()(
-        target_grid, time, accumulation_period, **optional_vars
+        target_grid, time, accumulation_period, surface_altitude=surface_altitude
     )
-
-    # Check vertical coordinate
-    if surface_altitude_cube is None:
-        assert np.isclose(result.coord("altitude").points[0], 0.0)
-    else:
-        assert np.isclose(result.coord("height").points[0], 0.0)
-
-    # Check time value match inputs
-    assert (
-        result.coord("time").points[0] == time.replace(tzinfo=timezone.utc).timestamp()
-    )
-    assert timedelta(
-        seconds=int(
-            result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
-        )
-    ) == timedelta(hours=accumulation_period)
-
-    # Check variable attributes
-    assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
-    assert result.units == "W s m-2"
+    assert np.isclose(result.coord("height").points[0], 0.0)
