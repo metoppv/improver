@@ -317,13 +317,13 @@ def _prepare_dataframes(
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, one of REPRESENTATION_COLUMNS (percentile or
             realization), diagnostic, latitude, longitude, altitude,
-            period, height, cf_name, units and experiment. Optionally the
-            DataFrame may also contain the following columns: station_id, units.
-            Any other columns are ignored.
+            period, height, cf_name, units and experiment. Optionally, the
+            DataFrame may also contain station_id. Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
-            time, wmo_id, diagnostic, latitude, longitude and altitude. 
-            Any other columns are ignored.
+            time, wmo_id, diagnostic, latitude, longitude and altitude.
+            Optionally the DataFrame may also contain the following columns:
+            station_id, units. Any other columns are ignored.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
         experiment:
@@ -441,9 +441,7 @@ def _prepare_dataframes(
 
 
 def forecast_dataframe_to_cube(
-    df: DataFrame,
-    training_dates: DatetimeIndex,
-    forecast_period: int,
+    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int,
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -453,8 +451,9 @@ def forecast_dataframe_to_cube(
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, REPRESENTATION_COLUMNS (percentile or realization),
-            diagnostic, latitude, longitude, period, height,
-            cf_name, units. Any other columns are ignored.
+            diagnostic, latitude, longitude, period, height, cf_name, units.
+            Optionally, the DataFrame may also contain station_id. Any other
+            columns are ignored.
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
@@ -645,7 +644,8 @@ def forecast_and_truth_dataframes_to_cubes(
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, one of REPRESENTATION_COLUMNS (percentile or realization),
             diagnostic, latitude, longitude, period, height, cf_name, units.
-            Any other columns are ignored.
+            Optionally, the DataFrame may also contain station_id. Any other
+            columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.  Optionally the
