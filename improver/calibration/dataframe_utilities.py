@@ -317,11 +317,12 @@ def _prepare_dataframes(
             blend_time, forecast_period, forecast_reference_time, time,
             wmo_id, one of REPRESENTATION_COLUMNS (percentile or
             realization), diagnostic, latitude, longitude, altitude,
-            period, height, cf_name, units and experiment. Any other
-            columns are ignored.
+            period, height, cf_name, units and experiment. Optionally the
+            DataFrame may also contain the following columns: station_id, units.
+            Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
-            time, wmo_id, diagnostic, latitude, longitude and altitude.
+            time, wmo_id, diagnostic, latitude, longitude and altitude. 
             Any other columns are ignored.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
@@ -569,7 +570,8 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
         df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude, altitude, cf_name,
-            height, period and units. Any other columns are ignored.
+            height, period. Optionally the DataFrame may also contain
+            the following columns: station_id, units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
     Returns:
@@ -646,7 +648,8 @@ def forecast_and_truth_dataframes_to_cubes(
             Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
-            time, wmo_id, diagnostic, latitude, longitude and altitude.
+            time, wmo_id, diagnostic, latitude, longitude and altitude.  Optionally the
+            DataFrame may also contain the following columns: station_id, units.
             Any other columns are ignored.
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
