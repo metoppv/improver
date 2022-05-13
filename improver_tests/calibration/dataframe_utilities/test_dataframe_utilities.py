@@ -166,12 +166,19 @@ class SetupSharedDataFrames(ImproverTest):
         )
 
         self.forecast_df_station_id = self.forecast_df.copy()
-        self.forecast_df_station_id = self.forecast_df_station_id.loc[self.forecast_df_station_id["wmo_id"].isin(self.wmo_ids[:-1])]
-        self.forecast_df_station_id["station_id"] = self.forecast_df_station_id["wmo_id"] + "0"
+        self.forecast_df_station_id = self.forecast_df_station_id.loc[
+            self.forecast_df_station_id["wmo_id"].isin(self.wmo_ids[:-1])
+        ]
+        self.forecast_df_station_id["station_id"] = (
+            self.forecast_df_station_id["wmo_id"] + "0"
+        )
         self.truth_df_station_id = self.truth_subset_df.copy()
-        self.truth_df_station_id = self.truth_df_station_id.loc[self.truth_df_station_id["wmo_id"].isin(self.wmo_ids[1:])]
-        self.truth_df_station_id["station_id"] = self.truth_df_station_id["wmo_id"] + "0"
-
+        self.truth_df_station_id = self.truth_df_station_id.loc[
+            self.truth_df_station_id["wmo_id"].isin(self.wmo_ids[1:])
+        ]
+        self.truth_df_station_id["station_id"] = (
+            self.truth_df_station_id["wmo_id"] + "0"
+        )
 
 
 class SetupConstructedForecastCubes(SetupSharedDataFrames):
@@ -254,11 +261,15 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
             long_name="station_id",
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
-            )
-        self.expected_forecast_station_id = self.expected_period_forecast[:, :, [1]].copy()
+        )
+        self.expected_forecast_station_id = self.expected_period_forecast[
+            :, :, [1]
+        ].copy()
         site_id_dim = self.expected_forecast_station_id.coord_dims("spot_index")[0]
         self.expected_forecast_station_id.add_aux_coord(unique_id_coord, site_id_dim)
-        self.expected_forecast_station_id.coord("spot_index").points = np.array([0], dtype=np.int32)
+        self.expected_forecast_station_id.coord("spot_index").points = np.array(
+            [0], dtype=np.int32
+        )
 
 
 class SetupConstructedTruthCubes(SetupSharedDataFrames):
@@ -305,11 +316,13 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
             long_name="station_id",
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
-            )
+        )
         self.expected_truth_station_id = self.expected_period_truth[:, [1]].copy()
         site_id_dim = self.expected_truth_station_id.coord_dims("spot_index")[0]
         self.expected_truth_station_id.add_aux_coord(unique_id_coord, site_id_dim)
-        self.expected_truth_station_id.coord("spot_index").points = np.array([0], dtype=np.int32)
+        self.expected_truth_station_id.coord("spot_index").points = np.array(
+            [0], dtype=np.int32
+        )
 
 
 class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
