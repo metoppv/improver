@@ -554,6 +554,21 @@ def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
     """
     trg_latlon = ccrs.PlateCarree()
     trg_crs = cube.coord_system().as_cartopy_crs()
+    cube = cube.copy()
+    # TODO use the proj units that are accesible with later versions of proj
+    # to determine the default units to convert to for a given projection.
+
+    # Assuming proj units of metre for all projections not in degrees.
+    for axis in ["x", "y"]:
+        try:
+            cube.coord(axis=axis).convert_units("m")
+        except ValueError as err:
+            msg = (
+                "Cube passed to transform_grid_to_lat_lon does not have an "
+                f"{axis} coordinate with units that can be converted to metres. "
+            )
+            raise ValueError(msg + str(err))
+
     x_points = cube.coord(axis="x").points
     y_points = cube.coord(axis="y").points
     x_zeros = np.zeros_like(x_points)
