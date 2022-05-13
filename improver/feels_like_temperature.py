@@ -128,8 +128,8 @@ def _calculate_apparent_temperature(
 
     This function looks up a value for the saturation vapour pressure of
     water vapour using the temperature and a table of values. These tabulated
-    values are found using lookup_svp and are corrected to the saturated
-    vapour pressure in air using pressure_correct_svp, taken from the Goff-Gratch
+    values are found using _svp_from_lookup and are corrected to the saturated
+    vapour pressure in air using calculate_svp_in_air, taken from the Goff-Gratch
     method.
 
     Args:
