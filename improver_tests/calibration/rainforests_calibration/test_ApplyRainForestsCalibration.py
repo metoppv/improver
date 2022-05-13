@@ -116,3 +116,15 @@ def test__init_treelite_missing(monkeypatch, treelite_model_config, error_thresh
         assert model.threads == 8
     assert result.treelite_enabled is False
     assert np.all(result.error_thresholds == error_thresholds)
+
+
+def test__init_lightgbm_missing(monkeypatch, lightgbm_model_config):
+    """Test ValueError is raised when loading lightgbm Boosters and no
+    path specificed in dict for an error threshold."""
+    # Simulate environment which does not have treelite loaded.
+    monkeypatch.setitem(sys.modules, "treelite_runtime", None)
+    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+
+    lightgbm_model_config["0.0000"].pop("lightgbm_model", None)
+    with pytest.raises(ValueError):
+        ApplyRainForestsCalibration(lightgbm_model_config, threads=8)

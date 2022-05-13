@@ -95,16 +95,17 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         # Dictionary keys are strings which we will use for iterating across the
         # config dictionary, however we cast these as float to provide the error
         # thresholds to use in processing.
-        error_thresholds = list(model_config_dict.keys())
-        self.error_thresholds = np.array(error_thresholds, dtype=np.float32)
+        self.error_thresholds = np.array(
+            list(model_config_dict.keys()), dtype=np.float32
+        )
 
         lightgbm_model_filenames = [
-            model_config_dict[threshold].get("lightgbm_model")
-            for threshold in error_thresholds
+            threshold_dict.get("lightgbm_model")
+            for threshold_dict in model_config_dict.values()
         ]
         treelite_model_filenames = [
-            model_config_dict[threshold].get("treelite_model")
-            for threshold in error_thresholds
+            threshold_dict.get("treelite_model")
+            for threshold_dict in model_config_dict.values()
         ]
         if (None not in treelite_model_filenames) and self.treelite_enabled:
             self.tree_models = [
@@ -112,6 +113,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 for file in treelite_model_filenames
             ]
         else:
+            if None in lightgbm_model_filenames:
+                raise ValueError(
+                    "Path to lightgbm model missing for one or more error thresholds "
+                    "in model_config_dict."
+                )
             self.tree_models = [
                 Booster(model_file=file).reset_parameter({"num_threads": threads})
                 for file in lightgbm_model_filenames
