@@ -54,7 +54,7 @@ An example forecast table for a period diagnostic is shown below.
 An example forecast table for a period diagnostic including station_id is shown below.
 
 .. csv-table::
-    :file: ./forecast_dataframe_period_example.csv
+    :file: ./forecast_dataframe_period_example_with_station_id.csv
     :header-rows: 1
 
 ****************************
