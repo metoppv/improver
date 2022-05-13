@@ -67,7 +67,7 @@ def process(
         relative_humidity (iris.cube.Cube):
             Cube of relative humidity at screen level
         pressure (iris.cube.Cube):
-            Cube of mean sea level pressure
+            Cube of surface pressure
         model_id_attr (str):
             Name of the attribute used to identify the source model for
             blending.
