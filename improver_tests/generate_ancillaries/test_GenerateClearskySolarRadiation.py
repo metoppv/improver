@@ -126,37 +126,40 @@ def test__initialise_input_cubes(
         )
 
 
-def test__get_irradiance_times():
-
-    time = datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc)
+def test__irradiance_times():
+    """Test returned irradiance times are equispaced time-steps
+    on the specified interval, with spacing temporal_spacing.
+    Where temporal_spacing does not fit evenly into the total interval,
+    a ValueError should be raised."""
+    time = datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc)
     accumulation_period = 3  # in hours
     temporal_spacing = 60  # in mins
 
     expected_times = [
-        datetime(2021, 12, 31, 21, 00, tzinfo=timezone.utc),
-        datetime(2021, 12, 31, 22, 00, tzinfo=timezone.utc),
-        datetime(2021, 12, 31, 23, 00, tzinfo=timezone.utc),
-        datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 21, 0, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 22, 0, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 23, 0, tzinfo=timezone.utc),
+        datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc),
     ]
-    result = GenerateClearskySolarRadiation()._get_irradiance_times(
+    result = GenerateClearskySolarRadiation()._irradiance_times(
         time, accumulation_period, temporal_spacing
     )
     assert np.all(result == expected_times)
 
     accumulation_period = 1
     expected_times = [
-        datetime(2021, 12, 31, 23, 00, tzinfo=timezone.utc),
-        datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 23, 0, tzinfo=timezone.utc),
+        datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc),
     ]
-    result = GenerateClearskySolarRadiation()._get_irradiance_times(
+    result = GenerateClearskySolarRadiation()._irradiance_times(
         time, accumulation_period, temporal_spacing
     )
     assert np.all(result == expected_times)
 
-    misaligned_temporal_spcaing = 19
+    misaligned_temporal_spacing = 19
     with pytest.raises(ValueError, match="must be integer multiple"):
-        GenerateClearskySolarRadiation()._get_irradiance_times(
-            time, accumulation_period, misaligned_temporal_spcaing
+        GenerateClearskySolarRadiation()._irradiance_times(
+            time, accumulation_period, misaligned_temporal_spacing
         )
 
 
@@ -171,7 +174,7 @@ def test_process(
     linke_turbidity_cube,
 ):
     """Test process method returns cubes with correct structure."""
-    time = datetime(2022, 1, 1, 00, 00)
+    time = datetime(2022, 1, 1, 0, 0)
 
     optional_vars = {}
     if surface_altitude_cube is not None:

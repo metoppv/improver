@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
 from datetime import datetime, timedelta, timezone
-from typing import Tuple
+from typing import List, Tuple
 
 import cf_units
 import numpy as np
@@ -137,9 +137,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         return surface_altitude, linke_turbidity
 
-    def _get_irradiance_times(
+    def _irradiance_times(
         self, time: datetime, accumulation_period: int, temporal_spacing: int
-    ) -> ndarray:
+    ) -> List[datetime]:
         """Get evenly-spaced times over the specied time period at which
         to evaluate irradiance values which will later be integrated to
         give accumulated solar-radiation values.
@@ -170,20 +170,20 @@ class GenerateClearskySolarRadiation(BasePlugin):
         n_time_steps = timedelta(hours=accumulation_period) // timedelta(
             minutes=temporal_spacing
         )
+        irradiance_times = [
+            accumulation_start_time + step * time_step
+            for step in range(n_time_steps + 1)
+        ]
 
-        return np.array(
-            [
-                accumulation_start_time + step * time_step
-                for step in range(n_time_steps + 1)
-            ]
-        )
+        return irradiance_times
 
-    def _calc_clearsky_irradiance_data(
+    def _calc_clearsky_solar_radiation_data(
         self,
         target_grid: Cube,
-        irradiance_times: ndarray,
+        irradiance_times: List[datetime],
         surface_altitude: ndarray,
         linke_turbidity: ndarray,
+        temporal_spacing: int,
     ) -> ndarray:
         """Evaluated the gridded irradiance data over the specified period, calculated on
         the same spatial grid points as target_grid.
@@ -197,22 +197,33 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 Altitude data, specified in metres.
             linke_turbidity:
                 Linke turbidity data.
+            temporal_spacing:
+                The time stepping, specified in mins, used in the integration of solar
+                irradiance to produce the accumulated solar radiation.
 
         Returns:
             Gridded irradiance values evaluated over the specified times.
         """
         irradiance_data = np.zeros(
             shape=(
-                irradiance_times.size,
+                len(irradiance_times),
                 target_grid.coord(axis="Y").shape[0],
                 target_grid.coord(axis="X").shape[0],
             ),
             dtype=np.float32,
         )
 
-        return irradiance_data
+        # TODO: Add clearsky irradiance calculation
 
-    def _get_solar_radiation_cube(
+        # integrate the irradiance data along the time dimension to get the
+        # accumulated solar irradiance.
+        solar_radiation_data = np.trapz(
+            irradiance_data, dx=SECONDS_IN_MINUTE * temporal_spacing, axis=0
+        )
+
+        return solar_radiation_data
+
+    def _create_solar_radiation_cube(
         self,
         solar_radiation_data: ndarray,
         target_grid: Cube,
@@ -241,8 +252,8 @@ class GenerateClearskySolarRadiation(BasePlugin):
         Returns:
             Cube containing clearsky solar radaition.
         """
-        X_coord = target_grid.coord(axis="X")
-        Y_coord = target_grid.coord(axis="Y")
+        x_coord = target_grid.coord(axis="X")
+        y_coord = target_grid.coord(axis="Y")
 
         time_lower_bounds = np.array(
             (time - timedelta(hours=accumulation_period))
@@ -270,7 +281,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
             vertical_coord = "altitude"
         else:
             vertical_coord = "height"
-        Z_coord = AuxCoord(
+        z_coord = AuxCoord(
             np.float32(0.0),
             standard_name=vertical_coord,
             units="m",
@@ -283,8 +294,8 @@ class GenerateClearskySolarRadiation(BasePlugin):
             solar_radiation_data,
             long_name=CLEARSKY_SOLAR_RADIATION_CF_NAME,
             units="W s m-2",
-            dim_coords_and_dims=[(Y_coord, 0), (X_coord, 1)],
-            aux_coords_and_dims=[(time_coord, None), (Z_coord, None)],
+            dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+            aux_coords_and_dims=[(time_coord, None), (z_coord, None)],
             attributes=attrs,
         )
 
@@ -336,21 +347,19 @@ class GenerateClearskySolarRadiation(BasePlugin):
         else:
             at_mean_sea_level = False
 
-        irradiance_times = self._get_irradiance_times(
+        irradiance_times = self._irradiance_times(
             time, accumulation_period, temporal_spacing
         )
 
-        irradiance_data = self._calc_clearsky_irradiance_data(
-            target_grid, irradiance_times, surface_altitude.data, linke_turbidity.data
+        solar_radiation_data = self._calc_clearsky_solar_radiation_data(
+            target_grid,
+            irradiance_times,
+            surface_altitude.data,
+            linke_turbidity.data,
+            temporal_spacing,
         )
 
-        # integrate the irradiance data along the time dimension to get the
-        # accumulated solar irradiance.
-        solar_radiation_data = np.trapz(
-            irradiance_data, dx=SECONDS_IN_MINUTE * temporal_spacing, axis=0
-        )
-
-        solar_radiation_cube = self._get_solar_radiation_cube(
+        solar_radiation_cube = self._create_solar_radiation_cube(
             solar_radiation_data,
             target_grid,
             time,
