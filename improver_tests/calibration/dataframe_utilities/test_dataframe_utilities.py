@@ -502,7 +502,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[1], self.expected_truth_station_id)
 
     def test_station_id_dummy_wmo_id(self):
-        """Test that when station_id is present and wmo_id contains dummy data, 
+        """Test that when station_id is present and wmo_id contains dummy data,
         station_id is used to match forecast and truth cubes."""
         forecast_df = self.forecast_df_station_id.copy()
         forecast_df["wmo_id"] = "00000"
