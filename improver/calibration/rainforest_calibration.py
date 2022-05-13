@@ -123,6 +123,16 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 for file in lightgbm_model_filenames
             ]
 
+        self._ordered_error_thresholds()
+
+    def _ordered_error_thresholds(self):
+        """Enforce ascending order on error_thresholds, while ensuring that tree_models
+        are sorted to maintain consistency."""
+        error_model_mapping = dict(zip(self.error_thresholds, self.tree_models))
+        ordered_error_model_mapping = dict(sorted(error_model_mapping.items()))
+        self.error_thresholds = np.array(list(ordered_error_model_mapping.keys()))
+        self.tree_models = list(ordered_error_model_mapping.values())
+
     def process(
         self,
         forecast_cube: Cube,

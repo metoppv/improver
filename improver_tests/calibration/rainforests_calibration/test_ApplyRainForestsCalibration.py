@@ -128,3 +128,15 @@ def test__init_lightgbm_missing(monkeypatch, lightgbm_model_config):
     lightgbm_model_config["0.0000"].pop("lightgbm_model", None)
     with pytest.raises(ValueError):
         ApplyRainForestsCalibration(lightgbm_model_config, threads=8)
+
+
+def test__ordered_error_thresholds():
+    """Test error_thresholds and tree_models are ordered consistently
+    given when unordered error_thresholds is passed in."""
+    plugin = ApplyRainForestsCalibration({}, threads=1)
+    plugin.error_thresholds = np.array([-1.0, 1.0, 0.0])
+    plugin.tree_models = ["a", "c", "b"]
+    plugin._ordered_error_thresholds()
+
+    assert np.all(plugin.error_thresholds == np.array([-1.0, 0.0, 1.0]))
+    assert np.all(plugin.tree_models == ["a", "b", "c"])
