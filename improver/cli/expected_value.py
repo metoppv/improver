@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -33,19 +33,21 @@
 
 from improver import cli
 
+
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube):
-    """Calculate expected value from a realization or threshold coordinate.
+    """Calculate expected value from probabilistic data.
 
     Args:
         cube (iris.cube.Cube):
-            Cube with realization or threshold coordinate
+            Cube with realization or percentile coordinate
 
     Returns:
         iris.cube.Cube:
 
     """
     from improver.expected_value import ExpectedValue
+
     output = ExpectedValue()(cube)
     return output

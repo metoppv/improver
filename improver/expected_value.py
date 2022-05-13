@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,10 @@ from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 
+
 class ExpectedValue(PostProcessingPlugin):
     """Calculation of expected value from a probability distribution"""
+
     def __init__(self) -> None:
         return
 
