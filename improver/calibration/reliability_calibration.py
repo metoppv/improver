@@ -1270,6 +1270,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self.threshold_coord = find_threshold_coordinate(forecast)
 
         forecast_thresholds = forecast.slices_over(self.threshold_coord)
+
         uncalibrated_thresholds = []
         calibrated_cubes = iris.cube.CubeList()
         for forecast_threshold in forecast_thresholds:
@@ -1280,6 +1281,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 reliability_probabilities,
                 observation_frequencies,
             ) = self._calculate_reliability_probabilities(reliability_threshold)
+
             if reliability_probabilities is None:
                 calibrated_cubes.append(forecast_threshold)
                 uncalibrated_thresholds.append(
@@ -1292,6 +1294,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 reliability_probabilities,
                 observation_frequencies,
             )
+
             calibrated_cubes.append(forecast_threshold.copy(data=interpolated))
 
         calibrated_forecast = calibrated_cubes.merge_cube()
