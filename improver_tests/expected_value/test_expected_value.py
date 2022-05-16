@@ -29,17 +29,17 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the ExpectedValue plugin."""
-import pytest
 import numpy as np
+import pytest
+from iris.coords import CellMethod
 from numpy.testing import assert_allclose
 
-from iris.coords import CellMethod
-
+from improver.expected_value import ExpectedValue
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
+    set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.expected_value import ExpectedValue
 
 
 @pytest.fixture
@@ -60,8 +60,8 @@ def percentile_cube():
 
 @pytest.fixture
 def threshold_cube():
-    data = np.ones([4, 5], dtype=np.float32)
-    return set_up_variable_cube(data)
+    data = np.zeros([3, 4, 5], dtype=np.float32)
+    return set_up_probability_cube(data, thresholds=[270, 280, 290])
 
 
 def test_process_realizations_basic(realizations_cube):
@@ -91,17 +91,16 @@ def test_process_percentile_basic(percentile_cube):
     assert_allclose(expval.data, expected_data)
 
 
-def test_process_non_probabilistic(threshold_cube):
+def test_process_non_probabilistic(realizations_cube):
     """Check that attempting to process non-probabilistic data raises an exception."""
-    variable_cube = threshold_cube.remove_coord("realization")
-    print(variable_cube)
+    realizations_cube.remove_coord("realization")
     with pytest.raises(Exception, match="realization"):
-        ExpectedValue().process(variable_cube)
-    assert False
+        ExpectedValue().process(realizations_cube)
 
 
 def test_process_threshold_basic(threshold_cube):
     """Check that attempting to process threshold data (not implemented yet) raises
     an exception."""
     with pytest.raises(NotImplementedError):
+        print(threshold_cube)
         ExpectedValue().process(threshold_cube)
