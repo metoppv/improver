@@ -31,14 +31,14 @@
 """Calculation of expected value from a probability distribution."""
 
 import iris.analysis
-from iris.cube import Cube
 from iris.coords import CellMethod
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
-from improver.metadata.probabilistic import is_percentile, is_probability
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
 )
+from improver.metadata.probabilistic import is_percentile, is_probability
 from improver.utilities.cube_manipulation import collapsed
 
 

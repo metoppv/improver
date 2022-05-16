@@ -34,6 +34,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
@@ -45,6 +46,7 @@ from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
     in_vicinity_name_format,
+    is_percentile,
     is_probability,
     probability_is_above_or_below,
 )
@@ -370,6 +372,36 @@ class Test_find_percentile_coordinate(IrisTest):
         cube.add_aux_coord(new_perc_coord)
         with self.assertRaisesRegex(ValueError, msg):
             find_percentile_coordinate(cube)
+
+
+@pytest.fixture
+def is_perc_cube():
+    """Fixture for is_percentile tests"""
+    data = np.zeros((2, 3, 3), dtype=np.float32)
+    percentiles = np.array([50.0, 90.0], dtype=np.float32)
+    return set_up_percentile_cube(data, percentiles)
+
+
+def test_is_percentile_basic(is_perc_cube):
+    assert is_percentile(is_perc_cube)
+
+
+def test_is_percentile_no_percentile(is_perc_cube):
+    is_perc_cube.remove_coord("percentile")
+    assert not is_percentile(is_perc_cube)
+
+
+def test_is_percentile_double_percentile(is_perc_cube):
+    new_perc_coord = iris.coords.AuxCoord(1, long_name="percentile", units="no_unit")
+    is_perc_cube.add_aux_coord(new_perc_coord)
+    assert not is_percentile(is_perc_cube)
+
+
+def test_is_percentile_threshold():
+    data = np.ones((3, 3, 3), dtype=np.float32)
+    threshold_points = np.array([276, 277, 278], dtype=np.float32)
+    thresh_cube = set_up_probability_cube(data, threshold_points)
+    assert not is_percentile(thresh_cube)
 
 
 class Test_format_cell_methods_for_probability(unittest.TestCase):
