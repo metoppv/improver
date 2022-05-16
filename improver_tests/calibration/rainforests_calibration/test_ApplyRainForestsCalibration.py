@@ -49,6 +49,7 @@ lightgbm = pytest.importorskip("lightgbm")
 class MockBooster:
     def __init__(self, model_file, **kwargs):
         self.model_class = "lightgbm-Booster"
+        self.model_file = model_file
 
     def reset_parameter(self, params):
         self.threads = params.get("num_threads")
@@ -59,6 +60,7 @@ class MockPredictor:
     def __init__(self, libpath, nthread, **kwargs):
         self.model_class = "treelite-Predictor"
         self.threads = nthread
+        self.model_file = libpath
 
 
 def test__init_lightgbm_models(monkeypatch, lightgbm_model_config, error_thresholds):
@@ -144,3 +146,5 @@ def test__init__for_ordered_error_thresholds(
 
     result = ApplyRainForestsCalibration(lightgbm_model_config, threads=8)
     assert np.all(result.error_thresholds == error_thresholds)
+    for threshold, model in zip(result.error_thresholds, result.tree_models):
+        assert f"{threshold:06.4f}" in model.model_file

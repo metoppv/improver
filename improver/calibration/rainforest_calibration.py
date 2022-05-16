@@ -96,21 +96,19 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         # Dictionary keys represent error thresholds, however may be strings as they
         # are sourced from json files. In order use these in processing, and to sort
         # them in a sensible fashion, we shall cast the key values as float32.
-        model_config_dict = {
-            np.float32(threshold): model_config_dict[threshold]
-            for threshold in model_config_dict.keys()
-        }
-        sorted_model_config_dict = OrderedDict(sorted(model_config_dict.items()))
+        sorted_model_config_dict = OrderedDict(
+            sorted({np.float32(k): v for k, v in model_config_dict.items()}.items())
+        )
 
         self.error_thresholds = np.array([*sorted_model_config_dict.keys()])
 
         lightgbm_model_filenames = [
             threshold_dict.get("lightgbm_model")
-            for threshold_dict in model_config_dict.values()
+            for threshold_dict in sorted_model_config_dict.values()
         ]
         treelite_model_filenames = [
             threshold_dict.get("treelite_model")
-            for threshold_dict in model_config_dict.values()
+            for threshold_dict in sorted_model_config_dict.values()
         ]
         if (None not in treelite_model_filenames) and self.treelite_enabled:
             self.tree_models = [
