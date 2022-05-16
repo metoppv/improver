@@ -31,6 +31,7 @@
 """RainForests calibration Plugins."""
 
 import warnings
+from collections import OrderedDict
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -92,12 +93,16 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             )
             self.treelite_enabled = False
 
-        # Dictionary keys are strings which we will use for iterating across the
-        # config dictionary, however we cast these as float to provide the error
-        # thresholds to use in processing.
-        self.error_thresholds = np.array(
-            list(model_config_dict.keys()), dtype=np.float32
-        )
+        # Dictionary keys represent error thresholds, however may be strings as they
+        # are sourced from json files. In order use these in processing, and to sort
+        # them in a sensible fashion, we shall cast the key values as float32.
+        model_config_dict = {
+            np.float32(threshold): model_config_dict[threshold]
+            for threshold in model_config_dict.keys()
+        }
+        sorted_model_config_dict = OrderedDict(sorted(model_config_dict.items()))
+
+        self.error_thresholds = np.array([*sorted_model_config_dict.keys()])
 
         lightgbm_model_filenames = [
             threshold_dict.get("lightgbm_model")
@@ -122,16 +127,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 Booster(model_file=file).reset_parameter({"num_threads": threads})
                 for file in lightgbm_model_filenames
             ]
-
-        self._ordered_error_thresholds()
-
-    def _ordered_error_thresholds(self):
-        """Enforce ascending order on error_thresholds, while ensuring that tree_models
-        are sorted to maintain consistency."""
-        error_model_mapping = dict(zip(self.error_thresholds, self.tree_models))
-        ordered_error_model_mapping = dict(sorted(error_model_mapping.items()))
-        self.error_thresholds = np.array(list(ordered_error_model_mapping.keys()))
-        self.tree_models = list(ordered_error_model_mapping.values())
 
     def process(
         self,
