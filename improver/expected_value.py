@@ -36,6 +36,7 @@ from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ConvertProbabilitiesToPercentiles,
     RebadgePercentilesAsRealizations,
 )
 from improver.metadata.probabilistic import is_percentile, is_probability
@@ -50,18 +51,25 @@ class ExpectedValue(PostProcessingPlugin):
 
         Args:
             cube:
-                Probabilistic data with a realization or percentile representation.
+                Probabilistic data with a realization, threshold or percentile
+                representation.
 
         Returns:
             Expected value of probability distribution. Same shape as input cube
-            but with realization/percentile coordinate removed.
+            but with realization/threshold/percentile coordinate removed.
         """
+        if is_probability(cube):
+            # TODO: replace this with direct calculation of the integral over
+            # probability thresholds. The current approach works and has the
+            # correct interface, but some accuracy will be lost in the conversion
+            # and memory usage is very high.
+            #
+            # 19 percentiles corresponds to 5, 10, 15...95%.
+            cube = ConvertProbabilitiesToPercentiles().process(
+                cube, no_of_percentiles=19
+            )
         if is_percentile(cube):
             cube = RebadgePercentilesAsRealizations().process(cube)
-        if is_probability(cube):
-            raise NotImplementedError(
-                "Handling of threshold cubes is not yet implemented"
-            )
         mean_cube = collapsed(cube, "realization", iris.analysis.MEAN)
         mean_cube.remove_coord("realization")
         mean_cube.add_cell_method(CellMethod("mean", coords="realization"))

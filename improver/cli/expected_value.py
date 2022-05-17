@@ -41,7 +41,7 @@ def process(cube: cli.inputcube):
 
     Args:
         cube (iris.cube.Cube):
-            Cube with realization or percentile coordinate
+            Cube with realization, threshold or percentile coordinate.
 
     Returns:
         iris.cube.Cube:
