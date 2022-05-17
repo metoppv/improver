@@ -42,6 +42,7 @@ from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage.filters import maximum_filter
+import netCDF4
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -463,16 +464,19 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         # points along the edge = 3
         grid_points = (2 * grid_point_radius) + 1
 
+        cube_dtype = cube.data.dtype
+        cube_fill_value = netCDF4.default_fillvals.get(cube_dtype.str[1:])
+
         max_cube = cube.copy()
         unmasked_cube_data = cube.data.copy()
         if np.ma.is_masked(cube.data):
             unmasked_cube_data = cube.data.data.copy()
-            unmasked_cube_data[cube.data.mask] = -np.inf
+            unmasked_cube_data[cube.data.mask] = cube_fill_value
         if self.land_mask_cube:
             max_data = np.empty_like(cube.data)
             for match in (True, False):
                 matched_data = unmasked_cube_data.copy()
-                matched_data[self.land_mask != match] = -np.inf
+                matched_data[self.land_mask != match] = cube_fill_value
                 matched_max_data = maximum_filter(matched_data, size=grid_points)
                 max_data = np.where(self.land_mask == match, matched_max_data, max_data)
         else:
