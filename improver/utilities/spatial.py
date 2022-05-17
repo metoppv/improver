@@ -35,6 +35,7 @@ from typing import Optional, Tuple, Union
 
 import cartopy.crs as ccrs
 import iris
+import netCDF4
 import numpy as np
 from cartopy.crs import CRS
 from cf_units import Unit
@@ -42,7 +43,6 @@ from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage.filters import maximum_filter
-import netCDF4
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
