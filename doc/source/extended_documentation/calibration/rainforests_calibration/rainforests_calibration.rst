@@ -58,3 +58,29 @@ distribution on a per realization basis to produce a distinct series of calibrat
 values for each realization. Collectively these values form a so called super-ensemble,
 which we subsequently sample to produce the calibrated forecast ensemble.
 
+Another point of difference between RainForests and ECPoint is in the choice of
+error value underlying the error distribution. For RainForests we have chosen to
+use additive error in place of a multiplicative error (forecast error ratio in ECPoint)
+to allow us to calibrate input forecast values of zero-rainfall.
+
+===========================
+GBDT vs manually trained DT
+===========================
+
+The choice of using GBDT models in place of the manually trained DT of ECPoint comes
+with some advantages, but at the expense of some tradeoffs:
+
+**Advantages:**
+
+* GBDT is an ensemble of many trees rather than a single tree. This means outputs are 
+  near-continuous relative to the inputs.
+* Trees are built algorithmically, not manually, with each branch split automatically chosen
+  to be optimal relative to some loss function. In principle this gives better accuracy, and
+  makes it easier to retrain on new data.
+
+**tradeoffs:**
+
+* By using an ensemble of trees, the intuitive connection between weather type and feature
+  variables is lost.
+* Using a series of decision tree ensembles in place of a single decision tree increases
+  the computational demand significantly.
