@@ -90,6 +90,7 @@ class SetupSharedDataFrames(ImproverTest):
 
         self.wmo_ids = ["03002", "03003", "03004"]
         self.percentiles = np.array([25.0, 50.0, 75.0], dtype=np.float32)
+        self.realizations = np.array([0, 1, 2], dtype=np.int32)
         diag = "air_temperature"
         self.cf_name = "air_temperature"
         self.latitudes = np.array([50.0, 60.0, 70.0], dtype=np.float32)
@@ -120,6 +121,10 @@ class SetupSharedDataFrames(ImproverTest):
         }
 
         self.forecast_df = pd.DataFrame(df_dict)
+
+        realization_df = self.forecast_df.drop(columns=["percentile"])
+        realization_df["realization"] = np.tile(np.repeat(self.realizations, 3), 3)
+        self.forecast_df_realization = realization_df
 
         data = np.array([6.8, 2.7, 21.2], dtype=np.float32)
         self.truth_data = np.tile(data, 3)
@@ -158,6 +163,21 @@ class SetupSharedDataFrames(ImproverTest):
 
         self.height_coord = iris.coords.AuxCoord(
             np.array(self.height, dtype=np.float32), "height", units="m",
+        )
+
+        self.forecast_df_station_id = self.forecast_df.copy()
+        self.forecast_df_station_id = self.forecast_df_station_id.loc[
+            self.forecast_df_station_id["wmo_id"].isin(self.wmo_ids[:-1])
+        ]
+        self.forecast_df_station_id["station_id"] = (
+            self.forecast_df_station_id["wmo_id"] + "0"
+        )
+        self.truth_df_station_id = self.truth_subset_df.copy()
+        self.truth_df_station_id = self.truth_df_station_id.loc[
+            self.truth_df_station_id["wmo_id"].isin(self.wmo_ids[1:])
+        ]
+        self.truth_df_station_id["station_id"] = (
+            self.truth_df_station_id["wmo_id"] + "0"
         )
 
 
@@ -236,6 +256,21 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
         for coord in ["forecast_period", "time"]:
             self.expected_instantaneous_forecast.coord(coord).bounds = None
 
+        unique_id_coord = iris.coords.AuxCoord(
+            [self.wmo_ids[1] + "0"],
+            long_name="station_id",
+            units="no_unit",
+            attributes={"unique_site_identifier": "true"},
+        )
+        self.expected_forecast_station_id = self.expected_period_forecast[
+            :, :, [1]
+        ].copy()
+        site_id_dim = self.expected_forecast_station_id.coord_dims("spot_index")[0]
+        self.expected_forecast_station_id.add_aux_coord(unique_id_coord, site_id_dim)
+        self.expected_forecast_station_id.coord("spot_index").points = np.array(
+            [0], dtype=np.int32
+        )
+
 
 class SetupConstructedTruthCubes(SetupSharedDataFrames):
 
@@ -271,9 +306,23 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
                     scalar_coords=[time_coord, self.height_coord],
                 )
             )
+
         self.expected_period_truth = cubes.merge_cube()
         self.expected_instantaneous_truth = self.expected_period_truth.copy()
         self.expected_instantaneous_truth.coord("time").bounds = None
+
+        unique_id_coord = iris.coords.AuxCoord(
+            [self.wmo_ids[1] + "0"],
+            long_name="station_id",
+            units="no_unit",
+            attributes={"unique_site_identifier": "true"},
+        )
+        self.expected_truth_station_id = self.expected_period_truth[:, [1]].copy()
+        site_id_dim = self.expected_truth_station_id.coord_dims("spot_index")[0]
+        self.expected_truth_station_id.add_aux_coord(unique_id_coord, site_id_dim)
+        self.expected_truth_station_id.coord("spot_index").points = np.array(
+            [0], dtype=np.int32
+        )
 
 
 class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
@@ -396,6 +445,103 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_realization(self):
+        """Test the expected realization cubes are generated from the input dataframes."""
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_realization,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_error_column_missing(self):
+        """Test that an error is raised if dataframe does not contain one of
+        REPRESENTATION_COLUMNS."""
+        msg = "None of the columns"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                self.forecast_df.drop(columns=["percentile"]),
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_error_multiple_columns(self):
+        """Test that an error is raised if dataframe contains more than one of
+        REPRESENTATION_COLUMNS."""
+        msg = "More than one column"
+        df = self.forecast_df.copy()
+        df["realization"] = 0
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                df,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_station_id_and_wmo_id(self):
+        """Test that when station_id is present in both forecast and truth dataframes,
+        output cubes contain station_id coordinate."""
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_station_id,
+            self.truth_df_station_id,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_forecast_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_station_id)
+
+    def test_station_id_dummy_wmo_id(self):
+        """Test that when station_id is present and wmo_id contains dummy data,
+        station_id is used to match forecast and truth cubes."""
+        forecast_df = self.forecast_df_station_id.copy()
+        forecast_df["wmo_id"] = "00000"
+        truth_df = self.truth_df_station_id.copy()
+        truth_df["wmo_id"] = "00000"
+        expected_truth = self.expected_truth_station_id.copy()
+        expected_truth.coord("wmo_id").points = ["00000"]
+        expected_forecast = self.expected_forecast_station_id.copy()
+        expected_forecast.coord("wmo_id").points = ["00000"]
+        result = forecast_and_truth_dataframes_to_cubes(
+            forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], expected_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
+
+    def test_units_in_truth(self):
+        """Test that if truth_df contains a units column, it is used
+        for units of truth output cube."""
+        truth_df = self.truth_subset_df.copy()
+        truth_df["units"] = "Fahrenheit"
+        truth_df["ob_value"] = truth_df["ob_value"] + 30
+        expected_truth = self.expected_period_truth.copy()
+        expected_truth.units = "Fahrenheit"
+        expected_truth.data = expected_truth.data + 30
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            truth_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], expected_truth)
 
     def test_multiday_forecast_period(self):
         """Test for a multi-day forecast period to ensure that the

@@ -6,3 +6,4 @@ longitude,float32,The longtitude in degrees.
 altitude,float32,The altitude in metres.
 ob_value,float32,The value for a particular observation.
 diagnostic,category,The name of the diagnostic.
+units,str,Optional units of the observation values.
