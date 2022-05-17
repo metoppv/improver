@@ -60,8 +60,9 @@ def percentile_cube():
 
 @pytest.fixture
 def threshold_cube():
-    data = np.zeros([3, 4, 5], dtype=np.float32)
-    return set_up_probability_cube(data, thresholds=[270, 280, 290])
+    probs = np.array([1.0, 0.7, 0.5, 0.45, 0.0], dtype=np.float32)
+    data = np.broadcast_to(probs[:, np.newaxis, np.newaxis], [5, 3, 2])
+    return set_up_probability_cube(data, thresholds=[280, 281, 282, 283, 284])
 
 
 def test_process_realizations_basic(realizations_cube):
@@ -91,16 +92,21 @@ def test_process_percentile_basic(percentile_cube):
     assert_allclose(expval.data, expected_data)
 
 
-def test_process_non_probabilistic(realizations_cube):
+def test_process_threshold_basic(threshold_cube):
+    """Check that thresholds are converted to realisations and the mean is
+    calculated."""
+    expval = ExpectedValue().process(threshold_cube)
+    # threshold probablities are asymmetric, so the mean is slightly above the
+    # 282 kelvin threshold
+    assert_allclose(expval.data, 282.16, atol=0.01)
+
+
+def test_process_non_probabilistic(realizations_cube, percentile_cube):
     """Check that attempting to process non-probabilistic data raises an exception."""
     realizations_cube.remove_coord("realization")
     with pytest.raises(Exception, match="realization"):
         ExpectedValue().process(realizations_cube)
 
-
-def test_process_threshold_basic(threshold_cube):
-    """Check that attempting to process threshold data (not implemented yet) raises
-    an exception."""
-    with pytest.raises(NotImplementedError):
-        print(threshold_cube)
-        ExpectedValue().process(threshold_cube)
+    percentile_cube.remove_coord("percentile")
+    with pytest.raises(Exception, match="realization"):
+        ExpectedValue().process(percentile_cube)
