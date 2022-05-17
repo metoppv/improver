@@ -41,17 +41,7 @@ def error_thresholds():
 
 
 @pytest.fixture
-def lightgbm_model_config(error_thresholds):
-    return {
-        f"{threshold:06.4f}": {
-            "lightgbm_model": f"lightgbm_model_dir/test_model_{threshold:06.4f}.txt",
-        }
-        for threshold in error_thresholds
-    }
-
-
-@pytest.fixture
-def treelite_model_config(error_thresholds):
+def model_config(error_thresholds):
     return {
         f"{threshold:06.4f}": {
             "lightgbm_model": f"lightgbm_model_dir/test_model_{threshold:06.4f}.txt",
