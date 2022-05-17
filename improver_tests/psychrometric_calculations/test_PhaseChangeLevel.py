@@ -133,7 +133,7 @@ class Test_fill_in_high_phase_change_falling_levels(IrisTest):
     """Test the fill_in_high_phase_change_falling_levels method."""
 
     def setUp(self):
-        """ Set up arrays for testing."""
+        """Set up arrays for testing."""
         self.phase_change_level_data = np.array(
             [[1.0, 1.0, 2.0], [1.0, np.nan, 2.0], [1.0, 2.0, 2.0]]
         )
@@ -159,7 +159,7 @@ class Test_fill_in_high_phase_change_falling_levels(IrisTest):
 
     def test_no_fill_if_conditions_not_met(self):
         """Test it doesn't fill in NaN if the heighest wet bulb integral value
-           is less than the threshold."""
+        is less than the threshold."""
         plugin = PhaseChangeLevel(phase_change="snow-sleet")
         expected = np.array([[1.0, 1.0, 2.0], [1.0, np.nan, 2.0], [1.0, 2.0, 2.0]])
         plugin.fill_in_high_phase_change_falling_levels(
@@ -290,7 +290,7 @@ class Test_fill_sea_points(IrisTest):
     """Test the fill_in_sea_points method."""
 
     def setUp(self):
-        """ Set up arrays for testing."""
+        """Set up arrays for testing."""
         self.phase_change_level = np.ones((3, 3)) * np.nan
         self.max_wb_integral = np.array(
             [[0.0, 0.0, 0.0], [0.0, 0.0, 0.0], [10.0, 10.0, 10.0]]
@@ -416,6 +416,140 @@ class Test_find_max_in_nbhood_orography(IrisTest):
         expected_data = self.cube.data.copy()
         result = plugin.find_max_in_nbhood_orography(cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+
+class Test_horizontally_interpolate_phase(IrisTest):
+
+    """Test the PhaseChangeLevel horizontal interpolation."""
+
+    def setUp(self):
+        """Set up input data."""
+
+        # A simple 1d case.
+        self.phase_change_data_1d = np.array([[1000.0, np.nan, 800.0]])
+        self.orography_1d = np.array([[850.0, 700.0, 500.0]])
+        self.max_nbhood_orog_1d = np.array([[850.0, 850.0, 700.0]])
+        self.expected_result_1d = np.array([[1000.0, 1000.0, 800.0]])
+
+        # A case that mimics a real side-of-mountain failure.
+        self.phase_change_data_2d = np.array(
+            [
+                [1000.0, 1000.0, 950.0, 800.0, 800.0],
+                [1000.0, 1000.0, 950.0, 900.0, 800.0],
+                [1000.0, 1000.0, 950.0, np.nan, 800.0],
+                [1000.0, 1000.0, 950.0, 900.0, 800.0],
+                [1000.0, 1000.0, 950.0, 800.0, 800.0],
+            ]
+        )
+        self.orography_2d = np.array(
+            [
+                [400.0, 500.0, 500.0, 500.0, 400.0],
+                [500.0, 700.0, 750.0, 700.0, 500.0],
+                [500.0, 700.0, 850.0, 700.0, 500.0],
+                [500.0, 700.0, 750.0, 700.0, 500.0],
+                [400.0, 500.0, 500.0, 500.0, 400.0],
+            ]
+        )
+        self.max_nbhood_orog_2d = np.array(
+            [
+                [700.0, 700.0, 700.0, 700.0, 700.0],
+                [700.0, 850.0, 850.0, 850.0, 700.0],
+                [700.0, 850.0, 850.0, 850.0, 700.0],
+                [700.0, 850.0, 850.0, 850.0, 700.0],
+                [700.0, 700.0, 700.0, 700.0, 700.0],
+            ]
+        )
+        self.expected_result_2d = np.array(
+            [
+                [1000.0, 1000.0, 950.0, 800.0, 800.0],
+                [1000.0, 1000.0, 950.0, 900.0, 800.0],
+                [1000.0, 1000.0, 950.0, 950.0, 800.0],
+                [1000.0, 1000.0, 950.0, 900.0, 800.0],
+                [1000.0, 1000.0, 950.0, 800.0, 800.0],
+            ]
+        )
+
+        # A 'nan crater' with low orography circled by high orography.
+        self.phase_change_data_2d_crater = np.full((9, 9), 1000.0)
+        self.phase_change_data_2d_crater[2:7, 2:7] = np.nan
+        self.orography_2d_crater = np.full((9, 9), 900.0)
+        self.orography_2d_crater[2:7, 2:7] = 600.0
+        self.max_nbhood_orog_2d_crater = np.full((9, 9), 900.0)
+        self.max_nbhood_orog_2d_crater[3:6, 3:6] = 600.0
+        self.expected_result_2d_crater = np.full((9, 9), 1000.0)
+
+    def test_interpolate_edge_case_1d(self):
+        """Test that we still fill in missing areas under a 1d peaked edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
+        result = plugin._horizontally_interpolate_phase(
+            self.phase_change_data_1d, self.orography_1d, self.max_nbhood_orog_1d
+        )
+        self.assertArrayAlmostEqual(result, self.expected_result_1d)
+
+    def test_interpolate_edge_case_2d(self):
+        """Test that we still fill in missing areas under a peaked edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
+        result = plugin._horizontally_interpolate_phase(
+            self.phase_change_data_2d, self.orography_2d, self.max_nbhood_orog_2d
+        )
+        self.assertArrayAlmostEqual(result, self.expected_result_2d)
+
+    def test_interpolate_edge_case_2d_grid_point_radius_2(self):
+        """Test filling in missing areas under a radius 2 peaked edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=2)
+        max_nbhood_orog = np.full((5, 5), 850.0)
+        result = plugin._horizontally_interpolate_phase(
+            self.phase_change_data_2d, self.orography_2d, max_nbhood_orog
+        )
+        expected_result = self.expected_result_2d.copy()
+        expected_result[2][3] = self.orography_2d[2][3]  # Why different from radius 1?
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_interpolate_edge_case_2d_nan_peak(self):
+        """Test that we still fill in missing areas under a nan-peaked edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
+        phase_change_data = self.phase_change_data_2d.copy()
+        phase_change_data[2][2] = np.nan  # Peak is also nan.
+        result = plugin._horizontally_interpolate_phase(
+            phase_change_data, self.orography_2d, self.max_nbhood_orog_2d
+        )
+        expected_result = self.expected_result_2d.copy()
+        expected_result[2][2] = 1000.0
+        expected_result[2][3] = 800.0
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_interpolate_edge_case_2d_nan_peakonly(self):
+        """Test that we still fill in missing areas under only-nan-peaked edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
+        phase_change_data = self.phase_change_data_2d.copy()
+        phase_change_data[2][2] = np.nan
+        phase_change_data[2][3] = 950.0  # Just the peak is nan.
+        result = plugin._horizontally_interpolate_phase(
+            phase_change_data, self.orography_2d, self.max_nbhood_orog_2d
+        )
+        expected_result = self.expected_result_2d.copy()
+        expected_result[2][2] = 1000.0
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_interpolate_edge_case_2d_crater(self):
+        """Test that we still fill in missing areas under a nan crater edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=1)
+        result = plugin._horizontally_interpolate_phase(
+            self.phase_change_data_2d_crater,
+            self.orography_2d_crater,
+            self.max_nbhood_orog_2d_crater,
+        )
+        self.assertArrayAlmostEqual(result, self.expected_result_2d_crater)
+
+    def test_interpolate_edge_case_2d_crater_grid_point_radius_2(self):
+        """Test filling in missing areas under a radius 2 nan crater edge case."""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet", grid_point_radius=2)
+        max_nbhood_orog = np.full((9, 9), 900.0)
+        max_nbhood_orog[4, 4] = 600.0
+        result = plugin._horizontally_interpolate_phase(
+            self.phase_change_data_2d_crater, self.orography_2d_crater, max_nbhood_orog
+        )
+        self.assertArrayAlmostEqual(result, self.expected_result_2d_crater)
 
 
 class Test_process(IrisTest):
