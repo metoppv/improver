@@ -84,3 +84,59 @@ with some advantages, but at the expense of some tradeoffs:
   variables is lost.
 * Using a series of decision tree ensembles in place of a single decision tree increases
   the computational demand significantly.
+
+****************************
+Implementation details
+****************************
+
+===========================
+Model training
+===========================
+
+..
+    TODO: Add more specific details when model training Plugin is incorporated into
+    IMPROVER.
+
+The model training process is relatively simple and involves collating a series of
+forecast-observation pairs with the associated feature variables into a single
+pandas dataframe.
+
+Using this dataframe, a series of lightGBM binary-classification models are trained
+on the forecast error relative to a series of error-threshold values (one model per
+error threshold).
+
+As the method works on a per realization basis, the errors used in training must be
+representative of the underlying systematic model biases. For this we require the
+underlying weather type corresponding to the forecast-observation pair to be as
+consistent as possible.
+
+The forecast values used in training are the control forecast at the shortest available lead-times
+that representative of the underlying weather situation. That is to say, we take the
+earliest 24-hour period for daily accumulations, and all lead-times over the earliest
+24-hour period for sub-daily accumulations to capture the full cycle of diurnal variations.
+
+Currently model training is done offline, using a minimum 12-month period to capture
+the full seasonal cycle.
+
+===========================
+Forecast calibration
+===========================
+
+The forecast calibration process involves a 2-step process:
+
+1. Evaluate the error CDF defined over the series of error-thresholds used
+   in model training. Each exceedence probability is evaluated using the
+   corresponding tree-model, and the feature variables as inputs.
+
+   The error CDF is evaluated concurrently for each forecast realization,
+   so the associated error-probability cube will contain two ensemble dimensions,
+   a threshold dimension (associated with the forecast error distributions) and a
+   realization dimension (associated with the input ensemble).
+2. Interpolate the CDF to extract a series of percentiles over for the error
+   distributions. The error percentiles are then added to each associated ensemble
+   realization from the forecast variable to produce a series of realisable forecast
+   values.
+
+   Collectively these series form a calibrated super-ensemble which is obtained by
+   collapsing the two realization dimensions into one. This is then sub-sampled to
+   provide the calibrated forecast.
