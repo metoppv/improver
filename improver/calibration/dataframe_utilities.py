@@ -457,7 +457,7 @@ def _prepare_dataframes(
 
     # Fill in any missing instances of the "key_cols". This allows support for the
     # introduction of new sites within the forecast_df and truth_df.
-    key_cols = ["wmo_id", "time", "forecast_period", "percentile"]
+    key_cols = ["wmo_id", "time", "forecast_period", representation_type]
     static_cols = [
         "latitude",
         "longitude",
@@ -475,7 +475,7 @@ def _prepare_dataframes(
     truth_df = _fill_missing_entries(truth_df, key_cols, static_cols)
     # Sort to ensure a consistent ordering after filling in missing entries.
     forecast_df = forecast_df.sort_values(
-        by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
+        by=["blend_time", representation_type, "wmo_id"], ignore_index=True,
     )
     truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
 
