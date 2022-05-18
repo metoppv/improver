@@ -85,13 +85,13 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         try:
             from treelite_runtime import Predictor
-
-            self.treelite_enabled = True
         except ModuleNotFoundError:
             warnings.warn(
                 "Module treelite_runtime unavailable. Defaulting to using lightgbm Boosters."
             )
             self.treelite_enabled = False
+        else:
+            self.treelite_enabled = True
 
         # Dictionary keys represent error thresholds, however may be strings as they
         # are sourced from json files. In order use these in processing, and to sort

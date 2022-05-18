@@ -63,88 +63,56 @@ class MockPredictor:
         self.model_file = libpath
 
 
-def test__init_lightgbm_models(monkeypatch, lightgbm_model_config, error_thresholds):
-    """Test lightgbm models are loaded if model_config contains path to lightgbm models only."""
-    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-
-    result = ApplyRainForestsCalibration(lightgbm_model_config, threads=8)
-
-    for model in result.tree_models:
-        assert model.model_class == "lightgbm-Booster"
-        assert model.threads == 8
-    assert result.treelite_enabled == TREELITE_ENABLED
-    assert np.all(result.error_thresholds == error_thresholds)
-
-
 @pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
-def test__init_treelite_models(monkeypatch, treelite_model_config, error_thresholds):
-    """Test treelite models are loaded if model_config correctly. If all thresholds
-    contain treelite model, treelite Predictor is returned, otherwise return lightgbm
-    Boosters."""
-    monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
-    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-
-    result = ApplyRainForestsCalibration(treelite_model_config, threads=8)
-
-    for model in result.tree_models:
-        assert model.model_class == "treelite-Predictor"
-        assert model.threads == 8
-    assert result.treelite_enabled is True
-    assert np.all(result.error_thresholds == error_thresholds)
-
-    # Model type should default to lightgbm if there are any treelite models
-    # missing across any thresholds
-    treelite_model_config["0.0000"].pop("treelite_model", None)
-    result = ApplyRainForestsCalibration(treelite_model_config, threads=8)
-
-    for model in result.tree_models:
-        assert model.model_class == "lightgbm-Booster"
-        assert model.threads == 8
-    assert result.treelite_enabled is True
-    assert np.all(result.error_thresholds == error_thresholds)
-
-
-def test__init_treelite_missing(monkeypatch, treelite_model_config, error_thresholds):
-    """Test that lightgbm Booster returned when model_config references treelite models,
-    but treelite dependency is missing."""
-    # Simulate environment which does not have treelite loaded.
-    monkeypatch.setitem(sys.modules, "treelite_runtime", None)
-    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-
-    result = ApplyRainForestsCalibration(treelite_model_config, threads=8)
-
-    for model in result.tree_models:
-        assert model.model_class == "lightgbm-Booster"
-        assert model.threads == 8
-    assert result.treelite_enabled is False
-    assert np.all(result.error_thresholds == error_thresholds)
-
-
-def test__init_lightgbm_missing(monkeypatch, lightgbm_model_config):
-    """Test ValueError is raised when loading lightgbm Boosters and no
-    path specificed in dict for an error threshold."""
-    # Simulate environment which does not have treelite loaded.
-    monkeypatch.setitem(sys.modules, "treelite_runtime", None)
-    monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-
-    lightgbm_model_config["0.0000"].pop("lightgbm_model", None)
-    with pytest.raises(ValueError):
-        ApplyRainForestsCalibration(lightgbm_model_config, threads=8)
-
-
-def test__init__for_ordered_error_thresholds(
-    monkeypatch, lightgbm_model_config, error_thresholds
+@pytest.mark.parametrize("lightgbm_keys", (True, False))
+@pytest.mark.parametrize("ordered_inputs", (True, False))
+@pytest.mark.parametrize("treelite_model", (True, False))
+@pytest.mark.parametrize("treelite_file", (True, False))
+def test__init_treelite_models(
+    lightgbm_keys,
+    ordered_inputs,
+    treelite_model,
+    treelite_file,
+    monkeypatch,
+    model_config,
+    error_thresholds,
 ):
-    """Test error_thresholds and tree_models are ordered consistently
-    given when unordered error_thresholds is passed in."""
-    # Simulate environment which does not have treelite loaded.
-    monkeypatch.setitem(sys.modules, "treelite_runtime", None)
+    """Test treelite models are loaded if model_config correctly defines them. If all thresholds
+    contain treelite model AND the treelite module is available, treelite Predictor is returned,
+    otherwise return lightgbm Boosters. Checks outputs are ordered when inputs can be unordered.
+    If neither treelite nor lightgbm configs are complete, a ValueError is expected."""
+    if treelite_model:
+        monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
+    else:
+        monkeypatch.setitem(sys.modules, "treelite_runtime", None)
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
 
-    tmp_value = lightgbm_model_config.pop("0.0000", None)
-    lightgbm_model_config["0.0000"] = tmp_value
+    if not treelite_file:
+        # Model type should default to lightgbm if there are any treelite models
+        # missing across any thresholds
+        model_config["0.0000"].pop("treelite_model", None)
+    if not ordered_inputs:
+        tmp_value = model_config.pop("0.0000", None)
+        model_config["0.0000"] = tmp_value
+    if not lightgbm_keys:
+        for t, d in model_config.items():
+            d.pop("lightgbm_model")
 
-    result = ApplyRainForestsCalibration(lightgbm_model_config, threads=8)
+    if treelite_model and treelite_file:
+        expected_class = "treelite-Predictor"
+    elif lightgbm_keys:
+        expected_class = "lightgbm-Booster"
+    else:
+        with pytest.raises(ValueError, match="Path to lightgbm model missing"):
+            ApplyRainForestsCalibration(model_config, threads=8)
+        return
+
+    result = ApplyRainForestsCalibration(model_config, threads=8)
+
+    for model in result.tree_models:
+        assert model.model_class == expected_class
+        assert model.threads == 8
+    assert result.treelite_enabled is treelite_model
     assert np.all(result.error_thresholds == error_thresholds)
     for threshold, model in zip(result.error_thresholds, result.tree_models):
         assert f"{threshold:06.4f}" in model.model_file
