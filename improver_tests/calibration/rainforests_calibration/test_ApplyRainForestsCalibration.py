@@ -36,10 +36,10 @@ import pytest
 
 try:
     import treelite_runtime
-
-    TREELITE_ENABLED = True
 except ModuleNotFoundError:
     TREELITE_ENABLED = False
+else:
+    TREELITE_ENABLED = True
 
 from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
@@ -63,12 +63,11 @@ class MockPredictor:
         self.model_file = libpath
 
 
-@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
 @pytest.mark.parametrize("lightgbm_keys", (True, False))
 @pytest.mark.parametrize("ordered_inputs", (True, False))
-@pytest.mark.parametrize("treelite_model", (True, False))
+@pytest.mark.parametrize("treelite_model", (TREELITE_ENABLED, False))
 @pytest.mark.parametrize("treelite_file", (True, False))
-def test__init_treelite_models(
+def test__init__(
     lightgbm_keys,
     ordered_inputs,
     treelite_model,
