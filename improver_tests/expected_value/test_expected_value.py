@@ -32,6 +32,7 @@
 import numpy as np
 import pytest
 from iris.coords import CellMethod
+from iris.exceptions import CoordinateNotFoundError
 from numpy.testing import assert_allclose
 
 from improver.expected_value import ExpectedValue
@@ -104,9 +105,9 @@ def test_process_threshold_basic(threshold_cube):
 def test_process_non_probabilistic(realizations_cube, percentile_cube):
     """Check that attempting to process non-probabilistic data raises an exception."""
     realizations_cube.remove_coord("realization")
-    with pytest.raises(Exception, match="realization"):
+    with pytest.raises(CoordinateNotFoundError, match="realization"):
         ExpectedValue().process(realizations_cube)
 
     percentile_cube.remove_coord("percentile")
-    with pytest.raises(Exception, match="realization"):
+    with pytest.raises(CoordinateNotFoundError, match="realization"):
         ExpectedValue().process(percentile_cube)
