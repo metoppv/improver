@@ -471,12 +471,12 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         unmasked_cube_data = cube.data.copy()
         if np.ma.is_masked(cube.data):
             unmasked_cube_data = cube.data.data.copy()
-            unmasked_cube_data[cube.data.mask] = cube_fill_value
+            unmasked_cube_data[cube.data.mask] = -cube_fill_value
         if self.land_mask_cube:
             max_data = np.empty_like(cube.data)
             for match in (True, False):
                 matched_data = unmasked_cube_data.copy()
-                matched_data[self.land_mask != match] = cube_fill_value
+                matched_data[self.land_mask != match] = -cube_fill_value
                 matched_max_data = maximum_filter(matched_data, size=grid_points)
                 max_data = np.where(self.land_mask == match, matched_max_data, max_data)
         else:

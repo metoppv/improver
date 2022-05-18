@@ -69,6 +69,7 @@ below:
 * Mark Worsfold (Met Office, UK)
 * Shubhendra Singh Chauhan (DeepSource, India)
 * Ying Zhao (Bureau of Meteorology, Australia)
+* Anja Schubert (Bureau of Meteorology, Australia)
 
 (All contributors on GitHub are identifiable with email addresses in the
 version control logs or otherwise.)
