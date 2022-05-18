@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI)
 
 @pytest.mark.parametrize(
     "input_kind,atol,significant_diff_fraction",
-    [("realization", 0.001, 0.0), ("percentile", 0.09, 0.0), ("threshold", 0.18, 0.2),],
+    [("realization", 0.001, 0.0), ("percentile", 0.09, 0.0), ("threshold", 0.18, 0.2)],
 )
 def test_probabilistic(tmp_path, input_kind, atol, significant_diff_fraction):
     """Test processing of probabilistic data.
