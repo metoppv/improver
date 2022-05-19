@@ -23,8 +23,10 @@ dependencies:
   - sigtools=2.0.3
   - sphinx=4.0.2
   # Optional
+  - lightgbm=3.2.1
   - numba=0.53.1
   - python-stratify=0.2.post0
+  - treelite=2.3.0
   # Development
   - astroid
   - bandit

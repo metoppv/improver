@@ -24,9 +24,11 @@ dependencies:
   # Optional
   - python-stratify
   - statsmodels
+  - lightgbm
   - numba
   - pysteps
   - timezonefinder
+  - treelite
   # Development
   - astroid
   - bandit
