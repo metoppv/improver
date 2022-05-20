@@ -38,6 +38,7 @@ import numpy as np
 import pandas as pd
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
+from iris.util import new_axis
 from numpy import ndarray
 from pandas import DataFrame
 
@@ -52,6 +53,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.synthetic_data.set_up_test_cubes import add_coordinate
 from improver.utilities.cube_manipulation import compare_coords
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
@@ -159,64 +161,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "Number of expected features does not match number of feature cubes."
             )
 
-    # Does this belong somewhere else?
-    def _add_coordinate_to_cube(
-        self,
-        input_cube: Cube,
-        new_coord: DimCoord,
-        new_dim_location: Optional[int] = None,
-        copy_metadata: Optional[bool] = True,
-    ) -> Cube:
-        """Create a copy of input cube with an additional dimension coordinate
-        added to the cube at the specified axis. The data from input cube is broadcast
-        over this new dimension.
-        Args:
-            input cube:
-                cube to add realization dimension to.
-            new_coord:
-                new coordinate to add to input cube.
-            new_dim_location:
-                position in cube.data to position the new dimension coord.
-            copy_metadata:
-                flag as to whether to carry metadata over to output cube.
-
-        Returns:
-            output_cube
-        """
-        input_dim_count = len(input_cube.dim_coords)
-
-        new_dim_coords = list(input_cube.dim_coords) + [new_coord]
-        new_dims = list(range(input_dim_count + 1))
-        new_dim_coords_and_dims = list(zip(new_dim_coords, new_dims))
-
-        aux_coords = input_cube.aux_coords
-        aux_coord_dims = [input_cube.coord_dims(coord.name()) for coord in aux_coords]
-        new_aux_coords_and_dims = list(zip(aux_coords, aux_coord_dims))
-
-        new_coord_size = len(new_coord.points)
-        new_data = np.broadcast_to(
-            input_cube.data, shape=(new_coord_size,) + input_cube.shape
-        )
-        new_data = input_cube.data[..., np.newaxis] * np.ones(
-            shape=new_coord_size, dtype=input_cube.dtype
-        )
-
-        output_cube = Cube(
-            new_data,
-            dim_coords_and_dims=new_dim_coords_and_dims,
-            aux_coords_and_dims=new_aux_coords_and_dims,
-        )
-        if copy_metadata:
-            output_cube.metadata = input_cube.metadata
-
-        if new_dim_location is not None:
-            final_dim_order = np.insert(
-                np.arange(input_dim_count), new_dim_location, values=input_dim_count
-            )
-            output_cube.transpose(final_dim_order)
-
-        return output_cube
-
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
     ) -> Tuple[CubeList, Cube]:
@@ -292,9 +236,18 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         for i_cube, cube in enumerate(combined_cubes):
             if not cube.coords("realization"):
                 cube = combined_cubes[i_cube]
-                expanded_cube = self._add_coordinate_to_cube(
-                    cube, common_realization_coord, new_dim_location=0
+                expanded_cube = add_coordinate(
+                    cube,
+                    common_realization_coord.points,
+                    common_realization_coord.name(),
+                    common_realization_coord.units,
+                    dtype=common_realization_coord.dtype,
                 )
+                # The above method will add realization as an aux_coord for deterministic
+                # data (single realization). We need this as a dim-coord, so we will add
+                # an axis for realization.
+                if expanded_cube.coord_dims("realization") != (0,):
+                    expanded_cube = new_axis(expanded_cube, scalar_coord="realization")
                 aligned_cubes.append(expanded_cube)
             else:
                 aligned_cubes.append(combined_cubes[i_cube])
@@ -313,31 +266,28 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             An empty probability cube.
         """
         # Create a template for error CDF, with threshold the leading dimension.
+        forecast_error_variable = f"forecast_error_of_{forecast_cube.name()}"
+
         error_probability_cube = create_new_diagnostic_cube(
-            name=f"probability_of_forecast_error_of_{forecast_cube.name()}_above_threshold",
+            name=f"probability_of_{forecast_error_variable}_above_threshold",
             units="1",
             template_cube=forecast_cube,
             mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
         )
-        threshold_coord = DimCoord(
+        error_probability_cube = add_coordinate(
+            error_probability_cube,
             self.error_thresholds,
-            long_name=f"forecast_error_of_{forecast_cube.name()}",
-            var_name="threshold",
-            units=forecast_cube.units,
+            forecast_error_variable,
+            forecast_cube.units,
             attributes={"spp__relative_to_threshold": "above"},
         )
-        error_probability_cube = self._add_coordinate_to_cube(
-            error_probability_cube,
-            threshold_coord,
-            new_dim_location=0,
-            copy_metadata=True,
-        )
+        error_probability_cube.coord(forecast_error_variable).var_name = "threshold"
 
         return error_probability_cube
 
     def _prepare_features_dataframe(self, feature_cubes: Cube) -> DataFrame:
         """Convert gridded feature cubes into a dataframe, with feature variables
-        sorted alphabettically.
+        sorted alphabetically.
 
         Args:
             feature_cubes:

@@ -33,7 +33,6 @@ import sys
 
 import numpy as np
 import pytest
-from iris.coords import DimCoord
 from iris.cube import CubeList
 
 from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
@@ -237,64 +236,6 @@ def test__align_feature_variables_misaligned_dim_coords(ensemble_features):
         ApplyRainForestsCalibration(
             model_config_dict={}, threads=1
         )._align_feature_variables(ensemble_features, misaligned_forecast_cube)
-
-
-@pytest.mark.parametrize(
-    "new_dim_location, copy_metadata",
-    [(None, True), (None, False), (0, True), (1, True)],
-)
-def test_add_coordinate(
-    deterministic_forecast, new_dim_location, copy_metadata,
-):
-    """Test adding dimension to input_cube"""
-
-    realization_coord = DimCoord(np.arange(0, 5), standard_name="realization", units=1)
-
-    output_cube = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
-    )._add_coordinate_to_cube(
-        deterministic_forecast,
-        realization_coord,
-        new_dim_location=new_dim_location,
-        copy_metadata=copy_metadata,
-    )
-
-    # Test all but added coord are consistent
-    assert (
-        compare_coords(
-            [output_cube, deterministic_forecast], ignored_coords="realization"
-        )
-        == EMPTY_COMPARSION_DICT
-    )
-    if copy_metadata:
-        assert (
-            compare_attributes([output_cube, deterministic_forecast])
-            == EMPTY_COMPARSION_DICT
-        )
-    else:
-        assert (
-            compare_attributes([output_cube, deterministic_forecast])
-            != EMPTY_COMPARSION_DICT
-        )
-
-    # Test realization coord
-    output_realization_coord = output_cube.coord("realization")
-    assert np.allclose(output_realization_coord.points, realization_coord.points)
-    assert output_realization_coord.standard_name == realization_coord.standard_name
-    assert output_realization_coord.units == realization_coord.units
-
-    # Test data values
-    consistent_data = [
-        np.allclose(realization.data, deterministic_forecast.data)
-        for realization in output_cube.slices_over("realization")
-    ]
-    assert np.all(consistent_data)
-
-    # Check dim is in the correct place
-    if new_dim_location is None:
-        assert output_cube.coord_dims("realization") == (output_cube.ndim - 1,)
-    else:
-        assert output_cube.coord_dims("realization") == (new_dim_location,)
 
 
 def test__prepare_error_probability_cube(
