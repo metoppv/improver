@@ -90,6 +90,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     "lightgbm_model" : "<path_to_lightgbm_model_object>",
                     "treelite_model" : "<path_to_treelite_model_object>"
                 }
+            }
 
         The keys specify the error threshold value, while the associated values
         are the path to the corresponding tree-model objects for that threshold.
