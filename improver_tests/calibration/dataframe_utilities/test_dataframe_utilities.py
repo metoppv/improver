@@ -501,6 +501,32 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_forecast_station_id)
         self.assertCubeEqual(result[1], self.expected_truth_station_id)
 
+    def test_station_id_forecast_df_only(self):
+        """Test that when station_id is only present in the forecast dataframe,
+        an error is raised."""
+        msg = "station_id must be in both the forecast and truth dataframes"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                self.forecast_df_station_id,
+                self.truth_subset_df,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
+    def test_station_id_truth_df_only(self):
+        """Test that when station_id is only present in the truth dataframe,
+        an error is raised."""
+        msg = "station_id must be in both the forecast and truth dataframes"
+        with self.assertRaisesRegex(ValueError, msg):
+            forecast_and_truth_dataframes_to_cubes(
+                self.forecast_df,
+                self.truth_df_station_id,
+                self.cycletime,
+                self.forecast_period,
+                self.training_length,
+            )
+
     def test_station_id_dummy_wmo_id(self):
         """Test that when station_id is present and wmo_id contains dummy data,
         station_id is used to match forecast and truth cubes."""
@@ -980,7 +1006,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test that if there are additional columns present
         in the forecast dataframe, these have no impact."""
         df = self.forecast_df.copy()
-        df["station_id"] = "11111"
+        df["surface_type"] = "grass"
         result = forecast_and_truth_dataframes_to_cubes(
             df,
             self.truth_subset_df,
@@ -994,7 +1020,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test that if there are additional columns present
         in the truth dataframe, these have no impact."""
         df = self.truth_subset_df.copy()
-        df["station_id"] = "11111"
+        df["surface_type"] = "grass"
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
             df,

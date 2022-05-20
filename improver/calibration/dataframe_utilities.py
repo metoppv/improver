@@ -178,42 +178,45 @@ def _quantile_check(df: DataFrame) -> None:
         raise ValueError(msg)
 
 
-def _fill_missing_entries(df, key_cols, static_cols):
+def _fill_missing_entries(df, combi_cols, static_cols, site_id_col):
     """Fill the input dataframe with rows that correspond to missing entries. The
     expected entries are computed using all combinations of the values within the
-    "key_cols". In practice, this will allow support for creating entries for times
-    that are missing when a new site with a WMO ID is added. If the dataframe provided
+    combi_cols. In practice, this will allow support for creating entries for times
+    that are missing when a new site with a ID is added. If the dataframe provided
     is completely empty, then the empty dataframe is returned.
 
     Args:
         df: DataFrame to be filled with rows corresponding to missing entries.
-        key_cols: The key columns within the dataframe. All combinations of the
+        combi_cols: The key columns within the dataframe. All combinations of the
             values within these columns are expected exist, otherwise, an
             entry will be created.
         static_cols: The names of the columns that are considered "static" and
             therefore can be reliably filled using other entries for the given WMO ID.
+        site_id_col: Name of the column used to identify the sites within the dataframe.
 
     Returns:
-        DataFrame where any missing combination of the "key_cols" will have been
+        DataFrame where any missing combination of the combi_cols will have been
         created.
     """
     if df.empty:
         return df
 
-    # Create a dataframe with rows for all possible combinations of wmo_id, time and percentile.
+    # Create a dataframe with rows for all possible combinations of combi_cols.
     # This results in rows with NaNs being created in the dataframe.
-    unique_vals_from_key_cols = [df[c].unique() for c in key_cols]
-    new_index = pd.MultiIndex.from_product(unique_vals_from_key_cols, names=key_cols)
-    df = df.set_index(key_cols).reindex(new_index).reset_index(level=key_cols)
+    unique_vals_from_combi_cols = [df[c].unique() for c in combi_cols]
+    new_index = pd.MultiIndex.from_product(
+        unique_vals_from_combi_cols, names=combi_cols
+    )
+    df = df.set_index(combi_cols).reindex(new_index).reset_index(level=combi_cols)
 
     # Fill the NaNs within the static columns for each wmo_id.
     filled_df = (
-        df.groupby("wmo_id")[key_cols + static_cols]
+        df.groupby(site_id_col)[combi_cols + static_cols]
         .fillna(method="ffill")
         .fillna(method="bfill")
     )
     df = df.drop(columns=static_cols)
-    df = df.merge(filled_df, on=key_cols)
+    df = df.merge(filled_df, on=combi_cols)
 
     # Fill the blend_time and forecast_reference_time columns.
     if "forecast_period" in df.columns:
@@ -309,6 +312,21 @@ def _training_dates_for_calibration(
     )
 
 
+def _drop_duplicates(df: DataFrame, cols: Sequence[str]) -> DataFrame:
+    """Drop duplicates and then sort the DataFrame.
+
+    Args:
+        df: DataFrame to have duplicates removed.
+        cols: Columns for use in removing duplicates and for sorting.
+
+    Returns:
+        A DataFrame with duplicates removed (only the last duplicate is kept).
+        The DataFrame is sorted according to the columns provided.
+    """
+    df = df.drop_duplicates(subset=cols, keep="last")
+    return df.sort_values(by=cols, ignore_index=True)
+
+
 def get_forecast_representation(df: DataFrame) -> str:
     """Check which of REPRESENTATION_COLUMNS (percentile or realization)
     exists in the dataframe.
@@ -343,6 +361,7 @@ def get_forecast_representation(df: DataFrame) -> str:
 def _prepare_dataframes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
+    forecast_period: int,
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
@@ -368,6 +387,8 @@ def _prepare_dataframes(
             time, wmo_id, diagnostic, latitude, longitude and altitude.
             Optionally the DataFrame may also contain the following columns:
             station_id, units. Any other columns are ignored.
+        forecast_period:
+            Forecast period in seconds as an integer.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
         experiment:
@@ -378,7 +399,6 @@ def _prepare_dataframes(
         A sanitised version of the forecasts and truth dataframes that
         are ready for conversion to cubes.
     """
-
     representation_type = get_forecast_representation(forecast_df)
 
     _dataframe_column_check(
@@ -386,9 +406,28 @@ def _prepare_dataframes(
     )
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
 
-    # Filter to select only one experiment
+    if (
+        sum(["station_id" in forecast_df.columns, "station_id" in truth_df.columns])
+        == 1
+    ):
+        df_type = "forecast" if "station_id" in forecast_df.columns else "truth"
+        msg = (
+            "station_id must be in both the forecast and truth dataframes "
+            f"if provided. station_id is only within the {df_type} dataframe."
+        )
+        raise ValueError(msg)
+
+    include_station_id = False
+    if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):
+        include_station_id = True
+
+    # Filter to select only one experiment.
     if experiment:
         forecast_df = forecast_df.loc[forecast_df["experiment"] == experiment]
+
+    # Filter to select forecast period.
+    fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
+    forecast_df = forecast_df[forecast_df["forecast_period"] == fp_point]
 
     if forecast_df["experiment"].nunique() > 1:
         unique_exps = forecast_df["experiment"].unique()
@@ -411,35 +450,21 @@ def _prepare_dataframes(
     forecast_cols = [
         "diagnostic",
         "forecast_period",
-        representation_type,
         "time",
+        representation_type,
         "wmo_id",
     ]
-    if "station_id" in forecast_df.columns:
+    if include_station_id:
         forecast_cols.append("station_id")
-    forecast_df = forecast_df.drop_duplicates(subset=forecast_cols, keep="last",)
-    # Sort to ensure a consistent ordering after removing duplicates.
-    sort_cols = ["blend_time", representation_type, "wmo_id"]
-    if "station_id" in forecast_df.columns:
-        sort_cols.append("station_id")
-    forecast_df = forecast_df.sort_values(by=sort_cols, ignore_index=True,)
+    forecast_df = _drop_duplicates(forecast_df, forecast_cols)
 
     # Remove truth duplicates.
     truth_cols = ["diagnostic", "time", "wmo_id"]
-    if "station_id" in truth_df.columns:
+    if include_station_id:
         truth_cols.append("station_id")
-    truth_df = truth_df.drop_duplicates(subset=truth_cols, keep="last",)
-    # Sort to ensure a consistent ordering after removing duplicates.
-    truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
+    truth_df = _drop_duplicates(truth_df, truth_cols)
 
-    # Find the common set of WMO IDs.
-    common_wmo_ids = sorted(
-        set(forecast_df["wmo_id"].unique()).intersection(truth_df["wmo_id"].unique())
-    )
-    forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
-    truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
-
-    if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):
+    if include_station_id:
         # Find the common set of station ids.
         common_station_ids = sorted(
             set(forecast_df["station_id"].unique()).intersection(
@@ -448,6 +473,15 @@ def _prepare_dataframes(
         )
         forecast_df = forecast_df[forecast_df["station_id"].isin(common_station_ids)]
         truth_df = truth_df[truth_df["station_id"].isin(common_station_ids)]
+    else:
+        # Find the common set of WMO IDs.
+        common_wmo_ids = sorted(
+            set(forecast_df["wmo_id"].unique()).intersection(
+                truth_df["wmo_id"].unique()
+            )
+        )
+        forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
+        truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
     # Ensure time in forecasts is present in truths.
     forecast_df = forecast_df[forecast_df["time"].isin(truth_df["time"].unique())]
@@ -455,9 +489,14 @@ def _prepare_dataframes(
     # Ensure time in truths is present in forecasts.
     truth_df = truth_df[truth_df["time"].isin(forecast_df["time"].unique())]
 
-    # Fill in any missing instances of the "key_cols". This allows support for the
+    # Fill in any missing instances where every combination of the columns
+    # specified is expected to exist. This allows support for the
     # introduction of new sites within the forecast_df and truth_df.
-    key_cols = ["wmo_id", "time", "forecast_period", representation_type]
+    combi_cols = ["wmo_id", "time", representation_type]
+    site_id_col = "wmo_id"
+    if include_station_id:
+        combi_cols = ["station_id" if c == "wmo_id" else c for c in combi_cols]
+        site_id_col = "station_id"
     static_cols = [
         "latitude",
         "longitude",
@@ -468,15 +507,20 @@ def _prepare_dataframes(
         "cf_name",
         "units",
         "experiment",
+        "forecast_period",
     ]
-    forecast_df = _fill_missing_entries(forecast_df, key_cols, static_cols)
-    key_cols = ["wmo_id", "time"]
-    static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
-    truth_df = _fill_missing_entries(truth_df, key_cols, static_cols)
-    # Sort to ensure a consistent ordering after filling in missing entries.
-    forecast_df = forecast_df.sort_values(
-        by=["blend_time", representation_type, "wmo_id"], ignore_index=True,
+    forecast_df = _fill_missing_entries(
+        forecast_df, combi_cols, static_cols, site_id_col
     )
+
+    combi_cols = ["wmo_id", "time"]
+    if include_station_id:
+        combi_cols = ["station_id" if c == "wmo_id" else c for c in combi_cols]
+    static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
+    truth_df = _fill_missing_entries(truth_df, combi_cols, static_cols, site_id_col)
+
+    # Sort to ensure a consistent ordering after filling in missing entries.
+    forecast_df = forecast_df.sort_values(by=forecast_cols, ignore_index=True)
     truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
 
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
@@ -492,7 +536,7 @@ def _prepare_dataframes(
         "time",
         "diagnostic",
     ]
-    if "station_id" in forecast_df.columns:
+    if include_station_id:
         subset_cols.append("station_id")
     # if units not present in truth_df, copy from forecast_df
     if "units" not in truth_df.columns:
@@ -502,7 +546,7 @@ def _prepare_dataframes(
     # Use "right" to fill in any missing observations in the truth dataframe
     # and retain the order from the forecast_subset.
     merge_cols = ["wmo_id", "time", "diagnostic"]
-    if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):
+    if include_station_id:
         merge_cols.append("station_id")
     truth_df = truth_df.merge(forecast_subset, on=merge_cols, how="right")
     return forecast_df, truth_df
@@ -740,7 +784,11 @@ def forecast_and_truth_dataframes_to_cubes(
     )
 
     forecast_df, truth_df = _prepare_dataframes(
-        forecast_df, truth_df, percentiles=percentiles, experiment=experiment
+        forecast_df,
+        truth_df,
+        forecast_period,
+        percentiles=percentiles,
+        experiment=experiment,
     )
 
     forecast_cube = forecast_dataframe_to_cube(
