@@ -33,11 +33,10 @@ import sys
 
 import numpy as np
 import pytest
-from iris.cube import CubeList
+from iris import Constraint
 
 from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.cube_manipulation import compare_attributes, compare_coords
 
 try:
     import treelite_runtime
@@ -47,8 +46,6 @@ else:
     TREELITE_ENABLED = True
 
 lightgbm = pytest.importorskip("lightgbm")
-
-EMPTY_COMPARSION_DICT = [{}, {}]
 
 
 class MockBooster:
@@ -150,29 +147,18 @@ def test__check_num_features_treelite(ensemble_features, dummy_treelite_models):
 def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast):
     """Check cube alignment when using feature and forecast variables when realization
     coordinate present in some cube variables."""
+    expected_features = ensemble_features.copy()
+    # Drop realization coordinate from one of the ensemble features
+    dervied_field_cube = ensemble_features.pop(-1).extract(Constraint(realization=0))
+    dervied_field_cube.remove_coord("realization")
+    ensemble_features.append(dervied_field_cube)
 
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibration(
         model_config_dict={}, threads=1
     )._align_feature_variables(ensemble_features, ensemble_forecast)
 
-    input_cubes = CubeList([*ensemble_features, ensemble_forecast])
-    output_cubes = CubeList([*aligned_features, aligned_forecast])
-
-    # Check that the realization dimension is the outer-most dimension
-    assert np.all([cube.coord_dims("realization") == (0,) for cube in output_cubes])
-
-    # Check that all cubes have consistent shape
-    assert np.all(
-        [cube.data.shape == output_cubes[0].data.shape for cube in output_cubes[1:]]
-    )
-
-    # Check the other properties of the cubes are unchanged.
-    for input_cube, output_cube in zip(input_cubes, output_cubes):
-        assert (
-            compare_coords([output_cube, input_cube], ignored_coords="realization")
-            == EMPTY_COMPARSION_DICT
-        )
-        assert compare_attributes([output_cube, input_cube]) == EMPTY_COMPARSION_DICT
+    assert aligned_features == expected_features
+    assert aligned_forecast == ensemble_forecast
 
 
 def test__align_feature_variables_deterministic(
@@ -180,32 +166,21 @@ def test__align_feature_variables_deterministic(
 ):
     """Check cube alignment when using feature and forecast variables when no realization
     coordinate present in any of the cube variables."""
+    expected_features = deterministic_features.copy()
+    expected_forecast = deterministic_forecast.copy()
+    # Drop realization from all features.
+    deterministic_features = deterministic_features.extract(Constraint(realization=0))
+    [feature.remove_coord("realization") for feature in deterministic_features]
+    # Drop realization from forecast.
+    deterministic_forecast = deterministic_forecast.extract(Constraint(realization=0))
+    deterministic_forecast.remove_coord("realization")
 
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibration(
         model_config_dict={}, threads=1
     )._align_feature_variables(deterministic_features, deterministic_forecast)
 
-    input_cubes = CubeList([*deterministic_features, deterministic_forecast])
-    output_cubes = CubeList([*aligned_features, aligned_forecast])
-
-    # Check that all cubes have realization dimension of length 1
-    assert np.all([cube.coord("realization").shape == (1,) for cube in output_cubes])
-
-    # Check that the realization dimension is the outer-most dimension
-    assert np.all([cube.coord_dims("realization") == (0,) for cube in output_cubes])
-
-    # Check that all cubes have consistent shape
-    assert np.all(
-        [cube.data.shape == output_cubes[0].data.shape for cube in output_cubes[1:]]
-    )
-
-    # Check the other properties of the cubes are unchanged.
-    for input_cube, output_cube in zip(input_cubes, output_cubes):
-        assert (
-            compare_coords([output_cube, input_cube], ignored_coords="realization")
-            == EMPTY_COMPARSION_DICT
-        )
-        assert compare_attributes([output_cube, input_cube]) == EMPTY_COMPARSION_DICT
+    assert aligned_features == expected_features
+    assert aligned_forecast == expected_forecast
 
 
 def test__align_feature_variables_misaligned_dim_coords(ensemble_features):
@@ -255,18 +230,6 @@ def test__prepare_error_probability_cube(
 
 def test__prepare_features_dataframe(ensemble_features):
     """Test dataframe preparation given set of feature cubes."""
-    # Note: Clearsky solar radiation cube does not have realization
-    # dimension, so without calling _align_feature_variables it will
-    # will differ in length from all other cubes.
-
-    # With clearsky solar cube present, function should fail due to
-    # differing size of underlying arrays.
-    with pytest.raises(RuntimeError):
-        ApplyRainForestsCalibration(
-            model_config_dict={}, threads=1
-        )._prepare_features_dataframe(ensemble_features)
-
-    # Drop clearsky solar cube so that all cubes now have the same size.
     ensemble_features = ensemble_features[:-1]
     feature_names = [cube.name() for cube in ensemble_features]
     expected_size = ensemble_features.extract_cube(
@@ -279,6 +242,18 @@ def test__prepare_features_dataframe(ensemble_features):
 
     assert list(result.columns) == list(sorted(feature_names))
     assert len(result) == expected_size
+
+    # Drop realization coordinate from one of the ensemble features, to produce
+    # cubes of differing length.
+    cube_lacking_realization = ensemble_features.pop(-1).extract(
+        Constraint(realization=0)
+    )
+    cube_lacking_realization.remove_coord("realization")
+    ensemble_features.append(cube_lacking_realization)
+    with pytest.raises(RuntimeError):
+        ApplyRainForestsCalibration(
+            model_config_dict={}, threads=1
+        )._prepare_features_dataframe(ensemble_features)
 
 
 def test_make_decreasing():
@@ -358,7 +333,9 @@ def test__apply_error_to_forecast(ensemble_forecast, error_percentile_cube):
     assert result.var_name == ensemble_forecast.var_name
     assert result.units == ensemble_forecast.units
 
+    # Aux coords should be consistent with forecast
     assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
+    # Dim coords should be consistent with forecast error.
     assert result.coords(dim_coords=True) == error_percentile_cube.coords(
         dim_coords=True
     )
@@ -373,21 +350,19 @@ def test__stack_subensembles(error_percentile_cube):
     result = ApplyRainForestsCalibration(
         model_config_dict={}, threads=1
     )._stack_subensembles(error_percentile_cube)
-
-    assert (
-        compare_coords(
-            [result, error_percentile_cube],
-            ignored_coords=["realization", "percentile"],
-        )
-        == EMPTY_COMPARSION_DICT
-    )
+    # Result should not contain percentile coordinate
     assert result.coords("percentile") == []
-    assert np.all(
-        result.coord("realization").points
-        == np.arange(
-            error_percentile_cube.coord("realization").points.size
-            * error_percentile_cube.coord("percentile").points.size
-        )
+    # Result should have realization coordinate composed on of length
+    # realization.points.size * percentile.points.size
+    assert (
+        result.coord("realization").points.size
+        == error_percentile_cube.coord("realization").points.size
+        * error_percentile_cube.coord("percentile").points.size
+    )
+    # All remaining coords should be consistent
+    assert (
+        result.coords(dim_coords=True)[1:]
+        == error_percentile_cube.coords(dim_coords=True)[2:]
     )
     assert result.coords(dim_coords=False) == error_percentile_cube.coords(
         dim_coords=False
@@ -401,19 +376,17 @@ def test__combine_subensembles(error_percentile_cube):
         model_config_dict={}, threads=1
     )._combine_subensembles(error_percentile_cube, output_realizations_count=None)
 
-    assert np.all(
-        result.coord("realization").points
-        == np.arange(
-            error_percentile_cube.coord("realization").points.size
-            * error_percentile_cube.coord("percentile").points.size
-        )
+    assert (
+        result.coord("realization").points.size
+        == error_percentile_cube.coord("realization").points.size
+        * error_percentile_cube.coord("percentile").points.size
     )
 
     result = ApplyRainForestsCalibration(
         model_config_dict={}, threads=1
     )._combine_subensembles(error_percentile_cube, output_realizations_count=10)
 
-    assert np.all(result.coord("realization").points == np.arange(10))
+    assert result.coord("realization").points.size == 10
 
 
 def test_process_with_lightgbm(
@@ -436,10 +409,10 @@ def test_process_with_lightgbm(
     assert result.var_name == ensemble_forecast.var_name
     assert result.units == ensemble_forecast.units
 
-    assert (
-        compare_coords([result, ensemble_forecast], ignored_coords=["realization"])
-        == EMPTY_COMPARSION_DICT
-    )
+    # Check that all non-realization are equal
+    assert result.coords(dim_coords=True)[1:], ensemble_forecast.coords(
+        dim_coords=True
+    )[1:]
     if output_realization_count is None:
         assert (
             result.coord("realization").points.size
@@ -472,10 +445,10 @@ def test_process_with_treelite(
     assert result.var_name == ensemble_forecast.var_name
     assert result.units == ensemble_forecast.units
 
-    assert (
-        compare_coords([result, ensemble_forecast], ignored_coords=["realization"])
-        == EMPTY_COMPARSION_DICT
-    )
+    # Check that all non-realization are equal
+    assert result.coords(dim_coords=True)[1:], ensemble_forecast.coords(
+        dim_coords=True
+    )[1:]
     if output_realization_count is None:
         assert (
             result.coord("realization").points.size

@@ -69,10 +69,7 @@ def model_config(error_thresholds):
 
 def gen_forecast_cubes(realizations):
     np.random.seed(0)
-    if realizations is None:
-        data_shape = (10, 10)
-    else:
-        data_shape = (len(realizations), 10, 10)
+    data_shape = (len(realizations), 10, 10)
     return set_up_variable_cube(
         np.maximum(0, np.random.normal(0.002, 0.001, data_shape)).astype(np.float32),
         name="lwe_thickness_of_precipitation_amount",
@@ -82,12 +79,13 @@ def gen_forecast_cubes(realizations):
     )
 
 
-def gen_feature_cubes(realizations):
-    np.random.seed(0)
-    if realizations is None:
-        data_shape = (10, 10)
-    else:
-        data_shape = (len(realizations), 10, 10)
+def gen_aligned_feature_cubes(realizations):
+    """Generate a set of aligned feature cubes consistent with forecast cube.
+
+    Note: The clearsky_solar_rad field will contain copy over realization dimension.
+    This is to simulate the resultant broadcasting that will occur after aligning
+    feature variables."""
+    data_shape = (len(realizations), 10, 10)
     np.random.seed(0)
     cape = set_up_variable_cube(
         np.maximum(0, np.random.normal(15, 5, data_shape)).astype(np.float32),
@@ -118,11 +116,19 @@ def gen_feature_cubes(realizations):
         attributes=ATTRIBUTES,
     )
     clearsky_solar_rad = set_up_variable_cube(
-        np.maximum(0, np.random.normal(5000000, 2000000, (10, 10))).astype(np.float32),
+        np.maximum(0, np.random.normal(5000000, 2000000, data_shape)).astype(
+            np.float32
+        ),
         name="integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time",
         units="W s m-2",
+        realizations=realizations,
         attributes=ATTRIBUTES,
     )
+    # For clearsky_solar_rad, we want all realization values equal to simulate derived field.
+    if realizations is not None:
+        clearsky_solar_rad.data = np.broadcast_to(
+            clearsky_solar_rad.data[0, :, :], data_shape
+        )
     return CubeList(
         [
             cape,
@@ -136,26 +142,30 @@ def gen_feature_cubes(realizations):
 
 @pytest.fixture
 def ensemble_forecast():
+    """Create ensemble forecast cube."""
     return gen_forecast_cubes(realizations=np.arange(5))
 
 
 @pytest.fixture
 def ensemble_features():
-    return gen_feature_cubes(realizations=np.arange(5))
+    """Create a set of aligned ensemble feature cube."""
+    return gen_aligned_feature_cubes(realizations=np.arange(5))
 
 
 @pytest.fixture
 def deterministic_forecast():
-    return gen_forecast_cubes(realizations=None)
+    """Create deterministic forecast cube."""
+    return gen_forecast_cubes(realizations=np.arange(1))
 
 
 @pytest.fixture
 def deterministic_features():
-    return gen_feature_cubes(realizations=None)
+    """Create a set of aligned deterministic feature cubes."""
+    return gen_aligned_feature_cubes(realizations=np.arange(1))
 
 
 def get_dummy_training_data(features, forecast):
-
+    """Create a dummy training set for tree-models."""
     # Set column names for reference in training
     fcst_column = forecast.name()
     obs_column = fcst_column + "_obs"
@@ -170,8 +180,7 @@ def get_dummy_training_data(features, forecast):
             training_data[cube.name()] = cube.extract(
                 Constraint(realization=0)
             ).data.flatten()
-        else:
-            training_data[cube.name()] = cube.data.flatten()
+
     # mock y data so that it is correlated with predicted precipitation_accumulation
     # and other variables, with some noise
     non_target_columns = list(set(training_data.columns) - set(list(fcst_column)))
@@ -182,6 +191,7 @@ def get_dummy_training_data(features, forecast):
     training_data[obs_column] += rng.normal(
         0, training_data[obs_column].std(), len(training_data)
     )
+
     # rescale to have same mean and standard deviation as prediction
     training_data[obs_column] = (
         training_data[obs_column] - training_data[obs_column].mean()
@@ -195,6 +205,7 @@ def get_dummy_training_data(features, forecast):
 
 @pytest.fixture
 def dummy_lightgbm_models(ensemble_features, ensemble_forecast, error_thresholds):
+    """Create sample lightgbm models for evaluating forecast error probabilities."""
     import lightgbm
 
     training_data, fcst_column, obs_column, train_columns = get_dummy_training_data(
@@ -219,6 +230,7 @@ def dummy_lightgbm_models(ensemble_features, ensemble_forecast, error_thresholds
 
 @pytest.fixture
 def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
+    """Create sample treelite models for evaluating forecast error probabilities."""
     import treelite
     import treelite_runtime
 
@@ -242,45 +254,44 @@ def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
 
 @pytest.fixture
 def error_threshold_cube(error_thresholds):
-
-    probability_values = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0])
-    other_dims = np.ones((10, 10))
-    probability_data = probability_values[..., None, None] * other_dims[None, :, :]
-
+    """Create sample error-threshold cube"""
+    prob = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0])
+    data = np.broadcast_to(prob[:, np.newaxis, np.newaxis], (6, 10, 10))
     probability_cube = set_up_probability_cube(
-        probability_data.astype(np.float32),
+        data.astype(np.float32),
         thresholds=error_thresholds,
         variable_name="forecast_error_of_lwe_thickness_of_precipitation_amount",
         threshold_units="m",
         attributes=ATTRIBUTES,
         spp__relative_to_threshold="above",
     )
-    return add_coordinate(
+    error_threshold_cube = add_coordinate(
         probability_cube,
         coord_points=np.arange(5),
         coord_name="realization",
         coord_units="1",
         order=[1, 0, 2, 3],
     )
+    return error_threshold_cube
 
 
 @pytest.fixture
 def error_percentile_cube(error_thresholds):
-
-    other_dims = np.ones((10, 10))
-    percentile_data = error_thresholds[1:-1, None, None] * other_dims[None, :, :]
+    """Create sample error-percentile cube"""
+    data = np.broadcast_to(error_thresholds[1:-1, np.newaxis, np.newaxis], (4, 10, 10))
 
     percentile_cube = set_up_percentile_cube(
-        percentile_data.astype(np.float32),
+        data.astype(np.float32),
         percentiles=np.array([20.0, 40.0, 60.0, 80.0], dtype=np.float32),
         name="forecast_error_of_lwe_thickness_of_precipitation_amount",
         units="m",
         attributes=ATTRIBUTES,
     )
-    return add_coordinate(
+    error_percentile_cube = add_coordinate(
         percentile_cube,
         coord_points=np.arange(5),
         coord_name="realization",
         coord_units="1",
         order=[0, 1, 2, 3],
     )
+    return error_percentile_cube
