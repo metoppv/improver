@@ -369,11 +369,12 @@ class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
     def test_nonunique_values_in_column(self):
         """Test if there are multiple non-unique values in a column of the
         dataframe."""
-        df = self.forecast_df.copy()
-        df.at[0, "period"] = pd.Timedelta(7200, units="seconds")
+        self.forecast_df.at[0, "period"] = pd.Timedelta(7200, units="seconds")
         msg = "Multiple values provided for the period"
         with self.assertRaisesRegex(ValueError, msg):
-            forecast_dataframe_to_cube(df, self.date_range, self.forecast_period)
+            forecast_dataframe_to_cube(
+                self.forecast_df, self.date_range, self.forecast_period
+            )
 
 
 class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
@@ -415,11 +416,10 @@ class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
     def test_nonunique_values_in_column(self):
         """Test if there are multiple non-unique values in a column of the
         dataframe."""
-        df = self.truth_df.copy()
-        df.at[0, "diagnostic"] = "wind_speed_at_10m"
+        self.truth_df.at[0, "diagnostic"] = "wind_speed_at_10m"
         msg = "Multiple values provided for the diagnostic"
         with self.assertRaisesRegex(ValueError, msg):
-            truth_dataframe_to_cube(df, self.date_range)
+            truth_dataframe_to_cube(self.truth_df, self.date_range)
 
 
 class Test_forecast_and_truth_dataframes_to_cubes(
@@ -476,11 +476,10 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test that an error is raised if dataframe contains more than one of
         REPRESENTATION_COLUMNS."""
         msg = "More than one column"
-        df = self.forecast_df.copy()
-        df["realization"] = 0
+        self.forecast_df["realization"] = 0
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
-                df,
+                self.forecast_df,
                 self.truth_subset_df,
                 self.cycletime,
                 self.forecast_period,
@@ -530,37 +529,32 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_station_id_dummy_wmo_id(self):
         """Test that when station_id is present and wmo_id contains dummy data,
         station_id is used to match forecast and truth cubes."""
-        forecast_df = self.forecast_df_station_id.copy()
-        forecast_df["wmo_id"] = "00000"
-        truth_df = self.truth_df_station_id.copy()
-        truth_df["wmo_id"] = "00000"
-        expected_truth = self.expected_truth_station_id.copy()
-        expected_truth.coord("wmo_id").points = ["00000"]
-        expected_forecast = self.expected_forecast_station_id.copy()
-        expected_forecast.coord("wmo_id").points = ["00000"]
+        self.forecast_df_station_id["wmo_id"] = "00000"
+        self.truth_df_station_id["wmo_id"] = "00000"
+        self.expected_truth_station_id.coord("wmo_id").points = ["00000"]
+        self.expected_forecast_station_id.coord("wmo_id").points = ["00000"]
         result = forecast_and_truth_dataframes_to_cubes(
-            forecast_df,
-            truth_df,
+            self.forecast_df_station_id,
+            self.truth_df_station_id,
             self.cycletime,
             self.forecast_period,
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        self.assertCubeEqual(result[0], expected_forecast)
-        self.assertCubeEqual(result[1], expected_truth)
+        self.assertCubeEqual(result[0], self.expected_forecast_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_station_id)
 
     def test_units_in_truth(self):
         """Test that if truth_df contains a units column, it is used
         for units of truth output cube."""
-        truth_df = self.truth_subset_df.copy()
-        truth_df["units"] = "Fahrenheit"
-        truth_df["ob_value"] = truth_df["ob_value"] + 30
-        expected_truth = self.expected_period_truth.copy()
+        self.truth_subset_df["units"] = "Fahrenheit"
+        self.truth_subset_df["ob_value"] = self.truth_subset_df["ob_value"] + 30
+        expected_truth = self.expected_period_truth
         expected_truth.units = "Fahrenheit"
         expected_truth.data = expected_truth.data + 30
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
-            truth_df,
+            self.truth_subset_df,
             self.cycletime,
             self.forecast_period,
             self.training_length,
@@ -574,12 +568,13 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         validity times within the training dataset are always in
         the past, relative to the cycletime."""
         forecast_period = 30 * 3600
-        forecast_df = self.forecast_df.copy()
-        forecast_df["forecast_period"] = np.timedelta64(forecast_period, "s").astype(
-            "timedelta64[ns]"
-        )
+        self.forecast_df["forecast_period"] = np.timedelta64(
+            forecast_period, "s"
+        ).astype("timedelta64[ns]")
         for coord in ["forecast_reference_time", "blend_time"]:
-            forecast_df[coord] = forecast_df[coord] - pd.Timedelta(1, unit="days")
+            self.forecast_df[coord] = self.forecast_df[coord] - pd.Timedelta(
+                1, unit="days"
+            )
         fp_int = pd.Timedelta(forecast_period, "s").total_seconds()
         self.expected_period_forecast.coord("forecast_period").points = np.array(
             fp_int, dtype=TIME_COORDS["forecast_period"].dtype
@@ -594,7 +589,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
             - 86400
         )
         result = forecast_and_truth_dataframes_to_cubes(
-            forecast_df,
+            self.forecast_df,
             self.truth_subset_df,
             self.cycletime,
             forecast_period,
@@ -620,7 +615,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_site_absent_from_forecast(self):
         """Test for when a site is absent from the forecast dataframe."""
-        df = self.forecast_df.copy()
+        df = self.forecast_df
         df = df.loc[df["wmo_id"].isin(self.wmo_ids[:-1])]
         expected_forecast = self.expected_period_forecast[:, :, :-1]
         expected_truth = self.expected_period_truth[:, :-1]
@@ -637,7 +632,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_site_absent_from_truth(self):
         """Test for when a site is absent from the truth dataframe."""
-        df = self.truth_subset_df.copy()
+        df = self.truth_subset_df
         df = df.loc[df["wmo_id"].isin(self.wmo_ids[:-1])]
         expected_forecast = self.expected_period_forecast[:, :, :-1]
         expected_truth = self.expected_period_truth[:, :-1]
@@ -656,13 +651,12 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test for a mismatch in the location of a site between the truths
         and forecasts. In this case, the position (lat/lon/alt) from the
         forecast will be used."""
-        df = self.truth_subset_df.copy()
-        df.loc[::3, "altitude"] = 45
-        df.loc[::3, "latitude"] = 52
-        df.loc[::3, "longitude"] = -12
+        self.truth_subset_df.loc[::3, "altitude"] = 45
+        self.truth_subset_df.loc[::3, "latitude"] = 52
+        self.truth_subset_df.loc[::3, "longitude"] = -12
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
-            df,
+            self.truth_subset_df,
             self.cycletime,
             self.forecast_period,
             self.training_length,
@@ -709,12 +703,12 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.expected_period_forecast.data[:, :2, -1] = np.nan
         self.expected_period_truth.data[:2, -1] = np.nan
 
-        df = self.forecast_df.copy()
+        df = self.forecast_df
         condition = (df["time"].isin([self.time1, self.time2])) & (
             df["wmo_id"] == self.wmo_ids[2]
         )
         forecast_df = df.drop(df[condition].index)
-        df = self.truth_subset_df.copy()
+        df = self.truth_subset_df
         condition = (df["time"].isin([self.time1, self.time2])) & (
             df["wmo_id"] == self.wmo_ids[2]
         )
@@ -737,12 +731,12 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.expected_period_forecast.data[:, 1:, -1] = np.nan
         self.expected_period_truth.data[1:, -1] = np.nan
 
-        df = self.forecast_df.copy()
+        df = self.forecast_df
         condition = (df["time"].isin([self.time2, self.time3])) & (
             df["wmo_id"] == self.wmo_ids[2]
         )
         forecast_df = df.drop(df[condition].index)
-        df = self.truth_subset_df.copy()
+        df = self.truth_subset_df
         condition = (df["time"].isin([self.time2, self.time3])) & (
             df["wmo_id"] == self.wmo_ids[2]
         )
@@ -767,12 +761,12 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.expected_period_truth.data[0, 0] = np.nan
         self.expected_period_truth.data[2, 2] = np.nan
 
-        df = self.forecast_df.copy()
+        df = self.forecast_df
         condition1 = (df["time"].isin([self.time1])) & (df["wmo_id"] == self.wmo_ids[0])
         condition2 = (df["time"].isin([self.time3])) & (df["wmo_id"] == self.wmo_ids[2])
         forecast_df = df.drop(df[condition1].index | df[condition2].index)
 
-        df = self.truth_subset_df.copy()
+        df = self.truth_subset_df
         condition1 = (df["time"].isin([self.time1])) & (df["wmo_id"] == self.wmo_ids[0])
         condition2 = (df["time"].isin([self.time3])) & (df["wmo_id"] == self.wmo_ids[2])
         truth_df = df.drop(df[condition1].index | df[condition2].index)
@@ -795,8 +789,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         expected_period_forecast.coord("realization").points = np.array(
             [0, 1], dtype=np.int32
         )
-        forecast_df = self.forecast_df.copy()
-        forecast_df = forecast_df.replace({"percentile": self.percentiles[0]}, 100 / 3)
+        forecast_df = self.forecast_df.replace(
+            {"percentile": self.percentiles[0]}, 100 / 3
+        )
         forecast_df = forecast_df.replace(
             {"percentile": self.percentiles[2]}, (2 / 3) * 100
         )
@@ -814,12 +809,13 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_not_quantiles(self):
         """Test if the percentiles can not be considered to be quantiles."""
-        forecast_df = self.forecast_df.copy()
-        forecast_df = forecast_df.replace({"percentile": self.percentiles[0]}, 10.0)
+        self.forecast_df = self.forecast_df.replace(
+            {"percentile": self.percentiles[0]}, 10.0
+        )
         msg = "The forecast percentiles can not be considered as quantiles"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
-                forecast_df,
+                self.forecast_df,
                 self.truth_subset_df,
                 self.cycletime,
                 self.forecast_period,
@@ -880,8 +876,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_forecast_missing_compulsory_columns(self):
         """Test if there are missing compulsory columns in the forecast
         dataframe."""
-        df = self.forecast_df.copy()
-        df = df.rename(columns={"diagnostic": "diag"})
+        df = self.forecast_df.rename(columns={"diagnostic": "diag"})
         msg = "The following compulsory column\\(s\\) are missing"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
@@ -895,8 +890,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_truth_missing_compulsory_columns(self):
         """Test if there are missing compulsory columns in the truth
         dataframe."""
-        df = self.truth_subset_df.copy()
-        df = df.rename(columns={"diagnostic": "diag"})
+        df = self.truth_subset_df.rename(columns={"diagnostic": "diag"})
         msg = "The following compulsory column\\(s\\) are missing"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
@@ -1005,10 +999,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_forecast_additional_columns_present(self):
         """Test that if there are additional columns present
         in the forecast dataframe, these have no impact."""
-        df = self.forecast_df.copy()
-        df["surface_type"] = "grass"
+        self.forecast_df["surface_type"] = "grass"
         result = forecast_and_truth_dataframes_to_cubes(
-            df,
+            self.forecast_df,
             self.truth_subset_df,
             self.cycletime,
             self.forecast_period,
@@ -1019,11 +1012,10 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_truth_additional_columns_present(self):
         """Test that if there are additional columns present
         in the truth dataframe, these have no impact."""
-        df = self.truth_subset_df.copy()
-        df["surface_type"] = "grass"
+        self.truth_subset_df["surface_type"] = "grass"
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
-            df,
+            self.truth_subset_df,
             self.cycletime,
             self.forecast_period,
             self.training_length,
@@ -1069,9 +1061,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_forecast_missing_columns_and_additional_columns(self):
         """Test if there are missing compulsory columns in the forecast
         dataframe and there are additional non-compulsory columns."""
-        df = self.forecast_df.copy()
-        df["station_id"] = "11111"
-        df = df.rename(columns={"diagnostic": "diag"})
+        self.forecast_df["station_id"] = "11111"
+        df = self.forecast_df.rename(columns={"diagnostic": "diag"})
         msg = "The following compulsory column\\(s\\) are missing"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
@@ -1085,9 +1076,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_truth_missing_columns_and_additional_columns(self):
         """Test if there are missing compulsory columns in the truth
         dataframe and there are additional non-compulsory columns."""
-        df = self.truth_subset_df.copy()
-        df["station_id"] = "11111"
-        df = df.rename(columns={"diagnostic": "diag"})
+        self.truth_subset_df["station_id"] = "11111"
+        df = self.truth_subset_df.rename(columns={"diagnostic": "diag"})
         msg = "The following compulsory column\\(s\\) are missing"
         with self.assertRaisesRegex(ValueError, msg):
             forecast_and_truth_dataframes_to_cubes(
