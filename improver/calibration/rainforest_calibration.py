@@ -145,7 +145,12 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             ]
 
     def _check_num_features(self, features: CubeList) -> None:
-        """Check that the correct number of features has been passed into the model."""
+        """Check that the correct number of features has been passed into the model.
+
+        Args:
+            features:
+                Cubelist containing feature variables.
+        """
         sample_tree_model = self.tree_models[0]
         if self.treelite_enabled:
             from treelite_runtime import Predictor
@@ -171,9 +176,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         Args:
             feature_cubes:
-                cube list containing feature variables to align.
+                Cubelist containing feature variables to align.
             forecast_cube:
-                cube containing the forecast variable to align.
+                Cube containing the forecast variable to align.
 
         Returns:
             - feature_cubes with realization coordinate added to each cube if absent
@@ -183,7 +188,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             ValueError:
                 if feature/forecast variables have inconsistent dimension coordinates
                 (excluding realization dimension), or if feature/forecast variables have
-                different length realization coordinate over cubes containing this coordinate.
+                different length realization coordinate over cubes containing a realization
+                coordinate.
         """
         combined_cubes = CubeList(list([*feature_cubes, forecast_cube]))
 
@@ -316,27 +322,35 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         return features_df
 
-    def _make_decreasing(self, input_array: ndarray) -> ndarray:
-        """Make np.array monotone decreasing in the first dimension.
+    def _make_decreasing(self, probability_data: ndarray) -> ndarray:
+        """Enforce monotonicity on the error CDF data, where threshold dimension
+        is assumed to be the leading dimension.
+
+        This is achieved by identifying the minimum value progressively along
+        the threshold dimension by comparing to all preceding probability values along
+        the threshold dimension. The same is done for maximum values, comparing to all
+        succeeding values along the threshold dimension. Averaging these resulting
+        arrays results in an array decreasing monotonically in the threshold dimension.
 
         Args:
-            input_array: the array to make monotone
+            probability_data:
+                The error probability data as exceedence probabilities.
 
         Returns:
-            array: an array of same shape as the input, where np.diff(axis=0)
-            is non-negative
+            The error probability data, enforced to be monotonically decreasing along
+            the leading dimension.
         """
-        lower = np.minimum.accumulate(input_array, axis=0)
+        lower = np.minimum.accumulate(probability_data, axis=0)
         upper = np.flip(
-            np.maximum.accumulate(np.flip(input_array, axis=0), axis=0), axis=0
+            np.maximum.accumulate(np.flip(probability_data, axis=0), axis=0), axis=0
         )
         return 0.5 * (upper + lower)
 
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
     ) -> Cube:
-        """Evaluate the error exceedence probabilities for forecast_cube from tree_models and
-        the associated feature_cubes.
+        """Evaluate the error exceedence probabilities for forecast_cube using the tree_models,
+        with the associated feature_cubes taken as inputs to the tree_model predictors.
 
         Args:
             forecast_cube:
@@ -394,7 +408,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 A cube containing error exceedence probabilities.
             error_percentiles_count:
                 The number of error percentiles to extract. The resulting percentiles
-                will be evenly spaced on the interval (0, 100).
+                will be evenly spaced over the interval (0, 100).
 
         Returns:
             Cube containing percentile values for the error distributions.
@@ -430,7 +444,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         # When there is a lower bound on the observable value (0.0 in the case of rainfall),
         # error thresholds below the forecast value should have probability of exceedence
         # of 1, however it is possible that when forecast value is between thresholds that
-        # the linear interpolation in mapping from probabilities to percentiles, can give
+        # the linear interpolation in mapping from probabilities to percentiles can give
         # percentile values that lie below the forecast value. Consequently, when applied
         # to the forecast, these result in negative values in the sub-ensemble.
         forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
@@ -566,7 +580,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         These error distributions are formed in a two-step process:
 
-        1. Evalute error CDF defined over the specified error_thresholds. Each exceedence
+        1. Evaluate error CDF defined over the specified error_thresholds. Each exceedence
         probability is evaluated using the corresponding decision-tree model.
 
         2. Interpolate the CDF to extract a series of percentiles for the error distribution.
@@ -599,13 +613,13 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             The calibrated forecast cube.
 
         Raises:
-            ValueError:
+            RuntimeError:
                 If the number of tree-models is inconsistent with the number of error
                 thresholds.
         """
         # Check that tree-model object available for each error threshold.
         if len(self.error_thresholds) != len(self.tree_models):
-            raise ValueError(
+            raise RuntimeError(
                 "tree_models must be of the same size as error_thresholds."
             )
 
