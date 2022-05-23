@@ -151,16 +151,17 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             features:
                 Cubelist containing feature variables.
         """
+        from lightgbm import Booster
+
         sample_tree_model = self.tree_models[0]
-        if self.treelite_enabled:
+
+        if isinstance(sample_tree_model, Booster):
+            expected_num_features = sample_tree_model.num_feature()
+        elif self.treelite_enabled:
             from treelite_runtime import Predictor
 
             if isinstance(sample_tree_model, Predictor):
                 expected_num_features = sample_tree_model.num_feature
-            else:
-                expected_num_features = sample_tree_model.num_feature()
-        else:
-            expected_num_features = sample_tree_model.num_feature()
 
         if expected_num_features != len(features):
             raise ValueError(
