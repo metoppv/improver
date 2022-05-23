@@ -452,16 +452,17 @@ def check_data_sufficiency(
     if not historic_forecasts.coords("wmo_id"):
         return
 
+    truths_data = np.broadcast_to(truths.data, historic_forecasts.shape)
+    index = np.isnan(historic_forecasts.data) & np.isnan(truths_data)
+
     if point_by_point:
-        truths_data = np.broadcast_to(truths.data, historic_forecasts.shape)
-        index = np.isnan(historic_forecasts.data) & np.isnan(truths_data)
         wmo_id_axis = historic_forecasts.coord_dims("wmo_id")[0]
         non_wmo_id_axes = list(range(len(historic_forecasts.shape)))
         non_wmo_id_axes.pop(wmo_id_axis)
         detected_proportion = np.count_nonzero(
             index, axis=tuple(non_wmo_id_axes)
         ) / np.prod(np.array(index.shape)[non_wmo_id_axes])
-        if any(detected_proportion > proportion_of_nans):
+        if np.any(detected_proportion > proportion_of_nans):
             number_of_sites = np.sum(detected_proportion > proportion_of_nans)
             msg = (
                 f"{number_of_sites} sites have a proportion of NaNs that is "
@@ -471,8 +472,6 @@ def check_data_sufficiency(
             )
             raise ValueError(msg)
     else:
-        truths_data = np.broadcast_to(truths.data, historic_forecasts.shape)
-        index = np.isnan(historic_forecasts.data) & np.isnan(truths_data)
         detected_proportion = np.count_nonzero(index) / index.size
         if detected_proportion > proportion_of_nans:
             msg = (

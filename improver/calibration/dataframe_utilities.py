@@ -188,7 +188,7 @@ def _fill_missing_entries(df, combi_cols, static_cols, site_id_col):
     Args:
         df: DataFrame to be filled with rows corresponding to missing entries.
         combi_cols: The key columns within the dataframe. All combinations of the
-            values within these columns are expected exist, otherwise, an
+            values within these columns are expected to exist, otherwise, an
             entry will be created.
         static_cols: The names of the columns that are considered "static" and
             therefore can be reliably filled using other entries for the given WMO ID.
@@ -466,20 +466,19 @@ def _prepare_dataframes(
 
     if include_station_id:
         # Find the common set of station ids.
-        common_station_ids = sorted(
-            set(forecast_df["station_id"].unique()).intersection(
-                truth_df["station_id"].unique()
+        common_station_ids = np.sort(
+            np.intersect1d(
+                forecast_df["station_id"].unique(), truth_df["station_id"].unique()
             )
         )
         forecast_df = forecast_df[forecast_df["station_id"].isin(common_station_ids)]
         truth_df = truth_df[truth_df["station_id"].isin(common_station_ids)]
     else:
         # Find the common set of WMO IDs.
-        common_wmo_ids = sorted(
-            set(forecast_df["wmo_id"].unique()).intersection(
-                truth_df["wmo_id"].unique()
-            )
+        common_wmo_ids = np.sort(
+            np.intersect1d(forecast_df["wmo_id"].unique(), truth_df["wmo_id"].unique())
         )
+
         forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
         truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
@@ -492,11 +491,8 @@ def _prepare_dataframes(
     # Fill in any missing instances where every combination of the columns
     # specified is expected to exist. This allows support for the
     # introduction of new sites within the forecast_df and truth_df.
-    combi_cols = ["wmo_id", "time", representation_type]
-    site_id_col = "wmo_id"
-    if include_station_id:
-        combi_cols = ["station_id" if c == "wmo_id" else c for c in combi_cols]
-        site_id_col = "station_id"
+    site_id_col = "station_id" if include_station_id else "wmo_id"
+    combi_cols = [site_id_col, "time", representation_type]
     static_cols = [
         "latitude",
         "longitude",
@@ -513,9 +509,7 @@ def _prepare_dataframes(
         forecast_df, combi_cols, static_cols, site_id_col
     )
 
-    combi_cols = ["wmo_id", "time"]
-    if include_station_id:
-        combi_cols = ["station_id" if c == "wmo_id" else c for c in combi_cols]
+    combi_cols = [site_id_col, "time"]
     static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
     truth_df = _fill_missing_entries(truth_df, combi_cols, static_cols, site_id_col)
 
