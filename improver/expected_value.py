@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Calculation of expected value from a probability distribution."""
 
-import iris.analysis
 from iris.coords import CellMethod
 from iris.cube import Cube
 
