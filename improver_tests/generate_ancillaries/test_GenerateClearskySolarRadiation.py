@@ -30,11 +30,14 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the GenerateClearskySolarRadiation plugin."""
 
+from datetime import datetime, timedelta, timezone
+
 import numpy as np
 import pytest
 from iris.cube import Cube
 
 from improver.generate_ancillaries.generate_derived_solar_fields import (
+    CLEARSKY_SOLAR_RADIATION_CF_NAME,
     GenerateClearskySolarRadiation,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -121,3 +124,91 @@ def test__initialise_input_cubes(
         GenerateClearskySolarRadiation()._initialise_input_cubes(
             target_grid, None, linke_turbidity_on_alternate_grid
         )
+
+
+def test__irradiance_times():
+    """Test returned irradiance times are equispaced time-steps
+    on the specified interval, with spacing temporal_spacing.
+    Where temporal_spacing does not fit evenly into the total interval,
+    a ValueError should be raised."""
+    time = datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc)
+    accumulation_period = 3  # in hours
+    temporal_spacing = 60  # in mins
+
+    expected_times = [
+        datetime(2021, 12, 31, 21, 0, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 22, 0, tzinfo=timezone.utc),
+        datetime(2021, 12, 31, 23, 0, tzinfo=timezone.utc),
+        datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc),
+    ]
+    result = GenerateClearskySolarRadiation()._irradiance_times(
+        time, accumulation_period, temporal_spacing
+    )
+    assert np.all(result == expected_times)
+
+    accumulation_period = 1
+    expected_times = [
+        datetime(2021, 12, 31, 23, 0, tzinfo=timezone.utc),
+        datetime(2022, 1, 1, 0, 0, tzinfo=timezone.utc),
+    ]
+    result = GenerateClearskySolarRadiation()._irradiance_times(
+        time, accumulation_period, temporal_spacing
+    )
+    assert np.all(result == expected_times)
+
+    misaligned_temporal_spacing = 19
+    with pytest.raises(ValueError, match="must be integer multiple"):
+        GenerateClearskySolarRadiation()._irradiance_times(
+            time, accumulation_period, misaligned_temporal_spacing
+        )
+
+
+@pytest.mark.parametrize("at_mean_sea_level", (True, False))
+def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
+
+    solar_radiation_data = np.zeros_like(target_grid.data)
+    time = datetime(2022, 1, 1, 0, 0)
+    accumulation_period = 24
+
+    result = GenerateClearskySolarRadiation()._create_solar_radiation_cube(
+        solar_radiation_data, target_grid, time, accumulation_period, at_mean_sea_level,
+    )
+
+    # Check vertical coordinate
+    if at_mean_sea_level:
+        assert np.isclose(result.coord("altitude").points[0], 0.0)
+    else:
+        assert np.isclose(result.coord("height").points[0], 0.0)
+    # Check time value match inputs
+    assert (
+        result.coord("time").points[0] == time.replace(tzinfo=timezone.utc).timestamp()
+    )
+    assert timedelta(
+        seconds=int(
+            result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
+        )
+    ) == timedelta(hours=accumulation_period)
+    # Check that the dim coords are the spatial coords only, matching those from target_grid
+    assert result.coords(dim_coords=True) == [
+        target_grid.coord(axis="Y"),
+        target_grid.coord(axis="X"),
+    ]
+    # Check variable attributes
+    assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
+    assert result.units == "W s m-2"
+
+
+def test_process(target_grid, surface_altitude):
+    """Test process method returns cubes with correct structure."""
+    time = datetime(2022, 1, 1, 0, 0)
+    accumulation_period = 24
+
+    # Check that default behaviour results in cube with altitude for z-coord.
+    result = GenerateClearskySolarRadiation()(target_grid, time, accumulation_period,)
+    assert np.isclose(result.coord("altitude").points[0], 0.0)
+
+    # Check that non-zero surface_altitude results in cube with height for z-coord.
+    result = GenerateClearskySolarRadiation()(
+        target_grid, time, accumulation_period, surface_altitude=surface_altitude
+    )
+    assert np.isclose(result.coord("height").points[0], 0.0)
