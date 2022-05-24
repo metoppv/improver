@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -488,6 +488,34 @@ class Test_process(IrisTest):
         """
         result = Plugin().process(self.percentile_cube)
         self.assertArrayAlmostEqual(result.data, self.expected)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_masked_input_data(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values when the input data is masked.
+        """
+        self.percentile_cube.data[:, 0, 0] = np.nan
+        self.percentile_cube.data = np.ma.masked_invalid(self.percentile_cube.data)
+        self.expected[:, 0, 0] = np.nan
+        self.expected = np.ma.masked_invalid(self.expected)
+        result = Plugin().process(self.percentile_cube)
+        self.assertArrayAlmostEqual(result.data.data, self.expected.data)
+        self.assertArrayEqual(result.data.mask, self.expected.mask)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_masked_input_data_non_nans(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values when the input data is masked and underlying data is not NaNs.
+        """
+        self.percentile_cube.data[:, 0, 0] = 1000
+        self.percentile_cube.data = np.ma.masked_equal(self.percentile_cube.data, 1000)
+        self.expected[:, 0, 0] = np.nan
+        self.expected = np.ma.masked_invalid(self.expected)
+        result = Plugin().process(self.percentile_cube)
+        self.assertArrayAlmostEqual(result.data.data, self.expected.data)
+        self.assertArrayEqual(result.data.mask, self.expected.mask)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):

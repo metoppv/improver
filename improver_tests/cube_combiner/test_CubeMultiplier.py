@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,7 +39,7 @@ from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
-from improver.cube_combiner import CubeMultiplier
+from improver.cube_combiner import Combine, CubeMultiplier
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver_tests.cube_combiner.test_CubeCombiner import CombinerTest
 
@@ -79,9 +79,7 @@ class Test_process(MultiplierTest):
         of the name of the first input cube."""
         cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
         input_copy = deepcopy(cubelist)
-        result = CubeMultiplier()(
-            cubelist, "new_cube_name", broadcast_to_threshold=True
-        )
+        result = CubeMultiplier(broadcast_to_threshold=True)(cubelist, "new_cube_name")
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
@@ -95,7 +93,7 @@ class Test_process(MultiplierTest):
         output = "thickness_of_rainfall_amount_in_vicinity"
         self.cube.rename(f"probability_of_{input}_above_threshold")
         cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
-        result = CubeMultiplier()(cubelist, output, broadcast_to_threshold=True)
+        result = CubeMultiplier(broadcast_to_threshold=True)(cubelist, output)
         self.assertEqual(result.name(), f"probability_of_{output}_above_threshold")
         self.assertEqual(
             result.coord(var_name="threshold").name(), "thickness_of_rainfall_amount"
@@ -112,7 +110,7 @@ class Test_process(MultiplierTest):
             r"\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
         )
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_threshold=True)
+            CubeMultiplier(broadcast_to_threshold=True)(cubelist, "new_cube_name")
 
     def test_error_broadcast_coord_is_auxcoord(self):
         """Test that plugin throws an error if asked to broadcast to a threshold coord
@@ -121,7 +119,7 @@ class Test_process(MultiplierTest):
         cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
         msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
         with self.assertRaisesRegex(TypeError, msg):
-            CubeMultiplier()(cubelist, "new_cube_name", broadcast_to_threshold=True)
+            CubeMultiplier(broadcast_to_threshold=True)(cubelist, "new_cube_name")
 
     def test_multiply_preserves_bounds(self):
         """Test specific case for precipitation type, where multiplying a
@@ -168,7 +166,7 @@ class Test_process(MultiplierTest):
         new_cube_name = "new_cube_name"
         expected = CellMethod("sum", coords="time", comments=f"of {new_cube_name}")
 
-        result = CubeMultiplier()(cubelist, new_cube_name, broadcast_to_threshold=True)
+        result = CubeMultiplier(broadcast_to_threshold=True)(cubelist, new_cube_name)
         self.assertEqual(result.cell_methods[0], expected)
 
     def test_unmodified_cell_methods(self):
@@ -192,8 +190,19 @@ class Test_process(MultiplierTest):
             additional_cell_method_2,
         ]
 
-        result = CubeMultiplier()(cubelist, new_cube_name, broadcast_to_threshold=True)
+        result = CubeMultiplier(broadcast_to_threshold=True)(cubelist, new_cube_name)
         self.assertArrayEqual(result.cell_methods, expected)
+
+    def test_with_Combine(self):
+        """Test plugin works through the Combine plugin"""
+        cubelist = iris.cube.CubeList([self.cube.copy(), self.multiplier])
+        result = Combine("*", broadcast_to_threshold=True, new_name="new_cube_name")(
+            cubelist
+        )
+        self.assertIsInstance(result, Cube)
+        self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
+        self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
+        self.assertArrayAlmostEqual(result.data, self.cube.data)
 
 
 if __name__ == "__main__":

@@ -26,6 +26,7 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
+        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
         mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
@@ -82,6 +83,7 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
+        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
         mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
@@ -125,6 +127,7 @@ jobs:
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
+        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
         mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |

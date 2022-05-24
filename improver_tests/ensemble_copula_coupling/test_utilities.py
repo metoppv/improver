@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -345,7 +345,7 @@ class Test_restore_non_percentile_dimensions(IrisTest):
         self.cube = set_up_variable_cube(282 * np.ones((3, 3), dtype=np.float32))
         # function is designed to reshape an input data array with dimensions of
         # "percentiles x points" - generate suitable input data
-        self.expected_data = np.sort(ECC_TEMPERATURE_REALIZATIONS, axis=0)
+        self.expected_data = np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0)
         points_data = [self.expected_data[i].flatten() for i in range(3)]
         self.input_data = np.array(points_data)
 

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -94,7 +94,7 @@ class Test__init__(IrisTest):
         result = AdjustLandSeaPoints(vicinity_radius=30000.0)
         vicinity = getattr(result, "vicinity")
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
-        self.assertEqual(vicinity.distance, 30000.0)
+        self.assertEqual(vicinity.radius, 30000.0)
 
     def test_vicinity_arg_error(self):
         """Test with invalid vicinity_radius argument.

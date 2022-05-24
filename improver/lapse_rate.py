@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -120,12 +120,12 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
         self._check_dim_coords(temperature, lapse_rate)
 
-        if not spatial_coords_match(temperature, source_orog):
+        if not spatial_coords_match([temperature, source_orog]):
             raise ValueError(
                 "Source orography spatial coordinates do not match " "temperature grid"
             )
 
-        if not spatial_coords_match(temperature, dest_orog):
+        if not spatial_coords_match([temperature, dest_orog]):
             raise ValueError(
                 "Destination orography spatial coordinates do not match "
                 "temperature grid"

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -96,7 +96,7 @@ master_doc = "index"
 
 # General information about the project.
 project = "IMPROVER"
-copyright = "2019, Met Office"
+copyright = "- British Crown copyright. The Met Office"
 author = "Met Office"
 
 # The version info for the project you're documenting, acts as replacement for
@@ -394,10 +394,10 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "https://docs.python.org/": None,
+    "https://docs.python.org/3/": None,
     "https://scitools-iris.readthedocs.io/en/latest/": None,
     "https://scitools.org.uk/cartopy/docs/latest/": None,
-    "https://scitools.org.uk/cf-units/docs/latest/": None,
+    "https://cf-units.readthedocs.io/en/stable/": None,
     "https://numpy.org/doc/stable/": None,
     "https://docs.scipy.org/doc/scipy-1.6.2/reference/": None,
     "https://pandas.pydata.org/pandas-docs/dev/": None,

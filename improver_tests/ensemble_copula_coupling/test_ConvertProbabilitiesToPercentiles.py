@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -583,6 +583,42 @@ class Test_process(IrisTest):
         )
         result = Plugin().process(self.cube)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_masked_input_data(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values when the input data is masked.
+        """
+        cube = self.cube.copy()
+        cube.data[:, 0, 0] = np.nan
+        cube.data = np.ma.masked_invalid(cube.data)
+        expected_data = np.array(
+            [self.percentile_25, self.percentile_50, self.percentile_75]
+        )
+        expected_data[:, 0, 0] = np.nan
+        expected_data = np.ma.masked_invalid(expected_data)
+        result = Plugin().process(cube)
+        self.assertArrayAlmostEqual(result.data.data, expected_data.data, decimal=5)
+        self.assertArrayEqual(result.data.mask, expected_data.mask)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_masked_input_data_non_nans(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values when the input data is masked without underlying nans.
+        """
+        cube = self.cube.copy()
+        cube.data[:, 0, 0] = 1000
+        cube.data = np.ma.masked_equal(cube.data, 1000)
+        expected_data = np.array(
+            [self.percentile_25, self.percentile_50, self.percentile_75]
+        )
+        expected_data[:, 0, 0] = np.nan
+        expected_data = np.ma.masked_invalid(expected_data)
+        result = Plugin().process(cube)
+        self.assertArrayAlmostEqual(result.data.data, expected_data.data, decimal=5)
+        self.assertArrayEqual(result.data.mask, expected_data.mask)
 
     def test_check_data_over_specifying_percentiles(self):
         """

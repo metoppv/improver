@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,7 +37,11 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, operation="+", new_name=None, broadcast_to_threshold=False,
+    *cubes: cli.inputcube,
+    operation="+",
+    new_name=None,
+    broadcast_to_threshold=False,
+    minimum_realizations=None,
 ):
     r"""Combine input cubes.
 
@@ -58,6 +62,10 @@ def process(
         broadcast_to_threshold (bool):
             If True, broadcast input cubes to the threshold coord prior to combining -
             a threshold coord must already exist on the first input cube.
+        minimum_realizations (int):
+            If specified, the input cubes will be filtered to ensure that only realizations that
+            include all available lead times are combined. If the number of realizations that
+            meet this criteria are fewer than this integer, an error will be raised.
 
     Returns:
         result (iris.cube.Cube):
@@ -65,19 +73,11 @@ def process(
     """
     from iris.cube import CubeList
 
-    from improver.cube_combiner import CubeCombiner, CubeMultiplier
+    from improver.cube_combiner import Combine
 
-    if not cubes:
-        raise TypeError("A cube is needed to be combined.")
-    if new_name is None:
-        new_name = cubes[0].name()
-
-    if operation == "*" or operation == "multiply":
-        result = CubeMultiplier()(
-            CubeList(cubes), new_name, broadcast_to_threshold=broadcast_to_threshold,
-        )
-
-    else:
-        result = CubeCombiner(operation)(CubeList(cubes), new_name)
-
-    return result
+    return Combine(
+        operation,
+        broadcast_to_threshold=broadcast_to_threshold,
+        minimum_realizations=minimum_realizations,
+        new_name=new_name,
+    )(CubeList(cubes))

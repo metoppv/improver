@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -262,7 +262,7 @@ class AdjustLandSeaPoints(BasePlugin):
         self.output_land = None
         self.output_cube = None
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
-        self.vicinity = OccurrenceWithinVicinity(vicinity_radius)
+        self.vicinity = OccurrenceWithinVicinity(radius=vicinity_radius)
 
     @functools.lru_cache(maxsize=2)
     def _get_matches(
@@ -354,7 +354,7 @@ class AdjustLandSeaPoints(BasePlugin):
             Cube of regridding results.
         """
         # Check cube and output_land are on the same grid:
-        if not spatial_coords_match(cube, output_land):
+        if not spatial_coords_match([cube, output_land]):
             raise ValueError(
                 "X and Y coordinates do not match for cubes {}"
                 "and {}".format(repr(cube), repr(output_land))
@@ -400,7 +400,7 @@ def grid_contains_cutout(grid: Cube, cutout: Cube) -> bool:
         True if cutout is contained within grid, False otherwise.
     """
 
-    if spatial_coords_match(grid, cutout):
+    if spatial_coords_match([grid, cutout]):
         return True
 
     # check whether "cutout" coordinate points match a subset of "grid"

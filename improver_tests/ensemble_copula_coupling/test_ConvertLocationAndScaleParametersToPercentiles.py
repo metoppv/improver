@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -68,7 +68,9 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        self.temperature_cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
+        self.temperature_cube = set_up_variable_cube(
+            ECC_TEMPERATURE_REALIZATIONS.copy()
+        )
         self.data = np.array(
             [
                 [
@@ -451,7 +453,7 @@ class Test_process(IrisTest):
 
     def setUp(self):
         """Set up temperature cube."""
-        self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS)
+        self.cube = set_up_variable_cube(ECC_TEMPERATURE_REALIZATIONS.copy())
         self.forecast_predictor = self.cube.collapsed("realization", iris.analysis.MEAN)
         self.forecast_stddev = self.cube.collapsed("realization", iris.analysis.STD_DEV)
         self.no_of_percentiles = len(self.cube.coord("realization").points)

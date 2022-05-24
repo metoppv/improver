@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -117,7 +117,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             raise ValueError(
                 "Supplied cubes must have the same forecast reference times"
             )
-        if not spatial_coords_match(cape, precip):
+        if not spatial_coords_match([cape, precip]):
             raise ValueError("Supplied cubes do not have the same spatial coordinates")
         return cape, precip
 

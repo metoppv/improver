@@ -160,3 +160,21 @@ grids.
 https://timezonefinder.readthedocs.io/en/stable/
 
 Required for CLIs: ``generate-timezone-mask-ancillary``
+
+LightGBM
+~~~~~~~~~~~~~~~~~~
+Gradient boosted decision tree ensemble framework, used for RainForests
+calibration.
+
+https://lightgbm.readthedocs.io/en/latest/
+
+Required for CLIs: ``apply-rainforests-calibration``
+
+Treelite
+~~~~~~~~~~~~~~~~~~
+Model compiler for decision tree ensembles, used for more efficient computation
+of GBDT ensembles required for RainForests calibration.
+
+https://treelite.readthedocs.io/en/latest/index.html
+
+Required for CLIs: ``apply-rainforests-calibration``

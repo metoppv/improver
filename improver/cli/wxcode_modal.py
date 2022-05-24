@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -36,7 +36,9 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, model_id_attr: str = None):
+def process(
+    *cubes: cli.inputcube, model_id_attr: str = None, record_run_attr: str = None
+):
     """Generates a modal weather symbol for the period covered by the input
     weather symbol cubes. Where there are different weather codes available
     for night and day, the modal code returned is always a day code, regardless
@@ -50,6 +52,9 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
             a space-separated string.
+        record_run_attr:
+            Name of attribute used to record models and cycles used in
+            constructing the weather symbols.
 
     Returns:
         iris.cube.Cube:
@@ -60,4 +65,6 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return ModalWeatherCode(model_id_attr=model_id_attr)(cubes)
+    return ModalWeatherCode(
+        model_id_attr=model_id_attr, record_run_attr=record_run_attr,
+    )(cubes)

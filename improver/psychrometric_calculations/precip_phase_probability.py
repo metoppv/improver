@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -69,7 +69,6 @@ class PrecipPhaseProbability(BasePlugin):
                 Neighbourhood radius from which 80th percentile is found (m)
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
-        self._nbhood_shape = "circular"
         self.radius = radius
 
     def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
@@ -104,7 +103,7 @@ class PrecipPhaseProbability(BasePlugin):
         if len(cubes) != 2:
             raise ValueError(f"Expected 2 cubes, found {len(cubes)}")
 
-        if not spatial_coords_match(cubes[0], cubes[1]):
+        if not spatial_coords_match(cubes):
             raise ValueError(
                 "Spatial coords mismatch between " f"{cubes[0]} and " f"{cubes[1]}"
             )
@@ -115,7 +114,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.param = "snow"
             self.comparator = operator.gt
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[80.0]
+                self.radius, percentiles=[80.0]
             )
         else:
             extracted_cube = cubes.extract("altitude_of_rain_falling_level")
@@ -130,7 +129,7 @@ class PrecipPhaseProbability(BasePlugin):
             # We want rain at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
-                self._nbhood_shape, self.radius, percentiles=[20.0]
+                self.radius, percentiles=[20.0]
             )
 
         orography_name = "surface_altitude"

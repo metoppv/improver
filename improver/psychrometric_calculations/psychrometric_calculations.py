@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -52,10 +52,7 @@ from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import Integration, fast_linear_fit
-from improver.utilities.spatial import (
-    OccurrenceWithinVicinity,
-    number_of_grid_cells_to_distance,
-)
+from improver.utilities.spatial import OccurrenceWithinVicinity
 
 SVP_T_MIN = 183.15
 SVP_T_MAX = 338.25
@@ -531,6 +528,10 @@ class PhaseChangeLevel(BasePlugin):
                 orographic feature where high-resolution models can give highly
                 localised results. Zero uses central point only (neighbourhood is disabled).
                 One uses central point and one in each direction. Two goes two points etc.
+                A grid_point_radius may be specified for data on any projection
+                but the effective kernel shape in real space may be irregular.
+                Users must be aware of this when choosing whether to use a non-zero
+                grid_point_radius with a non-equal areas projection
             horizontal_interpolation:
                 If True apply horizontal interpolation to fill in holes in
                 the returned phase-change-level that occur because the level
@@ -553,16 +554,6 @@ class PhaseChangeLevel(BasePlugin):
         self.phase_change_name = phase_change_def["name"]
         self.grid_point_radius = grid_point_radius
         self.horizontal_interpolation = horizontal_interpolation
-
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<PhaseChangeLevel: falling_level_threshold:{}, "
-            "grid_point_radius: {}>".format(
-                self.falling_level_threshold, self.grid_point_radius
-            )
-        )
-        return result
 
     def find_falling_level(
         self, wb_int_data: ndarray, orog_data: ndarray, height_points: ndarray
@@ -861,12 +852,9 @@ class PhaseChangeLevel(BasePlugin):
             of the orography data or the orography data itself if the radius is zero
         """
         if self.grid_point_radius >= 1:
-            radius_in_metres = number_of_grid_cells_to_distance(
-                orography_cube, self.grid_point_radius
-            )
-            max_in_nbhood_orog = OccurrenceWithinVicinity(radius_in_metres)(
-                orography_cube
-            )
+            max_in_nbhood_orog = OccurrenceWithinVicinity(
+                grid_point_radius=self.grid_point_radius
+            )(orography_cube)
             return max_in_nbhood_orog
         else:
             return orography_cube.copy()

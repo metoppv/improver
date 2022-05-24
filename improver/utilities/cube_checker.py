@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -30,11 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for checking cubes."""
 
-from typing import List, Optional
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 
@@ -181,21 +181,25 @@ def find_dimension_coordinate_mismatch(
     return mismatch
 
 
-def spatial_coords_match(first_cube: Cube, second_cube: Cube) -> bool:
+def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
     """
-    Determine if the x and y coords in the two cubes are the same.
+    Determine if the x and y coords of all the input cubes are the same.
 
     Args:
-        first_cube:
-            First cube to compare.
-        second_cube:
-            Second cube to compare.
+        cubes:
+            A list of cubes to compare.
 
     Returns:
         True if the x and y coords are the exactly the same to the
         precision of the floating-point values (this should be true for
         any cubes derived using cube.regrid()), otherwise False.
     """
-    return first_cube.coord(axis="x") == second_cube.coord(
-        axis="x"
-    ) and first_cube.coord(axis="y") == second_cube.coord(axis="y")
+    ref = cubes[0]
+    match = True
+    for cube in cubes[1:]:
+        match = (
+            cube.coord(axis="x") == ref.coord(axis="x")
+            and cube.coord(axis="y") == ref.coord(axis="y")
+            and match
+        )
+    return match

@@ -23,12 +23,15 @@ dependencies:
   - sigtools=2.0.3
   - sphinx=4.0.2
   # Optional
+  - lightgbm=3.2.1
   - numba=0.53.1
   - python-stratify=0.2.post0
+  - treelite=2.3.0
   # Development
   - astroid
   - bandit
   - black=19.10b0
+  - click=8.0.2
   - filelock
   - flake8
   - isort=5

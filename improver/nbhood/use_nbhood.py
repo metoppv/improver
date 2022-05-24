@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -78,11 +78,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
         resulting in a cube with a "topographic_zone" coordinate which is
         returned from this plugin.
 
-        The re_mask option can be used to return the resulting cube with a
-        "topographic_zone" coordinate, with each slice over the
-        "topographic_zone" masked using the input mask cube.
-
-        Otherwise if weights are provided then you can weight between
+        However, if weights are provided then you can weight between
         adjacent bands when you collapse the new "topographic_zone" coordinate.
         This takes into account the result from the neighbourhood processing to
         adjust the weights for points in a "topographic_zone" that don't have
@@ -130,12 +126,12 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
     def __init__(
         self,
         coord_for_masking: str,
+        neighbourhood_method: str,
         radii: Union[float, List[float]],
         lead_times: Optional[List[float]] = None,
         collapse_weights: Optional[Cube] = None,
-        weighted_mode: bool = True,
-        sum_or_fraction: str = "fraction",
-        re_mask: bool = False,
+        weighted_mode: bool = False,
+        sum_only: bool = False,
     ) -> None:
         """
         Initialise the class.
@@ -144,6 +140,9 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             coord_for_masking:
                 String matching the name of the coordinate that will be used
                 for masking.
+            neighbourhood_method:
+                Name of the neighbourhood method to use. Options: 'circular',
+                'square'.
             radii:
                 The radii in metres of the neighbourhood to apply.
                 Rounded up to convert into integer number of grid
@@ -170,34 +169,18 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
                 If True, use a circle for neighbourhood kernel with
                 weighting decreasing with radius.
                 If False, use a circle with constant weighting.
-            sum_or_fraction:
-                Identifier for whether sum or fraction should be returned from
-                neighbourhooding. The sum represents the sum of the
-                neighbourhood.
-                The fraction represents the sum of the neighbourhood divided by
-                the neighbourhood area. "fraction" is the default.
-                Valid options are "sum" or "fraction".
-            re_mask:
-                If re_mask is True, the original un-neighbourhood processed
-                mask is applied to mask out the neighbourhood processed cube.
-                If re_mask is False, the original un-neighbourhood processed
-                mask is not applied. Therefore, the neighbourhood processing
-                may result in values being present in areas that were
-                originally masked.
-                This should be set to False if using collapse_weights.
+            sum_only:
+                If true, return neighbourhood sum instead of mean.
+
         """
         self.coord_for_masking = coord_for_masking
-        self.neighbourhood_method = "square"
+        self.neighbourhood_method = neighbourhood_method
         self.radii = radii
         self.lead_times = lead_times
         self.collapse_weights = collapse_weights
         self.weighted_mode = weighted_mode
-        self.sum_or_fraction = sum_or_fraction
-        self.re_mask = re_mask
-        # Check that if collapse_weights are provided then re_mask is set to False
-        if self.collapse_weights is not None and re_mask is True:
-            message = "re_mask should be set to False when using collapse_weights"
-            raise ValueError(message)
+        self.sum_only = sum_only
+        self.re_mask = False
 
     def collapse_mask_coord(self, cube: Cube) -> Cube:
         """
@@ -262,7 +245,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             self.radii,
             lead_times=self.lead_times,
             weighted_mode=self.weighted_mode,
-            sum_or_fraction=self.sum_or_fraction,
+            sum_only=self.sum_only,
             re_mask=self.re_mask,
         )
         yname = cube.coord(axis="y").name()

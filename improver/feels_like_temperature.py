@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -126,12 +126,6 @@ def _calculate_apparent_temperature(
     Here, the apparent temperature regression equation has been used for all
     wind speeds.
 
-    This function looks up a value for the saturation vapour pressure of
-    water vapour using the temperature and a table of values. These tabulated
-    values are found using lookup_svp and are corrected to the saturated
-    vapour pressure in air using pressure_correct_svp, both functions are from
-    the WetBulbTemperature plugin which makes use of the Goff-Gratch method.
-
     Args:
         temperature:
             Temperatures in degrees celsius
@@ -166,10 +160,10 @@ def _feels_like_temperature(
     combination of the wind chill index and Steadman's apparent temperature
     equation as follows:
 
-    If temperature < 10 degress C: The feels like temperature is equal to
+    If temperature < 10 degrees C: The feels like temperature is equal to
     the wind chill.
 
-    If temperature > 20 degress C: The feels like temperature is equal to
+    If temperature > 20 degrees C: The feels like temperature is equal to
     the apparent temperature.
 
     If 10 <= temperature <= 20 degrees C: A weighting (alpha) is calculated

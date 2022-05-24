@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -71,6 +71,8 @@ def test_basic(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
         "--target-period",
         "3600",
         "--output",
@@ -100,6 +102,8 @@ def test_native_units(tmp_path):
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
         "--target-period",
         "3600",
         "--output",

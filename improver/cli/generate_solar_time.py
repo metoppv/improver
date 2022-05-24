@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -28,40 +28,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for nbhood.circular_kernel.check_radius_against_distance."""
+"""Script to run GenerateSolarTime ancillary generation."""
 
-import unittest
-
-import numpy as np
-from iris.tests import IrisTest
-
-from improver.nbhood.circular_kernel import check_radius_against_distance
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver import cli
 
 
-class Test_check_radius_against_distance(IrisTest):
+@cli.clizefy
+@cli.with_output
+def process(target_grid: cli.inputcube, *, time: cli.inputdatetime):
+    """Generate a cube containing local solar time, evaluated on the target grid for
+    specified time. Local solar time is used as an input to the RainForests calibration
+    for rainfall.
 
-    """Test check_radius_against_distance function."""
+    Args:
+        target_grid (iris.cube.Cube):
+            A cube with the desired grid.
+        time (str):
+            A datetime specified in the format YYYYMMDDTHHMMZ at which to calculate the
+            local solar time.
 
-    def setUp(self):
-        """Set up the cube."""
-        data = np.ones((4, 4), dtype=np.float32)
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea")
+    Returns:
+        iris.cube.Cube:
+            A cube containing local solar time.
+    """
+    from improver.generate_ancillaries.generate_derived_solar_fields import (
+        GenerateSolarTime,
+    )
 
-    def test_error(self):
-        """Test correct exception raised when the distance is larger than the
-        corner-to-corner distance of the domain."""
-        distance = 550000.0
-        msg = "Distance of 550000.0m exceeds max domain distance of "
-        with self.assertRaisesRegex(ValueError, msg):
-            check_radius_against_distance(self.cube, distance)
-
-    def test_passes(self):
-        """Test no exception raised when the distance is smaller than the
-        corner-to-corner distance of the domain."""
-        distance = 4000
-        check_radius_against_distance(self.cube, distance)
-
-
-if __name__ == "__main__":
-    unittest.main()
+    return GenerateSolarTime()(target_grid, time)

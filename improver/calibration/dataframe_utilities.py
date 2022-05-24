@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -53,6 +53,11 @@ from improver.ensemble_copula_coupling.utilities import choose_set_of_percentile
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
+REPRESENTATION_COLUMNS = [
+    "percentile",
+    "realization",
+]
+
 FORECAST_DATAFRAME_COLUMNS = [
     "altitude",
     "blend_time",
@@ -65,7 +70,6 @@ FORECAST_DATAFRAME_COLUMNS = [
     "height",
     "latitude",
     "longitude",
-    "percentile",
     "period",
     "time",
     "units",
@@ -261,32 +265,65 @@ def _training_dates_for_calibration(
     )
 
 
+def get_forecast_representation(df: DataFrame) -> str:
+    """Check which of REPRESENTATION_COLUMNS (percentile or realization)
+    exists in the dataframe.
+
+    Args:
+        df:
+            DataFrame expected to contain exactly one of REPRESENTATION_COLUMNS.
+
+    Returns:
+        representation_type:
+            The member of REPRESENTATION_COLUMNS found in the dataframe columns.
+
+    Raises:
+        ValueError:
+            If none of the allowed columns are present, or more than one is present.
+    """
+    representations = set(REPRESENTATION_COLUMNS) & set(df.columns)
+    if len(representations) > 1:
+        raise ValueError(
+            f"More than one column of {REPRESENTATION_COLUMNS} "
+            "exists in the input dataset. The columns present are "
+            f"{representations}."
+        )
+    if len(representations) == 0:
+        raise ValueError(
+            f"None of the columns {REPRESENTATION_COLUMNS} "
+            "exist in the input dataset"
+        )
+    return representations.pop()
+
+
 def _prepare_dataframes(
     forecast_df: DataFrame,
     truth_df: DataFrame,
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
-    """Prepare dataframes for conversion to cubes by: 1) checking
-    that the expected columns are present, 2) checking the percentiles
-    are as expected, 3) removing duplicates from the forecast and truth,
-    4) finding the sites common to both the forecast and truth dataframes
-    and 5) replacing and supplementing the truth dataframe with
-    information from the forecast dataframe. Note that this third
-    step will also ensure that a row containing a NaN for the
-    ob_value is inserted for any missing observations.
+    """Prepare dataframes for conversion to cubes by: 1) checking which forecast
+    representation is present, 2) checking that the expected columns are present,
+    3) (Optionally) checking the percentiles are as expected, 4) removing
+    duplicates from the forecast and truth, 5) finding the sites common to
+    both the forecast and truth dataframes and 6) replacing and supplementing
+    the truth dataframe with information from the forecast dataframe. Note that
+    this fourth step will also ensure that a row containing a NaN for the ob_value
+    is inserted for any missing observations.
 
     Args:
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, altitude,
-            period, height, cf_name, units and experiment. Any other
-            columns are ignored.
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile or
+            realization), diagnostic, latitude, longitude, altitude,
+            period, height, cf_name, units and experiment. Optionally, the
+            DataFrame may also contain station_id. Any other columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude and altitude.
-            Any other columns are ignored.
+            Optionally the DataFrame may also contain the following columns:
+            station_id, units. Any other columns are ignored.
         percentiles:
             The set of percentiles to be used for estimating EMOS coefficients.
         experiment:
@@ -297,7 +334,12 @@ def _prepare_dataframes(
         A sanitised version of the forecasts and truth dataframes that
         are ready for conversion to cubes.
     """
-    _dataframe_column_check(forecast_df, FORECAST_DATAFRAME_COLUMNS)
+
+    representation_type = get_forecast_representation(forecast_df)
+
+    _dataframe_column_check(
+        forecast_df, FORECAST_DATAFRAME_COLUMNS + [representation_type]
+    )
     _dataframe_column_check(truth_df, TRUTH_DATAFRAME_COLUMNS)
 
     # Filter to select only one experiment
@@ -318,20 +360,30 @@ def _prepare_dataframes(
         forecast_df = forecast_df[np.logical_or.reduce(indices)]
 
     # Check the percentiles can be considered to be equally space quantiles.
-    _quantile_check(forecast_df)
+    if representation_type == "percentile":
+        _quantile_check(forecast_df)
 
     # Remove forecast duplicates.
-    forecast_df = forecast_df.drop_duplicates(
-        subset=["diagnostic", "forecast_period", "percentile", "time", "wmo_id"],
-        keep="last",
-    )
+    forecast_cols = [
+        "diagnostic",
+        "forecast_period",
+        representation_type,
+        "time",
+        "wmo_id",
+    ]
+    if "station_id" in forecast_df.columns:
+        forecast_cols.append("station_id")
+    forecast_df = forecast_df.drop_duplicates(subset=forecast_cols, keep="last",)
     # Sort to ensure a consistent ordering after removing duplicates.
-    forecast_df = forecast_df.sort_values(
-        by=["blend_time", "percentile", "wmo_id"], ignore_index=True,
-    )
+    sort_cols = ["blend_time", representation_type, "wmo_id"]
+    if "station_id" in forecast_df.columns:
+        sort_cols.append("station_id")
+    forecast_df = forecast_df.sort_values(by=sort_cols, ignore_index=True,)
 
     # Remove truth duplicates.
     truth_cols = ["diagnostic", "time", "wmo_id"]
+    if "station_id" in truth_df.columns:
+        truth_cols.append("station_id")
     truth_df = truth_df.drop_duplicates(subset=truth_cols, keep="last",)
     # Sort to ensure a consistent ordering after removing duplicates.
     truth_df = truth_df.sort_values(by=truth_cols, ignore_index=True)
@@ -343,6 +395,16 @@ def _prepare_dataframes(
     forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
     truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
+    if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):
+        # Find the common set of station ids.
+        common_station_ids = sorted(
+            set(forecast_df["station_id"].unique()).intersection(
+                truth_df["station_id"].unique()
+            )
+        )
+        forecast_df = forecast_df[forecast_df["station_id"].isin(common_station_ids)]
+        truth_df = truth_df[truth_df["station_id"].isin(common_station_ids)]
+
     # Ensure time in forecasts is present in truths.
     forecast_df = forecast_df[forecast_df["time"].isin(truth_df["time"].unique())]
 
@@ -351,26 +413,30 @@ def _prepare_dataframes(
 
     truth_df = truth_df.drop(columns=["altitude", "latitude", "longitude"])
     # Identify columns to copy onto the truth_df from the forecast_df
-    forecast_subset = forecast_df[
-        [
-            "wmo_id",
-            "latitude",
-            "longitude",
-            "altitude",
-            "period",
-            "height",
-            "cf_name",
-            "units",
-            "time",
-            "diagnostic",
-        ]
-    ].drop_duplicates()
+    subset_cols = [
+        "wmo_id",
+        "latitude",
+        "longitude",
+        "altitude",
+        "period",
+        "height",
+        "cf_name",
+        "time",
+        "diagnostic",
+    ]
+    if "station_id" in forecast_df.columns:
+        subset_cols.append("station_id")
+    # if units not present in truth_df, copy from forecast_df
+    if "units" not in truth_df.columns:
+        subset_cols.append("units")
+    forecast_subset = forecast_df[subset_cols].drop_duplicates()
 
     # Use "right" to fill in any missing observations in the truth dataframe
     # and retain the order from the forecast_subset.
-    truth_df = truth_df.merge(
-        forecast_subset, on=["wmo_id", "time", "diagnostic"], how="right"
-    )
+    merge_cols = ["wmo_id", "time", "diagnostic"]
+    if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):
+        merge_cols.append("station_id")
+    truth_df = truth_df.merge(forecast_subset, on=merge_cols, how="right")
     return forecast_df, truth_df
 
 
@@ -384,8 +450,10 @@ def forecast_dataframe_to_cube(
         df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, period,
-            height, cf_name, units. Any other columns are ignored.
+            wmo_id, REPRESENTATION_COLUMNS (percentile or realization),
+            diagnostic, latitude, longitude, period, height, cf_name, units.
+            Optionally, the DataFrame may also contain station_id. Any other
+            columns are ignored.
         training_dates:
             Datetimes spanning the training period.
         forecast_period:
@@ -394,6 +462,9 @@ def forecast_dataframe_to_cube(
     Returns:
         Cube containing the forecasts from the training period.
     """
+
+    representation_type = get_forecast_representation(df)
+
     fp_point = pd.Timedelta(int(forecast_period), unit="seconds")
 
     cubelist = CubeList()
@@ -443,25 +514,40 @@ def forecast_dataframe_to_cube(
             units=TIME_COORDS["forecast_reference_time"].units,
         )
 
-        for percentile in sorted(df["percentile"].unique()):
-            perc_coord = DimCoord(
-                np.float32(percentile), long_name="percentile", units="%"
-            )
-            perc_df = time_df.loc[time_df["percentile"] == percentile]
+        for var_val in sorted(time_df[representation_type].unique()):
+            var_df = time_df.loc[time_df[representation_type] == var_val]
+            cf_name = var_df["cf_name"].values[0]
+            if representation_type == "percentile":
+                var_coord = DimCoord(
+                    np.float32(var_val), long_name="percentile", units="%"
+                )
+            elif representation_type == "realization":
+                var_coord = DimCoord(
+                    np.int32(var_val), standard_name="realization", units="1"
+                )
+
+            if "station_id" in var_df.columns:
+                unique_site_id = var_df["station_id"].values.astype("<U8")
+                unique_site_id_key = "station_id"
+            else:
+                unique_site_id = None
+                unique_site_id_key = None
 
             cube = build_spotdata_cube(
-                perc_df["forecast"].astype(np.float32),
-                perc_df["cf_name"].values[0],
-                perc_df["units"].values[0],
-                perc_df["altitude"].astype(np.float32),
-                perc_df["latitude"].astype(np.float32),
-                perc_df["longitude"].astype(np.float32),
-                perc_df["wmo_id"].values.astype("U5"),
+                var_df["forecast"].astype(np.float32),
+                cf_name,
+                var_df["units"].values[0],
+                var_df["altitude"].astype(np.float32),
+                var_df["latitude"].astype(np.float32),
+                var_df["longitude"].astype(np.float32),
+                var_df["wmo_id"].values.astype("U5"),
+                unique_site_id,
+                unique_site_id_key,
                 scalar_coords=[
                     time_coord,
                     frt_coord,
                     fp_coord,
-                    perc_coord,
+                    var_coord,
                     height_coord,
                 ],
             )
@@ -471,7 +557,9 @@ def forecast_dataframe_to_cube(
         return
     cube = cubelist.merge_cube()
 
-    return RebadgePercentilesAsRealizations()(cube)
+    if representation_type == "percentile":
+        return RebadgePercentilesAsRealizations()(cube)
+    return cube
 
 
 def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
@@ -481,13 +569,14 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
         df:
             DataFrame expected to contain the following columns: ob_value,
             time, wmo_id, diagnostic, latitude, longitude, altitude, cf_name,
-            height, period and units. Any other columns are ignored.
+            height, period. Optionally the DataFrame may also contain
+            the following columns: station_id, units. Any other columns are ignored.
         training_dates:
             Datetimes spanning the training period.
-
     Returns:
         Cube containing the truths from the training period.
     """
+
     cubelist = CubeList()
     for adate in training_dates:
         time_df = df.loc[(df["time"] == adate)]
@@ -510,6 +599,13 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
         time_coord = _define_time_coord(adate, time_bounds)
         height_coord = _define_height_coord(time_df["height"].values[0])
 
+        if "station_id" in time_df.columns:
+            unique_site_id = time_df["station_id"].values.astype("<U8")
+            unique_site_id_key = "station_id"
+        else:
+            unique_site_id = None
+            unique_site_id_key = None
+
         cube = build_spotdata_cube(
             time_df["ob_value"].astype(np.float32),
             time_df["cf_name"].values[0],
@@ -518,12 +614,15 @@ def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cu
             time_df["latitude"].astype(np.float32),
             time_df["longitude"].astype(np.float32),
             time_df["wmo_id"].values.astype("U5"),
+            unique_site_id,
+            unique_site_id_key,
             scalar_coords=[time_coord, height_coord],
         )
         cubelist.append(cube)
 
     if not cubelist:
         return
+
     return cubelist.merge_cube()
 
 
@@ -543,11 +642,14 @@ def forecast_and_truth_dataframes_to_cubes(
         forecast_df:
             DataFrame expected to contain the following columns: forecast,
             blend_time, forecast_period, forecast_reference_time, time,
-            wmo_id, percentile, diagnostic, latitude, longitude, period,
-            height, cf_name, units. Any other columns are ignored.
+            wmo_id, one of REPRESENTATION_COLUMNS (percentile or realization),
+            diagnostic, latitude, longitude, period, height, cf_name, units.
+            Optionally, the DataFrame may also contain station_id. Any other
+            columns are ignored.
         truth_df:
             DataFrame expected to contain the following columns: ob_value,
-            time, wmo_id, diagnostic, latitude, longitude and altitude.
+            time, wmo_id, diagnostic, latitude, longitude and altitude.  Optionally the
+            DataFrame may also contain the following columns: station_id, units.
             Any other columns are ignored.
         cycletime:
             Cycletime of a format similar to 20170109T0000Z.
@@ -561,7 +663,6 @@ def forecast_and_truth_dataframes_to_cubes(
         experiment:
             A value within the experiment column to select from the forecast
             table.
-
 
     Returns:
         Forecasts and truths for the training period in Cube format.

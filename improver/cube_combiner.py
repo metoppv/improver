@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,7 +49,102 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
+    filter_realizations,
 )
+
+
+class Combine(BasePlugin):
+    """Combine input cubes.
+
+    Combine the input cubes into a single cube using the requested operation.
+    The first cube in the input list provides the template for output metadata.
+    If coordinates are expanded as a result of this combine operation
+    (e.g. expanding time for accumulations / max in period) the upper bound of
+    the new coordinate will also be used as the point for the new coordinate.
+    """
+
+    def __init__(
+        self,
+        operation: str,
+        broadcast_to_threshold: bool = False,
+        minimum_realizations: Union[str, int, None] = None,
+        new_name: str = None,
+    ):
+        r"""
+        Args:
+            operation (str):
+                An operation to use in combining input cubes. One of:
+                +, -, \*, add, subtract, multiply, min, max, mean
+            broadcast_to_threshold (bool):
+                If True, broadcast input cubes to the threshold coord prior to combining -
+                a threshold coord must already exist on the first input cube.
+            minimum_realizations (int):
+                If specified, the input cubes will be filtered to ensure that only realizations that
+                include all available lead times are combined. If the number of realizations that
+                meet this criteria are fewer than this integer, an error will be raised.
+                Minimum value is 1.
+            new_name (str):
+                New name for the resulting dataset.
+        """
+        try:
+            self.minimum_realizations = int(minimum_realizations)
+        except TypeError:
+            if minimum_realizations is not None:
+                raise
+            self.minimum_realizations = None
+        self.new_name = new_name
+        self.broadcast_to_threshold = broadcast_to_threshold
+
+        if operation == "*" or operation == "multiply":
+            self.plugin = CubeMultiplier(
+                broadcast_to_threshold=self.broadcast_to_threshold
+            )
+        else:
+            self.plugin = CubeCombiner(operation)
+
+    def process(self, cubes: CubeList) -> Cube:
+        """
+        Preprocesses the cubes, then passes them to the appropriate plugin
+
+        Args:
+            cubes (iris.cube.CubeList or list of iris.cube.Cube):
+                An iris CubeList to be combined.
+
+        Returns:
+            result (iris.cube.Cube):
+                Returns a cube with the combined data.
+
+        Raises:
+            TypeError:
+                If input list of cubes is empty
+
+            ValueError:
+                If minimum_realizations aren't met, or less than one were requested.
+        """
+        if not cubes:
+            raise TypeError("A cube is needed to be combined.")
+        if self.new_name is None:
+            self.new_name = cubes[0].name()
+
+        if self.minimum_realizations is None:
+            filtered_cubes = cubes
+        else:
+            if self.minimum_realizations < 1:
+                raise ValueError(
+                    f"Minimum realizations must be at least 1, not {self.minimum_realizations}"
+                )
+
+            cube = filter_realizations(cubes)
+            realization_count = len(cube.coord("realization").points)
+            if realization_count < self.minimum_realizations:
+                raise ValueError(
+                    f"After filtering, number of realizations {realization_count} "
+                    "is less than the minimum number of realizations allowed "
+                    f"({self.minimum_realizations})"
+                )
+            filtered_cubes = cube.slices_over("time")
+
+        return self.plugin(CubeList(filtered_cubes), self.new_name)
 
 
 class CubeCombiner(BasePlugin):
@@ -222,8 +317,15 @@ class CubeMultiplier(CubeCombiner):
 
     """
 
-    def __init__(self) -> None:
-        """Create a CubeMultiplier plugin"""
+    def __init__(self, broadcast_to_threshold: bool = False) -> None:
+        """Create a CubeMultiplier plugin
+
+        Args:
+            broadcast_to_threshold:
+                True if the first cube has a threshold coordinate to which the
+                following cube(s) need(s) to be broadcast prior to combining data.
+        """
+        self.broadcast_to_threshold = broadcast_to_threshold
         self.operator = np.multiply
         self.normalise = False
 
@@ -337,10 +439,7 @@ class CubeMultiplier(CubeCombiner):
         return new_cell_methods
 
     def process(
-        self,
-        cube_list: Union[List[Cube], CubeList],
-        new_diagnostic_name: str,
-        broadcast_to_threshold: bool = False,
+        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str
     ) -> Cube:
         """
         Multiply data from a list of input cubes into a single cube.  The first
@@ -353,9 +452,6 @@ class CubeMultiplier(CubeCombiner):
                 New name for the combined diagnostic.  This should be the diagnostic
                 name, eg rainfall_rate or rainfall_rate_in_vicinity, rather than the
                 name of the probabilistic output cube.
-            broadcast_to_threshold:
-                True if the first cube has a threshold coordinate to which the
-                following cube(s) need(s) to be broadcast prior to combining data.
 
         Returns:
             Cube containing the combined data.
@@ -368,7 +464,7 @@ class CubeMultiplier(CubeCombiner):
             msg = "Expecting 2 or more cubes in cube_list"
             raise ValueError(msg)
 
-        if broadcast_to_threshold:
+        if self.broadcast_to_threshold:
             cube_list = self._setup_coords_for_broadcast(cube_list)
 
         self._check_dimensions_match(
@@ -383,7 +479,7 @@ class CubeMultiplier(CubeCombiner):
 
         probabilistic_name = cube_list[0].name()
 
-        if broadcast_to_threshold:
+        if self.broadcast_to_threshold:
             diagnostic_name = get_diagnostic_cube_name_from_probability_name(
                 probabilistic_name
             )

@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -45,7 +45,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.nbhood.square_kernel import SquareNeighbourhood
+from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
@@ -138,9 +138,9 @@ class FieldTexture(BasePlugin):
             A ratio between 0 and 1 of actual transitions over potential transitions.
         """
         # Calculate the potential transitions within neighbourhoods.
-        potential_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
-            cube, radius=radius
-        )
+        potential_transitions = NeighbourhoodProcessing(
+            "square", radius, sum_only=True
+        ).process(cube)
         potential_transitions.data = 4 * potential_transitions.data
 
         # Calculate the actual transitions for each grid cell of value 1 and
@@ -150,9 +150,9 @@ class FieldTexture(BasePlugin):
         )
 
         # Sum the number of actual transitions within the neighbourhood.
-        actual_transitions = SquareNeighbourhood(sum_or_fraction="sum").run(
-            actual_transitions, radius=radius
-        )
+        actual_transitions = NeighbourhoodProcessing(
+            "square", radius, sum_only=True
+        ).process(actual_transitions)
 
         # Calculate the ratio of actual to potential transitions in areas where the
         # original diagnostic value was greater than zero. Where the original value

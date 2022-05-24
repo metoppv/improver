@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -32,7 +32,6 @@
    whole dimension."""
 
 import warnings
-from datetime import datetime
 from typing import List, Optional, Union
 
 import iris
@@ -45,7 +44,7 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
-from improver.blending.utilities import find_blend_dim_coord
+from improver.blending.utilities import find_blend_dim_coord, set_record_run_attr
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.cube_manipulation import (
@@ -157,31 +156,6 @@ class MergeCubesForWeightedBlending(BasePlugin):
             cube.add_aux_coord(new_model_id_coord)
             cube.add_aux_coord(new_model_coord)
 
-    def _set_record_run_attr(self, cubelist: CubeList) -> None:
-        """Set a model-cycle record attribute if configured."""
-        cycle_strings = []
-        for cube in cubelist:
-            if self.record_run_attr in cube.attributes:
-                cycle_strings.extend(cube.attributes[self.record_run_attr].splitlines())
-                continue
-            cycle = datetime.utcfromtimestamp(
-                cube.coord("forecast_reference_time").points[0]
-            )
-            cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
-            if self.model_id_attr not in cube.attributes:
-                raise Exception(
-                    f"Failure to record run information in '{self.record_run_attr}' "
-                    "during blend: no model id attribute found in cube. "
-                    f"Cube attributes: {cube.attributes}"
-                )
-            blending_weight = ""  # TODO: include actual blending weight here.
-            cycle_strings.append(
-                f"{cube.attributes[self.model_id_attr]}:{cycle_str}:{blending_weight}"
-            )
-        cycle_strings.sort()
-        for cube in cubelist:
-            cube.attributes[self.record_run_attr] = "\n".join(cycle_strings)
-
     @staticmethod
     def _remove_blend_time(cube: Cube) -> Cube:
         """If present on input, remove existing blend time coordinate (as this will
@@ -230,7 +204,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         )
 
         if self.record_run_attr is not None and self.model_id_attr is not None:
-            self._set_record_run_attr(cubelist)
+            set_record_run_attr(cubelist, self.record_run_attr, self.model_id_attr)
 
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]

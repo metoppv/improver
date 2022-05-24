@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -37,10 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    neighbour_cube: cli.inputcube,
-    cube: cli.inputcube,
-    lapse_rate: cli.inputcube = None,
-    *,
+    *cubes: cli.inputcube,
     apply_lapse_rate_correction=False,
     land_constraint=False,
     similar_altitude=False,
@@ -58,15 +55,15 @@ def process(
     and that of the grid point from which the temperature data is extracted.
 
     Args:
-        neighbour_cube (iris.cube.Cube):
-            Cube of spot-data neighbours and the spot site information.
-        cube (iris.cube.Cube):
-            Cube containing the diagnostic data to be extracted.
-        lapse_rate (iris.cube.Cube):
-            Optional cube containing temperature lapse rates. If this cube is
+        cubes (iris.cube.Cube):
+            A list of cubes containing the diagnostic data to be extracted,
+            the lapse rate (optional) and the neighbour cube. Where the lapse
+            rate cube contains temperature lapse rates. If this cube is
             provided and a screen temperature cube is being processed, the
             lapse rates will be used to adjust the temperature to better
             represent each spot's site-altitude.
+            And the neighbour cube is a cube of spot-data neighbours and
+            the spot site information.
         apply_lapse_rate_correction (bool):
             Use to apply a lapse-rate correction to screen temperature data so
             that the data are a better match the altitude of the spot site for
@@ -142,6 +139,9 @@ def process(
     from improver.utilities.cube_extraction import extract_subcube
     from improver.utilities.cube_manipulation import collapse_realizations
 
+    neighbour_cube = cubes[-1]
+    cube = cubes[0]
+
     if realization_collapse:
         cube = collapse_realizations(cube)
     neighbour_selection_method = NeighbourSelection(
@@ -195,13 +195,13 @@ def process(
                 raise ValueError(msg)
 
     # Check whether a lapse rate cube has been provided
-    if apply_lapse_rate_correction and lapse_rate:
-        plugin = SpotLapseRateAdjust(
-            neighbour_selection_method=neighbour_selection_method
-        )
-        result = plugin(result, neighbour_cube, lapse_rate)
-    elif apply_lapse_rate_correction and not lapse_rate:
-        if not suppress_warnings:
+    if apply_lapse_rate_correction:
+        if len(cubes) == 3:
+            plugin = SpotLapseRateAdjust(
+                neighbour_selection_method=neighbour_selection_method
+            )
+            result = plugin(result, neighbour_cube, cubes[-2])
+        elif not suppress_warnings:
             warnings.warn(
                 "A lapse rate cube was not provided, but the option to "
                 "apply the lapse rate correction was enabled. No lapse rate "

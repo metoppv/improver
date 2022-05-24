@@ -1,3 +1,5 @@
+# Note that this file intentionally uses no cache, see
+# https://github.com/metoppv/improver/pull/1651#issue-1108889073
 name: Scheduled Tests
 
 on:
@@ -14,19 +16,11 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      id: cache
-      env:
-        # Increase this value to reset cache
-        CACHE_NUMBER: 2
-      with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
     - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
+        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
         mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
@@ -71,19 +65,11 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      id: cache
-      env:
-        # Increase this value to reset cache
-        CACHE_NUMBER: 2
-      with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
     - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
+        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
         mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
@@ -110,19 +96,11 @@ jobs:
     if: github.repository_owner == 'metoppv'
     steps:
     - uses: actions/checkout@v2
-    - uses: actions/cache@v2
-      id: cache
-      env:
-        # Increase this value to reset cache
-        CACHE_NUMBER: 2
-      with:
-        path: /usr/share/miniconda/envs/im${{ matrix.env }}
-        key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
     - name: conda env update
-      if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
         conda install -c conda-forge mamba
+        rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
         mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |

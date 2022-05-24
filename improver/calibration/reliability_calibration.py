@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -39,6 +39,7 @@ import numpy as np
 import scipy
 from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
@@ -282,11 +283,20 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         non_spatial_coords = ["forecast_period", diagnostic]
 
         # Construct a list of coordinates in the desired order
-        dim_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
-        dim_coords_and_dims = _get_coords_and_dims(dim_coords)
         aux_coords_and_dims = _get_coords_and_dims(non_spatial_coords)
-        dim_coords_and_dims.append((reliability_index_coord, 0))
         aux_coords_and_dims.append((reliability_name_coord, 0))
+        spatial_coords = [forecast.coord(axis=dim).name() for dim in ["x", "y"]]
+        spatial_coords_and_dims = _get_coords_and_dims(spatial_coords)
+        try:
+            spot_index_coord = _get_coords_and_dims(["spot_index"])
+            wmo_id_coord = _get_coords_and_dims(["wmo_id"])
+        except CoordinateNotFoundError:
+            dim_coords_and_dims = spatial_coords_and_dims
+        else:
+            dim_coords_and_dims = spot_index_coord
+            aux_coords_and_dims.extend(spatial_coords_and_dims + wmo_id_coord)
+
+        dim_coords_and_dims.append((reliability_index_coord, 0))
         dim_coords_and_dims.append((probability_bins_coord, 1))
 
         reliability_cube = iris.cube.Cube(
@@ -305,12 +315,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         self, forecast: Union[MaskedArray, ndarray], truth: Union[MaskedArray, ndarray]
     ) -> MaskedArray:
         """
-        For an x-y slice at a single validity time and threshold, populate
+        For a spatial slice at a single validity time and threshold, populate
         a reliability table using the provided truth.
 
         Args:
             forecast:
-                An array containing data over an xy slice for a single validity
+                An array containing data over a spatial slice for a single validity
                 time and threshold.
             truth:
                 An array containing a thresholded gridded truth at an
@@ -320,8 +330,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             An array containing reliability table data for a single time
             and threshold. The leading dimension corresponds to the rows
             of a calibration table, the second dimension to the number of
-            probability bins, and the trailing dimensions are the spatial
-            dimensions of the forecast and truth cubes (which are
+            probability bins, and the trailing dimension(s) are the spatial
+            dimension(s) of the forecast and truth cubes (which are
             equivalent).
         """
         observation_counts = []
@@ -338,7 +348,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             observation_counts.append(observation_mask)
             forecast_probabilities.append(forecasts_probability_values)
             forecast_counts.append(forecast_mask)
-
         reliability_table = np.ma.stack(
             [
                 np.ma.stack(observation_counts),
@@ -611,7 +620,9 @@ class ManipulateReliabilityTable(BasePlugin):
     constant observation frequency.
     """
 
-    def __init__(self, minimum_forecast_count: int = 200) -> None:
+    def __init__(
+        self, minimum_forecast_count: int = 200, point_by_point: bool = False
+    ) -> None:
         """
         Initialise class for manipulating a reliability table.
 
@@ -620,6 +631,10 @@ class ManipulateReliabilityTable(BasePlugin):
                 The minimum number of forecast counts in a forecast probability
                 bin for it to be used in calibration.
                 The default value of 200 is that used in Flowerdew 2014.
+            point_by_point:
+                Whether to process each point in the input cube independently.
+                Please note this option is memory intensive and is unsuitable
+                for gridded input
 
         Raises:
             ValueError: If minimum_forecast_count is less than 1.
@@ -634,8 +649,8 @@ class ManipulateReliabilityTable(BasePlugin):
                 "The minimum_forecast_count must be at least 1 as empty "
                 "bins in the reliability table are not handled."
             )
-
         self.minimum_forecast_count = minimum_forecast_count
+        self.point_by_point = point_by_point
 
     @staticmethod
     def _extract_reliability_table_components(
@@ -926,6 +941,73 @@ class ManipulateReliabilityTable(BasePlugin):
         reliability_table.replace_coord(probability_bin_coord)
         return reliability_table
 
+    def _enforce_min_count_and_montonicity(self, rel_table_slice: Cube) -> Cube:
+        """Apply the steps needed to produce a reliability diagram on a single
+        slice of reliability table cube.
+
+        Args:
+            reliability_table_slice:
+                The reliability table slice to be manipulated. The only
+                coordinates expected on this cube are a table_row_index
+                coordinate and corresponding table_row_name coordinate and a
+                probability_bin coordinate.
+        Returns:
+            Processed reliability table slice, with reliability steps applied.
+        """
+        (
+            observation_count,
+            forecast_probability_sum,
+            forecast_count,
+            probability_bin_coord,
+        ) = self._extract_reliability_table_components(rel_table_slice)
+
+        if np.any(forecast_count < self.minimum_forecast_count):
+            (
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            ) = self._combine_undersampled_bins(
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            )
+            rel_table_slice = self._update_reliability_table(
+                rel_table_slice,
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            )
+
+        # If the observation frequency is non-monotonic adjust the
+        # reliability table
+        observation_frequency = np.array(observation_count / forecast_count)
+        if not np.all(np.diff(observation_frequency) >= 0):
+            (
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            ) = self._combine_bin_pair(
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            )
+            observation_count = self._assume_constant_observation_frequency(
+                observation_count, forecast_count
+            )
+            rel_table_slice = self._update_reliability_table(
+                rel_table_slice,
+                observation_count,
+                forecast_probability_sum,
+                forecast_count,
+                probability_bin_coord,
+            )
+        return rel_table_slice
+
     def process(self, reliability_table: Cube) -> CubeList:
         """
         Apply the steps needed to produce a reliability diagram with a
@@ -950,61 +1032,26 @@ class ManipulateReliabilityTable(BasePlugin):
             to reach the minimum_forecast_count.
         """
         threshold_coord = find_threshold_coordinate(reliability_table)
+        if self.point_by_point:
+            y_name = reliability_table.coord(axis="y").name()
+            x_name = reliability_table.coord(axis="x").name()
+
         reliability_table_cubelist = iris.cube.CubeList()
-        for rel_table_slice in reliability_table.slices_over(threshold_coord):
-            (
-                observation_count,
-                forecast_probability_sum,
-                forecast_count,
-                probability_bin_coord,
-            ) = self._extract_reliability_table_components(rel_table_slice)
-
-            if np.any(forecast_count < self.minimum_forecast_count):
-                (
-                    observation_count,
-                    forecast_probability_sum,
-                    forecast_count,
-                    probability_bin_coord,
-                ) = self._combine_undersampled_bins(
-                    observation_count,
-                    forecast_probability_sum,
-                    forecast_count,
-                    probability_bin_coord,
+        for rel_table_threshold in reliability_table.slices_over(threshold_coord):
+            if self.point_by_point:
+                rel_table_processed = iris.cube.CubeList()
+                for rel_table_point in rel_table_threshold.slices_over(
+                    [y_name, x_name]
+                ):
+                    rel_table_point_emcam = self._enforce_min_count_and_montonicity(
+                        rel_table_point
+                    )
+                    rel_table_processed.append(rel_table_point_emcam)
+            else:
+                rel_table_processed = self._enforce_min_count_and_montonicity(
+                    rel_table_threshold
                 )
-                rel_table_slice = self._update_reliability_table(
-                    rel_table_slice,
-                    observation_count,
-                    forecast_probability_sum,
-                    forecast_count,
-                    probability_bin_coord,
-                )
-
-            # If the observation frequency is non-monotonic adjust the
-            # reliability table
-            observation_frequency = np.array(observation_count / forecast_count)
-            if not np.all(np.diff(observation_frequency) >= 0):
-                (
-                    observation_count,
-                    forecast_probability_sum,
-                    forecast_count,
-                    probability_bin_coord,
-                ) = self._combine_bin_pair(
-                    observation_count,
-                    forecast_probability_sum,
-                    forecast_count,
-                    probability_bin_coord,
-                )
-                observation_count = self._assume_constant_observation_frequency(
-                    observation_count, forecast_count
-                )
-                rel_table_slice = self._update_reliability_table(
-                    rel_table_slice,
-                    observation_count,
-                    forecast_probability_sum,
-                    forecast_count,
-                    probability_bin_coord,
-                )
-            reliability_table_cubelist.append(rel_table_slice)
+            reliability_table_cubelist.append(rel_table_processed)
         return reliability_table_cubelist
 
 
