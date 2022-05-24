@@ -163,45 +163,39 @@ def test__irradiance_times():
         )
 
 
-def test__create_solar_radiation_cube(target_grid):
+@pytest.mark.parametrize("at_mean_sea_level", (True, False))
+def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
 
     solar_radiation_data = np.zeros_like(target_grid.data)
     time = datetime(2022, 1, 1, 0, 0)
     accumulation_period = 24
 
-    for at_mean_sea_level in (True, False):
-        result = GenerateClearskySolarRadiation()._create_solar_radiation_cube(
-            solar_radiation_data,
-            target_grid,
-            time,
-            accumulation_period,
-            at_mean_sea_level,
+    result = GenerateClearskySolarRadiation()._create_solar_radiation_cube(
+        solar_radiation_data, target_grid, time, accumulation_period, at_mean_sea_level,
+    )
+
+    # Check vertical coordinate
+    if at_mean_sea_level:
+        assert np.isclose(result.coord("altitude").points[0], 0.0)
+    else:
+        assert np.isclose(result.coord("height").points[0], 0.0)
+    # Check time value match inputs
+    assert (
+        result.coord("time").points[0] == time.replace(tzinfo=timezone.utc).timestamp()
+    )
+    assert timedelta(
+        seconds=int(
+            result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
         )
-        if at_mean_sea_level:
-            assert np.isclose(result.coord("altitude").points[0], 0.0)
-        else:
-            assert np.isclose(result.coord("height").points[0], 0.0)
-
-        # Check time value match inputs
-        assert (
-            result.coord("time").points[0]
-            == time.replace(tzinfo=timezone.utc).timestamp()
-        )
-        assert timedelta(
-            seconds=int(
-                result.coord("time").bounds[0, 1] - result.coord("time").bounds[0, 0]
-            )
-        ) == timedelta(hours=accumulation_period)
-
-        # Check that the dim coords are the spatial coords only, matching those from target_grid
-        assert result.coords(dim_coords=True) == [
-            target_grid.coord(axis="Y"),
-            target_grid.coord(axis="X"),
-        ]
-
-        # Check variable attributes
-        assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
-        assert result.units == "W s m-2"
+    ) == timedelta(hours=accumulation_period)
+    # Check that the dim coords are the spatial coords only, matching those from target_grid
+    assert result.coords(dim_coords=True) == [
+        target_grid.coord(axis="Y"),
+        target_grid.coord(axis="X"),
+    ]
+    # Check variable attributes
+    assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
+    assert result.units == "W s m-2"
 
 
 def test_process(target_grid, surface_altitude):
