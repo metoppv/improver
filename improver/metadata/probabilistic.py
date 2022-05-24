@@ -223,7 +223,7 @@ def is_percentile(cube: Cube) -> bool:
             Cube to check for probability percentile data.
 
     Returns:
-        True if in threshold representation.
+        True if in percentile representation.
     """
     try:
         find_percentile_coordinate(cube)

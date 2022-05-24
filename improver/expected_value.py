@@ -40,7 +40,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
 )
 from improver.metadata.probabilistic import is_percentile, is_probability
-from improver.utilities.cube_manipulation import collapsed
+from improver.utilities.cube_manipulation import collapse_realizations
 
 
 class ExpectedValue(PostProcessingPlugin):
@@ -70,7 +70,6 @@ class ExpectedValue(PostProcessingPlugin):
             )
         if is_percentile(cube):
             cube = RebadgePercentilesAsRealizations().process(cube)
-        mean_cube = collapsed(cube, "realization", iris.analysis.MEAN)
-        mean_cube.remove_coord("realization")
+        mean_cube = collapse_realizations(cube)
         mean_cube.add_cell_method(CellMethod("mean", coords="realization"))
         return mean_cube
