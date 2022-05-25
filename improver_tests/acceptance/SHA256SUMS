@@ -196,6 +196,10 @@ e8af9f50f7caa1d385daecbeeb7bc53a13cd4638b1f13ae9c0e173fd23ccb1f5  ./freezing-rai
 ecd65249d525dec4662e6047363423646f59bad26aa3b13e068f1d94c028bcfe  ./freezing-rain/three_hour/rain_acc.nc
 e326b32d7382c9a2244feaae19025234bd080ec3252888adfe1c83d217703ab2  ./freezing-rain/three_hour/sleet_acc.nc
 335ce8b8cca70570f1f339f53f1337e9fa195027b6b4f3275ccc08ea1da028ea  ./freezing-rain/three_hour/temperature_min.nc
+60569b320be98cf1ea38e5ebfca94d01ae4ad080aae9fc83ff3c5c32b5309a89  ./generate-clearsky-solar-radiation/basic/kgo.nc
+f6671f94eca4bd5b12523f25eac464e4c05c6b43a76a73edeba13872113f5eb9  ./generate-clearsky-solar-radiation/linke_turbidity.nc
+721b2a782791f6f0b7c3c181b970a1a9d6dd9b9a7c439e427d48c461d9878008  ./generate-clearsky-solar-radiation/surface_altitude.nc
+2670260232bdf85767cc4b64c16bc193242ab77f0586619a2a5ee6076effc864  ./generate-clearsky-solar-radiation/with_altitude_and_lt/kgo.nc
 67be15dad94608df8a6a6c362bf58263a522de6ce501e3e99443b782c083ff76  ./generate-landmask/basic/input.nc
 58ab8e2683bd4c2f29a35d32ac5deb7ea2113491ab1513846e37950a74a3d4fd  ./generate-landmask/basic/kgo.nc
 90b32a6b1a38c81cb3dbc16474c8404b0a77bdbc6c0c3149af54a5823387d579  ./generate-metadata-cube/height_levels.json

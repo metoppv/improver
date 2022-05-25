@@ -29,3 +29,76 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the generate-clearsky-solar-radiation CLI."""
+
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
+
+
+def test_basic(tmp_path):
+    """Test basic generation of clearsky solar radiation derived field."""
+    kgo_dir = acc.kgo_root() / "generate-clearsky-solar-radiation"
+    kgo_path = kgo_dir / "basic" / "kgo.nc"
+    input_path = kgo_dir / "surface_altitude.nc"  # Use this as target_grid
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--time",
+        "20220506T0000Z",
+        "--accumulation-period",
+        "24",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_with_altitude_and_lt(tmp_path):
+    """Test generation of clearsky solar radiation derived field with input
+    surface_altitude and linke_turbidity."""
+    kgo_dir = acc.kgo_root() / "generate-clearsky-solar-radiation"
+    kgo_path = kgo_dir / "with_altitude_and_lt" / "kgo.nc"
+    input_path = kgo_dir / "surface_altitude.nc"  # Use this as target_grid
+    surface_altitude_path = kgo_dir / "surface_altitude.nc"
+    linke_turbidity_path = kgo_dir / "linke_turbidity.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        surface_altitude_path,
+        linke_turbidity_path,
+        "--time",
+        "20220506T0000Z",
+        "--accumulation-period",
+        "24",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_temporal_spacing(tmp_path):
+    """Test generation of clearsky solar radiation derived field with input
+    temporal-spacing."""
+    kgo_dir = acc.kgo_root() / "generate-clearsky-solar-radiation"
+    kgo_path = kgo_dir / "basic" / "kgo.nc"
+    input_path = kgo_dir / "surface_altitude.nc"  # Use this as target_grid
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--time",
+        "20220506T0000Z",
+        "--accumulation-period",
+        "24",
+        "--temporal-spacing",
+        "60",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, rtol=0.005)
