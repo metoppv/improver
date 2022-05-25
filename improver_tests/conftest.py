@@ -32,6 +32,7 @@
 
 import pytest
 
+
 @pytest.fixture(autouse=True)
 def thread_control(monkeypatch):
     """
@@ -47,6 +48,7 @@ def thread_control(monkeypatch):
     """
     try:
         from threadpoolctl import threadpool_limits
+
         with threadpool_limits(limits=1):
             yield
     except ModuleNotFoundError:
