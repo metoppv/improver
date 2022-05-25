@@ -174,7 +174,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         """Ensure that feature cubes have consistent dimension coordinates. If realization
         dimension present in any cube, all cubes lacking this dimension will have realization
         dimension added and broadcast along this new dimension.
-        
+
         This situation occurs when derived fields (such as accumulated solar radiation)
         are used as predictors. As these fields do not contain a realization dimension,
         they must be broadcast to match the NWP fields that do contain realization, so that
