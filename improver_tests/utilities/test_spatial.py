@@ -50,6 +50,7 @@ from improver.utilities.spatial import (
     calculate_grid_spacing,
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,
+    get_grid_y_x_values,
     lat_lon_determine,
     number_of_grid_cells_to_distance,
     transform_grid_to_lat_lon,
@@ -502,6 +503,50 @@ class Test_lat_lon_determine(Test_common_functions):
         expected = trg_crs
         result = plugin(cube)
         self.assertEqual(expected, result)
+
+
+class Test_get_grid_y_x_values(IrisTest):
+    """Test function that extract the points in the cube into
+    grid of y and x coordinate values."""
+
+    def setUp(self):
+        """Set up the cube."""
+        data = np.ones((1, 2, 4), dtype=np.float32)
+        self.latlon_cube = set_up_variable_cube(
+            data, "precipitation_amount", "kg m^-2",
+        )
+        self.expected_lons = np.array([-15, -5, 5, 15, -15, -5, 5, 15]).reshape(2, 4)
+        self.expected_lats = np.array([-5, -5, -5, -5, 5, 5, 5, 5]).reshape(2, 4)
+        self.equalarea_cube = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+            grid_spacing=2000,
+            domain_corner=(-1000, -1000),
+        )
+        self.expected_proj_x = np.array(
+            [-1000, 1000, 3000, 5000, -1000, 1000, 3000, 5000]
+        ).reshape(2, 4)
+        self.expected_proj_y = np.array(
+            [-1000, -1000, -1000, -1000, 1000, 1000, 1000, 1000]
+        ).reshape(2, 4)
+
+    def test_lat_lon_grid(self):
+        """Test extraction of over lat/lon grid."""
+        result_y_points, result_x_points = get_grid_y_x_values(self.latlon_cube)
+        self.assertIsInstance(result_y_points, np.ndarray)
+        self.assertIsInstance(result_x_points, np.ndarray)
+        assert_almost_equal(result_x_points, self.expected_lons)
+        assert_almost_equal(result_y_points, self.expected_lats)
+
+    def test_equal_area_grid(self):
+        """Test extraction of over lat/lon grid."""
+        result_y_points, result_x_points = get_grid_y_x_values(self.equalarea_cube)
+        self.assertIsInstance(result_y_points, np.ndarray)
+        self.assertIsInstance(result_x_points, np.ndarray)
+        assert_almost_equal(result_x_points, self.expected_proj_x)
+        assert_almost_equal(result_y_points, self.expected_proj_y)
 
 
 class Test_transform_grid_to_lat_lon(IrisTest):

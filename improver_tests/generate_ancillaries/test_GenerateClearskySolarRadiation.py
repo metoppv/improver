@@ -186,6 +186,7 @@ def test__calc_clearsky_solar_radiation_data(
     assert np.all(np.isfinite(result))
     assert np.all(result >= 0.0)
 
+
 @pytest.mark.parametrize("at_mean_sea_level", (True, False))
 def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
 

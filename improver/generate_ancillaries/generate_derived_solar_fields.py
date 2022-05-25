@@ -45,7 +45,11 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.solar import calc_solar_elevation, get_day_of_year, get_utc_hour
-from improver.utilities.spatial import transform_grid_to_lat_lon
+from improver.utilities.spatial import (
+    get_grid_y_x_values,
+    lat_lon_determine,
+    transform_grid_to_lat_lon,
+)
 
 SECONDS_IN_MINUTE = 60
 MINUTES_IN_HOUR = 60
@@ -248,7 +252,10 @@ class GenerateClearskySolarRadiation(BasePlugin):
         Returns:
             Gridded irradiance values evaluated over the specified times.
         """
-        lats, lons = transform_grid_to_lat_lon(target_grid)
+        if lat_lon_determine(target_grid) is not None:
+            lats, lons = transform_grid_to_lat_lon(target_grid)
+        else:
+            lats, lons = get_grid_y_x_values(target_grid)
         irradiance_data = np.zeros(
             shape=(
                 len(irradiance_times),
@@ -309,7 +316,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 be assigned accordingly.
 
         Returns:
-            Cube containing clearsky solar radaition.
+            Cube containing clearsky solar radiation.
         """
         x_coord = target_grid.coord(axis="X")
         y_coord = target_grid.coord(axis="Y")
