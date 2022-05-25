@@ -171,9 +171,18 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
     ) -> Tuple[CubeList, Cube]:
-        """Ensure that feature cubes have consistent dimension coordinates. If
-        realization dimension present in any cube, all cubes lacking this dimension
-        will have realization dimension added and broadcast along this new dimension.
+        """Ensure that feature cubes have consistent dimension coordinates. If realization
+        dimension present in any cube, all cubes lacking this dimension will have realization
+        dimension added and broadcast along this new dimension.
+        
+        This situation occurs when derived fields (such as accumulated solar radiation)
+        are used as predictors. As these fields do not contain a realization dimension,
+        they must be broadcast to match the NWP fields that do contain realization, so that
+        all features have consistent shape.
+
+        In the case of deterministic models (those without a realization dimension), a
+        realization dimension is added to allow consistent behaviour between ensemble and
+        deterministic models.
 
         Args:
             feature_cubes:
@@ -441,7 +450,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         forecast_subensembles_data = (
             forecast_cube.data[:, np.newaxis] + error_percentiles_cube.data
         )
-        # Negative can values arise when the forecast is between error thresholds.
+        # Negative values can arise when the forecast is between error thresholds.
         # When there is a lower bound on the observable value (0.0 in the case of rainfall),
         # error thresholds below the forecast value should have probability of exceedence
         # of 1, however it is possible that when forecast value is between thresholds that
