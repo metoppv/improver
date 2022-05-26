@@ -53,6 +53,15 @@ def target_grid() -> Cube:
 
 
 @pytest.fixture
+def target_grid_equal_area() -> Cube:
+    return set_up_variable_cube(
+        data=np.ones((10, 8), dtype=np.float32),
+        name="template",
+        spatial_grid="equalarea",
+    )
+
+
+@pytest.fixture
 def surface_altitude() -> Cube:
     return set_up_variable_cube(
         data=np.ones((10, 8), dtype=np.float32), name="surface_altitude", units="m",
@@ -312,7 +321,7 @@ def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
     assert result.units == "W s m-2"
 
 
-def test_process(target_grid, surface_altitude):
+def test_process_lat_lon(target_grid, surface_altitude):
     """Test process method returns cubes with correct structure."""
     time = datetime(2022, 1, 1, 0, 0)
     accumulation_period = 24
@@ -321,8 +330,38 @@ def test_process(target_grid, surface_altitude):
     result = GenerateClearskySolarRadiation()(target_grid, time, accumulation_period,)
     assert np.isclose(result.coord("altitude").points[0], 0.0)
 
+    # Check cube has same spatial coords as target_grid
+    assert result.coords(dim_coords=True) == target_grid.coords(dim_coords=True)
+    # Check data is sensible
+    assert result.dtype == np.float32
+    assert np.all(result.data >= 0.0)
+    assert np.all(np.isfinite(result.data))
+
     # Check that non-zero surface_altitude results in cube with height for z-coord.
     result = GenerateClearskySolarRadiation()(
         target_grid, time, accumulation_period, surface_altitude=surface_altitude
     )
     assert np.isclose(result.coord("height").points[0], 0.0)
+    # Check data is sensible
+    assert result.dtype == np.float32
+    assert np.all(result.data >= 0.0)
+    assert np.all(np.isfinite(result.data))
+
+
+def test_process_equal_area(target_grid_equal_area):
+    """Test process method returns cubes with correct structure."""
+    time = datetime(2022, 1, 1, 0, 0)
+    accumulation_period = 24
+
+    # Check that default behaviour results in cube with altitude for z-coord.
+    result = GenerateClearskySolarRadiation()(
+        target_grid_equal_area, time, accumulation_period,
+    )
+    # Check cube has same spatial coords as target_grid
+    assert result.coords(dim_coords=True) == target_grid_equal_area.coords(
+        dim_coords=True
+    )
+    # Check data is sensible
+    assert result.dtype == np.float32
+    assert np.all(result.data >= 0.0)
+    assert np.all(np.isfinite(result.data))

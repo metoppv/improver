@@ -419,7 +419,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         attrs = generate_mandatory_attributes([target_grid])
 
         solar_radiation_cube = Cube(
-            solar_radiation_data,
+            solar_radiation_data.astype(np.float32),
             long_name=CLEARSKY_SOLAR_RADIATION_CF_NAME,
             units="W s m-2",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
