@@ -921,9 +921,7 @@ class PhaseChangeLevel(BasePlugin):
         # These can be filled by optional horizontal interpolation.
         if self.horizontal_interpolation:
             phase_change_data = self._horizontally_interpolate_phase(
-                phase_change_data,
-                orography,
-                max_nbhood_orog,
+                phase_change_data, orography, max_nbhood_orog
             )
 
         # Mask any points that are still set to np.nan; this should be no
