@@ -112,7 +112,7 @@ class GenerateSolarTime(BasePlugin):
             attrs.pop("title", None)
 
         solar_time_cube = Cube(
-            solar_time_data,
+            solar_time_data.astype(np.float32),
             long_name=SOLAR_TIME_CF_NAME,
             units="hours",
             dim_coords_and_dims=[(Y_coord, 0), (X_coord, 1)],
@@ -146,7 +146,7 @@ class GenerateSolarTime(BasePlugin):
         day_of_year = get_day_of_year(time)
         utc_hour = get_hour_of_day(time)
 
-        solar_time_data = calc_solar_time(lons, day_of_year, utc_hour)
+        solar_time_data = calc_solar_time(lons, day_of_year, utc_hour, normalise=True)
 
         solar_time_cube = self._create_solar_time_cube(
             solar_time_data, target_grid, time, new_title
