@@ -48,6 +48,7 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.solar import (
     calc_solar_elevation,
+    calc_solar_time,
     get_day_of_year,
     get_hour_of_day,
 )
@@ -137,7 +138,16 @@ class GenerateSolarTime(BasePlugin):
             A cube containing local solar time, on the same spatial grid as target_grid.
         """
 
-        solar_time_data = np.zeros(shape=target_grid.data.shape, dtype=np.float32)
+        if lat_lon_determine(target_grid) is not None:
+            _, lons = transform_grid_to_lat_lon(target_grid)
+        else:
+            _, lons = get_grid_y_x_values(target_grid)
+
+        day_of_year = get_day_of_year(time)
+        utc_hour = get_hour_of_day(time)
+
+        solar_time_data = calc_solar_time(lons, day_of_year, utc_hour)
+
         solar_time_cube = self._create_solar_time_cube(
             solar_time_data, target_grid, time, new_title
         )

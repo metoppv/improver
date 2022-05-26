@@ -110,11 +110,14 @@ def calc_solar_declination(day_of_year: int) -> float:
     return solar_declination
 
 
-def calc_solar_hour_angle(
-    longitudes: Union[float, ndarray], day_of_year: int, utc_hour: float
+def calc_solar_time(
+    longitudes: Union[float, ndarray],
+    day_of_year: int,
+    utc_hour: float,
+    normalise=False,
 ) -> Union[float, ndarray]:
     """
-    Calculate the Solar Hour angle for each element of an array of longitudes.
+    Calculate the Local Solar Time for each element of an array of longitudes.
 
     Calculation equivalent to the calculation defined in
     NOAA Earth System Research Lab Low Accuracy Equations
@@ -128,10 +131,13 @@ def calc_solar_hour_angle(
             Day of the year 0 to 365, 0 = 1st January
         utc_hour:
             Hour of the day in UTC
+        normalise:
+            Normalise hour values to be in range 0-24
 
     Returns:
-        solar_hour_angle
-            Hour angles in degrees East-West
+        solar_time:
+            Local solar time in hours.
+
     """
     if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
@@ -152,6 +158,34 @@ def calc_solar_hour_angle(
     lon_correction = 24.0 * longitudes / 360.0
     # Solar time (hours):
     solar_time = utc_hour + lon_correction + eqt * 12 / np.pi
+    # Normalise the hours to the range 0-24
+    if normalise:
+        solar_time = solar_time % 24
+
+    return solar_time
+
+
+def calc_solar_hour_angle(
+    longitudes: Union[float, ndarray], day_of_year: int, utc_hour: float
+) -> Union[float, ndarray]:
+    """
+    Calculate the Solar Hour angle from the Local Solar Time.
+
+    Args:
+        longitudes:
+            A single Longitude or array of Longitudes
+            longitudes needs to be between 180.0 and -180.0 degrees
+        day_of_year:
+            Day of the year 0 to 365, 0 = 1st January
+        utc_hour:
+            Hour of the day in UTC
+
+    Returns:
+        solar_hour_angle
+            Hour angles in degrees East-West.
+    """
+    # Solar time (hours):
+    solar_time = calc_solar_time(longitudes, day_of_year, utc_hour)
     # Hour angle (degrees):
     solar_hour_angle = (solar_time - 12.0) * 15.0
 
