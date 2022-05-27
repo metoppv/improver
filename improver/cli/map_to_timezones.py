@@ -61,8 +61,8 @@ def process(
         iris.cube.Cube:
             Processed cube.
     """
-    from datetime import datetime
     import os
+    from datetime import datetime
 
     from improver.utilities.temporal import TimezoneExtraction
 
