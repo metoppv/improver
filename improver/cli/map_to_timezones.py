@@ -30,8 +30,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Script to map multiple forecast times into a local time grid"""
-import os
-
 from improver import cli
 
 
@@ -64,6 +62,7 @@ def process(
             Processed cube.
     """
     from datetime import datetime
+    import os
 
     from improver.utilities.temporal import TimezoneExtraction
 
