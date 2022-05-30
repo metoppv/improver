@@ -1,0 +1,242 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown copyright. The Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Tests for the VerticalUpdraught plugin"""
+import re
+from datetime import datetime
+from typing import List
+
+import numpy as np
+import pytest
+from iris.coords import CellMethod
+from iris.cube import Cube
+
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.wind_calculations.vertical_updraught import VerticalUpdraught
+
+LOCAL_MANDATORY_ATTRIBUTES = {
+    "title": "unit test data",
+    "source": "unit test",
+    "institution": "somewhere",
+}
+
+
+@pytest.fixture(name="cape")
+def cape_cube_fixture() -> Cube:
+    """Set up a r, y, x cube of CAPE data"""
+    data = np.zeros((2, 2, 2), dtype=np.float32)
+    cape_cube = set_up_variable_cube(
+        data,
+        name="convective_available_potential_energy",
+        units="J kg-1",
+        time=datetime(2017, 11, 10, 3, 0),
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return cape_cube
+
+
+@pytest.fixture(name="precip")
+def precip_cube_fixture() -> Cube:
+    """Set up a r, y, x cube of precipitation rate data"""
+    data = np.zeros((2, 2, 2), dtype=np.float32)
+    precip_cube = set_up_variable_cube(
+        data,
+        name="lwe_precipitation_rate_max",
+        units="mm h-1",
+        time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0)),
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    precip_cube.cell_methods = [CellMethod(coords=["time"], method="max")]
+    return precip_cube
+
+
+def metadata_ok(updraught: Cube, baseline: Cube, model_id_attr=None) -> None:
+    """
+    Checks updraught Cube long_name, units and dtype are as expected.
+    Compares updraught Cube with baseline to make sure everything else matches.
+
+    Args:
+        updraught: Result of VerticalUpdraught plugin
+        baseline: A Precip or similar cube with the same coordinates and attributes.
+
+    Raises:
+        AssertionError: If anything doesn't match
+    """
+    assert updraught.long_name == "maximum_vertical_updraught"
+    assert updraught.units == "m s-1"
+    assert updraught.dtype == np.float32
+    for coord in updraught.coords():
+        base_coord = baseline.coord(coord.name())
+        assert updraught.coord_dims(coord) == baseline.coord_dims(base_coord)
+        assert coord == base_coord
+    for attr in MANDATORY_ATTRIBUTES:
+        if attr == "title":
+            assert (
+                updraught.attributes[attr]
+                == f"Post-Processed {baseline.attributes[attr]}"
+            )
+        else:
+            assert updraught.attributes[attr] == baseline.attributes[attr]
+    all_attr_keys = list(updraught.attributes.keys())
+    if model_id_attr:
+        assert updraught.attributes[model_id_attr] == baseline.attributes[model_id_attr]
+        mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
+    else:
+        mandatory_attr_keys = all_attr_keys
+    assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
+
+
+@pytest.mark.parametrize(
+    "cape_value,cape_result",
+    (
+        (0.0, 0.0),
+        (9.9, 0.0),
+        (10.1, 1.1236),
+        (500.0, 7.906),
+        (600.0, 8.660),
+        (2000.0, 15.811),
+        (3000.0, 19.365),
+        (4000.0, 22.361),
+    ),
+)
+@pytest.mark.parametrize(
+    "precip_value,precip_result",
+    (
+        (0.0, 0.0),
+        (4.9, 0.0),
+        (5.1, 5.012),
+        (10.0, 5.813),
+        (50.0, 8.282),
+        (200.0, 11.236),
+    ),
+)
+def test_basic(cape, precip, cape_value, cape_result, precip_value, precip_result):
+    """Check that for each pair of values, we get the expected result
+    and that the metadata are as expected."""
+    cape.data = np.full_like(cape.data, cape_value)
+    precip.data = np.full_like(precip.data, precip_value)
+    expected_value = cape_result + precip_result
+    result = VerticalUpdraught()([cape, precip])
+    metadata_ok(result, precip)
+    assert np.isclose(result.data, expected_value, rtol=1e-4).all()
+
+
+def test_unit_conversion(cape, precip):
+    """Check that for each pair of values, we get the expected result
+    and that the metadata are as expected."""
+    cape.data = np.full_like(cape.data, 0.5)  # 500 J kg-1
+    cape.units = "J g-1"
+    precip.data = np.full_like(precip.data, 2.7778e-6)  # 10 mm h-1
+    precip.units = "m s-1"
+    expected_value = 7.906 + 5.813
+    result = VerticalUpdraught()([cape, precip])
+    metadata_ok(result, precip)
+    assert np.isclose(result.data, expected_value, rtol=1e-4).all()
+
+
+@pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
+def test_model_id_attr(cape, precip, model_id_attr):
+    """Check that tests pass if model_id_attr is set on inputs and is applied or not"""
+    cape.attributes["mosg__model_configuration"] = "gl_ens"
+    precip.attributes["mosg__model_configuration"] = "gl_ens"
+    result = VerticalUpdraught(model_id_attr=model_id_attr)([cape, precip])
+    metadata_ok(result, precip, model_id_attr=model_id_attr)
+
+
+def add_unexpected_cube(cubes: List[Cube]):
+    """Copies first cube, renames it and adds it to the list of cubes."""
+    cube = cubes[0].copy()
+    cube.rename("kittens")
+    cubes.append(cube)
+
+
+def spatial_shift(cubes: List[Cube]):
+    """Adjusts x-coord of first cube so it no longer matches the second cube."""
+    coord = cubes[0].coord(axis="x")
+    coord = coord.copy(coord.points + 1)
+    cubes[0].replace_coord(coord)
+
+
+def units_to_kg(cube: Cube):
+    """Sets units of cube to kg"""
+    cube.units = "kg"
+
+
+def cape_has_time_bounds(cubes: List[Cube]):
+    """Copies precip cube time point and bounds info onto CAPE cube"""
+    cubes[0].coord("time").points = cubes[1].coord("time").points
+    cubes[0].coord("time").bounds = cubes[1].coord("time").bounds
+
+
+def cape_time_shifted(cubes: List[Cube]):
+    """Moves CAPE time point back by one hour"""
+    cubes[0].coord("time").points = cubes[0].coord("time").points - 3600
+
+
+def cape_frt_shifted(cubes: List[Cube]):
+    """Moves CAPE forecast_reference_time point back by one hour"""
+    cubes[0].coord("forecast_reference_time").points = (
+        cubes[0].coord("forecast_reference_time").points - 3600
+    )
+
+
+def set_mismatched_model_ids(cubes: List[Cube]):
+    """Sets model_ids to input cubes that do not match"""
+    cubes[1].attributes["mosg__model_configuration"] = "gl_ens"
+    cubes[0].attributes["mosg__model_configuration"] = "uk_ens"
+
+
+@pytest.mark.parametrize(
+    "modifier,error_match",
+    (
+        (lambda l: l[0].rename("kittens"), "Expected to find cubes of "),
+        (lambda l: l[1].rename("poodles"), "Expected to find cubes of "),
+        (add_unexpected_cube, re.escape("Unexpected Cube(s) found in inputs: "),),
+        (spatial_shift, "Spatial coords of input Cubes do not match: "),
+        (lambda l: units_to_kg(l[0]), "Unable to convert from"),
+        (lambda l: units_to_kg(l[1]), "Unable to convert from"),
+        (cape_has_time_bounds, "CAPE cube should not have time bounds"),
+        (cape_time_shifted, "CAPE time should match precip cube's lower time bound"),
+        (cape_frt_shifted, "Forecast reference times do not match"),
+        (
+                set_mismatched_model_ids,
+            "Attribute mosg__model_configuration does not match on input cubes",
+        ),
+    ),
+)
+def test_exceptions(cape, precip, modifier: callable, error_match: str):
+    """Check for things we know we should reject"""
+    cape.attributes["mosg__model_configuration"] = "gl_ens"
+    precip.attributes["mosg__model_configuration"] = "gl_ens"
+    cube_list = [cape, precip]
+    modifier(cube_list)
+    with pytest.raises(ValueError, match=error_match):
+        VerticalUpdraught(model_id_attr="mosg__model_configuration")(cube_list)
