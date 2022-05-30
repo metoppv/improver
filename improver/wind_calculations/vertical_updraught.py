@@ -107,7 +107,8 @@ class VerticalUpdraught(PostProcessingPlugin):
             ):
                 raise ValueError(
                     f"Attribute {self.model_id_attr} does not match on input cubes. "
-                    f"{self.cape.attributes[self.model_id_attr]} != {self.precip.attributes[self.model_id_attr]}"
+                    f"{self.cape.attributes[self.model_id_attr]} != "
+                    f"{self.precip.attributes[self.model_id_attr]}"
                 )
 
     def _input_times_error(self) -> str:

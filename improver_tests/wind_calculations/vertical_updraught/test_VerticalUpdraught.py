@@ -227,7 +227,7 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         (cape_time_shifted, "CAPE time should match precip cube's lower time bound"),
         (cape_frt_shifted, "Forecast reference times do not match"),
         (
-                set_mismatched_model_ids,
+            set_mismatched_model_ids,
             "Attribute mosg__model_configuration does not match on input cubes",
         ),
     ),
