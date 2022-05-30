@@ -31,11 +31,14 @@ Equipped with the relevant distribution that describes the sub-grid variability 
 forecast, the grid-scale forecast value can be mapped onto a series of realisable point-scale
 values, yielding a form of conditional bias-correction. In the context of ensemble forecasts,
 this mapping is undertaken on a per realization basis to produce a series of realisable
-point-scale values which collectively form a calibrated ensemble, referred herein as a
-"super-ensemble".
+point-scale values which collectively form a calibrated ensemble, which can be described as
+an intra-model "super-ensemble". Usage of the term super-ensemble here is distinct from the
+more common usage which refers to the inter-model super-ensemble formed by combining
+multiple NWP ensemble models. Herein the usage of super-ensemble refers to the intra-model
+super-ensemble.
 
 Hewson & Pillosu propose a framework (ECPoint) to determine and apply these distributions
-across a variety of weather types through the use of a manually tuned decision tree model
+across a variety of weather types through the use of a manually constructed decision tree model
 taking an appropriate set of feature parameters (meteorological variables) as inputs.
 Details of this method can be found in `Hewson & Pillosu, 2021`_. 
 
@@ -44,7 +47,7 @@ The RainForests method
 ****************************
 
 RainForests is an adaptation of the ECPoint method that seeks to use machine learning based
-tree models to replace the manually trained tree model of ECPoint. Here we use gradient-boosted
+tree models to replace the manually constructed tree model of ECPoint. Here we use gradient-boosted
 decision tree (GBDT) ensemble models.
 
 The underlying principle of the calibration methodology is essentially the same, namely using
@@ -58,7 +61,7 @@ these represent the error distributions as a cumulative distribution function.
 
 Each CDF is then mapped onto a series of equispaced percentile values to yield a series of
 representative error values which can be applied to the grid-scale forecast value to produce
-the series of point-scale (calibrated) values.
+the series of possible point-scale (calibrated) values.
 
 Calibration of the ensemble forecast proceeds by determining the underlying distribution on
 a per realization basis and applying this to each forecast value to produce a series of
@@ -72,10 +75,10 @@ place of a multiplicative error (forecast error ratio in ECPoint) to allow us to
 input forecast values of zero-rainfall.
 
 ===========================
-GBDT vs manually trained DT
+GBDT vs manually constructed DT
 ===========================
 
-The choice of using GBDT models in place of the manually trained DT of ECPoint comes with
+The choice of using GBDT models in place of the manually constructed DT of ECPoint comes with
 some advantages, but at the expense of some trade-offs:
 
 **Advantages:**
@@ -89,9 +92,12 @@ some advantages, but at the expense of some trade-offs:
 **trade-offs:**
 
 * By using an ensemble of trees, the intuitive connection between weather type and feature
-  variables is lost.
+  variables becomes obscured.
 * Using a series of decision tree ensembles in place of a single decision tree increases the
   computational demand significantly.
+* Some initial effort is required to select a good set of model hyper-parameters that neither
+  under- or over-fit. This process is more challenging and less transparent than ECPoint,
+  however is required only once rather than each time the decision tree(s) are constructed.
 
 ****************************
 Implementation details
@@ -142,7 +148,7 @@ Forecast calibration proceeds via a 2-step process:
   Each exceedance probability is evaluated using the corresponding tree-model, and the feature
   variables as inputs.
 
-3. Interpolate the CDF to extract a series of percentiles over for the error distributions.
+2. Interpolate the CDF to extract a series of percentile values for the error distributions.
   The error percentiles are then added to each associated ensemble realization from the
   forecast variable to produce a series of realisable forecast values.
 
@@ -158,7 +164,7 @@ the CDF for the distribution of forecast errors. For each error threshold we hav
 GBDT model which is used to evaluate the exceedance probabilities that describe the CDF.
 So starting with an input ensemble forecast consisting of 50 realizations, we evaluate 25
 threshold probability values for each realization to construct a forecast error CDF for each
-realization (50 in total).
+realization (50 distributions in total, each containing 25 threshold values).
 
 For each distribution, we then interpolate between the threshold probabilities to extract
 20 evenly-spaced percentiles. These are then applied to each forecast realization to produce
