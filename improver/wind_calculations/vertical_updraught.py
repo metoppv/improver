@@ -67,7 +67,7 @@ class VerticalUpdraught(PostProcessingPlugin):
         self.cape = Cube(None)
         self.precip = Cube(None)
         self.cube_names = [
-            "convective_available_potential_energy",
+            "atmosphere_convective_available_potential_energy",
             "lwe_precipitation_rate_max",
         ]
 

@@ -55,7 +55,7 @@ def cape_cube_fixture() -> Cube:
     data = np.zeros((2, 2, 2), dtype=np.float32)
     cape_cube = set_up_variable_cube(
         data,
-        name="convective_available_potential_energy",
+        name="atmosphere_convective_available_potential_energy",
         units="J kg-1",
         time=datetime(2017, 11, 10, 3, 0),
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
