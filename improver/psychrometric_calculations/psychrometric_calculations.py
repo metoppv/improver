@@ -1048,10 +1048,9 @@ class PhaseChangeLevel(BasePlugin):
             # length 1 dimensions)
             if phase_change is None:
                 phase_change = phase_change_data
-            elif not isinstance(phase_change, list):
-                phase_change = [phase_change]
-                phase_change.append(phase_change_data)
             else:
+                if not isinstance(phase_change, list):
+                    phase_change = [phase_change]
                 phase_change.append(phase_change_data)
 
         phase_change_level = self.create_phase_change_level_cube(
