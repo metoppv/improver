@@ -220,7 +220,7 @@ def is_percentile(cube: Cube) -> bool:
 
     Args:
         cube:
-            Cube to check for probability percentile data.
+            Cube to check for percentile data.
 
     Returns:
         True if in percentile representation.
