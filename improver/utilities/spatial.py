@@ -539,15 +539,14 @@ def lat_lon_determine(cube: Cube) -> Optional[CRS]:
 
 
 def get_grid_y_x_values(cube: Cube) -> Tuple[ndarray, ndarray]:
-    """
-    Extract the y and x coordinate values of each points in the cube.
+    """Extract the y and x coordinate values of each points in the cube.
 
     Args:
         cube:
             Cube with points to extract
     Returns:
         - Array of shape cube.data.shape containing y coordinate values
-        - Array of shape cube.data.shape containing x corrdinate values
+        - Array of shape cube.data.shape containing x coordinate values
     """
     x_points = cube.coord(axis="x").points
     y_points = cube.coord(axis="y").points
@@ -563,8 +562,7 @@ def get_grid_y_x_values(cube: Cube) -> Tuple[ndarray, ndarray]:
 
 
 def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
-    """
-    Calculate the latitudes and longitudes of each points in the cube.
+    """Calculate the latitudes and longitudes of each points in the cube.
 
     Args:
         cube:

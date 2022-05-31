@@ -40,6 +40,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -52,8 +53,6 @@ from improver.utilities.spatial import (
     transform_grid_to_lat_lon,
 )
 
-SECONDS_IN_MINUTE = 60
-MINUTES_IN_HOUR = 60
 DEFAULT_TEMPORAL_SPACING_IN_MINUTES = 30
 
 CLEARSKY_SOLAR_RADIATION_CF_NAME = (
@@ -187,7 +186,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
     def _calc_air_mass(self, zenith: ndarray) -> ndarray:
         """Calculate the relative airmass using the Kasten & Young (1989) [1, 2] parameterization.
         The relative airmass is a dimensionless quantity representing the relative thickness of
-        atmosphere compared the shortest possible path through the full depth of the atmosphere
+        atmosphere compared to the shortest possible path through the full depth of the atmosphere
         corresponding to zenith = 0.
         Args:
             zenith:
@@ -213,9 +212,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 + 0.50572 * (96.07995 - zenith_above_horizon) ** (-1.6364)
             )
         # Remove nans_associated with zenith > 90.0 degrees
-        air_mass = np.nan_to_num(air_mass)
-
-        return air_mass
+        return np.nan_to_num(air_mass)
 
     def _calc_clearsky_ineichen(
         self,
@@ -225,14 +222,16 @@ class GenerateClearskySolarRadiation(BasePlugin):
         linke_turbidity: Union[ndarray, float],
     ) -> ndarray:
         """Calculate the clearsky global horizontal irradiance using the Perez
-        & Ineichen (2002) [1, 2] formulation. Note that the formulation here
-        neglects the Perez enhancement that can be found in the literature; see
-        PvLib issue (https://github.com/pvlib/pvlib-python/issues/435) for details.
+        & Ineichen (2002) [1, 2] formulation.
 
-        Note: this method produces values that exceed the incoming extra-terrestrial
-        irradiance for large altitude values (> 5000m). Here we limit the the value to
-        not exceed the incoming irradiance. Caution should be used for irradiance values
-        at large altitudes as they are likely to over-estimate.
+        Note:
+            #. The formulation here neglects the Perez enhancement that can be found
+            in some instances of the literature; see PvLib issue
+            (https://github.com/pvlib/pvlib-python/issues/435) for details.
+            #. This method produces values that exceed the incoming extra-terrestrial
+            irradiance for large altitude values (> 5000m). Here we limit the the value
+            to not exceed the incoming irradiance. Caution should be used for irradiance
+            values at large altitudes as they are likely to over-estimate.
 
         Args:
             zenith_angle:

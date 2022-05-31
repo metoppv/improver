@@ -38,17 +38,24 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.constants import HOURS_IN_DAY, MINUTES_IN_HOUR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
-HOURS_IN_DAY = 24
-
 
 def get_day_of_year(time: datetime) -> int:
-    """Get day of the year from given datetimes."""
+    """Get day of the year from given datetimes.
+
+    Args:
+        time:
+            Datetime from which to extract day-of-year.
+
+    Returns:
+        The day of year corresponding to the specified datetime.
+    """
     if time.tzinfo is None:
         start_of_year = datetime(time.year, 1, 1)
     else:
@@ -57,14 +64,25 @@ def get_day_of_year(time: datetime) -> int:
 
 
 def get_utc_hour(time: datetime) -> float:
-    """Get utc_hour from datetime."""
+    """Get utc_hour from datetime.
+
+    Args:
+        time:
+            Datetime from which to extract utc-hour.
+
+    Returns:
+        The utc hour corresponding to the specified datetime. Minute values
+        are expressed as fraction of an hour.
+    """
     # Round times to nearest minute by adding seconds component to times
     rounded_time = time + timedelta(seconds=time.second)
     # Want to avoid the situation where rounding time takes us into the next day.
     if rounded_time.day != time.day:
         return float(HOURS_IN_DAY)
     else:
-        return (rounded_time.hour * 60.0 + rounded_time.minute) / 60.0
+        return (
+            rounded_time.hour * MINUTES_IN_HOUR + rounded_time.minute
+        ) / MINUTES_IN_HOUR
 
 
 def calc_solar_declination(day_of_year: int) -> float:
