@@ -446,7 +446,7 @@ def check_data_sufficiency(
     Raises:
         ValueError: If the proportion of NaNs is higher than allowable for a site,
             if using point_by_point.
-        ValueError: If the proportion of NaNs are higher than allowable when
+        ValueError: If the proportion of NaNs is higher than allowable when
             considering all sites.
     """
     if not historic_forecasts.coords("wmo_id"):
@@ -467,8 +467,9 @@ def check_data_sufficiency(
             msg = (
                 f"{number_of_sites} sites have a proportion of NaNs that is "
                 f"higher than the allowable proportion of NaNs within the "
-                f"historic forecasts and truth pairs is {proportion_of_nans}. "
-                f"The maximum proportion of NaNs is {np.amax(detected_proportion)}."
+                "historic forecasts and truth pairs. The allowable proportion is "
+                f"{proportion_of_nans}. The maximum proportion of NaNs is "
+                f"{np.amax(detected_proportion)}."
             )
             raise ValueError(msg)
     else:

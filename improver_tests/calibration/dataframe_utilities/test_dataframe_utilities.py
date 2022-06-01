@@ -503,7 +503,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_station_id_forecast_df_only(self):
         """Test that when station_id is only present in the forecast dataframe,
         a warning is raised."""
-        msg = "station_id is only within the forecast dataframe"
+        msg = "station_id is only within the forecast DataFrame"
         with self.assertWarnsRegex(UserWarning, msg):
             forecast_and_truth_dataframes_to_cubes(
                 self.forecast_df_station_id,
@@ -516,7 +516,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_station_id_truth_df_only(self):
         """Test that when station_id is only present in the truth dataframe,
         a warning is raised."""
-        msg = "station_id is only within the truth dataframe"
+        msg = "station_id is only within the truth DataFrame"
         with self.assertWarnsRegex(UserWarning, msg):
             forecast_and_truth_dataframes_to_cubes(
                 self.forecast_df,
@@ -600,7 +600,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[1], self.expected_period_truth)
 
     def test_empty_forecast_dataframe(self):
-        """Test the behaviour if an empty forecast dataframe is provided."""
+        """Test that a None is returned for the forecast cube and the truth cube
+        if an empty forecast dataframe is provided."""
         forecast_df = self.forecast_df.drop(self.forecast_df.index)
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,
@@ -699,7 +700,11 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_new_site_with_only_one_forecast_and_truth(self):
         """Test for a site that has a forecast and truth data point for the most
-        recent time only."""
+        recent time only. Other sites are present at all forecast and truth times.
+        This mimics the situation when a new site is added to the forecast and truth
+        DataFrames. The forecast and truth cubes generated have three sites
+        with the 'new' site having NaNs for all time points except for the most
+        recent time."""
         self.expected_period_forecast.data[:, :2, -1] = np.nan
         self.expected_period_truth.data[:2, -1] = np.nan
 
@@ -727,7 +732,11 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_old_site_with_only_one_forecast_and_truth(self):
         """Test for a site that has a forecast and truth data point for the oldest
-        time only."""
+        time only. Other sites are present at all forecast and truth times. This
+        mimics the situation when forecasts and truths are no longer available
+        for a particular site. The forecast and truth cubes generated have three sites
+        with the 'old' site having NaNs for all time points except for the oldest
+        time."""
         self.expected_period_forecast.data[:, 1:, -1] = np.nan
         self.expected_period_truth.data[1:, -1] = np.nan
 
@@ -755,7 +764,12 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_sites_no_overlapping_dates(self):
         """Test for when there are sites with no overlapping dates within the
-        forecasts and the truths."""
+        forecasts and the truths. This tests for when sites are potentially
+        being both added and removed from the forecast and truth DataFrames.
+        In the resulting forecast and truth cubes, NaN values are present
+        for site and time pairs that were not in the input forecasts and
+        truth DataFrames.
+        """
         self.expected_period_forecast.data[:, 0, 0] = np.nan
         self.expected_period_forecast.data[:, 2, 2] = np.nan
         self.expected_period_truth.data[0, 0] = np.nan

@@ -105,7 +105,7 @@ def _dataframe_column_check(df: DataFrame, compulsory_columns: Sequence) -> None
         diff = set(compulsory_columns).difference(df.columns)
         msg = (
             "The following compulsory column(s) are missing from the "
-            f"dataframe: {diff}"
+            f"DataFrame: {diff}"
         )
         raise ValueError(msg)
 
@@ -180,20 +180,20 @@ def _quantile_check(df: DataFrame) -> None:
 
 
 def _fill_missing_entries(df, combi_cols, static_cols, site_id_col):
-    """Fill the input dataframe with rows that correspond to missing entries. The
+    """Fill the input DataFrame with rows that correspond to missing entries. The
     expected entries are computed using all combinations of the values within the
     combi_cols. In practice, this will allow support for creating entries for times
-    that are missing when a new site with a ID is added. If the dataframe provided
-    is completely empty, then the empty dataframe is returned.
+    that are missing when a new site with an ID is added. If the DataFrame provided
+    is completely empty, then the empty DataFrame is returned.
 
     Args:
         df: DataFrame to be filled with rows corresponding to missing entries.
-        combi_cols: The key columns within the dataframe. All combinations of the
+        combi_cols: The key columns within the DataFrame. All combinations of the
             values within these columns are expected to exist, otherwise, an
             entry will be created.
         static_cols: The names of the columns that are considered "static" and
             therefore can be reliably filled using other entries for the given WMO ID.
-        site_id_col: Name of the column used to identify the sites within the dataframe.
+        site_id_col: Name of the column used to identify the sites within the DataFrame.
 
     Returns:
         DataFrame where any missing combination of the combi_cols will have been
@@ -202,8 +202,8 @@ def _fill_missing_entries(df, combi_cols, static_cols, site_id_col):
     if df.empty:
         return df
 
-    # Create a dataframe with rows for all possible combinations of combi_cols.
-    # This results in rows with NaNs being created in the dataframe.
+    # Create a DataFrame with rows for all possible combinations of combi_cols.
+    # This results in rows with NaNs being created in the DataFrame.
     unique_vals_from_combi_cols = [df[c].unique() for c in combi_cols]
     new_index = pd.MultiIndex.from_product(
         unique_vals_from_combi_cols, names=combi_cols
@@ -330,7 +330,7 @@ def _drop_duplicates(df: DataFrame, cols: Sequence[str]) -> DataFrame:
 
 def get_forecast_representation(df: DataFrame) -> str:
     """Check which of REPRESENTATION_COLUMNS (percentile or realization)
-    exists in the dataframe.
+    exists in the DataFrame.
 
     Args:
         df:
@@ -338,7 +338,7 @@ def get_forecast_representation(df: DataFrame) -> str:
 
     Returns:
         representation_type:
-            The member of REPRESENTATION_COLUMNS found in the dataframe columns.
+            The member of REPRESENTATION_COLUMNS found in the DataFrame columns.
 
     Raises:
         ValueError:
@@ -366,12 +366,12 @@ def _prepare_dataframes(
     percentiles: Optional[List[float]] = None,
     experiment: Optional[str] = None,
 ) -> Tuple[DataFrame, DataFrame]:
-    """Prepare dataframes for conversion to cubes by: 1) checking which forecast
+    """Prepare DataFrames for conversion to cubes by: 1) checking which forecast
     representation is present, 2) checking that the expected columns are present,
     3) (Optionally) checking the percentiles are as expected, 4) removing
     duplicates from the forecast and truth, 5) finding the sites common to
-    both the forecast and truth dataframes and 6) replacing and supplementing
-    the truth dataframe with information from the forecast dataframe. Note that
+    both the forecast and truth DataFrames and 6) replacing and supplementing
+    the truth DataFrame with information from the forecast DataFrame. Note that
     this fourth step will also ensure that a row containing a NaN for the ob_value
     is inserted for any missing observations.
 
@@ -397,7 +397,7 @@ def _prepare_dataframes(
             table.
 
     Returns:
-        A sanitised version of the forecasts and truth dataframes that
+        A sanitised version of the forecasts and truth DataFrames that
         are ready for conversion to cubes.
     """
     representation_type = get_forecast_representation(forecast_df)
@@ -413,8 +413,8 @@ def _prepare_dataframes(
     ):
         df_type = "forecast" if "station_id" in forecast_df.columns else "truth"
         msg = (
-            f"station_id is only within the {df_type} dataframe. As station_id "
-            "is not present in both dataframes, station_id will be ignored."
+            f"station_id is only within the {df_type} DataFrame. As station_id "
+            "is not present in both DataFrames, station_id will be ignored."
         )
         warnings.warn(msg)
 
@@ -434,7 +434,7 @@ def _prepare_dataframes(
         unique_exps = forecast_df["experiment"].unique()
         msg = (
             "More than one value for the experiment column found in the "
-            f"forecast dataframe. Values for experiment column {unique_exps}"
+            f"forecast DataFrame. Values for experiment column {unique_exps}"
         )
         raise ValueError(msg)
 
@@ -538,7 +538,7 @@ def _prepare_dataframes(
         subset_cols.append("units")
     forecast_subset = forecast_df[subset_cols].drop_duplicates()
 
-    # Use "right" to fill in any missing observations in the truth dataframe
+    # Use "right" to fill in any missing observations in the truth DataFrame
     # and retain the order from the forecast_subset.
     merge_cols = ["wmo_id", "time", "diagnostic"]
     if include_station_id:

@@ -836,7 +836,8 @@ class Test_check_data_sufficiency(SetupCubes):
         msg = (
             "3 sites have a proportion of NaNs that is higher than the "
             "allowable proportion of NaNs within the historic forecasts "
-            "and truth pairs is 0.5. The maximum proportion of NaNs is 1.0."
+            "and truth pairs. The allowable proportion is 0.5. "
+            "The maximum proportion of NaNs is 1.0."
         )
         with self.assertRaisesRegex(ValueError, msg):
             check_data_sufficiency(
@@ -855,7 +856,8 @@ class Test_check_data_sufficiency(SetupCubes):
         msg = (
             "2 sites have a proportion of NaNs that is higher than the "
             "allowable proportion of NaNs within the historic forecasts "
-            "and truth pairs is 0.7. The maximum proportion of NaNs is 1.0."
+            "and truth pairs. The allowable proportion is 0.7. "
+            "The maximum proportion of NaNs is 1.0."
         )
         with self.assertRaisesRegex(ValueError, msg):
             check_data_sufficiency(
