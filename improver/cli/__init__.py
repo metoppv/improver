@@ -32,6 +32,7 @@
 
 import pathlib
 import shlex
+import time
 from collections import OrderedDict
 from functools import partial
 
@@ -120,9 +121,15 @@ class ObjectAsStr(str):
         self.original_object = obj
         return self
 
+    def __hash__(self):
+        # make sure our hash doesn't clash with normal string hash
+        return super().__hash__(self) ^ hash(type(self))
+
     @staticmethod
     def obj_to_name(obj, cls=None):
         """Helper function to create the string."""
+        if isinstance(obj, str):
+            return obj
         if cls is None:
             cls = type(obj)
         try:
@@ -328,6 +335,7 @@ def with_output(
     wrapped,
     *args,
     output=None,
+    pass_through_output=False,
     compression_level=1,
     least_significant_digit: int = None,
     **kwargs,
@@ -349,6 +357,9 @@ def with_output(
         output (str, optional):
             Output file name. If not supplied, the output object will be
             printed instead.
+        pass_through_output (bool):
+            Pass through the output object even if saved to file.
+            Used in pipelines of commands if intermediate output needs to be saved.
         compression_level (int):
             Will set the compression level (1 to 9), or disable compression (0).
         least_significant_digit (int):
@@ -367,6 +378,8 @@ def with_output(
 
     if output and result:
         save_netcdf(result, output, compression_level, least_significant_digit)
+        if pass_through_output:
+            return ObjectAsStr(result, output)
         return
     return result
 
@@ -402,6 +415,13 @@ def improver_help(prog_name: parameters.pass_name, command=None, *, usage=False)
             if not line.endswith("--help [--usage]")
         )
     return result
+
+
+def command_executor(*argv, verbose=False, dry_run=False):
+    """Common entry point for straight command execution."""
+    return execute_command(
+        SUBCOMMANDS_DISPATCHER, *argv, verbose=verbose, dry_run=dry_run
+    )
 
 
 def _cli_items():
@@ -461,6 +481,31 @@ def unbracket(args):
     return outargs
 
 
+class TimeIt:
+    def __init__(self, verbose=False):
+        self._verbose = verbose
+        self._elapsed = None
+        self._start = None
+
+    def __enter__(self):
+        self._start = time.perf_counter()
+        return self
+
+    def __exit__(self, *args):
+        self._elapsed = time.perf_counter() - self._start
+        if self._verbose:
+            print(str(self))
+
+    @property
+    def elapsed(self):
+        """Return elapsed time in seconds."""
+        return self._elapsed
+
+    def __str__(self):
+        """Print elapsed time in seconds."""
+        return f"Run-time: {self._elapsed}s"
+
+
 def execute_command(dispatcher, prog_name, *args, verbose=False, dry_run=False):
     """Common entry point for command execution."""
     args = list(args)
@@ -476,15 +521,19 @@ def execute_command(dispatcher, prog_name, *args, verbose=False, dry_run=False):
             arg = ObjectAsStr(arg)
         args[i] = arg
 
-    if verbose or dry_run:
-        print(" ".join([shlex.quote(x) for x in (prog_name, *args)]))
+    msg = " ".join([shlex.quote(x) for x in (prog_name, *args)])
     if dry_run:
+        if verbose:
+            print(msg)
         return args
 
-    result = dispatcher(prog_name, *args)
+    with TimeIt() as timeit:
+        result = dispatcher(prog_name, *args)
 
-    if verbose and result is not None:
-        print(ObjectAsStr.obj_to_name(result))
+    if verbose:
+        print(f"{timeit}; {msg}")
+        if result is not None:
+            print(ObjectAsStr.obj_to_name(result))
     return result
 
 

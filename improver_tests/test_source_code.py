@@ -28,9 +28,12 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Licence checks"""
+"""Checks on source code files."""
 
 from pathlib import Path
+
+TOP_LEVEL_DIR = (Path(__file__).parent / "..").resolve()
+DIRECTORIES_COVERED = [TOP_LEVEL_DIR / "improver", TOP_LEVEL_DIR / "improver_tests"]
 
 
 def self_licence():
@@ -50,15 +53,28 @@ def test_py_licence():
     Check that non-empty python files contain the utf8 header and
     3-clause BSD licence text
     """
-    top_level = (Path(__file__).parent / "..").resolve()
-    directories_covered = [top_level / "improver", top_level / "improver_tests"]
     failed_files = []
     licence_text = self_licence()
-    for directory in directories_covered:
-        python_files = list(directory.glob("**/*.py"))
-        for file in python_files:
+    for directory in DIRECTORIES_COVERED:
+        for file in directory.glob("**/*.py"):
             contents = file.read_text()
             # skip zero-byte empty files such as __init__.py
             if len(contents) > 0 and licence_text not in contents:
                 failed_files.append(str(file))
     assert len(failed_files) == 0, "\n".join(failed_files)
+
+
+def test_init_files_exist():
+    """Check for missing __init__.py files."""
+    failed_directories = []
+    for directory in DIRECTORIES_COVERED:
+        for path in directory.glob("**"):
+            if not path.is_dir():
+                continue
+            # in-place running will produce pycache directories, these should be ignored
+            if path.name == "__pycache__":
+                continue
+            expected_init = path / "__init__.py"
+            if not expected_init.exists():
+                failed_directories.append(str(path))
+    assert len(failed_directories) == 0, "\n".join(failed_directories)
