@@ -207,22 +207,18 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         compare_feature_coords = compare_coords(
             combined_cubes, ignored_coords=["realization"]
         )
-        misaligned_dim_coords = [
-            coord_info["coord"]
-            for misaligned_coords in compare_feature_coords
-            for coord, coord_info in misaligned_coords.items()
-            if coord_info["data_dims"] is not None
-        ]
-        if misaligned_dim_coords:
-            raise ValueError(
-                f"Dimension coords do not match between: {misaligned_dim_coords}"
-            )
+        for misaligned_coords in compare_feature_coords:
+            for coord_info in misaligned_coords.values():
+                if coord_info["data_dims"] is not None:
+                    raise ValueError(
+                        "Mismatch between non-realization dimension coords."
+                    )
 
         # Compare realization coordinates across cubes where present;
         # raise error if realization coordinates don't match, otherwise set
         # common_realization_coord to broadcast over.
         realization_coords = {
-            variable.name(): variable.coords("realization")
+            variable.name(): variable.coord("realization")
             for variable in combined_cubes
             if variable.coords("realization")
         }
@@ -233,26 +229,19 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             )
         else:
             # Case II: realization_coords is not empty.
+            # Note: In future, another option here could be to filter to common realization
+            # values using filter_realizations() in utilities.cube_manipulation.
             variables_with_realization = list(realization_coords.keys())
-            sample_variable = variables_with_realization[0]
-            sample_realization = realization_coords[sample_variable][0]
-            misaligned_realizations = [
-                feature
-                for feature in variables_with_realization[1:]
-                if realization_coords[feature][0] != sample_realization
-            ]
-            if misaligned_realizations:
-                misaligned_realizations.append(sample_variable)
-                raise ValueError(
-                    f"Realization coords  do not match between: {misaligned_realizations}"
-                )
+            sample_realization = realization_coords[variables_with_realization[0]]
+            for feature in variables_with_realization[1:]:
+                if realization_coords[feature] != sample_realization:
+                    raise ValueError("Mismatch between realization dimension coords.")
             common_realization_coord = sample_realization
 
         # Add realization coord to cubes where absent by broadcasting along this dimension
         aligned_cubes = CubeList()
-        for i_cube, cube in enumerate(combined_cubes):
+        for cube in combined_cubes:
             if not cube.coords("realization"):
-                cube = combined_cubes[i_cube]
                 expanded_cube = add_coordinate(
                     cube,
                     common_realization_coord.points,
@@ -267,7 +256,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     expanded_cube = new_axis(expanded_cube, scalar_coord="realization")
                 aligned_cubes.append(expanded_cube)
             else:
-                aligned_cubes.append(combined_cubes[i_cube])
+                aligned_cubes.append(cube)
 
         return aligned_cubes[:-1], aligned_cubes[-1]
 
@@ -647,11 +636,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         self._check_num_features(feature_cubes)
 
         # Align forecast and feature datasets
-        # aligned_features, aligned_forecast = self._align_feature_variables(
-        #     feature_cubes, forecast_cube
-        # )
-
-        aligned_features, aligned_forecast = feature_cubes, forecast_cube
+        aligned_features, aligned_forecast = self._align_feature_variables(
+            feature_cubes, forecast_cube
+        )
 
         # Evaluate the error CDF using tree-models.
         error_CDF = self._calculate_error_probabilities(
