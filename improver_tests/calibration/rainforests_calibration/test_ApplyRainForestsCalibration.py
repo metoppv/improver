@@ -476,20 +476,6 @@ def test_process_with_lightgbm(
     assert result.attributes == ensemble_forecast.attributes
 
 
-def test_process_with_lightgbm_missing_models(
-    ensemble_forecast, ensemble_features, dummy_lightgbm_models
-):
-    """Test the process fails when there fewer tree_models than error thresholds."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
-    plugin.tree_models = plugin.tree_models[:-1]
-
-    with pytest.raises(RuntimeError):
-        plugin.process(
-            ensemble_forecast, ensemble_features,
-        )
-
-
 @treelite_available
 def test_process_with_treelite(
     ensemble_forecast, ensemble_features, dummy_treelite_models
