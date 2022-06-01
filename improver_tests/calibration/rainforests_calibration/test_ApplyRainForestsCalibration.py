@@ -46,6 +46,9 @@ else:
     TREELITE_ENABLED = True
 
 lightgbm = pytest.importorskip("lightgbm")
+treelite_available = pytest.mark.skipif(
+    not TREELITE_ENABLED, reason="Required dependency missing."
+)
 
 
 class MockBooster:
@@ -121,17 +124,17 @@ def test__init__(
 
 def test__check_num_features_lightgbm(ensemble_features, dummy_lightgbm_models):
     """Test number of features expected by tree_models matches features passed in."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, _ = dummy_lightgbm_models
     plugin._check_num_features(ensemble_features)
     with pytest.raises(ValueError):
         plugin._check_num_features(ensemble_features[:-1])
 
 
-@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
+@treelite_available
 def test__check_num_features_treelite(ensemble_features, dummy_treelite_models):
     """Test number of features expected by tree_models matches features passed in."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, _ = dummy_treelite_models
     plugin._check_num_features(ensemble_features)
     with pytest.raises(ValueError):
@@ -148,7 +151,7 @@ def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast)
     ensemble_features.append(dervied_field_cube)
 
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
+        model_config_dict={}
     )._align_feature_variables(ensemble_features, ensemble_forecast)
 
     assert aligned_features == expected_features
@@ -170,7 +173,7 @@ def test__align_feature_variables_deterministic(
     deterministic_forecast.remove_coord("realization")
 
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
+        model_config_dict={}
     )._align_feature_variables(deterministic_features, deterministic_forecast)
 
     assert aligned_features == expected_features
@@ -188,9 +191,9 @@ def test__align_feature_variables_misaligned_dim_coords(ensemble_features):
         realizations=np.arange(5),
     )
     with pytest.raises(ValueError):
-        ApplyRainForestsCalibration(
-            model_config_dict={}, threads=1
-        )._align_feature_variables(ensemble_features, misaligned_forecast_cube)
+        ApplyRainForestsCalibration(model_config_dict={})._align_feature_variables(
+            ensemble_features, misaligned_forecast_cube
+        )
     # Test case where realization dimension differ.
     misaligned_forecast_cube = set_up_variable_cube(
         np.maximum(0, np.random.normal(0.002, 0.001, (10, 10, 10))).astype(np.float32),
@@ -199,9 +202,9 @@ def test__align_feature_variables_misaligned_dim_coords(ensemble_features):
         realizations=np.arange(10),
     )
     with pytest.raises(ValueError):
-        ApplyRainForestsCalibration(
-            model_config_dict={}, threads=1
-        )._align_feature_variables(ensemble_features, misaligned_forecast_cube)
+        ApplyRainForestsCalibration(model_config_dict={})._align_feature_variables(
+            ensemble_features, misaligned_forecast_cube
+        )
 
 
 def test__prepare_error_probability_cube(
@@ -209,7 +212,7 @@ def test__prepare_error_probability_cube(
 ):
     """Test the preparation of error probability cube from input
     forecast cube."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.error_thresholds = error_thresholds
     result = plugin._prepare_error_probability_cube(ensemble_forecast)
 
@@ -226,7 +229,7 @@ def test__prepare_features_dataframe(ensemble_features):
         "lwe_thickness_of_precipitation_amount"
     ).data.size
     result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
+        model_config_dict={}
     )._prepare_features_dataframe(ensemble_features)
 
     assert list(result.columns) == list(sorted(feature_names))
@@ -240,31 +243,82 @@ def test__prepare_features_dataframe(ensemble_features):
     cube_lacking_realization.remove_coord("realization")
     ensemble_features.append(cube_lacking_realization)
     with pytest.raises(RuntimeError):
-        ApplyRainForestsCalibration(
-            model_config_dict={}, threads=1
-        )._prepare_features_dataframe(ensemble_features)
+        ApplyRainForestsCalibration(model_config_dict={})._prepare_features_dataframe(
+            ensemble_features
+        )
 
 
 def test_make_decreasing():
     """Test that make_increasing returns an array that is non-decreasing
     in the first dimension."""
-    input_array = np.array([[5, 5], [4, 3], [3, 4], [2, 2], [1, 1]]) / 5.0
-    expected = np.array([[5, 5], [4, 3.5], [3, 3.5], [2, 2], [1, 1]]) / 5.0
-    result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
-    )._make_decreasing(input_array)
-    assert np.allclose(expected, result)
+    # Test on standard use case.
+    input_array = np.array([[5, 5], [2, 3], [3, 4], [4, 2], [1, 1]]) / 5.0
+    expected = np.array([[5, 5], [3, 3.5], [3, 3.5], [3, 2], [1, 1]]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
+    # Test on case where all data is already monotonically decreasing.
+    input_array = np.array([[5, 5], [4, 4], [3, 3], [2, 2], [1, 1]]) / 5.0
+    expected = np.array([[5, 5], [4, 4], [3, 3], [2, 2], [1, 1]]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
+    # Test on case where some data is monotonically increasing.
+    input_array = np.array([[1, 5], [2, 3], [3, 4], [4, 2], [5, 1]]) / 5.0
+    expected = np.array([[3, 5], [3, 3.5], [3, 3.5], [3, 2], [3, 1]]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
+    # Test on case where data increasing along second dimension; this
+    # should be preserved in final output, with leading dimension monotonically
+    # decreasing.
+    input_array = np.array([[4, 5], [2, 3], [3, 4], [1, 2], [1, 1]]) / 5.0
+    expected = np.array([[4, 5], [2.5, 3.5], [2.5, 3.5], [1, 2], [1, 1]]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
+    # Test on case where data has shape (n, 1).
+    input_array = np.array([[5], [3], [4], [2], [1]]) / 5.0
+    expected = np.array([[5], [3.5], [3.5], [2], [1]]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
+    # Test on case where data has shape (1, n).
+    input_array = np.array([[5, 3, 4, 2, 1]]) / 5.0
+    expected = np.array([[5, 3, 4, 2, 1]]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
+    # Test on case where data has shape (n).
+    input_array = np.array([5, 3, 4, 2, 1]) / 5.0
+    expected = np.array([5, 3.5, 3.5, 2, 1]) / 5.0
+    result = ApplyRainForestsCalibration(model_config_dict={})._make_decreasing(
+        input_array
+    )
+    np.testing.assert_almost_equal(expected, result)
 
 
 def test__calculate_error_probabilities_lightgbm(
     ensemble_features, ensemble_forecast, dummy_lightgbm_models
 ):
     """Test calculation of error probability cube when using lightgbm Boosters."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
     result = plugin._calculate_error_probabilities(ensemble_forecast, ensemble_features)
 
-    # Check that data has sensible probability values
+    # Check that data has sensible probability values.
+    # Note: here we are NOT checking the returned value against an expected value
+    # as this will be sensitive to changes in associated GBDT libraries, given that
+    # the tree models are created dynamically within fixtures. Here we implicitly trust
+    # the output from the tree models are correct based on the specified inputs, and so
+    # only test to ensure that the dataset overall conforms to the bounds for probability
+    # data.
     assert np.all(result.data >= 0.0)
     assert np.all(result.data <= 1.0)
     assert np.all(np.isfinite(result.data))
@@ -272,16 +326,22 @@ def test__calculate_error_probabilities_lightgbm(
     assert np.all(np.diff(result.data, axis=0) <= 0.0)
 
 
-@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
+@treelite_available
 def test__calculate_error_probabilities_treelite(
     ensemble_features, ensemble_forecast, dummy_treelite_models
 ):
     """Test calculation of error probability cube when using treelite Predictors."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
     result = plugin._calculate_error_probabilities(ensemble_forecast, ensemble_features)
 
     # Check that data has sensible probability values
+    # Note: here we are NOT checking the returned value against an expected value
+    # as this will be sensitive to changes in associated GBDT libraries, given that
+    # the tree models are created dynamically within fixtures. Here we implicitly trust
+    # the output from the tree models are correct based on the specified inputs, and so
+    # only test to ensure that the dataset overall conforms to the bounds for probability
+    # data.
     assert np.all(result.data >= 0.0)
     assert np.all(result.data <= 1.0)
     assert np.all(np.isfinite(result.data))
@@ -292,7 +352,7 @@ def test__calculate_error_probabilities_treelite(
 def test__extract_error_percentiles(error_threshold_cube, error_percentile_cube):
     """Test the extraction of error percentiles from error-probability cube."""
     result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
+        model_config_dict={}
     )._extract_error_percentiles(error_threshold_cube, 4)
 
     assert result.long_name == error_percentile_cube.long_name
@@ -303,9 +363,9 @@ def test__extract_error_percentiles(error_threshold_cube, error_percentile_cube)
 
 def test__apply_error_to_forecast(ensemble_forecast, error_percentile_cube):
     """Test the application of forecast error (percentile) values to the forecast cube."""
-    result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
-    )._apply_error_to_forecast(ensemble_forecast, error_percentile_cube)
+    result = ApplyRainForestsCalibration(model_config_dict={})._apply_error_to_forecast(
+        ensemble_forecast, error_percentile_cube
+    )
 
     assert result.standard_name == ensemble_forecast.standard_name
     assert result.long_name == ensemble_forecast.long_name
@@ -330,9 +390,9 @@ def test__stack_subensembles(error_percentile_cube):
         column.reshape(5, 4)[:, :, np.newaxis, np.newaxis], (5, 4, 10, 10)
     )
     expected_data = np.broadcast_to(column[:, np.newaxis, np.newaxis], (20, 10, 10))
-    result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
-    )._stack_subensembles(error_percentile_cube)
+    result = ApplyRainForestsCalibration(model_config_dict={})._stack_subensembles(
+        error_percentile_cube
+    )
     # Result should not contain percentile coordinate
     assert result.coords("percentile") == []
     # Result should have realization coordinate composed on of length
@@ -352,21 +412,21 @@ def test__stack_subensembles(error_percentile_cube):
     )
     assert result.attributes == error_percentile_cube.attributes
     # Check data ordered as expected.
-    assert np.all(result.data == expected_data)
+    np.testing.assert_equal(result.data, expected_data)
 
     # Test the case where cubes are not in expected order.
     error_percentile_cube.transpose([1, 0, 2, 3])
     with pytest.raises(ValueError):
-        ApplyRainForestsCalibration(
-            model_config_dict={}, threads=1
-        )._stack_subensembles(error_percentile_cube)
+        ApplyRainForestsCalibration(model_config_dict={})._stack_subensembles(
+            error_percentile_cube
+        )
 
 
 def test__combine_subensembles(error_percentile_cube):
     """Test extraction of realization values from full superensemble."""
-    result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
-    )._combine_subensembles(error_percentile_cube, output_realizations_count=None)
+    result = ApplyRainForestsCalibration(model_config_dict={})._combine_subensembles(
+        error_percentile_cube, output_realizations_count=None
+    )
 
     assert (
         result.coord("realization").points.size
@@ -374,9 +434,9 @@ def test__combine_subensembles(error_percentile_cube):
         * error_percentile_cube.coord("percentile").points.size
     )
 
-    result = ApplyRainForestsCalibration(
-        model_config_dict={}, threads=1
-    )._combine_subensembles(error_percentile_cube, output_realizations_count=10)
+    result = ApplyRainForestsCalibration(model_config_dict={})._combine_subensembles(
+        error_percentile_cube, output_realizations_count=10
+    )
 
     assert result.coord("realization").points.size == 10
 
@@ -385,7 +445,7 @@ def test_process_with_lightgbm(
     ensemble_forecast, ensemble_features, dummy_lightgbm_models
 ):
     """Test process routine using lightgbm booster."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
 
     for output_realization_count in (None, 10):
@@ -420,7 +480,7 @@ def test_process_with_lightgbm_missing_models(
     ensemble_forecast, ensemble_features, dummy_lightgbm_models
 ):
     """Test the process fails when there fewer tree_models than error thresholds."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
     plugin.tree_models = plugin.tree_models[:-1]
 
@@ -430,12 +490,12 @@ def test_process_with_lightgbm_missing_models(
         )
 
 
-@pytest.mark.skipif(not TREELITE_ENABLED, reason="Required dependency missing.")
+@treelite_available
 def test_process_with_treelite(
     ensemble_forecast, ensemble_features, dummy_treelite_models
 ):
     """Test process routine using treelite Predictor."""
-    plugin = ApplyRainForestsCalibration(model_config_dict={}, threads=1)
+    plugin = ApplyRainForestsCalibration(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
 
     for output_realization_count in (None, 10):

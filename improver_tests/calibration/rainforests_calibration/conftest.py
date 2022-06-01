@@ -67,7 +67,7 @@ def model_config(error_thresholds):
     }
 
 
-def gen_forecast_cubes(realizations):
+def generate_forecast_cubes(realizations):
     np.random.seed(0)
     data_shape = (len(realizations), 10, 10)
     return set_up_variable_cube(
@@ -79,7 +79,7 @@ def gen_forecast_cubes(realizations):
     )
 
 
-def gen_aligned_feature_cubes(realizations):
+def generate_aligned_feature_cubes(realizations):
     """Generate a set of aligned feature cubes consistent with forecast cube.
 
     Note: The clearsky_solar_rad field will contain copy over realization dimension.
@@ -143,28 +143,28 @@ def gen_aligned_feature_cubes(realizations):
 @pytest.fixture
 def ensemble_forecast():
     """Create ensemble forecast cube."""
-    return gen_forecast_cubes(realizations=np.arange(5))
+    return generate_forecast_cubes(realizations=np.arange(5))
 
 
 @pytest.fixture
 def ensemble_features():
     """Create a set of aligned ensemble feature cube."""
-    return gen_aligned_feature_cubes(realizations=np.arange(5))
+    return generate_aligned_feature_cubes(realizations=np.arange(5))
 
 
 @pytest.fixture
 def deterministic_forecast():
     """Create deterministic forecast cube."""
-    return gen_forecast_cubes(realizations=np.arange(1))
+    return generate_forecast_cubes(realizations=np.arange(1))
 
 
 @pytest.fixture
 def deterministic_features():
     """Create a set of aligned deterministic feature cubes."""
-    return gen_aligned_feature_cubes(realizations=np.arange(1))
+    return generate_aligned_feature_cubes(realizations=np.arange(1))
 
 
-def get_dummy_training_data(features, forecast):
+def prepare_dummy_training_data(features, forecast):
     """Create a dummy training set for tree-models."""
     # Set column names for reference in training
     fcst_column = forecast.name()
@@ -208,7 +208,7 @@ def dummy_lightgbm_models(ensemble_features, ensemble_forecast, error_thresholds
     """Create sample lightgbm models for evaluating forecast error probabilities."""
     import lightgbm
 
-    training_data, fcst_column, obs_column, train_columns = get_dummy_training_data(
+    training_data, fcst_column, obs_column, train_columns = prepare_dummy_training_data(
         ensemble_features, ensemble_forecast
     )
     # train a model for each threshold

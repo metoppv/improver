@@ -64,7 +64,7 @@ DEFAULT_OUTPUT_REALIZATIONS_COUNT = 100
 class ApplyRainForestsCalibration(PostProcessingPlugin):
     """Class to calibrate input forecast given a series of RainForests tree models."""
 
-    def __init__(self, model_config_dict: dict, threads: int):
+    def __init__(self, model_config_dict: dict, threads: int = 1):
         """Initialise the tree model variables used in the application of RainForests
         Calibration.
 
@@ -337,9 +337,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         is assumed to be the leading dimension.
 
         This is achieved by identifying the minimum value progressively along
-        the threshold dimension by comparing to all preceding probability values along
-        the threshold dimension. The same is done for maximum values, comparing to all
-        succeeding values along the threshold dimension. Averaging these resulting
+        the leading dimension by comparing to all preceding probability values along
+        this dimension. The same is done for maximum values, comparing to all
+        succeeding values along the leading dimension. Averaging these resulting
         arrays results in an array decreasing monotonically in the threshold dimension.
 
         Args:
