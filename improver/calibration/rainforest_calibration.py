@@ -302,9 +302,12 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         return error_probability_cube
 
-    def _prepare_features_dataframe(self, feature_cubes: Cube) -> DataFrame:
+    def _prepare_features_dataframe(self, feature_cubes: CubeList) -> DataFrame:
         """Convert gridded feature cubes into a dataframe, with feature variables
         sorted alphabetically.
+
+        Note: It is expected that feature_cubes has been aligned using
+        _align_feature_variables prior to calling this function.
 
         Args:
             feature_cubes:
@@ -325,10 +328,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         features_df = pd.DataFrame()
         for feature in feature_variables:
             cube = feature_cubes.extract_cube(feature)
-            data = cube.data.flatten()
-            if (len(features_df) > 0) and (len(data) != len(features_df)):
-                raise RuntimeError("Input cubes have differing sizes.")
-            features_df[feature] = data
+            features_df[feature] = cube.data.ravel()
 
         return features_df
 
@@ -435,28 +435,44 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     def _apply_error_to_forecast(
         self, forecast_cube: Cube, error_percentiles_cube: Cube
     ) -> Cube:
-        """Apply the error distributions (as error percentiles) to the forecast cube. The result
-        is a series (sub-ensemble) of values for each forecast realization.
+        """Apply the error distributions (as error percentiles) to the forecast cube.
+        The result is a series (sub-ensemble) of values for each forecast realization.
+
+        Note:
+            #. Within the RainForests approach we work with an additive error correction
+            as opposed to a multiplicative correction used in ECPoint. The advantage of
+            using an additive error is that we are also able to calibrate zero-values in
+            the input forecast.
+            #. After applying the error distributions to the forecast cube, values outside
+            the expected bounds of the forecast parameter can arise. These values occur when
+            when the input forecast value is between error thresholds and there exists a
+            lower bound on the observable value (eg. 0 in the case of rainfall). In this
+            situation, error thresholds below the residual value (min(obs) - fcst) must have
+            a probability of exceedance of 1, whereas as error thresholds above this value can
+            take on any value between [0, 1]. In the subsequent step where error percentile
+            values are extracted, the linear interpolation in mapping from probabilities to
+            percentiles can give percentile values that lie below the residual value; when
+            these are applied to the forecast value, they result in forecast values outside
+            the expected bounds of the forecast parameter in the resultant sub-ensemble. To
+            address this, we remap all values outside of the expected bounds to nearest
+            bound (eg. negative values are mapped to 0 in the case of rainfall).
 
         Args:
             forecast_cube:
                 Cube containing the forecast to be calibrated.
             error_percentiles_cube:
                 Cube containing percentile values for the error distributions.
+
         Returns:
             Cube containing the forecast sub-ensembles.
         """
-        # Apply the error_percentiles to the forecast_cube
+        # Apply the error_percentiles to the forecast_cube (additive correction)
         forecast_subensembles_data = (
             forecast_cube.data[:, np.newaxis] + error_percentiles_cube.data
         )
-        # Negative values can arise when the forecast is between error thresholds.
-        # When there is a lower bound on the observable value (0.0 in the case of rainfall),
-        # error thresholds below the forecast value should have probability of exceedence
-        # of 1, however it is possible that when forecast value is between thresholds that
-        # the linear interpolation in mapping from probabilities to percentiles can give
-        # percentile values that lie below the forecast value. Consequently, when applied
-        # to the forecast, these result in negative values in the sub-ensemble.
+        # RAINFALL SPECIFIC IMPLEMENTATION:
+        # As described above, we need to address value outside of expected bounds.
+        # In the case of rainfall, we map all negative values to 0.
         forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
         # Return cube containing forecast subensembles
         return create_new_diagnostic_cube(
@@ -627,19 +643,15 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 If the number of tree-models is inconsistent with the number of error
                 thresholds.
         """
-        # Check that tree-model object available for each error threshold.
-        if len(self.error_thresholds) != len(self.tree_models):
-            raise RuntimeError(
-                "tree_models must be of the same size as error_thresholds."
-            )
-
         # Check that the correct number of feature variables has been supplied.
         self._check_num_features(feature_cubes)
 
         # Align forecast and feature datasets
-        aligned_features, aligned_forecast = self._align_feature_variables(
-            feature_cubes, forecast_cube
-        )
+        # aligned_features, aligned_forecast = self._align_feature_variables(
+        #     feature_cubes, forecast_cube
+        # )
+
+        aligned_features, aligned_forecast = feature_cubes, forecast_cube
 
         # Evaluate the error CDF using tree-models.
         error_CDF = self._calculate_error_probabilities(

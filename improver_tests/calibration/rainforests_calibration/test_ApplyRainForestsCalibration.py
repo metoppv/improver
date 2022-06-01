@@ -242,7 +242,7 @@ def test__prepare_features_dataframe(ensemble_features):
     )
     cube_lacking_realization.remove_coord("realization")
     ensemble_features.append(cube_lacking_realization)
-    with pytest.raises(RuntimeError):
+    with pytest.raises(ValueError):
         ApplyRainForestsCalibration(model_config_dict={})._prepare_features_dataframe(
             ensemble_features
         )
