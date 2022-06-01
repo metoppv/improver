@@ -37,6 +37,7 @@ into an iris cube.
 
 
 """
+import warnings
 from typing import List, Optional, Sequence, Tuple
 
 import numpy as np
@@ -412,10 +413,10 @@ def _prepare_dataframes(
     ):
         df_type = "forecast" if "station_id" in forecast_df.columns else "truth"
         msg = (
-            "station_id must be in both the forecast and truth dataframes "
-            f"if provided. station_id is only within the {df_type} dataframe."
+            f"station_id is only within the {df_type} dataframe. As station_id "
+            "is not present in both dataframes, station_id will be ignored."
         )
-        raise ValueError(msg)
+        warnings.warn(msg)
 
     include_station_id = False
     if ("station_id" in forecast_df.columns) and ("station_id" in truth_df.columns):

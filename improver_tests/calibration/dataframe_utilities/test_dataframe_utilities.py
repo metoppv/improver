@@ -502,9 +502,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_station_id_forecast_df_only(self):
         """Test that when station_id is only present in the forecast dataframe,
-        an error is raised."""
-        msg = "station_id must be in both the forecast and truth dataframes"
-        with self.assertRaisesRegex(ValueError, msg):
+        a warning is raised."""
+        msg = "station_id is only within the forecast dataframe"
+        with self.assertWarnsRegex(UserWarning, msg):
             forecast_and_truth_dataframes_to_cubes(
                 self.forecast_df_station_id,
                 self.truth_subset_df,
@@ -515,9 +515,9 @@ class Test_forecast_and_truth_dataframes_to_cubes(
 
     def test_station_id_truth_df_only(self):
         """Test that when station_id is only present in the truth dataframe,
-        an error is raised."""
-        msg = "station_id must be in both the forecast and truth dataframes"
-        with self.assertRaisesRegex(ValueError, msg):
+        a warning is raised."""
+        msg = "station_id is only within the truth dataframe"
+        with self.assertWarnsRegex(UserWarning, msg):
             forecast_and_truth_dataframes_to_cubes(
                 self.forecast_df,
                 self.truth_df_station_id,
