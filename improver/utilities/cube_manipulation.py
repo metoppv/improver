@@ -645,3 +645,63 @@ def filter_realizations(cubes: CubeList) -> Cube:
         if set([c.point for c in realization_cube.coord("time").cells()]) == times:
             filtered_cubes.append(realization_cube)
     return MergeCubes()(filtered_cubes)
+
+
+def add_coordinate_to_cube(
+    cube: Cube,
+    new_coord: DimCoord,
+    new_dim_location: int = 0,
+    copy_metadata: bool = True,
+) -> Cube:
+    """Create a copy of input cube with an additional dimension coordinate
+    added to the cube at the specified axis. The data from input cube is broadcast
+    over this new dimension.
+
+    Args:
+        cube:
+            cube to add realization dimension to.
+        new_coord:
+            new coordinate to add to input cube.
+        new_dim_location:
+            position in cube.data to position the new dimension coord. Default is
+            to add the new coordinate as the leading dimension.
+        copy_metadata:
+            flag as to whether to carry metadata over to output cube.
+
+    Returns:
+        A copy of cube broadcast over the new dimension coordinate.
+    """
+    input_dim_count = len(cube.dim_coords)
+
+    if (new_dim_location > input_dim_count) or (new_dim_location < 0):
+        raise ValueError(
+            f"New dimension location: {new_dim_location} incompatible \
+                with cube containing {input_dim_count}."
+        )
+
+    new_dim_coords = list(cube.dim_coords) + [new_coord]
+    new_dims = list(range(input_dim_count + 1))
+    new_dim_coords_and_dims = list(zip(new_dim_coords, new_dims))
+
+    aux_coords = cube.aux_coords
+    aux_coord_dims = [cube.coord_dims(coord.name()) for coord in aux_coords]
+    new_aux_coords_and_dims = list(zip(aux_coords, aux_coord_dims))
+
+    new_coord_size = len(new_coord.points)
+    new_data = np.broadcast_to(
+        cube.data[..., np.newaxis], shape=cube.shape + (new_coord_size,)
+    ).astype(cube.data.dtype)
+    output_cube = Cube(
+        new_data,
+        dim_coords_and_dims=new_dim_coords_and_dims,
+        aux_coords_and_dims=new_aux_coords_and_dims,
+    )
+    if copy_metadata:
+        output_cube.metadata = cube.metadata
+
+    final_dim_order = np.insert(
+        np.arange(input_dim_count), new_dim_location, values=input_dim_count
+    )
+    output_cube.transpose(final_dim_order)
+
+    return output_cube

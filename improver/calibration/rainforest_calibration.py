@@ -38,7 +38,6 @@ import numpy as np
 import pandas as pd
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
-from iris.util import new_axis
 from numpy import ndarray
 from pandas import DataFrame
 
@@ -53,8 +52,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.synthetic_data.set_up_test_cubes import add_coordinate
-from improver.utilities.cube_manipulation import compare_coords
+from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
@@ -225,7 +223,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         if not realization_coords:
             # Case I: realization_coords is empty. Add single realization dim to all cubes.
             common_realization_coord = DimCoord(
-                [0], standard_name="realization", units=1, var_name="realization"
+                [0], standard_name="realization", units=1
             )
         else:
             # Case II: realization_coords is not empty.
@@ -242,18 +240,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         aligned_cubes = CubeList()
         for cube in combined_cubes:
             if not cube.coords("realization"):
-                expanded_cube = add_coordinate(
-                    cube,
-                    common_realization_coord.points,
-                    common_realization_coord.name(),
-                    common_realization_coord.units,
-                    dtype=common_realization_coord.dtype,
+                expanded_cube = add_coordinate_to_cube(
+                    cube, new_coord=common_realization_coord
                 )
-                # The above method will add realization as an aux_coord for deterministic
-                # data (single realization). We need this as a dim-coord, so we will add
-                # an axis for realization.
-                if expanded_cube.coord_dims("realization") != (0,):
-                    expanded_cube = new_axis(expanded_cube, scalar_coord="realization")
                 aligned_cubes.append(expanded_cube)
             else:
                 aligned_cubes.append(cube)
@@ -280,14 +269,16 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             template_cube=forecast_cube,
             mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
         )
-        error_probability_cube = add_coordinate(
-            error_probability_cube,
+        error_threshold_coord = DimCoord(
             self.error_thresholds,
-            forecast_error_variable,
-            forecast_cube.units,
+            long_name=forecast_error_variable,
+            var_name="threshold",
+            units=forecast_cube.units,
             attributes={"spp__relative_to_threshold": "above"},
         )
-        error_probability_cube.coord(forecast_error_variable).var_name = "threshold"
+        error_probability_cube = add_coordinate_to_cube(
+            error_probability_cube, new_coord=error_threshold_coord,
+        )
 
         return error_probability_cube
 
