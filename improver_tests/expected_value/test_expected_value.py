@@ -99,7 +99,7 @@ def test_process_threshold_basic(threshold_cube):
     expval = ExpectedValue().process(threshold_cube)
     # threshold probablities are asymmetric, so the mean is slightly above the
     # 282 kelvin threshold
-    assert_allclose(expval.data, 282.16, atol=0.01)
+    assert_allclose(expval.data, 282.15, atol=0.0, rtol=0.0)
 
 
 def test_process_non_probabilistic(realizations_cube, percentile_cube):
