@@ -68,7 +68,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     """
 
     def __new__(cls, model_config_dict, threads=1):
-
         """Initialise class object based on package and model file availability.
 
         Args:
@@ -78,6 +77,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 Number of threads to use during prediction with tree-model objects.
 
         Dictionary is of format::
+
             {
                 "-50.0" : {
                     "lightgbm_model" : "<path_to_lightgbm_model_object>",
@@ -169,6 +169,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Number of threads to use during prediction with tree-model objects.
 
         Dictionary is of format::
+
             {
                 "-50.0" : {
                     "lightgbm_model" : "<path_to_lightgbm_model_object>"
@@ -721,6 +722,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 Number of threads to use during prediction with tree-model objects.
 
         Dictionary is of format::
+
             {
                 "-50.0" : {
                     "treelite_model" : "<path_to_treelite_model_object>"
