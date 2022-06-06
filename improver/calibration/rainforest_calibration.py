@@ -67,7 +67,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     to lightGBM if requirements are missing.
     """
 
-    def __new__(cls, model_config_dict, threads=1):
+    def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Initialise class object based on package and model file availability.
 
         Args:
@@ -134,7 +134,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def process(self):
+    def process(self) -> None:
         """Subclasses should override this function."""
         raise NotImplementedError(
             "Process function must be called via subclass method."
@@ -145,7 +145,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     """Class to calibrate input forecast given via RainForests approach using light-GBM
     tree models"""
 
-    def __new__(cls, model_config_dict, threads=1):
+    def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Check all model files are available before initialising."""
         lightgbm_model_filenames = [
             threshold_dict.get("lightgbm_model")
@@ -694,7 +694,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     """Class to calibrate input forecast given via RainForests approach using treelite
     compiled tree models"""
 
-    def __new__(cls, model_config_dict, threads=1):
+    def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
         # is available.
