@@ -466,7 +466,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
         cube_dtype = cube.data.dtype
         cube_fill_value = netCDF4.default_fillvals.get(cube_dtype.str[1:])
-        if cube_fill_value == None:
+        if cube_fill_value is None:
             cube_fill_value = -np.inf
 
         max_cube = cube.copy()
