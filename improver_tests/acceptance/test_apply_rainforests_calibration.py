@@ -42,9 +42,9 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.fixture
-def create_model_config(tmp_path):
-    """Load model-config containing relative paths, and create a duplicate version
-    into tmp_path containing absolute paths."""
+def create_model_config():
+    """Load model-config json containing relative paths, and create a duplicate version
+    of the associated dictionary with relative paths specified as absolute paths."""
     model_file_dir = acc.kgo_root() / "apply-rainforests-calibration/model_files"
     # Load model config containing paths relative to apply-rainforests-calibration
     # within the directory contaning improver acceptance test data.
@@ -59,11 +59,7 @@ def create_model_config(tmp_path):
         )
         absoluate_path_model_config_dict[threshold] = {"lightgbm_model": absolute_path}
 
-    absolute_path_model_config_file = tmp_path / "model-config.json"
-    with open(absolute_path_model_config_file, "w") as model_config_json:
-        json.dump(absoluate_path_model_config_dict, model_config_json, indent=4)
-
-    return absolute_path_model_config_file
+    return absoluate_path_model_config_dict
 
 
 @pytest.mark.slow
