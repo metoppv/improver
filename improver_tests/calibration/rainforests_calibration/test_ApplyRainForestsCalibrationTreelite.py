@@ -93,60 +93,6 @@ def test__init__(
         assert f"{threshold:06.4f}" in model.model_file
 
 
-# @pytest.mark.parametrize("lightgbm_keys", (True, False))
-# @pytest.mark.parametrize("ordered_inputs", (True, False))
-# @pytest.mark.parametrize("treelite_model", (TREELITE_ENABLED, False))
-# @pytest.mark.parametrize("treelite_file", (True, False))
-# def test__init__(
-#     lightgbm_keys,
-#     ordered_inputs,
-#     treelite_model,
-#     treelite_file,
-#     monkeypatch,
-#     model_config,
-#     error_thresholds,
-# ):
-#     """Test treelite models are loaded if model_config correctly defines them. If all thresholds
-#     contain treelite model AND the treelite module is available, treelite Predictor is returned,
-#     otherwise return lightgbm Boosters. Checks outputs are ordered when inputs can be unordered.
-#     If neither treelite nor lightgbm configs are complete, a ValueError is expected."""
-#     if treelite_model:
-#         monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
-#     else:
-#         monkeypatch.setitem(sys.modules, "treelite_runtime", None)
-#     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-
-#     if not treelite_file:
-#         # Model type should default to lightgbm if there are any treelite models
-#         # missing across any thresholds
-#         model_config["0.0000"].pop("treelite_model", None)
-#     if not ordered_inputs:
-#         tmp_value = model_config.pop("0.0000", None)
-#         model_config["0.0000"] = tmp_value
-#     if not lightgbm_keys:
-#         for t, d in model_config.items():
-#             d.pop("lightgbm_model")
-
-#     if treelite_model and treelite_file:
-#         expected_class = "treelite-Predictor"
-#     elif lightgbm_keys:
-#         expected_class = "lightgbm-Booster"
-#     else:
-#         with pytest.raises(ValueError, match="Path to lightgbm model missing"):
-#             ApplyRainForestsCalibration(model_config, threads=8)
-#         return
-
-#     result = ApplyRainForestsCalibration(model_config, threads=8)
-
-#     for model in result.tree_models:
-#         assert model.model_class == expected_class
-#         assert model.threads == 8
-#     assert result.treelite_enabled is treelite_model
-#     assert np.all(result.error_thresholds == error_thresholds)
-#     for threshold, model in zip(result.error_thresholds, result.tree_models):
-#         assert f"{threshold:06.4f}" in model.model_file
-
-
 def test__check_num_features(ensemble_features, dummy_treelite_models):
     """Test number of features expected by tree_models matches features passed in."""
     plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
