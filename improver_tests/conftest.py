@@ -34,14 +34,23 @@ import pytest
 
 
 @pytest.fixture(autouse=True)
-def env_setup(monkeypatch):
+def thread_control(monkeypatch):
     """
-    Set environment variables to restrict math libraries to a single thread.
-    For details, see Dask documentation:
+    Wrap all tests with a limit to one thread via threadpoolctl.
+
+    The threadpoolctl library handles a variety of numerical libraries including
+    OpenBLAS, MKL and OpenMP, using their library specific interfaces during runtime.
+    Environment variable settings for these need to be applied before starting the
+    python interpreter, which is not possible from inside pytest.
+    This limitation to one thread avoids thread contention when parallel processing
+    is handled at larger scale such as Dask or pytest-xdist. See dask documentation:
     https://docs.dask.org/en/stable/array-best-practices.html#avoid-oversubscribing-threads
     """
-    monkeypatch.setenv("OMP_NUM_THREADS", "1")
-    monkeypatch.setenv("OPENBLAS_NUM_THREADS", "1")
-    monkeypatch.setenv("MKL_NUM_THREADS", "1")
-    monkeypatch.setenv("VECLIB_MAXIMUM_THREADS", "1")
-    monkeypatch.setenv("NUMEXPR_NUM_THREADS", "1")
+    try:
+        from threadpoolctl import threadpool_limits
+
+        with threadpool_limits(limits=1):
+            yield
+    except ModuleNotFoundError:
+        yield
+    return
