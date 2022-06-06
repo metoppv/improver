@@ -166,7 +166,7 @@ def dry_adiabatic_pressure(
     final_temperature: np.ndarray,
 ) -> np.ndarray:
     """
-    Calculate temperature at final_pressure after adiabatic adjustment of dry air from the
+    Calculate pressure at final_temperature after adiabatic adjustment of dry air from the
     initial temperature and pressure.
 
     Args:
