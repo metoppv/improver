@@ -33,10 +33,9 @@ import numpy as np
 import pytest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    dry_adiabatic_temperature,
     dry_adiabatic_pressure,
+    dry_adiabatic_temperature,
 )
-
 
 t_1 = 280.0
 p_1 = 100000.0
