@@ -147,11 +147,11 @@ def dry_adiabatic_temperature(
     initial temperature and pressure.
 
     Args:
-        initial_temperature: 
+        initial_temperature:
             Array of initial temperatures (K)
-        initial_pressure: 
+        initial_pressure:
             Array of initial pressures (Pa)
-        final_pressure: 
+        final_pressure:
             Array of final pressures (Pa)
 
     Returns:
