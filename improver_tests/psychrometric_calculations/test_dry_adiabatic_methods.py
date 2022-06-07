@@ -39,7 +39,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 
 t_1 = 280.0
 p_1 = 100000.0
-t_2 = 271.6968
+t_2 = 271.7008
 p_2 = 90000.0
 
 
