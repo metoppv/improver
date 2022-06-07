@@ -38,6 +38,7 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube, CubeList
 from numpy import ndarray
+from scipy.optimize import newton
 
 import improver.constants as consts
 from improver import BasePlugin
@@ -175,6 +176,69 @@ def dry_adiabatic_pressure(
     return initial_pressure * (final_temperature / initial_temperature) ** (
         consts.CP_DRY_AIR / consts.R_DRY_AIR
     )
+
+
+def saturated_humidity(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+    """
+    Calculate specific humidity of saturated air of given temperature and pressure
+
+    Args:
+        temperature:
+            Air temperature (K)
+        pressure:
+            Air pressure (Pa)
+
+    Returns:
+        Array of specific humidity values (kg kg-1) representing saturated air
+    """
+    epsilon = 0.622
+    svp = calculate_svp_in_air(temperature, pressure)
+    return epsilon * svp / (pressure - (1.0 - epsilon * svp))
+
+
+def saturated_latent_heat(
+    temperature_in: np.ndarray, humidity_in: np.ndarray, pressure: np.ndarray
+) -> Tuple[np.ndarray, np.ndarray]:
+    """
+    Increases temperature and reduces humidity via latent heat release from condensation until
+    values represent <=100% relative humidity.
+
+    TODO: Change output humidity value to represent qsat(output_temperature) rather than qsat(input_temperature)
+
+    Args:
+        temperature_in:
+            The parcel temperature following a dry adiabatic cooling (K)
+        humidity_in:
+            The atmosphere specific humidity at the same points (kg kg-1)
+        pressure:
+            The atmospheric pressure at the same points (Pa)
+
+    Returns:
+        tuple of temperature (K) and humidity (kg kg-1) after saturated latent heat adjustment
+    """
+    latent_heat_of_condensation = 2.5e5  # J kg-1 K
+
+    def latent_heat_release(q1, q2):
+        """Returns the latent heat released (K) when condensing water vapour from specific humidity
+        value q1 to q2, both in kg kg-1."""
+        return (latent_heat_of_condensation / consts.CP_WATER_VAPOUR) * (q1 - q2)
+
+    def qsat_differential(qs, t, q, p):
+        """For a given set of temperature, specific humidity and pressure, and a qs guess,
+        return the difference"""
+        adj_t = t + latent_heat_release(q, qs)
+        return saturated_humidity(adj_t, p) - qs
+
+    optimized_result = newton(
+        qsat_differential,
+        humidity_in.copy(),
+        args=(temperature_in, humidity_in, pressure),
+        tol=1e-6,
+        maxiter=3,
+    )
+    humidity = optimized_result.astype(np.float32)
+    temperature = temperature_in + latent_heat_release(humidity_in, humidity)
+    return temperature, humidity
 
 
 class WetBulbTemperature(BasePlugin):
