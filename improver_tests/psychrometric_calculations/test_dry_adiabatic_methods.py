@@ -72,11 +72,12 @@ def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
 @pytest.mark.parametrize(
     "t, p, expected",
     (
-        (243.15, 30000, 1.15067e-3),  # Actual value is 0.78787e-3
+        (243.15, 30000, 0.78787e-3),  # Tephigram value is about 1.1e-3
         (273.15, 60000, 6.3074e-3),
         (273.15, 90000, 4.2194e-3),
         (273.15, 100000, 3.8008e-3),
         (293.15, 100000, 1.43954e-2),
+        (290, 100000, 1.18451e-2),
     ),
 )
 def test_saturated_humidity(shape, t, p, expected):
@@ -88,16 +89,18 @@ def test_saturated_humidity(shape, t, p, expected):
     assert result.shape == shape
 
 
+# Stephen checked these values on a Tephigram.
+# Start at point t, p. Move down dry adiabat until you reach q, then up saturated adiabat back to p
+# This should coincide with expected_t and expected_q.
 @pytest.mark.parametrize("shape", ((1,), (2, 2)))
 @pytest.mark.parametrize(
     "t, p, q, expected_t, expected_q",
     (
-        (220, 30000, 5.6e-5, 220.0023, 5.5067e-5),
-        (280, 90000, 6.9e-3, 280.016, 6.8369e-3),
-        (271, 85000, 6.8369e-3, 273, 6.8369e-3),
-        (289, 100000, 1.5863e-2, 290, 1.1845e-2),
-        (294, 90000, 2.7e-2, 296.0026, 1.8953e-2),
-        (294, 90000, 2.7e-2, 299.5, 2.5e-2),
+        (220, 30000, 5.6e-4, 220.6760, 5.99874e-5),
+        (280, 90000, 6.9e-3, 280.0584, 6.8568e-3),
+        (271, 85000, 6.8369e-3, 273.879, 4.7071e-3),
+        (289, 100000, 1.25845e-2, 290, 1.1845e-2),
+        (294, 90000, 2.7e-2, 299.341, 2.30493e-2),
     ),
 )
 def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):

@@ -203,8 +203,6 @@ def saturated_latent_heat(
     Increases temperature and reduces humidity via latent heat release from condensation until
     values represent <=100% relative humidity.
 
-    TODO: Change output humidity value to represent qsat(output_temperature) rather than qsat(input_temperature)
-
     Args:
         temperature_in:
             The parcel temperature following a dry adiabatic cooling (K)
@@ -216,12 +214,11 @@ def saturated_latent_heat(
     Returns:
         tuple of temperature (K) and humidity (kg kg-1) after saturated latent heat adjustment
     """
-    latent_heat_of_condensation = 2.5e5  # J kg-1 K
 
     def latent_heat_release(q1, q2):
         """Returns the latent heat released (K) when condensing water vapour from specific humidity
         value q1 to q2, both in kg kg-1."""
-        return (latent_heat_of_condensation / consts.CP_WATER_VAPOUR) * (q1 - q2)
+        return (consts.LH_CONDENSATION_WATER / consts.CP_WATER_VAPOUR) * (q1 - q2)
 
     def qsat_differential(qs, t, q, p):
         """For a given set of temperature, specific humidity and pressure, and a qs guess,
@@ -234,7 +231,7 @@ def saturated_latent_heat(
         humidity_in.copy(),
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
-        maxiter=3,
+        maxiter=10,
     )
     humidity = optimized_result.astype(np.float32)
     temperature = temperature_in + latent_heat_release(humidity_in, humidity)
