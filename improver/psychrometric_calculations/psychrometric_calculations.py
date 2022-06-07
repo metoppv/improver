@@ -131,12 +131,6 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
     return svp * correction.astype(np.float32)
 
 
-# Kappa is R/Cp,
-# where R is the gas constant in J kg-1 K-1
-# and Cp is the specific heat of dry air in J kg-1 K
-KAPPA = 287.0 / 1004.5
-
-
 def dry_adiabatic_temperature(
     initial_temperature: np.ndarray,
     initial_pressure: np.ndarray,
@@ -157,7 +151,9 @@ def dry_adiabatic_temperature(
     Returns:
         Array of final temperatures (K)
     """
-    return initial_temperature * (final_pressure / initial_pressure) ** KAPPA
+    return initial_temperature * (final_pressure / initial_pressure) ** (
+        consts.R_DRY_AIR / consts.CP_DRY_AIR
+    )
 
 
 def dry_adiabatic_pressure(
@@ -180,7 +176,9 @@ def dry_adiabatic_pressure(
     Returns:
         Array of final pressures (Pa)
     """
-    return initial_pressure * (final_temperature / initial_temperature) ** (1 / KAPPA)
+    return initial_pressure * (final_temperature / initial_temperature) ** (
+        1 / (consts.R_DRY_AIR / consts.CP_DRY_AIR)
+    )
 
 
 class WetBulbTemperature(BasePlugin):
