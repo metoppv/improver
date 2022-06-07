@@ -465,9 +465,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         grid_points = (2 * grid_point_radius) + 1
 
         cube_dtype = cube.data.dtype
-        cube_fill_value = netCDF4.default_fillvals.get(cube_dtype.str[1:])
-        if cube_fill_value is None:
-            cube_fill_value = -np.inf
+        cube_fill_value = netCDF4.default_fillvals.get(cube_dtype.str[1:], -np.inf)
 
         max_cube = cube.copy()
         unmasked_cube_data = cube.data.copy()
