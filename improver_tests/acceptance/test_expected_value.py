@@ -77,7 +77,6 @@ def test_probabilistic(tmp_path, input_kind, atol, mae, bias):
     assert data_mae <= mae
     # custom comparison - bias
     data_bias = np.abs(np.mean(output_data - kgo_data))
-    print(data_bias)
     assert data_bias <= bias
 
 

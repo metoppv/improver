@@ -41,6 +41,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.probability_manipulation import to_threshold_inequality
 
 
 @pytest.fixture
@@ -94,12 +95,43 @@ def test_process_percentile_basic(percentile_cube):
 
 
 def test_process_threshold_basic(threshold_cube):
-    """Check that thresholds are converted to realisations and the mean is
-    calculated."""
+    """Check basic calculation of expected value using threshold data."""
     expval = ExpectedValue().process(threshold_cube)
     # threshold probablities are asymmetric, so the mean is slightly above the
     # 282 kelvin threshold
     assert_allclose(expval.data, 282.15, atol=0.0, rtol=0.0)
+
+
+def test_process_threshold_abovebelow(threshold_cube):
+    """Check that probabilities above and below threshold are handled correctly."""
+    # set up cubes that are the same other than threshold greater than/less than
+    threshold_below_cube = to_threshold_inequality(threshold_cube, above=False)
+    threshold_cube_airtemp = threshold_cube.coord("air_temperature")
+    threshold_below_cube_airtemp = threshold_below_cube.coord("air_temperature")
+    np.testing.assert_array_equal(
+        threshold_cube_airtemp.points, threshold_below_cube_airtemp.points,
+    )
+    assert (
+        threshold_cube_airtemp.attributes["spp__relative_to_threshold"]
+        == "greater_than"
+    )
+    assert (
+        threshold_below_cube_airtemp.attributes["spp__relative_to_threshold"]
+        == "less_than_or_equal_to"
+    )
+    # calculate expected value for both, they should be the same
+    expval_above = ExpectedValue().process(threshold_cube)
+    expval_below = ExpectedValue().process(threshold_below_cube)
+    np.testing.assert_array_equal(expval_above.data, expval_below.data)
+    assert expval_above == expval_below
+
+
+def test_process_threshold_non_monotonic(threshold_cube):
+    """Check that non-monotonic threshold data raises an exception."""
+    probs = np.array([1.0, 0.4, 0.5, 0.6, 0.0], dtype=np.float32)
+    threshold_cube.data = np.broadcast_to(probs[:, np.newaxis, np.newaxis], [5, 3, 2])
+    with pytest.raises(Exception, match="monotonic"):
+        ExpectedValue().process(threshold_cube)
 
 
 def test_process_non_probabilistic(realizations_cube, percentile_cube):
