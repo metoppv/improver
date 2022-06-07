@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI)
 @pytest.fixture
 def create_model_config():
     """Load model-config json containing relative paths, and create a duplicate version
-    of the associated dictionary with relative paths specified as absolute paths."""
+    of the associated dictionary with relative paths replaced with absolute paths."""
     model_file_dir = acc.kgo_root() / "apply-rainforests-calibration/model_files"
     # Load model config containing paths relative to apply-rainforests-calibration
     # within the directory contaning improver acceptance test data.
@@ -62,7 +62,6 @@ def create_model_config():
     return absoluate_path_model_config_dict
 
 
-@pytest.mark.slow
 def test_basic(tmp_path, create_model_config):
     """
     Test calibration of a forecast using a rainforests approach.
@@ -89,7 +88,6 @@ def test_basic(tmp_path, create_model_config):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_output_realizations_count(tmp_path, create_model_config):
     """
     Test case where non-default number of output realizations is specified.
@@ -118,7 +116,6 @@ def test_output_realizations_count(tmp_path, create_model_config):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_error_percentiles_count(tmp_path, create_model_config):
     """
     Test case where non-default number of error percentiles is specified.
