@@ -29,3 +29,28 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the generate-solar-time CLI."""
+
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
+
+
+def test_basic(tmp_path):
+    """Test generation of local solar time derived field."""
+    kgo_dir = acc.kgo_root() / "generate-solar-time"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "surface_altitude.nc"  # Use this as target_grid
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--time",
+        "20220607T0000Z",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
