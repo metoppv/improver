@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,29 +29,25 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Test wide setup and configuration"""
+"""CLI to calculate expected value of probability distribution."""
 
-import pytest
+from improver import cli
 
 
-@pytest.fixture(autouse=True)
-def thread_control(monkeypatch):
+@cli.clizefy
+@cli.with_output
+def process(cube: cli.inputcube):
+    """Calculate expected value from probabilistic data.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube with realization, threshold or percentile coordinate.
+
+    Returns:
+        iris.cube.Cube:
+
     """
-    Wrap all tests with a limit to one thread via threadpoolctl.
+    from improver.expected_value import ExpectedValue
 
-    The threadpoolctl library handles a variety of numerical libraries including
-    OpenBLAS, MKL and OpenMP, using their library specific interfaces during runtime.
-    Environment variable settings for these need to be applied before starting the
-    python interpreter, which is not possible from inside pytest.
-    This limitation to one thread avoids thread contention when parallel processing
-    is handled at larger scale such as Dask or pytest-xdist. See dask documentation:
-    https://docs.dask.org/en/stable/array-best-practices.html#avoid-oversubscribing-threads
-    """
-    try:
-        from threadpoolctl import threadpool_limits
-
-        with threadpool_limits(limits=1):
-            yield
-    except ModuleNotFoundError:
-        yield
-    return
+    output = ExpectedValue()(cube)
+    return output

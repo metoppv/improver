@@ -26,3 +26,4 @@ dependencies:
   - filelock
   - pytest
   - sphinx-autodoc-typehints
+  - threadpoolctl

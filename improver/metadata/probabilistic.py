@@ -132,8 +132,16 @@ def _extract_diagnostic_name(cube_name: str, check_vicinity: bool = False) -> st
 
 
 def is_probability(cube: Cube) -> bool:
-    """Determines whether an iris.cube.Cube contains probability data at
-    a range of thresholds"""
+    """Determines whether a cube contains probability data at a range of
+    thresholds.
+
+    Args:
+        cube:
+            Cube to check for probability threshold data.
+
+    Returns:
+        True if in threshold representation.
+    """
     try:
         find_threshold_coordinate(cube)
     except CoordinateNotFoundError:
@@ -204,6 +212,24 @@ def probability_is_above_or_below(cube: Cube) -> Optional[str]:
         threshold_attribute = "below"
 
     return threshold_attribute
+
+
+def is_percentile(cube: Cube) -> bool:
+    """Determines whether a cube contains probability data at a range of
+    percentiles.
+
+    Args:
+        cube:
+            Cube to check for percentile data.
+
+    Returns:
+        True if in percentile representation.
+    """
+    try:
+        find_percentile_coordinate(cube)
+    except (CoordinateNotFoundError, ValueError):
+        return False
+    return True
 
 
 def find_percentile_coordinate(cube: Cube) -> Coord:
