@@ -28,14 +28,27 @@ regimes and identify the associated distribution that describes the underlying s
 variability.
 
 Equipped with the relevant distribution that describes the sub-grid variability for a given
-forecast, the grid-scale forecast value can be mapped onto a series of realisable point-scale
-values, yielding a form of conditional bias-correction. In the context of ensemble forecasts,
-this mapping is undertaken on a per realization basis to produce a series of realisable
-point-scale values which collectively form a calibrated ensemble, which can be described as
-an intra-model "super-ensemble". Usage of the term super-ensemble here is distinct from the
-more common usage which refers to the inter-model super-ensemble formed by combining
-multiple NWP ensemble models. Herein the usage of super-ensemble refers to the intra-model
-super-ensemble.
+forecast, the grid-scale input forecast value can be mapped onto a series of realisable
+point-scale values, yielding a form of conditional bias-correction. This process is done
+on a per realization basis, using the mapping function most consistent with the input 
+ensemble member forecast. In this way we calibrate to point scale and correct model bias
+within each ensemble member independently, with each grid-scale ensemble member producing
+a series of realisable point-scale forecast values.
+
+The output produced from each ensemble member can be considered a pseudo-ensemble which
+represents a conditional probability distribution that describes the likelihood of observing
+a given outcome when the realised atmospheric state is consistent with that represented in the
+input ensemble member forecast.
+
+Combining these ensemble member pseudo-ensembles, we can produce an intra-model "super-ensemble".
+Usage of the term super-ensemble here is distinct from the more common usage which refers to the
+inter-model super-ensemble formed by combining multiple NWP ensemble models. Herein the usage of
+super-ensemble refers to the intra-model super-ensemble. Rather than containing a range of atmospheric
+states to which a single outcome is associated, the super-ensemble describes a range of possible
+outcomes given sourced from each atmospheric state. 
+
+This super-ensemble is represented by a series of realization values, and the associated probability
+distribution can be sourced using the same approach one would apply to the input forecast ensemble.
 
 Hewson & Pillosu propose a framework (ECPoint) to determine and apply these distributions
 across a variety of weather types through the use of a manually constructed decision tree model
@@ -74,9 +87,9 @@ underlying the error distribution. For RainForests we have chosen to use additiv
 place of a multiplicative error (forecast error ratio in ECPoint) to allow us to calibrate
 input forecast values of zero-rainfall.
 
-===========================
+================================
 GBDT vs manually constructed DT
-===========================
+================================
 
 The choice of using GBDT models in place of the manually constructed DT of ECPoint comes with
 some advantages, but at the expense of some trade-offs:
@@ -145,12 +158,12 @@ the appropriate tree-model file for each error-threshold.
 Forecast calibration proceeds via a 2-step process:
 
 1. Evaluate the error CDF defined over the series of error-thresholds used in model training.
-  Each exceedance probability is evaluated using the corresponding tree-model, and the feature
-  variables as inputs.
+   Each exceedance probability is evaluated using the corresponding tree-model, and the feature
+   variables as inputs.
 
 2. Interpolate the CDF to extract a series of percentile values for the error distributions.
-  The error percentiles are then added to each associated ensemble realization from the
-  forecast variable to produce a series of realisable forecast values.
+   The error percentiles are then added to each associated ensemble realization from the
+   forecast variable to produce a series of realisable forecast values.
 
 Collectively these series form the calibrated super-ensemble which is obtained by collapsing
 the two realization dimensions into one. This is then sampled to provide the calibrated
@@ -159,7 +172,7 @@ ensemble forecast.
 Deterministic forecasts can also be calibrated using the same approach to produce a calibrated
 pseudo-ensemble; in this case inputs are treated as an ensemble of size 1.
 
-** A typical usage example: ** we typically use around 25 error threshold values to construct
+**A typical usage example:** we typically use around 25 error threshold values to construct
 the CDF for the distribution of forecast errors. For each error threshold we have an associated
 GBDT model which is used to evaluate the exceedance probabilities that describe the CDF.
 So starting with an input ensemble forecast consisting of 50 realizations, we evaluate 25
