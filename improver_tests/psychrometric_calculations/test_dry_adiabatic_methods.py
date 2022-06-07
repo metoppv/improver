@@ -35,6 +35,8 @@ import pytest
 from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_pressure,
     dry_adiabatic_temperature,
+    saturated_humidity,
+    saturated_latent_heat,
 )
 
 t_1 = 280.0
@@ -53,7 +55,7 @@ p_2 = 90000.0
         (dry_adiabatic_pressure, t_2, p_2, t_1, p_1),
     ),
 )
-def test_round_trip(shape, method, t1, p1, n2, expected):
+def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
     """Test that we can move between pairs of points in both directions with both methods.
     Point pairs are t_1,p_1 and t_2,p_2. t1,p1 is the starting point for a test and
     n2 is the target point, either temperature or pressure depending on the method being tested."""
@@ -64,3 +66,48 @@ def test_round_trip(shape, method, t1, p1, n2, expected):
     )
     assert np.isclose(result, expected).all()
     assert result.shape == shape
+
+
+@pytest.mark.parametrize("shape", ((1,), (2, 2)))
+@pytest.mark.parametrize(
+    "t, p, expected",
+    (
+        (243.15, 30000, 1.15067e-3),  # Actual value is 0.78787e-3
+        (273.15, 60000, 6.3074e-3),
+        (273.15, 90000, 4.2194e-3),
+        (273.15, 100000, 3.8008e-3),
+        (293.15, 100000, 1.43954e-2),
+    ),
+)
+def test_saturated_humidity(shape, t, p, expected):
+    """Test the saturated_humidity method"""
+    result = saturated_humidity(
+        np.full(shape, t, dtype=np.float32), np.full(shape, p, dtype=np.float32)
+    )
+    assert np.isclose(result, expected).all()
+    assert result.shape == shape
+
+
+@pytest.mark.parametrize("shape", ((1,), (2, 2)))
+@pytest.mark.parametrize(
+    "t, p, q, expected_t, expected_q",
+    (
+        (220, 30000, 5.6e-5, 220.0023, 5.5067e-5),
+        (280, 90000, 6.9e-3, 280.016, 6.8369e-3),
+        (271, 85000, 6.8369e-3, 273, 6.8369e-3),
+        (289, 100000, 1.5863e-2, 290, 1.1845e-2),
+        (294, 90000, 2.7e-2, 296.0026, 1.8953e-2),
+        (294, 90000, 2.7e-2, 299.5, 2.5e-2),
+    ),
+)
+def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
+    """Test the saturated_latent_heat method"""
+    result_t, result_q = saturated_latent_heat(
+        np.full(shape, t, dtype=np.float32),
+        np.full(shape, q, dtype=np.float32),
+        np.full(shape, p, dtype=np.float32),
+    )
+    assert np.isclose(result_t, expected_t).all()
+    assert np.isclose(result_q, expected_q).all()
+    assert result_t.shape == shape
+    assert result_q.shape == shape
