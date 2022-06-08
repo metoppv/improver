@@ -55,12 +55,6 @@ class Test_psychrometric_variables(IrisTest):
         self.latent_heat = np.array([2531771.0, 2508371.0, 2484971.0], dtype=np.float32)
         self.temperature = np.array([185.0, 260.65, 338.15], dtype=np.float32)
 
-    def test_calculate_latent_heat(self):
-        """Test latent heat calculation"""
-        expected = [2707271.0, 2530250.0, 2348900.0]
-        result = WetBulbTemperature()._calculate_latent_heat(self.temperature)
-        self.assertArrayAlmostEqual(result.data, expected, decimal=0)
-
     def test_calculate_mixing_ratio(self):
         """Test mixing ratio calculation"""
         pressure = np.array([1.0e5, 9.9e4, 9.8e4], dtype=np.float32)
