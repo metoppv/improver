@@ -111,6 +111,7 @@ def test_saturated_humidity(shape, t, p, expected):
         (271, 85000, 3.0e-3, 271, 3.0e-3),
         (289, 100000, 1.26e-2, 290, 1.1847e-2),
         (294, 90000, 2.7e-2, 299.303, 2.29992e-2),
+        (292.6, 85000, 2.2e-2, 295.690, 1.9672e-2),
     ),
 )
 def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):

@@ -261,7 +261,7 @@ def saturated_latent_heat(
         humidity_in.copy(),
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
-        maxiter=5,
+        maxiter=6,
     )
     humidity = optimized_result.astype(np.float32)
     temperature = temperature_in + _latent_heat_release(
