@@ -178,7 +178,7 @@ def dry_adiabatic_pressure(
     )
 
 
-def saturated_humidity(temperature: np.ndarray, pressure: np.ndarray) -> np.ndarray:
+def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
     Calculate specific humidity of saturated air of given temperature and pressure
 
@@ -235,8 +235,8 @@ def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndar
 
 
 def saturated_latent_heat(
-    temperature_in: np.ndarray, humidity_in: np.ndarray, pressure: np.ndarray
-) -> Tuple[np.ndarray, np.ndarray]:
+    temperature_in: ndarray, humidity_in: ndarray, pressure: ndarray
+) -> Tuple[ndarray, ndarray]:
     """
     Increases temperature and reduces humidity via latent heat release from condensation until
     values represent <=100% relative humidity.
@@ -267,7 +267,9 @@ def saturated_latent_heat(
         maxiter=10,
     )
     humidity = optimized_result.astype(np.float32)
-    temperature = temperature_in + _latent_heat_release(humidity_in, humidity, temperature_in)
+    temperature = temperature_in + _latent_heat_release(
+        humidity_in, humidity, temperature_in
+    )
     return temperature, humidity
 
 
