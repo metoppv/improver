@@ -55,6 +55,13 @@ across a variety of weather types through the use of a manually constructed deci
 taking an appropriate set of feature parameters (meteorological variables) as inputs.
 Details of this method can be found in `Hewson & Pillosu, 2021`_. 
 
+One advantage of the ECPoint approach is that the calibration is inherently non-local. As
+the calibration is done by identifying distinct weather types, the model bias and scale
+difference should be independent of any given location and time as the underlying physical
+process should be identical. Thus a grid-point can be calibrated using data from any location,
+provided the underlying weather type is the consistent. This enables effective calibration to
+be applied to areas that are typically lacking sufficient cases to calibrate against.
+
 ****************************
 The RainForests method
 ****************************
