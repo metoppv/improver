@@ -33,6 +33,7 @@ import numpy as np
 import pytest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
+    _calculate_latent_heat,
     dry_adiabatic_pressure,
     dry_adiabatic_temperature,
     saturated_humidity,
@@ -43,6 +44,10 @@ t_1 = 280.0
 p_1 = 100000.0
 t_2 = 271.7008
 p_2 = 90000.0
+t_3 = 263.0
+p_3 = 50000.0
+t_4 = 227.301
+p_4 = 30000.0
 
 
 @pytest.mark.parametrize("shape", ((1,), (2, 2)))
@@ -53,6 +58,10 @@ p_2 = 90000.0
         (dry_adiabatic_temperature, t_2, p_2, p_1, t_1),
         (dry_adiabatic_pressure, t_1, p_1, t_2, p_2),
         (dry_adiabatic_pressure, t_2, p_2, t_1, p_1),
+        (dry_adiabatic_temperature, t_3, p_3, p_4, t_4),
+        (dry_adiabatic_temperature, t_4, p_4, p_3, t_3),
+        (dry_adiabatic_pressure, t_3, p_3, t_4, p_4),
+        (dry_adiabatic_pressure, t_4, p_4, t_3, p_3),
     ),
 )
 def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
@@ -114,3 +123,11 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
     assert np.isclose(result_q, expected_q).all()
     assert result_t.shape == shape
     assert result_q.shape == shape
+
+
+def test_calculate_latent_heat():
+    """Test latent heat calculation"""
+    temperature = np.array([185.0, 260.65, 338.15], dtype=np.float32)
+    expected = [2707271.0, 2530250.0, 2348900.0]
+    result = _calculate_latent_heat(temperature)
+    assert np.isclose(result.data, expected).all()
