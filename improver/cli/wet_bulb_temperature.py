@@ -65,7 +65,7 @@ def process(*cubes: cli.inputcube, convergence_condition=0.05):
             Cube of wet-bulb temperature (K).
 
     """
-    from improver.psychrometric_calculations.psychrometric_calculations import (
+    from improver.psychrometric_calculations.wet_bulb_temperature import (
         WetBulbTemperature,
     )
 

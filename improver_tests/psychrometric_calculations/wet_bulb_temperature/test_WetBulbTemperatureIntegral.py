@@ -36,7 +36,7 @@ import iris
 import numpy as np
 from iris.tests import IrisTest
 
-from improver.psychrometric_calculations.psychrometric_calculations import (
+from improver.psychrometric_calculations.wet_bulb_temperature import (
     WetBulbTemperatureIntegral,
 )
 from improver.synthetic_data.set_up_test_cubes import (
