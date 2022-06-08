@@ -196,6 +196,44 @@ def saturated_humidity(temperature: np.ndarray, pressure: np.ndarray) -> np.ndar
     return epsilon * svp / (pressure - (1.0 - epsilon * svp))
 
 
+def _calculate_latent_heat(temperature: ndarray) -> ndarray:
+    """
+    Calculate a temperature adjusted latent heat of condensation for water
+    vapour using the relationship employed by the UM.
+
+    Args:
+        temperature:
+            Array of air temperatures (K).
+
+    Returns:
+        Temperature adjusted latent heat of condensation (J kg-1).
+    """
+    temp_Celsius = temperature + consts.ABSOLUTE_ZERO
+    latent_heat = (
+        -1.0 * consts.LATENT_HEAT_T_DEPENDENCE * temp_Celsius
+        + consts.LH_CONDENSATION_WATER
+    )
+    return latent_heat
+
+
+def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndarray:
+    """Returns the latent heat released (K) when condensing water vapour from specific humidity
+    value q1 to q2, both in kg kg-1 when the temperature is approximately t.
+
+    Args:
+        temperature:
+            Array of air temperatures (K). Ideally, the average air temperature between q1 and q2
+        q1:
+            Specific humidity before latent heat release (kg kg-1)
+        q2:
+            Specific humidity after latent heat release (kg kg-1)
+
+    Returns:
+        Temperature adjustment to apply to account for latent heat release (K).
+    """
+    return (_calculate_latent_heat(temperature) / consts.CP_WATER_VAPOUR) * (q1 - q2)
+
+
 def saturated_latent_heat(
     temperature_in: np.ndarray, humidity_in: np.ndarray, pressure: np.ndarray
 ) -> Tuple[np.ndarray, np.ndarray]:
@@ -215,15 +253,10 @@ def saturated_latent_heat(
         tuple of temperature (K) and humidity (kg kg-1) after saturated latent heat adjustment
     """
 
-    def latent_heat_release(q1, q2):
-        """Returns the latent heat released (K) when condensing water vapour from specific humidity
-        value q1 to q2, both in kg kg-1."""
-        return (consts.LH_CONDENSATION_WATER / consts.CP_WATER_VAPOUR) * (q1 - q2)
-
     def qsat_differential(qs, t, q, p):
         """For a given set of temperature, specific humidity and pressure, and a qs guess,
         return the difference"""
-        adj_t = t + latent_heat_release(q, qs)
+        adj_t = t + _latent_heat_release(q, qs, t)
         return saturated_humidity(adj_t, p) - qs
 
     optimized_result = newton(
@@ -234,7 +267,7 @@ def saturated_latent_heat(
         maxiter=10,
     )
     humidity = optimized_result.astype(np.float32)
-    temperature = temperature_in + latent_heat_release(humidity_in, humidity)
+    temperature = temperature_in + _latent_heat_release(humidity_in, humidity, temperature_in)
     return temperature, humidity
 
 
@@ -299,26 +332,6 @@ class WetBulbTemperature(BasePlugin):
             )
 
         return slices
-
-    @staticmethod
-    def _calculate_latent_heat(temperature: ndarray) -> ndarray:
-        """
-        Calculate a temperature adjusted latent heat of condensation for water
-        vapour using the relationship employed by the UM.
-
-        Args:
-            temperature:
-                Array of air temperatures (K).
-
-        Returns:
-            Temperature adjusted latent heat of condensation (J kg-1).
-        """
-        temp_Celsius = temperature + consts.ABSOLUTE_ZERO
-        latent_heat = (
-            -1.0 * consts.LATENT_HEAT_T_DEPENDENCE * temp_Celsius
-            + consts.LH_CONDENSATION_WATER
-        )
-        return latent_heat
 
     @staticmethod
     def _calculate_mixing_ratio(temperature: ndarray, pressure: ndarray) -> ndarray:
@@ -453,7 +466,7 @@ class WetBulbTemperature(BasePlugin):
         wbt_data_upd = wbt_data = temperature.flatten()
         pressure = pressure.flatten()
 
-        latent_heat = self._calculate_latent_heat(wbt_data)
+        latent_heat = _calculate_latent_heat(wbt_data)
         saturation_mixing_ratio = self._calculate_mixing_ratio(wbt_data, pressure)
         mixing_ratio = relative_humidity.flatten() * saturation_mixing_ratio
         specific_heat = self._calculate_specific_heat(mixing_ratio)
