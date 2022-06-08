@@ -267,6 +267,9 @@ def saturated_latent_heat(
     temperature = temperature_in + _latent_heat_release(
         humidity_in, humidity, temperature_in
     )
+    sub_saturated = np.where(temperature < temperature_in)
+    temperature[sub_saturated] = temperature_in[sub_saturated]
+    humidity[sub_saturated] = humidity_in[sub_saturated]
     return temperature, humidity
 
 
