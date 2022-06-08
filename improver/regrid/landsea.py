@@ -160,9 +160,10 @@ class RegridLandSea(BasePlugin):
 
             # Iris regridding is used, and then adjust if land_sea mask is considered
             if self.REGRID_REQUIRES_LANDMASK[regrid_mode]:
-                cube = AdjustLandSeaPoints(vicinity_radius=self.landmask_vicinity)(
-                    cube, self.landmask_source_grid, target_grid
-                )
+                cube = AdjustLandSeaPoints(
+                    vicinity_radius=self.landmask_vicinity,
+                    extrapolation_mode=self.extrapolation_mode,
+                )(cube, self.landmask_source_grid, target_grid)
 
         # new version of nearest/bilinear option with/without land-sea mask
         elif regrid_mode in (
