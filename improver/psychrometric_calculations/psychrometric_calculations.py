@@ -132,10 +132,8 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
 
 
 def dry_adiabatic_temperature(
-    initial_temperature: np.ndarray,
-    initial_pressure: np.ndarray,
-    final_pressure: np.ndarray,
-) -> np.ndarray:
+    initial_temperature: ndarray, initial_pressure: ndarray, final_pressure: ndarray,
+) -> ndarray:
     """
     Calculate temperature at final_pressure after adiabatic adjustment of dry air from the
     initial temperature and pressure.
@@ -157,10 +155,8 @@ def dry_adiabatic_temperature(
 
 
 def dry_adiabatic_pressure(
-    initial_temperature: np.ndarray,
-    initial_pressure: np.ndarray,
-    final_temperature: np.ndarray,
-) -> np.ndarray:
+    initial_temperature: ndarray, initial_pressure: ndarray, final_temperature: ndarray,
+) -> ndarray:
     """
     Calculate pressure at final_temperature after adiabatic adjustment of dry air from the
     initial temperature and pressure.
