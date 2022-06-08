@@ -67,6 +67,7 @@ below:
 * Belinda Trotta (Bureau of Meteorology, Australia)
 * Tomasz Trzeciak (Met Office, UK)
 * Mark Worsfold (Met Office, UK)
+* Anja Schubert (Bureau of Meteorology, Australia)
 * Shubhendra Singh Chauhan (DeepSource, India)
 * Ying Zhao (Bureau of Meteorology, Australia)
 
