@@ -541,12 +541,17 @@ def lat_lon_determine(cube: Cube) -> Optional[CRS]:
 def get_grid_y_x_values(cube: Cube) -> Tuple[ndarray, ndarray]:
     """Extract the y and x coordinate values of each points in the cube.
 
+    The result is defined over the spatial grid, of shape (ny, nx) where
+    ny is the length of the y-axis coordinate and nx the length of the
+    x-axis coordinate.
+
     Args:
         cube:
             Cube with points to extract
+
     Returns:
-        - Array of shape cube.data.shape containing y coordinate values
-        - Array of shape cube.data.shape containing x coordinate values
+        - Array of shape (ny, nx) containing y coordinate values
+        - Array of shape (ny, nx) containing x coordinate values
     """
     x_points = cube.coord(axis="x").points
     y_points = cube.coord(axis="y").points
@@ -567,15 +572,17 @@ def get_grid_y_x_values(cube: Cube) -> Tuple[ndarray, ndarray]:
 def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
     """Calculate the latitudes and longitudes of each points in the cube.
 
+    The result is defined over the spatial grid, of shape (ny, nx) where
+    ny is the length of the y-axis coordinate and nx the length of the
+    x-axis coordinate.
+
     Args:
         cube:
             Cube with points to transform
 
     Returns
-        lats:
-            Array of cube.data.shape of Latitude values
-        lons:
-            Array of cube.data.shape of Longitude values
+        - Array of shape (ny, nx) containing grid latitude values
+        - Array of shape (ny, nx) containing grid longitude values
     """
     trg_latlon = ccrs.PlateCarree()
     trg_crs = cube.coord_system().as_cartopy_crs()
