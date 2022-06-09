@@ -173,7 +173,7 @@ def dry_adiabatic_pressure(
         Array of final pressures (Pa)
     """
     return initial_pressure * (final_temperature / initial_temperature) ** (
-        1 / (consts.R_DRY_AIR / consts.CP_DRY_AIR)
+        consts.CP_DRY_AIR / consts.R_DRY_AIR
     )
 
 
