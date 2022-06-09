@@ -174,84 +174,68 @@ def test__irradiance_times():
         )
 
 
-def test__calc_air_mass():
+@pytest.mark.parametrize(
+    "zenith, expected_value",
+    (
+        (-100.0, 0.0),
+        (-90.0, 0.0),
+        (-85.0, 11.46028),
+        (-60.0, 1.99948),
+        (-30.0, 1.15445),
+        (0.0, 0.99971),
+        (30.0, 1.15399),
+        (60.0, 1.99429),
+        (85.0, 10.30579),
+        (90.0, 0.0),
+        (100.0, 0.0),
+    ),
+)
+def test__calc_optical_air_mass(zenith, expected_value):
     """Test calc air mass function over a range of zenith angles."""
-    zenith = np.array(
-        [-100.0, -90.0, -85.0, -60.0, -30.0, 0.0, 30.0, 60.0, 85.0, 90, 100]
-    )
-    values = GenerateClearskySolarRadiation()._calc_air_mass(zenith)
-
-    # These values have been evaluated by hand
-    expected_values = np.array(
-        [
-            0.0,
-            0.0,
-            11.46028,
-            1.99948,
-            1.15445,
-            0.99971,
-            1.15399,
-            1.99429,
-            10.30579,
-            0.0,
-            0.0,
-        ]
-    )
-
-    assert np.allclose(values, expected_values)
+    values = GenerateClearskySolarRadiation()._calc_optical_air_mass(zenith)
+    assert np.allclose(values, expected_value)
 
 
-def test__calc_clearsky_ineichen(target_grid):
+@pytest.mark.parametrize(
+    "day_of_year, surface_altitude, linke_turbidity, expected_values",
+    (
+        (0, 0, 3, np.array([1091.9529, 486.4359, 0.0])),
+        (180, 0, 3, np.array([1022.2189, 455.3712, 0.0])),
+        (0, 0, 1, np.array([1179.8004, 567.6262, 0.0])),
+        (0, 1000, 3, np.array([1130.1020, 492.2152, 0.0])),
+        (0, 8000, 3, np.array([1412.8340, 694.0237, 0.0])),
+    ),
+)
+def test__calc_clearsky_ineichen_values(
+    day_of_year, surface_altitude, linke_turbidity, expected_values
+):
     """Test irradiance calc over a range of sample values. Note
     all values here have been evaluated by hand."""
     zenith = np.array([0, 60, 90])
 
     result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
-        zenith_angle=zenith, day_of_year=0, surface_altitude=0, linke_turbidity=3
+        zenith_angle=zenith,
+        day_of_year=day_of_year,
+        surface_altitude=surface_altitude,
+        linke_turbidity=linke_turbidity,
     )
-    expected_values = np.array([1091.9529, 486.4359, 0.0])
     assert np.allclose(result, expected_values)
 
-    # Test for different day-of-year
-    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
-        zenith_angle=zenith, day_of_year=180, surface_altitude=0, linke_turbidity=3
-    )
-    expected_values = np.array([1022.2189, 455.3712, 0.0])
-    assert np.allclose(result, expected_values)
 
-    # Test for different linke-turbidity value
-    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
-        zenith_angle=zenith, day_of_year=0, surface_altitude=0, linke_turbidity=1
-    )
-    expected_values = np.array([1179.8004, 567.6262, 0.0])
-    assert np.allclose(result, expected_values)
-
-    # Test for different surface_altitude value
-    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
-        zenith_angle=zenith, day_of_year=0, surface_altitude=1000, linke_turbidity=3
-    )
-    expected_values = np.array([1130.1020, 492.2152, 0.0])
-    assert np.allclose(result, expected_values)
-
-    # Test for extreme surface_altitude value
-    result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
-        zenith_angle=zenith, day_of_year=0, surface_altitude=8000, linke_turbidity=3
-    )
-    expected_values = np.array([1412.8340, 694.0237, 0.0])
-    assert np.allclose(result, expected_values)
-
+def test__calc_clearsky_ineichen_grid_properties(target_grid):
+    """Test irradiance values vary over grid as expected."""
     lats, lons = get_grid_y_x_values(target_grid)
 
     zenith_angle = 90.0 - calc_solar_elevation(lats, lons, day_of_year=0, utc_hour=12)
     result = GenerateClearskySolarRadiation()._calc_clearsky_ineichen(
         zenith_angle=zenith_angle, day_of_year=0, surface_altitude=0, linke_turbidity=3
     )
-    # For even surface_altitude, check that max irradiance occurs for minimum zenith_angle
+    # For constant surface_altitude, check that max irradiance occurs for minimum zenith_angle
     assert np.unravel_index(
         np.argmax(result, axis=None), result.shape
     ) == np.unravel_index(np.argmin(zenith_angle, axis=None), zenith_angle.shape)
-    # For even surface_altitude, check that larger irradiance value at adjacent sites, occurs for
-    # the location with the smaller zenith angle.
+    # For constant surface_altitude, check that larger irradiance value at adjacent sites,
+    # occurs for the location with the smaller zenith angle.
     assert np.all(
         (result[:, 1:] - result[:, :-1] > 0)
         == (zenith_angle[:, 1:] - zenith_angle[:, :-1] < 0)
@@ -265,25 +249,38 @@ def test__calc_clearsky_ineichen(target_grid):
 def test__calc_clearsky_solar_radiation_data(
     target_grid, surface_altitude, linke_turbidity
 ):
-
+    """Test evaluation of solar radiation data. The expected value is evaluated
+    with irradiance data returned from _calc_clearsky_ineichen for each
+    irradiance_time and then aggregated to give the expected solar radiation value."""
     irradiance_times = np.array(
         [
             datetime(2021, 12, 31, 21, 00, tzinfo=timezone.utc),
-            datetime(2021, 12, 31, 22, 00, tzinfo=timezone.utc),
-            datetime(2021, 12, 31, 23, 00, tzinfo=timezone.utc),
+            datetime(2021, 12, 31, 22, 30, tzinfo=timezone.utc),
             datetime(2022, 1, 1, 00, 00, tzinfo=timezone.utc),
         ]
     )
-
     result = GenerateClearskySolarRadiation()._calc_clearsky_solar_radiation_data(
-        target_grid, irradiance_times, surface_altitude.data, linke_turbidity.data, 60
+        target_grid, irradiance_times, surface_altitude.data, linke_turbidity.data, 90
+    )
+    expected_values = np.array(
+        [
+            [462277.2, 126636.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [243679.2, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [46386.6, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+        ]
     )
     # Check expected array properties
     assert result.shape == (10, 8)
     assert result.dtype == np.float32
     # Check results are sensible
-    assert np.all(np.isfinite(result))
-    assert np.all(result >= 0.0)
+    assert np.allclose(result, expected_values)
 
 
 @pytest.mark.parametrize("at_mean_sea_level", (True, False))
