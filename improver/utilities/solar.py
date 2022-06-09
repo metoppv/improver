@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to find the relative position of the sun."""
-from datetime import datetime, timedelta, timezone
+from datetime import datetime, timedelta
 from typing import Union
 
 import iris
@@ -38,7 +38,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
-from improver.constants import HOURS_IN_DAY, MINUTES_IN_HOUR
+from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY, MINUTES_IN_HOUR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -47,7 +47,7 @@ from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_
 
 
 def get_day_of_year(time: datetime) -> int:
-    """Get day of the year from given datetimes.
+    """Get day of the year from given datetime, starting at 0 for 1st Jan.
 
     Args:
         time:
@@ -56,11 +56,7 @@ def get_day_of_year(time: datetime) -> int:
     Returns:
         The day of year corresponding to the specified datetime.
     """
-    if time.tzinfo is None:
-        start_of_year = datetime(time.year, 1, 1)
-    else:
-        start_of_year = datetime(time.year, 1, 1, tzinfo=timezone.utc)
-    return (time - start_of_year).days
+    return time.timetuple().tm_yday - 1
 
 
 def get_utc_hour(time: datetime) -> float:
@@ -102,7 +98,7 @@ def calc_solar_declination(day_of_year: int) -> float:
     """
     # Declination (degrees):
     # = -(axial_tilt)*cos(360./orbital_year * day_of_year - solstice_offset)
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     solar_declination = -23.5 * np.cos(np.radians(0.9856 * day_of_year + 9.3))
@@ -132,13 +128,13 @@ def calc_solar_hour_angle(
         solar_hour_angle
             Hour angles in degrees East-West
     """
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     if utc_hour < 0.0 or utc_hour > 24.0:
         msg = "Hour must be between 0 and 24.0"
         raise ValueError(msg)
-    thetao = 2 * np.pi * day_of_year / 365.0
+    thetao = 2 * np.pi * day_of_year / DAYS_IN_YEAR
     eqt = (
         0.000075
         + 0.001868 * np.cos(thetao)
@@ -188,7 +184,7 @@ def calc_solar_elevation(
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
         msg = "Latitudes must be between -90.0 and 90.0"
         raise ValueError(msg)
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     if utc_hour < 0.0 or utc_hour > 24.0:
@@ -229,7 +225,7 @@ def daynight_terminator(
     Returns:
         latitudes of the daynight terminator
     """
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     if utc_hour < 0.0 or utc_hour > 24.0:

@@ -551,12 +551,15 @@ def get_grid_y_x_values(cube: Cube) -> Tuple[ndarray, ndarray]:
     x_points = cube.coord(axis="x").points
     y_points = cube.coord(axis="y").points
 
+    nx = len(x_points)
+    ny = len(y_points)
+
     x_zeros = np.zeros_like(x_points)
     y_zeros = np.zeros_like(y_points)
 
     # Broadcast x points and y points onto grid
-    all_x_points = y_zeros.reshape(len(y_zeros), 1) + x_points
-    all_y_points = y_points.reshape(len(y_points), 1) + x_zeros
+    all_x_points = y_zeros.reshape(ny, 1) + x_points.reshape(1, nx)
+    all_y_points = y_points.reshape(ny, 1) + x_zeros.reshape(1, nx)
 
     return all_y_points, all_x_points
 

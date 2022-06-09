@@ -40,7 +40,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
-from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
+from improver.constants import DAYS_IN_YEAR, MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -183,16 +183,26 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         return irradiance_times
 
-    def _calc_air_mass(self, zenith: ndarray) -> ndarray:
-        """Calculate the relative airmass using the Kasten & Young (1989) [1, 2] parameterization.
-        The relative airmass is a dimensionless quantity representing the relative thickness of
-        atmosphere compared to the shortest possible path through the full depth of the atmosphere
+    def _calc_optical_air_mass(self, zenith: ndarray) -> ndarray:
+        """Calculate the relative optical air mass using the Kasten & Young (1989) [1, 2]
+        parameterization.
+
+        The relative optical air mass is a dimensionless quantity representing the relative
+        path length through the atmosphere required to produce an equivalent mass of air
+        compared to the shortest possible path through the full depth of the atmosphere
         corresponding to zenith = 0.
+
+        Note: For angles with zenith > 90, the optical_air_mass is ill-defined. Here we
+        acknowledge that these values will result in invalid values in the power calculation
+        and so map all such values to zero.
+
         Args:
             zenith:
                 Zenith angle in degrees.
+
         Returns:
             Relative air mass for given zenith angle.
+
         References:
         [1] F. Kasten and A. T. Young, "Revised Optical Air-Mass Tables and
         Approximation Formula", Applied Optics, vol. 28, p. 4735-4738, 1989.
@@ -200,19 +210,16 @@ class GenerateClearskySolarRadiation(BasePlugin):
         Clear Sky Models: Implementation and Analysis", Sandia National
         Laboratories, SAND2012-2389, 2012.
         """
-        # For angles with zenith > 90, the air_mass is ill-defined. Here we
-        #  acknowledge that these values will result in invalid values in the
-        #  power calculation.
         zenith_above_horizon = np.where(np.abs(zenith) >= 90, np.nan, zenith)
         with warnings.catch_warnings():
             warnings.filterwarnings("ignore", "invalid value encountered in power")
 
-            air_mass = 1.0 / (
+            optical_air_mass = 1.0 / (
                 np.cos(np.radians(zenith_above_horizon))
                 + 0.50572 * (96.07995 - zenith_above_horizon) ** (-1.6364)
             )
-        # Remove nans_associated with zenith > 90.0 degrees
-        return np.nan_to_num(air_mass)
+        # Replace nans with zeros. Associated with zenith > 90.0 degrees
+        return np.nan_to_num(optical_air_mass)
 
     def _calc_clearsky_ineichen(
         self,
@@ -239,14 +246,14 @@ class GenerateClearskySolarRadiation(BasePlugin):
             day_of_year:
                 Day of the year.
             surface_altitude:
-                Grid box elevation.
+                Grid box elevation in metres.
             linke_turbidity:
                 Linke_turbidity value is a dimensionless value that characterises the
                 atmospheres ability to scatter incoming radiation relative to a dry
                 atmosphere.
 
         Returns:
-            Clearsky global horizontal irradiance values.
+            Clearsky global horizontal irradiance values, specified in W m-2.
 
         References:
             [1] INEICHEN, Pierre, PEREZ, R. "A new airmass independent formulation
@@ -257,13 +264,13 @@ class GenerateClearskySolarRadiation(BasePlugin):
             Laboratories, SAND2012-2389, 2012.
         """
         # Day of year as an angular quantity.
-        theta0 = 2 * np.pi * day_of_year / 365.0
+        theta0 = 2 * np.pi * day_of_year / DAYS_IN_YEAR
         # Irradiance at the top of the atmosphere.
         extra_terrestrial_irradiance = 1367.7 * (1 + 0.033 * np.cos(theta0))
-        # Air mass specifies the path length through the atmosphere relative
-        # to the direct vertical.
-        air_mass = self._calc_air_mass(zenith_angle)
-        # Model params
+        # Optical air mass specifies relative path length through the atmosphere
+        # required to produce an equivalent mass of air compared to the direct vertical.
+        optical_air_mass = self._calc_optical_air_mass(zenith_angle)
+        # Ineichen model terms. All terms are dimensionless quantities.
         fh1 = np.exp(-1.0 * surface_altitude / 8000.0)
         fh2 = np.exp(-1.0 * surface_altitude / 1250.0)
         cg1 = 0.0000509 * surface_altitude + 0.868
@@ -275,7 +282,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
             cg1
             * extra_terrestrial_irradiance
             * cos_zenith
-            * np.exp(-1.0 * cg2 * air_mass * (fh1 + fh2 * (linke_turbidity - 1)))
+            * np.exp(
+                -1.0 * cg2 * optical_air_mass * (fh1 + fh2 * (linke_turbidity - 1))
+            )
         )
         # Model at very large elevations will produce irradiance values that exceed
         # extra-terrestrial irradiance. Here we cap the possible irradiance to that
