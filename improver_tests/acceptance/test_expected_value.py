@@ -53,12 +53,8 @@ run_cli = acc.run_cli(CLI)
 def test_probabilistic(tmp_path, input_kind, atol, mae, bias):
     """Test processing of probabilistic data.
 
-    The same KGO is shared across all representations. Processing realizations is
-    straightforward and accurate, so has low error tolerances. Processing percentiles
-    is also straightforward, but with some variation in the result due to representation
-    differences. Processing thresholds is quite rough, due to the currently implemented
-    method of conversion to percentiles. Expect this accuracy to improve if the expected
-    value is directly calculcated from the threshold data.
+    The same KGO is shared across all three representations as percentile and
+    threshold inputs are derived from the realization input.
     """
     kgo_dir = acc.kgo_root() / "expected-value"
     kgo_path = kgo_dir / "kgo.nc"
