@@ -42,7 +42,7 @@ from improver.utilities.solar import (
     calc_solar_hour_angle,
     daynight_terminator,
     get_day_of_year,
-    get_utc_hour,
+    get_hour_of_day,
 )
 
 
@@ -64,10 +64,10 @@ class Test_get_day_of_year(IrisTest):
         self.assertArrayEqual(result, expected_result)
 
 
-class Test_get_utc_hour(IrisTest):
+class Test_get_hour_of_day(IrisTest):
     """Test utc hour extraction."""
 
-    def test_get_utc_hour(self):
+    def test_get_hour_of_day(self):
         datetimes = [
             datetime(2021, 1, 1, 0, 0, 0, tzinfo=timezone.utc),
             datetime(2020, 2, 29, 1, 0, 0, tzinfo=timezone.utc),
@@ -78,7 +78,7 @@ class Test_get_utc_hour(IrisTest):
         ]
 
         expected_result = np.array([0.0, 1.0, 1.0 / 60.0, 0.0, 24.0 - 1.0 / 60.0, 24.0])
-        result = [get_utc_hour(dt) for dt in datetimes]
+        result = [get_hour_of_day(dt) for dt in datetimes]
         self.assertArrayEqual(result, expected_result)
 
 

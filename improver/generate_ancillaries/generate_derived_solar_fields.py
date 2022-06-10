@@ -46,7 +46,11 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.solar import calc_solar_elevation, get_day_of_year, get_utc_hour
+from improver.utilities.solar import (
+    calc_solar_elevation,
+    get_day_of_year,
+    get_hour_of_day,
+)
 from improver.utilities.spatial import (
     get_grid_y_x_values,
     lat_lon_determine,
@@ -338,7 +342,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         for time_index, time_step in enumerate(irradiance_times):
 
             day_of_year = get_day_of_year(time_step)
-            utc_hour = get_utc_hour(time_step)
+            utc_hour = get_hour_of_day(time_step)
 
             zenith_angle = 90.0 - calc_solar_elevation(
                 lats, lons, day_of_year, utc_hour

@@ -59,8 +59,13 @@ def get_day_of_year(time: datetime) -> int:
     return time.timetuple().tm_yday - 1
 
 
-def get_utc_hour(time: datetime) -> float:
-    """Get utc_hour from datetime.
+def get_hour_of_day(time: datetime) -> float:
+    """Get the hour of day from datetime, with the minute values included as
+    a fraction of the hour, and seconds rounded to the nearest minute.
+
+    Where rounding seconds moves the datetime into the following day, the
+    hour_of_day returned is 24.0 rather than 0.0 to ensure the hour_of_day is
+    consistent with the day_of_year value associated with datetime.
 
     Args:
         time:
@@ -358,7 +363,7 @@ class DayNightMask(BasePlugin):
         for mask_cube in daynight_mask.slices_over("time"):
             dtval = mask_cube.coord("time").cell(0).point
             day_of_year = get_day_of_year(dtval)
-            utc_hour = get_utc_hour(dtval)
+            utc_hour = get_hour_of_day(dtval)
             trg_crs = lat_lon_determine(mask_cube)
             # Grids that are not Lat Lon
             if trg_crs is not None:
