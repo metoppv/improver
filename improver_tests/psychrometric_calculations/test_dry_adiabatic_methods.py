@@ -54,7 +54,9 @@ p_2 = 90000.0
     ),
 )
 def test_round_trip(shape, method, t1, p1, n2, expected):
-    """Test that we can move between pairs of points in both directions with both methods"""
+    """Test that we can move between pairs of points in both directions with both methods.
+    Point pairs are t_1,p_1 and t_2,p_2. t1,p1 is the starting point for a test and
+    n2 is the target point, either temperature or pressure depending on the method being tested."""
     result = method(
         np.full(shape, t1, dtype=np.float32),
         np.full(shape, p1, dtype=np.float32),
