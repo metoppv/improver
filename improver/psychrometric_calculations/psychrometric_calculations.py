@@ -131,6 +131,52 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
     return svp * correction.astype(np.float32)
 
 
+def dry_adiabatic_temperature(
+    initial_temperature: ndarray, initial_pressure: ndarray, final_pressure: ndarray,
+) -> ndarray:
+    """
+    Calculate temperature at final_pressure after adiabatic adjustment of dry air from the
+    initial temperature and pressure.
+
+    Args:
+        initial_temperature:
+            Array of initial temperatures (K)
+        initial_pressure:
+            Array of initial pressures (Pa)
+        final_pressure:
+            Array of final pressures (Pa)
+
+    Returns:
+        Array of final temperatures (K)
+    """
+    return initial_temperature * (final_pressure / initial_pressure) ** (
+        consts.R_DRY_AIR / consts.CP_DRY_AIR
+    )
+
+
+def dry_adiabatic_pressure(
+    initial_temperature: ndarray, initial_pressure: ndarray, final_temperature: ndarray,
+) -> ndarray:
+    """
+    Calculate pressure at final_temperature after adiabatic adjustment of dry air from the
+    initial temperature and pressure.
+
+    Args:
+        initial_temperature:
+            Array of initial temperatures (K)
+        initial_pressure:
+            Array of initial pressures (Pa)
+        final_temperature:
+            Array of final temperatures (K)
+
+    Returns:
+        Array of final pressures (Pa)
+    """
+    return initial_pressure * (final_temperature / initial_temperature) ** (
+        consts.CP_DRY_AIR / consts.R_DRY_AIR
+    )
+
+
 class WetBulbTemperature(BasePlugin):
     """
     A plugin to calculate wet bulb temperatures from air temperature, relative
@@ -1048,10 +1094,9 @@ class PhaseChangeLevel(BasePlugin):
             # length 1 dimensions)
             if phase_change is None:
                 phase_change = phase_change_data
-            elif not isinstance(phase_change, list):
-                phase_change = [phase_change]
-                phase_change.append(phase_change_data)
             else:
+                if not isinstance(phase_change, list):
+                    phase_change = [phase_change]
                 phase_change.append(phase_change_data)
 
         phase_change_level = self.create_phase_change_level_cube(
