@@ -70,6 +70,8 @@ class VerticalUpdraught(PostProcessingPlugin):
             "atmosphere_convective_available_potential_energy",
             "lwe_precipitation_rate_max",
         ]
+        self._minimum_cape = 10.  # J kg-1. Minimum value to diagnose updraught from
+        self._minimum_precip = 5.  # mm h-1. Minimum value to diagnose updraught from
 
     def _parse_inputs(self, inputs: List[Cube]) -> None:
         """
@@ -114,9 +116,10 @@ class VerticalUpdraught(PostProcessingPlugin):
     def _input_times_error(self) -> str:
         """
         Returns appropriate error message string if
+
         - CAPE cube time is unbounded
         - CAPE time point is lower bound of precip cube time point
-        - Both cubes have the same forecast reference time
+        - CAPE and precip cubes have different forecast reference times
         """
         cape_time = self.cape.coord("time")
         if cape_time.has_bounds():
@@ -134,9 +137,11 @@ class VerticalUpdraught(PostProcessingPlugin):
         Calculate the updraught from CAPE data
 
         Calculation is 0.25 * sqrt(2 * cape)
+
+        Returns zero where CAPE < 10 J kg-1
         """
         updraught = 0.25 * (2 * self.cape.data) ** 0.5
-        updraught[self.cape.data < 10] = 0.0
+        updraught[self.cape.data < self._minimum_cape] = 0.0
         return updraught.astype(np.float32)
 
     def _updraught_increment_from_precip(self) -> np.ndarray:
@@ -144,10 +149,10 @@ class VerticalUpdraught(PostProcessingPlugin):
         Calculate the updraught increment from the precipitation rate.
 
         Calculation is 7.33 * (precip / 28.7)^0.22
-        If precipitation rate < 5 mm/h, increment is zero.
+        Where precipitation rate < 5 mm h-1, increment is zero.
         """
         increment = 7.33 * (self.precip.data / 28.7) ** 0.22
-        increment[self.precip.data < 5] = 0.0
+        increment[self.precip.data < self._minimum_precip] = 0.0
         return increment.astype(np.float32)
 
     def _make_updraught_cube(self, data: np.ndarray) -> Cube:

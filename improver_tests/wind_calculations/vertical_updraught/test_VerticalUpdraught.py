@@ -140,7 +140,8 @@ def metadata_ok(updraught: Cube, baseline: Cube, model_id_attr=None) -> None:
 )
 def test_basic(cape, precip, cape_value, cape_result, precip_value, precip_result):
     """Check that for each pair of values, we get the expected result
-    and that the metadata are as expected."""
+    and that the metadata are as expected. Note that the method being tested deals with
+    cape and precip separately and that the resulting updraught is the sum of these."""
     cape.data = np.full_like(cape.data, cape_value)
     precip.data = np.full_like(precip.data, precip_value)
     expected_value = cape_result + precip_result
@@ -149,15 +150,20 @@ def test_basic(cape, precip, cape_value, cape_result, precip_value, precip_resul
     assert np.isclose(result.data, expected_value, rtol=1e-4).all()
 
 
-def test_unit_conversion(cape, precip):
-    """Check that for each pair of values, we get the expected result
-    and that the metadata are as expected."""
+@pytest.mark.parametrize("reverse_order", (False, True))
+def test_unit_conversion_and_cube_order(cape, precip, reverse_order):
+    """Check that for one pair of values (CAPE=500, precip=10), we get the expected result
+    even if the input units are changed and the input cube order is reversed.
+    Repeats check on output metadata too."""
     cape.data = np.full_like(cape.data, 0.5)  # 500 J kg-1
     cape.units = "J g-1"
     precip.data = np.full_like(precip.data, 2.7778e-6)  # 10 mm h-1
     precip.units = "m s-1"
     expected_value = 7.906 + 5.813
-    result = VerticalUpdraught()([cape, precip])
+    cubes = [cape, precip]
+    if reverse_order:
+        cubes.reverse()
+    result = VerticalUpdraught()(cubes)
     metadata_ok(result, precip)
     assert np.isclose(result.data, expected_value, rtol=1e-4).all()
 
@@ -169,6 +175,11 @@ def test_model_id_attr(cape, precip, model_id_attr):
     precip.attributes["mosg__model_configuration"] = "gl_ens"
     result = VerticalUpdraught(model_id_attr=model_id_attr)([cape, precip])
     metadata_ok(result, precip, model_id_attr=model_id_attr)
+
+
+def remove_a_cube(cubes: List[Cube]):
+    """Removes the last cube from the cube list."""
+    del cubes[-1]
 
 
 def add_unexpected_cube(cubes: List[Cube]):
@@ -219,6 +230,7 @@ def set_mismatched_model_ids(cubes: List[Cube]):
     (
         (lambda l: l[0].rename("kittens"), "Expected to find cubes of "),
         (lambda l: l[1].rename("poodles"), "Expected to find cubes of "),
+        (remove_a_cube, "Expected to find cubes of "),
         (add_unexpected_cube, re.escape("Unexpected Cube(s) found in inputs: "),),
         (spatial_shift, "Spatial coords of input Cubes do not match: "),
         (lambda l: units_to_kg(l[0]), "Unable to convert from"),
