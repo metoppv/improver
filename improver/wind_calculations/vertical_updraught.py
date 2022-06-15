@@ -70,8 +70,8 @@ class VerticalUpdraught(PostProcessingPlugin):
             "atmosphere_convective_available_potential_energy",
             "lwe_precipitation_rate_max",
         ]
-        self._minimum_cape = 10.  # J kg-1. Minimum value to diagnose updraught from
-        self._minimum_precip = 5.  # mm h-1. Minimum value to diagnose updraught from
+        self._minimum_cape = 10.0  # J kg-1. Minimum value to diagnose updraught from
+        self._minimum_precip = 5.0  # mm h-1. Minimum value to diagnose updraught from
 
     def _parse_inputs(self, inputs: List[Cube]) -> None:
         """
