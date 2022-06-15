@@ -44,11 +44,17 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.solar import calc_solar_elevation
 from improver.utilities.spatial import get_grid_y_x_values
 
+ATTRIBUTES = {
+    "source": "IMRPOVER tests",
+    "institution": "Australian Bureau of Meteorology",
+    "title": "Test data on sample grid",
+}
+
 
 @pytest.fixture
 def target_grid() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((10, 8), dtype=np.float32), name="template",
+        data=np.ones((10, 8), dtype=np.float32), name="template", attributes=ATTRIBUTES
     )
 
 
@@ -58,34 +64,47 @@ def target_grid_equal_area() -> Cube:
         data=np.ones((10, 8), dtype=np.float32),
         name="template",
         spatial_grid="equalarea",
+        attributes=ATTRIBUTES,
     )
 
 
 @pytest.fixture
 def surface_altitude() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((10, 8), dtype=np.float32), name="surface_altitude", units="m",
+        data=np.ones((10, 8), dtype=np.float32),
+        name="surface_altitude",
+        units="m",
+        attributes=ATTRIBUTES,
     )
 
 
 @pytest.fixture
 def linke_turbidity() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((10, 8), dtype=np.float32), name="linke_turbidity", units="1",
+        data=np.ones((10, 8), dtype=np.float32),
+        name="linke_turbidity",
+        units="1",
+        attributes=ATTRIBUTES,
     )
 
 
 @pytest.fixture
 def surface_altitude_on_alternate_grid() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((12, 10), dtype=np.float32), name="surface_altitude", units="m",
+        data=np.ones((12, 10), dtype=np.float32),
+        name="surface_altitude",
+        units="m",
+        attributes=ATTRIBUTES,
     )
 
 
 @pytest.fixture
 def linke_turbidity_on_alternate_grid() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((12, 10), dtype=np.float32), name="linke_turbidity", units="1",
+        data=np.ones((12, 10), dtype=np.float32),
+        name="linke_turbidity",
+        units="1",
+        attributes=ATTRIBUTES,
     )
 
 
@@ -316,6 +335,10 @@ def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
     # Check variable attributes
     assert result.name() == CLEARSKY_SOLAR_RADIATION_CF_NAME
     assert result.units == "W s m-2"
+
+    assert result.attributes["source"] == "IMPROVER"
+    assert result.attributes["title"] == "IMPROVER ancillary on sample grid"
+    assert result.attributes["institution"] == target_grid.attributes["institution"]
 
 
 def test_process_lat_lon(target_grid, surface_altitude):

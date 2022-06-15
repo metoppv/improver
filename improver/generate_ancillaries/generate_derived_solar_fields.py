@@ -429,6 +429,17 @@ class GenerateClearskySolarRadiation(BasePlugin):
         )
 
         attrs = generate_mandatory_attributes([target_grid])
+        attrs["source"] = "IMPROVER"
+        # If title in source grid, this will transfer through generate_mandatory_attributes.
+        # Here we assume that anything following "on" in title attribute describes the grid,
+        # which we can pass onto the clearsky solar radiation cube.
+        target_grid_title = attrs.get("title", "")
+        grid_in_title = target_grid_title.rsplit("on ", maxsplit=1)
+        if len(grid_in_title) > 1:
+            grid_details = f" on {grid_in_title[-1]}"
+        else:
+            grid_details = ""
+        attrs["title"] = "IMPROVER ancillary" + grid_details
 
         solar_radiation_cube = Cube(
             solar_radiation_data.astype(np.float32),
