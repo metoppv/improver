@@ -37,6 +37,7 @@ from iris.cube import Cube
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
+    get_bounds_of_distribution,
 )
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
@@ -73,12 +74,21 @@ class ExpectedValue(PostProcessingPlugin):
         thresholds = threshold_coord.points
         # add an extra threshold below/above with zero/one probability
         # this ensures the PDF integral covers the full CDF probability range
+        try:
+            # use bounds from ECC as an outer bound on the distribution if available
+            ecc_bounds = get_bounds_of_distribution(
+                threshold_coord.name(), threshold_coord.units
+            )
+        except KeyError:
+            # use infinities to fall back to threshold_spacing if ECC bounds missing
+            ecc_bounds = np.array([np.inf, -np.inf])
+        # applying the mean spacing between thresholds ensures expand the existing range
         threshold_spacing = np.mean(np.diff(thresholds))
         thresholds_expanded = np.array(
             [
-                thresholds[0] - threshold_spacing,
+                min(ecc_bounds[0], thresholds[0] - threshold_spacing),
                 *thresholds,
-                thresholds[-1] + threshold_spacing,
+                max(ecc_bounds[1], thresholds[-1] + threshold_spacing),
             ]
         )
         # expand the data to match the newly added thresholds
