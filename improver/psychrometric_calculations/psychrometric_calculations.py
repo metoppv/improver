@@ -966,25 +966,55 @@ class PhaseChangeLevel(BasePlugin):
         # lands points where the phase-change-level is below the orography.
         # These can be filled by optional horizontal interpolation.
         if self.horizontal_interpolation:
-            with np.errstate(invalid="ignore"):
-                max_nbhood_mask = phase_change_data <= max_nbhood_orog
-            updated_phase_cl = interpolate_missing_data(
-                phase_change_data, limit=orography, valid_points=max_nbhood_mask
-            )
-
-            with np.errstate(invalid="ignore"):
-                max_nbhood_mask = updated_phase_cl <= max_nbhood_orog
-            phase_change_data = interpolate_missing_data(
-                updated_phase_cl,
-                method="nearest",
-                limit=orography,
-                valid_points=max_nbhood_mask,
+            phase_change_data = self._horizontally_interpolate_phase(
+                phase_change_data, orography, max_nbhood_orog
             )
 
         # Mask any points that are still set to np.nan; this should be no
         # points if horizontal interpolation has been used.
         phase_change_data = np.ma.masked_invalid(phase_change_data)
 
+        return phase_change_data
+
+    def _horizontally_interpolate_phase(
+        self, phase_change_data: ndarray, orography: ndarray, max_nbhood_orog: ndarray
+    ) -> ndarray:
+        """
+        Fill in missing points via horizontal interpolation.
+
+        Args:
+            phase_change_data:
+                Level (height) at which the phase changes.
+            orography:
+                Orography heights
+            max_nbhood_orog:
+                Maximum orography height in neighbourhood (used to determine points that
+                can be used for interpolation)
+
+        Returns:
+            Level at which phase changes, with missing data filled in
+        """
+
+        with np.errstate(invalid="ignore"):
+            max_nbhood_mask = phase_change_data <= max_nbhood_orog
+        updated_phase_cl = interpolate_missing_data(
+            phase_change_data, limit=orography, valid_points=max_nbhood_mask
+        )
+
+        with np.errstate(invalid="ignore"):
+            max_nbhood_mask = updated_phase_cl <= max_nbhood_orog
+        phase_change_data = interpolate_missing_data(
+            updated_phase_cl,
+            method="nearest",
+            limit=orography,
+            valid_points=max_nbhood_mask,
+        )
+
+        if np.isnan(phase_change_data).any():
+            # This should be rare.
+            phase_change_data = interpolate_missing_data(
+                phase_change_data, method="nearest", limit=orography,
+            )
         return phase_change_data
 
     def create_phase_change_level_cube(

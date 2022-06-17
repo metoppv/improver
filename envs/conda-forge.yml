@@ -18,7 +18,7 @@ dependencies:
   - iris>=3.0,<3.1
   - netCDF4
   - numpy<1.21
-  - scipy
+  - scipy<1.7
   - sigtools
   - sphinx
   # Additional libraries to run tests, not included in improver-feedstock
