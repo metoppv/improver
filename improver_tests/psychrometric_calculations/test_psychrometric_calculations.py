@@ -34,10 +34,10 @@ import pytest
 
 from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
+    adjust_for_latent_heat,
     dry_adiabatic_pressure,
     dry_adiabatic_temperature,
     saturated_humidity,
-    adjust_for_latent_heat,
 )
 
 t_1 = 280.0
