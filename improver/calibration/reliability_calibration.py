@@ -466,6 +466,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             truths:
                 A cube containing the thresholded gridded truths used in
                 calibration.
+            aggregate_coords:
+                Coordinates to aggregate over during construction. This is
+                equivalent to constructing then using
+                :class:`improver.calibration.reliability_calibration.AggregateReliabilityCalibrationTables`
+                but with reduced memory usage due to avoiding large intermediate
+                data.
 
         Returns:
             A cubelist of reliability table cubes, one for each threshold

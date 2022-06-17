@@ -72,6 +72,11 @@ def process(
         single_value_upper_limit (bool):
             Mandates that the highest bin should be single valued, with a small
             precision tolerance, defined as 1.0E-6. The bin is thus (1 - 1.0E-6) to 1.
+        aggregate_coordinates (List[str]):
+            An optional list of coordinates over which to aggregate the reliability
+            calibration table using summation. This is equivalent to constructing
+            then using :mod:`improver.cli.aggregate_reliability_tables` but with
+            reduced memory usage due to avoiding large intermediate data.
 
     Returns:
         iris.cube.Cube:
