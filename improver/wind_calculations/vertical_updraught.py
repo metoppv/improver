@@ -35,7 +35,7 @@ from typing import List
 import numpy as np
 from iris.cube import Cube, CubeList
 
-from improver import PostProcessingPlugin
+from improver import BasePlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -43,7 +43,7 @@ from improver.metadata.utilities import (
 from improver.utilities.cube_checker import spatial_coords_match
 
 
-class VerticalUpdraught(PostProcessingPlugin):
+class VerticalUpdraught(BasePlugin):
     """
     Methods to calculate the maximum vertical updraught from CAPE and precipitation rate as
     defined in Hand (2002) and Golding (1998) with the precipitation rate modifier found in

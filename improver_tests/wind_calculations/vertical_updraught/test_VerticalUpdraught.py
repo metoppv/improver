@@ -98,13 +98,7 @@ def metadata_ok(updraught: Cube, baseline: Cube, model_id_attr=None) -> None:
         assert updraught.coord_dims(coord) == baseline.coord_dims(base_coord)
         assert coord == base_coord
     for attr in MANDATORY_ATTRIBUTES:
-        if attr == "title":
-            assert (
-                updraught.attributes[attr]
-                == f"Post-Processed {baseline.attributes[attr]}"
-            )
-        else:
-            assert updraught.attributes[attr] == baseline.attributes[attr]
+        assert updraught.attributes[attr] == baseline.attributes[attr]
     all_attr_keys = list(updraught.attributes.keys())
     if model_id_attr:
         assert updraught.attributes[model_id_attr] == baseline.attributes[model_id_attr]
