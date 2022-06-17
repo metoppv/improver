@@ -75,8 +75,8 @@ def process(
         aggregate_coordinates (List[str]):
             An optional list of coordinates over which to aggregate the reliability
             calibration table using summation. This is equivalent to constructing
-            then using :mod:`improver.cli.aggregate_reliability_tables` but with
-            reduced memory usage due to avoiding large intermediate data.
+            then using aggregate-reliability-tables but with reduced memory
+            usage due to avoiding large intermediate data.
 
     Returns:
         iris.cube.Cube:

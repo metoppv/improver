@@ -38,8 +38,10 @@ from iris.cube import Cube
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
-    ConstructReliabilityCalibrationTables as Plugin,
     AggregateReliabilityCalibrationTables,
+)
+from improver.calibration.reliability_calibration import (
+    ConstructReliabilityCalibrationTables as Plugin,
 )
 
 """Create forecast and truth cubes for use in testing the reliability
