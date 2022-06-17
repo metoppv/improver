@@ -303,14 +303,20 @@ def test__calc_clearsky_solar_radiation_data(
 
 
 @pytest.mark.parametrize("at_mean_sea_level", (True, False))
-def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
+@pytest.mark.parametrize("new_title", (None, "IMPROVER ancillary on sample grid"))
+def test__create_solar_radiation_cube(target_grid, at_mean_sea_level, new_title):
 
     solar_radiation_data = np.zeros_like(target_grid.data)
     time = datetime(2022, 1, 1, 0, 0)
     accumulation_period = 24
 
     result = GenerateClearskySolarRadiation()._create_solar_radiation_cube(
-        solar_radiation_data, target_grid, time, accumulation_period, at_mean_sea_level,
+        solar_radiation_data,
+        target_grid,
+        time,
+        accumulation_period,
+        at_mean_sea_level,
+        new_title,
     )
 
     # Check vertical coordinate
@@ -337,7 +343,7 @@ def test__create_solar_radiation_cube(target_grid, at_mean_sea_level):
     assert result.units == "W s m-2"
 
     assert result.attributes["source"] == "IMPROVER"
-    assert result.attributes["title"] == "IMPROVER ancillary on sample grid"
+    assert result.attributes.get("title") == new_title
     assert result.attributes["institution"] == target_grid.attributes["institution"]
 
 

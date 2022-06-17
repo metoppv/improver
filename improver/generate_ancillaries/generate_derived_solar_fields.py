@@ -31,7 +31,7 @@
 """Module for generating derived solar fields."""
 import warnings
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import cf_units
 import numpy as np
@@ -68,7 +68,7 @@ CLEARSKY_SOLAR_RADIATION_BRUCE_NAME = "clearsky_solar_radiation"
 class GenerateSolarTime(BasePlugin):
     """A plugin to evaluate local solar time."""
 
-    def process(self, target_grid: Cube, time: datetime) -> Cube:
+    def process(self, target_grid: Cube, time: datetime, new_title: str = None) -> Cube:
         """Calculate the local solar time over the specified grid.
 
         Args:
@@ -76,7 +76,9 @@ class GenerateSolarTime(BasePlugin):
                 A cube containing the desired spatial grid.
             time:
                 The valid time at which to evaluate the local solar time.
-
+            new_title:
+                New title for the output cube attributes. If None, this attribute is
+                left out since it has no prescribed standard.
         Returns:
             A cube containing local solar time, on the same spatial grid as target_grid.
         """
@@ -370,6 +372,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         time: datetime,
         accumulation_period: int,
         at_mean_sea_level: bool,
+        new_title: Optional[str],
     ) -> Cube:
         """Create a cube of accumulated clearsky solar radiation.
 
@@ -388,6 +391,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 Flag denoting whether solar radiation is defined at mean-sea-level
                 or at the Earth's surface. The appropriate vertical coordinate will
                 be assigned accordingly.
+            new_title:
+                New title for the output cube attributes. If None, this attribute is
+                left out since it has no prescribed standard.
 
         Returns:
             Cube containing clearsky solar radiation.
@@ -430,16 +436,10 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         attrs = generate_mandatory_attributes([target_grid])
         attrs["source"] = "IMPROVER"
-        # If title in source grid, this will transfer through generate_mandatory_attributes.
-        # Here we assume that anything following "on" in title attribute describes the grid,
-        # which we can pass onto the clearsky solar radiation cube.
-        target_grid_title = attrs.get("title", "")
-        grid_in_title = target_grid_title.rsplit("on ", maxsplit=1)
-        if len(grid_in_title) > 1:
-            grid_details = f" on {grid_in_title[-1]}"
+        if new_title is not None:
+            attrs["title"] = new_title
         else:
-            grid_details = ""
-        attrs["title"] = "IMPROVER ancillary" + grid_details
+            attrs.pop("title", None)
 
         solar_radiation_cube = Cube(
             solar_radiation_data.astype(np.float32),
@@ -460,6 +460,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         surface_altitude: Cube = None,
         linke_turbidity: Cube = None,
         temporal_spacing: int = DEFAULT_TEMPORAL_SPACING_IN_MINUTES,
+        new_title: str = None,
     ) -> Cube:
         """Calculate the gridded clearsky solar radiation by integrating clearsky solar irradiance
         values over the specified time-period, and on the specified grid.
@@ -483,6 +484,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
             temporal_spacing:
                 The time stepping, specified in mins, used in the integration of solar irradiance
                 to produce the accumulated solar radiation.
+            new_title:
+                New title for the output cube attributes. If None, this attribute is
+                left out since it has no prescribed standard.
 
         Returns:
             A cube containing the clearsky solar radiation accumulated over the specified
@@ -516,6 +520,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
             time,
             accumulation_period,
             at_mean_sea_level,
+            new_title,
         )
 
         return solar_radiation_cube
