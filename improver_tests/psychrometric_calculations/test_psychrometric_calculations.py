@@ -37,7 +37,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_pressure,
     dry_adiabatic_temperature,
     saturated_humidity,
-    saturated_latent_heat,
+    adjust_for_latent_heat,
 )
 
 t_1 = 280.0
@@ -96,6 +96,7 @@ def test_saturated_humidity(shape, t, p, expected):
     )
     assert np.isclose(result, expected).all()
     assert result.shape == shape
+    assert result.dtype == np.float32
 
 
 # Stephen checked these values on a Tephigram.
@@ -108,7 +109,7 @@ def test_saturated_humidity(shape, t, p, expected):
         (220, 30000, 5.6e-4, 220.7092, 6.02400e-5),
         (280, 90000, 6.9e-3, 280.0584, 6.8567e-3),
         (271, 85000, 6.8369e-3, 273.883, 4.7085e-3),
-        (271, 85000, 3.0e-3, 271, 3.0e-3),
+        (271, 85000, 3.0e-3, 271, 3.0e-3),  # Subsaturated value
         (289, 100000, 1.26e-2, 290, 1.1847e-2),
         (294, 90000, 2.7e-2, 299.303, 2.29992e-2),
         (292.6, 85000, 2.2e-2, 295.690, 1.9672e-2),
@@ -116,20 +117,24 @@ def test_saturated_humidity(shape, t, p, expected):
 )
 def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
     """Test the saturated_latent_heat method"""
-    result_t, result_q = saturated_latent_heat(
+    result_t, result_q = adjust_for_latent_heat(
         np.full(shape, t, dtype=np.float32),
         np.full(shape, q, dtype=np.float32),
         np.full(shape, p, dtype=np.float32),
     )
     assert np.isclose(result_t, expected_t).all()
     assert np.isclose(result_q, expected_q).all()
-    assert result_t.shape == shape
-    assert result_q.shape == shape
+    for r in result_t, result_q:
+        assert r.shape == shape
+        assert r.dtype == np.float32
 
 
-def test_calculate_latent_heat():
+@pytest.mark.parametrize("shape", ((1,), (2, 2)))
+@pytest.mark.parametrize(
+    "t, expected", ((185.0, 2707271.0), (260.65, 2530250.0), (338.15, 2348900.0))
+)
+def test_calculate_latent_heat(t, expected, shape):
     """Test latent heat calculation"""
-    temperature = np.array([185.0, 260.65, 338.15], dtype=np.float32)
-    expected = [2707271.0, 2530250.0, 2348900.0]
-    result = _calculate_latent_heat(temperature)
-    assert np.isclose(result.data, expected).all()
+    result = _calculate_latent_heat(np.full(shape, t, dtype=np.float32))
+    assert np.isclose(result, expected).all()
+    assert result.dtype == np.float32

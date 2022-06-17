@@ -190,7 +190,9 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
     epsilon = 0.622
     svp = calculate_svp_in_air(temperature, pressure)
-    return epsilon * svp / (pressure - (1.0 - epsilon * svp))
+    return (epsilon * svp / (pressure - (1.0 - epsilon * svp))).astype(
+        temperature.dtype
+    )
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:
@@ -216,6 +218,7 @@ def _calculate_latent_heat(temperature: ndarray) -> ndarray:
 def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndarray:
     """Returns the latent heat released (K) when condensing water vapour from specific humidity
     value q1 to q2, both in kg kg-1 when the temperature is approximately t.
+    Returns negative values when initial condition is subsaturated.
 
     Args:
         temperature:
@@ -231,12 +234,14 @@ def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndar
     return (_calculate_latent_heat(temperature) / consts.CP_WATER_VAPOUR) * (q1 - q2)
 
 
-def saturated_latent_heat(
+def adjust_for_latent_heat(
     temperature_in: ndarray, humidity_in: ndarray, pressure: ndarray
 ) -> Tuple[ndarray, ndarray]:
     """
     Increases temperature and reduces humidity via latent heat release from condensation until
-    values represent <=100% relative humidity.
+    values represent 100% relative humidity.
+
+    Subsaturated values will be returned unaltered.
 
     Args:
         temperature_in:
@@ -247,23 +252,24 @@ def saturated_latent_heat(
             The atmospheric pressure at the same points (Pa)
 
     Returns:
-        tuple of temperature (K) and humidity (kg kg-1) after saturated latent heat adjustment
+        tuple of temperature (K) and humidity (kg kg-1) after saturated latent heat release
     """
 
     def qsat_differential(qs, t, q, p):
-        """For a given set of temperature, specific humidity and pressure, and a qs guess,
-        return the difference"""
+        """For a given set of temperature (t), specific humidity (q) and pressure (p),
+        and a saturated humidity guess (qs), calculate an adjusted temperature after
+        latent heat release and return the difference between the saturated humidity
+        at that adjusted temperature and the guess."""
         adj_t = t + _latent_heat_release(q, qs, t)
         return saturated_humidity(adj_t, p) - qs
 
-    optimized_result = newton(
+    humidity = newton(
         qsat_differential,
         humidity_in.copy(),
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
         maxiter=6,
-    )
-    humidity = optimized_result.astype(np.float32)
+    ).astype(np.float32)
     temperature = temperature_in + _latent_heat_release(
         humidity_in, humidity, temperature_in
     )
