@@ -42,11 +42,17 @@ from improver.generate_ancillaries.generate_derived_solar_fields import (
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
+ATTRIBUTES = {
+    "source": "IMRPOVER tests",
+    "institution": "Australian Bureau of Meteorology",
+    "title": "Test data on sample grid",
+}
+
 
 @pytest.fixture
 def target_grid() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((10, 8), dtype=np.float32), name="template",
+        data=np.ones((10, 8), dtype=np.float32), name="template", attributes=ATTRIBUTES,
     )
 
 
@@ -56,16 +62,18 @@ def target_grid_equal_area() -> Cube:
         data=np.ones((10, 8), dtype=np.float32),
         name="template",
         spatial_grid="equalarea",
+        attributes=ATTRIBUTES,
     )
 
 
-def test__create_solar_time_cube(target_grid):
+@pytest.mark.parametrize("new_title", (None, "IMPROVER ancillary on sample grid"))
+def test__create_solar_time_cube(target_grid, new_title):
 
     solar_time_data = np.zeros_like(target_grid.data)
     time = datetime(2022, 1, 1, 0, 0)
 
     result = GenerateSolarTime()._create_solar_time_cube(
-        solar_time_data, target_grid, time
+        solar_time_data, target_grid, time, new_title
     )
 
     # Check time value match inputs
@@ -80,6 +88,10 @@ def test__create_solar_time_cube(target_grid):
     # Check variable attributes
     assert result.name() == SOLAR_TIME_CF_NAME
     assert result.units == "hours"
+
+    assert result.attributes["source"] == "IMPROVER"
+    assert result.attributes.get("title") == new_title
+    assert result.attributes["institution"] == target_grid.attributes["institution"]
 
 
 def test_process_lat_lon(target_grid):

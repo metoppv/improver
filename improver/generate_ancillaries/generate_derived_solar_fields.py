@@ -73,7 +73,11 @@ class GenerateSolarTime(BasePlugin):
     """A plugin to evaluate local solar time."""
 
     def _create_solar_time_cube(
-        self, solar_time_data: ndarray, target_grid: Cube, time: datetime, new_title: Optional[str],
+        self,
+        solar_time_data: ndarray,
+        target_grid: Cube,
+        time: datetime,
+        new_title: Optional[str],
     ) -> Cube:
         """Create solar time cube for the specified valid time.
 
