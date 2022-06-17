@@ -42,6 +42,7 @@ def process(
     n_probability_bins: int = 5,
     single_value_lower_limit: bool = False,
     single_value_upper_limit: bool = False,
+    aggregate_coordinates: cli.comma_separated_list = None,
 ):
     """Populate reliability tables for use in reliability calibration.
 
@@ -88,4 +89,4 @@ def process(
         n_probability_bins=n_probability_bins,
         single_value_lower_limit=single_value_lower_limit,
         single_value_upper_limit=single_value_upper_limit,
-    )(forecast, truth)
+    )(forecast, truth, aggregate_coordinates)

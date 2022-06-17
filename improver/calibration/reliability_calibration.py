@@ -430,7 +430,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             )
         return threshold_reliability
 
-    def process(self, historic_forecasts: Cube, truths: Cube) -> Cube:
+    def process(
+        self,
+        historic_forecasts: Cube,
+        truths: Cube,
+        aggregate_coords: Optional[List[str]] = None,
+    ) -> Cube:
         """
         Slice data over threshold and time coordinates to construct reliability
         tables. These are summed over time to give a single table for each
@@ -512,6 +517,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
             reliability_entry = reliability_cube.copy(data=threshold_reliability)
             reliability_entry.replace_coord(forecast_slice.coord(threshold_coord))
+            if aggregate_coords:
+                reliability_entry = AggregateReliabilityCalibrationTables().process(
+                    [reliability_entry], aggregate_coords
+                )
             reliability_tables.append(reliability_entry)
 
         return MergeCubes()(reliability_tables, copy=False)
