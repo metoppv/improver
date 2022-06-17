@@ -967,7 +967,7 @@ class PhaseChangeLevel(BasePlugin):
         if np.isnan(phase_change_data).any():
             # This should be rare.
             phase_change_data = interpolate_missing_data(
-                phase_change_data, method="nearest"
+                phase_change_data, method="nearest", limit=orography,
             )
         return phase_change_data
 

@@ -449,7 +449,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         )
         self.orography_1d = np.array([[850.0, 700.0, 500.0]], dtype=np.float32)
         self.max_nbhood_orog_1d = np.array([[850.0, 850.0, 700.0]], dtype=np.float32)
-        self.expected_result_1d = np.array([[1000.0, 1000.0, 800.0]], dtype=np.float32)
+        self.expected_result_1d = np.array([[1000.0, 700.0, 800.0]], dtype=np.float32)
 
         # A case that mimics a real side-of-mountain failure.
         self.phase_change_data_2d = np.array(
@@ -486,7 +486,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
             [
                 [1000.0, 1000.0, 950.0, 800.0, 800.0],
                 [1000.0, 1000.0, 950.0, 900.0, 800.0],
-                [1000.0, 1000.0, 950.0, 950.0, 800.0],
+                [1000.0, 1000.0, 950.0, 700.0, 800.0],
                 [1000.0, 1000.0, 950.0, 900.0, 800.0],
                 [1000.0, 1000.0, 950.0, 800.0, 800.0],
             ],
@@ -501,6 +501,7 @@ class Test_horizontally_interpolate_phase(IrisTest):
         self.max_nbhood_orog_2d_crater = np.full((9, 9), 900.0, dtype=np.float32)
         self.max_nbhood_orog_2d_crater[3:6, 3:6] = 600.0
         self.expected_result_2d_crater = np.full((9, 9), 1000.0, dtype=np.float32)
+        self.expected_result_2d_crater[2:7, 2:7] = self.orography_2d_crater[2:7, 2:7]
 
     def test_interpolate_edge_case_1d(self):
         """Test that we fill in missing areas under a 1d peaked edge case."""
@@ -548,8 +549,8 @@ class Test_horizontally_interpolate_phase(IrisTest):
             phase_change_data, self.orography_2d, self.max_nbhood_orog_2d
         )
         expected_result = self.expected_result_2d.copy()
-        expected_result[2][2] = 1000.0
-        expected_result[2][3] = 800.0
+        expected_result[2][2] = self.orography_2d[2][2]
+        expected_result[2][3] = self.orography_2d[2][3]
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_interpolate_edge_case_2d_nan_peakonly(self):
@@ -562,7 +563,8 @@ class Test_horizontally_interpolate_phase(IrisTest):
             phase_change_data, self.orography_2d, self.max_nbhood_orog_2d
         )
         expected_result = self.expected_result_2d.copy()
-        expected_result[2][2] = 1000.0
+        expected_result[2][2] = self.orography_2d[2][2]
+        expected_result[2][3] = 950.0
         self.assertArrayAlmostEqual(result, expected_result)
 
     def test_interpolate_edge_case_2d_crater(self):
