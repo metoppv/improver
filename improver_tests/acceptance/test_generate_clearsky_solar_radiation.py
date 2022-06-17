@@ -102,3 +102,25 @@ def test_temporal_spacing(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path, rtol=0.005)
+
+
+def test_new_title_attribute(tmp_path):
+    """Test new-title attribute set correctly when generating clearsky solar
+    radiation derived field."""
+    kgo_dir = acc.kgo_root() / "generate-clearsky-solar-radiation"
+    kgo_path = kgo_dir / "new_title_attribute" / "kgo.nc"
+    input_path = kgo_dir / "surface_altitude.nc"  # Use this as target_grid
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--time",
+        "20220506T0000Z",
+        "--accumulation-period",
+        "24",
+        "--new-title",
+        "IMPROVER ancillary on Australia 9.6 km Albers Grid",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
