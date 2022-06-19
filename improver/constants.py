@@ -41,6 +41,12 @@ RMDI = -32767.0
 # Default percentile boundaries to calculate at for IMPROVER.
 DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)
 
+# Temporal constants
+SECONDS_IN_MINUTE = 60
+MINUTES_IN_HOUR = 60
+HOURS_IN_DAY = 24
+DAYS_IN_YEAR = 365
+
 # 0 Kelvin in degrees C
 ABSOLUTE_ZERO = -273.15
 U_ABSOLUTE_ZERO = "celsius"

@@ -29,8 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to find the relative position of the sun."""
-
-import datetime as dt
+from datetime import datetime, timedelta
 from typing import Union
 
 import iris
@@ -39,11 +38,52 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY, MINUTES_IN_HOUR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
+
+
+def get_day_of_year(time: datetime) -> int:
+    """Get day of the year from given datetime, starting at 0 for 1st Jan.
+
+    Args:
+        time:
+            Datetime from which to extract day-of-year.
+
+    Returns:
+        The day of year corresponding to the specified datetime.
+    """
+    return time.timetuple().tm_yday - 1
+
+
+def get_hour_of_day(time: datetime) -> float:
+    """Get the hour of day from datetime, with the minute values included as
+    a fraction of the hour, and seconds rounded to the nearest minute.
+
+    Where rounding seconds moves the datetime into the following day, the
+    hour_of_day returned is 24.0 rather than 0.0 to ensure the hour_of_day is
+    consistent with the day_of_year value associated with datetime.
+
+    Args:
+        time:
+            Datetime from which to extract utc-hour.
+
+    Returns:
+        The utc hour corresponding to the specified datetime. Minute values
+        are expressed as fraction of an hour.
+    """
+    # Round times to nearest minute by adding seconds component to times
+    rounded_time = time + timedelta(seconds=time.second)
+    # Want to avoid the situation where rounding time takes us into the next day.
+    if rounded_time.day != time.day:
+        return float(HOURS_IN_DAY)
+    else:
+        return (
+            rounded_time.hour * MINUTES_IN_HOUR + rounded_time.minute
+        ) / MINUTES_IN_HOUR
 
 
 def calc_solar_declination(day_of_year: int) -> float:
@@ -63,7 +103,7 @@ def calc_solar_declination(day_of_year: int) -> float:
     """
     # Declination (degrees):
     # = -(axial_tilt)*cos(360./orbital_year * day_of_year - solstice_offset)
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     solar_declination = -23.5 * np.cos(np.radians(0.9856 * day_of_year + 9.3))
@@ -93,13 +133,13 @@ def calc_solar_hour_angle(
         solar_hour_angle
             Hour angles in degrees East-West
     """
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     if utc_hour < 0.0 or utc_hour > 24.0:
         msg = "Hour must be between 0 and 24.0"
         raise ValueError(msg)
-    thetao = 2 * np.pi * day_of_year / 365.0
+    thetao = 2 * np.pi * day_of_year / DAYS_IN_YEAR
     eqt = (
         0.000075
         + 0.001868 * np.cos(thetao)
@@ -149,7 +189,7 @@ def calc_solar_elevation(
     if np.min(latitudes) < -90.0 or np.max(latitudes) > 90.0:
         msg = "Latitudes must be between -90.0 and 90.0"
         raise ValueError(msg)
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     if utc_hour < 0.0 or utc_hour > 24.0:
@@ -190,7 +230,7 @@ def daynight_terminator(
     Returns:
         latitudes of the daynight terminator
     """
-    if day_of_year < 0 or day_of_year > 365:
+    if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
         msg = "Day of the year must be between 0 and 365"
         raise ValueError(msg)
     if utc_hour < 0.0 or utc_hour > 24.0:
@@ -322,9 +362,8 @@ class DayNightMask(BasePlugin):
         modified_masks = iris.cube.CubeList()
         for mask_cube in daynight_mask.slices_over("time"):
             dtval = mask_cube.coord("time").cell(0).point
-            day_of_year = (dtval - dt.datetime(dtval.year, 1, 1)).days
-            dtval = dtval + dt.timedelta(seconds=dtval.second)
-            utc_hour = (dtval.hour * 60.0 + dtval.minute) / 60.0
+            day_of_year = get_day_of_year(dtval)
+            utc_hour = get_hour_of_day(dtval)
             trg_crs = lat_lon_determine(mask_cube)
             # Grids that are not Lat Lon
             if trg_crs is not None:

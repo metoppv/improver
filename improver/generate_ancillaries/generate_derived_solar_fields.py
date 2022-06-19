@@ -29,8 +29,9 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for generating derived solar fields."""
+import warnings
 from datetime import datetime, timedelta, timezone
-from typing import List, Tuple
+from typing import List, Optional, Tuple, Union
 
 import cf_units
 import numpy as np
@@ -39,14 +40,23 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.constants import DAYS_IN_YEAR, MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.solar import (
+    calc_solar_elevation,
+    get_day_of_year,
+    get_hour_of_day,
+)
+from improver.utilities.spatial import (
+    get_grid_y_x_values,
+    lat_lon_determine,
+    transform_grid_to_lat_lon,
+)
 
-SECONDS_IN_MINUTE = 60
-MINUTES_IN_HOUR = 60
 DEFAULT_TEMPORAL_SPACING_IN_MINUTES = 30
 
 CLEARSKY_SOLAR_RADIATION_CF_NAME = (
@@ -58,7 +68,7 @@ CLEARSKY_SOLAR_RADIATION_BRUCE_NAME = "clearsky_solar_radiation"
 class GenerateSolarTime(BasePlugin):
     """A plugin to evaluate local solar time."""
 
-    def process(self, target_grid: Cube, time: datetime) -> Cube:
+    def process(self, target_grid: Cube, time: datetime, new_title: str = None) -> Cube:
         """Calculate the local solar time over the specified grid.
 
         Args:
@@ -66,7 +76,9 @@ class GenerateSolarTime(BasePlugin):
                 A cube containing the desired spatial grid.
             time:
                 The valid time at which to evaluate the local solar time.
-
+            new_title:
+                New title for the output cube attributes. If None, this attribute is
+                left out since it has no prescribed standard.
         Returns:
             A cube containing local solar time, on the same spatial grid as target_grid.
         """
@@ -177,6 +189,118 @@ class GenerateClearskySolarRadiation(BasePlugin):
 
         return irradiance_times
 
+    def _calc_optical_air_mass(self, zenith: ndarray) -> ndarray:
+        """Calculate the relative optical air mass using the Kasten & Young (1989) [1, 2]
+        parameterization.
+
+        The relative optical air mass is a dimensionless quantity representing the relative
+        path length through the atmosphere required to produce an equivalent mass of air
+        compared to the shortest possible path through the full depth of the atmosphere
+        corresponding to zenith = 0.
+
+        Note: For angles with zenith > 90, the optical_air_mass is ill-defined. Here we
+        acknowledge that these values will result in invalid values in the power calculation
+        and so map all such values to zero.
+
+        Args:
+            zenith:
+                Zenith angle in degrees.
+
+        Returns:
+            Relative air mass for given zenith angle.
+
+        References:
+        [1] F. Kasten and A. T. Young, "Revised Optical Air-Mass Tables and
+        Approximation Formula", Applied Optics, vol. 28, p. 4735-4738, 1989.
+        [2] M. Reno, C. Hansen, and J. Stein, "Global Horizontal Irradiance
+        Clear Sky Models: Implementation and Analysis", Sandia National
+        Laboratories, SAND2012-2389, 2012.
+        """
+        zenith_above_horizon = np.where(np.abs(zenith) >= 90, np.nan, zenith)
+        with warnings.catch_warnings():
+            warnings.filterwarnings("ignore", "invalid value encountered in power")
+
+            optical_air_mass = 1.0 / (
+                np.cos(np.radians(zenith_above_horizon))
+                + 0.50572 * (96.07995 - zenith_above_horizon) ** (-1.6364)
+            )
+        # Replace nans with zeros. Associated with zenith > 90.0 degrees
+        return np.nan_to_num(optical_air_mass)
+
+    def _calc_clearsky_ineichen(
+        self,
+        zenith_angle: ndarray,
+        day_of_year: int,
+        surface_altitude: Union[ndarray, float],
+        linke_turbidity: Union[ndarray, float],
+    ) -> ndarray:
+        """Calculate the clearsky global horizontal irradiance using the Perez
+        & Ineichen (2002) [1, 2] formulation.
+
+        Note:
+            #. The formulation here neglects the Perez enhancement that can be found
+            in some instances of the literature; see PvLib issue
+            (https://github.com/pvlib/pvlib-python/issues/435) for details.
+            #. This method produces values that exceed the incoming extra-terrestrial
+            irradiance for large altitude values (> 5000m). Here we limit the the value
+            to not exceed the incoming irradiance. Caution should be used for irradiance
+            values at large altitudes as they are likely to over-estimate.
+
+        Args:
+            zenith_angle:
+                zenith_angle angle in degrees.
+            day_of_year:
+                Day of the year.
+            surface_altitude:
+                Grid box elevation in metres.
+            linke_turbidity:
+                Linke_turbidity value is a dimensionless value that characterises the
+                atmospheres ability to scatter incoming radiation relative to a dry
+                atmosphere.
+
+        Returns:
+            Clearsky global horizontal irradiance values, specified in W m-2.
+
+        References:
+            [1] INEICHEN, Pierre, PEREZ, R. "A new airmass independent formulation
+            for the Linke turbidity coefficient", Solar Energy, vol. 73, p. 151-157,
+            2002.
+            [2] M. Reno, C. Hansen, and J. Stein, "Global Horizontal Irradiance
+            Clear Sky Models: Implementation and Analysis", Sandia National
+            Laboratories, SAND2012-2389, 2012.
+        """
+        # Day of year as an angular quantity.
+        theta0 = 2 * np.pi * day_of_year / DAYS_IN_YEAR
+        # Irradiance at the top of the atmosphere.
+        extra_terrestrial_irradiance = 1367.7 * (1 + 0.033 * np.cos(theta0))
+        # Optical air mass specifies relative path length through the atmosphere
+        # required to produce an equivalent mass of air compared to the direct vertical.
+        optical_air_mass = self._calc_optical_air_mass(zenith_angle)
+        # Ineichen model terms. All terms are dimensionless quantities.
+        fh1 = np.exp(-1.0 * surface_altitude / 8000.0)
+        fh2 = np.exp(-1.0 * surface_altitude / 1250.0)
+        cg1 = 0.0000509 * surface_altitude + 0.868
+        cg2 = 0.0000392 * surface_altitude + 0.0387
+        # Set below horizon zenith angles to zero.
+        cos_zenith = np.maximum(np.cos(np.radians(zenith_angle)), 0)
+        # Calculate global horizontal irradiance as per Ineichen-Perez model.
+        global_horizontal_irradiance = (
+            cg1
+            * extra_terrestrial_irradiance
+            * cos_zenith
+            * np.exp(
+                -1.0 * cg2 * optical_air_mass * (fh1 + fh2 * (linke_turbidity - 1))
+            )
+        )
+        # Model at very large elevations will produce irradiance values that exceed
+        # extra-terrestrial irradiance. Here we cap the possible irradiance to that
+        # of the incoming extra-terrestrial irradiance.
+        global_horizontal_irradiance = np.minimum(
+            global_horizontal_irradiance, extra_terrestrial_irradiance
+        )
+
+        return global_horizontal_irradiance
+
     def _calc_clearsky_solar_radiation_data(
         self,
         target_grid: Cube,
@@ -204,6 +328,10 @@ class GenerateClearskySolarRadiation(BasePlugin):
         Returns:
             Gridded irradiance values evaluated over the specified times.
         """
+        if lat_lon_determine(target_grid) is not None:
+            lats, lons = transform_grid_to_lat_lon(target_grid)
+        else:
+            lats, lons = get_grid_y_x_values(target_grid)
         irradiance_data = np.zeros(
             shape=(
                 len(irradiance_times),
@@ -213,7 +341,21 @@ class GenerateClearskySolarRadiation(BasePlugin):
             dtype=np.float32,
         )
 
-        # TODO: Add clearsky irradiance calculation
+        for time_index, time_step in enumerate(irradiance_times):
+
+            day_of_year = get_day_of_year(time_step)
+            utc_hour = get_hour_of_day(time_step)
+
+            zenith_angle = 90.0 - calc_solar_elevation(
+                lats, lons, day_of_year, utc_hour
+            )
+
+            irradiance_data[time_index, :, :] = self._calc_clearsky_ineichen(
+                zenith_angle,
+                day_of_year,
+                surface_altitude=surface_altitude,
+                linke_turbidity=linke_turbidity,
+            )
 
         # integrate the irradiance data along the time dimension to get the
         # accumulated solar irradiance.
@@ -230,6 +372,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         time: datetime,
         accumulation_period: int,
         at_mean_sea_level: bool,
+        new_title: Optional[str],
     ) -> Cube:
         """Create a cube of accumulated clearsky solar radiation.
 
@@ -248,9 +391,12 @@ class GenerateClearskySolarRadiation(BasePlugin):
                 Flag denoting whether solar radiation is defined at mean-sea-level
                 or at the Earth's surface. The appropriate vertical coordinate will
                 be assigned accordingly.
+            new_title:
+                New title for the output cube attributes. If None, this attribute is
+                left out since it has no prescribed standard.
 
         Returns:
-            Cube containing clearsky solar radaition.
+            Cube containing clearsky solar radiation.
         """
         x_coord = target_grid.coord(axis="X")
         y_coord = target_grid.coord(axis="Y")
@@ -289,9 +435,14 @@ class GenerateClearskySolarRadiation(BasePlugin):
         )
 
         attrs = generate_mandatory_attributes([target_grid])
+        attrs["source"] = "IMPROVER"
+        if new_title is not None:
+            attrs["title"] = new_title
+        else:
+            attrs.pop("title", None)
 
         solar_radiation_cube = Cube(
-            solar_radiation_data,
+            solar_radiation_data.astype(np.float32),
             long_name=CLEARSKY_SOLAR_RADIATION_CF_NAME,
             units="W s m-2",
             dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
@@ -309,6 +460,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
         surface_altitude: Cube = None,
         linke_turbidity: Cube = None,
         temporal_spacing: int = DEFAULT_TEMPORAL_SPACING_IN_MINUTES,
+        new_title: str = None,
     ) -> Cube:
         """Calculate the gridded clearsky solar radiation by integrating clearsky solar irradiance
         values over the specified time-period, and on the specified grid.
@@ -332,6 +484,9 @@ class GenerateClearskySolarRadiation(BasePlugin):
             temporal_spacing:
                 The time stepping, specified in mins, used in the integration of solar irradiance
                 to produce the accumulated solar radiation.
+            new_title:
+                New title for the output cube attributes. If None, this attribute is
+                left out since it has no prescribed standard.
 
         Returns:
             A cube containing the clearsky solar radiation accumulated over the specified
@@ -365,6 +520,7 @@ class GenerateClearskySolarRadiation(BasePlugin):
             time,
             accumulation_period,
             at_mean_sea_level,
+            new_title,
         )
 
         return solar_radiation_cube

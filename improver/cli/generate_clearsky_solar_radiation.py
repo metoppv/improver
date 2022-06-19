@@ -43,6 +43,7 @@ def process(
     time: cli.inputdatetime,
     accumulation_period: int,
     temporal_spacing: int = 30,
+    new_title: str = None,
 ):
     """Generate a cube containing clearsky solar radiation data, evaluated on the target grid
     for the specified time and accumulation period. Accumulated clearsky solar radiation is used
@@ -70,6 +71,9 @@ def process(
         temporal_spacing (int):
             The time stepping, specified in mins, used in the integration of solar irradiance
             to produce the accumulated solar radiation.
+        new_title:
+            New title for the output cube attributes. If None, this attribute is left out
+            since it has no prescribed standard.
 
     Returns:
         iris.cube.Cube:
@@ -86,4 +90,5 @@ def process(
         surface_altitude=surface_altitude,
         linke_turbidity=linke_turbidity,
         temporal_spacing=temporal_spacing,
+        new_title=new_title,
     )

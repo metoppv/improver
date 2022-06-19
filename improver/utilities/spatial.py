@@ -542,19 +542,51 @@ def lat_lon_determine(cube: Cube) -> Optional[CRS]:
     return trg_crs
 
 
-def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
+def get_grid_y_x_values(cube: Cube) -> Tuple[ndarray, ndarray]:
+    """Extract the y and x coordinate values of each points in the cube.
+
+    The result is defined over the spatial grid, of shape (ny, nx) where
+    ny is the length of the y-axis coordinate and nx the length of the
+    x-axis coordinate.
+
+    Args:
+        cube:
+            Cube with points to extract
+
+    Returns:
+        - Array of shape (ny, nx) containing y coordinate values
+        - Array of shape (ny, nx) containing x coordinate values
     """
-    Calculate the latitudes and longitudes of each points in the cube.
+    x_points = cube.coord(axis="x").points
+    y_points = cube.coord(axis="y").points
+
+    nx = len(x_points)
+    ny = len(y_points)
+
+    x_zeros = np.zeros_like(x_points)
+    y_zeros = np.zeros_like(y_points)
+
+    # Broadcast x points and y points onto grid
+    all_x_points = y_zeros.reshape(ny, 1) + x_points.reshape(1, nx)
+    all_y_points = y_points.reshape(ny, 1) + x_zeros.reshape(1, nx)
+
+    return all_y_points, all_x_points
+
+
+def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
+    """Calculate the latitudes and longitudes of each points in the cube.
+
+    The result is defined over the spatial grid, of shape (ny, nx) where
+    ny is the length of the y-axis coordinate and nx the length of the
+    x-axis coordinate.
 
     Args:
         cube:
             Cube with points to transform
 
     Returns
-        lats:
-            Array of cube.data.shape of Latitude values
-        lons:
-            Array of cube.data.shape of Longitude values
+        - Array of shape (ny, nx) containing grid latitude values
+        - Array of shape (ny, nx) containing grid longitude values
     """
     trg_latlon = ccrs.PlateCarree()
     trg_crs = cube.coord_system().as_cartopy_crs()
@@ -573,14 +605,7 @@ def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
             )
             raise ValueError(msg + str(err))
 
-    x_points = cube.coord(axis="x").points
-    y_points = cube.coord(axis="y").points
-    x_zeros = np.zeros_like(x_points)
-    y_zeros = np.zeros_like(y_points)
-
-    # Broadcast x points and y points onto grid
-    all_x_points = y_zeros.reshape(len(y_zeros), 1) + x_points
-    all_y_points = y_points.reshape(len(y_points), 1) + x_zeros
+    all_y_points, all_x_points = get_grid_y_x_values(cube)
 
     # Transform points
     points = trg_latlon.transform_points(trg_crs, all_x_points, all_y_points)

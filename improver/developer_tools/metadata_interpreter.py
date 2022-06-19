@@ -71,6 +71,7 @@ ANCILLARIES = [
     "timezone_mask",
     "smoothing_coefficient_x",
     "smoothing_coefficient_y",
+    "linke_turbidity",
 ]
 EMOS_COEFF_NAMES = [
     f"emos_coefficient_{coeff}" for coeff in ["alpha", "beta", "gamma", "delta"]
