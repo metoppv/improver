@@ -213,6 +213,11 @@ def cape_frt_shifted(cubes: List[Cube]):
     )
 
 
+def precip_has_no_time_bounds(cubes: List[Cube]):
+    """Removes precip cube time bounds"""
+    cubes[1].coord("time").bounds = None
+
+
 def set_mismatched_model_ids(cubes: List[Cube]):
     """Sets model_ids to input cubes that do not match"""
     cubes[1].attributes["mosg__model_configuration"] = "gl_ens"
@@ -229,9 +234,10 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         (spatial_shift, "Spatial coords of input Cubes do not match: "),
         (lambda l: units_to_kg(l[0]), "Unable to convert from"),
         (lambda l: units_to_kg(l[1]), "Unable to convert from"),
-        (cape_has_time_bounds, "CAPE cube should not have time bounds"),
-        (cape_time_shifted, "CAPE time should match precip cube's lower time bound"),
+        (cape_has_time_bounds, "CAPE cube must not have time bounds"),
+        (cape_time_shifted, "CAPE time must match precip cube's lower time bound"),
         (cape_frt_shifted, "Forecast reference times do not match"),
+        (precip_has_no_time_bounds, "Precip cube must have time bounds"),
         (
             set_mismatched_model_ids,
             "Attribute mosg__model_configuration does not match on input cubes",

@@ -123,13 +123,15 @@ class VerticalUpdraught(BasePlugin):
         """
         cape_time = self.cape.coord("time")
         if cape_time.has_bounds():
-            return "CAPE cube should not have time bounds"
+            return "CAPE cube must not have time bounds"
         if self.cape.coord("forecast_reference_time") != self.precip.coord(
             "forecast_reference_time"
         ):
             return "Forecast reference times do not match"
+        if not self.precip.coord("time").has_bounds():
+            return "Precip cube must have time bounds"
         if cape_time.cell(0).point != self.precip.coord("time").cell(0).bound[0]:
-            return "CAPE time should match precip cube's lower time bound"
+            return "CAPE time must match precip cube's lower time bound"
         return ""
 
     def _updraught_from_cape(self) -> np.ndarray:
