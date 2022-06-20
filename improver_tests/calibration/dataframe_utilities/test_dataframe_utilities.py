@@ -165,19 +165,30 @@ class SetupSharedDataFrames(ImproverTest):
             np.array(self.height, dtype=np.float32), "height", units="m",
         )
 
-        self.forecast_df_station_id = self.forecast_df.copy()
-        self.forecast_df_station_id = self.forecast_df_station_id.loc[
-            self.forecast_df_station_id["wmo_id"].isin(self.wmo_ids[:-1])
-        ]
-        self.forecast_df_station_id["station_id"] = (
-            self.forecast_df_station_id["wmo_id"] + "0"
+        df = self.forecast_df
+        condition = (df["time"].isin([self.time1, self.time2])) & (
+            df["wmo_id"] == self.wmo_ids[2]
         )
-        self.truth_df_station_id = self.truth_subset_df.copy()
-        self.truth_df_station_id = self.truth_df_station_id.loc[
-            self.truth_df_station_id["wmo_id"].isin(self.wmo_ids[1:])
+        self.forecast_df_multi_station_id = df.drop(df[condition].index)
+        df = self.truth_subset_df
+        condition = (df["time"].isin([self.time1, self.time2])) & (
+            df["wmo_id"] == self.wmo_ids[2]
+        )
+        self.truth_df_multi_station_id = df.drop(df[condition].index)
+
+        self.forecast_df_one_station_id = self.forecast_df.copy()
+        self.forecast_df_one_station_id = self.forecast_df_one_station_id.loc[
+            self.forecast_df_one_station_id["wmo_id"].isin(self.wmo_ids[:-1])
         ]
-        self.truth_df_station_id["station_id"] = (
-            self.truth_df_station_id["wmo_id"] + "0"
+        self.forecast_df_one_station_id["station_id"] = (
+            self.forecast_df_one_station_id["wmo_id"] + "0"
+        )
+        self.truth_df_one_station_id = self.truth_subset_df.copy()
+        self.truth_df_one_station_id = self.truth_df_one_station_id.loc[
+            self.truth_df_one_station_id["wmo_id"].isin(self.wmo_ids[1:])
+        ]
+        self.truth_df_one_station_id["station_id"] = (
+            self.truth_df_one_station_id["wmo_id"] + "0"
         )
 
 
@@ -256,18 +267,35 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
         for coord in ["forecast_period", "time"]:
             self.expected_instantaneous_forecast.coord(coord).bounds = None
 
+        self.expected_forecast_multi_station_id = self.expected_period_forecast.copy()
+        self.expected_forecast_multi_station_id.data[:, :2, -1] = np.nan
+        unique_id_coord = iris.coords.AuxCoord(
+            [w + "0" for w in self.wmo_ids],
+            long_name="station_id",
+            units="no_unit",
+            attributes={"unique_site_identifier": "true"},
+        )
+        site_id_dim = self.expected_forecast_multi_station_id.coord_dims("spot_index")[
+            0
+        ]
+        self.expected_forecast_multi_station_id.add_aux_coord(
+            unique_id_coord, site_id_dim
+        )
+
         unique_id_coord = iris.coords.AuxCoord(
             [self.wmo_ids[1] + "0"],
             long_name="station_id",
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
         )
-        self.expected_forecast_station_id = self.expected_period_forecast[
+        self.expected_forecast_one_station_id = self.expected_period_forecast[
             :, :, [1]
         ].copy()
-        site_id_dim = self.expected_forecast_station_id.coord_dims("spot_index")[0]
-        self.expected_forecast_station_id.add_aux_coord(unique_id_coord, site_id_dim)
-        self.expected_forecast_station_id.coord("spot_index").points = np.array(
+        site_id_dim = self.expected_forecast_one_station_id.coord_dims("spot_index")[0]
+        self.expected_forecast_one_station_id.add_aux_coord(
+            unique_id_coord, site_id_dim
+        )
+        self.expected_forecast_one_station_id.coord("spot_index").points = np.array(
             [0], dtype=np.int32
         )
 
@@ -312,15 +340,26 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
         self.expected_instantaneous_truth.coord("time").bounds = None
 
         unique_id_coord = iris.coords.AuxCoord(
+            [w + "0" for w in self.wmo_ids],
+            long_name="station_id",
+            units="no_unit",
+            attributes={"unique_site_identifier": "true"},
+        )
+        self.expected_truth_multi_station_id = self.expected_period_truth.copy()
+        self.expected_truth_multi_station_id.data[:2, -1] = np.nan
+        site_id_dim = self.expected_truth_multi_station_id.coord_dims("spot_index")[0]
+        self.expected_truth_multi_station_id.add_aux_coord(unique_id_coord, site_id_dim)
+
+        unique_id_coord = iris.coords.AuxCoord(
             [self.wmo_ids[1] + "0"],
             long_name="station_id",
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
         )
-        self.expected_truth_station_id = self.expected_period_truth[:, [1]].copy()
-        site_id_dim = self.expected_truth_station_id.coord_dims("spot_index")[0]
-        self.expected_truth_station_id.add_aux_coord(unique_id_coord, site_id_dim)
-        self.expected_truth_station_id.coord("spot_index").points = np.array(
+        self.expected_truth_one_station_id = self.expected_period_truth[:, [1]].copy()
+        site_id_dim = self.expected_truth_one_station_id.coord_dims("spot_index")[0]
+        self.expected_truth_one_station_id.add_aux_coord(unique_id_coord, site_id_dim)
+        self.expected_truth_one_station_id.coord("spot_index").points = np.array(
             [0], dtype=np.int32
         )
 
@@ -490,15 +529,15 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         """Test that when station_id is present in both forecast and truth dataframes,
         output cubes contain station_id coordinate."""
         result = forecast_and_truth_dataframes_to_cubes(
-            self.forecast_df_station_id,
-            self.truth_df_station_id,
+            self.forecast_df_one_station_id,
+            self.truth_df_one_station_id,
             self.cycletime,
             self.forecast_period,
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        self.assertCubeEqual(result[0], self.expected_forecast_station_id)
-        self.assertCubeEqual(result[1], self.expected_truth_station_id)
+        self.assertCubeEqual(result[0], self.expected_forecast_one_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_one_station_id)
 
     def test_station_id_forecast_df_only(self):
         """Test that when station_id is only present in the forecast dataframe,
@@ -506,7 +545,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         msg = "station_id is only within the forecast DataFrame"
         with self.assertWarnsRegex(UserWarning, msg):
             forecast_and_truth_dataframes_to_cubes(
-                self.forecast_df_station_id,
+                self.forecast_df_one_station_id,
                 self.truth_subset_df,
                 self.cycletime,
                 self.forecast_period,
@@ -520,7 +559,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         with self.assertWarnsRegex(UserWarning, msg):
             forecast_and_truth_dataframes_to_cubes(
                 self.forecast_df,
-                self.truth_df_station_id,
+                self.truth_df_one_station_id,
                 self.cycletime,
                 self.forecast_period,
                 self.training_length,
@@ -529,20 +568,20 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_station_id_dummy_wmo_id(self):
         """Test that when station_id is present and wmo_id contains dummy data,
         station_id is used to match forecast and truth cubes."""
-        self.forecast_df_station_id["wmo_id"] = "00000"
-        self.truth_df_station_id["wmo_id"] = "00000"
-        self.expected_truth_station_id.coord("wmo_id").points = ["00000"]
-        self.expected_forecast_station_id.coord("wmo_id").points = ["00000"]
+        self.forecast_df_one_station_id["wmo_id"] = "00000"
+        self.truth_df_one_station_id["wmo_id"] = "00000"
+        self.expected_truth_one_station_id.coord("wmo_id").points = ["00000"]
+        self.expected_forecast_one_station_id.coord("wmo_id").points = ["00000"]
         result = forecast_and_truth_dataframes_to_cubes(
-            self.forecast_df_station_id,
-            self.truth_df_station_id,
+            self.forecast_df_one_station_id,
+            self.truth_df_one_station_id,
             self.cycletime,
             self.forecast_period,
             self.training_length,
         )
         self.assertEqual(len(result), 2)
-        self.assertCubeEqual(result[0], self.expected_forecast_station_id)
-        self.assertCubeEqual(result[1], self.expected_truth_station_id)
+        self.assertCubeEqual(result[0], self.expected_forecast_one_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_one_station_id)
 
     def test_units_in_truth(self):
         """Test that if truth_df contains a units column, it is used
@@ -761,6 +800,83 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertEqual(len(result), 2)
         self.assertCubeEqual(result[0], self.expected_period_forecast)
         self.assertCubeEqual(result[1], self.expected_period_truth)
+
+    def test_station_id_new_site_with_only_one_forecast(self):
+        """Test for a site that has a forecast and truth data point for the most
+        recent time only. Other sites are present at all forecast and truth times.
+        Only the forecast DataFrame has a station_id column. This mimics the
+        situation when a new site is added to the forecast and truth
+        DataFrames. The forecast and truth cubes generated have three sites
+        with the 'new' site having NaNs for all time points except for the most
+        recent time. The resulting forecast cube has a station_id coordinate."""
+        self.forecast_df_multi_station_id["station_id"] = (
+            self.forecast_df_multi_station_id["wmo_id"] + "0"
+        )
+        self.expected_truth_multi_station_id.remove_coord("station_id")
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_multi_station_id,
+            self.truth_df_multi_station_id,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_forecast_multi_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_multi_station_id)
+
+    def test_station_id_new_site_with_only_one_truth(self):
+        """Test for a site that has a forecast and truth data point for the most
+        recent time only. Other sites are present at all forecast and truth times.
+        Only the truth DataFrame has a station_id column. This mimics the situation
+        when a new site is added to the forecast and truth DataFrames. The forecast
+        and truth cubes generated have three sites with the 'new' site having NaNs
+        for all time points except for the most recent time. The resulting truth cube
+        has a station_id coordinate."""
+        self.truth_df_multi_station_id["station_id"] = (
+            self.truth_df_multi_station_id["wmo_id"] + "0"
+        )
+        self.expected_forecast_multi_station_id.remove_coord("station_id")
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_multi_station_id,
+            self.truth_df_multi_station_id,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_forecast_multi_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_multi_station_id)
+
+    def test_station_id_new_site_with_only_one_forecast_and_truth(self):
+        """Test for a site that has a forecast and truth data point for the most
+        recent time only. Other sites are present at all forecast and truth times.
+        Both the forecast and truth DataFrames have a station_id column. This mimics
+        the situation when a new site is added to the forecast and truth DataFrames.
+        The forecast and truth cubes generated have three sites with the 'new' site
+        having NaNs for all time points except for the most recent time. Both the
+        resulting forecast and truth cubes have a station_id coordinate."""
+        self.forecast_df_multi_station_id["station_id"] = (
+            self.forecast_df_multi_station_id["wmo_id"] + "0"
+        )
+        self.truth_df_multi_station_id["station_id"] = (
+            self.truth_df_multi_station_id["wmo_id"] + "0"
+        )
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df_multi_station_id,
+            self.truth_df_multi_station_id,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_forecast_multi_station_id)
+        self.assertCubeEqual(result[1], self.expected_truth_multi_station_id)
 
     def test_sites_no_overlapping_dates(self):
         """Test for when there are sites with no overlapping dates within the

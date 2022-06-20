@@ -479,7 +479,6 @@ def _prepare_dataframes(
         common_wmo_ids = np.sort(
             np.intersect1d(forecast_df["wmo_id"].unique(), truth_df["wmo_id"].unique())
         )
-
         forecast_df = forecast_df[forecast_df["wmo_id"].isin(common_wmo_ids)]
         truth_df = truth_df[truth_df["wmo_id"].isin(common_wmo_ids)]
 
@@ -506,7 +505,13 @@ def _prepare_dataframes(
         "experiment",
         "forecast_period",
     ]
-    if not include_station_id:
+    if include_station_id:
+        # Add wmo_id as a static column, if station ID is present in both the
+        # forecast and truth DataFrames.
+        static_cols.append("wmo_id")
+    elif ("station_id" in forecast_df.columns) and not include_station_id:
+        # Add station_id as a static column, if it is only present in the
+        # forecast DataFrame.
         static_cols.append("station_id")
     forecast_df = _fill_missing_entries(
         forecast_df, combi_cols, static_cols, site_id_col
@@ -514,6 +519,10 @@ def _prepare_dataframes(
 
     combi_cols = [site_id_col, "time"]
     static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
+    if include_station_id:
+        static_cols.append("wmo_id")
+    elif ("station_id" in truth_df.columns) and not include_station_id:
+        static_cols.append("station_id")
     truth_df = _fill_missing_entries(truth_df, combi_cols, static_cols, site_id_col)
 
     # Sort to ensure a consistent ordering after filling in missing entries.
