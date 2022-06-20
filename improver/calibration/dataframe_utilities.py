@@ -506,6 +506,8 @@ def _prepare_dataframes(
         "experiment",
         "forecast_period",
     ]
+    if not include_station_id:
+        static_cols.append("station_id")
     forecast_df = _fill_missing_entries(
         forecast_df, combi_cols, static_cols, site_id_col
     )
