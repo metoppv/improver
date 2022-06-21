@@ -61,12 +61,9 @@ from improver.utilities.spatial import (
 DEFAULT_TEMPORAL_SPACING_IN_MINUTES = 30
 
 SOLAR_TIME_CF_NAME = "local_solar_time"
-SOLAR_TIME_BRUCE_NAME = "solar_time"
-
 CLEARSKY_SOLAR_RADIATION_CF_NAME = (
     "integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time"
 )
-CLEARSKY_SOLAR_RADIATION_BRUCE_NAME = "clearsky_solar_radiation"
 
 
 class GenerateSolarTime(BasePlugin):
