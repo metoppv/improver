@@ -61,6 +61,30 @@ def test_no_single_value_bins(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_aggregate(tmp_path):
+    """
+    Test construction of reliability tables with aggregation over
+    latitude/longitude coordinates.
+    """
+    kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
+    kgo_path = kgo_dir / "kgo_aggregated.nc"
+    history_path = kgo_dir / "forecast*.nc"
+    truth_path = kgo_dir / "truth*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--aggregate-coordinates",
+        "latitude,longitude",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_single_value_bins(tmp_path):
     """
     Test construction of reliability tables with the single value lower and
