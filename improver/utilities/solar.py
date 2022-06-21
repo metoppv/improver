@@ -135,8 +135,7 @@ def calc_solar_time(
             Normalise hour values to be in range 0-24
 
     Returns:
-        solar_time:
-            Local solar time in hours.
+        Local solar time in hours.
 
     """
     if day_of_year < 0 or day_of_year > DAYS_IN_YEAR:
@@ -181,8 +180,7 @@ def calc_solar_hour_angle(
             Hour of the day in UTC
 
     Returns:
-        solar_hour_angle
-            Hour angles in degrees East-West.
+        Hour angles in degrees East-West.
     """
     # Solar time (hours):
     solar_time = calc_solar_time(longitudes, day_of_year, utc_hour)
