@@ -38,6 +38,9 @@ from iris.cube import Cube
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
+    AggregateReliabilityCalibrationTables,
+)
+from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as Plugin,
 )
 
@@ -375,3 +378,31 @@ def test_process_mismatching_threshold_coordinates(truth_grid, forecast_grid):
     msg = "Threshold coordinates differ between forecasts and truths."
     with pytest.raises(ValueError, match=msg):
         Plugin().process(forecast_grid, truths_grid)
+
+
+def test_process_and_aggregate(create_rel_table_inputs):
+    """Test that aggregation during construction produces the same result as
+    applying the two plugins sequentially."""
+    # use the spatial coordinates for aggregation - input is a parameterised fixture
+    if create_rel_table_inputs.forecast.coords("spot_index"):
+        agg_coords = ["spot_index"]
+    else:
+        agg_coords = ["longitude", "latitude"]
+
+    # construct and aggregate as two separate plugins
+    constructed = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    ).process(create_rel_table_inputs.forecast, create_rel_table_inputs.truth)
+    aggregated = AggregateReliabilityCalibrationTables().process(
+        [constructed], agg_coords
+    )
+
+    # construct plugin with aggregate_coords option
+    constructed_with_agg = Plugin(
+        single_value_lower_limit=True, single_value_upper_limit=True
+    ).process(
+        create_rel_table_inputs.forecast, create_rel_table_inputs.truth, agg_coords
+    )
+
+    # check that the two cubes are identical
+    assert constructed_with_agg == aggregated

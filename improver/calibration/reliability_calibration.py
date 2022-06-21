@@ -430,7 +430,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             )
         return threshold_reliability
 
-    def process(self, historic_forecasts: Cube, truths: Cube) -> Cube:
+    def process(
+        self,
+        historic_forecasts: Cube,
+        truths: Cube,
+        aggregate_coords: Optional[List[str]] = None,
+    ) -> Cube:
         """
         Slice data over threshold and time coordinates to construct reliability
         tables. These are summed over time to give a single table for each
@@ -461,6 +466,12 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             truths:
                 A cube containing the thresholded gridded truths used in
                 calibration.
+            aggregate_coords:
+                Coordinates to aggregate over during construction. This is
+                equivalent to constructing then using
+                :class:`improver.calibration.reliability_calibration.AggregateReliabilityCalibrationTables`
+                but with reduced memory usage due to avoiding large intermediate
+                data.
 
         Returns:
             A cubelist of reliability table cubes, one for each threshold
@@ -512,6 +523,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
             reliability_entry = reliability_cube.copy(data=threshold_reliability)
             reliability_entry.replace_coord(forecast_slice.coord(threshold_coord))
+            if aggregate_coords:
+                reliability_entry = AggregateReliabilityCalibrationTables().process(
+                    [reliability_entry], aggregate_coords
+                )
             reliability_tables.append(reliability_entry)
 
         return MergeCubes()(reliability_tables, copy=False)

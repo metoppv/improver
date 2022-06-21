@@ -42,6 +42,7 @@ def process(
     n_probability_bins: int = 5,
     single_value_lower_limit: bool = False,
     single_value_upper_limit: bool = False,
+    aggregate_coordinates: cli.comma_separated_list = None,
 ):
     """Populate reliability tables for use in reliability calibration.
 
@@ -71,6 +72,11 @@ def process(
         single_value_upper_limit (bool):
             Mandates that the highest bin should be single valued, with a small
             precision tolerance, defined as 1.0E-6. The bin is thus (1 - 1.0E-6) to 1.
+        aggregate_coordinates (List[str]):
+            An optional list of coordinates over which to aggregate the reliability
+            calibration table using summation. This is equivalent to constructing
+            then using aggregate-reliability-tables but with reduced memory
+            usage due to avoiding large intermediate data.
 
     Returns:
         iris.cube.Cube:
@@ -88,4 +94,4 @@ def process(
         n_probability_bins=n_probability_bins,
         single_value_lower_limit=single_value_lower_limit,
         single_value_upper_limit=single_value_upper_limit,
-    )(forecast, truth)
+    )(forecast, truth, aggregate_coordinates)
