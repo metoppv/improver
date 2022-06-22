@@ -60,11 +60,16 @@ def percentile_cube():
     return set_up_percentile_cube(data, percentiles=[25, 50, 75])
 
 
-@pytest.fixture
-def threshold_cube():
-    probs = np.array([1.0, 0.7, 0.5, 0.45, 0.0], dtype=np.float32)
-    data = np.broadcast_to(probs[:, np.newaxis, np.newaxis], [5, 3, 2])
-    return set_up_probability_cube(data, thresholds=[280, 281, 282, 283, 284])
+@pytest.fixture(params=[5, 9, 13])
+def threshold_cube(request):
+    thresholds = np.linspace(280, 284, 5)
+    thresholds_interp = np.linspace(280, 284, request.param)
+    probs = np.array([1.0, 0.7, 0.5, 0.45, 0.0])
+    probs_interp = np.interp(thresholds_interp, thresholds, probs)
+    data = np.broadcast_to(
+        probs_interp[:, np.newaxis, np.newaxis], [len(thresholds_interp), 3, 2]
+    ).astype(np.float32)
+    return set_up_probability_cube(data, thresholds=thresholds_interp)
 
 
 def test_process_realizations_basic(realizations_cube):
@@ -99,7 +104,7 @@ def test_process_threshold_basic(threshold_cube):
     expval = ExpectedValue().process(threshold_cube)
     # threshold probablities are asymmetric, so the mean is slightly above the
     # 282 kelvin threshold
-    assert_allclose(expval.data, 282.15, atol=0.0, rtol=0.0)
+    assert_allclose(expval.data, 282.15, atol=1e-6, rtol=0.0)
 
 
 def test_process_threshold_abovebelow(threshold_cube):
@@ -128,8 +133,15 @@ def test_process_threshold_abovebelow(threshold_cube):
 
 def test_process_threshold_non_monotonic(threshold_cube):
     """Check that non-monotonic threshold data raises an exception."""
-    probs = np.array([1.0, 0.4, 0.5, 0.6, 0.0], dtype=np.float32)
-    threshold_cube.data = np.broadcast_to(probs[:, np.newaxis, np.newaxis], [5, 3, 2])
+    thresholds = np.linspace(280, 284, 5)
+    probs = np.array([1.0, 0.4, 0.5, 0.6, 0.0])
+    probs_interp = np.interp(
+        threshold_cube.coord("air_temperature").points, thresholds, probs
+    )
+    threshold_cube.data = np.broadcast_to(
+        probs_interp[:, np.newaxis, np.newaxis],
+        [threshold_cube.coord("air_temperature").shape[0], 3, 2],
+    ).astype(np.float32)
     with pytest.raises(Exception, match="monotonic"):
         ExpectedValue().process(threshold_cube)
 

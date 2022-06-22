@@ -115,14 +115,12 @@ class ExpectedValue(PostProcessingPlugin):
             len(threshold_midpoints) if i == threshold_coord_idx else 1
             for i in range(data_pdf.ndim)
         ]
-        threshold_midpoints = threshold_midpoints.reshape(thresh_mid_shape)
+        threshold_midpoints_bcast = threshold_midpoints.reshape(thresh_mid_shape)
         # apply threshold weightings to produce a weighed PDF suitable for integration
-        weighted_pdf = data_pdf * threshold_midpoints
+        weighted_pdf = data_pdf * threshold_midpoints_bcast
         del data_pdf
-        # numerical integration using trapezoid rule
-        ev_data = np.trapz(
-            weighted_pdf, threshold_midpoints, axis=threshold_coord_idx
-        ).astype(np.float32)
+        # sum of weighted_pdf is equivalent to midpoint rule integration over the CDF
+        ev_data = np.sum(weighted_pdf, axis=threshold_coord_idx, dtype=np.float32)
         del weighted_pdf
         # set up output cube based on input, with the threshold dimension removed
         ev_cube = next(cube.slices_over([threshold_coord])).copy()
