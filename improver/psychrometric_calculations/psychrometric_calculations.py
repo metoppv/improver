@@ -188,11 +188,10 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     Returns:
         Array of specific humidity values (kg kg-1) representing saturated air
     """
-    epsilon = 0.622
     svp = calculate_svp_in_air(temperature, pressure)
-    return (epsilon * svp / (pressure - (1.0 - epsilon * svp))).astype(
-        temperature.dtype
-    )
+    return (
+        consts.EARTH_REPSILON * svp / (pressure - (1.0 - consts.EARTH_REPSILON * svp))
+    ).astype(temperature.dtype)
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:
