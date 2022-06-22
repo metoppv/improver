@@ -81,12 +81,12 @@ def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
 @pytest.mark.parametrize(
     "t, p, expected",
     (
-        (243.15, 30000, 0.78787e-3),  # Tephigram value is about 1.1e-3
-        (273.15, 60000, 6.3074e-3),
-        (273.15, 90000, 4.2194e-3),
-        (273.15, 100000, 3.8008e-3),
-        (293.15, 100000, 1.43954e-2),
-        (290, 100000, 1.18451e-2),
+        (243.15, 30000, 0.78785e-3),  # Tephigram value is about 1.1e-3
+        (273.15, 60000, 6.3072e-3),
+        (273.15, 90000, 4.2193e-3),
+        (273.15, 100000, 3.8007e-3),
+        (293.15, 100000, 1.43950e-2),
+        (290, 100000, 1.18447e-2),
     ),
 )
 def test_saturated_humidity(shape, t, p, expected):
