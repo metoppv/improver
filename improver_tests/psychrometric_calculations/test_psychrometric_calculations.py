@@ -32,6 +32,7 @@
 import numpy as np
 import pytest
 
+import improver.constants as consts
 from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
     adjust_for_latent_heat,
@@ -87,9 +88,9 @@ def test_dry_adiabatic_methods(shape, method, t1, p1, n2, expected):
         (273.15, 100000, 3.8240e-3),
         (293.15, 100000, 1.47358e-2),
         (290, 100000, 1.20745e-2),
-        (185, 100000., 8.477e-08),
-        (260.65, 99000., 1.31079e-03),
-        (338.15, 98000., 1.77063e-01),
+        (185, 100000.0, 8.477e-08),
+        (260.65, 99000.0, 1.31079e-03),
+        (338.15, 98000.0, 1.77063e-01),
     ),
 )
 def test_saturated_humidity(shape, t, p, expected):
@@ -134,7 +135,13 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
 
 @pytest.mark.parametrize("shape", ((1,), (2, 2)))
 @pytest.mark.parametrize(
-    "t, expected", ((185.0, 2707271.0), (260.65, 2530250.0), (338.15, 2348900.0))
+    "t, expected",
+    (
+        (185.0, 2707271.0),
+        (260.65, 2530250.0),
+        (273.15, consts.LH_CONDENSATION_WATER),
+        (338.15, 2348900.0),
+    ),
 )
 def test_calculate_latent_heat(t, expected, shape):
     """Test latent heat calculation"""
