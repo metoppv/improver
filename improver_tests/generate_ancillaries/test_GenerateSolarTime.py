@@ -101,7 +101,7 @@ def test_process_lat_lon(target_grid):
     assert result.coords(dim_coords=True) == target_grid.coords(dim_coords=True)
     # Check data is sensible
     assert result.dtype == np.float32
-    assert np.all((result.data >= 0.0) * (result.data < 24.0))
+    assert np.all(np.logical_and((result.data >= 0.0), (result.data < 24.0)))
 
 
 def test_process_equal_area(target_grid_equal_area):
@@ -113,4 +113,4 @@ def test_process_equal_area(target_grid_equal_area):
     )
     # Check data is sensible
     assert result.dtype == np.float32
-    assert np.all((result.data >= 0.0) * (result.data < 24.0))
+    assert np.all(np.logical_and((result.data >= 0.0), (result.data < 24.0)))
