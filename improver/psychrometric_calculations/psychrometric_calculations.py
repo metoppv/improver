@@ -223,7 +223,8 @@ def _calculate_latent_heat(temperature: ndarray) -> ndarray:
 def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndarray:
     """Returns the latent heat released (K) when condensing water vapour from specific humidity
     value q1 to q2, both in kg kg-1 when the temperature is approximately t.
-    Returns negative values when initial condition is subsaturated.
+    Returns negative values when initial condition is subsaturated as this method assumes there
+    is always liquid water present which can be evaporated.
 
     Args:
         temperature:
