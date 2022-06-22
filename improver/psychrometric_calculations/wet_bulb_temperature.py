@@ -45,7 +45,7 @@ from improver.metadata.utilities import (
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
-    calculate_svp_in_air,
+    saturated_humidity,
 )
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
@@ -112,30 +112,6 @@ class WetBulbTemperature(BasePlugin):
             )
 
         return slices
-
-    @staticmethod
-    def _calculate_mixing_ratio(temperature: ndarray, pressure: ndarray) -> ndarray:
-        """Function to compute the mixing ratio given temperature and pressure.
-
-        Args:
-            temperature:
-                Array of air temperature (K).
-            pressure:
-                Array of air pressure (Pa).
-
-        Returns
-            Array of mixing ratios.
-
-        Method from referenced documentation. Note that EARTH_REPSILON is
-        simply given as an unnamed constant in the reference (0.62198).
-
-        References:
-            ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
-        """
-        svp = calculate_svp_in_air(temperature, pressure)
-        numerator = consts.EARTH_REPSILON * svp
-        denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
-        return numerator / denominator
 
     @staticmethod
     def _calculate_specific_heat(mixing_ratio: ndarray) -> ndarray:
@@ -247,7 +223,7 @@ class WetBulbTemperature(BasePlugin):
         pressure = pressure.flatten()
 
         latent_heat = _calculate_latent_heat(wbt_data)
-        saturation_mixing_ratio = self._calculate_mixing_ratio(wbt_data, pressure)
+        saturation_mixing_ratio = saturated_humidity(wbt_data, pressure)
         mixing_ratio = relative_humidity.flatten() * saturation_mixing_ratio
         specific_heat = self._calculate_specific_heat(mixing_ratio)
         enthalpy = self._calculate_enthalpy(
@@ -268,7 +244,7 @@ class WetBulbTemperature(BasePlugin):
                 specific_heat = specific_heat[update_to_update]
                 latent_heat = latent_heat[update_to_update]
                 enthalpy = enthalpy[update_to_update]
-                saturation_mixing_ratio = self._calculate_mixing_ratio(
+                saturation_mixing_ratio = saturated_humidity(
                     wbt_data_upd, pressure
                 )
 

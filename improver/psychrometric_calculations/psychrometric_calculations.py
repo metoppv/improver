@@ -177,7 +177,7 @@ def dry_adiabatic_pressure(
 
 def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
-    Calculate specific humidity of saturated air of given temperature and pressure
+    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure
 
     Args:
         temperature:
@@ -187,11 +187,17 @@ def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
 
     Returns:
         Array of specific humidity values (kg kg-1) representing saturated air
+
+    Method from referenced documentation. Note that EARTH_REPSILON is
+    simply given as an unnamed constant in the reference (0.62198).
+
+    References:
+        ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
     """
     svp = calculate_svp_in_air(temperature, pressure)
-    return (
-        consts.EARTH_REPSILON * svp / (pressure - (1.0 - consts.EARTH_REPSILON * svp))
-    ).astype(temperature.dtype)
+    numerator = consts.EARTH_REPSILON * svp
+    denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
+    return (numerator / denominator).astype(temperature.dtype)
 
 
 def _calculate_latent_heat(temperature: ndarray) -> ndarray:
