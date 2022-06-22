@@ -244,9 +244,7 @@ class WetBulbTemperature(BasePlugin):
                 specific_heat = specific_heat[update_to_update]
                 latent_heat = latent_heat[update_to_update]
                 enthalpy = enthalpy[update_to_update]
-                saturation_mixing_ratio = saturated_humidity(
-                    wbt_data_upd, pressure
-                )
+                saturation_mixing_ratio = saturated_humidity(wbt_data_upd, pressure)
 
             enthalpy_new = self._calculate_enthalpy(
                 saturation_mixing_ratio, specific_heat, latent_heat, wbt_data_upd
