@@ -72,6 +72,16 @@ def threshold_cube(request):
     return set_up_probability_cube(data, thresholds=thresholds_interp)
 
 
+@pytest.fixture
+def unequal_threshold_cube():
+    thresholds = np.array([272, 280.75, 281, 282, 282.5, 284, 291])
+    probs = np.array([1.0, 0.99, 0.7, 0.5, 0.45, 0.0, 0.0])
+    data = np.broadcast_to(
+        probs[:, np.newaxis, np.newaxis], [7, 3, 2]
+    ).astype(np.float32)
+    return set_up_probability_cube(data, thresholds=thresholds)
+
+
 def test_process_realizations_basic(realizations_cube):
     """Check that the expected value of realisations calculates the mean and
     appropriately updates metadata."""
@@ -105,6 +115,12 @@ def test_process_threshold_basic(threshold_cube):
     # threshold probablities are asymmetric, so the mean is slightly above the
     # 282 kelvin threshold
     assert_allclose(expval.data, 282.15, atol=1e-6, rtol=0.0)
+
+
+def test_process_threshold_unequal(unequal_threshold_cube):
+    """Check calculation of expected value using unevenly spaced threshold data."""
+    expval = ExpectedValue().process(unequal_threshold_cube)
+    assert_allclose(expval.data, 282.0925, atol=1e-6, rtol=0.0)
 
 
 def test_process_threshold_abovebelow(threshold_cube):
