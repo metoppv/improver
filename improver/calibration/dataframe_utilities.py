@@ -509,7 +509,7 @@ def _prepare_dataframes(
         # Add wmo_id as a static column, if station ID is present in both the
         # forecast and truth DataFrames.
         static_cols.append("wmo_id")
-    elif ("station_id" in forecast_df.columns) and not include_station_id:
+    elif "station_id" in forecast_df.columns:
         # Add station_id as a static column, if it is only present in the
         # forecast DataFrame.
         static_cols.append("station_id")
@@ -521,7 +521,7 @@ def _prepare_dataframes(
     static_cols = ["latitude", "longitude", "altitude", "diagnostic"]
     if include_station_id:
         static_cols.append("wmo_id")
-    elif ("station_id" in truth_df.columns) and not include_station_id:
+    elif "station_id" in truth_df.columns:
         static_cols.append("station_id")
     truth_df = _fill_missing_entries(truth_df, combi_cols, static_cols, site_id_col)
 

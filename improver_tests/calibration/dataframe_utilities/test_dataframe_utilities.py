@@ -170,11 +170,17 @@ class SetupSharedDataFrames(ImproverTest):
             df["wmo_id"] == self.wmo_ids[2]
         )
         self.forecast_df_multi_station_id = df.drop(df[condition].index)
+        self.forecast_df_multi_station_id["station_id"] = (
+            self.forecast_df_multi_station_id["wmo_id"] + "0"
+        )
         df = self.truth_subset_df
         condition = (df["time"].isin([self.time1, self.time2])) & (
             df["wmo_id"] == self.wmo_ids[2]
         )
         self.truth_df_multi_station_id = df.drop(df[condition].index)
+        self.truth_df_multi_station_id["station_id"] = (
+            self.truth_df_multi_station_id["wmo_id"] + "0"
+        )
 
         self.forecast_df_one_station_id = self.forecast_df.copy()
         self.forecast_df_one_station_id = self.forecast_df_one_station_id.loc[
@@ -809,9 +815,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         DataFrames. The forecast and truth cubes generated have three sites
         with the 'new' site having NaNs for all time points except for the most
         recent time. The resulting forecast cube has a station_id coordinate."""
-        self.forecast_df_multi_station_id["station_id"] = (
-            self.forecast_df_multi_station_id["wmo_id"] + "0"
-        )
+        self.truth_df_multi_station_id.drop(columns="station_id", inplace=True)
         self.expected_truth_multi_station_id.remove_coord("station_id")
 
         result = forecast_and_truth_dataframes_to_cubes(
@@ -834,9 +838,7 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         and truth cubes generated have three sites with the 'new' site having NaNs
         for all time points except for the most recent time. The resulting truth cube
         has a station_id coordinate."""
-        self.truth_df_multi_station_id["station_id"] = (
-            self.truth_df_multi_station_id["wmo_id"] + "0"
-        )
+        self.forecast_df_multi_station_id.drop(columns="station_id", inplace=True)
         self.expected_forecast_multi_station_id.remove_coord("station_id")
 
         result = forecast_and_truth_dataframes_to_cubes(
@@ -859,13 +861,6 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         The forecast and truth cubes generated have three sites with the 'new' site
         having NaNs for all time points except for the most recent time. Both the
         resulting forecast and truth cubes have a station_id coordinate."""
-        self.forecast_df_multi_station_id["station_id"] = (
-            self.forecast_df_multi_station_id["wmo_id"] + "0"
-        )
-        self.truth_df_multi_station_id["station_id"] = (
-            self.truth_df_multi_station_id["wmo_id"] + "0"
-        )
-
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df_multi_station_id,
             self.truth_df_multi_station_id,
