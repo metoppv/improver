@@ -76,9 +76,9 @@ def threshold_cube(request):
 def unequal_threshold_cube():
     thresholds = np.array([272, 280.75, 281, 282, 282.5, 284, 291])
     probs = np.array([1.0, 0.99, 0.7, 0.5, 0.45, 0.0, 0.0])
-    data = np.broadcast_to(
-        probs[:, np.newaxis, np.newaxis], [7, 3, 2]
-    ).astype(np.float32)
+    data = np.broadcast_to(probs[:, np.newaxis, np.newaxis], [7, 3, 2]).astype(
+        np.float32
+    )
     return set_up_probability_cube(data, thresholds=thresholds)
 
 
