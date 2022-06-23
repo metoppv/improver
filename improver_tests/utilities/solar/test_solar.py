@@ -40,6 +40,7 @@ from improver.utilities.solar import (
     calc_solar_declination,
     calc_solar_elevation,
     calc_solar_hour_angle,
+    calc_solar_time,
     daynight_terminator,
     get_day_of_year,
     get_hour_of_day,
@@ -107,6 +108,65 @@ class Test_calc_solar_declination(IrisTest):
             calc_solar_declination(day_of_year)
 
 
+class Test_calc_solar_time(IrisTest):
+    """Test Calculation of the Local Solar Time."""
+
+    def setUp(self):
+        """Set up the longitudes."""
+        self.longitudes = np.array([0.0, 10.0, -10.0, 180.0, -179.0])
+        self.day_of_year = 10
+        self.utc_hour = 12.0
+
+    def test_basic_solar_time(self):
+        """Test the calculation of local solar time. Single Value."""
+        result = calc_solar_time(0.0, 10, 0.0)
+        expected_result = -0.1188849
+        self.assertIsInstance(result, float)
+        self.assertAlmostEqual(result, expected_result)
+
+    def test_basic_solar_time_array(self):
+        """Test the calc of solar time for an array of longitudes"""
+        result = calc_solar_time(self.longitudes, self.day_of_year, self.utc_hour)
+        expected_result = np.array(
+            [11.8811151, 12.5477817, 11.2144484, 23.8811151, -0.0522183]
+        )
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_basic_solar_time_normalised(self):
+        """Test the calc of solar time for an array of longitudes with solar time values
+        normalised to be on the interval 0-24."""
+        result = calc_solar_time(
+            self.longitudes, self.day_of_year, 12.0, normalise=True
+        )
+        expected_result = np.array(
+            [11.8811151, 12.5477817, 11.2144484, 23.8811151, 23.9477817]
+        )
+        self.assertArrayAlmostEqual(result, expected_result)
+
+        result = calc_solar_time(
+            self.longitudes, self.day_of_year, 14.0, normalise=True
+        )
+        expected_result = np.array(
+            [13.8811151, 14.5477817, 13.2144484, 1.8811151, 1.9477817]
+        )
+        self.assertArrayAlmostEqual(result, expected_result)
+
+    def test_solar_time_raises_exception_day_of_year(self):
+        """Test an exception is raised if day of year out of range"""
+        day_of_year = 367
+        msg = "Day of the year must be between 0 and 365"
+        with self.assertRaisesRegex(ValueError, msg):
+            calc_solar_hour_angle(self.longitudes, day_of_year, self.utc_hour)
+
+    def test_solar_time_raises_exception_hour(self):
+        """Test an exception is raised if hour out of range"""
+        utc_hour = -10.0
+        msg = "Hour must be between 0 and 24.0"
+        with self.assertRaisesRegex(ValueError, msg):
+            calc_solar_hour_angle(self.longitudes, self.day_of_year, utc_hour)
+
+
 class Test_calc_solar_hour_angle(IrisTest):
     """Test Calculation of the Solar Hour angle."""
 
@@ -147,20 +207,6 @@ class Test_calc_solar_hour_angle(IrisTest):
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_result)
-
-    def test_solar_hour_raises_exception_day_of_year(self):
-        """Test an exception is raised if day of year out of range"""
-        day_of_year = 367
-        msg = "Day of the year must be between 0 and 365"
-        with self.assertRaisesRegex(ValueError, msg):
-            calc_solar_hour_angle(self.longitudes, day_of_year, self.utc_hour)
-
-    def test_solar_hour_raises_exception_hour(self):
-        """Test an exception is raised if hour out of range"""
-        utc_hour = -10.0
-        msg = "Hour must be between 0 and 24.0"
-        with self.assertRaisesRegex(ValueError, msg):
-            calc_solar_hour_angle(self.longitudes, self.day_of_year, utc_hour)
 
 
 class Test_calc_solar_elevation(IrisTest):
