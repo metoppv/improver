@@ -136,6 +136,10 @@ def dry_adiabatic_temperature(
     Calculate temperature at final_pressure after adiabatic adjustment of dry air from the
     initial temperature and pressure.
 
+    .. See the documentation for a more detailed discussion of the steps.
+    .. include:: extended_documentation/psychrometric_calculations/
+       psychrometric_calculations/dry_adiabatic_temperature.rst
+
     Args:
         initial_temperature:
             Array of initial temperatures (K)
@@ -158,6 +162,10 @@ def dry_adiabatic_pressure(
     """
     Calculate pressure at final_temperature after adiabatic adjustment of dry air from the
     initial temperature and pressure.
+
+    .. See the documentation for a more detailed discussion of the steps.
+    .. include:: extended_documentation/psychrometric_calculations/
+       psychrometric_calculations/dry_adiabatic_pressure.rst
 
     Args:
         initial_temperature:
