@@ -30,15 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain generally useful constants."""
 
-# Cube comparison tolerances
+#: Cube comparison tolerances
 TIGHT_TOLERANCE = 1e-5
 DEFAULT_TOLERANCE = 1e-4
 LOOSE_TOLERANCE = 1e-3
 
-# Real Missing Data Indicator
+#: Real Missing Data Indicator
 RMDI = -32767.0
 
-# Default percentile boundaries to calculate at for IMPROVER.
+#: Default percentile boundaries to calculate at for IMPROVER.
 DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)
 
 # Temporal constants
@@ -47,49 +47,49 @@ MINUTES_IN_HOUR = 60
 HOURS_IN_DAY = 24
 DAYS_IN_YEAR = 365
 
-# 0 Kelvin in degrees C
+#: 0 Kelvin in degrees C
 ABSOLUTE_ZERO = -273.15
 U_ABSOLUTE_ZERO = "celsius"
 
-# Specific gas constant for dry air (J K-1 kg-1)
+#: Specific gas constant for dry air (:math:`J\, K^{-1}\, kg^{-1}`)
 R_DRY_AIR = 287.0
 U_R_DRY_AIR = "J K-1 kg-1"
 
-# Specific gas constant for dry air per mole (J K-1 mol-1)
+#: Specific gas constant for dry air per mole (:math:`J\, K^{-1}\, mol^{-1}`)
 R_DRY_AIR_MOL = 8.314
 U_R_DRY_AIR_MOL = "J K-1 mol-1"
 
-# Specific gas constant for water vapour (J K-1 kg-1)
+#: Specific gas constant for water vapour (:math:`J\, K^{-1}\, kg^{-1}`)
 R_WATER_VAPOUR = 461.6
 U_R_WATER_VAPOUR = "J K-1 kg-1"
 
-# Specific heat capacity of dry air (J K-1 kg-1)
+#: Specific heat capacity of dry air (:math:`J\, K^{-1}\, kg^{-1}`)
 CP_DRY_AIR = 1005.0
 U_CP_DRY_AIR = "J K-1 kg-1"
 
-# Specific heat capacity of water vapour (J K-1 kg-1)
+#: Specific heat capacity of water vapour (:math:`J\, K^{-1}\, kg^{-1}`)
 CP_WATER_VAPOUR = 1850.0
 U_CP_WATER_VAPOUR = "J K-1 kg-1"
 
-# Triple Point of Water (K)
+#: Triple Point of Water (:math:`K`)
 TRIPLE_PT_WATER = 273.16
 U_TRIPLE_PT_WATER = "K"
 
-# Latent heat of condensation of water at 0C (J kg-1)
+#: Latent heat of condensation of water at 0C (:math:`J\, kg^{-1}`)
 LH_CONDENSATION_WATER = 2.501e6
 U_LH_CONDENSATION_WATER = "J kg-1"
-# Molar mass of water vapour (kg mol-1)
+#: Molar mass of water vapour (:math:`kg\, mol^{-1}`)
 WATER_VAPOUR_MOLAR_MASS = 0.01801
 U_WATER_VAPOUR_MOLAR_MASS = "kg mol-1"
-# Latent heat temperature dependence (J K-1 kg-1); from Met Office UM.
-# Applied to temperatures in Celsius: LH = 2501 - 2.34E3 * T(celsius)
+#: Latent heat temperature dependence (:math:`J\, K^{-1}\, kg^{-1}`); from Met Office UM.
+#: Applied to temperatures in Celsius: :math:`LH = 2501 - 2.34\times10^3 * T(celsius)`
 LATENT_HEAT_T_DEPENDENCE = 2.34e3
 U_LATENT_HEAT_T_DEPENDENCE = "J K-1 kg-1"
 
-# Repsilon, ratio of molecular weights of water and dry air (Earth)
+#: Repsilon, ratio of molecular weights of water and dry air (Earth)
 EARTH_REPSILON = 0.62198
 U_EARTH_REPSILON = "1"
 
-# Dry Adiabatic Lapse Rate (DALR) in unit of K m-1
+#: Dry Adiabatic Lapse Rate (DALR) in unit of :math:`K\, m^{-1}`
 DALR = -0.0098
 U_DALR = "K m-1"
