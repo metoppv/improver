@@ -21,11 +21,11 @@ request is merged into master.
 
 We have a checklist for making sure code is ready to merge in:
 
-https://improver.readthedocs.io/Definition-of-Done.html
+https://improver.readthedocs.io/en/latest/Definition-of-Done.html
 
 and guidance for going through the review process:
 
-https://improver.readthedocs.io/Guidance-for-Reviewing-Code.html
+https://improver.readthedocs.io/en/latest/Guidance-for-Reviewing-Code.html
 
 ## Code Contributors
 
