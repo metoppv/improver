@@ -26,12 +26,12 @@ to :math:`P_2`, the resulting temperature is
 
 .. math::
 
-    T_2 = T_1 + \frac{L}{C_p}(q_{sat(T_1)} - q_{sat(T_2)})
+    T_2 = T_1 + \frac{L}{C_p}(q_{sat(T_1,P_1)} - q_{sat(T_2,P_2)})
 
 This requires an iterative solver.
 
-The solver takes in the initial values of pressure (:math:`P_1`) and
-humidity mixing ratio (:math:`q_1`), the dry-adiabatically adjusted
+The solver takes in the initial value of the humidity mixing ratio (:math:`q_1`),
+the dry-adiabatically adjusted pressure (:math:`P_2`) and
 temperature (:math:`T_2`) (see :py:meth:`dry_adiabatic_temperature`),
 and a guess of the final saturated humidity mixing ratio
 (:math:`q_{sat(T_{2}^{'})}`).
@@ -39,13 +39,13 @@ From these, it calculates the mass of water unaccounted for:
 
 .. math::
 
-    \Delta q = q_{sat(T_2)} - q_{sat(T_{2}^{'})}
+    \Delta q = q_{sat(T_2,P_2)} - q_{sat(T_{2}^{'},P_2)}
 
 Where
 
 .. math::
 
-    T_{2}^{'} = T_2 + \frac{L}{C_p}(q_{sat(T_2)} - q_{sat(T_{2}^{'})})
+    T_{2}^{'} = T_2 + \frac{L}{C_p}(q_{sat(T_2,P_2)} - q_{sat(T_{2}^{'},P_2)})
 
 The solver iterates until :math:`\Delta q < 1 \times 10^{-6}`. The final
 temperature (:math:`T_{2}^{'}`) is calculated from the :py:meth:`saturated_humidity`
