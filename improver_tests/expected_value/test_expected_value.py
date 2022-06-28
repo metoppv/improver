@@ -143,7 +143,6 @@ def test_process_threshold_abovebelow(threshold_cube):
     # calculate expected value for both, they should be the same
     expval_above = ExpectedValue().process(threshold_cube)
     expval_below = ExpectedValue().process(threshold_below_cube)
-    np.testing.assert_array_equal(expval_above.data, expval_below.data)
     assert expval_above == expval_below
 
 
