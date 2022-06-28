@@ -257,6 +257,10 @@ def adjust_for_latent_heat(
 
     Subsaturated values will be returned unaltered.
 
+    .. See the documentation for a more detailed discussion of the maths.
+    .. include:: extended_documentation/psychrometric_calculations/
+       psychrometric_calculations/adjust_for_latent_heat.rst
+
     Args:
         temperature_in:
             The parcel temperature following a dry adiabatic cooling (K)
