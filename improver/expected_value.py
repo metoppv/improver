@@ -73,16 +73,17 @@ class ExpectedValue(PostProcessingPlugin):
         threshold_coord_idx = cube.dim_coords.index(threshold_coord)
         thresholds = threshold_coord.points
         # add an extra threshold below/above with zero/one probability
-        # this ensures the PDF integral covers the full CDF probability range
+        # ensure that the PDF integral covers the full CDF probability range
         try:
-            # use bounds from ECC as an outer bound on the distribution if available
             ecc_bounds = get_bounds_of_distribution(
                 threshold_coord.name(), threshold_coord.units
             )
         except KeyError:
-            # use infinities to fall back to threshold_spacing if ECC bounds missing
+            # no bound available, this will be skipped below via floating point rules
+            # eg. min(infinty, a) = a and max(-infinity, b) = b
             ecc_bounds = np.array([np.inf, -np.inf])
-        # applying the mean spacing between thresholds ensures expand the existing range
+        # expand to the widest of ECC bounds or +/- mean threshold spacing
+        # this will always expand, even if the original data covered the full ECC bounds range
         threshold_spacing = np.mean(np.diff(thresholds))
         thresholds_expanded = np.array(
             [
