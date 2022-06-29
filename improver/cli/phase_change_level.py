@@ -84,9 +84,7 @@ def process(
         iris.cube.Cube:
             Processed Cube of phase change altitude relative to sea level.
     """
-    from improver.psychrometric_calculations.psychrometric_calculations import (
-        PhaseChangeLevel,
-    )
+    from improver.psychrometric_calculations.phase_change_level import PhaseChangeLevel
 
     plugin = PhaseChangeLevel(
         phase_change=phase_change,

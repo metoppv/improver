@@ -39,9 +39,7 @@ from cf_units import Unit
 from iris.cube import CubeList
 from iris.tests import IrisTest
 
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    PhaseChangeLevel,
-)
+from improver.psychrometric_calculations.phase_change_level import PhaseChangeLevel
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
