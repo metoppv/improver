@@ -71,6 +71,9 @@ def test_init_files_exist():
         for path in directory.glob("**"):
             if not path.is_dir():
                 continue
+            # ignore hidden directories and their sub-directories
+            if any([part.startswith(".") for part in path.parts]):
+                continue
             # in-place running will produce pycache directories, these should be ignored
             if path.name == "__pycache__":
                 continue
