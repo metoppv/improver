@@ -40,7 +40,16 @@ def process(cube: cli.inputcube, vicinity: float):
     """Module to apply vicinity processing to data.
 
     Calculate the neighbourhood maximum value about each point in the field
-    within a vicinity radius.
+    within a vicinity radius. This step must be applied prior to collapsing
+    any realization coordinate if being used to calculate a neighbourhood
+    maximum ensemble probability.
+
+    The threshold CLI is typically used to threshold, vicinity process, and
+    collapse realizations in a single call. This CLI provides an alternative
+    for non-standard cases where the threshold CLI is not used.
+
+    Users should ensure they do not inadvertently apply vicinity processing
+    twice, once within the threshold CLI and then again using this CLI.
 
     Args:
         cube (iris.cube.Cube):
