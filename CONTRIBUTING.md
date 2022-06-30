@@ -39,6 +39,7 @@ below:
  - Mark Baker (Met Office, UK)
  - Laurence Beard (Met Office, UK)
  - Anna Booton (Met Office, UK)
+ - Prajwal Borkar
  - James Canvin (Bureau of Meteorology, Australia)
  - Shubhendra Singh Chauhan (DeepSource, India)
  - Neil Crosswaite (Met Office, UK)
@@ -72,7 +73,6 @@ below:
  - Tomasz Trzeciak (Met Office, UK)
  - Mark Worsfold (Met Office, UK)
  - Ying Zhao (Bureau of Meteorology, Australia)
- - Prajwal Borkar
 <!-- end-shortlog -->
  - Martina Friedrich (Met Office, UK, pre-GitHub)
 
