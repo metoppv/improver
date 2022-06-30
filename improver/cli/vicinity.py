@@ -39,14 +39,18 @@ from improver import cli
 def process(cube: cli.inputcube, vicinity: float):
     """Module to apply vicinity processing to data.
 
-    Calculate the neighbourhood maximum value about each point in the field
-    within a vicinity radius. This step must be applied prior to collapsing
-    any realization coordinate if being used to calculate a neighbourhood
-    maximum ensemble probability.
+    Calculate the maximum value within a vicinity radius about each point
+    in each x-y slice of the input cube.
 
-    The threshold CLI is typically used to threshold, vicinity process, and
-    collapse realizations in a single call. This CLI provides an alternative
-    for non-standard cases where the threshold CLI is not used.
+    If working with thresholded data, using this CLI to calculate a
+    neighbourhood maximum ensemble probability, the vicinity process must
+    be applied prior to averaging across the ensemble, i.e. collapsing the
+    realization coordinate. A typical chain might look like:
+
+      threshold --> vicinity --> realization collapse
+
+    Note that the threshold CLI can be used to perform this series of steps
+    in a single call without intermediate output.
 
     Users should ensure they do not inadvertently apply vicinity processing
     twice, once within the threshold CLI and then again using this CLI.
