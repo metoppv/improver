@@ -28,7 +28,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""RainForests calibration Plugins."""
+"""RainForests calibration Plugins.
+
+.. Further information is available in:
+.. include:: extended_documentation/calibration/rainforests_calibration/
+   rainforests_calibration.rst
+
+"""
 
 import warnings
 from collections import OrderedDict
@@ -455,22 +461,29 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         The result is a series (sub-ensemble) of values for each forecast realization.
 
         Note:
-            #. Within the RainForests approach we work with an additive error correction
+
+            Within the RainForests approach we work with an additive error correction
             as opposed to a multiplicative correction used in ECPoint. The advantage of
             using an additive error is that we are also able to calibrate zero-values in
             the input forecast.
-            #. After applying the error distributions to the forecast cube, values outside
+
+        Warning:
+
+            After applying the error distributions to the forecast cube, values outside
             the expected bounds of the forecast parameter can arise. These values occur when
             when the input forecast value is between error thresholds and there exists a
-            lower bound on the observable value (eg. 0 in the case of rainfall). In this
-            situation, error thresholds below the residual value (min(obs) - fcst) must have
-            a probability of exceedance of 1, whereas as error thresholds above this value can
-            take on any value between [0, 1]. In the subsequent step where error percentile
-            values are extracted, the linear interpolation in mapping from probabilities to
-            percentiles can give percentile values that lie below the residual value; when
-            these are applied to the forecast value, they result in forecast values outside
-            the expected bounds of the forecast parameter in the resultant sub-ensemble. To
-            address this, we remap all values outside of the expected bounds to nearest
+            lower bound on the observable value (eg. 0 in the case of rainfall).
+
+            In this situation, error thresholds below the residual value (min(obs) - fcst)
+            must have a probability of exceedance of 1, whereas as error thresholds above
+            this value can take on any value between [0, 1]. In the subsequent step where
+            error percentile values are extracted, the linear interpolation in mapping from
+            probabilities to percentiles can give percentile values that lie below the
+            residual value; when these are applied to the forecast value, they result in
+            forecast values outside the expected bounds of the forecast parameter in the
+            resultant sub-ensemble.
+
+            To address this, we remap all values outside of the expected bounds to nearest
             bound (eg. negative values are mapped to 0 in the case of rainfall).
 
         Args:
