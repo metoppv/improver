@@ -40,7 +40,9 @@ from improver import cli
 def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """Module to generate cloud condensation level.
 
-    Call the CloudCondensationLevel plugin to calculate cloud condensation level.
+    Calls the HumidityMixingRatio plugin to calculate humidity mixing ratio from relative humidity.
+
+    Calls the CloudCondensationLevel plugin to calculate cloud condensation level.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
@@ -50,7 +52,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
                 pressure (iris.cube.Cube):
                     Cube of air_pressure.
                 humidity (iris.cube.Cube):
-                    Cube of humidity mass mixing ratio.
+                    Cube of relative humidity.
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
@@ -59,6 +61,16 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             Cube of cloud condensation level (m) with pressure as an auxiliary coordinate.
 
     """
-    from improver.psychrometric_calculations.cloud_condensation_level import CloudCondensationLevel
+    from improver.psychrometric_calculations.cloud_condensation_level import (
+        CloudCondensationLevel,
+    )
+    from improver.psychrometric_calculations.psychrometric_calculations import (
+        HumidityMixingRatio,
+    )
 
-    return CloudCondensationLevel(model_id_attr=model_id_attr)(cubes)
+    humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
+    humidity = humidity_plugin(cubes)
+
+    return CloudCondensationLevel(model_id_attr=model_id_attr)(
+        [humidity_plugin.temperature, humidity_plugin.pressure, humidity]
+    )

@@ -39,7 +39,7 @@ from numpy import ndarray
 from scipy.optimize import newton
 
 import improver.constants as consts
-from improver import BasePlugin
+from improver import BasePlugin, InputCubesPlugin
 from improver.generate_ancillaries.generate_svp_table import (
     SaturatedVapourPressureTable,
 )
@@ -295,6 +295,57 @@ def adjust_for_latent_heat(
     temperature[sub_saturated] = temperature_in[sub_saturated]
     humidity[sub_saturated] = humidity_in[sub_saturated]
     return temperature, humidity
+
+
+class HumidityMixingRatio(InputCubesPlugin):
+    """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
+
+    cube_descriptors = {
+        "temperature": {"name": "air_temperature", "units": "K"},
+        "pressure": {"name": "air_pressure", "units": "Pa"},
+        "humidity": {"name": "relative_humidity", "units": "kg kg-1"},
+    }
+    temperature = None
+    pressure = None
+    rel_humidity = None
+
+    def _make_humidity_cube(self, data: np.ndarray) -> Cube:
+        """Puts the data array into a CF-compliant cube"""
+        attributes = {}
+        if self.model_id_attr:
+            attributes[self.model_id_attr] = self.rel_humidity.attributes[
+                self.model_id_attr
+            ]
+        cube = create_new_diagnostic_cube(
+            "humidity_mixing_ratio",
+            "kg kg-1",
+            self.rel_humidity,
+            mandatory_attributes=generate_mandatory_attributes(
+                [self.temperature, self.pressure, self.rel_humidity]
+            ),
+            optional_attributes=attributes,
+            data=data,
+        )
+        return cube
+
+    def process(self, cubes: List[Cube]) -> Cube:
+        """
+        Calculates the humidity mixing ratio from the inputs.
+
+        Args:
+            cubes:
+                Cubes of temperature, pressure and relative humidity
+
+        Returns:
+            Cube of humidity mixing ratio
+
+        """
+        self.parse_inputs(cubes)
+        humidity = (
+            saturated_humidity(self.temperature.data, self.pressure.data)
+            * self.rel_humidity.data
+        )
+        return self._make_humidity_cube(humidity)
 
 
 class PhaseChangeLevel(BasePlugin):
