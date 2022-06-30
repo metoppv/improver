@@ -319,8 +319,8 @@ a87b4eb0ae9dfac3cdffb75dba94750e047fe618b4bb469f5e2262819bfd2318  ./interpolate-
 2ebd0073a5fd84f989c976229120b60fd720d1c4ed1f2229abaa675fef281c98  ./interpret_metadata/non_compliant_weather_codes.nc
 c45d0da496a7c79052f60ae126cb51cd4a731659cec3470f9005e3996687dc99  ./interpret_metadata/temperature_realizations.nc
 af63974ed9b8370205cb801df8170aaedf43abdc86427b1ea958b9cdd8573cdd  ./lightning-from-cape-and-precip/cape.nc
-6c8bf7f59b9aa72ad987c63c2aadac0ee5bdb7130dab55c7d661f7706b098c84  ./lightning-from-cape-and-precip/kgo.nc
-13d8a4e897818c4c654911b5724ff30d768e7a0d3e46d1e8613c246895f83aff  ./lightning-from-cape-and-precip/kgo_with_model_config.nc
+d2eee2303c30296ec4abf292a01ecb89bfcc4da9f5c4b5b86c10261e19fabff8  ./lightning-from-cape-and-precip/kgo.nc
+833a77d3dcae0f40b890335f15cae018faa78f168c0607378a7897a7fb2ca5ef  ./lightning-from-cape-and-precip/kgo_with_model_config.nc
 11c16c83261ac53d4e8916423810b639716e26c77f983c1c8c8ad0ffb48169be  ./lightning-from-cape-and-precip/precipitation_rate.nc
 814a63cc59ea0c0827cc435c8607891677e2acd234774f6cee721c3afea67548  ./manipulate-reliability-table/basic/kgo_300_min_count.nc
 b99d11406c811e78d690d42e0f46a92280e588a8b0101e8bf2c8fa36f3262860  ./manipulate-reliability-table/basic/kgo_precip.nc

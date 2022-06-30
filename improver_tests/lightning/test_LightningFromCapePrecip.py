@@ -101,7 +101,7 @@ def expected_cube_fixture() -> Cube:
     cube = set_up_probability_cube(
         data,
         thresholds=[0.0],
-        variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
+        variable_name="number_of_lightning_flashes_per_unit_area",
         threshold_units="m-2",
         time=datetime(2017, 11, 10, 5, 0),
         time_bounds=(datetime(2017, 11, 10, 4, 0), datetime(2017, 11, 10, 5, 0)),
