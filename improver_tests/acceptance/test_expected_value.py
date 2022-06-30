@@ -43,18 +43,18 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "input_kind,atol,significant_diff_fraction",
-    [("realization", 0.001, 0.0), ("percentile", 0.09, 0.0), ("threshold", 0.18, 0.2)],
+    "input_kind,atol,mae,bias",
+    [
+        ("realization", 0.001, 0.0, 0.0),
+        ("percentile", 0.09, 0.02, 0.011),
+        ("threshold", 0.156, 0.06, 0.007),
+    ],
 )
-def test_probabilistic(tmp_path, input_kind, atol, significant_diff_fraction):
+def test_probabilistic(tmp_path, input_kind, atol, mae, bias):
     """Test processing of probabilistic data.
 
-    The same KGO is shared across all representations. Processing realizations is
-    straightforward and accurate, so has low error tolerances. Processing percentiles
-    is also straightforward, but with some variation in the result due to representation
-    differences. Processing thresholds is quite rough, due to the currently implemented
-    method of conversion to percentiles. Expect this accuracy to improve if the expected
-    value is directly calculcated from the threshold data.
+    The same KGO is shared across all three representations as percentile and
+    threshold inputs are derived from the realization input.
     """
     kgo_dir = acc.kgo_root() / "expected-value"
     kgo_path = kgo_dir / "kgo.nc"
@@ -63,13 +63,17 @@ def test_probabilistic(tmp_path, input_kind, atol, significant_diff_fraction):
     args = [input_path, "--output", output_path]
     run_cli(args)
     # standard comparison, checking the maximum difference using atol
-    acc.compare(output_path, kgo_path, rtol=0.0, atol=atol)
-    # custom comparison - fraction of the grid with difference more than 0.1 kelvin
+    # KGO comes from realizations, don't recreate if using other kinds of input
+    is_realization = input_kind == "realization"
+    acc.compare(output_path, kgo_path, rtol=0.0, atol=atol, recreate=is_realization)
     kgo_data = iris.load(str(kgo_path))[0].data
     output_data = iris.load(str(output_path))[0].data
-    large_diffs = np.abs(output_data - kgo_data) > 0.1
-    fraction_of_large_diffs = np.mean(large_diffs.astype(np.float32))
-    assert significant_diff_fraction >= fraction_of_large_diffs
+    # custom comparison - mean absolute error
+    data_mae = np.mean(np.abs(output_data - kgo_data))
+    assert data_mae <= mae
+    # custom comparison - bias
+    data_bias = np.abs(np.mean(output_data - kgo_data))
+    assert data_bias <= bias
 
 
 def test_deterministic(tmp_path):
@@ -79,5 +83,5 @@ def test_deterministic(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [input_path, "--output", output_path]
     # iris CoordinateNotFoundError is a KeyError
-    with pytest.raises(Exception, match="realization"):
+    with pytest.raises(KeyError, match="realization"):
         run_cli(args)
