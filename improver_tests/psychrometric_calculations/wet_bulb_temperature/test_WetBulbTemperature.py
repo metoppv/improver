@@ -91,10 +91,6 @@ class Test_WetBulbTemperature(IrisTest):
         )
         pressure = np.array([[1.0e5, 9.9e4, 9.85e4, 9.8e4]], dtype=np.float32)
         self.pressure = set_up_variable_cube(pressure, name="air_pressure", units="Pa")
-        mixing_ratio = np.array([[0.1, 0.2, 0.25, 0.3]], dtype=np.float32)
-        self.mixing_ratio = set_up_variable_cube(
-            mixing_ratio, name="humidity_mixing_ratio", units="1"
-        )
         self.expected_wbt_data = np.array(
             [[185.0, 259.88306, 271.78006, 333.96066]], dtype=np.float32
         )
