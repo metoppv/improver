@@ -33,11 +33,10 @@
 import functools
 from typing import List, Tuple, Union
 
-import iris
 import numpy as np
-from cf_units import Unit
 from iris.cube import Cube, CubeList
 from numpy import ndarray
+from scipy.optimize import newton
 
 import improver.constants as consts
 from improver import BasePlugin
@@ -247,6 +246,7 @@ def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndar
         Temperature adjustment to apply to account for latent heat release (K).
     """
     return (_calculate_latent_heat(temperature) / consts.CP_WATER_VAPOUR) * (q1 - q2)
+
 
 def adjust_for_latent_heat(
     temperature_in: ndarray, humidity_in: ndarray, pressure: ndarray
