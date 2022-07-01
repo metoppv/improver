@@ -38,7 +38,6 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
-from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -47,6 +46,7 @@ from improver.metadata.utilities import (
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
+from ..utilities.base_classes import PostProcessingPlugin
 from .utilities import make_shower_condition_cube
 
 

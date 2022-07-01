@@ -38,7 +38,6 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import dtype, ndarray
 
-from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
     check_units,
@@ -46,6 +45,7 @@ from improver.metadata.check_datatypes import (
     get_required_units,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.round import round_close
 
 

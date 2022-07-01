@@ -41,8 +41,8 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
-from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import RMDI
+from improver.utilities.base_classes import BasePlugin, PostProcessingPlugin
 
 # Scale parameter to determine reference height
 ABSOLUTE_CORRECTION_TOL = 0.04

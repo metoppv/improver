@@ -36,12 +36,12 @@ import iris
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import PostProcessingPlugin
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering

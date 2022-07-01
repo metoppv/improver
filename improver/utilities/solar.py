@@ -37,12 +37,12 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver import BasePlugin
 from improver.constants import DAYS_IN_YEAR, HOURS_IN_DAY, MINUTES_IN_HOUR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 
 

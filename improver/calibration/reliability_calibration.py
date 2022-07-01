@@ -43,7 +43,6 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
-from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
     check_forecast_consistency,
     create_unified_frt_coord,
@@ -54,6 +53,7 @@ from improver.metadata.probabilistic import (
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
+from improver.utilities.base_classes import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
 
 

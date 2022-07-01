@@ -34,7 +34,6 @@ import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube
 
-from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
     get_bounds_of_distribution,
@@ -44,6 +43,7 @@ from improver.metadata.probabilistic import (
     is_percentile,
     is_probability,
 )
+from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_manipulation import collapse_realizations
 from improver.utilities.probability_manipulation import to_threshold_inequality
 

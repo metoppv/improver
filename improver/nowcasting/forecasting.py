@@ -46,7 +46,6 @@ from iris.exceptions import CoordinateNotFoundError, InvalidCubeError
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
-from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
@@ -55,6 +54,7 @@ from improver.metadata.utilities import (
 )
 from improver.nowcasting.optical_flow import check_input_coords
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.round import round_close
 
 

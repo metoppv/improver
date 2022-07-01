@@ -44,10 +44,10 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage.filters import maximum_filter
 
-from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.utilities.base_classes import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 
 

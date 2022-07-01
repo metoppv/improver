@@ -42,8 +42,8 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.interpolate import interp1d
 
-from improver import BasePlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import (
     check_cube_coordinates,
     sort_coord_in_cube,

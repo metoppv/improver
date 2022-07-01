@@ -39,11 +39,11 @@ from cf_units import Unit
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     probability_is_above_or_below,
 )
+from improver.utilities.base_classes import PostProcessingPlugin
 
 
 class OccurrenceBetweenThresholds(PostProcessingPlugin):

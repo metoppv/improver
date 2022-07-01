@@ -38,8 +38,8 @@ import numpy as np
 from iris.coords import Coord
 from iris.cube import Cube
 
-from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
+from improver.utilities.base_classes import PostProcessingPlugin
 
 
 class WindGustDiagnostic(PostProcessingPlugin):

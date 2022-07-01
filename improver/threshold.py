@@ -37,12 +37,12 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 
-from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
+from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale

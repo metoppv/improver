@@ -39,7 +39,6 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
-from improver import BasePlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -47,6 +46,7 @@ from improver.metadata.utilities import (
 )
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.threshold import BasicThreshold
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import collapse_realizations
 
 

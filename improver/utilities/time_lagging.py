@@ -35,8 +35,8 @@ from typing import List, Union
 import numpy as np
 from iris.cube import Cube, CubeList
 
-from improver import BasePlugin
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 
 

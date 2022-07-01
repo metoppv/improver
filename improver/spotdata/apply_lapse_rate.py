@@ -36,9 +36,9 @@ import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
+from improver.utilities.base_classes import PostProcessingPlugin
 
 
 class SpotLapseRateAdjust(PostProcessingPlugin):

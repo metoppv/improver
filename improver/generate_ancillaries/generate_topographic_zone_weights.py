@@ -40,11 +40,11 @@ from iris.cube import Cube
 from iris.exceptions import InvalidCubeError
 from numpy import ndarray
 
-from improver import BasePlugin
 from improver.generate_ancillaries.generate_ancillary import (
     GenerateOrographyBandAncils,
     _make_mask_cube,
 )
+from improver.utilities.base_classes import BasePlugin
 
 
 class GenerateTopographicZoneWeights(BasePlugin):

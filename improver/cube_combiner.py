@@ -39,13 +39,13 @@ from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import BasePlugin
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
 )
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,

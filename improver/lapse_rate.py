@@ -38,13 +38,13 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
-from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DALR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
 from improver.utilities import mathematical_operations, neighbourhood_tools
+from improver.utilities.base_classes import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,

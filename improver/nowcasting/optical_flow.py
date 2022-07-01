@@ -46,9 +46,9 @@ from iris.exceptions import (
 from numpy import ndarray
 from scipy import ndimage, signal
 
-from improver import BasePlugin
 from improver.nowcasting.pysteps_advection import PystepsExtrapolate
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import collapsed
 from improver.utilities.spatial import (

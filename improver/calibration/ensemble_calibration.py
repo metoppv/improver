@@ -50,7 +50,6 @@ from numpy import ndarray
 from scipy.optimize import OptimizeResult, minimize
 from scipy.stats import norm
 
-from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
     broadcast_data_to_time_coord,
     check_data_sufficiency,
@@ -76,6 +75,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.base_classes import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
 
 

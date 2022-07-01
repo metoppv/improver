@@ -42,11 +42,11 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
-from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.utilities import find_blend_dim_coord, set_record_run_attr
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
+from improver.utilities.base_classes import BasePlugin, PostProcessingPlugin
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,

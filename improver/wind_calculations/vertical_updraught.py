@@ -35,11 +35,11 @@ from typing import List
 import numpy as np
 from iris.cube import Cube, CubeList
 
-from improver import BasePlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import spatial_coords_match
 
 

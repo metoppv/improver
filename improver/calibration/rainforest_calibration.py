@@ -47,7 +47,6 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from pandas import DataFrame
 
-from improver import PostProcessingPlugin
 from improver.cli import generate_percentiles
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertProbabilitiesToPercentiles,
@@ -58,6 +57,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
