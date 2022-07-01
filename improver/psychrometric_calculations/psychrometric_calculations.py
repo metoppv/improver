@@ -33,11 +33,10 @@
 import functools
 from typing import List, Tuple, Union
 
-import iris
 import numpy as np
-from cf_units import Unit
 from iris.cube import Cube, CubeList
 from numpy import ndarray
+from scipy.optimize import newton
 
 import improver.constants as consts
 from improver import BasePlugin
@@ -48,10 +47,9 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
-from improver.utilities.mathematical_operations import Integration, fast_linear_fit
+from improver.utilities.mathematical_operations import fast_linear_fit
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 SVP_T_MIN = 183.15
@@ -177,373 +175,114 @@ def dry_adiabatic_pressure(
     )
 
 
-class WetBulbTemperature(BasePlugin):
+def saturated_humidity(temperature: ndarray, pressure: ndarray) -> ndarray:
     """
-    A plugin to calculate wet bulb temperatures from air temperature, relative
-    humidity, and pressure data. Calculations are performed using a Newton
-    iterator, with saturated vapour pressures drawn from a lookup table using
-    linear interpolation.
+    Calculate specific humidity mixing ratio of saturated air of given temperature and pressure
 
-    The svp_table used in this plugin is imported (see top of file). It is a
-    table of saturated vapour pressures calculated for a range of temperatures.
-    The import also brings in attributes that describe the range of
-    temperatures covered by the table and the increments in the table.
+    Args:
+        temperature:
+            Air temperature (K)
+        pressure:
+            Air pressure (Pa)
+
+    Returns:
+        Array of specific humidity values (kg kg-1) representing saturated air
+
+    Method from referenced documentation. Note that EARTH_REPSILON is
+    simply given as an unnamed constant in the reference (0.62198).
 
     References:
-        Met Office UM Documentation Paper 080, UM Version 10.8,
-        last updated 2014-12-05.
+        ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
+    """
+    svp = calculate_svp_in_air(temperature, pressure)
+    numerator = consts.EARTH_REPSILON * svp
+    denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
+    return (numerator / denominator).astype(temperature.dtype)
+
+
+def _calculate_latent_heat(temperature: ndarray) -> ndarray:
+    """
+    Calculate a temperature adjusted latent heat of condensation for water
+    vapour using the relationship employed by the UM.
+
+    Args:
+        temperature:
+            Array of air temperatures (K).
+
+    Returns:
+        Temperature adjusted latent heat of condensation (J kg-1).
+    """
+    temp_Celsius = temperature + consts.ABSOLUTE_ZERO
+    latent_heat = (
+        -1.0 * consts.LATENT_HEAT_T_DEPENDENCE * temp_Celsius
+        + consts.LH_CONDENSATION_WATER
+    )
+    return latent_heat
+
+
+def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndarray:
+    """Returns the latent heat released (K) when condensing water vapour from specific humidity
+    value q1 to q2, both in kg kg-1 when the temperature is approximately t.
+    Returns negative values when initial condition is subsaturated as this method assumes there
+    is always liquid water present which can be evaporated.
+
+    Args:
+        temperature:
+            Array of air temperatures (K). Ideally, the average air temperature between q1 and q2
+        q1:
+            Specific humidity before latent heat release (kg kg-1)
+        q2:
+            Specific humidity after latent heat release (kg kg-1)
+
+    Returns:
+        Temperature adjustment to apply to account for latent heat release (K).
+    """
+    return (_calculate_latent_heat(temperature) / consts.CP_WATER_VAPOUR) * (q1 - q2)
+
+
+def adjust_for_latent_heat(
+    temperature_in: ndarray, humidity_in: ndarray, pressure: ndarray
+) -> Tuple[ndarray, ndarray]:
+    """
+    Increases temperature and reduces humidity via latent heat release from condensation until
+    values represent 100% relative humidity.
+
+    Subsaturated values will be returned unaltered.
+
+    Args:
+        temperature_in:
+            The parcel temperature following a dry adiabatic cooling (K)
+        humidity_in:
+            The atmosphere specific humidity at the same points (kg kg-1)
+        pressure:
+            The atmospheric pressure at the same points (Pa)
+
+    Returns:
+        tuple of temperature (K) and humidity (kg kg-1) after saturated latent heat release
     """
 
-    def __init__(self, precision: float = 0.005) -> None:
-        """
-        Initialise class.
+    def qsat_differential(qs, t, q, p):
+        """For a given set of temperature (t), specific humidity (q) and pressure (p),
+        and a saturated humidity guess (qs), calculate an adjusted temperature after
+        latent heat release and return the difference between the saturated humidity
+        at that adjusted temperature and the guess."""
+        adj_t = t + _latent_heat_release(q, qs, t)
+        return saturated_humidity(adj_t, p) - qs
 
-        Args:
-            precision:
-                The precision to which the Newton iterator must converge before
-                returning wet bulb temperatures.
-        """
-        self.precision = precision
-        self.maximum_iterations = 20
-
-    @staticmethod
-    def _slice_inputs(temperature, relative_humidity, pressure):
-        """Create iterable or iterator over cubes on which to calculate
-        wet bulb temperature"""
-        vertical_coords = None
-        try:
-            vertical_coords = [
-                cube.coord(axis="z").name()
-                for cube in [temperature, relative_humidity, pressure]
-                if cube.coord_dims(cube.coord(axis="z")) != ()
-            ]
-        except iris.exceptions.CoordinateNotFoundError:
-            pass
-
-        if not vertical_coords:
-            slices = [(temperature, relative_humidity, pressure)]
-        else:
-            if len(set(vertical_coords)) > 1 or len(vertical_coords) != 3:
-                raise ValueError(
-                    "WetBulbTemperature: Cubes have differing " "vertical coordinates."
-                )
-            (level_coord,) = set(vertical_coords)
-            temperature_over_levels = temperature.slices_over(level_coord)
-            relative_humidity_over_levels = relative_humidity.slices_over(level_coord)
-            pressure_over_levels = pressure.slices_over(level_coord)
-            slices = zip(
-                temperature_over_levels,
-                relative_humidity_over_levels,
-                pressure_over_levels,
-            )
-
-        return slices
-
-    @staticmethod
-    def _calculate_latent_heat(temperature: ndarray) -> ndarray:
-        """
-        Calculate a temperature adjusted latent heat of condensation for water
-        vapour using the relationship employed by the UM.
-
-        Args:
-            temperature:
-                Array of air temperatures (K).
-
-        Returns:
-            Temperature adjusted latent heat of condensation (J kg-1).
-        """
-        temp_Celsius = temperature + consts.ABSOLUTE_ZERO
-        latent_heat = (
-            -1.0 * consts.LATENT_HEAT_T_DEPENDENCE * temp_Celsius
-            + consts.LH_CONDENSATION_WATER
-        )
-        return latent_heat
-
-    @staticmethod
-    def _calculate_mixing_ratio(temperature: ndarray, pressure: ndarray) -> ndarray:
-        """Function to compute the mixing ratio given temperature and pressure.
-
-        Args:
-            temperature:
-                Array of air temperature (K).
-            pressure:
-                Array of air pressure (Pa).
-
-        Returns
-            Array of mixing ratios.
-
-        Method from referenced documentation. Note that EARTH_REPSILON is
-        simply given as an unnamed constant in the reference (0.62198).
-
-        References:
-            ASHRAE Fundamentals handbook (2005) Equation 22, 24, p6.8
-        """
-        svp = calculate_svp_in_air(temperature, pressure)
-        numerator = consts.EARTH_REPSILON * svp
-        denominator = np.maximum(svp, pressure) - ((1.0 - consts.EARTH_REPSILON) * svp)
-        return numerator / denominator
-
-    @staticmethod
-    def _calculate_specific_heat(mixing_ratio: ndarray) -> ndarray:
-        """
-        Calculate the specific heat capacity for moist air by combining that of
-        dry air and water vapour in proportion given by the specific humidity.
-
-        Args:
-            mixing_ratio:
-                Array of specific humidity (fractional).
-
-        Returns:
-            Specific heat capacity of moist air (J kg-1 K-1).
-        """
-        specific_heat = (
-            -1.0 * mixing_ratio + 1.0
-        ) * consts.CP_DRY_AIR + mixing_ratio * consts.CP_WATER_VAPOUR
-        return specific_heat
-
-    @staticmethod
-    def _calculate_enthalpy(
-        mixing_ratio: ndarray,
-        specific_heat: ndarray,
-        latent_heat: ndarray,
-        temperature: ndarray,
-    ) -> ndarray:
-        """
-        Calculate the enthalpy (total energy per unit mass) of air (J kg-1).
-
-        Method from referenced UM documentation.
-
-        References:
-            Met Office UM Documentation Paper 080, UM Version 10.8,
-            last updated 2014-12-05.
-
-        Args:
-            mixing_ratio:
-                Array of mixing ratios.
-            specific_heat:
-                Array of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat:
-                Array of latent heats of condensation of water vapour
-                (J kg-1).
-            temperature:
-                Array of air temperatures (K).
-
-        Returns:
-           Array of enthalpy values calculated at the same points as the
-           input cubes (J kg-1).
-        """
-        enthalpy = latent_heat * mixing_ratio + specific_heat * temperature
-        return enthalpy
-
-    @staticmethod
-    def _calculate_enthalpy_gradient(
-        mixing_ratio: ndarray,
-        specific_heat: ndarray,
-        latent_heat: ndarray,
-        temperature: ndarray,
-    ) -> ndarray:
-        """
-        Calculate the enthalpy gradient with respect to temperature.
-
-        Method from referenced UM documentation.
-
-        Args:
-            mixing_ratio:
-                Array of mixing ratios.
-            specific_heat:
-                Array of specific heat capacities of moist air (J kg-1 K-1).
-            latent_heat:
-                Array of latent heats of condensation of water vapour
-                (J kg-1).
-            temperature:
-                Array of temperatures (K).
-
-        Returns:
-            Array of the enthalpy gradient with respect to temperature.
-        """
-        numerator = mixing_ratio * latent_heat * latent_heat
-        denominator = consts.R_WATER_VAPOUR * temperature * temperature
-        return numerator / denominator + specific_heat
-
-    def _calculate_wet_bulb_temperature(
-        self, pressure: ndarray, relative_humidity: ndarray, temperature: ndarray
-    ) -> ndarray:
-        """
-        Calculate an array of wet bulb temperatures from inputs in
-        the correct units.
-
-        A Newton iterator is used to minimise the gradient of enthalpy
-        against temperature. Assumes that the variation of latent heat with
-        temperature can be ignored.
-
-        Args:
-            pressure:
-                Array of air Pressure (Pa).
-            relative_humidity:
-                Array of relative humidities (1).
-            temperature:
-                Array of air temperature (K).
-
-        Returns:
-            Array of wet bulb temperature (K).
-
-        """
-        # Initialise psychrometric variables
-        wbt_data_upd = wbt_data = temperature.flatten()
-        pressure = pressure.flatten()
-
-        latent_heat = self._calculate_latent_heat(wbt_data)
-        saturation_mixing_ratio = self._calculate_mixing_ratio(wbt_data, pressure)
-        mixing_ratio = relative_humidity.flatten() * saturation_mixing_ratio
-        specific_heat = self._calculate_specific_heat(mixing_ratio)
-        enthalpy = self._calculate_enthalpy(
-            mixing_ratio, specific_heat, latent_heat, wbt_data
-        )
-        del mixing_ratio
-
-        # Iterate to find the wet bulb temperature, using temperature as first
-        # guess
-        iteration = 0
-        to_update = np.arange(temperature.size)
-        update_to_update = slice(None)
-        while to_update.size and iteration < self.maximum_iterations:
-
-            if iteration > 0:
-                wbt_data_upd = wbt_data[to_update]
-                pressure = pressure[update_to_update]
-                specific_heat = specific_heat[update_to_update]
-                latent_heat = latent_heat[update_to_update]
-                enthalpy = enthalpy[update_to_update]
-                saturation_mixing_ratio = self._calculate_mixing_ratio(
-                    wbt_data_upd, pressure
-                )
-
-            enthalpy_new = self._calculate_enthalpy(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt_data_upd
-            )
-            enthalpy_gradient = self._calculate_enthalpy_gradient(
-                saturation_mixing_ratio, specific_heat, latent_heat, wbt_data_upd
-            )
-            delta_wbt = (enthalpy - enthalpy_new) / enthalpy_gradient
-
-            # Increment wet bulb temperature at points which have not converged
-            update_to_update = np.abs(delta_wbt) > self.precision
-            to_update = to_update[update_to_update]
-            wbt_data[to_update] += delta_wbt[update_to_update]
-
-            iteration += 1
-
-        return wbt_data.reshape(temperature.shape)
-
-    def create_wet_bulb_temperature_cube(
-        self, temperature: Cube, relative_humidity: Cube, pressure: Cube
-    ) -> Cube:
-        """
-        Creates a cube of wet bulb temperature values
-
-        Args:
-            temperature:
-                Cube of air temperatures.
-            relative_humidity:
-                Cube of relative humidities.
-            pressure:
-                Cube of air pressures.
-
-        Returns:
-            Cube of wet bulb temperature (K).
-        """
-        temperature.convert_units("K")
-        relative_humidity.convert_units(1)
-        pressure.convert_units("Pa")
-        wbt_data = self._calculate_wet_bulb_temperature(
-            pressure.data, relative_humidity.data, temperature.data
-        )
-
-        attributes = generate_mandatory_attributes(
-            [temperature, relative_humidity, pressure]
-        )
-        wbt = create_new_diagnostic_cube(
-            "wet_bulb_temperature", "K", temperature, attributes, data=wbt_data
-        )
-        return wbt
-
-    def process(self, cubes: Union[List[Cube], CubeList]) -> Cube:
-        """
-        Call the calculate_wet_bulb_temperature function to calculate wet bulb
-        temperatures. This process function splits input cubes over vertical
-        levels to mitigate memory issues when trying to operate on multi-level
-        data.
-
-        Args:
-            cubes:
-                containing:
-                    temperature:
-                        Cube of air temperatures.
-                    relative_humidity:
-                        Cube of relative humidities.
-                    pressure:
-                        Cube of air pressures.
-
-        Returns:
-            Cube of wet bulb temperature (K).
-        """
-        names_to_extract = ["air_temperature", "relative_humidity", "air_pressure"]
-        if len(cubes) != len(names_to_extract):
-            raise ValueError(
-                f"Expected {len(names_to_extract)} cubes, found {len(cubes)}"
-            )
-
-        temperature, relative_humidity, pressure = tuple(
-            CubeList(cubes).extract_cube(n) for n in names_to_extract
-        )
-
-        slices = self._slice_inputs(temperature, relative_humidity, pressure)
-
-        cubelist = iris.cube.CubeList([])
-        for t_slice, rh_slice, p_slice in slices:
-            cubelist.append(
-                self.create_wet_bulb_temperature_cube(
-                    t_slice.copy(), rh_slice.copy(), p_slice.copy()
-                )
-            )
-        wet_bulb_temperature = cubelist.merge_cube()
-
-        # re-promote any scalar coordinates lost in slice / merge
-        wet_bulb_temperature = check_cube_coordinates(temperature, wet_bulb_temperature)
-
-        return wet_bulb_temperature
-
-
-class WetBulbTemperatureIntegral(BasePlugin):
-    """Calculate a wet-bulb temperature integral."""
-
-    def __init__(self):
-        """Initialise class."""
-        self.integration_plugin = Integration("height")
-
-    def process(self, wet_bulb_temperature: Cube) -> Cube:
-        """
-        Calculate the vertical integral of wet bulb temperature from the input
-        wet bulb temperatures on height levels.
-
-        Args:
-            wet_bulb_temperature:
-                Cube of wet bulb temperatures on height levels.
-
-        Returns:
-            Cube of wet bulb temperature integral (Kelvin-metres).
-        """
-        wbt = wet_bulb_temperature.copy()
-        wbt.convert_units("degC")
-        wbt.coord("height").convert_units("m")
-        # Touch the data to ensure it is not lazy
-        # otherwise vertical interpolation is slow
-        wbt.data
-        wet_bulb_temperature_integral = self.integration_plugin(wbt)
-        # although the integral is computed over degC the standard unit is
-        # 'K m', and these are equivalent
-        wet_bulb_temperature_integral.units = Unit("K m")
-        return wet_bulb_temperature_integral
+    humidity = newton(
+        qsat_differential,
+        humidity_in.copy(),
+        args=(temperature_in, humidity_in, pressure),
+        tol=1e-6,
+        maxiter=6,
+    ).astype(np.float32)
+    temperature = temperature_in + _latent_heat_release(
+        humidity_in, humidity, temperature_in
+    )
+    sub_saturated = np.where(temperature < temperature_in)
+    temperature[sub_saturated] = temperature_in[sub_saturated]
+    humidity[sub_saturated] = humidity_in[sub_saturated]
+    return temperature, humidity
 
 
 class PhaseChangeLevel(BasePlugin):

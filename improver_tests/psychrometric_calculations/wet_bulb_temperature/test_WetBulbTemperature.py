@@ -38,9 +38,7 @@ from cf_units import Unit
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
-from improver.psychrometric_calculations.psychrometric_calculations import (
-    WetBulbTemperature,
-)
+from improver.psychrometric_calculations.wet_bulb_temperature import WetBulbTemperature
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
@@ -54,21 +52,6 @@ class Test_psychrometric_variables(IrisTest):
         self.specific_heat = np.array([1089.5, 1174.0, 1258.5], dtype=np.float32)
         self.latent_heat = np.array([2531771.0, 2508371.0, 2484971.0], dtype=np.float32)
         self.temperature = np.array([185.0, 260.65, 338.15], dtype=np.float32)
-
-    def test_calculate_latent_heat(self):
-        """Test latent heat calculation"""
-        expected = [2707271.0, 2530250.0, 2348900.0]
-        result = WetBulbTemperature()._calculate_latent_heat(self.temperature)
-        self.assertArrayAlmostEqual(result.data, expected, decimal=0)
-
-    def test_calculate_mixing_ratio(self):
-        """Test mixing ratio calculation"""
-        pressure = np.array([1.0e5, 9.9e4, 9.8e4], dtype=np.float32)
-        expected = [6.06744631e-08, 1.31079322e-03, 1.77063149e-01]
-        result = WetBulbTemperature()._calculate_mixing_ratio(
-            self.temperature, pressure
-        )
-        self.assertArrayAlmostEqual(result, expected, decimal=7)
 
     def test_calculate_specific_heat(self):
         """Test specific heat calculation"""
@@ -108,10 +91,6 @@ class Test_WetBulbTemperature(IrisTest):
         )
         pressure = np.array([[1.0e5, 9.9e4, 9.85e4, 9.8e4]], dtype=np.float32)
         self.pressure = set_up_variable_cube(pressure, name="air_pressure", units="Pa")
-        mixing_ratio = np.array([[0.1, 0.2, 0.25, 0.3]], dtype=np.float32)
-        self.mixing_ratio = set_up_variable_cube(
-            mixing_ratio, name="humidity_mixing_ratio", units="1"
-        )
         self.expected_wbt_data = np.array(
             [[185.0, 259.88306, 271.78006, 333.96066]], dtype=np.float32
         )
