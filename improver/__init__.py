@@ -105,7 +105,9 @@ class InputCubesPlugin(BasePlugin, ABC):
             c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
         ]
         if cubes_not_matching_time_bounds:
-            return f"{' and '.join(cubes_not_matching_time_bounds)} must not have time bounds"
+            str_bool = "" if time_bounds else "not "
+            msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
+            return msg
         for time_coord_name in ["time", "forecast_reference_time"]:
             time_coords = [c.coord(time_coord_name) for c in inputs]
             if not all([tc == time_coords[0] for tc in time_coords[1:]]):
