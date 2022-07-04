@@ -53,6 +53,7 @@ from scipy.stats import norm
 from improver import BasePlugin, PostProcessingPlugin
 from improver.calibration.utilities import (
     broadcast_data_to_time_coord,
+    check_data_sufficiency,
     check_forecast_consistency,
     check_predictor,
     convert_cube_data_to_2d,
@@ -671,6 +672,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         predictor: str = "mean",
         tolerance: float = 0.02,
         max_iterations: int = 1000,
+        proportion_of_nans: float = 0.5,
     ) -> None:
         """
         Create an ensemble calibration plugin that, for Nonhomogeneous Gaussian
@@ -724,6 +726,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
                 predictor_of_mean is "realizations", then the number of
                 iterations may require increasing, as there will be
                 more coefficients to solve for.
+            proportion_of_nans:
+                The proportion of the matching historic forecast-truth pairs that
+                are allowed to be NaN.
         """
         self.distribution = distribution
         self.point_by_point = point_by_point
@@ -734,6 +739,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.desired_units = desired_units
         self.tolerance = tolerance
         self.max_iterations = max_iterations
+        self.proportion_of_nans = proportion_of_nans
         self.minimiser = ContinuousRankedProbabilityScoreMinimisers(
             self.predictor,
             tolerance=self.tolerance,
@@ -1314,6 +1320,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             historic_forecasts, truths
         )
         check_forecast_consistency(historic_forecasts)
+        check_data_sufficiency(
+            historic_forecasts, truths, self.point_by_point, self.proportion_of_nans
+        )
         if additional_fields:
             if self.predictor.lower() == "realizations":
                 msg = (

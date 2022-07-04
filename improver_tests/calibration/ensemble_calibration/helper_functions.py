@@ -116,7 +116,6 @@ class SetupCubes(IrisTest):
             frt=frt_dt,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
-
         time_dt = time_dt - datetime.timedelta(days=5)
         frt_dt = frt_dt - datetime.timedelta(days=5)
 
@@ -131,6 +130,8 @@ class SetupCubes(IrisTest):
 
         # Create the historic and truth cubes
         self.historic_temperature_forecast_cube = self.historic_forecasts.merge_cube()
+        # Ensure the forecast coordinates are in the order: realization, time, lat, lon.
+        self.historic_temperature_forecast_cube.transpose([1, 0, 2, 3])
         self.temperature_truth_cube = self.truth.merge_cube()
 
         # Create a cube for testing wind speed.
@@ -150,6 +151,8 @@ class SetupCubes(IrisTest):
             name="wind_speed",
             units="m s-1",
         ).merge_cube()
+        # Ensure the forecast coordinates are in the order: realization, time, lat, lon.
+        self.historic_wind_speed_forecast_cube.transpose([1, 0, 2, 3])
 
         self.wind_speed_truth_cube = _create_truth(
             base_data, time_dt, name="wind_speed", units="m s-1"

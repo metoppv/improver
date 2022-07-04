@@ -370,7 +370,7 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         fps = [0, 3600, 7200, 10800, 14400]
         fp_coord = self.historic_forecast.coord("forecast_period").copy(fps)
         self.historic_forecast.remove_coord("forecast_period")
-        self.historic_forecast.add_aux_coord(fp_coord, 0)
+        self.historic_forecast.add_aux_coord(fp_coord, 1)
 
         msg = "The forecast period must be the same"
         with self.assertRaisesRegex(ValueError, msg):
