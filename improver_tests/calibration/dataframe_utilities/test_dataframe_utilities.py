@@ -165,6 +165,9 @@ class SetupSharedDataFrames(ImproverTest):
             np.array(self.height, dtype=np.float32), "height", units="m",
         )
 
+        # Modify the forecast and truth DataFrames so that one of the sites is
+        # only available at the most recent time point. These DataFrames also have
+        # a station_id column.
         df = self.forecast_df
         condition = (df["time"].isin([self.time1, self.time2])) & (
             df["wmo_id"] == self.wmo_ids[2]
@@ -182,6 +185,9 @@ class SetupSharedDataFrames(ImproverTest):
             self.truth_df_multi_station_id["wmo_id"] + "0"
         )
 
+        # Modify the forecast and truth DataFrames so that both DataFrames have two
+        # sites, however, only one of these sites overlap. These DataFrames also have
+        # a station_id column.
         self.forecast_df_one_station_id = self.forecast_df.copy()
         self.forecast_df_one_station_id = self.forecast_df_one_station_id.loc[
             self.forecast_df_one_station_id["wmo_id"].isin(self.wmo_ids[:-1])
@@ -273,6 +279,9 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
         for coord in ["forecast_period", "time"]:
             self.expected_instantaneous_forecast.coord(coord).bounds = None
 
+        # Modify the forecast cube, so that site and time combinations that are absent
+        # from the input DataFrame have NaN values. A station_id coordinate is also
+        # added.
         self.expected_forecast_multi_station_id = self.expected_period_forecast.copy()
         self.expected_forecast_multi_station_id.data[:, :2, -1] = np.nan
         unique_id_coord = iris.coords.AuxCoord(
@@ -294,6 +303,9 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
         )
+
+        # Modify the forecast cube by extracting a single site and adding a
+        # station_id coordinate.
         self.expected_forecast_one_station_id = self.expected_period_forecast[
             :, :, [1]
         ].copy()
@@ -345,6 +357,9 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
         self.expected_instantaneous_truth = self.expected_period_truth.copy()
         self.expected_instantaneous_truth.coord("time").bounds = None
 
+        # Modify the truth cube, so that site and time combinations that are absent
+        # from the input DataFrame have NaN values. A station_id coordinate is also
+        # added.
         unique_id_coord = iris.coords.AuxCoord(
             [w + "0" for w in self.wmo_ids],
             long_name="station_id",
@@ -356,6 +371,8 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
         site_id_dim = self.expected_truth_multi_station_id.coord_dims("spot_index")[0]
         self.expected_truth_multi_station_id.add_aux_coord(unique_id_coord, site_id_dim)
 
+        # Modify the truth cube by extracting a single site and adding a station_id
+        # coordinate.
         unique_id_coord = iris.coords.AuxCoord(
             [self.wmo_ids[1] + "0"],
             long_name="station_id",
