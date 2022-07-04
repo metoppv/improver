@@ -185,9 +185,9 @@ class SetupSharedDataFrames(ImproverTest):
             self.truth_df_multi_station_id["wmo_id"] + "0"
         )
 
-        # Modify the forecast and truth DataFrames so that both DataFrames have two
-        # sites, however, only one of these sites overlap. These DataFrames also have
-        # a station_id column.
+        # The forecast DataFrame has two sites. The truth DataFrame has two sites
+        # with one of these sites being in common with the forecast DataFrame.
+        # These DataFrames also have a station_id column.
         self.forecast_df_one_station_id = self.forecast_df.copy()
         self.forecast_df_one_station_id = self.forecast_df_one_station_id.loc[
             self.forecast_df_one_station_id["wmo_id"].isin(self.wmo_ids[:-1])
@@ -297,18 +297,17 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
             unique_id_coord, site_id_dim
         )
 
+        # Modify the forecast cube by extracting a single site and adding a
+        # station_id coordinate.
+        self.expected_forecast_one_station_id = self.expected_period_forecast[
+            :, :, [1]
+        ].copy()
         unique_id_coord = iris.coords.AuxCoord(
             [self.wmo_ids[1] + "0"],
             long_name="station_id",
             units="no_unit",
             attributes={"unique_site_identifier": "true"},
         )
-
-        # Modify the forecast cube by extracting a single site and adding a
-        # station_id coordinate.
-        self.expected_forecast_one_station_id = self.expected_period_forecast[
-            :, :, [1]
-        ].copy()
         site_id_dim = self.expected_forecast_one_station_id.coord_dims("spot_index")[0]
         self.expected_forecast_one_station_id.add_aux_coord(
             unique_id_coord, site_id_dim
