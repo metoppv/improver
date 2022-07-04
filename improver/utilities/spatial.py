@@ -418,11 +418,22 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
+
+        Raises:
+            ValueError: If both radius and grid point radius are set.
+            ValueError: If neither radius or grid point radius are set.
+            ValueError: Land mask not named land_binary_mask.
         """
-        if radius is not None and grid_point_radius is not None:
-            raise ValueError("Only one of radius or grid_point_radius should be set")
-        if radius is None and grid_point_radius is None:
-            raise ValueError("One of radius or grid_point_radius should be set")
+        if radius and grid_point_radius:
+            raise ValueError(
+                "Vicinity processing requires that only one of radius or "
+                "grid_point_radius should be set"
+            )
+        if not radius and not grid_point_radius:
+            raise ValueError(
+                "Vicinity processing requires that one of radius or "
+                "grid_point_radius should be set to a non-zero value"
+            )
 
         self.radius = radius
         self.grid_point_radius = grid_point_radius
@@ -498,11 +509,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             cube:
                 Thresholded cube.
         """
-        if self.grid_point_radius is None:
+        if self.radius:
             self.native_grid_point_radius = False
-            if self.radius != 0:
-                return distance_to_number_of_grid_cells(cube, self.radius)
-            return 0
+            return distance_to_number_of_grid_cells(cube, self.radius)
         else:
             self.native_grid_point_radius = True
             return self.grid_point_radius
@@ -545,6 +554,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Returns:
             Cube containing the occurrences within a vicinity for each
             xy 2d slice, which have been merged back together.
+
+        Raises:
+            ValueError: Cube and land mask have differing spatial coordinates.
         """
         if self.land_mask_cube and not spatial_coords_match(
             [cube, self.land_mask_cube]

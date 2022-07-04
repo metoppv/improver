@@ -182,19 +182,6 @@ def test_basic_latlon(latlon_cube, binary_expected):
     assert np.allclose(result.data, binary_expected)
 
 
-@pytest.mark.parametrize("fixture_name", ["cube", "latlon_cube"])
-@pytest.mark.parametrize("keyword", ["radius", "grid_point_radius"])
-def test_zero_radius(request, fixture_name, keyword):
-    """Test that if a zero radius / grid point radius is provided, the input
-    data is returned unchanged. This test uses both an equal area and latlon
-    grid as a 0 radius can be applied to both."""
-    cube = request.getfixturevalue(fixture_name)
-    kwargs = {keyword: 0}
-    expected = cube.data.copy()
-    result = OccurrenceWithinVicinity(**kwargs).process(cube)
-    assert np.allclose(result.data, expected)
-
-
 def test_fuzzy(cube):
     """Test for non-binary events to determine where there is an occurrence
     within the vicinity."""
@@ -487,20 +474,60 @@ def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     assert np.allclose(result.data, expected)
 
 
-@pytest.mark.parametrize("radius", [0, 2000])
+@pytest.mark.parametrize("radius", [10, 2000])
 def test_two_radii_provided_exception(cube, radius):
     """Test an exception is raised if both radius and grid_point_radius are
-    provided as arguments."""
-    with pytest.raises(
-        ValueError, match="Only one of radius or grid_point_radius should be set"
-    ):
+    provided as non-zero arguments."""
+
+    expected = (
+        "Vicinity processing requires that only one of radius or "
+        "grid_point_radius should be set"
+    )
+
+    with pytest.raises(ValueError, match=expected):
         OccurrenceWithinVicinity(radius=radius, grid_point_radius=2)
 
 
-def test_no_radii_provided_exception(cube):
+@pytest.mark.parametrize("radius", [0, None])
+@pytest.mark.parametrize("grid_point_radius", [0, None])
+def test_no_radii_provided_exception(cube, radius, grid_point_radius):
     """Test an exception is raised if neither radius nor grid_point_radius are
-    provided as arguments."""
-    with pytest.raises(
-        ValueError, match="One of radius or grid_point_radius should be set"
-    ):
-        OccurrenceWithinVicinity()
+    set to non-zero values."""
+
+    expected = (
+        "Vicinity processing requires that one of radius or "
+        "grid_point_radius should be set to a non-zero value"
+    )
+
+    with pytest.raises(ValueError, match=expected):
+        OccurrenceWithinVicinity(radius=radius, grid_point_radius=grid_point_radius)
+
+
+def test_set_grid_point_radius(cube):
+    """Test the correct radius is returned for mixtures of zeroes, Nans and
+    valid radii."""
+
+    assert (
+        OccurrenceWithinVicinity(
+            radius=2000, grid_point_radius=0
+        ).set_grid_point_radius(cube)
+        == 1
+    )
+    assert (
+        OccurrenceWithinVicinity(
+            radius=2000, grid_point_radius=None
+        ).set_grid_point_radius(cube)
+        == 1
+    )
+    assert (
+        OccurrenceWithinVicinity(radius=0, grid_point_radius=2).set_grid_point_radius(
+            cube
+        )
+        == 2
+    )
+    assert (
+        OccurrenceWithinVicinity(
+            radius=None, grid_point_radius=2
+        ).set_grid_point_radius(cube)
+        == 2
+    )
