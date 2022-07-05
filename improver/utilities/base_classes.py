@@ -125,26 +125,25 @@ class InputCubesPlugin(BasePlugin, ABC):
                 If additional cubes are found
         """
         cubes = CubeList(inputs)
-        for attr, cube_values in self.cube_descriptors.items():
-            try:
-                (cube,) = cubes.extract(cube_values["name"])
-            except ValueError as e:
-                raise ValueError(
-                    f"Expected to find cube of {cube_values['name']},"
-                    f" in {[c.name() for c in cubes]}"
-                ) from e
-            cube.convert_units(cube_values["units"])
-            setattr(self, attr, cube)
         expected_names = set([desc["name"] for desc in self.cube_descriptors.values()])
         cubes_names = set([cube.name() for cube in cubes])
-        diff = cubes_names.symmetric_difference(expected_names)
+        diff = expected_names - cubes_names
+        if diff:
+            raise ValueError(f"Expected to find cube of {diff}, in {cubes_names}")
+        diff = cubes_names - expected_names
         if diff:
             raise ValueError(f"Unexpected Cube(s) found in inputs: {diff}")
-        if not spatial_coords_match(inputs):
+        if not spatial_coords_match(cubes):
             raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
+
+        for attr, cube_values in self.cube_descriptors.items():
+            (cube,) = cubes.extract(cube_values["name"])
+            cube.convert_units(cube_values["units"])
+            setattr(self, attr, cube)
         self.assert_time_coords_ok(cubes, time_bounds)
+
         if self.model_id_attr:
-            model_id_value = {cube.attributes[self.model_id_attr] for cube in inputs}
+            model_id_value = {cube.attributes[self.model_id_attr] for cube in cubes}
             if len(model_id_value) != 1:
                 raise ValueError(
                     f"Attribute {self.model_id_attr} does not match on input cubes. "
