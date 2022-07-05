@@ -502,8 +502,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         """
         Set the grid_point_radius if it has not been provided in this form.
         If a radius has been provided as a physical distance, convert this into
-        a number of grid points. If the radius distance is 0, set the grid point
-        radius to 0.
+        a number of grid points.
 
         Args:
             cube:
