@@ -94,6 +94,9 @@ BOUNDS_FOR_ECDF = {
     "wind_speed_of_gust": Bounds((0, 200), "m s^-1"),
     # Others
     "air_pressure_at_sea_level": Bounds((79600, 108000), "Pa"),
+    "dew_point_temperature": Bounds(
+        (-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin"
+    ),
     "relative_humidity": Bounds((0, 1.2), "1"),
     "visibility_in_air": Bounds((0, 100000), "m"),
     "ultraviolet_index": Bounds((0, 25.0), "1"),
