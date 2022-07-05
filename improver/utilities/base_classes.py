@@ -87,9 +87,9 @@ class InputCubesPlugin(BasePlugin, ABC):
         raise NotImplementedError
 
     @staticmethod
-    def _input_times_error(inputs: List[Cube], time_bounds: bool) -> str:
+    def assert_time_coords_ok(inputs: List[Cube], time_bounds: bool):
         """
-        Returns appropriate error message string if
+        Raises appropriate ValueError if
 
         - Any input cube has or is missing time bounds (depending on time_bounds)
         - Input cube times and forecast_reference_times do not match
@@ -100,18 +100,17 @@ class InputCubesPlugin(BasePlugin, ABC):
         if cubes_not_matching_time_bounds:
             str_bool = "" if time_bounds else "not "
             msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
-            return msg
+            raise ValueError(msg)
         for time_coord_name in ["time", "forecast_reference_time"]:
             time_coords = [c.coord(time_coord_name) for c in inputs]
             if not all([tc == time_coords[0] for tc in time_coords[1:]]):
-                return (
+                raise ValueError(
                     f"{time_coord_name} coordinates do not match."
                     "\n  "
                     "\n  ".join(
                         [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
                     )
                 )
-        return ""
 
     def parse_inputs(self, inputs: List[Cube], time_bounds=False) -> None:
         """Extracts input cubes as described by self.cube_descriptors.
@@ -142,9 +141,7 @@ class InputCubesPlugin(BasePlugin, ABC):
             raise ValueError(f"Unexpected Cube(s) found in inputs: {extras}")
         if not spatial_coords_match(inputs):
             raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
-        time_error_msg = self._input_times_error(cubes, time_bounds)
-        if time_error_msg:
-            raise ValueError(time_error_msg)
+        self.assert_time_coords_ok(cubes, time_bounds)
         if self.model_id_attr:
             model_id_value = {cube.attributes[self.model_id_attr] for cube in inputs}
             if len(model_id_value) != 1:
