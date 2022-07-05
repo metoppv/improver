@@ -135,10 +135,11 @@ class InputCubesPlugin(BasePlugin, ABC):
                 ) from e
             cube.convert_units(cube_values["units"])
             setattr(self, attr, cube)
-        if len(cubes) > len(self.cube_descriptors):
-            expected_names = [i["name"] for i in self.cube_descriptors.values()]
-            extras = [c.name() for c in cubes if c.name() not in expected_names]
-            raise ValueError(f"Unexpected Cube(s) found in inputs: {extras}")
+        expected_names = set([desc["name"] for desc in self.cube_descriptors.values()])
+        cubes_names = set([cube.name() for cube in cubes])
+        diff = cubes_names.symmetric_difference(expected_names)
+        if diff:
+            raise ValueError(f"Unexpected Cube(s) found in inputs: {diff}")
         if not spatial_coords_match(inputs):
             raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
         self.assert_time_coords_ok(cubes, time_bounds)
