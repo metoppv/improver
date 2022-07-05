@@ -145,27 +145,29 @@ def test_basic(cube, binary_expected, kwargs):
     assert np.allclose(result.data, binary_expected)
 
 
-def test_metadata(cube, radius_coord, grid_point_radius_coord):
+@pytest.mark.parametrize(
+    "kwargs, expected_coord",
+    (
+        ({"radius": RADIUS}, "radius_coord"),
+        ({"grid_point_radius": GRID_POINT_RADIUS}, "grid_point_radius_coord"),
+    ),
+)
+def test_metadata(request, cube, kwargs, expected_coord):
     """Test that the metadata on the cube reflects the data it contains
-    following the application of vicinity processing."""
-    # defining the radius
-    plugin = OccurrenceWithinVicinity(radius=RADIUS)
-    # repeat thet test with the same plugin instance to ensure self variables
-    # have not been modified.
-    for test in range(2):
-        result = plugin.process(cube)
-        assert isinstance(result, Cube)
-        assert result.coord("radius_of_vicinity") == radius_coord
-        assert "in_vicinity" in result.name()
+    following the application of vicinity processing.
 
-    # defining the grid point radius
-    plugin = OccurrenceWithinVicinity(grid_point_radius=GRID_POINT_RADIUS)
-    # repeat thet test with the same plugin instance to ensure self variables
+    Parameterisation tests this using a radius defined as a distance or as
+    a number of grid points."""
+
+    expected_coord = request.getfixturevalue(expected_coord)
+
+    plugin = OccurrenceWithinVicinity(**kwargs)
+    # repeat the test with the same plugin instance to ensure self variables
     # have not been modified.
-    for test in range(2):
+    for _ in range(2):
         result = plugin.process(cube)
         assert isinstance(result, Cube)
-        assert result.coord("radius_of_vicinity") == grid_point_radius_coord
+        assert result.coord("radius_of_vicinity") == expected_coord
         assert "in_vicinity" in result.name()
 
 
@@ -474,7 +476,7 @@ def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     assert np.allclose(result.data, expected)
 
 
-@pytest.mark.parametrize("radius", [10, 2000])
+@pytest.mark.parametrize("radius", [-1, 10, 2000])
 def test_two_radii_provided_exception(cube, radius):
     """Test an exception is raised if both radius and grid_point_radius are
     provided as non-zero arguments."""
@@ -503,31 +505,34 @@ def test_no_radii_provided_exception(cube, radius, grid_point_radius):
         OccurrenceWithinVicinity(radius=radius, grid_point_radius=grid_point_radius)
 
 
-def test_set_grid_point_radius(cube):
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        ({"radius": -2000, "grid_point_radius": None}),
+        ({"radius": None, "grid_point_radius": -1}),
+    ),
+)
+def test_negative_radii_provided_exception(cube, kwargs):
+    """Test an exception is raised if the radius provided in either form is
+    a negative value."""
+
+    expected = "Vicinity processing requires a postive vicinity radius"
+
+    with pytest.raises(ValueError, match=expected):
+        OccurrenceWithinVicinity(**kwargs).get_grid_point_radius(cube)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        ({"radius": 2000, "grid_point_radius": 0}),
+        ({"radius": 2000, "grid_point_radius": None}),
+        ({"radius": 0, "grid_point_radius": 1}),
+        ({"radius": None, "grid_point_radius": 1}),
+    ),
+)
+def test_get_grid_point_radius(cube, kwargs):
     """Test the correct radius is returned for mixtures of zeroes, Nans and
     valid radii."""
 
-    assert (
-        OccurrenceWithinVicinity(
-            radius=2000, grid_point_radius=0
-        ).set_grid_point_radius(cube)
-        == 1
-    )
-    assert (
-        OccurrenceWithinVicinity(
-            radius=2000, grid_point_radius=None
-        ).set_grid_point_radius(cube)
-        == 1
-    )
-    assert (
-        OccurrenceWithinVicinity(radius=0, grid_point_radius=2).set_grid_point_radius(
-            cube
-        )
-        == 2
-    )
-    assert (
-        OccurrenceWithinVicinity(
-            radius=None, grid_point_radius=2
-        ).set_grid_point_radius(cube)
-        == 2
-    )
+    assert OccurrenceWithinVicinity(**kwargs).get_grid_point_radius(cube) == 1
