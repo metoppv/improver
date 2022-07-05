@@ -33,7 +33,7 @@
 orogrophy datasets."""
 
 from improver import cli
-from improver.constants import DALR, U_DALR
+from improver.constants import DALR
 
 
 @cli.clizefy
@@ -105,7 +105,7 @@ def process(
         )
         result = create_new_diagnostic_cube(
             "air_temperature_lapse_rate",
-            U_DALR,
+            "K m-1",
             temperature,
             attributes,
             data=np.full_like(temperature.data, DALR).astype(np.float32),
