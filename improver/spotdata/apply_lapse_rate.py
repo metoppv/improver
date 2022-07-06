@@ -38,12 +38,12 @@ import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
 
 
-class SpotLapseRateAdjust(BasePlugin):
+class SpotLapseRateAdjust(PostProcessingPlugin):
     """
     Adjusts spot data temperatures by a lapse rate to better represent the
     conditions at their altitude that may not be captured by the model
