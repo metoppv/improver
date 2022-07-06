@@ -241,7 +241,6 @@ class WindDirection(PostProcessingPlugin):
             + np.square(self.wdir_mean_complex.imag)
         )
         self.r_vals_slice = self.wdir_slice_mean.copy(data=r_vals)
- 
 
     def wind_dir_decider(self, where_low_r: ndarray, wdir_cube: Cube) -> None:
         """If the wind direction is so widely scattered that the r value
@@ -364,7 +363,6 @@ class WindDirection(PostProcessingPlugin):
             # Append to cubelists.
             self.wdir_cube_list.append(self.wdir_slice_mean)
 
-
         # Combine cubelists into cube.
         cube_mean_wdir = self.wdir_cube_list.merge_cube()
 
@@ -372,7 +370,7 @@ class WindDirection(PostProcessingPlugin):
         # matches the input cube.
         first_slice = next(cube_ens_wdir.slices_over(["realization"]))
         cube_mean_wdir = check_cube_coordinates(first_slice, cube_mean_wdir)
- 
+
         # Change cube identifiers.
         cube_mean_wdir.add_cell_method(CellMethod("mean", coords="realization"))
         return cube_mean_wdir
