@@ -68,7 +68,7 @@ class InputCubesPlugin(BasePlugin, ABC):
     An abstract class for IMPROVER plugins that generate a new diagnostic.
 
     Sub-classes must set:
-        cube_descriptors: Dict. Each key will become the class attribute name
+        cube_descriptors: Dict. Each key will be used with get_cube
         and the value is another dict containing "name" for the required cube name and "units"
         for the required cube units, which the discovered cube will be converted to.
     """
@@ -108,7 +108,7 @@ class InputCubesPlugin(BasePlugin, ABC):
     @property
     @abstractmethod
     def cube_descriptors(self):
-        """Classes must set this to a dict where each key will become the class attribute name
+        """Classes must set this to a dict where each key will be used with get_cube
         and the value is another dict containing "name" for the required cube name and "units"
         for the required cube units, which the discovered cube will be converted to."""
         raise NotImplementedError
