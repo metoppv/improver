@@ -31,6 +31,7 @@
 """Module containing plugin base classes."""
 
 from abc import ABC, abstractmethod
+from collections import namedtuple
 from typing import List
 
 from iris.cube import Cube, CubeList
@@ -74,6 +75,13 @@ class InputCubesPlugin(BasePlugin, ABC):
             model_id_attr:
                 Name of model ID attribute to be copied from source cubes to output cube
         """
+        cube_descriptor = namedtuple("cube_descriptor", ("name", "units"))
+        self._parsed_cube_descriptors = {}
+        if not self.cube_descriptors:
+            raise ValueError("Missing compulsory dictionary 'cube_descriptors'")
+        for k, v in self.cube_descriptors.items():
+            self._parsed_cube_descriptors[k] = cube_descriptor(**v)
+
         self.model_id_attr = model_id_attr
         self.model_id_value = None
 
@@ -125,7 +133,7 @@ class InputCubesPlugin(BasePlugin, ABC):
                 If additional cubes are found
         """
         cubes = CubeList(inputs)
-        expected_names = set([desc["name"] for desc in self.cube_descriptors.values()])
+        expected_names = set([desc.name for desc in self._parsed_cube_descriptors.values()])
         cubes_names = set([cube.name() for cube in cubes])
         diff = expected_names - cubes_names
         if diff:
@@ -136,9 +144,9 @@ class InputCubesPlugin(BasePlugin, ABC):
         if not spatial_coords_match(cubes):
             raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
 
-        for attr, cube_values in self.cube_descriptors.items():
-            (cube,) = cubes.extract(cube_values["name"])
-            cube.convert_units(cube_values["units"])
+        for attr, cube_values in self._parsed_cube_descriptors.items():
+            (cube,) = cubes.extract(cube_values.name)
+            cube.convert_units(cube_values.units)
             setattr(self, attr, cube)
         self.assert_time_coords_ok(cubes, time_bounds)
 
