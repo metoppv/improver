@@ -64,7 +64,13 @@ class BasePlugin(ABC):
 
 
 class InputCubesPlugin(BasePlugin, ABC):
-    """An abstract class for IMPROVER plugins that generate a new diagnostic.
+    """
+    An abstract class for IMPROVER plugins that generate a new diagnostic.
+
+    Sub-classes must set:
+        cube_descriptors: Dict. Each key will become the class attribute name
+        and the value is another dict containing "name" for the required cube name and "units"
+        for the required cube units, which the discovered cube will be converted to.
     """
 
     def __init__(self, model_id_attr: str = None):
@@ -75,20 +81,33 @@ class InputCubesPlugin(BasePlugin, ABC):
             model_id_attr:
                 Name of model ID attribute to be copied from source cubes to output cube
         """
+        self._parse_cube_descriptors()
+
+        self.model_id_attr = model_id_attr
+        self.model_id_value = None
+
+    def _parse_cube_descriptors(self):
         cube_descriptor = namedtuple("cube_descriptor", ("name", "units"))
         self._parsed_cube_descriptors = {}
         if not self.cube_descriptors:
             raise ValueError("Missing compulsory dictionary 'cube_descriptors'")
         for k, v in self.cube_descriptors.items():
-            self._parsed_cube_descriptors[k] = cube_descriptor(**v)
+            if not isinstance(k, str):
+                raise TypeError(
+                    f"Keys in cube_descriptors must be 'str', not {type(k)} for {k}"
+                )
+            try:
+                self._parsed_cube_descriptors[k] = cube_descriptor(**v)
+            except TypeError as e:
+                raise TypeError(f"Error in descriptor {k}") from e
+            if not isinstance(
+                self._parsed_cube_descriptors[k].name, str
+            ) or not isinstance(self._parsed_cube_descriptors[k].units, str):
+                raise TypeError(f"Error in descriptor {k}, non-strings detected")
 
-        self.model_id_attr = model_id_attr
-        self.model_id_value = None
-
-    @classmethod
     @property
     @abstractmethod
-    def cube_descriptors(cls):
+    def cube_descriptors(self):
         """Classes must set this to a dict where each key will become the class attribute name
         and the value is another dict containing "name" for the required cube name and "units"
         for the required cube units, which the discovered cube will be converted to."""
@@ -133,7 +152,9 @@ class InputCubesPlugin(BasePlugin, ABC):
                 If additional cubes are found
         """
         cubes = CubeList(inputs)
-        expected_names = set([desc.name for desc in self._parsed_cube_descriptors.values()])
+        expected_names = set(
+            [desc.name for desc in self._parsed_cube_descriptors.values()]
+        )
         cubes_names = set([cube.name() for cube in cubes])
         diff = expected_names - cubes_names
         if diff:

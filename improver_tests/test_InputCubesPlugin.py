@@ -82,6 +82,71 @@ class SimplePlugin(InputCubesPlugin):
         self.parse_inputs(inputs, time_bounds=time_bounds)
 
 
+def add_int_key(descriptor: dict):
+    """Adds a descriptor key that fails the string test"""
+    descriptor[0] = {"name": "invalid", "units": "kg"}
+
+
+def add_short_key(descriptor: dict):
+    """Adds a descriptor value that is missing a units item"""
+    descriptor["short"] = {"name": "invalid"}
+
+
+def add_extra_key(descriptor: dict):
+    """Adds an extra item to a descriptor value"""
+    descriptor["temperature"]["kittens"] = "cute"
+
+
+def add_int_value(descriptor: dict):
+    """Sets temperature units to an int"""
+    descriptor["temperature"]["units"] = 1
+
+
+def empty_dict(descriptor: dict):
+    """Empties the descriptor dictionary"""
+    for key in list(descriptor.keys()):
+        descriptor.pop(key)
+
+
+@pytest.mark.parametrize(
+    "breaking_function, error_type, msg",
+    (
+        (
+            add_int_key,
+            TypeError,
+            "Keys in cube_descriptors must be 'str', not <class 'int'> for 0",
+        ),
+        (add_short_key, TypeError, r"Error in descriptor short"),
+        (add_extra_key, TypeError, r"Error in descriptor temperature"),
+        (
+            add_int_value,
+            TypeError,
+            r"Error in descriptor temperature, non-strings detected",
+        ),
+        (empty_dict, ValueError, "Missing compulsory dictionary 'cube_descriptors'"),
+    ),
+)
+def test_bad_descriptors(breaking_function, error_type, msg):
+    """Test for known errors when a bad descriptor is provided"""
+    bad_descriptor = {
+        "temperature": {"name": "air_temperature", "units": "K"},
+        "pressure": {"name": "air_pressure", "units": "Pa"},
+        "rel_humidity": {"name": "relative_humidity", "units": "kg kg-1"},
+    }
+    breaking_function(bad_descriptor)
+    with pytest.raises(error_type, match=msg):
+
+        class BadPlugin(InputCubesPlugin):
+            cube_descriptors = bad_descriptor
+
+            def process(self, inputs: List[Cube], time_bounds: bool = False):
+                """Empty method to make abstract base class happy"""
+                pass
+
+        bp = BadPlugin()
+        bp.cube_descriptors = bad_descriptor
+
+
 def metadata_ok(plugin):
     """Checks that the three cubes are in the right places with the right names and units"""
     assert plugin.temperature.name() == "air_temperature"
