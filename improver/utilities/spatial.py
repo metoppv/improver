@@ -437,7 +437,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 "grid_point_radius should be set to a non-zero value"
             )
         if (radius and radius < 0) or (grid_point_radius and grid_point_radius < 0):
-            raise ValueError("Vicinity processing requires a postive vicinity radius")
+            raise ValueError("Vicinity processing requires a positive vicinity radius")
 
         self.radius = radius
         self.grid_point_radius = grid_point_radius
@@ -506,7 +506,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             max_cube.data = max_data
         return max_cube
 
-    def get_grid_point_radius(self, cube):
+    def get_grid_point_radius(self, cube: Cube) -> Union[float, int]:
         """
         Return the grid_point_radius if it has been provided in this form.
         If a radius has been provided as a physical distance, convert this into
@@ -515,6 +515,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Args:
             cube:
                 Thresholded cube.
+
+        Returns:
+            The vicinity radius as a number of grid points.
         """
         if self.radius:
             self.native_grid_point_radius = False
@@ -523,7 +526,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.native_grid_point_radius = True
             return self.grid_point_radius
 
-    def _add_vicinity_coordinate(self, cube):
+    def _add_vicinity_coordinate(self, cube: Cube) -> None:
         """
         Add a coordinate to the cube that records the vicinity radius that
         has been applied to the data.

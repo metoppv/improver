@@ -516,7 +516,7 @@ def test_negative_radii_provided_exception(cube, kwargs):
     """Test an exception is raised if the radius provided in either form is
     a negative value."""
 
-    expected = "Vicinity processing requires a postive vicinity radius"
+    expected = "Vicinity processing requires a positive vicinity radius"
 
     with pytest.raises(ValueError, match=expected):
         OccurrenceWithinVicinity(**kwargs).get_grid_point_radius(cube)
