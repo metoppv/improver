@@ -113,6 +113,18 @@ class InputCubesPlugin(BasePlugin, ABC):
         for the required cube units, which the discovered cube will be converted to."""
         raise NotImplementedError
 
+    def get_cube(self, key: str) -> Cube:
+        """Gets the named cube.
+
+        Args:
+            key:
+                The cube identifier. Must match a key from cube_descriptors
+        """
+        cube = getattr(self, f"_{key}")
+        if not isinstance(cube, Cube):
+            raise TypeError(f"_{key} should be a Cube, but found {type(cube)}")
+        return cube
+
     @staticmethod
     def assert_time_coords_ok(inputs: List[Cube], time_bounds: bool):
         """
@@ -168,7 +180,7 @@ class InputCubesPlugin(BasePlugin, ABC):
         for attr, cube_values in self._parsed_cube_descriptors.items():
             (cube,) = cubes.extract(cube_values.name)
             cube.convert_units(cube_values.units)
-            setattr(self, attr, cube)
+            setattr(self, f"_{attr}", cube)
         self.assert_time_coords_ok(cubes, time_bounds)
 
         if self.model_id_attr:

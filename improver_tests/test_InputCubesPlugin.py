@@ -73,9 +73,6 @@ class SimplePlugin(InputCubesPlugin):
         "pressure": {"name": "air_pressure", "units": "Pa"},
         "rel_humidity": {"name": "relative_humidity", "units": "kg kg-1"},
     }
-    temperature = None
-    pressure = None
-    rel_humidity = None
 
     def process(self, inputs: List[Cube], time_bounds: bool = False):
         """Call parse_inputs class method."""
@@ -149,12 +146,12 @@ def test_bad_descriptors(breaking_function, error_type, msg):
 
 def metadata_ok(plugin):
     """Checks that the three cubes are in the right places with the right names and units"""
-    assert plugin.temperature.name() == "air_temperature"
-    assert plugin.temperature.units == "K"
-    assert plugin.pressure.name() == "air_pressure"
-    assert plugin.pressure.units == "Pa"
-    assert plugin.rel_humidity.name() == "relative_humidity"
-    assert plugin.rel_humidity.units == "kg kg-1"
+    assert plugin.get_cube("temperature").name() == "air_temperature"
+    assert plugin.get_cube("temperature").units == "K"
+    assert plugin.get_cube("pressure").name() == "air_pressure"
+    assert plugin.get_cube("pressure").units == "Pa"
+    assert plugin.get_cube("rel_humidity").name() == "relative_humidity"
+    assert plugin.get_cube("rel_humidity").units == "kg kg-1"
 
 
 @pytest.mark.parametrize("time_bounds", (False, True))
@@ -175,13 +172,13 @@ def test_unit_conversion_and_cube_order(
     plugin(cubes, time_bounds=time_bounds)
     metadata_ok(plugin)
     if change_units:
-        assert np.allclose(plugin.temperature.data, 274.15)
-        assert np.allclose(plugin.pressure.data, 100.0)
-        assert np.allclose(plugin.rel_humidity.data, 0.001)
+        assert np.allclose(plugin.get_cube("temperature").data, 274.15)
+        assert np.allclose(plugin.get_cube("pressure").data, 100.0)
+        assert np.allclose(plugin.get_cube("rel_humidity").data, 0.001)
     else:
-        assert np.allclose(plugin.temperature.data, 1.0)
-        assert np.allclose(plugin.pressure.data, 1.0)
-        assert np.allclose(plugin.rel_humidity.data, 1.0)
+        assert np.allclose(plugin.get_cube("temperature").data, 1.0)
+        assert np.allclose(plugin.get_cube("pressure").data, 1.0)
+        assert np.allclose(plugin.get_cube("rel_humidity").data, 1.0)
 
 
 @pytest.mark.parametrize("time_bounds", [False])
@@ -298,3 +295,16 @@ def test_exceptions(cubes, modifier: callable, time_bounds: bool, error_match: s
         SimplePlugin(model_id_attr="mosg__model_configuration")(
             cubes, time_bounds=time_bounds
         )
+
+
+@pytest.mark.parametrize("time_bounds", [False])
+def test_get_cube_error(cubes):
+    """Checks that a non-cube inserted into the object raises an error"""
+    plugin = SimplePlugin()
+    plugin(cubes)
+    assert isinstance(plugin.get_cube("temperature"), Cube)
+    plugin._temperature = 1
+    with pytest.raises(
+        TypeError, match="_temperature should be a Cube, but found <class 'int'>"
+    ):
+        plugin.get_cube("temperature")
