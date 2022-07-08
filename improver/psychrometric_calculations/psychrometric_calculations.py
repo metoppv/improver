@@ -304,7 +304,7 @@ class HumidityMixingRatio(BasePlugin):
 
     cube_descriptors = {
         "temperature": {"name": "air_temperature", "units": "K"},
-        "pressure": {"name": "air_pressure", "units": "Pa"},
+        "pressure": {"name": "surface_air_pressure", "units": "Pa"},
         "rel_humidity": {"name": "relative_humidity", "units": "1"},
     }
 

@@ -64,7 +64,7 @@ class CloudCondensationLevel(BasePlugin):
                 Name of model ID attribute to be copied from source cubes to output cube
         """
         self.model_id_attr = model_id_attr
-        self.cube_names = ["air_temperature", "air_pressure", "humidity_mixing_ratio"]
+        self.cube_names = ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
 
     def _input_times_error(self) -> str:
         """
@@ -170,7 +170,7 @@ class CloudCondensationLevel(BasePlugin):
             self.pressure.data.copy(),
             args=(self.pressure.data, self.temperature.data, self.humidity.data),
             tol=1e-6,
-            maxiter=10,
+            maxiter=100,
         ).astype(np.float32)
         ccl_temperature = dry_adiabatic_temperature(
             self.temperature.data, self.pressure.data, ccl_pressure

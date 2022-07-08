@@ -50,7 +50,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
                 temperature (iris.cube.Cube):
                     Cube of air_temperature.
                 pressure (iris.cube.Cube):
-                    Cube of air_pressure.
+                    Cube of surface_air_pressure.
                 humidity (iris.cube.Cube):
                     Cube of relative humidity.
         model_id_attr (str):
