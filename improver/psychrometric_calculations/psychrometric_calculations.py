@@ -31,6 +31,7 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
+from collections import namedtuple
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -39,7 +40,7 @@ from numpy import ndarray
 from scipy.optimize import newton
 
 import improver.constants as consts
-from improver import BasePlugin, InputCubesPlugin
+from improver import BasePlugin
 from improver.generate_ancillaries.generate_svp_table import (
     SaturatedVapourPressureTable,
 )
@@ -47,6 +48,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
@@ -297,32 +299,141 @@ def adjust_for_latent_heat(
     return temperature, humidity
 
 
-class HumidityMixingRatio(InputCubesPlugin):
+class HumidityMixingRatio(BasePlugin):
     """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
 
     cube_descriptors = {
         "temperature": {"name": "air_temperature", "units": "K"},
         "pressure": {"name": "air_pressure", "units": "Pa"},
-        "humidity": {"name": "relative_humidity", "units": "kg kg-1"},
+        "rel_humidity": {"name": "relative_humidity", "units": "1"},
     }
-    temperature = None
-    pressure = None
-    rel_humidity = None
+
+    def __init__(self, model_id_attr: str = None):
+        """
+        Set up class
+
+        Args:
+            model_id_attr:
+                Name of model ID attribute to be copied from source cubes to output cube
+        """
+        self._parse_cube_descriptors()
+
+        self.model_id_attr = model_id_attr
+        self.model_id_value = None
+        self.mandatory_attributes = None
+
+    def _parse_cube_descriptors(self):
+        cube_descriptor = namedtuple("cube_descriptor", ("name", "units"))
+        self._parsed_cube_descriptors = {}
+        if not self.cube_descriptors:
+            raise ValueError("Missing compulsory dictionary 'cube_descriptors'")
+        for k, v in self.cube_descriptors.items():
+            if not isinstance(k, str):
+                raise TypeError(
+                    f"Keys in cube_descriptors must be 'str', not {type(k)} for {k}"
+                )
+            try:
+                self._parsed_cube_descriptors[k] = cube_descriptor(**v)
+            except TypeError as e:
+                raise TypeError(f"Error in descriptor {k}") from e
+            if not isinstance(
+                self._parsed_cube_descriptors[k].name, str
+            ) or not isinstance(self._parsed_cube_descriptors[k].units, str):
+                raise TypeError(f"Error in descriptor {k}, non-strings detected")
+
+    def get_cube(self, key: str) -> Cube:
+        """Gets the named cube.
+
+        Args:
+            key:
+                The cube identifier. Must match a key from cube_descriptors
+        """
+        cube = getattr(self, f"_{key}")
+        if not isinstance(cube, Cube):
+            raise TypeError(f"_{key} should be a Cube, but found {type(cube)}")
+        return cube
+
+    @staticmethod
+    def assert_time_coords_ok(inputs: List[Cube], time_bounds: bool):
+        """
+        Raises appropriate ValueError if
+
+        - Any input cube has or is missing time bounds (depending on time_bounds)
+        - Input cube times and forecast_reference_times do not match
+        """
+        cubes_not_matching_time_bounds = [
+            c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
+        ]
+        if cubes_not_matching_time_bounds:
+            str_bool = "" if time_bounds else "not "
+            msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
+            raise ValueError(msg)
+        for time_coord_name in ["time", "forecast_reference_time"]:
+            time_coords = [c.coord(time_coord_name) for c in inputs]
+            if not all([tc == time_coords[0] for tc in time_coords[1:]]):
+                raise ValueError(
+                    f"{time_coord_name} coordinates do not match."
+                    "\n  "
+                    "\n  ".join(
+                        [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
+                    )
+                )
+
+    def parse_inputs(self, inputs: List[Cube], time_bounds=False) -> None:
+        """Extracts input cubes as described by self.cube_descriptors.
+
+        Args:
+            inputs:
+                List of Cubes containing exactly one of each input cube.
+            time_bounds:
+                True when all input cubes are expected to hate time bounds.
+        Raises:
+            ValueError:
+                If additional cubes are found
+        """
+        cubes = CubeList(inputs)
+        expected_names = set(
+            [desc.name for desc in self._parsed_cube_descriptors.values()]
+        )
+        cubes_names = set([cube.name() for cube in cubes])
+        diff = expected_names - cubes_names
+        if diff:
+            raise ValueError(f"Expected to find cube of {diff}, in {cubes_names}")
+        diff = cubes_names - expected_names
+        if diff:
+            raise ValueError(f"Unexpected Cube(s) found in inputs: {diff}")
+        if not spatial_coords_match(cubes):
+            raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
+
+        for attr, cube_values in self._parsed_cube_descriptors.items():
+            (cube,) = cubes.extract(cube_values.name)
+            cube.convert_units(cube_values.units)
+            setattr(self, f"_{attr}", cube)
+        self.assert_time_coords_ok(cubes, time_bounds)
+
+        self.mandatory_attributes = generate_mandatory_attributes(inputs)
+
+        if self.model_id_attr:
+            model_id_value = {cube.attributes[self.model_id_attr] for cube in cubes}
+            if len(model_id_value) != 1:
+                raise ValueError(
+                    f"Attribute {self.model_id_attr} does not match on input cubes. "
+                    f"{' != '.join(model_id_value)}"
+                )
+            (self.model_id_value,) = model_id_value
 
     def _make_humidity_cube(self, data: np.ndarray) -> Cube:
         """Puts the data array into a CF-compliant cube"""
         attributes = {}
         if self.model_id_attr:
-            attributes[self.model_id_attr] = self.rel_humidity.attributes[
+            attributes[self.model_id_attr] = self.get_cube("rel_humidity").attributes[
                 self.model_id_attr
             ]
         cube = create_new_diagnostic_cube(
             "humidity_mixing_ratio",
             "kg kg-1",
-            self.rel_humidity,
-            mandatory_attributes=generate_mandatory_attributes(
-                [self.temperature, self.pressure, self.rel_humidity]
-            ),
+            self.get_cube("rel_humidity"),
+            mandatory_attributes=self.mandatory_attributes,
             optional_attributes=attributes,
             data=data,
         )
@@ -342,8 +453,10 @@ class HumidityMixingRatio(InputCubesPlugin):
         """
         self.parse_inputs(cubes)
         humidity = (
-            saturated_humidity(self.temperature.data, self.pressure.data)
-            * self.rel_humidity.data
+            saturated_humidity(
+                self.get_cube("temperature").data, self.get_cube("pressure").data
+            )
+            * self.get_cube("rel_humidity").data
         )
         return self._make_humidity_cube(humidity)
 

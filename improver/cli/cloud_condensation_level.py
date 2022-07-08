@@ -72,5 +72,9 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     humidity = humidity_plugin(cubes)
 
     return CloudCondensationLevel(model_id_attr=model_id_attr)(
-        [humidity_plugin.temperature, humidity_plugin.pressure, humidity]
+        [
+            humidity_plugin.get_cube("temperature"),
+            humidity_plugin.get_cube("pressure"),
+            humidity,
+        ]
     )
