@@ -66,10 +66,6 @@ def process(cube: cli.inputcube, vicinity: float):
         iris.cube.Cube:
             Cube with the vicinity processed data.
     """
-    from improver.metadata.probabilistic import in_vicinity_name_format
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    result = OccurrenceWithinVicinity(radius=vicinity).process(cube)
-    result.rename(in_vicinity_name_format(result.name()))
-
-    return result
+    return OccurrenceWithinVicinity(radius=vicinity).process(cube)

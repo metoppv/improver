@@ -248,6 +248,10 @@ class BasicThreshold(PostProcessingPlugin):
     def _update_metadata(self, cube: Cube) -> None:
         """Rename the cube and add attributes to the threshold coordinate
         after merging
+
+        Args:
+            cube:
+                Cube containing thresholded data
         """
         threshold_coord = cube.coord(self.threshold_coord_name)
         threshold_coord.attributes.update(
@@ -342,6 +346,7 @@ class BasicThreshold(PostProcessingPlugin):
 
             self._add_threshold_coord(cube, threshold)
             cube.coord(var_name="threshold").convert_units(input_cube.units)
+            self._update_metadata(cube)
 
             for func in self.each_threshold_func:
                 cube = func(cube)
@@ -354,9 +359,7 @@ class BasicThreshold(PostProcessingPlugin):
             var_name="threshold"
         ).points.astype(FLOAT_DTYPE)
 
-        self._update_metadata(cube)
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
-
         return cube
 
 
