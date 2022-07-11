@@ -64,7 +64,7 @@ def pressure_cube_fixture() -> Cube:
     """Set up a r, y, x cube of pressure data"""
     data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
     pressure_cube = set_up_variable_cube(
-        data, name="air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="surface_air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure_cube
 
@@ -94,8 +94,8 @@ def metadata_ok(ccl: Cube, baseline: Cube, model_id_attr=None) -> None:
     Raises:
         AssertionError: If anything doesn't match
     """
-    assert ccl.long_name == "cloud_condensation_level"
-    assert ccl.units == "m"
+    assert ccl.long_name == "temperature_at_cloud_condensation_level"
+    assert ccl.units == "K"
     assert ccl.dtype == np.float32
     ccl.coord("air_pressure")  # Fails if this coord is absent.
     for coord in ccl.coords():

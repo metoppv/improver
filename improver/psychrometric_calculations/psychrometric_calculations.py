@@ -31,7 +31,7 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
-from collections import namedtuple
+from dataclasses import dataclass
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -299,12 +299,31 @@ def adjust_for_latent_heat(
     return temperature, humidity
 
 
+@dataclass
+class CubeDescriptor:
+    """Sets up a cube descriptor type.
+
+    Args:
+        name:
+            The name or partial name of the cube you expect to find.
+        units:
+            The units you want the cube to be in.
+        partial_name:
+            If true, name is assumed to be a partial name and any
+            cube name that contains this string will be matched.
+    """
+
+    name: str
+    units: str
+    partial_name: bool = False
+
+
 class HumidityMixingRatio(BasePlugin):
     """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
 
     cube_descriptors = {
         "temperature": {"name": "air_temperature", "units": "K"},
-        "pressure": {"name": "surface_air_pressure", "units": "Pa"},
+        "pressure": {"name": "air_pressure", "units": "Pa", "partial_name": True},
         "rel_humidity": {"name": "relative_humidity", "units": "1"},
     }
 
@@ -323,7 +342,6 @@ class HumidityMixingRatio(BasePlugin):
         self.mandatory_attributes = None
 
     def _parse_cube_descriptors(self):
-        cube_descriptor = namedtuple("cube_descriptor", ("name", "units"))
         self._parsed_cube_descriptors = {}
         if not self.cube_descriptors:
             raise ValueError("Missing compulsory dictionary 'cube_descriptors'")
@@ -333,7 +351,7 @@ class HumidityMixingRatio(BasePlugin):
                     f"Keys in cube_descriptors must be 'str', not {type(k)} for {k}"
                 )
             try:
-                self._parsed_cube_descriptors[k] = cube_descriptor(**v)
+                self._parsed_cube_descriptors[k] = CubeDescriptor(**v)
             except TypeError as e:
                 raise TypeError(f"Error in descriptor {k}") from e
             if not isinstance(
@@ -392,6 +410,13 @@ class HumidityMixingRatio(BasePlugin):
                 If additional cubes are found
         """
         cubes = CubeList(inputs)
+        for desc in self._parsed_cube_descriptors.values():
+            if desc.partial_name:
+                # Replace descriptor name with any cube name that contains the partial name
+                try:
+                    (desc.name,) = [c.name() for c in cubes if desc.name in c.name()]
+                except ValueError:
+                    pass  # This is picked up with a better error message later
         expected_names = set(
             [desc.name for desc in self._parsed_cube_descriptors.values()]
         )
