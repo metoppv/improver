@@ -166,13 +166,12 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         # calculate the lapse rates. If so, adjust temperatures using the lapse
         # rate values.
         if not spot_data_cube.coord("height") == lapse_rate_height_coord:
-            warnings.warn(
+            raise ValueError(
                 "A lapse rate cube was provided, but the height of the "
                 "temperature data does not match that of the data used "
                 "to calculate the lapse rates. As such the temperatures "
                 "were not adjusted with the lapse rates."
             )
-            return spot_data_cube
 
         # Check the cubes are compatible.
         check_grid_match([neighbour_cube, spot_data_cube, gridded_lapse_rate_cube])

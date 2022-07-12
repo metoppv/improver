@@ -157,9 +157,9 @@ def test_lapse_rate_mismatch(tmp_path):
         "--new-title",
         UK_SPOT_TITLE,
     ]
-    with pytest.warns(UserWarning, match=".*height.*not adjusted.*"):
+    with pytest.raises(ValueError, match=".*height.*not adjusted.*"):
         run_cli(args)
-    acc.compare(output_path, kgo_path)
+
 
 
 def test_lapse_rate_wrong_height(tmp_path):

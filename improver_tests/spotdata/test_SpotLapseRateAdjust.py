@@ -377,9 +377,8 @@ class Test_process(Test_SpotLapseRateAdjust):
             "to calculate the lapse rates. As such the temperatures "
             "were not adjusted with the lapse rates."
         )
-        plugin(self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube)
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
-
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube)
 
 if __name__ == "__main__":
     unittest.main()
