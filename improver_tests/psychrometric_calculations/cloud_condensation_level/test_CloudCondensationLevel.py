@@ -123,7 +123,7 @@ def metadata_ok(ccl: Cube, baseline: Cube, model_id_attr=None) -> None:
 @pytest.mark.parametrize(
     "temperature_value, pressure_value, humidity_value, expected_t, expected_p",
     (
-        (293, 100000, 2.7e-3, 264.92, 70275),
+        (293, 100000, 2.7e-3, 264.92, 70278),
         (293, 100000, 1.0e-2, 285.75, 91596),
         (300, 100000, 1.0e-2, 284.22, 82757),
     ),

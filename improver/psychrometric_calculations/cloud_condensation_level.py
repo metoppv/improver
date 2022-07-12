@@ -173,8 +173,8 @@ class CloudCondensationLevel(BasePlugin):
             humidity_delta,
             self.pressure.data.copy(),
             args=(self.pressure.data, self.temperature.data, self.humidity.data),
-            tol=1e-6,
-            maxiter=100,
+            tol=100,
+            maxiter=20,
         ).astype(np.float32)
         ccl_temperature = dry_adiabatic_temperature(
             self.temperature.data, self.pressure.data, ccl_pressure
