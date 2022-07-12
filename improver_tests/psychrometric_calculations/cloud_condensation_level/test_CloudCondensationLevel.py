@@ -97,7 +97,7 @@ def metadata_ok(ccl: Cube, baseline: Cube, model_id_attr=None) -> None:
     Raises:
         AssertionError: If anything doesn't match
     """
-    assert ccl.long_name == "temperature_at_cloud_condensation_level"
+    assert ccl.long_name == "air_temperature_at_condensation_level"
     assert ccl.units == "K"
     assert ccl.dtype == np.float32
     ccl.coord("air_pressure")  # Fails if this coord is absent.

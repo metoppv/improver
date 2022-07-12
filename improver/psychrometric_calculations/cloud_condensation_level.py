@@ -142,7 +142,7 @@ class CloudCondensationLevel(BasePlugin):
                 self.model_id_attr
             ]
         cube = create_new_diagnostic_cube(
-            "temperature_at_cloud_condensation_level",
+            "air_temperature_at_condensation_level",
             "K",
             self.temperature,
             mandatory_attributes=generate_mandatory_attributes(
