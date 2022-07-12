@@ -64,7 +64,10 @@ def pressure_cube_fixture() -> Cube:
     """Set up a r, y, x cube of pressure data"""
     data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
     pressure_cube = set_up_variable_cube(
-        data, name="surface_air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data,
+        name="surface_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure_cube
 
