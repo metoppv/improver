@@ -31,8 +31,6 @@
 
 """Apply temperature lapse rate adjustments to a spot data cube."""
 
-import warnings
-
 import iris
 import numpy as np
 from iris.cube import Cube
