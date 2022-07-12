@@ -110,7 +110,6 @@ class PrecipPhaseProbability(BasePlugin):
             raise ValueError(
                 "Spatial coords mismatch between " f"{cubes[0]} and " f"{cubes[1]}"
             )
-        print(cubes)
         extracted_cube = cubes.extract("altitude_of_snow_falling_level")
         if extracted_cube:
             (self.falling_level_cube,) = extracted_cube

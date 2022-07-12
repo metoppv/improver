@@ -77,5 +77,4 @@ def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
         output_path,
     ]
     run_cli(args)
-    print(kgo_path)
     acc.compare(output_path, kgo_path)

@@ -792,7 +792,6 @@ class Test_process(IrisTest):
         )
         expected[:, 1:4, 1:4] = 1.0
         expected[:, 2, 2] = 11.797252
-        print(result.data)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), "altitude_of_rain_from_hail_falling_level")
         self.assertEqual(result.units, Unit("m"))

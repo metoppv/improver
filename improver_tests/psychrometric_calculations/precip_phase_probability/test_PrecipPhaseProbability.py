@@ -161,7 +161,6 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cubes)
         expected = self.expected_template
         expected[2] = 1
-        print(expected)
         self.check_metadata(result)
         self.assertArrayAlmostEqual(result.data, expected)
 
