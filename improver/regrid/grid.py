@@ -378,13 +378,8 @@ def create_regrid_cube(cube_array: ndarray, cube_in: Cube, cube_out: Cube) -> Cu
         Regridded result cube
     """
     # generate a cube based on new data and cube_in
-    cube_v = Cube(
-        cube_array,
-        standard_name=cube_in.standard_name,
-        var_name=cube_in.var_name,
-        units=cube_in.units,
-        attributes=cube_in.attributes,
-    )
+    cube_v = Cube(cube_array, units=cube_in.units, attributes=cube_in.attributes)
+    cube_v.rename(cube_in.var_name or cube_in.standard_name or cube_in.long_name)
 
     # use dim_coord from cube_in except lat/lon
     cube_coord_names = get_cube_coord_names(cube_in)
