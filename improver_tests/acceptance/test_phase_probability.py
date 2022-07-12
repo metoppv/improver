@@ -41,33 +41,24 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_snow(tmp_path):
-    """Test prob(snow) calculation"""
+@pytest.mark.parametrize(
+    "kgo_name,input_file",
+    [
+        ("snow_kgo", "snow_sleet_input"),
+        ("rain_kgo", "sleet_rain_input"),
+        ("hail_kgo", "hail_rain_input"),
+    ],
+)
+def test_phase_probabilities(tmp_path, kgo_name, input_file):
+    """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain"""
     kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "snow_kgo.nc"
+    kgo_path = kgo_dir / f"{kgo_name}.nc"
     output_path = tmp_path / "output.nc"
     input_paths = [
         acc.kgo_root() / x
         for x in (
             "phase-change-level/basic/orog.nc",
-            "phase-probability/basic/snow_sleet_input.nc",
-        )
-    ]
-    args = [*input_paths, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_rain(tmp_path):
-    """Test prob(rain) calculation"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / "rain_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [
-        acc.kgo_root() / x
-        for x in (
-            "phase-change-level/basic/orog.nc",
-            "phase-probability/basic/sleet_rain_input.nc",
+            "phase-probability/basic/" f"{input_file}.nc",
         )
     ]
     args = [*input_paths, "--output", output_path]

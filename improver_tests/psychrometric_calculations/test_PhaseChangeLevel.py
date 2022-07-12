@@ -75,6 +75,17 @@ class Test__init__(IrisTest):
         self.assertEqual(plugin.phase_change_name, "rain_falling")
         self.assertEqual(plugin.grid_point_radius, 3)
 
+    def test_hail_rain(self):
+        """Test that the __init__ method configures the plugin as expected
+        for the sleet_rain phase change."""
+
+        phase_change = "hail-rain"
+        plugin = PhaseChangeLevel(phase_change, grid_point_radius=3)
+
+        self.assertEqual(plugin.falling_level_threshold, 5000)
+        self.assertEqual(plugin.phase_change_name, "rain_from_hail_falling")
+        self.assertEqual(plugin.grid_point_radius, 3)
+
     def test_unknown_phase_change(self):
         """Test that the __init__ method raised an exception for an unknown
         phase change argument."""
@@ -757,6 +768,38 @@ class Test_process(IrisTest):
         self.assertEqual(result.name(), "altitude_of_rain_falling_level")
         self.assertEqual(result.units, Unit("m"))
         self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_hail_rain_phase_change(self):
+        """Test that process returns a cube with the right name, units and
+        values. In this instance the phase change is from hail to rain. The
+        wet bulb integral is multiplied by 40 so the threshold for the hail
+        to melt is reached before the ground"""
+        self.wet_bulb_integral_cube.data *= 40.0
+
+        result = PhaseChangeLevel(phase_change="hail-rain").process(
+            CubeList(
+                [
+                    self.wet_bulb_temperature_cube,
+                    self.wet_bulb_integral_cube,
+                    self.orog,
+                    self.land_sea,
+                ]
+            )
+        )
+
+        expected = np.full_like(
+            self.expected_snow_sleet, fill_value=11.797252, dtype=np.float32
+        )
+        expected[:, 1:4, 1:4] = 1.0
+        expected[:, 2, 2] = 11.797252
+        print(result.data)
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "altitude_of_rain_from_hail_falling_level")
+        self.assertEqual(result.units, Unit("m"))
+        self.assertArrayAlmostEqual(result.data, expected)
+
+        if hasattr(result.data, "mask"):
+            self.assertFalse(result.data.mask.any())
 
     def test_inverted_input_cube(self):
         """Test that the phase change level process returns a cube

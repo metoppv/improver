@@ -138,7 +138,19 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cubes)
         expected = self.expected_template
         expected[2] = 1
-        self.check_metadata(result)
+        self.check_metadata(result, expected_name="probability_of_rain_at_surface")
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_prob_hail(self):
+        """Test that process returns a cube with the right name, units and
+        values. In this instance the phase change is from hail to rain."""
+        self.cubes[0].rename("altitude_of_rain_from_hail_falling_level")
+        result = self.plugin.process(self.cubes)
+        expected = self.expected_template
+        expected[2] = 1
+        self.check_metadata(
+            result, expected_name="probability_of_rain_from_hail_at_surface"
+        )
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_unit_conversion(self):
@@ -149,6 +161,7 @@ class Test_process(IrisTest):
         result = self.plugin.process(self.cubes)
         expected = self.expected_template
         expected[2] = 1
+        print(expected)
         self.check_metadata(result)
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -167,7 +180,7 @@ class Test_process(IrisTest):
         """Test that process raises an exception when the input phase cube is
         incorrectly named."""
         self.cubes[0].rename("altitude_of_kittens")
-        msg = "Could not extract a rain or snow falling-level cube from"
+        msg = "Could not extract a rain, rain from hail or snow falling-level cube from"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.process(self.cubes)
 

@@ -43,9 +43,9 @@ def process(*cubes: cli.inputcube, radius: float = 10000.0):
     Args:
         cubes (iris.cube.CubeList or list):
             Contains cubes of the altitude of the phase-change level (this
-            can be snow->sleet, or sleet->rain) and the altitude of the
+            can be snow->sleet, hail->rain or sleet->rain) and the altitude of the
             orography. The name of the phase-change level cube must be
-            either "altitude_of_snow_falling_level" or
+            either "altitude_of_snow_falling_level", "altitude_of_rain_from_hail_falling_level or
             "altitude_of_rain_falling_level". The name of the orography
             cube must be "surface_altitude".
         radius (float):

@@ -46,13 +46,16 @@ run_cli = acc.run_cli(CLI)
     [
         ("snow-sleet", "snow_sleet", "True"),
         ("sleet-rain", "sleet_rain", "True"),
+        ("hail-rain", "hail_rain", "True"),
         ("sleet-rain", "sleet_rain_unfilled", "False"),
     ],
 )
 def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
     """Testing:
-        sleet/rain level
         snow/sleet level
+        sleet/rain level
+        hail/rain level
+
         sleet/rain level leaving below orography points unfilled.
     """
     pytest.importorskip("stratify")
@@ -74,4 +77,5 @@ def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp):
         output_path,
     ]
     run_cli(args)
+    print(kgo_path)
     acc.compare(output_path, kgo_path)
