@@ -300,7 +300,20 @@ def adjust_for_latent_heat(
 
 
 @dataclass
-class CubeDescriptor:
+class EnforceTypes:
+    """Ensures any declared types are met"""
+
+    def __post_init__(self):
+        for (name, field_type) in self.__annotations__.items():
+            if not isinstance(self.__dict__[name], field_type):
+                current_type = type(self.__dict__[name])
+                raise TypeError(
+                    f"The field '{name}' is {current_type} instead of {field_type}"
+                )
+
+
+@dataclass
+class CubeDescriptor(EnforceTypes):
     """Sets up a cube descriptor type.
 
     Args:
@@ -316,6 +329,7 @@ class CubeDescriptor:
     name: str
     units: str
     partial_name: bool = False
+    _matched_name: str = ""
 
 
 class HumidityMixingRatio(BasePlugin):
@@ -409,14 +423,17 @@ class HumidityMixingRatio(BasePlugin):
         """
         cubes = CubeList(inputs)
         for desc in self.cube_descriptors.values():
+            desc._matched_name = desc.name
             if desc.partial_name:
                 # Replace descriptor name with any cube name that contains the partial name
                 try:
-                    (desc.name,) = [c.name() for c in cubes if desc.name in c.name()]
+                    (desc._matched_name,) = [
+                        c.name() for c in cubes if desc.name in c.name()
+                    ]
                 except ValueError:
                     pass  # This is picked up with a better error message later
         expected_names = set(
-            [desc.name for desc in self.cube_descriptors.values()]
+            [desc._matched_name for desc in self.cube_descriptors.values()]
         )
         cubes_names = set([cube.name() for cube in cubes])
         diff = expected_names - cubes_names
