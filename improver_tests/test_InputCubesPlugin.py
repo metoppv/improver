@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the InputCubesPlugin plugin"""
+"""Tests for the InputCubesPlugin base class and CubeDescriptor dataclass"""
 import re
 from datetime import datetime
 from typing import List
@@ -39,6 +39,27 @@ from iris.cube import Cube
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.base_classes import InputCubesPlugin
+from improver.utilities.cube_descriptor import CubeDescriptor
+
+
+@pytest.mark.parametrize(
+    "kwargs, msg",
+    (
+        ({"name": "invalid"}, r".* missing 1 required positional argument: 'units'"),
+        (
+            {"name": "air_temperature", "units": "K", "kittens": "cute"},
+            r".* got an unexpected keyword argument 'kittens'",
+        ),
+        (
+            {"name": "air_temperature", "units": 1},
+            r"The field 'units' is <class 'int'> instead of <class 'str'>",
+        ),
+    ),
+)
+def test_bad_descriptors(kwargs, msg):
+    """Test for known errors when a bad CubeDescriptor is declared"""
+    with pytest.raises(TypeError, match=msg):
+        CubeDescriptor(**kwargs)
 
 
 @pytest.fixture(name="cubes")
@@ -55,11 +76,11 @@ def cubes_fixture(time_bounds) -> List[Cube]:
     cube = set_up_variable_cube(data, **kwargs,)
     for descriptor in SimplePlugin.cube_descriptors.values():
         cube = cube.copy()
-        if descriptor.get("partial_name", False):
-            cube.rename(f"surface_{descriptor['name']}")
+        if descriptor.partial_name:
+            cube.rename(f"surface_{descriptor.name}")
         else:
-            cube.rename(descriptor["name"])
-        cube.units = descriptor["units"]
+            cube.rename(descriptor.name)
+        cube.units = descriptor.units
         cubes.append(cube)
     return cubes
 
@@ -72,9 +93,9 @@ class SimplePlugin(InputCubesPlugin):
     """
 
     cube_descriptors = {
-        "temperature": {"name": "air_temperature", "units": "K"},
-        "pressure": {"name": "air_pressure", "units": "Pa", "partial_name": True},
-        "rel_humidity": {"name": "relative_humidity", "units": "kg kg-1"},
+        "temperature": CubeDescriptor(name="air_temperature", units="K"),
+        "pressure": CubeDescriptor(name="air_pressure", units="Pa", partial_name=True),
+        "rel_humidity": CubeDescriptor(name="relative_humidity", units="kg kg-1"),
     }
 
     def process(self, inputs: List[Cube], time_bounds: bool = False):
@@ -84,22 +105,7 @@ class SimplePlugin(InputCubesPlugin):
 
 def add_int_key(descriptor: dict):
     """Adds a descriptor key that fails the string test"""
-    descriptor[0] = {"name": "invalid", "units": "kg"}
-
-
-def add_short_key(descriptor: dict):
-    """Adds a descriptor value that is missing a units item"""
-    descriptor["short"] = {"name": "invalid"}
-
-
-def add_extra_key(descriptor: dict):
-    """Adds an extra item to a descriptor value"""
-    descriptor["temperature"]["kittens"] = "cute"
-
-
-def add_int_value(descriptor: dict):
-    """Sets temperature units to an int"""
-    descriptor["temperature"]["units"] = 1
+    descriptor[0] = CubeDescriptor(name="invalid", units="kg")
 
 
 def empty_dict(descriptor: dict):
@@ -116,18 +122,15 @@ def empty_dict(descriptor: dict):
             TypeError,
             "Keys in cube_descriptors must be 'str', not <class 'int'> for 0",
         ),
-        (add_short_key, TypeError, r"Error in descriptor short"),
-        (add_extra_key, TypeError, r"Error in descriptor temperature"),
-        (add_int_value, TypeError, r"Error in descriptor temperature",),
         (empty_dict, ValueError, "Missing compulsory dictionary 'cube_descriptors'"),
     ),
 )
-def test_bad_descriptors(breaking_function, error_type, msg):
+def test_bad_descriptor_keys(breaking_function, error_type, msg):
     """Test for known errors when a bad descriptor is provided"""
     bad_descriptor = {
-        "temperature": {"name": "air_temperature", "units": "K"},
-        "pressure": {"name": "air_pressure", "units": "Pa"},
-        "rel_humidity": {"name": "relative_humidity", "units": "kg kg-1"},
+        "temperature": CubeDescriptor(name="air_temperature", units="K"),
+        "pressure": CubeDescriptor(name="air_pressure", units="Pa"),
+        "rel_humidity": CubeDescriptor(name="relative_humidity", units="kg kg-1"),
     }
     breaking_function(bad_descriptor)
     with pytest.raises(error_type, match=msg):
