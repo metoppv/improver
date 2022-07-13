@@ -55,7 +55,10 @@ def cubes_fixture(time_bounds) -> List[Cube]:
     cube = set_up_variable_cube(data, **kwargs,)
     for descriptor in SimplePlugin.cube_descriptors.values():
         cube = cube.copy()
-        cube.rename(descriptor["name"])
+        if descriptor.get("partial_name", False):
+            cube.rename(f"surface_{descriptor['name']}")
+        else:
+            cube.rename(descriptor["name"])
         cube.units = descriptor["units"]
         cubes.append(cube)
     return cubes
@@ -70,7 +73,7 @@ class SimplePlugin(InputCubesPlugin):
 
     cube_descriptors = {
         "temperature": {"name": "air_temperature", "units": "K"},
-        "pressure": {"name": "air_pressure", "units": "Pa"},
+        "pressure": {"name": "air_pressure", "units": "Pa", "partial_name": True},
         "rel_humidity": {"name": "relative_humidity", "units": "kg kg-1"},
     }
 
@@ -115,11 +118,7 @@ def empty_dict(descriptor: dict):
         ),
         (add_short_key, TypeError, r"Error in descriptor short"),
         (add_extra_key, TypeError, r"Error in descriptor temperature"),
-        (
-            add_int_value,
-            TypeError,
-            r"Error in descriptor temperature, non-strings detected",
-        ),
+        (add_int_value, TypeError, r"Error in descriptor temperature",),
         (empty_dict, ValueError, "Missing compulsory dictionary 'cube_descriptors'"),
     ),
 )
@@ -148,7 +147,7 @@ def metadata_ok(plugin):
     """Checks that the three cubes are in the right places with the right names and units"""
     assert plugin.get_cube("temperature").name() == "air_temperature"
     assert plugin.get_cube("temperature").units == "K"
-    assert plugin.get_cube("pressure").name() == "air_pressure"
+    assert plugin.get_cube("pressure").name() == "surface_air_pressure"
     assert plugin.get_cube("pressure").units == "Pa"
     assert plugin.get_cube("rel_humidity").name() == "relative_humidity"
     assert plugin.get_cube("rel_humidity").units == "kg kg-1"
@@ -277,7 +276,7 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         (
             remove_two_time_bounds,
             True,
-            "air_temperature and air_pressure must have time bounds",
+            "air_temperature and surface_air_pressure must have time bounds",
         ),
         (
             set_mismatched_model_ids,
