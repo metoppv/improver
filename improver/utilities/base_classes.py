@@ -36,7 +36,6 @@ from typing import List
 from iris.cube import Cube, CubeList
 
 from improver.utilities.cube_checker import spatial_coords_match
-from improver.utilities.cube_descriptor import CubeDescriptor
 
 
 class BasePlugin(ABC):
