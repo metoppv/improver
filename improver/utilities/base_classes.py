@@ -164,7 +164,9 @@ class InputCubesPlugin(BasePlugin):
             if desc.partial_name:
                 # Replace descriptor name with any cube name that contains the partial name
                 try:
-                    (desc._matched_name,) = [c.name() for c in cubes if desc.name in c.name()]
+                    (desc._matched_name,) = [
+                        c.name() for c in cubes if desc.name in c.name()
+                    ]
                 except ValueError:
                     pass  # This is picked up with a better error message later
         expected_names = set(
