@@ -145,7 +145,6 @@ def test_lapse_rate_mismatch(tmp_path):
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     diag_path = kgo_dir / "inputs/ukvx_temperature.nc"
     lapse_path = kgo_dir / "inputs/ukvx_lapse_rate_2m.nc"
-    kgo_path = kgo_dir / "outputs/nearest_uk_temperatures.nc"
     output_path = tmp_path / "output.nc"
     args = [
         diag_path,
@@ -157,9 +156,8 @@ def test_lapse_rate_mismatch(tmp_path):
         "--new-title",
         UK_SPOT_TITLE,
     ]
-    with pytest.warns(UserWarning, match=".*height.*not adjusted.*"):
+    with pytest.raises(ValueError, match=".*height.*not adjusted.*"):
         run_cli(args)
-    acc.compare(output_path, kgo_path)
 
 
 def test_lapse_rate_wrong_height(tmp_path):

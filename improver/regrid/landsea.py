@@ -41,7 +41,7 @@ from iris.cube import Cube
 from numpy import ndarray
 from scipy.spatial import cKDTree
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.regrid.landsea2 import RegridWithLandSeaMask
@@ -50,7 +50,7 @@ from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
-class RegridLandSea(BasePlugin):
+class RegridLandSea(PostProcessingPlugin):
     """Nearest-neighbour and bilinear regridding with or without land-sea mask
     awareness. When land-sea mask considered, surface-type-mismatched source
     points are excluded from field regridding calculation for target points.
@@ -226,7 +226,7 @@ class RegridLandSea(BasePlugin):
         )
 
 
-class AdjustLandSeaPoints(BasePlugin):
+class AdjustLandSeaPoints(PostProcessingPlugin):
     """
     Replace data values at points where the nearest-regridding technique
     selects a source grid-point with an opposite land-sea-mask value to the
