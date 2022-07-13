@@ -101,7 +101,8 @@ class CloudCondensationLevel(BasePlugin):
 
         Args:
             inputs:
-                List of Cubes containing exactly one of CAPE and Precipitation rate.
+                List of Cubes containing exactly one of air_temperature, surface_air_pressure
+                and humidity_mixing_ratio
         Raises:
             ValueError:
                 If additional cubes are found

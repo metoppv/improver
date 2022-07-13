@@ -416,7 +416,7 @@ class HumidityMixingRatio(BasePlugin):
             inputs:
                 List of Cubes containing exactly one of each input cube.
             time_bounds:
-                True when all input cubes are expected to hate time bounds.
+                True when all input cubes are expected to have time bounds.
         Raises:
             ValueError:
                 If additional cubes are found
