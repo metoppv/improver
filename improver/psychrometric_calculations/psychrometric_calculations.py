@@ -322,9 +322,9 @@ class HumidityMixingRatio(BasePlugin):
     """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
 
     cube_descriptors = {
-        "temperature": {"name": "air_temperature", "units": "K"},
-        "pressure": {"name": "air_pressure", "units": "Pa", "partial_name": True},
-        "rel_humidity": {"name": "relative_humidity", "units": "1"},
+        "temperature": CubeDescriptor(name="air_temperature", units="K"),
+        "pressure": CubeDescriptor(name="air_pressure", units="Pa", partial_name=True),
+        "rel_humidity": CubeDescriptor(name="relative_humidity", units="1"),
     }
 
     def __init__(self, model_id_attr: str = None):
@@ -342,22 +342,14 @@ class HumidityMixingRatio(BasePlugin):
         self.mandatory_attributes = None
 
     def _parse_cube_descriptors(self):
-        self._parsed_cube_descriptors = {}
+        """Checks that cube_descriptors is supplied and had valid keys"""
         if not self.cube_descriptors:
             raise ValueError("Missing compulsory dictionary 'cube_descriptors'")
-        for k, v in self.cube_descriptors.items():
+        for k in self.cube_descriptors.keys():
             if not isinstance(k, str):
                 raise TypeError(
                     f"Keys in cube_descriptors must be 'str', not {type(k)} for {k}"
                 )
-            try:
-                self._parsed_cube_descriptors[k] = CubeDescriptor(**v)
-            except TypeError as e:
-                raise TypeError(f"Error in descriptor {k}") from e
-            if not isinstance(
-                self._parsed_cube_descriptors[k].name, str
-            ) or not isinstance(self._parsed_cube_descriptors[k].units, str):
-                raise TypeError(f"Error in descriptor {k}, non-strings detected")
 
     def get_cube(self, key: str) -> Cube:
         """Gets the named cube.
@@ -365,6 +357,12 @@ class HumidityMixingRatio(BasePlugin):
         Args:
             key:
                 The cube identifier. Must match a key from cube_descriptors
+
+        Returns:
+            Cube matched to this key by the parse_inputs method
+
+        Raises:
+            TypeError if the found object is not a Cube
         """
         cube = getattr(self, f"_{key}")
         if not isinstance(cube, Cube):
@@ -410,7 +408,7 @@ class HumidityMixingRatio(BasePlugin):
                 If additional cubes are found
         """
         cubes = CubeList(inputs)
-        for desc in self._parsed_cube_descriptors.values():
+        for desc in self.cube_descriptors.values():
             if desc.partial_name:
                 # Replace descriptor name with any cube name that contains the partial name
                 try:
@@ -418,7 +416,7 @@ class HumidityMixingRatio(BasePlugin):
                 except ValueError:
                     pass  # This is picked up with a better error message later
         expected_names = set(
-            [desc.name for desc in self._parsed_cube_descriptors.values()]
+            [desc.name for desc in self.cube_descriptors.values()]
         )
         cubes_names = set([cube.name() for cube in cubes])
         diff = expected_names - cubes_names
@@ -430,7 +428,7 @@ class HumidityMixingRatio(BasePlugin):
         if not spatial_coords_match(cubes):
             raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
 
-        for attr, cube_values in self._parsed_cube_descriptors.items():
+        for attr, cube_values in self.cube_descriptors.items():
             (cube,) = cubes.extract(cube_values.name)
             cube.convert_units(cube_values.units)
             setattr(self, f"_{attr}", cube)
