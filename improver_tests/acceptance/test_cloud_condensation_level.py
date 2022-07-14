@@ -46,8 +46,8 @@ def test_basic(tmp_path, model_id_attr):
     output_path = tmp_path / "output.nc"
     args = [
         test_dir / "temperature.nc",
-        test_dir / "relative_humidity.nc",
         test_dir / "pressure_at_surface.nc",
+        test_dir / "relative_humidity.nc",
         "--least-significant-digit",
         "2",
         "--output",

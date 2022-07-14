@@ -345,9 +345,7 @@ class HumidityMixingRatio(BasePlugin):
         self.mandatory_attributes = generate_mandatory_attributes(cubes)
         self.temperature, self.pressure, self.rel_humidity = cubes
         humidity = (
-            saturated_humidity(
-                self.temperature.data, self.pressure.data
-            )
+            saturated_humidity(self.temperature.data, self.pressure.data)
             * self.rel_humidity.data
         )
         return self._make_humidity_cube(humidity)

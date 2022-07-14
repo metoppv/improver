@@ -33,7 +33,7 @@ from typing import List, Tuple
 
 import numpy as np
 from iris.coords import AuxCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from scipy.optimize import newton
 
 from improver import BasePlugin
@@ -45,7 +45,6 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
-from improver.utilities.cube_checker import spatial_coords_match
 
 
 class CloudCondensationLevel(BasePlugin):
