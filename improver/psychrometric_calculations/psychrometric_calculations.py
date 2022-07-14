@@ -336,7 +336,7 @@ class HumidityMixingRatio(BasePlugin):
 
         Args:
             cubes:
-                Cubes of temperature, pressure and relative humidity
+                Cubes, in this order, of temperature (K), pressure (Pa) and relative humidity (1)
 
         Returns:
             Cube of humidity mixing ratio

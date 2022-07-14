@@ -118,7 +118,8 @@ class CloudCondensationLevel(BasePlugin):
 
         Args:
             cubes:
-                Cubes of temperature, pressure and humidity mixing ratio
+                Cubes, in this order, of temperature (K), pressure (Pa)
+                and humidity mixing ratio (kg kg-1)
 
         Returns:
             Cube of cloud condensation level

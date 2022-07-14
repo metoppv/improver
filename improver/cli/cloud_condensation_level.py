@@ -46,13 +46,13 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            containing near-surface values of:
+            containing near-surface values, in this order, of:
                 temperature (iris.cube.Cube):
-                    Cube of air_temperature.
+                    Cube of air_temperature (K).
                 pressure (iris.cube.Cube):
-                    Cube of surface_air_pressure.
+                    Cube of surface_air_pressure (Pa).
                 humidity (iris.cube.Cube):
-                    Cube of relative humidity.
+                    Cube of relative humidity (1).
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
