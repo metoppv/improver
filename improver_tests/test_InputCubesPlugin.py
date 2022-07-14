@@ -108,6 +108,11 @@ def add_int_key(descriptor: dict):
     descriptor[0] = CubeDescriptor(name="invalid", units="kg")
 
 
+def replace_with_dict(descriptor: dict):
+    """Replaces a CubeDescriptor with a dict"""
+    descriptor["temperature"] = {"name": "air_temperature", "units": "K"}
+
+
 def empty_dict(descriptor: dict):
     """Empties the descriptor dictionary"""
     for key in list(descriptor.keys()):
@@ -121,6 +126,11 @@ def empty_dict(descriptor: dict):
             add_int_key,
             TypeError,
             "Keys in cube_descriptors must be 'str', not <class 'int'> for 0",
+        ),
+        (
+            replace_with_dict,
+            TypeError,
+            "Values in cube_descriptors must be <CubeDescriptor>, not <class 'dict'> for",
         ),
         (empty_dict, ValueError, "Missing compulsory dictionary 'cube_descriptors'"),
     ),
