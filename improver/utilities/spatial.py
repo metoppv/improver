@@ -396,9 +396,12 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
     """Calculate whether a phenomenon occurs within the specified radius. This
     radius can be given as a radius in metres, or as a number of grid points.
     A radius in metres may be used with data on a equal areas projection only.
-    A grid_point_radius will work with any projection but the effective kernel
-    shape in real space may be irregular. Users must be aware of this when
-    choosing whether to use this plugin with a non-equal areas projection."""
+    A grid_point_radius will work with any projection, with caveats.
+
+    .. Further information is available in:
+    .. include:: extended_documentation/utilities/spatial/
+       occurrence_within_vicinity.rst
+    """
 
     def __init__(
         self,
