@@ -160,7 +160,7 @@ def test_missing_descriptor():
     """Test for known errors when no descriptor is provided"""
     with pytest.raises(
         TypeError,
-        match="Can't instantiate abstract class BadPlugin with abstract methods cube_descriptors",
+        match="Can't instantiate abstract class BadPlugin with abstract method",
     ):
 
         class BadPlugin(InputCubesPlugin):
