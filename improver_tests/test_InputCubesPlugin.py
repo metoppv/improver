@@ -156,6 +156,21 @@ def test_bad_descriptor_keys(breaking_function, error_type, msg):
         bp.cube_descriptors = bad_descriptor
 
 
+def test_missing_descriptor():
+    """Test for known errors when no descriptor is provided"""
+    with pytest.raises(
+        TypeError,
+        match="Can't instantiate abstract class BadPlugin with abstract methods cube_descriptors",
+    ):
+
+        class BadPlugin(InputCubesPlugin):
+            def process(self, inputs: List[Cube], time_bounds: bool = False):
+                """Empty method to make abstract base class happy"""
+                pass
+
+        BadPlugin()
+
+
 def metadata_ok(plugin):
     """Checks that the three cubes are in the right places with the right names and units"""
     assert plugin.get_cube("temperature").name() == "air_temperature"
