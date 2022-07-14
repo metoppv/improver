@@ -171,6 +171,24 @@ def test_missing_descriptor():
         BadPlugin()
 
 
+def test_calling_abstract_method():
+    """Test for known error when calling the abstract method"""
+
+    class BadPlugin(InputCubesPlugin):
+        cube_descriptors = {
+            "temperature": CubeDescriptor(name="air_temperature", units="K"),
+            "pressure": CubeDescriptor(name="air_pressure", units="Pa"),
+            "rel_humidity": CubeDescriptor(name="relative_humidity", units="kg kg-1"),
+        }
+
+        def process(self):
+            """Uses super to access the abstract method"""
+            super().cube_descriptors()
+
+    with pytest.raises(NotImplementedError):
+        BadPlugin()()
+
+
 def metadata_ok(plugin):
     """Checks that the three cubes are in the right places with the right names and units"""
     assert plugin.get_cube("temperature").name() == "air_temperature"
