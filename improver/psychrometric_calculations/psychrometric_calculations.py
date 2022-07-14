@@ -31,7 +31,6 @@
 """Module to contain Psychrometric Calculations."""
 
 import functools
-from dataclasses import dataclass
 from typing import List, Tuple, Union
 
 import numpy as np
@@ -48,7 +47,6 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
@@ -299,47 +297,8 @@ def adjust_for_latent_heat(
     return temperature, humidity
 
 
-@dataclass
-class EnforceTypes:
-    """Ensures any declared types are met"""
-
-    def __post_init__(self):
-        for (name, field_type) in self.__annotations__.items():
-            if not isinstance(self.__dict__[name], field_type):
-                current_type = type(self.__dict__[name])
-                raise TypeError(
-                    f"The field '{name}' is {current_type} instead of {field_type}"
-                )
-
-
-@dataclass
-class CubeDescriptor(EnforceTypes):
-    """Sets up a cube descriptor type.
-
-    Args:
-        name:
-            The name or partial name of the cube you expect to find.
-        units:
-            The units you want the cube to be in.
-        partial_name:
-            If true, name is assumed to be a partial name and any
-            cube name that contains this string will be matched.
-    """
-
-    name: str
-    units: str
-    partial_name: bool = False
-    _matched_name: str = ""
-
-
 class HumidityMixingRatio(BasePlugin):
     """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
-
-    cube_descriptors = {
-        "temperature": CubeDescriptor(name="air_temperature", units="K"),
-        "pressure": CubeDescriptor(name="air_pressure", units="Pa", partial_name=True),
-        "rel_humidity": CubeDescriptor(name="relative_humidity", units="1"),
-    }
 
     def __init__(self, model_id_attr: str = None):
         """
@@ -349,130 +308,22 @@ class HumidityMixingRatio(BasePlugin):
             model_id_attr:
                 Name of model ID attribute to be copied from source cubes to output cube
         """
-        self._parse_cube_descriptors()
-
         self.model_id_attr = model_id_attr
         self.model_id_value = None
         self.mandatory_attributes = None
-
-    def _parse_cube_descriptors(self):
-        """Checks that cube_descriptors is supplied and had valid keys"""
-        if not self.cube_descriptors:
-            raise ValueError("Missing compulsory dictionary 'cube_descriptors'")
-        for k in self.cube_descriptors.keys():
-            if not isinstance(k, str):
-                raise TypeError(
-                    f"Keys in cube_descriptors must be 'str', not {type(k)} for {k}"
-                )
-
-    def get_cube(self, key: str) -> Cube:
-        """Gets the named cube.
-
-        Args:
-            key:
-                The cube identifier. Must match a key from cube_descriptors
-
-        Returns:
-            Cube matched to this key by the parse_inputs method
-
-        Raises:
-            TypeError if the found object is not a Cube
-        """
-        cube = getattr(self, f"_{key}")
-        if not isinstance(cube, Cube):
-            raise TypeError(f"_{key} should be a Cube, but found {type(cube)}")
-        return cube
-
-    @staticmethod
-    def assert_time_coords_ok(inputs: List[Cube], time_bounds: bool):
-        """
-        Raises appropriate ValueError if
-
-        - Any input cube has or is missing time bounds (depending on time_bounds)
-        - Input cube times and forecast_reference_times do not match
-        """
-        cubes_not_matching_time_bounds = [
-            c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
-        ]
-        if cubes_not_matching_time_bounds:
-            str_bool = "" if time_bounds else "not "
-            msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
-            raise ValueError(msg)
-        for time_coord_name in ["time", "forecast_reference_time"]:
-            time_coords = [c.coord(time_coord_name) for c in inputs]
-            if not all([tc == time_coords[0] for tc in time_coords[1:]]):
-                raise ValueError(
-                    f"{time_coord_name} coordinates do not match."
-                    "\n  "
-                    "\n  ".join(
-                        [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
-                    )
-                )
-
-    def parse_inputs(self, inputs: List[Cube], time_bounds=False) -> None:
-        """Extracts input cubes as described by self.cube_descriptors.
-
-        Args:
-            inputs:
-                List of Cubes containing exactly one of each input cube.
-            time_bounds:
-                True when all input cubes are expected to have time bounds.
-        Raises:
-            ValueError:
-                If additional cubes are found
-        """
-        cubes = CubeList(inputs)
-        for desc in self.cube_descriptors.values():
-            desc._matched_name = desc.name
-            if desc.partial_name:
-                # Replace descriptor name with any cube name that contains the partial name
-                try:
-                    (desc._matched_name,) = [
-                        c.name() for c in cubes if desc.name in c.name()
-                    ]
-                except ValueError:
-                    pass  # This is picked up with a better error message later
-        expected_names = set(
-            [desc._matched_name for desc in self.cube_descriptors.values()]
-        )
-        cubes_names = set([cube.name() for cube in cubes])
-        diff = expected_names - cubes_names
-        if diff:
-            raise ValueError(f"Expected to find cube of {diff}, in {cubes_names}")
-        diff = cubes_names - expected_names
-        if diff:
-            raise ValueError(f"Unexpected Cube(s) found in inputs: {diff}")
-        if not spatial_coords_match(cubes):
-            raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
-
-        for attr, cube_values in self.cube_descriptors.items():
-            (cube,) = cubes.extract(cube_values.name)
-            cube.convert_units(cube_values.units)
-            setattr(self, f"_{attr}", cube)
-        self.assert_time_coords_ok(cubes, time_bounds)
-
-        self.mandatory_attributes = generate_mandatory_attributes(inputs)
-
-        if self.model_id_attr:
-            model_id_value = {cube.attributes[self.model_id_attr] for cube in cubes}
-            if len(model_id_value) != 1:
-                raise ValueError(
-                    f"Attribute {self.model_id_attr} does not match on input cubes. "
-                    f"{' != '.join(model_id_value)}"
-                )
-            (self.model_id_value,) = model_id_value
+        self.temperature, self.pressure, self.rel_humidity = None, None, None
 
     def _make_humidity_cube(self, data: np.ndarray) -> Cube:
         """Puts the data array into a CF-compliant cube"""
         attributes = {}
         if self.model_id_attr:
-            attributes[self.model_id_attr] = self.get_cube("rel_humidity").attributes[
+            attributes[self.model_id_attr] = self.rel_humidity.attributes[
                 self.model_id_attr
             ]
         cube = create_new_diagnostic_cube(
             "humidity_mixing_ratio",
             "kg kg-1",
-            self.get_cube("rel_humidity"),
+            self.rel_humidity,
             mandatory_attributes=self.mandatory_attributes,
             optional_attributes=attributes,
             data=data,
@@ -491,12 +342,13 @@ class HumidityMixingRatio(BasePlugin):
             Cube of humidity mixing ratio
 
         """
-        self.parse_inputs(cubes)
+        self.mandatory_attributes = generate_mandatory_attributes(cubes)
+        self.temperature, self.pressure, self.rel_humidity = cubes
         humidity = (
             saturated_humidity(
-                self.get_cube("temperature").data, self.get_cube("pressure").data
+                self.temperature.data, self.pressure.data
             )
-            * self.get_cube("rel_humidity").data
+            * self.rel_humidity.data
         )
         return self._make_humidity_cube(humidity)
 
