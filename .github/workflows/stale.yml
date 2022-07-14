@@ -1,6 +1,6 @@
 # See https://github.com/actions/stale
 
-name: Stale issues and pull-requests
+name: Stale pull-requests
 
 on:
   schedule:
