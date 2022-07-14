@@ -64,76 +64,7 @@ class CloudCondensationLevel(BasePlugin):
                 Name of model ID attribute to be copied from source cubes to output cube
         """
         self.model_id_attr = model_id_attr
-        self.cube_names = [
-            "air_temperature",
-            "surface_air_pressure",
-            "humidity_mixing_ratio",
-        ]
-
-    def _input_times_error(self) -> str:
-        """
-        Returns appropriate error message string if
-
-        - Any input cube time is bounded
-        - Input cube times and forecast_reference_times do not match
-        """
-        inputs = [self.temperature, self.pressure, self.humidity]
-        cubes_with_time_bounds = [
-            c.name() for c in inputs if c.coord("time").has_bounds()
-        ]
-        if cubes_with_time_bounds:
-            return f"{' and '.join(cubes_with_time_bounds)} must not have time bounds"
-        for time_coord_name in ["time", "forecast_reference_time"]:
-            time_coords = [c.coord(time_coord_name) for c in inputs]
-            if not all([tc == time_coords[0] for tc in time_coords[1:]]):
-                return (
-                    f"{time_coord_name} coordinates do not match."
-                    "\n  "
-                    "\n  ".join(
-                        [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
-                    )
-                )
-        return ""
-
-    def _parse_inputs(self, inputs: List[Cube]) -> None:
-        """Extracts temperature, pressure and humidity mixing ratio cubes from
-        the cube list and ensures units are as this plugin expects.
-
-        Args:
-            inputs:
-                List of Cubes containing exactly one of air_temperature, surface_air_pressure
-                and humidity_mixing_ratio
-        Raises:
-            ValueError:
-                If additional cubes are found
-        """
-        cubes = CubeList(inputs)
-        try:
-            (self.temperature, self.pressure, self.humidity) = cubes.extract(
-                self.cube_names
-            )
-        except ValueError as e:
-            raise ValueError(
-                f"Expected to find cubes of {self.cube_names}, not {[c.name() for c in cubes]}"
-            ) from e
-        if len(cubes) > 3:
-            extras = [c.name() for c in cubes if c.name() not in self.cube_names]
-            raise ValueError(f"Unexpected Cube(s) found in inputs: {extras}")
-        if not spatial_coords_match(inputs):
-            raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
-        time_error_msg = self._input_times_error()
-        if time_error_msg:
-            raise ValueError(time_error_msg)
-        self.temperature.convert_units("K")
-        self.pressure.convert_units("Pa")
-        self.humidity.convert_units("kg kg-1")
-        if self.model_id_attr:
-            model_id_value = {cube.attributes[self.model_id_attr] for cube in inputs}
-            if len(model_id_value) != 1:
-                raise ValueError(
-                    f"Attribute {self.model_id_attr} does not match on input cubes. "
-                    f"{' != '.join(model_id_value)}"
-                )
+        self.temperature, self.pressure, self.humidity = None, None, None
 
     def _make_ccl_cube(self, data: np.ndarray, pressure: np.ndarray) -> Cube:
         """Puts the data array into a CF-compliant cube"""
@@ -194,6 +125,6 @@ class CloudCondensationLevel(BasePlugin):
             Cube of cloud condensation level
 
         """
-        self._parse_inputs(cubes)
+        self.temperature, self.pressure, self.humidity = cubes
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         return self._make_ccl_cube(ccl_temperature, ccl_pressure)
