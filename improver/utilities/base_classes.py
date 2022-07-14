@@ -35,6 +35,7 @@ from typing import List
 
 from iris.cube import Cube, CubeList
 
+import improver.utilities.cube_descriptor
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -94,7 +95,7 @@ class InputCubesPlugin(BasePlugin):
                 raise TypeError(
                     f"Keys in cube_descriptors must be 'str', not {type(k)} for {k}"
                 )
-            if "CubeDescriptor" not in f"{type(v)}":
+            if not isinstance(v, improver.utilities.cube_descriptor.CubeDescriptor):
                 raise TypeError(
                     f"Values in cube_descriptors must be <CubeDescriptor>, not {type(v)} for {k}"
                 )
