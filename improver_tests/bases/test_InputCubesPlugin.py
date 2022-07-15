@@ -35,7 +35,7 @@ from typing import List
 
 import numpy as np
 import pytest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.bases import InputCubesPlugin, PostProcessingPlugin
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -108,6 +108,14 @@ class MultipleInheritancePlugin(SimplePlugin, PostProcessingPlugin):
     """Shows that everything continues to behave when wrapped in the PostProcessingPlugin"""
 
     pass
+
+
+class SingularPlugin(SimplePlugin):
+    """Shows that everything continues to behave when only one cube is expected"""
+
+    cube_descriptors = {
+        "temperature": CubeDescriptor(name="air_temperature", units="K"),
+    }
 
 
 def add_int_key(descriptor: dict):
@@ -385,3 +393,13 @@ def test_spatial_match_false(
     plugin.cube_descriptors["pressure"].spatial_match = spatial_pressure_check
     plugin.cube_descriptors["rel_humidity"].spatial_match = spatial_humidity_check
     plugin(cubes, time_bounds=time_bounds)
+
+
+@pytest.mark.parametrize("spatial_match", [True, False])
+@pytest.mark.parametrize("time_bounds", [True, False])
+def test_singluar_descriptor(cubes, time_bounds, spatial_match):
+    """Checks that a class requiring exactly one cube also works"""
+    plugin = SingularPlugin()
+    temperature_cubes = CubeList(cubes).extract("air_temperature")
+    plugin.cube_descriptors["temperature"].spatial_match = spatial_match
+    plugin(temperature_cubes, time_bounds=time_bounds)

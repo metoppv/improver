@@ -130,6 +130,8 @@ class InputCubesPlugin(BasePlugin):
         Can be overloaded where only a subset of inputs are expected to match, or have
         specific offsets. Overloading functions can use self.get_cube()
         """
+        if len(inputs) <= 1:
+            return
         cubes_not_matching_time_bounds = [
             c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
         ]
