@@ -160,6 +160,8 @@ class InputCubesPlugin(BasePlugin):
         Can be overloaded where only a subset of inputs are expected to match.
         Overloading functions can use self.get_cube()
         """
+        if len(spatial_matching_cubes) <= 1:
+            return
         if not spatial_coords_match(spatial_matching_cubes):
             raise ValueError(
                 f"Spatial coords of input Cubes do not match: {spatial_matching_cubes}"

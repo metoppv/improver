@@ -73,7 +73,7 @@ def cubes_fixture(time_bounds) -> List[Cube]:
             datetime(2017, 11, 10, 3, 0),
             datetime(2017, 11, 10, 4, 0),
         )
-    cube = set_up_variable_cube(data, **kwargs,)
+    cube = set_up_variable_cube(data, **kwargs)
     for descriptor in SimplePlugin.cube_descriptors.values():
         cube = cube.copy()
         if descriptor.partial_name:
@@ -369,12 +369,19 @@ def test_get_cube_error(cubes, plugin_class):
         plugin.get_cube("temperature")
 
 
+@pytest.mark.parametrize("spatial_pressure_check", [True, False])
+@pytest.mark.parametrize("spatial_humidity_check", [True, False])
 @pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
 @pytest.mark.parametrize("time_bounds", [True, False])
-def test_spatial_match_false(cubes, plugin_class, time_bounds):
+def test_spatial_match_false(
+    cubes, plugin_class, time_bounds, spatial_pressure_check, spatial_humidity_check
+):
     """Checks that a spatially mismatched cube is accepted if its cube descriptor has
-    spatial_match=False"""
+    spatial_match=False. spatial pressure and humidity checks show this works when
+    spatial_match is True for 0, 1 or 2 cubes"""
     spatial_shift(cubes)
     plugin = plugin_class()
     plugin.cube_descriptors["temperature"].spatial_match = False
+    plugin.cube_descriptors["pressure"].spatial_match = spatial_pressure_check
+    plugin.cube_descriptors["rel_humidity"].spatial_match = spatial_humidity_check
     plugin(cubes, time_bounds=time_bounds)
