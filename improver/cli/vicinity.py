@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, vicinity: float):
+def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None):
     """Module to apply vicinity processing to data.
 
     Calculate the maximum value within a vicinity radius about each point
@@ -59,8 +59,9 @@ def process(cube: cli.inputcube, vicinity: float):
         cube (iris.cube.Cube):
             A cube containing data to which a vicinity it to be applied.
         vicinity (float):
-            Distance in metres used to define the vicinity within which to
-            search for an occurrence
+            List of distances in metres used to define the vicinities within
+            which to search for an occurrence. Each vicinity provided will
+            lead to a different gridded field.
 
     Returns:
         iris.cube.Cube:
@@ -68,4 +69,5 @@ def process(cube: cli.inputcube, vicinity: float):
     """
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
-    return OccurrenceWithinVicinity(radius=vicinity).process(cube)
+    vicinity = [float(x) for x in vicinity]
+    return OccurrenceWithinVicinity(radii=vicinity).process(cube)

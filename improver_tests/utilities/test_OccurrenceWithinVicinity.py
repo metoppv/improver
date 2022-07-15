@@ -132,7 +132,7 @@ def grid_point_radius_coord() -> AuxCoord:
 
 
 @pytest.mark.parametrize(
-    "kwargs", ({"radius": RADIUS}, {"grid_point_radius": GRID_POINT_RADIUS})
+    "kwargs", ({"radii": [RADIUS]}, {"grid_point_radii": [GRID_POINT_RADIUS]})
 )
 def test_basic(cube, binary_expected, kwargs):
     """Test for binary events to determine where there is an occurrence
@@ -148,8 +148,8 @@ def test_basic(cube, binary_expected, kwargs):
 @pytest.mark.parametrize(
     "kwargs, expected_coord",
     (
-        ({"radius": RADIUS}, "radius_coord"),
-        ({"grid_point_radius": GRID_POINT_RADIUS}, "grid_point_radius_coord"),
+        ({"radii": [RADIUS]}, "radius_coord"),
+        ({"grid_point_radii": [GRID_POINT_RADIUS]}, "grid_point_radius_coord"),
     ),
 )
 def test_metadata(request, cube, kwargs, expected_coord):
@@ -177,7 +177,7 @@ def test_basic_latlon(latlon_cube, binary_expected):
 
     latlon_cube.data[0, 1] = 1.0
     latlon_cube.data[2, 3] = 1.0
-    result = OccurrenceWithinVicinity(grid_point_radius=GRID_POINT_RADIUS).process(
+    result = OccurrenceWithinVicinity(grid_point_radii=[GRID_POINT_RADIUS]).process(
         latlon_cube
     )
     assert isinstance(result, Cube)
@@ -198,13 +198,13 @@ def test_fuzzy(cube):
     )
     cube.data[0, 1] = 1.0
     cube.data[2, 3] = 0.5
-    result = OccurrenceWithinVicinity(radius=RADIUS).process(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS]).process(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
 
 @pytest.mark.parametrize(
-    "kwargs", ({"radius": 2 * RADIUS}, {"grid_point_radius": 2 * GRID_POINT_RADIUS})
+    "kwargs", ({"radii": [2 * RADIUS]}, {"grid_point_radii": [2 * GRID_POINT_RADIUS]})
 )
 def test_different_distance(cube, kwargs):
     """Test for binary events to determine where there is an occurrence
@@ -242,7 +242,7 @@ def test_masked_data(cube):
     mask = np.zeros((5, 5))
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
-    result = OccurrenceWithinVicinity(radius=RADIUS).process(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS]).process(cube)
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data.data, expected)
@@ -264,7 +264,7 @@ def test_with_land_mask(cube, land_mask_cube):
     cube.data[2, 3] = 1.0  # would cross mask
     cube.data[0, 4] = 10.0  # would not cross mask
     result = OccurrenceWithinVicinity(
-        radius=RADIUS, land_mask_cube=land_mask_cube
+        radii=[RADIUS], land_mask_cube=land_mask_cube
     ).process(cube)
     assert isinstance(result, Cube)
     assert ~isinstance(result.data, np.ma.core.MaskedArray)
@@ -288,9 +288,9 @@ def test_with_land_mask_and_mask(cube, land_mask_cube):
     mask = np.zeros((5, 5))
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
-    result = OccurrenceWithinVicinity(RADIUS, land_mask_cube=land_mask_cube).process(
-        cube
-    )
+    result = OccurrenceWithinVicinity(
+        radii=[RADIUS], land_mask_cube=land_mask_cube
+    ).process(cube)
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data.data, expected)
@@ -305,7 +305,7 @@ def test_with_invalid_land_mask_name(land_mask_cube):
         ValueError,
         match="Expected land_mask_cube to be called land_binary_mask, not kittens",
     ):
-        OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=bad_mask_cube)
+        OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=bad_mask_cube)
 
 
 def test_with_invalid_land_mask_coords(cube, land_mask_cube):
@@ -318,7 +318,7 @@ def test_with_invalid_land_mask_coords(cube, land_mask_cube):
         ValueError,
         match="Supplied cube do not have the same spatial coordinates and land mask",
     ):
-        OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=bad_mask_cube)(cube)
+        OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=bad_mask_cube)(cube)
 
 
 @pytest.fixture(name="cube_with_realizations")
@@ -385,10 +385,39 @@ def test_with_multiple_realizations_and_times(
     cube.data[0, 0, 2, 1] = 1.0
     cube.data[1, 1, 1, 3] = 1.0
     orig_shape = cube.data.copy().shape
-    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs", (({"radii": [2000, 5000]}), ({"grid_point_radii": [2, 3, 4, 5]}),)
+)
+def test_coordinate_order_with_multiple_realizations_and_times(
+    cube_with_realizations, kwargs
+):
+    """Test the output coordinate order for input cubes with multiple
+    realizations and times using multiple vicinity radii."""
+
+    cube = cube_with_realizations
+    cube = add_coordinate(
+        cube, TIMESTEPS, "time", order=[1, 0, 2, 3], is_datetime=True,
+    )
+
+    # Add the expected radius_of_vicinity coordinate dimension size
+    orig_shape = list(cube.data.copy().shape)
+    orig_shape.insert(-2, len(list(kwargs.values())[0]))
+
+    # Add the expected radius_of_vicinity coordinate dimension name
+    orig_order = [crd.name() for crd in cube.coords(dim_coords=True)]
+    orig_order.insert(-2, "radius_of_vicinity")
+
+    result = OccurrenceWithinVicinity(**kwargs)(cube)
+    result_order = [crd.name() for crd in result.coords(dim_coords=True)]
+
+    assert list(result.data.shape) == orig_shape
+    assert result_order == orig_order
 
 
 @pytest.mark.parametrize("land_fixture", [None, "all_land_cube"])
@@ -415,7 +444,7 @@ def test_with_multiple_realizations(request, cube_with_realizations, land_fixtur
     )
     cube.data[0, 2, 1] = 1.0
     cube.data[1, 1, 3] = 1.0
-    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert np.allclose(result.data, expected)
 
@@ -447,7 +476,7 @@ def test_with_multiple_times(request, cube_with_realizations, land_fixture):
     cube.data[0, 2, 1] = 1.0
     cube.data[1, 1, 3] = 1.0
     orig_shape = cube.data.shape
-    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
@@ -470,53 +499,52 @@ def test_no_realization_or_time(request, cube_with_realizations, land_fixture):
     cube = cube[0]
     cube.data[2, 1] = 1.0
     orig_shape = cube.data.shape
-    result = OccurrenceWithinVicinity(radius=RADIUS, land_mask_cube=land)(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=land)(cube)
     assert isinstance(result, Cube)
     assert result.data.shape == orig_shape
     assert np.allclose(result.data, expected)
 
 
 @pytest.mark.parametrize("radius", [-1, 10, 2000])
-def test_two_radii_provided_exception(cube, radius):
-    """Test an exception is raised if both radius and grid_point_radius are
+def test_two_radii_types_provided_exception(cube, radius):
+    """Test an exception is raised if both radii and grid_point_radii are
     provided as non-zero arguments."""
 
     expected = (
-        "Vicinity processing requires that only one of radius or "
-        "grid_point_radius should be set"
+        "Vicinity processing requires that only one of radii or "
+        "grid_point_radii should be set"
     )
 
     with pytest.raises(ValueError, match=expected):
-        OccurrenceWithinVicinity(radius=radius, grid_point_radius=2)
+        OccurrenceWithinVicinity(radii=[radius], grid_point_radii=2)
 
 
-@pytest.mark.parametrize("radius", [0, None])
-@pytest.mark.parametrize("grid_point_radius", [0, None])
-def test_no_radii_provided_exception(cube, radius, grid_point_radius):
-    """Test an exception is raised if neither radius nor grid_point_radius are
+@pytest.mark.parametrize("kwargs", ({"radii": None, "grid_point_radii": None}, {}))
+def test_no_radii_provided_exception(cube, kwargs):
+    """Test an exception is raised if neither radii nor grid_point_radii are
     set to non-zero values."""
 
     expected = (
-        "Vicinity processing requires that one of radius or "
-        "grid_point_radius should be set to a non-zero value"
+        "Vicinity processing requires that one of radii or "
+        "grid_point_radii should be set to a non-zero value"
     )
 
     with pytest.raises(ValueError, match=expected):
-        OccurrenceWithinVicinity(radius=radius, grid_point_radius=grid_point_radius)
+        OccurrenceWithinVicinity(**kwargs)
 
 
 @pytest.mark.parametrize(
     "kwargs",
     (
-        ({"radius": -2000, "grid_point_radius": None}),
-        ({"radius": None, "grid_point_radius": -1}),
+        ({"radii": [-2000], "grid_point_radii": None}),
+        ({"radii": None, "grid_point_radii": [-1]}),
     ),
 )
 def test_negative_radii_provided_exception(cube, kwargs):
     """Test an exception is raised if the radius provided in either form is
     a negative value."""
 
-    expected = "Vicinity processing requires a positive vicinity radius"
+    expected = "Vicinity processing requires only positive vicinity radii"
 
     with pytest.raises(ValueError, match=expected):
         OccurrenceWithinVicinity(**kwargs).get_grid_point_radius(cube)
@@ -525,14 +553,17 @@ def test_negative_radii_provided_exception(cube, kwargs):
 @pytest.mark.parametrize(
     "kwargs",
     (
-        ({"radius": 2000, "grid_point_radius": 0}),
-        ({"radius": 2000, "grid_point_radius": None}),
-        ({"radius": 0, "grid_point_radius": 1}),
-        ({"radius": None, "grid_point_radius": 1}),
+        ({"radii": [2000], "grid_point_radii": None}),
+        ({"radii": [5000], "grid_point_radii": None}),
+        ({"radii": [2000, 5000], "grid_point_radii": None}),
+        ({"radii": None, "grid_point_radii": [1]}),
+        ({"radii": None, "grid_point_radii": [3]}),
+        ({"radii": None, "grid_point_radii": [1, 3]}),
     ),
 )
-def test_get_grid_point_radius(cube, kwargs):
-    """Test the correct radius is returned for mixtures of zeroes, Nans and
-    valid radii."""
+def test_radius_set_correctly(cube, kwargs):
+    """Test the radius is set correctly within the plugin."""
 
-    assert OccurrenceWithinVicinity(**kwargs).get_grid_point_radius(cube) == 1
+    (expected,) = [value for value in kwargs.values() if value is not None]
+    plugin = OccurrenceWithinVicinity(**kwargs)
+    assert plugin.radii == expected

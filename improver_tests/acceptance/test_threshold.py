@@ -143,15 +143,28 @@ def test_collapse_realization_masked_data(tmp_path):
 @pytest.mark.parametrize(
     "extra_args,kgo",
     (
-        ([], "kgo.nc"),
-        (["--collapse-coord", "realization"], "kgo_collapsed.nc"),
+        (["--vicinity", "10000"], "kgo.nc"),
         (
-            [acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc"],
+            ["--vicinity", "10000,20000", "--collapse-coord", "realization"],
+            "kgo_multiple_vicinities.nc",
+        ),
+        (
+            ["--vicinity", "10000", "--collapse-coord", "realization"],
+            "kgo_collapsed.nc",
+        ),
+        (
+            [
+                acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+                "--vicinity",
+                "10000",
+            ],
             "kgo_landmask.nc",
         ),
         (
             [
                 acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
+                "--vicinity",
+                "10000",
                 "--collapse-coord",
                 "realization",
             ],
@@ -175,8 +188,6 @@ def test_vicinity(tmp_path, extra_args, kgo):
         "0.03,0.1,1.0",
         "--threshold-units",
         "mm hr-1",
-        "--vicinity",
-        "10000",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
