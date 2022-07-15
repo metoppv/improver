@@ -37,7 +37,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
-from improver.bases import InputCubesPlugin
+from improver.bases import InputCubesPlugin, PostProcessingPlugin
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_descriptor import CubeDescriptor
 
@@ -98,9 +98,15 @@ class SimplePlugin(InputCubesPlugin):
         "rel_humidity": CubeDescriptor(name="relative_humidity", units="kg kg-1"),
     }
 
-    def process(self, inputs: List[Cube], time_bounds: bool = False):
+    def process(self, inputs: List[Cube], time_bounds: bool = False) -> Cube:
         """Call parse_inputs class method."""
         self.parse_inputs(inputs, time_bounds=time_bounds)
+        return self.get_cube("temperature")
+
+
+class MultipleInheritancePlugin(SimplePlugin, PostProcessingPlugin):
+    """Shows that everything continues to behave when wrapped in the PostProcessingPlugin"""
+    pass
 
 
 def add_int_key(descriptor: dict):
@@ -119,6 +125,7 @@ def empty_dict(descriptor: dict):
         descriptor.pop(key)
 
 
+@pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
 @pytest.mark.parametrize(
     "breaking_function, error_type, msg",
     (
@@ -135,7 +142,7 @@ def empty_dict(descriptor: dict):
         (empty_dict, ValueError, "Missing compulsory dictionary 'cube_descriptors'"),
     ),
 )
-def test_bad_descriptor_keys(breaking_function, error_type, msg):
+def test_bad_descriptor_keys(plugin_class, breaking_function, error_type, msg):
     """Test for known errors when a bad descriptor is provided"""
     bad_descriptor = {
         "temperature": CubeDescriptor(name="air_temperature", units="K"),
@@ -145,7 +152,7 @@ def test_bad_descriptor_keys(breaking_function, error_type, msg):
     breaking_function(bad_descriptor)
     with pytest.raises(error_type, match=msg):
 
-        class BadPlugin(InputCubesPlugin):
+        class BadPlugin(plugin_class):
             cube_descriptors = bad_descriptor
 
             def process(self, inputs: List[Cube], time_bounds: bool = False):
@@ -199,11 +206,12 @@ def metadata_ok(plugin):
     assert plugin.get_cube("rel_humidity").units == "kg kg-1"
 
 
+@pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
 @pytest.mark.parametrize("time_bounds", (False, True))
 @pytest.mark.parametrize("change_units", (False, True))
 @pytest.mark.parametrize("reverse_order", (False, True))
 def test_unit_conversion_and_cube_order(
-    cubes, reverse_order, change_units, time_bounds
+    cubes, plugin_class, reverse_order, change_units, time_bounds
 ):
     """Check that we get the right behaviour regardless of cube list order, input cube units,
     with and without time bounds."""
@@ -213,7 +221,7 @@ def test_unit_conversion_and_cube_order(
         cubes[2].units = "g kg-1"
     if reverse_order:
         cubes.reverse()
-    plugin = SimplePlugin()
+    plugin = plugin_class()
     plugin(cubes, time_bounds=time_bounds)
     metadata_ok(plugin)
     if change_units:
@@ -226,13 +234,14 @@ def test_unit_conversion_and_cube_order(
         np.testing.assert_allclose(plugin.get_cube("rel_humidity").data, 1.0)
 
 
+@pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
 @pytest.mark.parametrize("time_bounds", [False])
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
-def test_model_id_attr(cubes, model_id_attr):
+def test_model_id_attr(cubes, plugin_class, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""
     for cube in cubes:
         cube.attributes["mosg__model_configuration"] = "gl_ens"
-    plugin = SimplePlugin(model_id_attr=model_id_attr)
+    plugin = plugin_class(model_id_attr=model_id_attr)
     plugin(cubes)
     metadata_ok(plugin)
     if model_id_attr:
@@ -301,6 +310,7 @@ def set_mismatched_model_ids(cubes: List[Cube]):
     cubes[0].attributes["mosg__model_configuration"] = "uk_ens"
 
 
+@pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
 @pytest.mark.parametrize(
     "modifier, time_bounds, error_match",
     (
@@ -331,21 +341,22 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         ),
     ),
 )
-def test_exceptions(cubes, modifier: callable, time_bounds: bool, error_match: str):
+def test_exceptions(cubes, plugin_class, modifier: callable, time_bounds: bool, error_match: str):
     """Check for things we know we should reject"""
     for cube in cubes:
         cube.attributes["mosg__model_configuration"] = "gl_ens"
     modifier(cubes)
     with pytest.raises(ValueError, match=error_match):
-        SimplePlugin(model_id_attr="mosg__model_configuration")(
+        plugin_class(model_id_attr="mosg__model_configuration")(
             cubes, time_bounds=time_bounds
         )
 
 
+@pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
 @pytest.mark.parametrize("time_bounds", [False])
-def test_get_cube_error(cubes):
+def test_get_cube_error(cubes, plugin_class):
     """Checks that a non-cube inserted into the object raises an error"""
-    plugin = SimplePlugin()
+    plugin = plugin_class()
     plugin(cubes)
     assert isinstance(plugin.get_cube("temperature"), Cube)
     plugin._temperature = 1
