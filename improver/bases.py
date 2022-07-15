@@ -156,8 +156,8 @@ class InputCubesPlugin(BasePlugin):
         Raises appropriate ValueError if
 
         - if the x and y coords are not exactly the same to the
-        precision of the floating-point values (this should be true for
-        any cubes derived using cube.regrid())
+            precision of the floating-point values (this should be true for
+            any cubes derived using cube.regrid())
 
         Can be overloaded where only a subset of inputs are expected to match.
         Overloading functions can use self.get_cube()
