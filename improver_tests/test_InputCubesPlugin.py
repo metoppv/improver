@@ -217,13 +217,13 @@ def test_unit_conversion_and_cube_order(
     plugin(cubes, time_bounds=time_bounds)
     metadata_ok(plugin)
     if change_units:
-        assert np.allclose(plugin.get_cube("temperature").data, 274.15)
-        assert np.allclose(plugin.get_cube("pressure").data, 100.0)
-        assert np.allclose(plugin.get_cube("rel_humidity").data, 0.001)
+        np.testing.assert_allclose(plugin.get_cube("temperature").data, 274.15)
+        np.testing.assert_allclose(plugin.get_cube("pressure").data, 100.0)
+        np.testing.assert_allclose(plugin.get_cube("rel_humidity").data, 0.001)
     else:
-        assert np.allclose(plugin.get_cube("temperature").data, 1.0)
-        assert np.allclose(plugin.get_cube("pressure").data, 1.0)
-        assert np.allclose(plugin.get_cube("rel_humidity").data, 1.0)
+        np.testing.assert_allclose(plugin.get_cube("temperature").data, 1.0)
+        np.testing.assert_allclose(plugin.get_cube("pressure").data, 1.0)
+        np.testing.assert_allclose(plugin.get_cube("rel_humidity").data, 1.0)
 
 
 @pytest.mark.parametrize("time_bounds", [False])
