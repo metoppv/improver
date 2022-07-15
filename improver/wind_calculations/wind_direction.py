@@ -38,8 +38,8 @@ from iris.coords import CellMethod
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver.bases import PostProcessingPlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 
 

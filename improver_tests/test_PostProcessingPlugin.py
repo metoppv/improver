@@ -34,9 +34,9 @@ import unittest
 
 import numpy as np
 
+from improver.bases import PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.base_classes import PostProcessingPlugin
 
 
 class DummyPlugin(PostProcessingPlugin):

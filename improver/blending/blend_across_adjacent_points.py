@@ -37,9 +37,9 @@ import iris
 from cf_units import Unit
 from iris.cube import Cube
 
+from improver.bases import PostProcessingPlugin
 from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
 from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.utilities.base_classes import PostProcessingPlugin
 
 
 class TriangularWeightedBlendAcrossAdjacentPoints(PostProcessingPlugin):

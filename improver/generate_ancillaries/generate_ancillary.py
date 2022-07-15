@@ -39,7 +39,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
-from improver.utilities.base_classes import BasePlugin
+from improver.bases import BasePlugin
 
 # The following dictionary defines the default orography altitude bands in
 # metres above/below sea level for which masks are required.

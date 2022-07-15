@@ -38,9 +38,9 @@ import numpy as np
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import create_new_diagnostic_cube
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 

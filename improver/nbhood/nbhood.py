@@ -38,9 +38,9 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage.filters import correlate
 
+from improver.bases import PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.forecast_times import forecast_period_coord
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,

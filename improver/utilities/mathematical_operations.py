@@ -38,11 +38,11 @@ import numpy.ma as ma
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     get_dim_coord_names,

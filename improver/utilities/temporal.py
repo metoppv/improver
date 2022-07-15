@@ -44,13 +44,13 @@ from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 from numpy import int64, ndarray
 
+from improver.bases import PostProcessingPlugin
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_manipulation import MergeCubes, enforce_coordinate_ordering
 

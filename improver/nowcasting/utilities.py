@@ -38,8 +38,8 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube, CubeList
 
+from improver.bases import BasePlugin
 from improver.utilities import neighbourhood_tools
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.temporal import (
     extract_nearest_time_point,
     iris_time_to_datetime,

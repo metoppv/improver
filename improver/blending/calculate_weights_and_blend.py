@@ -38,6 +38,7 @@ import iris
 import numpy as np
 from iris.cube import Cube, CubeList
 
+from improver.bases import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.utilities import get_coords_to_remove, update_blended_metadata
@@ -50,7 +51,6 @@ from improver.blending.weights import (
     ChooseDefaultWeightsNonLinear,
     ChooseWeightsLinear,
 )
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.spatial import (
     check_if_grid_is_equal_area,
     distance_to_number_of_grid_cells,

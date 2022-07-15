@@ -46,7 +46,7 @@ from improver.metadata.utilities import (
 from improver.threshold import BasicThreshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
-from ..utilities.base_classes import PostProcessingPlugin
+from ..bases import PostProcessingPlugin
 from .utilities import make_shower_condition_cube
 
 

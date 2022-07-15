@@ -43,6 +43,7 @@ from numpy import ndarray
 from scipy import stats
 
 import improver.ensemble_copula_coupling._scipy_continuous_distns as scipy_cont_distns
+from improver.bases import BasePlugin
 from improver.calibration.utilities import convert_cube_data_to_2d
 from improver.ensemble_copula_coupling.utilities import (
     choose_set_of_percentiles,
@@ -62,7 +63,6 @@ from improver.metadata.probabilistic import (
     get_threshold_coord_name_from_probability_name,
     probability_is_above_or_below,
 )
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     check_for_x_and_y_axes,

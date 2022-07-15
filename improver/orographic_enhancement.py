@@ -41,6 +41,7 @@ from iris.cube import Cube
 from numpy import ndarray
 from scipy.ndimage import uniform_filter1d
 
+from improver.bases import BasePlugin
 from improver.constants import R_WATER_VAPOUR
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import generate_mandatory_attributes
@@ -48,7 +49,6 @@ from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import check_for_x_and_y_axes
 from improver.utilities.cube_manipulation import (
     compare_coords,

@@ -42,6 +42,7 @@ from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.blending.utilities import set_record_run_attr
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.probabilistic import (
@@ -53,7 +54,6 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.base_classes import BasePlugin
 from improver.wxcode.utilities import (
     expand_nested_lists,
     get_parameter_names,

@@ -38,6 +38,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import constants as consts
+from improver.bases import BasePlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -46,7 +47,6 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
     saturated_humidity,
 )
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 

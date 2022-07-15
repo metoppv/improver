@@ -39,12 +39,12 @@ from iris.coords import AuxCoord
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.constants import DAYS_IN_YEAR, MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.solar import (
     calc_solar_elevation,

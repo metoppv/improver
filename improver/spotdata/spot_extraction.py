@@ -45,7 +45,7 @@ from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-from ..utilities.base_classes import BasePlugin
+from ..bases import BasePlugin
 from . import UNIQUE_ID_ATTRIBUTE
 
 

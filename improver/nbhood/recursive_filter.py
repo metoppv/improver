@@ -37,11 +37,11 @@ import numpy as np
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
+from improver.bases import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
     OrographicSmoothingCoefficients,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 

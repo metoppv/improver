@@ -37,9 +37,9 @@ import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import ConstraintMismatchError
 
+from improver.bases import PostProcessingPlugin
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.rescale import apply_double_scaling, rescale
 from improver.utilities.temporal import (

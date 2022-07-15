@@ -40,7 +40,7 @@ from numpy import ndarray
 from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
-from improver.utilities.base_classes import BasePlugin
+from improver.bases import BasePlugin
 
 
 def interpolate_missing_data(

@@ -39,8 +39,8 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.round import round_close
 from improver.utilities.solar import DayNightMask, calc_solar_elevation

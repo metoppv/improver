@@ -37,8 +37,8 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.constants import TRIPLE_PT_WATER
-from improver.utilities.base_classes import BasePlugin
 
 
 class SaturatedVapourPressureTable(BasePlugin):

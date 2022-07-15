@@ -38,10 +38,10 @@ from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
+from improver.bases import BasePlugin
 from improver.metadata.amend import amend_attributes, set_history_attribute
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.redirect_stdout import redirect_stdout
 from improver.utilities.spatial import (
     calculate_grid_spacing,

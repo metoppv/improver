@@ -37,8 +37,8 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
+from improver.bases import InputCubesPlugin
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.base_classes import InputCubesPlugin
 from improver.utilities.cube_descriptor import CubeDescriptor
 
 

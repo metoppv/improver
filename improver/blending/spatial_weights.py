@@ -38,9 +38,9 @@ import numpy as np
 from iris.cube import Cube
 from scipy.ndimage.morphology import distance_transform_edt
 
+from improver.bases import BasePlugin
 from improver.blending.utilities import find_blend_dim_coord
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_manipulation import get_dim_coord_names
 from improver.utilities.rescale import rescale
 

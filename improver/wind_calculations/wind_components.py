@@ -40,7 +40,7 @@ from iris.coords import DimCoord
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver.utilities.base_classes import BasePlugin
+from improver.bases import BasePlugin
 from improver.utilities.cube_manipulation import compare_coords
 
 # Global coordinate reference system used in StaGE (GRS80)

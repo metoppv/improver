@@ -41,11 +41,11 @@ from iris.cube import Cube
 from numpy import ndarray
 from scipy.spatial import cKDTree
 
+from improver.bases import PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.regrid.landsea2 import RegridWithLandSeaMask
 from improver.threshold import BasicThreshold
-from improver.utilities.base_classes import PostProcessingPlugin
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity
 

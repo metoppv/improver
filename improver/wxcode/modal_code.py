@@ -42,8 +42,8 @@ from scipy import stats
 from improver.blending.utilities import set_record_run_attr
 from improver.utilities.cube_manipulation import MergeCubes
 
+from ..bases import BasePlugin
 from ..metadata.forecast_times import forecast_period_coord
-from ..utilities.base_classes import BasePlugin
 from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 
 CODE_MAX = 100

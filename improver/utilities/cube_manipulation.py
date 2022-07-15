@@ -39,9 +39,9 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
+from improver.bases import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.utilities.base_classes import BasePlugin
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
