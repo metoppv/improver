@@ -126,6 +126,9 @@ class InputCubesPlugin(BasePlugin):
 
         - Any input cube has or is missing time bounds (depending on time_bounds)
         - Input cube times and forecast_reference_times do not match
+
+        Can be overloaded where only a subset of inputs are expected to match, or have
+        specific offsets. Overloading functions can use self.get_cube()
         """
         cubes_not_matching_time_bounds = [
             c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
@@ -144,6 +147,23 @@ class InputCubesPlugin(BasePlugin):
                         [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
                     )
                 )
+
+    @staticmethod
+    def assert_spatial_coords_ok(spatial_matching_cubes: List[Cube]):
+        """
+        Raises appropriate ValueError if
+
+        - if the x and y coords are not exactly the same to the
+        precision of the floating-point values (this should be true for
+        any cubes derived using cube.regrid())
+
+        Can be overloaded where only a subset of inputs are expected to match.
+        Overloading functions can use self.get_cube()
+        """
+        if not spatial_coords_match(spatial_matching_cubes):
+            raise ValueError(
+                f"Spatial coords of input Cubes do not match: {spatial_matching_cubes}"
+            )
 
     def parse_inputs(self, inputs: List[Cube], time_bounds=False) -> None:
         """Extracts input cubes as described by self.cube_descriptors.
@@ -178,13 +198,16 @@ class InputCubesPlugin(BasePlugin):
         diff = cubes_names - expected_names
         if diff:
             raise ValueError(f"Unexpected Cube(s) found in inputs: {diff}")
-        if not spatial_coords_match(cubes):
-            raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
 
+        spatial_matching_cubes = []
         for attr, cube_values in self.cube_descriptors.items():
             (cube,) = cubes.extract(cube_values._matched_name)
             cube.convert_units(cube_values.units)
             setattr(self, f"_{attr}", cube)
+            if cube_values.spatial_match:
+                spatial_matching_cubes.append(cube)
+
+        self.assert_spatial_coords_ok(spatial_matching_cubes)
         self.assert_time_coords_ok(cubes, time_bounds)
 
         if self.model_id_attr:

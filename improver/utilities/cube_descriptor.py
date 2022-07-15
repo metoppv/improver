@@ -58,9 +58,12 @@ class CubeDescriptor(EnforceTypes):
         partial_name:
             If true, name is assumed to be a partial name and any
             cube name that contains this string will be matched.
+        spatial_match:
+            All cubes where this is true will be checked for spatial compatability.
     """
 
     name: str
     units: str
     partial_name: bool = False
+    spatial_match: bool = True
     _matched_name: str = ""

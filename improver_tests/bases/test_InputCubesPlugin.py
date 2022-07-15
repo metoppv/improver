@@ -106,6 +106,7 @@ class SimplePlugin(InputCubesPlugin):
 
 class MultipleInheritancePlugin(SimplePlugin, PostProcessingPlugin):
     """Shows that everything continues to behave when wrapped in the PostProcessingPlugin"""
+
     pass
 
 
@@ -341,7 +342,9 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         ),
     ),
 )
-def test_exceptions(cubes, plugin_class, modifier: callable, time_bounds: bool, error_match: str):
+def test_exceptions(
+    cubes, plugin_class, modifier: callable, time_bounds: bool, error_match: str
+):
     """Check for things we know we should reject"""
     for cube in cubes:
         cube.attributes["mosg__model_configuration"] = "gl_ens"
@@ -364,3 +367,14 @@ def test_get_cube_error(cubes, plugin_class):
         TypeError, match="_temperature should be a Cube, but found <class 'int'>"
     ):
         plugin.get_cube("temperature")
+
+
+@pytest.mark.parametrize("plugin_class", (SimplePlugin, MultipleInheritancePlugin))
+@pytest.mark.parametrize("time_bounds", [True, False])
+def test_spatial_match_false(cubes, plugin_class, time_bounds):
+    """Checks that a spatially mismatched cube is accepted if its cube descriptor has
+    spatial_match=False"""
+    spatial_shift(cubes)
+    plugin = plugin_class()
+    plugin.cube_descriptors["temperature"].spatial_match = False
+    plugin(cubes, time_bounds=time_bounds)

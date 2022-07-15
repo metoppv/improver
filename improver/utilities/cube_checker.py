@@ -190,7 +190,7 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
             A list of cubes to compare.
 
     Returns:
-        True if the x and y coords are the exactly the same to the
+        True if the x and y coords are exactly the same to the
         precision of the floating-point values (this should be true for
         any cubes derived using cube.regrid()), otherwise False.
     """
