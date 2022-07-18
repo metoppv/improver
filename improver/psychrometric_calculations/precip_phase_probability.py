@@ -160,9 +160,8 @@ class PrecipPhaseProbability(BasePlugin):
         the snow-sleet falling-level is supplied, this is the probability of
         snow at (or below) the surface. If the sleet-rain falling-level is
         supplied, this is the probability of rain at (or above) the surface.
-        If the hail-rain falling-level is
-        supplied, this is the probability of rain from hail at (or above) 
-        the surface.
+        If the hail-rain falling-level is supplied, this is the probability
+        of rain from hail at (or above) the surface.
 
         Args:
             cubes:
