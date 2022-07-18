@@ -204,7 +204,7 @@ class Test_process(IrisTest):
         """Test new title can be set on regridding"""
         new_title = "Global Model Forecast on UK 2km Standard Grid"
         expected_attributes = self.cube.attributes
-        expected_attributes["title"] = new_title
+        expected_attributes["title"] = f"Post-Processed {new_title}"
         for attr in ["mosg__grid_domain", "mosg__grid_type", "mosg__grid_version"]:
             expected_attributes[attr] = self.target_grid.attributes[attr]
         result = RegridLandSea()(self.cube, self.target_grid, regridded_title=new_title)
