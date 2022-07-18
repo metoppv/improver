@@ -317,6 +317,7 @@ class PhaseChangeLevel(BasePlugin):
 
                     snow-sleet - the melting of snow to sleet.
                     sleet-rain - the melting of sleet to rain.
+                    hail-rain - the melting of hail to rain.
 
             grid_point_radius:
                 The radius in grid points used to calculate the maximum
@@ -337,6 +338,7 @@ class PhaseChangeLevel(BasePlugin):
         phase_changes = {
             "snow-sleet": {"threshold": 90.0, "name": "snow_falling"},
             "sleet-rain": {"threshold": 202.5, "name": "rain_falling"},
+            "hail-rain": {"threshold": 5000, "name": "rain_from_hail_falling"},
         }
         try:
             phase_change_def = phase_changes[phase_change]
