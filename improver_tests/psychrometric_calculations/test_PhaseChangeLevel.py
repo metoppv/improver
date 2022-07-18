@@ -77,7 +77,7 @@ class Test__init__(IrisTest):
 
     def test_hail_rain(self):
         """Test that the __init__ method configures the plugin as expected
-        for the sleet_rain phase change."""
+        for the hail_rain phase change."""
 
         phase_change = "hail-rain"
         plugin = PhaseChangeLevel(phase_change, grid_point_radius=3)
@@ -774,6 +774,7 @@ class Test_process(IrisTest):
         values. In this instance the phase change is from hail to rain. The
         wet bulb integral is multiplied by 40 so the threshold for the hail
         to melt is reached before the ground"""
+
         self.wet_bulb_integral_cube.data *= 40.0
 
         result = PhaseChangeLevel(phase_change="hail-rain").process(

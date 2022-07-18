@@ -161,13 +161,14 @@ class PrecipPhaseProbability(BasePlugin):
         snow at (or below) the surface. If the sleet-rain falling-level is
         supplied, this is the probability of rain at (or above) the surface.
         If the hail-rain falling-level is
-        supplied, this is the probability of rain from hail at (or above) the surface.
+        supplied, this is the probability of rain from hail at (or above) 
+        the surface.
 
         Args:
             cubes:
                 Contains cubes of the altitude of the phase-change level (this
-                can be snow->sleet, hail->rain or sleet->rain) and the altitude of the
-                orography.
+                can be snow->sleet, hail->rain or sleet->rain) and the altitude
+                of the orography.
 
         Returns:
             Cube containing the probability of a specific precipitation phase
