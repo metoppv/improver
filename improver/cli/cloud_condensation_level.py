@@ -52,7 +52,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
                 pressure (iris.cube.Cube):
                     Cube of surface_air_pressure (Pa).
                 humidity (iris.cube.Cube):
-                    Cube of relative humidity (1).
+                    Cube of relative_humidity (1).
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 

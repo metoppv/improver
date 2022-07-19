@@ -81,8 +81,8 @@ def humidity_cube_fixture() -> Cube:
 
 def metadata_ok(mixing_ratio: Cube, baseline: Cube, model_id_attr=None) -> None:
     """
-    Checks cloud_condensation_level Cube long_name, units and dtype are as expected.
-    Compares cloud_condensation_level Cube with baseline to make sure everything else matches.
+    Checks mixing_ratio Cube long_name, units and dtype are as expected.
+    Compares mixing_ratio Cube with baseline to make sure everything else matches.
 
     Args:
         mixing_ratio: Result of HumidityMixingRatio plugin
@@ -105,9 +105,7 @@ def metadata_ok(mixing_ratio: Cube, baseline: Cube, model_id_attr=None) -> None:
         assert (
             mixing_ratio.attributes[model_id_attr] == baseline.attributes[model_id_attr]
         )
-        mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
-    else:
-        mandatory_attr_keys = all_attr_keys
+    mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 

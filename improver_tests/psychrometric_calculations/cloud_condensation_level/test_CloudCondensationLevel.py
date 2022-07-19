@@ -111,9 +111,7 @@ def metadata_ok(ccl: Cube, baseline: Cube, model_id_attr=None) -> None:
     all_attr_keys = list(ccl.attributes.keys())
     if model_id_attr:
         assert ccl.attributes[model_id_attr] == baseline.attributes[model_id_attr]
-        mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
-    else:
-        mandatory_attr_keys = all_attr_keys
+    mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
