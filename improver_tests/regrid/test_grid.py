@@ -31,6 +31,7 @@
 """Unit tests for the functions from grid.py."""
 
 import itertools
+from collections import namedtuple
 from datetime import datetime
 
 import numpy as np
@@ -194,15 +195,32 @@ class Test_calculate_input_grid_spacing(IrisTest):
         self.assertAlmostEqual(result, (10.0, 10.0))
 
 
-def test_create_regrid_cube():
-    """Test the create_regrid_cube function"""
+Names = namedtuple(
+    "Names", ["setup_name", "setup_var_name", "standard_name", "long_name", "var_name"]
+)
+
+
+@pytest.mark.parametrize(
+    "cube_names",
+    [
+        Names("air_temperature", None, "air_temperature", None, None),
+        Names("not_a_standard_name", None, None, "not_a_standard_name", None),
+        Names(
+            "air_temperature", "some_var_name", "air_temperature", None, "some_var_name"
+        ),
+    ],
+)
+def test_create_regrid_cube(cube_names):
+    """Test the create_regrid_cube function, including standard, long and var names."""
 
     source_cube_latlon = set_up_variable_cube(
         np.ones((2, 5, 5), dtype=np.float32),
-        name="air_temperature",
+        name=cube_names.setup_name,
         time=datetime(2018, 11, 10, 8, 0),
         frt=datetime(2018, 11, 10, 0, 0),
     )
+    if cube_names.setup_var_name:
+        source_cube_latlon.var_name = cube_names.setup_var_name
     target_cube_equalarea = set_up_variable_cube(
         np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
     )
@@ -214,55 +232,6 @@ def test_create_regrid_cube():
     assert cube_v.coord("forecast_reference_time") == source_cube_latlon.coord(
         "forecast_reference_time"
     )
-    assert cube_v.standard_name == "air_temperature"
-    assert cube_v.long_name is None
-
-
-def test_create_regrid_cube_non_standard_name():
-    """Test the create_regrid_cube function with a non-standard name"""
-
-    source_cube_latlon = set_up_variable_cube(
-        np.ones((2, 5, 5), dtype=np.float32),
-        name="not_a_standard_name",
-        time=datetime(2018, 11, 10, 8, 0),
-        frt=datetime(2018, 11, 10, 0, 0),
-    )
-    target_cube_equalarea = set_up_variable_cube(
-        np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
-    )
-    data = np.repeat(1.0, 200).reshape(2, 10, 10)
-    cube_v = create_regrid_cube(data, source_cube_latlon, target_cube_equalarea)
-    assert cube_v.shape == (2, 10, 10)
-    assert cube_v.coord(axis="x").standard_name == "projection_x_coordinate"
-    assert cube_v.coord(axis="y").standard_name == "projection_y_coordinate"
-    assert cube_v.coord("forecast_reference_time") == source_cube_latlon.coord(
-        "forecast_reference_time"
-    )
-    assert cube_v.standard_name is None
-    assert cube_v.long_name == "not_a_standard_name"
-
-
-def test_create_regrid_cube_different_var_name():
-    """Test the create_regrid_cube function with a different var_name"""
-
-    source_cube_latlon = set_up_variable_cube(
-        np.ones((2, 5, 5), dtype=np.float32),
-        name="air_temperature",
-        time=datetime(2018, 11, 10, 8, 0),
-        frt=datetime(2018, 11, 10, 0, 0),
-    )
-    source_cube_latlon.var_name = "some_var_name"
-    target_cube_equalarea = set_up_variable_cube(
-        np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
-    )
-    data = np.repeat(1.0, 200).reshape(2, 10, 10)
-    cube_v = create_regrid_cube(data, source_cube_latlon, target_cube_equalarea)
-    assert cube_v.shape == (2, 10, 10)
-    assert cube_v.coord(axis="x").standard_name == "projection_x_coordinate"
-    assert cube_v.coord(axis="y").standard_name == "projection_y_coordinate"
-    assert cube_v.coord("forecast_reference_time") == source_cube_latlon.coord(
-        "forecast_reference_time"
-    )
-    assert cube_v.standard_name == "air_temperature"
-    assert cube_v.long_name is None
-    assert cube_v.var_name == "some_var_name"
+    assert cube_v.standard_name == cube_names.standard_name
+    assert cube_v.long_name == cube_names.long_name
+    assert cube_v.var_name == cube_names.var_name
