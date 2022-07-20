@@ -407,6 +407,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
     .. include:: extended_documentation/utilities/spatial/
        occurrence_within_vicinity.rst
     """
+
     def __init__(
         self,
         radii: Optional[List[Union[float, int]]] = None,
