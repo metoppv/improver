@@ -288,9 +288,9 @@ def test_with_land_mask_and_mask(cube, land_mask_cube):
     mask = np.zeros((5, 5))
     mask[0, 4] = 1
     cube.data = np.ma.array(cube.data, mask=mask)
-    result = OccurrenceWithinVicinity(
-        radii=[RADIUS], land_mask_cube=land_mask_cube
-    ).process(cube)
+    result = OccurrenceWithinVicinity(radii=[RADIUS], land_mask_cube=land_mask_cube)(
+        cube
+    )
     assert isinstance(result, Cube)
     assert isinstance(result.data, np.ma.core.MaskedArray)
     assert np.allclose(result.data.data, expected)
