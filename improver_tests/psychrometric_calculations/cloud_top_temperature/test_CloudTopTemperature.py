@@ -71,7 +71,7 @@ def ccl_cube_fixture() -> Cube:
 @pytest.fixture(name="pressure_points")
 def pressure_coord_fixture() -> np.ndarray:
     """Generate a list of pressure values"""
-    return np.linspace(10000, 100000, 20)
+    return np.linspace(100000, 10000, 20)
 
 
 @pytest.fixture(name="temperature")
