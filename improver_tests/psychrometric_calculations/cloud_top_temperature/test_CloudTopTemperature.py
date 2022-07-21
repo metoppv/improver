@@ -71,13 +71,13 @@ def ccl_cube_fixture() -> Cube:
 @pytest.fixture(name="pressure_points")
 def pressure_coord_fixture() -> np.ndarray:
     """Generate a list of pressure values"""
-    return np.linspace(100000, 10000, 20)
+    return np.arange(100000, 29999, -10000)
 
 
 @pytest.fixture(name="temperature")
 def t_cube_fixture(pressure_points) -> Cube:
     """Set up a r, p, y, x cube of Temperature on pressure level data"""
-    temperatures = np.linspace(300, 230, len(pressure_points), dtype=np.float32)
+    temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
     data = np.broadcast_to(
         temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 2, 2)
     )
@@ -95,11 +95,11 @@ def t_cube_fixture(pressure_points) -> Cube:
 @pytest.fixture(name="humidity")
 def q_cube_fixture(pressure_points) -> Cube:
     """Set up a r, p, y, x cube of humidity on pressure level data"""
-    humidities = np.linspace(1.5e-2, 2.0e-4, len(pressure_points), dtype=np.float32)
+    humidities = np.array([12.5, 10.7, 7.9, 4.9, 4.0, 1.4, 0.55, 0.2], dtype=np.float32) * 1e-3
     data = np.broadcast_to(
         humidities.reshape((1, len(humidities), 1, 1)), (2, len(humidities), 2, 2)
     )
-    t_cube = set_up_variable_cube(
+    q_cube = set_up_variable_cube(
         data,
         pressure=True,
         height_levels=pressure_points,
@@ -107,7 +107,7 @@ def q_cube_fixture(pressure_points) -> Cube:
         units="kg kg-1",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
-    return t_cube
+    return q_cube
 
 
 def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
@@ -148,7 +148,7 @@ def test_basic(ccl, temperature, humidity):
     ccl.coord("air_pressure").points = np.full_like(
         ccl.coord("air_pressure").points, fill_value=95000
     )
-    expected_value = 250.0
+    expected_value = 262.0
     result = CloudTopTemperature()([ccl, temperature, humidity])
     metadata_ok(result, ccl)
     assert np.isclose(result.data, expected_value, rtol=1e-2).all()
