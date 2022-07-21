@@ -10,8 +10,8 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    dry_adiabatic_temperature,
     adjust_for_latent_heat,
+    dry_adiabatic_temperature,
     saturated_humidity,
 )
 
