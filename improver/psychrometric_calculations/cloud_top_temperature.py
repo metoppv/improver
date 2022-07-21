@@ -11,7 +11,7 @@ from improver.metadata.utilities import (
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
-    adjust_for_latent_heat,
+    adjust_for_latent_heat, saturated_humidity,
 )
 
 
@@ -36,8 +36,9 @@ class CloudTopTemperature(BasePlugin):
     def _calculate_cct(self) -> ndarray:
         """Does the main bit of work. Uses mask to determine where more ascent is needed"""
         p_coord = self.temperature.coord("pressure")
-        ccl_with_mask = np.ma.masked_all_like(self.ccl.data)
-        cct = np.ma.masked_array(self.ccl.data)
+        ccl_with_mask = np.ma.masked_all_like(self.ccl.data.copy())
+        cct = np.ma.masked_array(self.ccl.data.copy())
+        q_at_ccl = saturated_humidity(self.ccl.data, self.ccl.coord("air_pressure").points)
         for p, t, q in zip(
             p_coord.points,
             self.temperature.slices_over("pressure"),
@@ -49,7 +50,7 @@ class CloudTopTemperature(BasePlugin):
             t_dry = dry_adiabatic_temperature(
                 self.ccl.data, self.ccl.coord("air_pressure").points, p
             )
-            t_2, _ = adjust_for_latent_heat(t_dry, q.data, p)
+            t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl, p)
             ccl_with_mask[t_2 > t.data].mask = True
             cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
         return cct
