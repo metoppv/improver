@@ -69,14 +69,14 @@ def ccl_cube_fixture() -> Cube:
 
 
 @pytest.fixture(name="temperature")
-def t_cube_fixture() -> Cube:
+def t_cube_fixture(profile_shift) -> Cube:
     """Set up a r, p, y, x cube of Temperature on pressure level data"""
     temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
     data = np.broadcast_to(
         temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 2, 2)
     )
     t_cube = set_up_variable_cube(
-        data,
+        data + profile_shift,
         pressure=True,
         height_levels=np.arange(100000, 29999, -10000),
         name="temperature_on_pressure_levels",
@@ -116,18 +116,29 @@ def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
-@pytest.mark.parametrize("ccl_t, ccl_p", ((290, 95000), (288.12, 90000)))
-def test_basic(ccl, temperature, ccl_t, ccl_p):
-    """Check that for each pair of CCL values, and the same atmosphere profile,
-    we get the expected result and that the metadata are as expected."""
+@pytest.mark.parametrize(
+    "ccl_t, ccl_p, profile_shift, expected",
+    (
+        (290, 95000, 0, 264.575),
+        (288.12, 90000, 0, 264.575),
+        (290, 95000, -4, 254.698),
+        (288.17, 90000, -4, 254.698),
+    ),
+)
+def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
+    """
+    When the profile is shifted to be colder, the same saturated ascents
+    reach a higher, and therefore colder, level.
+    The different CCL values show that starting at a higher point on the same
+    profile has no impact on the final result.
+    """
     ccl.data = np.full_like(ccl.data, ccl_t)
     ccl.coord("air_pressure").points = np.full_like(
         ccl.coord("air_pressure").points, fill_value=ccl_p
     )
-    expected_value = 264.575
     result = CloudTopTemperature()([ccl, temperature])
     metadata_ok(result, ccl)
-    assert np.isclose(result.data, expected_value, atol=1e-2).all()
+    np.testing.assert_allclose(result.data, expected, atol=1e-2)
 
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
