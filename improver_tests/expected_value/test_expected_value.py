@@ -179,9 +179,6 @@ def test_process_threshold_doublebounded(double_bounded_threshold_cube):
 
 def test_process_threshold_bounded(single_bounded_threshold_cube):
     """Check expected value of a below bounded distribution eg. precipitation."""
-    thresholds = single_bounded_threshold_cube.coord(
-        "lwe_thickness_of_precipitation_amount"
-    ).points
     expval = ExpectedValue().process(single_bounded_threshold_cube)
     np.testing.assert_allclose(
         expval.data[0], [0.0, 0.01, 3.985], rtol=0, atol=1e-6,
