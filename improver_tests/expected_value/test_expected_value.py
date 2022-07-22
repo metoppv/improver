@@ -82,6 +82,46 @@ def unequal_threshold_cube():
     return set_up_probability_cube(data, thresholds=thresholds)
 
 
+@pytest.fixture
+def single_bounded_threshold_cube():
+    thresholds = np.array([0.0, 0.2, 0.5, 1.0, 5.0, 100.0], dtype=np.float32)
+    probs = np.array(
+        [
+            [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [0.8, 0.7, 0.2, 0.1, 0.05, 0.02],
+        ],
+    ).transpose(1, 0)
+    data = np.broadcast_to(probs[:, np.newaxis, :], [6, 2, 3])
+    return set_up_probability_cube(
+        data.astype(np.float32),
+        thresholds=thresholds,
+        variable_name="lwe_thickness_of_precipitation_amount",
+        threshold_units="mm",
+        spp__relative_to_threshold="greater_than",
+    )
+
+
+@pytest.fixture
+def double_bounded_threshold_cube():
+    thresholds = np.linspace(0.0, 0.9, 10, dtype=np.float32)
+    probs = np.array(
+        [
+            [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
+            [1.0, 0.25, 0.2, 0.1, 0.05, 0.02, 0.01, 0.0, 0.0, 0.0],
+            [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+        ],
+    ).transpose(1, 0)
+    data = np.broadcast_to(probs[:, np.newaxis, :], [10, 2, 3])
+    return set_up_probability_cube(
+        data.astype(np.float32),
+        thresholds=thresholds,
+        variable_name="low_type_cloud_area_fraction",
+        threshold_units="1",
+        spp__relative_to_threshold="greater_than_or_equal_to",
+    )
+
+
 def test_process_realizations_basic(realizations_cube):
     """Check that the expected value of realisations calculates the mean and
     appropriately updates metadata."""
@@ -121,6 +161,31 @@ def test_process_threshold_unequal(unequal_threshold_cube):
     """Check calculation of expected value using unevenly spaced threshold data."""
     expval = ExpectedValue().process(unequal_threshold_cube)
     assert_allclose(expval.data, 282.0925, atol=1e-6, rtol=0.0)
+
+
+def test_process_threshold_doublebounded(double_bounded_threshold_cube):
+    """Check expected value of a double bounded distribution eg. cloud cover."""
+    thresholds = double_bounded_threshold_cube.coord(
+        "low_type_cloud_area_fraction"
+    ).points
+    expval = ExpectedValue().process(double_bounded_threshold_cube)
+    np.testing.assert_allclose(
+        expval.data[0],
+        [(thresholds[0] + thresholds[1]) / 2.0, 0.113, thresholds[-1]],
+        rtol=0,
+        atol=1e-7,
+    )
+
+
+def test_process_threshold_bounded(single_bounded_threshold_cube):
+    """Check expected value of a below bounded distribution eg. precipitation."""
+    thresholds = single_bounded_threshold_cube.coord(
+        "lwe_thickness_of_precipitation_amount"
+    ).points
+    expval = ExpectedValue().process(single_bounded_threshold_cube)
+    np.testing.assert_allclose(
+        expval.data[0], [0.0, 0.01, 3.985], rtol=0, atol=1e-6,
+    )
 
 
 def test_process_threshold_abovebelow(threshold_cube):
