@@ -68,14 +68,8 @@ def ccl_cube_fixture() -> Cube:
     return ccl_cube
 
 
-@pytest.fixture(name="pressure_points")
-def pressure_coord_fixture() -> np.ndarray:
-    """Generate a list of pressure values"""
-    return np.arange(100000, 29999, -10000)
-
-
 @pytest.fixture(name="temperature")
-def t_cube_fixture(pressure_points) -> Cube:
+def t_cube_fixture() -> Cube:
     """Set up a r, p, y, x cube of Temperature on pressure level data"""
     temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
     data = np.broadcast_to(
@@ -84,7 +78,7 @@ def t_cube_fixture(pressure_points) -> Cube:
     t_cube = set_up_variable_cube(
         data,
         pressure=True,
-        height_levels=pressure_points,
+        height_levels=np.arange(100000, 29999, -10000),
         name="temperature_on_pressure_levels",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
