@@ -19,7 +19,10 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 class CloudTopTemperature(BasePlugin):
     """Plugin to calculate the convective cloud top temperature from the
     cloud condensation level temperature and pressure, and temperature
-    on pressure levels data."""
+    on pressure levels data.
+    The temperature is that of the parcel after saturated ascent at the last pressure level
+    where the parcel is buoyant. The interpolation required to get closer is deemed expensive.
+    """
 
     def __init__(self, model_id_attr: str = None):
         """
