@@ -35,14 +35,14 @@ from typing import List
 
 import numpy as np
 import pytest
-from iris.coords import CellMethod, AuxCoord, DimCoord
+from iris.coords import AuxCoord, CellMethod, DimCoord
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.psychrometric_calculations.cloud_top_temperature import (
     CloudTopTemperature,
 )
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "unit test data",
@@ -95,7 +95,9 @@ def t_cube_fixture(pressure_points) -> Cube:
 @pytest.fixture(name="humidity")
 def q_cube_fixture(pressure_points) -> Cube:
     """Set up a r, p, y, x cube of humidity on pressure level data"""
-    humidities = np.array([12.5, 10.7, 7.9, 4.9, 4.0, 1.4, 0.55, 0.2], dtype=np.float32) * 1e-3
+    humidities = (
+        np.array([12.5, 10.7, 7.9, 4.9, 4.0, 1.4, 0.55, 0.2], dtype=np.float32) * 1e-3
+    )
     data = np.broadcast_to(
         humidities.reshape((1, len(humidities), 1, 1)), (2, len(humidities), 2, 2)
     )
