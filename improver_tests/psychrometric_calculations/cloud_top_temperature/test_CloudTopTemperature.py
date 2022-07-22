@@ -142,13 +142,13 @@ def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
     assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
-def test_basic(ccl, temperature, humidity):
-    """Check that for each pair of values, we get the expected result
-    and that the metadata are as expected. Note that the method being tested deals with
-    cape and precip separately and that the resulting updraught is the sum of these."""
-    ccl.data = np.full_like(ccl.data, 290)
+@pytest.mark.parametrize("ccl_t, ccl_p", ((290, 95000), (288.12, 90000)))
+def test_basic(ccl, temperature, humidity, ccl_t, ccl_p):
+    """Check that for each pair of CCL values, and the same atmosphere profile,
+    we get the expected result and that the metadata are as expected."""
+    ccl.data = np.full_like(ccl.data, ccl_t)
     ccl.coord("air_pressure").points = np.full_like(
-        ccl.coord("air_pressure").points, fill_value=95000
+        ccl.coord("air_pressure").points, fill_value=ccl_p
     )
     expected_value = 264.575
     result = CloudTopTemperature()([ccl, temperature, humidity])
