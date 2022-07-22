@@ -150,10 +150,10 @@ def test_basic(ccl, temperature, humidity):
     ccl.coord("air_pressure").points = np.full_like(
         ccl.coord("air_pressure").points, fill_value=95000
     )
-    expected_value = 262.0
+    expected_value = 264.575
     result = CloudTopTemperature()([ccl, temperature, humidity])
     metadata_ok(result, ccl)
-    assert np.isclose(result.data, expected_value, rtol=1e-2).all()
+    assert np.isclose(result.data, expected_value, atol=1e-2).all()
 
 
 @pytest.mark.parametrize("reverse_order", (False, True))
