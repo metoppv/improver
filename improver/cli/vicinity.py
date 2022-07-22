@@ -57,8 +57,8 @@ def process(cube: cli.inputcube, vicinity: cli.comma_separated_list = None):
 
     Args:
         cube (iris.cube.Cube):
-            A cube containing data to which a vicinity it to be applied.
-        vicinity (float):
+            A cube containing data to which a vicinity is to be applied.
+        vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
             lead to a different gridded field.
