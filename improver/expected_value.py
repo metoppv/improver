@@ -72,7 +72,7 @@ class ExpectedValue(PostProcessingPlugin):
         threshold_coord_idx = cube.dim_coords.index(threshold_coord)
         thresholds = threshold_coord.points
         # check the thresholds are in increasing order
-        if thresholds[0] > thresholds[-1]:
+        if np.any(np.diff(thresholds) <= 0.0):
             raise ValueError("threshold coordinate in decreasing order")
         # add an extra threshold below/above with zero/one probability
         # ensure that the PDF integral covers the full CDF probability range
