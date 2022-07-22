@@ -92,26 +92,6 @@ def t_cube_fixture(pressure_points) -> Cube:
     return t_cube
 
 
-@pytest.fixture(name="humidity")
-def q_cube_fixture(pressure_points) -> Cube:
-    """Set up a r, p, y, x cube of humidity on pressure level data"""
-    humidities = (
-        np.array([12.5, 10.7, 7.9, 4.9, 4.0, 1.4, 0.55, 0.2], dtype=np.float32) * 1e-3
-    )
-    data = np.broadcast_to(
-        humidities.reshape((1, len(humidities), 1, 1)), (2, len(humidities), 2, 2)
-    )
-    q_cube = set_up_variable_cube(
-        data,
-        pressure=True,
-        height_levels=pressure_points,
-        name="specific_humidity_on_pressure_levels",
-        units="kg kg-1",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
-    return q_cube
-
-
 def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
     """
     Checks convective cloud top temperature Cube long_name, units and dtype are as expected.
@@ -143,7 +123,7 @@ def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
 
 
 @pytest.mark.parametrize("ccl_t, ccl_p", ((290, 95000), (288.12, 90000)))
-def test_basic(ccl, temperature, humidity, ccl_t, ccl_p):
+def test_basic(ccl, temperature, ccl_t, ccl_p):
     """Check that for each pair of CCL values, and the same atmosphere profile,
     we get the expected result and that the metadata are as expected."""
     ccl.data = np.full_like(ccl.data, ccl_t)
@@ -151,7 +131,7 @@ def test_basic(ccl, temperature, humidity, ccl_t, ccl_p):
         ccl.coord("air_pressure").points, fill_value=ccl_p
     )
     expected_value = 264.575
-    result = CloudTopTemperature()([ccl, temperature, humidity])
+    result = CloudTopTemperature()([ccl, temperature])
     metadata_ok(result, ccl)
     assert np.isclose(result.data, expected_value, atol=1e-2).all()
 

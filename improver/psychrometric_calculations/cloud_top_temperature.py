@@ -18,8 +18,8 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 
 class CloudTopTemperature(BasePlugin):
     """Plugin to calculate the convective cloud top temperature from the
-    cloud condensation level temperature and pressure, and temperature and
-    humidity on pressure levels data."""
+    cloud condensation level temperature and pressure, and temperature
+    on pressure levels data."""
 
     def __init__(self, model_id_attr: str = None):
         """
@@ -32,27 +32,26 @@ class CloudTopTemperature(BasePlugin):
         self.model_id_attr = model_id_attr
         self.ccl = Cube(None)
         self.temperature = Cube(None)
-        self.humidity = Cube(None)
 
     def _calculate_cct(self) -> ndarray:
         """Does the main bit of work. Uses mask to determine where more ascent is needed"""
         p_coord = self.temperature.coord("pressure")
+        t_data = [t.data for t in self.temperature.slices_over("pressure")]
         cct = np.ma.masked_array(self.ccl.data.copy())
         q_at_ccl = saturated_humidity(
             self.ccl.data, self.ccl.coord("air_pressure").points
         )
         ccl_with_mask = np.ma.where(True, self.ccl.data, False)
-        for p, t, q in zip(
+        for p, t in zip(
             p_coord.points,
-            self.temperature.slices_over("pressure"),
-            self.humidity.slices_over("pressure"),
+            t_data,
         ):
             t_dry = dry_adiabatic_temperature(
                 self.ccl.data, self.ccl.coord("air_pressure").points, p
             )
             t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl, p)
             ccl_with_mask = np.ma.masked_where(
-                (t_2 < t.data) & (p < self.ccl.coord("air_pressure").points),
+                (t_2 < t) & (p < self.ccl.coord("air_pressure").points),
                 ccl_with_mask,
             )
             cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
@@ -68,7 +67,7 @@ class CloudTopTemperature(BasePlugin):
             "K",
             self.ccl,
             mandatory_attributes=generate_mandatory_attributes(
-                [self.ccl, self.temperature, self.humidity]
+                [self.ccl, self.temperature]
             ),
             optional_attributes=attributes,
             data=data,
@@ -81,11 +80,11 @@ class CloudTopTemperature(BasePlugin):
         Args:
             cubes:
                 Contains an ordered list of cloud condensation level,
-                temperature on pressure levels and specific humidity on pressure levels
+                and temperature on pressure levels
 
         Returns:
             Cube of cloud top temperature
         """
-        self.ccl, self.temperature, self.humidity = cubes
+        self.ccl, self.temperature = cubes
         cct = self._make_cct_cube(self._calculate_cct())
         return cct
