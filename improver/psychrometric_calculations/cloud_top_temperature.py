@@ -108,7 +108,7 @@ class CloudTopTemperature(BasePlugin):
         if self.model_id_attr:
             attributes[self.model_id_attr] = self.ccl.attributes[self.model_id_attr]
         cube = create_new_diagnostic_cube(
-            "temperature_at_convective_cloud_top",
+            "air_temperature_at_convective_cloud_top",
             "K",
             self.ccl,
             mandatory_attributes=generate_mandatory_attributes(
