@@ -383,6 +383,12 @@ def remove_two_time_bounds(cubes: List[Cube]):
     cubes[1].coord("time").bounds = None
 
 
+def only_one_cube(cubes: List[Cube]):
+    """Removes second and third cubes"""
+    cubes.pop(2)
+    cubes.pop(1)
+
+
 @pytest.mark.parametrize(
     "modifier, time_bounds, error_match",
     (
@@ -395,6 +401,7 @@ def remove_two_time_bounds(cubes: List[Cube]):
             True,
             "air_temperature and air_pressure must have time bounds",
         ),
+        (only_one_cube, False, "Need at least 2 cubes to check. Found 1",),
     ),
 )
 def test_time_coord_exceptions(
