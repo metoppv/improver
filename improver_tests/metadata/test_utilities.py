@@ -353,14 +353,15 @@ def make_cubes() -> List[Cube]:
     return cubes
 
 
+@pytest.mark.parametrize("input_count", (1, 3))
 @pytest.mark.parametrize(
     "model_id_attr, model_id_value", (("test_attribute", "test_value"), (None, None))
 )
-def test_ok_get_model_id_attr(cubes: List[Cube], model_id_attr, model_id_value):
+def test_ok_get_model_id_attr(cubes: List[Cube], input_count, model_id_attr, model_id_value):
     """Checks that get_model_id_attr gives the right answer when all is well."""
     for cube in cubes:
         cube.attributes[model_id_attr] = model_id_value
-    result = get_model_id_attr(cubes, model_id_attr)
+    result = get_model_id_attr(cubes[:input_count], model_id_attr)
     assert result == model_id_value
 
 
