@@ -31,7 +31,7 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
-from typing import List, Callable
+from typing import Callable, List
 
 import iris
 import numpy as np
@@ -357,7 +357,9 @@ def make_cubes() -> List[Cube]:
 @pytest.mark.parametrize(
     "model_id_attr, model_id_value", (("test_attribute", "test_value"), (None, None))
 )
-def test_ok_get_model_id_attr(cubes: List[Cube], input_count, model_id_attr, model_id_value):
+def test_ok_get_model_id_attr(
+    cubes: List[Cube], input_count, model_id_attr, model_id_value
+):
     """Checks that get_model_id_attr gives the right answer when all is well."""
     for cube in cubes:
         cube.attributes[model_id_attr] = model_id_value
@@ -383,9 +385,18 @@ def attribute_not_unique(cubes: List[Cube]):
 @pytest.mark.parametrize(
     "method, message",
     (
-        (attribute_missing_all_cubes, "Model ID attribute test_attribute not present on "),
-        (attribute_missing_one_cube, "Model ID attribute test_attribute not present on "),
-        (attribute_not_unique, "Attribute test_attribute does not match on input cubes. "),
+        (
+            attribute_missing_all_cubes,
+            "Model ID attribute test_attribute not present on ",
+        ),
+        (
+            attribute_missing_one_cube,
+            "Model ID attribute test_attribute not present on ",
+        ),
+        (
+            attribute_not_unique,
+            "Attribute test_attribute does not match on input cubes. ",
+        ),
     ),
 )
 def test_errors_get_model_id_attr(cubes: List[Cube], method: Callable, message):
