@@ -97,7 +97,7 @@ class CloudTopTemperature(BasePlugin):
         """
         self.ccl, self.temperature = cubes
         self.temperature.convert_units("K")
-        self.ccl.convert_units("m")
-        self.ccl.coord("pressure").convert_units("Pa")
+        self.ccl.convert_units("K")
+        self.ccl.coord("air_pressure").convert_units("Pa")
         cct = self._make_cct_cube(self._calculate_cct())
         return cct

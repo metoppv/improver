@@ -30,20 +30,12 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to generate the convective cloud top temperature from CCL and temperature profile data."""
-
 from improver import cli
-
-
-# Creates the value_converter that clize needs.
-input_cube_names = cli.create_constrained_inputcubelist_converter(
-    cli.name_constraint(["temperature_at_convective_cloud_level"]),
-    cli.name_constraint(["temperature_on_pressure_levels"]),
-)
 
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: input_cube_names, model_id_attr: str = None):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """Module to calculate the convective cloud top temperature from the
     cloud condensation level temperature and pressure, and temperature
     on pressure levels data.
@@ -65,6 +57,10 @@ def process(*cubes: input_cube_names, model_id_attr: str = None):
             Cube of cloud top temperature (K).
 
     """
-    from improver.psychrometric_calculations.cloud_top_temperature import CloudTopTemperature
+    from iris.cube import CubeList
+    from improver.psychrometric_calculations.cloud_top_temperature import (
+        CloudTopTemperature,
+    )
+    cubes = CubeList(cubes).extract(["air_temperature_at_condensation_level", "air_temperature"])
 
     return CloudTopTemperature(model_id_attr=model_id_attr)(cubes)
