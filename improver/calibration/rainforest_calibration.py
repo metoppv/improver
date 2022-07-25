@@ -38,6 +38,7 @@
 
 import warnings
 from collections import OrderedDict
+from os.path import expanduser
 from typing import Optional, Tuple
 
 import numpy as np
@@ -208,7 +209,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             for threshold_dict in sorted_model_config_dict.values()
         ]
         self.tree_models = [
-            Booster(model_file=file).reset_parameter({"num_threads": threads})
+            Booster(model_file=expanduser(file)).reset_parameter(
+                {"num_threads": threads}
+            )
             for file in lightgbm_model_filenames
         ]
 
@@ -768,7 +771,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             for threshold_dict in sorted_model_config_dict.values()
         ]
         self.tree_models = [
-            Predictor(libpath=file, verbose=False, nthread=threads)
+            Predictor(libpath=expanduser(file), verbose=False, nthread=threads)
             for file in treelite_model_filenames
         ]
 
