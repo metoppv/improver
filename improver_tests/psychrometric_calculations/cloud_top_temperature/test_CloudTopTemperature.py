@@ -120,6 +120,7 @@ def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
         (288.12, 90000, 0, 264.575),
         (290, 95000, -4, 254.698),
         (288.17, 90000, -4, 254.698),
+        (286, 91000, 0, False),
     ),
 )
 def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
@@ -128,6 +129,7 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
     reach a higher, and therefore colder, level.
     The different CCL values show that starting at a higher point on the same
     profile has no impact on the final result.
+    The last test is for a case where convection does not occur and the result is masked.
     """
     ccl.data = np.full_like(ccl.data, ccl_t)
     ccl.coord("air_pressure").points = np.full_like(
@@ -135,7 +137,11 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
     )
     result = CloudTopTemperature()(ccl, temperature)
     metadata_ok(result, ccl)
-    np.testing.assert_allclose(result.data, expected, atol=1e-2)
+    if expected:
+        assert not result.data.mask.any()
+        np.testing.assert_allclose(result.data, expected, atol=1e-2)
+    else:
+        assert result.data.mask.all()
 
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
