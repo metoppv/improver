@@ -1,5 +1,34 @@
-from typing import List
-
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown copyright. The Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+"""Module containing the CloudTopTemperature plugin"""
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
@@ -14,6 +43,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.cube_checker import spatial_coords_match
 
 
 class CloudTopTemperature(BasePlugin):
@@ -22,6 +52,8 @@ class CloudTopTemperature(BasePlugin):
     on pressure levels data using saturated ascent.
     The temperature is that of the parcel after saturated ascent at the last pressure level
     where the parcel is buoyant. The interpolation required to get closer is deemed expensive.
+    If the cloud top temperature is less than 4K smaller than the cloud condensation level,
+    the cloud top temperature is masked.
     """
 
     def __init__(self, model_id_attr: str = None):
@@ -35,6 +67,7 @@ class CloudTopTemperature(BasePlugin):
         self.model_id_attr = model_id_attr
         self.ccl = Cube(None)
         self.temperature = Cube(None)
+        self.minimum_t_diff = 4
 
     def _calculate_cct(self) -> ndarray:
         """
@@ -64,6 +97,8 @@ class CloudTopTemperature(BasePlugin):
                 (t_2 < t) & (p < self.ccl.coord("air_pressure").points), ccl_with_mask,
             )
             cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
+
+        cct = np.ma.masked_where(self.ccl.data - cct < self.minimum_t_diff, cct)
 
         return cct
 
@@ -98,6 +133,7 @@ class CloudTopTemperature(BasePlugin):
         """
         self.ccl = ccl
         self.temperature = temperature
+        spatial_coords_match()
         self.temperature.convert_units("K")
         self.ccl.convert_units("K")
         self.ccl.coord("air_pressure").convert_units("Pa")
