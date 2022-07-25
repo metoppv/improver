@@ -203,3 +203,44 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
             and match
         )
     return match
+
+
+def assert_time_coords_ok(inputs: List[Cube], time_bounds: bool):
+    """
+    Raises appropriate ValueError if
+
+    - Any input cube has or is missing time bounds (depending on time_bounds)
+    - Input cube times and forecast_reference_times do not match
+
+    Can be overloaded where only a subset of inputs are expected to match, or have
+    specific offsets. Overloading functions can use self.get_cube()
+
+    Args:
+        inputs:
+            List of Cubes where times should match
+        time_bounds:
+            When True, time-bounds are checked for and compared on the input cubes.
+            When False, the absence of time-bounds is checked for.
+
+    Raises:
+        ValueError: If any of the stated checks fail.
+    """
+    if len(inputs) <= 1:
+        raise ValueError(f"Need at least 2 cubes to check. Found {len(inputs)}")
+    cubes_not_matching_time_bounds = [
+        c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
+    ]
+    if cubes_not_matching_time_bounds:
+        str_bool = "" if time_bounds else "not "
+        msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
+        raise ValueError(msg)
+    for time_coord_name in ["time", "forecast_reference_time"]:
+        time_coords = [c.coord(time_coord_name) for c in inputs]
+        if not all([tc == time_coords[0] for tc in time_coords[1:]]):
+            raise ValueError(
+                f"{time_coord_name} coordinates do not match."
+                "\n  "
+                "\n  ".join(
+                    [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
+                )
+            )
