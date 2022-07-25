@@ -32,6 +32,7 @@
 import numpy as np
 import pytest
 from iris import Constraint
+from iris.util import new_axis
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
@@ -297,6 +298,21 @@ def test__extract_error_percentiles(error_threshold_cube, error_percentile_cube)
     assert result.coords() == error_percentile_cube.coords()
     assert result.attributes == error_percentile_cube.attributes
 
+    # Test the case where error_threshold_cube has unit realization dimension
+    error_threshold_cube = error_threshold_cube.extract(Constraint(realization=0))
+    error_threshold_cube = new_axis(error_threshold_cube, "realization")
+    error_threshold_cube.transpose([1, 0, 2, 3])
+    error_percentile_cube = error_percentile_cube.extract(Constraint(realization=0))
+    error_percentile_cube = new_axis(error_percentile_cube, "realization")
+    result = ApplyRainForestsCalibrationLightGBM(
+        model_config_dict={}
+    )._extract_error_percentiles(error_threshold_cube, 4)
+
+    assert result.long_name == error_percentile_cube.long_name
+    assert result.units == error_percentile_cube.units
+    assert result.coords() == error_percentile_cube.coords()
+    assert result.attributes == error_percentile_cube.attributes
+
 
 def test__apply_error_to_forecast(ensemble_forecast, error_percentile_cube):
     """Test the application of forecast error (percentile) values to the forecast cube."""
@@ -378,7 +394,7 @@ def test__combine_subensembles(error_percentile_cube):
     assert result.coord("realization").points.size == 10
 
 
-def test_process(ensemble_forecast, ensemble_features, dummy_lightgbm_models):
+def test_process_ensemble(ensemble_forecast, ensemble_features, dummy_lightgbm_models):
     """Test process routine using lightgbm booster."""
     plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
@@ -409,3 +425,37 @@ def test_process(ensemble_forecast, ensemble_features, dummy_lightgbm_models):
         assert result.coord("realization").points.size == output_realization_count
     assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
     assert result.attributes == ensemble_forecast.attributes
+
+
+def test_process_deterministic(
+    deterministic_forecast, deterministic_features, dummy_lightgbm_models
+):
+    """Test process routine using lightgbm booster."""
+    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+
+    for output_realization_count in (None, 10):
+        result = plugin.process(
+            deterministic_forecast,
+            deterministic_features,
+            error_percentiles_count=4,
+            output_realizations_count=output_realization_count,
+        )
+
+    assert result.standard_name == deterministic_forecast.standard_name
+    assert result.long_name == deterministic_forecast.long_name
+    assert result.var_name == deterministic_forecast.var_name
+    assert result.units == deterministic_forecast.units
+
+    # Check that all non-realization are equal
+    assert result.coords(dim_coords=True)[1:], deterministic_forecast.coords(
+        dim_coords=True
+    )[1:]
+    if output_realization_count is None:
+        assert result.coord("realization").points.size == 4
+    else:
+        assert result.coord("realization").points.size == output_realization_count
+    assert result.coords(dim_coords=False) == deterministic_forecast.coords(
+        dim_coords=False
+    )
+    assert result.attributes == deterministic_forecast.attributes
