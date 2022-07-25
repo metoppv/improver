@@ -84,18 +84,20 @@ class CloudTopTemperature(BasePlugin):
         )
         return cube
 
-    def process(self, cubes: List[Cube]) -> Cube:
+    def process(self, ccl: Cube, temperature: Cube) -> Cube:
         """
 
         Args:
-            cubes:
-                Contains an ordered list of cloud condensation level,
-                and temperature on pressure levels
+            ccl:
+                cloud condensation level
+            temperature:
+                temperature on pressure levels
 
         Returns:
             Cube of cloud top temperature
         """
-        self.ccl, self.temperature = cubes
+        self.ccl = ccl
+        self.temperature = temperature
         self.temperature.convert_units("K")
         self.ccl.convert_units("K")
         self.ccl.coord("air_pressure").convert_units("Pa")

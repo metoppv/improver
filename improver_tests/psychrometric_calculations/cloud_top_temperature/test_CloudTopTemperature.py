@@ -133,7 +133,7 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
     ccl.coord("air_pressure").points = np.full_like(
         ccl.coord("air_pressure").points, fill_value=ccl_p
     )
-    result = CloudTopTemperature()([ccl, temperature])
+    result = CloudTopTemperature()(ccl, temperature)
     metadata_ok(result, ccl)
     np.testing.assert_allclose(result.data, expected, atol=1e-2)
 
@@ -147,5 +147,5 @@ def test_model_id_attr(ccl, temperature, model_id_attr):
     )
     ccl.attributes["mosg__model_configuration"] = "gl_ens"
     temperature.attributes["mosg__model_configuration"] = "gl_ens"
-    result = CloudTopTemperature(model_id_attr=model_id_attr)([ccl, temperature])
+    result = CloudTopTemperature(model_id_attr=model_id_attr)(ccl, temperature)
     metadata_ok(result, ccl, model_id_attr=model_id_attr)

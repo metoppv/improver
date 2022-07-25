@@ -63,8 +63,8 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
         CloudTopTemperature,
     )
 
-    cubes = CubeList(cubes).extract(
+    ccl, temperature = CubeList(cubes).extract(
         ["air_temperature_at_condensation_level", "air_temperature"]
     )
 
-    return CloudTopTemperature(model_id_attr=model_id_attr)(cubes)
+    return CloudTopTemperature(model_id_attr=model_id_attr)(ccl, temperature)
