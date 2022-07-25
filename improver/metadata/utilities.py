@@ -201,3 +201,38 @@ def create_coordinate_hash(cube: Cube) -> str:
             ]
         )
     return generate_hash(hashable_data)
+
+
+def get_model_id_attr(cubes: List[Cube], model_id_attr: str) -> str:
+    """
+    Gets the specified model ID attribute from a list of input cubes, checking
+    that the value is the same on all those cubes in the process.
+
+    Args:
+        cubes:
+            List of cubes to get the attribute from
+        model_id_attr:
+            Attribute name
+
+    Returns:
+        The unique attribute value
+
+    """
+    try:
+        model_id_value = {cube.attributes[model_id_attr] for cube in cubes}
+    except KeyError as error:
+        failing_cubes = [
+            cube.name()
+            for cube in cubes
+            if not cube.attributes.get(model_id_attr, False)
+        ]
+        raise ValueError(
+            f"Model ID attribute {model_id_attr} not present on {', '.join(failing_cubes)}."
+        ) from error
+    if len(model_id_value) != 1:
+        raise ValueError(
+            f"Attribute {model_id_attr} does not match on input cubes. "
+            f"{' != '.join(model_id_value)}"
+        )
+    (model_id_value,) = model_id_value
+    return model_id_value
