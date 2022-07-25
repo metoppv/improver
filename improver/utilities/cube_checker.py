@@ -207,7 +207,7 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
 
 def assert_spatial_coords_match(cubes: Union[List, CubeList]):
     """
-    Raises an Exception if :doc:`spatial_coords_match` returns False.
+    Raises an Exception if `spatial_coords_match` returns False.
 
     Args:
         cubes:

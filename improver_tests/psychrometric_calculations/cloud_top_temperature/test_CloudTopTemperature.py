@@ -144,6 +144,7 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
         assert result.data.mask.all()
 
 
+@pytest.mark.parametrize("profile_shift", (0,))
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(ccl, temperature, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""
