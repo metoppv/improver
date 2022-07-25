@@ -133,7 +133,7 @@ class CloudTopTemperature(BasePlugin):
         """
         self.ccl = ccl
         self.temperature = temperature
-        spatial_coords_match()
+        spatial_coords_match([self.ccl, self.temperature])
         self.temperature.convert_units("K")
         self.ccl.convert_units("K")
         self.ccl.coord("air_pressure").convert_units("Pa")
