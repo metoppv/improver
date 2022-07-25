@@ -652,7 +652,7 @@ class PhaseChangeLevel(BasePlugin):
         """
         if self.grid_point_radius >= 1:
             max_in_nbhood_orog = OccurrenceWithinVicinity(
-                grid_point_radius=self.grid_point_radius
+                grid_point_radii=[self.grid_point_radius]
             )(orography_cube)
             return max_in_nbhood_orog
         else:

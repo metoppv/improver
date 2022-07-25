@@ -263,7 +263,7 @@ class AdjustLandSeaPoints(PostProcessingPlugin):
         self.output_land = None
         self.output_cube = None
         self.regridder = Nearest(extrapolation_mode=extrapolation_mode)
-        self.vicinity = OccurrenceWithinVicinity(radius=vicinity_radius)
+        self.vicinity = OccurrenceWithinVicinity(radii=[vicinity_radius])
 
     @functools.lru_cache(maxsize=2)
     def _get_matches(

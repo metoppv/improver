@@ -94,7 +94,7 @@ class Test__init__(IrisTest):
         result = AdjustLandSeaPoints(vicinity_radius=30000.0)
         vicinity = getattr(result, "vicinity")
         self.assertTrue(isinstance(vicinity, OccurrenceWithinVicinity))
-        self.assertEqual(vicinity.radius, 30000.0)
+        self.assertEqual(vicinity.radii, [30000.0])
 
     def test_vicinity_arg_error(self):
         """Test with invalid vicinity_radius argument.
