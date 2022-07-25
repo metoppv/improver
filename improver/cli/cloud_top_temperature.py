@@ -58,9 +58,13 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     """
     from iris.cube import CubeList
+
     from improver.psychrometric_calculations.cloud_top_temperature import (
         CloudTopTemperature,
     )
-    cubes = CubeList(cubes).extract(["air_temperature_at_condensation_level", "air_temperature"])
+
+    cubes = CubeList(cubes).extract(
+        ["air_temperature_at_condensation_level", "air_temperature"]
+    )
 
     return CloudTopTemperature(model_id_attr=model_id_attr)(cubes)

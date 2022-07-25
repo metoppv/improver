@@ -29,13 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the CloudTopTemperature plugin"""
-import re
-from datetime import datetime
-from typing import List
 
 import numpy as np
 import pytest
-from iris.coords import AuxCoord, CellMethod, DimCoord
+from iris.coords import AuxCoord
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
