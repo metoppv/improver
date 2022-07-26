@@ -231,7 +231,7 @@ def get_model_id_attr(cubes: List[Cube], model_id_attr: str) -> str:
         ) from error
     if len(model_id_value) != 1:
         raise ValueError(
-            f"Attribute {model_id_attr} must be the same on all input cubes. "
+            f"Attribute {model_id_attr} must be the same for all input cubes. "
             f"{' != '.join(model_id_value)}"
         )
     (model_id_value,) = model_id_value

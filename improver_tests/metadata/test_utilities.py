@@ -368,17 +368,17 @@ def test_valid_get_model_id_attr(
 
 
 def attribute_missing_all_cubes(cubes: List[Cube]):
-    """Removes the attribute value on all cubes"""
+    """Removes the attribute value from all cubes"""
     [cube.attributes.pop("test_attribute") for cube in cubes]
 
 
 def attribute_missing_one_cube(cubes: List[Cube]):
-    """Removes the attribute value on the first cube"""
+    """Removes the attribute value from the first cube"""
     cubes[0].attributes.pop("test_attribute")
 
 
 def attribute_not_unique(cubes: List[Cube]):
-    """Changes the attribute value on the first cube so that there is more than one
+    """Changes the attribute value for the first cube so that there is more than one
     model_id_attr in the cube list."""
     cubes[0].attributes["test_attribute"] = "kittens"
 
@@ -396,7 +396,7 @@ def attribute_not_unique(cubes: List[Cube]):
         ),
         (
             attribute_not_unique,
-            "Attribute test_attribute must be the same on all input cubes. ",
+            "Attribute test_attribute must be the same for all input cubes. ",
         ),
     ),
 )
