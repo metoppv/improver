@@ -44,6 +44,7 @@ import numpy as np
 import pandas as pd
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
+from iris.util import new_axis
 from numpy import ndarray
 from pandas import DataFrame
 
@@ -451,6 +452,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         error_percentiles_cube = ConvertProbabilitiesToPercentiles().process(
             error_probability_cube, percentiles=error_percentiles
         )
+        if len(error_percentiles_cube.coord_dims("realization")) == 0:
+            error_percentiles_cube = new_axis(error_percentiles_cube, "realization")
 
         return error_percentiles_cube
 
