@@ -227,11 +227,11 @@ def get_model_id_attr(cubes: List[Cube], model_id_attr: str) -> str:
             if not cube.attributes.get(model_id_attr, False)
         ]
         raise ValueError(
-            f"Model ID attribute {model_id_attr} not present on {', '.join(failing_cubes)}."
+            f"Model ID attribute {model_id_attr} not present for {', '.join(failing_cubes)}."
         ) from error
     if len(model_id_value) != 1:
         raise ValueError(
-            f"Attribute {model_id_attr} does not match on input cubes. "
+            f"Attribute {model_id_attr} must be the same on all input cubes. "
             f"{' != '.join(model_id_value)}"
         )
     (model_id_value,) = model_id_value

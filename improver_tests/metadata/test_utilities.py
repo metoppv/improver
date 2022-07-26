@@ -357,10 +357,10 @@ def make_cubes() -> List[Cube]:
 @pytest.mark.parametrize(
     "model_id_attr, model_id_value", (("test_attribute", "test_value"), (None, None))
 )
-def test_ok_get_model_id_attr(
+def test_valid_get_model_id_attr(
     cubes: List[Cube], input_count, model_id_attr, model_id_value
 ):
-    """Checks that get_model_id_attr gives the right answer when all is well."""
+    """Checks that get_model_id_attr gives the expected result when all input cubes match."""
     for cube in cubes:
         cube.attributes[model_id_attr] = model_id_value
     result = get_model_id_attr(cubes[:input_count], model_id_attr)
@@ -378,7 +378,8 @@ def attribute_missing_one_cube(cubes: List[Cube]):
 
 
 def attribute_not_unique(cubes: List[Cube]):
-    """Changes the attribute value on the first cube"""
+    """Changes the attribute value on the first cube so that there is more than one
+    model_id_attr in the cube list."""
     cubes[0].attributes["test_attribute"] = "kittens"
 
 
@@ -387,20 +388,21 @@ def attribute_not_unique(cubes: List[Cube]):
     (
         (
             attribute_missing_all_cubes,
-            "Model ID attribute test_attribute not present on ",
+            "Model ID attribute test_attribute not present for ",
         ),
         (
             attribute_missing_one_cube,
-            "Model ID attribute test_attribute not present on ",
+            "Model ID attribute test_attribute not present for ",
         ),
         (
             attribute_not_unique,
-            "Attribute test_attribute does not match on input cubes. ",
+            "Attribute test_attribute must be the same on all input cubes. ",
         ),
     ),
 )
 def test_errors_get_model_id_attr(cubes: List[Cube], method: Callable, message):
-    """Checks that get_model_id_attr raises useful errors when all is not well."""
+    """Checks that get_model_id_attr raises useful errors when the required conditions are not met.
+    """
     model_id_attr = "test_attribute"
     model_id_value = "test_value"
     for cube in cubes:
