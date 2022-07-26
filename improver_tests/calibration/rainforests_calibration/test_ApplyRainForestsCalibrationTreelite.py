@@ -90,7 +90,7 @@ def test__init__(
         assert model.threads == expected_threads
     # Ensure threshold and files match
     for threshold, model in zip(result.error_thresholds, result.tree_models):
-        assert f"{threshold:06.4f}" in model.model_file
+        assert f"{threshold:06.4f}" in str(model.model_file)
 
 
 def test__check_num_features(ensemble_features, dummy_treelite_models):
