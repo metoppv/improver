@@ -43,7 +43,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
-from improver.utilities.cube_checker import spatial_coords_match
+from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
 class CloudTopTemperature(BasePlugin):
@@ -133,7 +133,7 @@ class CloudTopTemperature(BasePlugin):
         """
         self.ccl = ccl
         self.temperature = temperature
-        spatial_coords_match([self.ccl, self.temperature])
+        assert_spatial_coords_match([self.ccl, self.temperature])
         self.temperature.convert_units("K")
         self.ccl.convert_units("K")
         self.ccl.coord("air_pressure").convert_units("Pa")
