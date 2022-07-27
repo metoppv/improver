@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the CloudTopTemperature plugin"""
+from unittest.mock import patch
 
 import numpy as np
 import pytest
@@ -36,6 +37,7 @@ from iris.coords import AuxCoord
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
+from improver.psychrometric_calculations import cloud_top_temperature
 from improver.psychrometric_calculations.cloud_top_temperature import (
     CloudTopTemperature,
 )
@@ -51,7 +53,7 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 @pytest.fixture(name="ccl")
 def ccl_cube_fixture() -> Cube:
     """Set up a r, y, x cube of Cloud condensation level data with pressure coordinate"""
-    data = np.zeros((2, 2, 2), dtype=np.float32)
+    data = np.full((2, 2, 2), fill_value=290, dtype=np.float32)
     ccl_cube = set_up_variable_cube(
         data,
         name="temperature_at_cloud_condensation_level",
@@ -59,7 +61,11 @@ def ccl_cube_fixture() -> Cube:
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     ccl_cube.add_aux_coord(
-        AuxCoord(standard_name="air_pressure", points=data.copy(), units="Pa"),
+        AuxCoord(
+            standard_name="air_pressure",
+            points=np.full_like(data, fill_value=95000),
+            units="Pa",
+        ),
         (0, 1, 2),
     )
     return ccl_cube
@@ -148,11 +154,21 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(ccl, temperature, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""
-    ccl.data = np.full_like(ccl.data, 290)
-    ccl.coord("air_pressure").points = np.full_like(
-        ccl.coord("air_pressure").points, fill_value=95000
-    )
     ccl.attributes["mosg__model_configuration"] = "gl_ens"
     temperature.attributes["mosg__model_configuration"] = "gl_ens"
     result = CloudTopTemperature(model_id_attr=model_id_attr)(ccl, temperature)
     metadata_ok(result, ccl, model_id_attr=model_id_attr)
+
+
+@pytest.mark.parametrize("profile_shift", (0,))
+def test_called_methods(ccl, temperature):
+    """Prove that the methods to set units and check spatial consistency have been called"""
+    with patch.object(
+        cloud_top_temperature, "assert_spatial_coords_match"
+    ) as spatial_mock:
+        with patch.object(ccl, "convert_units") as ccl_mock:
+            with patch.object(temperature, "convert_units") as temperature_mock:
+                CloudTopTemperature()(ccl, temperature)
+    spatial_mock.assert_called()
+    ccl_mock.assert_called_with("K")
+    temperature_mock.assert_called_with("K")
