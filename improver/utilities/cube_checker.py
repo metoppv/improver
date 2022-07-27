@@ -205,15 +205,12 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
     return match
 
 
-def assert_time_coords_ok(inputs: List[Cube], time_bounds: bool):
+def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
     """
     Raises appropriate ValueError if
 
     - Any input cube has or is missing time bounds (depending on time_bounds)
     - Input cube times and forecast_reference_times do not match
-
-    Can be overloaded where only a subset of inputs are expected to match, or have
-    specific offsets. Overloading functions can use self.get_cube()
 
     Args:
         inputs:

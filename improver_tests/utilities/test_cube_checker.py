@@ -46,7 +46,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_checker import (
-    assert_time_coords_ok,
+    assert_time_coords_valid,
     check_cube_coordinates,
     check_for_x_and_y_axes,
     find_dimension_coordinate_mismatch,
@@ -348,10 +348,10 @@ def cubes_fixture(time_bounds) -> List[Cube]:
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("input_count", (2, 3))
-def test_time_coords_ok(cubes, input_count, time_bounds: bool):
-    """Test that no exceptions are raised when all is well for either 2 or 3 cubes,
-    with or without time bounds"""
-    assert_time_coords_ok(cubes[:input_count], time_bounds=time_bounds)
+def test_time_coords_valid(cubes, input_count, time_bounds: bool):
+    """Test that no exceptions are raised when the required conditions are met
+    for either 2 or 3 cubes, with or without time bounds"""
+    assert_time_coords_valid(cubes[:input_count], time_bounds=time_bounds)
 
 
 def inconsistent_time_bounds(cubes: List[Cube]):
@@ -407,12 +407,13 @@ def only_one_cube(cubes: List[Cube]):
 def test_time_coord_exceptions(
     cubes, modifier: callable, time_bounds: bool, error_match: str
 ):
-    """Check for things we know we should reject"""
+    """Checks that assert_time_coords_valid raises useful errors
+    when the required conditions are not met."""
     for cube in cubes:
         cube.attributes["mosg__model_configuration"] = "gl_ens"
     modifier(cubes)
     with pytest.raises(ValueError, match=error_match):
-        assert_time_coords_ok(cubes, time_bounds=time_bounds)
+        assert_time_coords_valid(cubes, time_bounds=time_bounds)
 
 
 if __name__ == "__main__":
