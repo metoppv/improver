@@ -409,8 +409,6 @@ def test_time_coord_exceptions(
 ):
     """Checks that assert_time_coords_valid raises useful errors
     when the required conditions are not met."""
-    for cube in cubes:
-        cube.attributes["mosg__model_configuration"] = "gl_ens"
     modifier(cubes)
     with pytest.raises(ValueError, match=error_match):
         assert_time_coords_valid(cubes, time_bounds=time_bounds)
