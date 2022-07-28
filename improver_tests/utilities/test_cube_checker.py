@@ -392,16 +392,16 @@ def only_one_cube(cubes: List[Cube]):
 @pytest.mark.parametrize(
     "modifier, time_bounds, error_match",
     (
-        (inconsistent_time_bounds, False, "air_temperature must not have time bounds"),
-        (inconsistent_time_point, False, "time coordinates do not match."),
-        (inconsistent_frt, False, "forecast_reference_time coordinates do not match."),
-        (remove_one_time_bounds, True, "air_temperature must have time bounds"),
+        (inconsistent_time_bounds, False, "^air_temperature must not have time bounds"),
+        (inconsistent_time_point, False, "^time coordinates do not match."),
+        (inconsistent_frt, False, "^forecast_reference_time coordinates do not match."),
+        (remove_one_time_bounds, True, "^air_temperature must have time bounds"),
         (
             remove_two_time_bounds,
             True,
-            "air_temperature and air_pressure must have time bounds",
+            "^air_temperature and air_pressure must have time bounds",
         ),
-        (only_one_cube, False, "Need at least 2 cubes to check. Found 1",),
+        (only_one_cube, False, "^Need at least 2 cubes to check. Found 1",),
     ),
 )
 def test_time_coord_exceptions(
