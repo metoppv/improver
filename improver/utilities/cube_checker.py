@@ -210,7 +210,7 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
     Raises appropriate ValueError if
 
     - Any input cube has or is missing time bounds (depending on time_bounds)
-    - Input cube times and forecast_reference_times do not match
+    - Input cube times and either forecast_reference_times or blend_times do not match
 
     Args:
         inputs:
@@ -231,7 +231,12 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
         str_bool = "" if time_bounds else "not "
         msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
         raise ValueError(msg)
-    for time_coord_name in ["time", "forecast_reference_time"]:
+
+    if inputs[0].coords("blend_time"):
+        time_coords_to_check = ["time", "blend_time"]
+    else:
+        time_coords_to_check = ["time", "forecast_reference_time"]
+    for time_coord_name in time_coords_to_check:
         time_coords = [c.coord(time_coord_name) for c in inputs]
         if not all([tc == time_coords[0] for tc in time_coords[1:]]):
             msg = f"{time_coord_name} coordinates do not match." "\n  " + "\n  ".join(

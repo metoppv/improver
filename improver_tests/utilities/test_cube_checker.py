@@ -346,11 +346,22 @@ def cubes_fixture(time_bounds) -> List[Cube]:
     return cubes
 
 
+def swap_frt_for_blend_time(cubes: List[Cube]):
+    """Renames the forecast_reference_time coord on each cube to blend_time"""
+    for cube in cubes:
+        cube.coord("forecast_reference_time").rename("blend_time")
+
+
+@pytest.mark.parametrize("blend_time", (True, False))
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("input_count", (2, 3))
-def test_time_coords_valid(cubes: List[Cube], input_count: int, time_bounds: bool):
+def test_time_coords_valid(
+    cubes: List[Cube], input_count: int, time_bounds: bool, blend_time: bool
+):
     """Test that no exceptions are raised when the required conditions are met
-    for either 2 or 3 cubes, with or without time bounds"""
+    for either 2 or 3 cubes, with or without time bounds, with or without blend_time"""
+    if blend_time:
+        swap_frt_for_blend_time(cubes)
     assert_time_coords_valid(cubes[:input_count], time_bounds=time_bounds)
 
 
