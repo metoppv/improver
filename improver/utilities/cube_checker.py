@@ -234,8 +234,7 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
     for time_coord_name in ["time", "forecast_reference_time"]:
         time_coords = [c.coord(time_coord_name) for c in inputs]
         if not all([tc == time_coords[0] for tc in time_coords[1:]]):
-            raise ValueError(
-                f"{time_coord_name} coordinates do not match."
-                "\n  "
-                "\n  ".join([f"{c.name()}: {c.coord('time')}" for c in inputs])
+            msg = f"{time_coord_name} coordinates do not match." "\n  " + "\n  ".join(
+                [f"{c.name()}: {c.coord('time')}" for c in inputs]
             )
+            raise ValueError(msg)
