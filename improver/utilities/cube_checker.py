@@ -216,8 +216,8 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
         inputs:
             List of Cubes where times should match
         time_bounds:
-            When True, time-bounds are checked for and compared on the input cubes.
-            When False, the absence of time-bounds is checked for.
+            When True, time bounds are checked for and compared on the input cubes.
+            When False, the absence of time bounds is checked for.
 
     Raises:
         ValueError: If any of the stated checks fail.
@@ -237,7 +237,5 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
             raise ValueError(
                 f"{time_coord_name} coordinates do not match."
                 "\n  "
-                "\n  ".join(
-                    [str(c.name()) + ": " + str(c.coord("time")) for c in inputs]
-                )
+                "\n  ".join([f"{c.name()}: {c.coord('time')}" for c in inputs])
             )

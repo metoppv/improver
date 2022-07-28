@@ -348,7 +348,7 @@ def cubes_fixture(time_bounds) -> List[Cube]:
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("input_count", (2, 3))
-def test_time_coords_valid(cubes, input_count, time_bounds: bool):
+def test_time_coords_valid(cubes: List[Cube], input_count: int, time_bounds: bool):
     """Test that no exceptions are raised when the required conditions are met
     for either 2 or 3 cubes, with or without time bounds"""
     assert_time_coords_valid(cubes[:input_count], time_bounds=time_bounds)
