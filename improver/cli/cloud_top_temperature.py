@@ -46,7 +46,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing:
                 ccl (iris.cube.Cube):
-                    Cube of convective_cloud_level
+                    Cube of cloud_condensation_level
                 temperature (iris.cube.Cube):
                     Cube of temperature_at_pressure_levels
         model_id_attr (str):
@@ -54,7 +54,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     Returns:
         iris.cube.Cube:
-            Cube of cloud top temperature (K).
+            Cube of cloud_top_temperature (K).
 
     """
     from iris.cube import CubeList
