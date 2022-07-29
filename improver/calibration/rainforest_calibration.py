@@ -210,7 +210,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             for threshold_dict in sorted_model_config_dict.values()
         ]
         self.tree_models = [
-            Booster(model_file=str(file)).reset_parameter({"num_threads": threads})
+            Booster(model_file=file).reset_parameter({"num_threads": threads})
             for file in lightgbm_model_filenames
         ]
 
@@ -772,7 +772,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             for threshold_dict in sorted_model_config_dict.values()
         ]
         self.tree_models = [
-            Predictor(libpath=file, verbose=False, nthread=threads)
+            Predictor(libpath=str(file), verbose=False, nthread=threads)
             for file in treelite_model_filenames
         ]
 
