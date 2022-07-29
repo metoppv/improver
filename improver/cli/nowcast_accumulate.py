@@ -47,7 +47,7 @@ def name_constraint(names: List[str]) -> Callable:
     constraint.
 
     Args:
-        name:
+        names:
             List of cube names to constrain our cubes.
 
     Returns:

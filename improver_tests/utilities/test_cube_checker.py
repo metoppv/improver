@@ -43,6 +43,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_checker import (
+    assert_spatial_coords_match,
     check_cube_coordinates,
     check_for_x_and_y_axes,
     find_dimension_coordinate_mismatch,
@@ -259,6 +260,10 @@ class Test_spatial_coords_match(IrisTest):
         result = spatial_coords_match([self.cube_a, self.cube_a])
         self.assertTrue(result)
 
+    def test_assert_matching(self):
+        """Test for no error when test_matching is repeated with assert method."""
+        assert_spatial_coords_match([self.cube_a, self.cube_a])
+
     def test_matching_multiple(self):
         """Test when given more than two cubes to test, these matching."""
         result = spatial_coords_match([self.cube_a, self.cube_a, self.cube_a])
@@ -293,6 +298,12 @@ class Test_spatial_coords_match(IrisTest):
         """Test when given two spatially different cubes of same resolution."""
         result = spatial_coords_match([self.cube_a, self.cube_b])
         self.assertFalse(result)
+
+    def test_assert_unmatching(self):
+        """Test assert method when given two spatially different cubes of same resolution."""
+        msg = "Mismatched spatial coords for "
+        with self.assertRaisesRegex(ValueError, msg):
+            assert_spatial_coords_match([self.cube_a, self.cube_b])
 
     def test_unmatching_multiple(self):
         """Test when given more than two cubes to test, these unmatching."""

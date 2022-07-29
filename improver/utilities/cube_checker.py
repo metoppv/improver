@@ -203,3 +203,21 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
             and match
         )
     return match
+
+
+def assert_spatial_coords_match(cubes: Union[List, CubeList]):
+    """
+    Raises an Exception if `spatial_coords_match` returns False.
+
+    Args:
+        cubes:
+            A list of cubes to compare.
+
+    Raises:
+        ValueError if spatial coords do not match.
+
+    """
+    if not spatial_coords_match(cubes):
+        raise ValueError(
+            f"Mismatched spatial coords for {', '.join([c.name() for c in cubes])}"
+        )
