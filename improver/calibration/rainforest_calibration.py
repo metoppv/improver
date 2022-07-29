@@ -772,7 +772,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             for threshold_dict in sorted_model_config_dict.values()
         ]
         self.tree_models = [
-            Predictor(libpath=file, verbose=False, nthread=threads)
+            Predictor(libpath=str(file), verbose=False, nthread=threads)
             for file in treelite_model_filenames
         ]
 
