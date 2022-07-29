@@ -92,8 +92,8 @@ def test__init__(
         assert model.threads == expected_threads
     # Ensure threshold and files match
     for threshold, model in zip(result.error_thresholds, result.tree_models):
-        # LightGBM library handles paths as strings or pathlib Paths
-        assert isinstance(model.model_file, (str, pathlib.Path))
+        # LightGBM library only introduced support for pathlib Paths in 3.3+
+        assert isinstance(model.model_file, str)
         assert f"{threshold:06.4f}" in str(model.model_file)
 
 
