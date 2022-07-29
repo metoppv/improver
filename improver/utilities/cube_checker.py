@@ -247,3 +247,21 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
                 [f"{c.name()}: {c.coord('time')}" for c in inputs]
             )
             raise ValueError(msg)
+
+
+def assert_spatial_coords_match(cubes: Union[List, CubeList]):
+    """
+    Raises an Exception if `spatial_coords_match` returns False.
+
+    Args:
+        cubes:
+            A list of cubes to compare.
+
+    Raises:
+        ValueError if spatial coords do not match.
+
+    """
+    if not spatial_coords_match(cubes):
+        raise ValueError(
+            f"Mismatched spatial coords for {', '.join([c.name() for c in cubes])}"
+        )
