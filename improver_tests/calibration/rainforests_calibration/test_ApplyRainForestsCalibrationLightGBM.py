@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the ApplyRainForestsCalibrationLightGBM class."""
+import pathlib
+
 import numpy as np
 import pytest
 from iris import Constraint
@@ -90,7 +92,9 @@ def test__init__(
         assert model.threads == expected_threads
     # Ensure threshold and files match
     for threshold, model in zip(result.error_thresholds, result.tree_models):
-        assert f"{threshold:06.4f}" in model.model_file
+        # LightGBM library handles paths as strings or pathlib Paths
+        assert isinstance(model.model_file, (str, pathlib.Path))
+        assert f"{threshold:06.4f}" in str(model.model_file)
 
 
 def test__check_num_features(ensemble_features, dummy_lightgbm_models):
