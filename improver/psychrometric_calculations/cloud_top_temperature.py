@@ -52,7 +52,7 @@ class CloudTopTemperature(BasePlugin):
     on pressure levels data using saturated ascent.
     The temperature is that of the parcel after saturated ascent at the last pressure level
     where the parcel is buoyant. The interpolation required to get closer is deemed expensive.
-    If the cloud top temperature is less than 4K smaller than the cloud condensation level,
+    If the cloud top temperature is less than 4K colder than the cloud condensation level,
     the cloud top temperature is masked.
     """
 

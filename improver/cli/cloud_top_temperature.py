@@ -41,6 +41,8 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     on pressure levels data.
     The temperature is that of the parcel after saturated ascent at the last pressure level
     where the parcel is buoyant.
+    If the cloud top temperature is less than 4K colder than the cloud condensation level,
+    the cloud top temperature is masked.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
