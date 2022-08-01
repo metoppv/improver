@@ -243,7 +243,7 @@ def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
     for time_coord_name in time_coords_to_check:
         time_coords = [c.coord(time_coord_name) for c in inputs]
         if not all([tc == time_coords[0] for tc in time_coords[1:]]):
-            msg = f"{time_coord_name} coordinates do not match." "\n  " + "\n  ".join(
+            msg = f"{time_coord_name} coordinates do not match. \n  " + "\n  ".join(
                 [f"{c.name()}: {c.coord('time')}" for c in inputs]
             )
             raise ValueError(msg)

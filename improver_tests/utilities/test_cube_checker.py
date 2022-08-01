@@ -379,7 +379,7 @@ def test_time_coords_valid(
 def inconsistent_time_bounds(cubes: List[Cube]):
     """Adds time bounds only to the first cube"""
     time_point = cubes[0].coord("time").points[0]
-    cubes[0].coord("time").bounds = (time_point - 3600, time_point)
+    cubes[0].coord("time").bounds = (time_point - 10800, time_point)
 
 
 def inconsistent_time_point(cubes: List[Cube]):
@@ -414,8 +414,11 @@ def only_one_cube(cubes: List[Cube]):
 @pytest.mark.parametrize(
     "modifier, time_bounds, error_match",
     (
+        (inconsistent_time_bounds, True, "^time coordinates do not match."),
         (inconsistent_time_bounds, False, "^air_temperature must not have time bounds"),
+        (inconsistent_time_point, True, "^time coordinates do not match."),
         (inconsistent_time_point, False, "^time coordinates do not match."),
+        (inconsistent_frt, True, "^forecast_reference_time coordinates do not match."),
         (inconsistent_frt, False, "^forecast_reference_time coordinates do not match."),
         (remove_one_time_bounds, True, "^air_temperature must have time bounds"),
         (
