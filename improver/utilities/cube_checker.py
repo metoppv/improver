@@ -205,6 +205,50 @@ def spatial_coords_match(cubes: Union[List, CubeList]) -> bool:
     return match
 
 
+def assert_time_coords_valid(inputs: List[Cube], time_bounds: bool):
+    """
+    Raises appropriate ValueError if
+
+    - Any input cube has or is missing time bounds (depending on time_bounds)
+    - Input cube times do not match
+    - Input cube forecast_reference_times do not match (unless blend_time is present)
+
+    Note that blend_time coordinates do not have to match as it is likely that data
+    from nearby blends will be used together.
+
+    Args:
+        inputs:
+            List of Cubes where times should match
+        time_bounds:
+            When True, time bounds are checked for and compared on the input cubes.
+            When False, the absence of time bounds is checked for.
+
+    Raises:
+        ValueError: If any of the stated checks fail.
+    """
+    if len(inputs) <= 1:
+        raise ValueError(f"Need at least 2 cubes to check. Found {len(inputs)}")
+    cubes_not_matching_time_bounds = [
+        c.name() for c in inputs if c.coord("time").has_bounds() != time_bounds
+    ]
+    if cubes_not_matching_time_bounds:
+        str_bool = "" if time_bounds else "not "
+        msg = f"{' and '.join(cubes_not_matching_time_bounds)} must {str_bool}have time bounds"
+        raise ValueError(msg)
+
+    if inputs[0].coords("blend_time"):
+        time_coords_to_check = ["time"]
+    else:
+        time_coords_to_check = ["time", "forecast_reference_time"]
+    for time_coord_name in time_coords_to_check:
+        time_coords = [c.coord(time_coord_name) for c in inputs]
+        if not all([tc == time_coords[0] for tc in time_coords[1:]]):
+            msg = f"{time_coord_name} coordinates do not match. \n  " + "\n  ".join(
+                [f"{c.name()}: {c.coord('time')}" for c in inputs]
+            )
+            raise ValueError(msg)
+
+
 def assert_spatial_coords_match(cubes: Union[List, CubeList]):
     """
     Raises an Exception if `spatial_coords_match` returns False.
