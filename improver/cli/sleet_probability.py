@@ -61,10 +61,7 @@ def process(*cubes: cli.inputcube):
     )
 
     snow, rain = CubeList(cubes).extract(
-        [
-            "probability_of_snow_at_surface",
-            "probability_of_rain_at_surface",
-        ]
+        ["probability_of_snow_at_surface", "probability_of_rain_at_surface"]
     )
 
     return calculate_sleet_probability(snow, rain)

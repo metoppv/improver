@@ -68,7 +68,9 @@ def process(
 
     from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
 
-    wind_gust, wind_speed = CubeList(cubes).extract(["wind_speed_of_gust", "wind_speed"])
+    wind_gust, wind_speed = CubeList(cubes).extract(
+        ["wind_speed_of_gust", "wind_speed"]
+    )
 
     return WindGustDiagnostic(wind_gust_percentile, wind_speed_percentile)(
         wind_gust, wind_speed

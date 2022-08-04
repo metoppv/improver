@@ -41,6 +41,7 @@ from iris.cube import Cube
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
 
+
 class WindGustDiagnostic(PostProcessingPlugin):
 
     """Plugin for calculating wind-gust diagnostic.
