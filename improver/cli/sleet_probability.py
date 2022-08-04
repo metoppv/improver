@@ -36,26 +36,35 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(snow: cli.inputcube, rain: cli.inputcube):
+def process(*cubes: cli.inputcube):
     """Calculate sleet probability.
 
     Calculates the sleet probability using the
     calculate_sleet_probability plugin.
 
     Args:
-        snow (iris.cube.Cube):
-            An iris Cube of the probability of snow.
-        rain (iris.cube.Cube):
-            An iris Cube of the probability of rain.
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+            containing, in any order:
+                 snow (iris.cube.Cube):
+                    An iris Cube of the probability of snow.
+                rain (iris.cube.Cube):
+                    An iris Cube of the probability of rain.
 
     Returns:
         iris.cube.Cube:
             Returns a cube with the probability of sleet.
     """
+    from iris.cube import CubeList
 
     from improver.precipitation_type.calculate_sleet_prob import (
         calculate_sleet_probability,
     )
 
-    result = calculate_sleet_probability(snow, rain)
-    return result
+    snow, rain = CubeList(cubes).extract(
+        [
+            "probability_of_snow_at_surface",
+            "probability_of_rain_at_surface",
+        ]
+    )
+
+    return calculate_sleet_probability(snow, rain)

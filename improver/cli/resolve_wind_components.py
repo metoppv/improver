@@ -36,14 +36,16 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(wind_speed: cli.inputcube, wind_direction: cli.inputcube):
+def process(*cubes: cli.inputcube):
     """Converts speed and direction into individual velocity components.
 
     Args:
-        wind_speed (iris.cube.Cube):
-            A cube of wind speed.
-        wind_direction (iris.cube.Cube):
-            A cube of wind from direction.
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+            containing, in any order:
+                wind_speed (iris.cube.Cube):
+                    A cube of wind speed.
+                wind_direction (iris.cube.Cube):
+                    A cube of wind from direction.
 
     Returns:
         iris.cube.Cubelist:
@@ -53,8 +55,9 @@ def process(wind_speed: cli.inputcube, wind_direction: cli.inputcube):
 
     from improver.wind_calculations.wind_components import ResolveWindComponents
 
-    if not (wind_speed and wind_direction):
-        raise TypeError("Neither wind_speed or wind_direction can be none")
+    wind_speed, wind_direction = CubeList(cubes).extract(
+        ["wind_speed", "wind_from_direction"]
+    )
 
     u_cube, v_cube = ResolveWindComponents()(wind_speed, wind_direction)
     return CubeList([u_cube, v_cube])

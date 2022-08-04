@@ -37,6 +37,10 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.cube_checker import (
+    assert_spatial_coords_match,
+    assert_time_coords_valid,
+)
 
 
 def calculate_sleet_probability(prob_of_snow: Cube, prob_of_rain: Cube) -> Cube:
@@ -60,6 +64,11 @@ def calculate_sleet_probability(prob_of_snow: Cube, prob_of_rain: Cube) -> Cube:
         ValueError: If the cube contains negative values for the the
                     probability of sleet.
     """
+
+    # Implement cube check functions
+    assert_spatial_coords_match([prob_of_snow, prob_of_rain])
+    assert_time_coords_valid([prob_of_snow, prob_of_rain], False)
+
     sleet_prob = 1 - (prob_of_snow.data + prob_of_rain.data)
     if np.any(sleet_prob < 0):
         msg = "Negative values of sleet probability have been calculated."

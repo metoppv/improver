@@ -36,14 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    temperature: cli.inputcube,
-    wind_speed: cli.inputcube,
-    relative_humidity: cli.inputcube,
-    pressure: cli.inputcube,
-    *,
-    model_id_attr: str = None,
-):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """Calculates the feels like temperature using the data in the input cube.
 
     Calculate the feels like temperature using a combination of the wind chill
@@ -60,17 +53,18 @@ def process(
     order to blend between the wind chill and the apparent temperature.
 
     Args:
-        temperature (iris.cube.Cube):
-            Cube of air temperatures at screen level
-        wind_speed (iris.cube.Cube):
-            Cube of wind speed at 10m
-        relative_humidity (iris.cube.Cube):
-            Cube of relative humidity at screen level
-        pressure (iris.cube.Cube):
-            Cube of surface pressure
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+            containing, in any order:
+                temperature (iris.cube.Cube):
+                    Cube of air temperatures at screen level
+                wind_speed (iris.cube.Cube):
+                    Cube of wind speed at 10m
+                relative_humidity (iris.cube.Cube):
+                    Cube of relative humidity at screen level
+                pressure (iris.cube.Cube):
+                    Cube of surface pressure
         model_id_attr (str):
-            Name of the attribute used to identify the source model for
-            blending.
+            Name of the attribute used to identify the source model for blending.
 
     Returns:
         iris.cube.Cube:
@@ -78,7 +72,18 @@ def process(
             will be the same as the units of temperature cube when it is input
             into the function.
     """
+    from iris.cube import CubeList
+
     from improver.feels_like_temperature import calculate_feels_like_temperature
+
+    temperature, wind_speed, relative_humidity, pressure = CubeList(cubes).extract(
+        [
+            "air_temperature",
+            "wind_speed",
+            "relative_humidity",
+            "air_pressure_at_sea_level",
+        ]
+    )
 
     return calculate_feels_like_temperature(
         temperature,

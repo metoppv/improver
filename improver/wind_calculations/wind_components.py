@@ -41,7 +41,10 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
-from improver.utilities.cube_manipulation import compare_coords
+from improver.utilities.cube_checker import (
+    assert_spatial_coords_match,
+    assert_time_coords_valid,
+)
 
 # Global coordinate reference system used in StaGE (GRS80)
 GLOBAL_CRS = GeogCS(semi_major_axis=6378137.0, inverse_flattening=298.257222101)
@@ -176,7 +179,7 @@ class ResolveWindComponents(BasePlugin):
         vspeed = np.multiply(speed.data, cos_angle)
         return [speed.copy(data=uspeed), speed.copy(data=vspeed)]
 
-    def process(self, wind_speed: Cube, wind_dir: Cube) -> Tuple[Cube, Cube]:
+    def process(self, wind_speed: Cube, wind_dir: Cube,) -> Tuple[Cube, Cube]:
 
         """
         Convert wind speed and direction into u,v components along input cube
@@ -196,23 +199,10 @@ class ResolveWindComponents(BasePlugin):
               y-axis direction, with units and projection matching
               wind_speed cube.
         """
-        # check cubes contain the correct data (assuming CF standard names)
-        if "wind_speed" not in wind_speed.name():
-            msg = "{} cube does not contain wind speeds"
-            raise ValueError("{} {}".format(wind_speed.name(), msg))
 
-        if "wind" not in wind_dir.name() or "direction" not in wind_dir.name():
-            msg = "{} cube does not contain wind directions"
-            raise ValueError("{} {}".format(wind_dir.name(), msg))
-
-        # check input cube coordinates match
-        ignored_coords = ["wind_from_direction status_flag", "wind_speed status_flag"]
-        unmatched_coords = compare_coords(
-            [wind_speed, wind_dir], ignored_coords=ignored_coords
-        )
-        if unmatched_coords != [{}, {}]:
-            msg = "Wind speed and direction cubes have unmatched coordinates"
-            raise ValueError("{} {}".format(msg, unmatched_coords))
+        # Implement cube check functions
+        assert_spatial_coords_match([wind_speed, wind_dir])
+        assert_time_coords_valid([wind_speed, wind_dir], False)
 
         # calculate angle adjustments for wind direction
         wind_dir_slice = next(

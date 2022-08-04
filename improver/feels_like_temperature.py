@@ -43,6 +43,10 @@ from improver.metadata.utilities import (
 from improver.psychrometric_calculations.psychrometric_calculations import (
     calculate_svp_in_air,
 )
+from improver.utilities.cube_checker import (
+    assert_spatial_coords_match,
+    assert_time_coords_valid,
+)
 
 
 def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
@@ -218,6 +222,13 @@ def calculate_feels_like_temperature(
         Cube of feels like temperatures in the same units as the input
         temperature cube.
     """
+
+    # Implement cube check functions
+    assert_spatial_coords_match([temperature, wind_speed, relative_humidity, pressure])
+    assert_time_coords_valid(
+        [temperature, wind_speed, relative_humidity, pressure], False
+    )
+
     t_cube = temperature.copy()
     t_cube.convert_units("degC")
     t_celsius = t_cube.data
