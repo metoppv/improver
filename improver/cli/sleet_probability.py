@@ -54,6 +54,7 @@ def process(*cubes: cli.inputcube):
         iris.cube.Cube:
             Returns a cube with the probability of sleet.
     """
+
     from iris.cube import CubeList
 
     from improver.precipitation_type.calculate_sleet_prob import (
