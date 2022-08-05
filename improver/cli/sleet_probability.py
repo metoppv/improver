@@ -45,7 +45,7 @@ def process(*cubes: cli.inputcube):
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing, in any order:
-                 snow (iris.cube.Cube):
+                snow (iris.cube.Cube):
                     An iris Cube of the probability of snow.
                 rain (iris.cube.Cube):
                     An iris Cube of the probability of rain.

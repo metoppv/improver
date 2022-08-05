@@ -38,6 +38,10 @@ import numpy as np
 from iris.coords import Coord
 from iris.cube import Cube
 
+from improver.utilities.cube_checker import (
+    assert_spatial_coords_match,
+)
+
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import find_percentile_coordinate
 
@@ -158,13 +162,16 @@ class WindGustDiagnostic(PostProcessingPlugin):
 
         Args:
             cube_gust:
-                Cube contain one or more percentiles of wind_gust data.
+                Cube containing one or more percentiles of wind_gust data.
             cube_ws:
-                Cube contain one or more percentiles of wind_speed data.
+                Cube containing one or more percentiles of wind_speed data.
 
         Returns:
             Cube containing the wind-gust diagnostic data.
         """
+
+        # Implement cube check functions
+        assert_spatial_coords_match([cube_gust, cube_ws])
 
         # Extract wind-gust data
         (req_cube_gust, perc_coord_gust) = self.extract_percentile_data(
