@@ -1430,8 +1430,14 @@ class Test_process(Test_WXCode):
 
     def test_day_night(self):
         """Test process returns the right values for night. """
+        twelve_hours = 3600 * 12
         for i, cube in enumerate(self.cubes):
-            self.cubes[i].coord("time").points = cube.coord("time").points + 3600 * 12
+            time_coord = self.cubes[i].coord("time")
+            self.cubes[i].coord("time").points = time_coord.points + twelve_hours
+            if time_coord.has_bounds():
+                bounds = time_coord.bounds
+                bounds = [bound + twelve_hours for bound in bounds]
+                self.cubes[i].coord("time").bounds = bounds
         result = self.plugin.process(self.cubes)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_night)
 

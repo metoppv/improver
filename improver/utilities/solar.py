@@ -377,6 +377,15 @@ class DayNightMask(BasePlugin):
            dt(2017, 1, 1, 12, 0, 1)   -- +1  --> dt(2017, 1, 1, 12, 0, 2)
            dt(2017, 1, 1, 12, 0, 30)  -- +30 --> dt(2017, 1, 1, 12, 1, 0)
 
+        If the cube's time coordinate has time bounds the mid-point of these
+        bounds rather than the time point is used in the calculation. This
+        ensures that should a majority of the period described fall into
+        daylight hours, the data is not classified as falling at night. This
+        is an issue as the time point is always located at the end of the
+        time bounds. Without this approach weather symbols representing
+        e.g. 20-21Z will be marked as night symbols should the sunset at
+        20:59 which is not suitable.
+
         Args:
             cube:
                 input cube
@@ -393,7 +402,11 @@ class DayNightMask(BasePlugin):
 
         modified_masks = iris.cube.CubeList()
         for mask_cube in daynight_mask.slices_over("time"):
-            dtval = mask_cube.coord("time").cell(0).point
+            if mask_cube.coord("time").has_bounds():
+                lb, ub = cube.coord("time").cell(0).bound
+                dtval = lb + (ub - lb) / 2
+            else:
+                dtval = mask_cube.coord("time").cell(0).point
             day_of_year = get_day_of_year(dtval)
             utc_hour = get_hour_of_day(dtval)
             trg_crs = lat_lon_determine(mask_cube)
