@@ -144,6 +144,10 @@ def precipitation_multi_realization(period):
     rain, sleet = precipitation_cubes(period)
     rain = add_coordinate(rain, [0, 1], "realization", coord_units=1, dtype=np.int32)
     sleet = add_coordinate(sleet, [0, 1], "realization", coord_units=1, dtype=np.int32)
+    # Modify one realization to demonstrate that the implicit realization collapse
+    # within the plugin is giving the expected results; these are provided by the
+    # expected_probabilities_multi_realization fixture below.
+    rain.data[1, 1] = np.full_like(rain.data[1, 1], 0.6)
     return rain, sleet
 
 
@@ -162,7 +166,7 @@ def temperature_multi_realization(period):
     and period air temperature as an input."""
     temperature = temperature_cube(period)
     temperature = add_coordinate(
-        temperature, [1, 2, 3], "realization", coord_units=1, dtype=np.int32
+        temperature, [0, 1, 2], "realization", coord_units=1, dtype=np.int32
     )
     return temperature
 
@@ -181,6 +185,15 @@ def expected_probabilities():
     """Return the expected freezing rain probabilities."""
     return np.array(
         [[[0.0, 0.05], [0.14, 0.27]], [[0.0, 0.03], [0.1, 0.21]]], dtype=np.float32
+    )
+
+
+@pytest.fixture
+def expected_probabilities_multi_realization():
+    """Return the expected freezing rain probabilities when using multi-realization
+    data. The realization coordinate is collapsed in the calculation."""
+    return np.array(
+        [[[0.0, 0.05], [0.14, 0.27]], [[0.0, 0.055], [0.14, 0.255]]], dtype=np.float32
     )
 
 

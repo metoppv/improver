@@ -218,11 +218,11 @@ c2abfc4f83d4a918dd2d80f20b7746e5ae19d809d21df9715bd8ed5011d38ed2  ./extract/site
 f3516e5b36fa637151c4c7306e08d348fdc04aa24dec07e2bcd333248f4010cc  ./field-texture/basic/kgo.nc
 3379e6f19083154ebea42a32d9b48e0bae442243833aed23e45dea61b24d7739  ./fill-radar-holes/basic/201811271330_remasked_rainrate_composite.nc
 b25a397ac5ecac536f43c553f17b0bd6b5d2587d4eda8559bf5709e25f2c237b  ./fill-radar-holes/basic/kgo.nc
-3152c466221b6ed4fa696aa85436cbd09a8494ea10786e62e0eec7a7ae883173  ./freezing-rain/one_hour/kgo.nc
+744fd5c1fbd0fea2959e2bdbffebd6c82f96266ee723ed215cbe6c449f8d1899  ./freezing-rain/one_hour/kgo.nc
 0ddfec929063042e7dc47d0ef154f539a1d7418f74a724343ae42651e714d6b2  ./freezing-rain/one_hour/rain_acc.nc
 c7258e05788b7605524be7f0074c81a71ebd98683dc5b24e5bad0ac1703e74b9  ./freezing-rain/one_hour/sleet_acc.nc
 e8af9f50f7caa1d385daecbeeb7bc53a13cd4638b1f13ae9c0e173fd23ccb1f5  ./freezing-rain/one_hour/temperature_min.nc
-038852df5847c092aa32dfeb87092546c8fee3a9f8413019beef80157d770b3f  ./freezing-rain/three_hour/kgo.nc
+0c49dc02f3c22835e0f50bebedac9c8954a44e96270ec30d034ce58c3c81768f  ./freezing-rain/three_hour/kgo.nc
 ecd65249d525dec4662e6047363423646f59bad26aa3b13e068f1d94c028bcfe  ./freezing-rain/three_hour/rain_acc.nc
 e326b32d7382c9a2244feaae19025234bd080ec3252888adfe1c83d217703ab2  ./freezing-rain/three_hour/sleet_acc.nc
 335ce8b8cca70570f1f339f53f1337e9fa195027b6b4f3275ccc08ea1da028ea  ./freezing-rain/three_hour/temperature_min.nc
