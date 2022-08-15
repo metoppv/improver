@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the CloudCondensationLevel plugin"""
+from typing import Tuple
+
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -82,7 +84,7 @@ def humidity_cube_fixture() -> Cube:
     return humidity_cube
 
 
-def metadata_ok(ccl: Cube, baseline: Cube, model_id_attr=None) -> None:
+def metadata_ok(ccl: Tuple[Cube, Cube], baseline: Cube, model_id_attr=None) -> None:
     """
     Checks cloud_condensation_level Cube long_name, units and dtype are as expected.
     Compares cloud_condensation_level Cube with baseline to make sure everything else matches.
@@ -94,25 +96,24 @@ def metadata_ok(ccl: Cube, baseline: Cube, model_id_attr=None) -> None:
     Raises:
         AssertionError: If anything doesn't match
     """
-    assert ccl.long_name == "air_temperature_at_condensation_level"
-    assert ccl.units == "K"
-    assert ccl.dtype == np.float32
-    ccl.coord("air_pressure")  # Fails if this coord is absent.
-    for coord in ccl.coords():
-        if coord.standard_name == "air_pressure":
-            coord_dims = ccl.coord_dims(coord)
-            assert len(coord_dims) == ccl.ndim
-        else:
+    t_at_ccl, p_at_ccl = ccl
+    assert t_at_ccl.long_name == "air_temperature_at_condensation_level"
+    assert t_at_ccl.units == "K"
+    assert p_at_ccl.long_name == "air_pressure_at_condensation_level"
+    assert p_at_ccl.units == "Pa"
+    for cube in ccl:
+        assert cube.dtype == np.float32
+        for coord in cube.coords():
             base_coord = baseline.coord(coord.name())
-            assert ccl.coord_dims(coord) == baseline.coord_dims(base_coord)
+            assert cube.coord_dims(coord) == baseline.coord_dims(base_coord)
             assert coord == base_coord
-    for attr in MANDATORY_ATTRIBUTES:
-        assert ccl.attributes[attr] == baseline.attributes[attr]
-    all_attr_keys = list(ccl.attributes.keys())
-    if model_id_attr:
-        assert ccl.attributes[model_id_attr] == baseline.attributes[model_id_attr]
-    mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
-    assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
+        for attr in MANDATORY_ATTRIBUTES:
+            assert cube.attributes[attr] == baseline.attributes[attr]
+        all_attr_keys = list(cube.attributes.keys())
+        if model_id_attr:
+            assert cube.attributes[model_id_attr] == baseline.attributes[model_id_attr]
+        mandatory_attr_keys = [k for k in all_attr_keys if k != model_id_attr]
+        assert sorted(mandatory_attr_keys) == sorted(MANDATORY_ATTRIBUTES)
 
 
 @pytest.mark.parametrize(
@@ -140,8 +141,8 @@ def test_basic(
     humidity.data = np.full_like(humidity.data, humidity_value)
     result = CloudCondensationLevel()([temperature, pressure, humidity])
     metadata_ok(result, temperature)
-    assert np.isclose(result.data, expected_t, atol=1e-2).all()
-    assert np.isclose(result.coord("air_pressure").points, expected_p, atol=1e-0).all()
+    assert np.isclose(result[0].data, expected_t, atol=1e-2).all()
+    assert np.isclose(result[1].data, expected_p, atol=1e-0).all()
 
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))

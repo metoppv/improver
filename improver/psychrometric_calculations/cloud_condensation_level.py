@@ -32,7 +32,6 @@
 from typing import List, Tuple
 
 import numpy as np
-from iris.coords import AuxCoord
 from iris.cube import Cube
 from scipy.optimize import newton
 
@@ -65,16 +64,22 @@ class CloudCondensationLevel(BasePlugin):
         self.model_id_attr = model_id_attr
         self.temperature, self.pressure, self.humidity = None, None, None
 
-    def _make_ccl_cube(self, data: np.ndarray, pressure: np.ndarray) -> Cube:
+    def _make_ccl_cube(self, data: np.ndarray, is_temperature: bool) -> Cube:
         """Puts the data array into a CF-compliant cube"""
         attributes = {}
         if self.model_id_attr:
             attributes[self.model_id_attr] = self.temperature.attributes[
                 self.model_id_attr
             ]
+        if is_temperature:
+            name = "air_temperature_at_condensation_level"
+            units = "K"
+        else:
+            name = "air_pressure_at_condensation_level"
+            units = "Pa"
         cube = create_new_diagnostic_cube(
-            "air_temperature_at_condensation_level",
-            "K",
+            name,
+            units,
             self.temperature,
             mandatory_attributes=generate_mandatory_attributes(
                 [self.temperature, self.pressure, self.humidity]
@@ -82,11 +87,6 @@ class CloudCondensationLevel(BasePlugin):
             optional_attributes=attributes,
             data=data,
         )
-        pressure_coord = AuxCoord(
-            standard_name="air_pressure", units="Pa", points=pressure
-        )
-        spatial_dims = range(self.temperature.ndim)
-        cube.add_aux_coord(pressure_coord, spatial_dims)
         return cube
 
     def _iterate_to_ccl(self) -> Tuple[np.ndarray, np.ndarray]:
@@ -112,7 +112,7 @@ class CloudCondensationLevel(BasePlugin):
         )
         return ccl_pressure, ccl_temperature
 
-    def process(self, cubes: List[Cube]) -> Cube:
+    def process(self, cubes: List[Cube]) -> Tuple[Cube, Cube]:
         """
         Calculates the cloud condensation level from the near-surface inputs.
 
@@ -122,9 +122,13 @@ class CloudCondensationLevel(BasePlugin):
                 and humidity mixing ratio (kg kg-1)
 
         Returns:
-            Cube of cloud condensation level
+            Cubes of air_temperature_at_cloud_condensation_level and
+            air_pressure_at_cloud_condensation_level
 
         """
         self.temperature, self.pressure, self.humidity = cubes
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
-        return self._make_ccl_cube(ccl_temperature, ccl_pressure)
+        return (
+            self._make_ccl_cube(ccl_temperature, is_temperature=True),
+            self._make_ccl_cube(ccl_pressure, is_temperature=False),
+        )

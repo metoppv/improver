@@ -57,8 +57,11 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             Name of the attribute used to identify the source model for blending.
 
     Returns:
-        iris.cube.Cube:
-            Cube of cloud condensation level (m) with pressure as an auxiliary coordinate.
+        tuple:
+            iris.cube.Cube:
+                Cube of temperature at cloud condensation level (K)
+            iris.cube.Cube:
+                Cube of pressure at cloud condensation level (Pa)
 
     """
     from improver.psychrometric_calculations.cloud_condensation_level import (
