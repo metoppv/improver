@@ -245,7 +245,7 @@ def _latent_heat_release(q1: ndarray, q2: ndarray, temperature: ndarray) -> ndar
     Returns:
         Temperature adjustment to apply to account for latent heat release (K).
     """
-    return (_calculate_latent_heat(temperature) / consts.CP_WATER_VAPOUR) * (q1 - q2)
+    return (_calculate_latent_heat(temperature) / consts.CP_DRY_AIR) * (q1 - q2)
 
 
 def adjust_for_latent_heat(
@@ -371,6 +371,7 @@ class PhaseChangeLevel(BasePlugin):
 
                     snow-sleet - the melting of snow to sleet.
                     sleet-rain - the melting of sleet to rain.
+                    hail-rain - the melting of hail to rain.
 
             grid_point_radius:
                 The radius in grid points used to calculate the maximum
@@ -391,6 +392,7 @@ class PhaseChangeLevel(BasePlugin):
         phase_changes = {
             "snow-sleet": {"threshold": 90.0, "name": "snow_falling"},
             "sleet-rain": {"threshold": 202.5, "name": "rain_falling"},
+            "hail-rain": {"threshold": 5000, "name": "rain_from_hail_falling"},
         }
         try:
             phase_change_def = phase_changes[phase_change]
@@ -704,7 +706,7 @@ class PhaseChangeLevel(BasePlugin):
         """
         if self.grid_point_radius >= 1:
             max_in_nbhood_orog = OccurrenceWithinVicinity(
-                grid_point_radius=self.grid_point_radius
+                grid_point_radii=[self.grid_point_radius]
             )(orography_cube)
             return max_in_nbhood_orog
         else:

@@ -28,56 +28,35 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the phase-probability CLI
-"""
+"""Tests for the cloud-top-temperature CLI"""
 
 import pytest
 
-from improver_tests.acceptance import acceptance as acc
+from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize(
-    "kgo_name,input_file",
-    [
-        ("snow_kgo", "snow_sleet_input"),
-        ("rain_kgo", "sleet_rain_input"),
-        ("hail_kgo", "hail_rain_input"),
-    ],
-)
-def test_phase_probabilities(tmp_path, kgo_name, input_file):
-    """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / f"{kgo_name}.nc"
+@pytest.mark.parametrize("model_id_attr", (True, False))
+def test_basic(tmp_path, model_id_attr):
+    """Test cloud-top-temperature usage, with and without model_id_attr"""
+    test_dir = acc.kgo_root() / "cloud-top-temperature"
     output_path = tmp_path / "output.nc"
-    input_paths = [
-        acc.kgo_root() / x
-        for x in (
-            "phase-change-level/basic/orog.nc",
-            "phase-probability/basic/" f"{input_file}.nc",
-        )
+    args = [
+        test_dir / "temperature_on_pressure_levels.nc",
+        test_dir / "cloud_condensation_level.nc",
+        "--least-significant-digit",
+        "2",
+        "--output",
+        output_path,
     ]
-    args = [*input_paths, "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_rain_large_radius(tmp_path):
-    """Test prob(rain) calculation"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/large_radius"
-    kgo_path = kgo_dir / "rain_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [
-        acc.kgo_root() / x
-        for x in (
-            "phase-change-level/basic/orog.nc",
-            "phase-probability/basic/sleet_rain_input.nc",
-        )
-    ]
-    args = [*input_paths, "--radius", "20000", "--output", output_path]
+    if model_id_attr:
+        args += ["--model-id-attr", "mosg__model_configuration"]
+        kgo_dir = test_dir / "with_id_attr"
+    else:
+        kgo_dir = test_dir / "without_id_attr"
+    kgo_path = kgo_dir / "kgo.nc"
     run_cli(args)
     acc.compare(output_path, kgo_path)

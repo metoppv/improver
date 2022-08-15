@@ -31,7 +31,7 @@
 """ Provides support utilities."""
 
 import copy
-from typing import Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union
 
 import cartopy.crs as ccrs
 import iris
@@ -49,6 +49,7 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 def check_if_grid_is_equal_area(
@@ -393,54 +394,66 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
 class OccurrenceWithinVicinity(PostProcessingPlugin):
 
-    """Calculate whether a phenomenon occurs within the specified radius. This
-    radius can be given as a radius in metres, or as a number of grid points.
-    A radius in metres may be used with data on a equal areas projection only.
-    A grid_point_radius will work with any projection but the effective kernel
-    shape in real space may be irregular. Users must be aware of this when
-    choosing whether to use this plugin with a non-equal areas projection."""
+    """Calculate whether a phenomenon occurs within the specified radii about
+    a point. These radii can be given in metres, or as numbers of grid points.
+    Each radius provided will result in a distinct output, with these demarked
+    using a `radius_of_vicinity` coordinate on the resulting cube. If a single
+    radius is provided, this will be a scalar coordinate.
+
+    Radii in metres may be used with data on a equal areas projection only.
+    Grid_point_radii will work with any projection, with caveats.
+
+    .. Further information is available in:
+    .. include:: extended_documentation/utilities/spatial/
+       occurrence_within_vicinity.rst
+    """
 
     def __init__(
         self,
-        radius: float = None,
-        grid_point_radius: int = None,
+        radii: Optional[List[Union[float, int]]] = None,
+        grid_point_radii: Optional[List[Union[float, int]]] = None,
         land_mask_cube: Cube = None,
     ) -> None:
         """
         Args:
-            radius:
-                Radius in metres used to define the vicinity within which to
-                search for an occurrence.
-            grid_point_radius:
-                Alternatively, a number of grid points that defines the vicinity
-                radius over which to search for an occurence. Only one of radius
-                or grid_point_radius should be set.
+            radii:
+                A list of radii in metres used to define the vicinities within
+                which to search for occurrences.
+            grid_point_radii:
+                Alternatively, a list of numbers of grid points that define the
+                vicinity radii over which to search for occurrences. Only one of
+                radii or grid_point_radii should be set.
             land_mask_cube:
                 Binary land-sea mask data. True for land-points, False for sea.
                 Restricts in-vicinity processing to only include points of a
                 like mask value.
 
         Raises:
-            ValueError: If both radius and grid point radius are set.
-            ValueError: If neither radius or grid point radius are set.
-            ValueError: If the provided vicinity radius is negative.
+            ValueError: If both radii and grid point radii are set.
+            ValueError: If neither radii or grid point radii are set.
+            ValueError: If a provided vicinity radius is negative.
             ValueError: Land mask not named land_binary_mask.
         """
-        if radius and grid_point_radius:
+        if radii and grid_point_radii:
             raise ValueError(
-                "Vicinity processing requires that only one of radius or "
-                "grid_point_radius should be set"
+                "Vicinity processing requires that only one of radii or "
+                "grid_point_radii should be set"
             )
-        if not radius and not grid_point_radius:
+        if not radii and not grid_point_radii:
             raise ValueError(
-                "Vicinity processing requires that one of radius or "
-                "grid_point_radius should be set to a non-zero value"
+                "Vicinity processing requires that one of radii or "
+                "grid_point_radii should be set to a non-zero value"
             )
-        if (radius and radius < 0) or (grid_point_radius and grid_point_radius < 0):
-            raise ValueError("Vicinity processing requires a positive vicinity radius")
+        if (radii and any(np.array(radii) < 0)) or (
+            grid_point_radii and any(np.array(grid_point_radii) < 0)
+        ):
+            raise ValueError(
+                "Vicinity processing requires only positive vicinity radii"
+            )
 
-        self.radius = radius
-        self.grid_point_radius = grid_point_radius
+        self.radii = radii if radii else grid_point_radii
+        self.native_grid_point_radius = False if radii else True
+
         if land_mask_cube:
             if land_mask_cube.name() != "land_binary_mask":
                 raise ValueError(
@@ -451,7 +464,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         else:
             self.land_mask = None
         self.land_mask_cube = land_mask_cube
-        self.native_grid_point_radius = None
 
     def maximum_within_vicinity(self, cube: Cube, grid_point_radius: int) -> Cube:
         """
@@ -506,27 +518,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             max_cube.data = max_data
         return max_cube
 
-    def get_grid_point_radius(self, cube: Cube) -> Union[float, int]:
-        """
-        Return the grid_point_radius if it has been provided in this form.
-        If a radius has been provided as a physical distance, convert this into
-        a number of grid points and return that.
-
-        Args:
-            cube:
-                Thresholded cube.
-
-        Returns:
-            The vicinity radius as a number of grid points.
-        """
-        if self.radius:
-            self.native_grid_point_radius = False
-            return distance_to_number_of_grid_cells(cube, self.radius)
-        else:
-            self.native_grid_point_radius = True
-            return self.grid_point_radius
-
-    def _add_vicinity_coordinate(self, cube: Cube) -> None:
+    def _add_vicinity_coordinate(self, cube: Cube, radius: Union[float, int]) -> None:
         """
         Add a coordinate to the cube that records the vicinity radius that
         has been applied to the data.
@@ -534,16 +526,19 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         Args:
             cube:
                 Vicinity processed cube.
+            radius:
+                The radius as a physical distance or number of grid points, the
+                value of which is recorded in the coordinate.
         """
         if self.native_grid_point_radius:
-            point = np.array(self.grid_point_radius, dtype=np.float32)
+            point = np.array(radius, dtype=np.float32)
             units = "1"
             attributes = {
                 "comment": "Units of 1 indicate radius of vicinity is defined "
                 "in grid points rather than physical distance"
             }
         else:
-            point = np.array(self.radius, dtype=np.float32)
+            point = np.array(radius, dtype=np.float32)
             units = "m"
             attributes = {}
 
@@ -554,16 +549,24 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
 
     def process(self, cube: Cube) -> Cube:
         """
-        Ensure that the cube passed to the maximum_within_vicinity method is
-        2d and subsequently merged back together.
+        Produces the vicinity processed data. The input data is sliced to
+        yield y-x slices to which the maximum_within_vicinity method is applied.
+        The different vicinity radii (if multiple) are looped over and a
+        coordinate recording the radius used is added to each resulting cube.
+        A single cube is returned with the leading coordinates of the input cube
+        preserved. If a single vicinity radius is provided, a new scalar
+        radius_of_vicinity coordinate will be found on the returned cube. If
+        multiple radii are provided, this coordinate will be a dimension
+        coordinate following any probabilistic / realization coordinates.
 
         Args:
             cube:
                 Thresholded cube.
 
         Returns:
-            Cube containing the occurrences within a vicinity for each
-            xy 2d slice, which have been merged back together.
+            Cube containing the occurrences within a vicinity for each radius,
+            calculated for each yx slice, which have been merged to yield a
+            single cube.
 
         Raises:
             ValueError: Cube and land mask have differing spatial coordinates.
@@ -575,23 +578,47 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
                 "Supplied cube do not have the same spatial coordinates and land mask"
             )
 
-        grid_point_radius = self.get_grid_point_radius(cube)
-        max_cubes = CubeList([])
-        for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-            max_cubes.append(
-                self.maximum_within_vicinity(cube_slice, grid_point_radius)
-            )
-        result_cube = max_cubes.merge_cube()
+        if not self.native_grid_point_radius:
+            grid_point_radii = [
+                distance_to_number_of_grid_cells(cube, radius) for radius in self.radii
+            ]
+        else:
+            grid_point_radii = self.radii
 
-        # Put dimensions back if they were there before.
-        result_cube = check_cube_coordinates(cube, result_cube)
+        radii_cubes = CubeList()
 
-        # Add a coordinate recording the vicinity radius applied to the data.
-        self._add_vicinity_coordinate(result_cube)
+        # List of non-spatial dimensions to restore as leading on the output.
+        leading_dimensions = [
+            crd.name() for crd in cube.coords(dim_coords=True) if not crd.coord_system
+        ]
+
+        for radius, grid_point_radius in zip(self.radii, grid_point_radii):
+            max_cubes = CubeList([])
+            for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
+                max_cubes.append(
+                    self.maximum_within_vicinity(cube_slice, grid_point_radius)
+                )
+            result_cube = max_cubes.merge_cube()
+
+            # Put dimensions back if they were there before.
+            result_cube = check_cube_coordinates(cube, result_cube)
+
+            # Add a coordinate recording the vicinity radius applied to the data.
+            self._add_vicinity_coordinate(result_cube, radius)
+
+            radii_cubes.append(result_cube)
+
+        # Merge cubes produced for each vicinity radius.
+        result_cube = radii_cubes.merge_cube()
+
+        # Enforce order of leading dimensions on the output to match the input.
+        enforce_coordinate_ordering(result_cube, leading_dimensions)
+
         if is_probability(result_cube):
             result_cube.rename(in_vicinity_name_format(result_cube.name()))
         else:
             result_cube.rename(f"{result_cube.name()}_in_vicinity")
+
         return result_cube
 
 

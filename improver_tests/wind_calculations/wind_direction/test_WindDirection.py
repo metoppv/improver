@@ -355,40 +355,6 @@ class Test_find_r_values(IrisTest):
         self.assertArrayAlmostEqual(result, expected_out)
 
 
-class Test_calc_confidence_measure(IrisTest):
-    """Test the calc_avg_dist_mean function returns confidence values."""
-
-    def setUp(self):
-        """Initialise plugin and supply data for tests"""
-        self.plugin = WindDirection()
-        self.plugin.wdir_complex = WIND_DIR_COMPLEX
-        self.plugin.realization_axis = 0
-        rvals = np.array(
-            [[6.12323400e-17, 0.996194698], [0.984807753, 0.984807753]],
-            dtype=np.float32,
-        )
-        self.plugin.r_vals_slice = set_up_variable_cube(
-            rvals, name="r_values", units="1", spatial_grid="equalarea"
-        )
-        wdir = np.array([[180.0, 55.0], [280.0, 0.0]], dtype=np.float32)
-        self.plugin.wdir_slice_mean = set_up_variable_cube(
-            wdir, name="wind_from_direction", units="degrees", spatial_grid="equalarea"
-        )
-
-    def test_returns_confidence(self):
-        """First element has two angles directly opposite (90 & 270 degs).
-        Therefore the calculated mean angle of 180 degs is basically
-        meaningless. This code calculates a confidence measure based on how
-        far the individual ensemble realizationss are away from
-        the mean point."""
-        expected_out = np.array([[0.0, 0.95638061], [0.91284426, 0.91284426]])
-        self.plugin.calc_confidence_measure()
-        result = self.plugin.confidence_slice.data
-
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, expected_out)
-
-
 class Test_wind_dir_decider(IrisTest):
     """Test the wind_dir_decider function."""
 
@@ -474,33 +440,11 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
 
-        self.expected_r_vals = np.array(
-            [
-                [0.5919044, 0.99634719, 0.2, 0.6],
-                [1.0, 1.0, 1.0, 0.92427504],
-                [0.87177974, 0.91385943, 1.0, 1.0],
-            ],
-            dtype=np.float32,
-        )
-
-        self.expected_confidence_measure = np.array(
-            [
-                [0.73166388, 0.95813018, 0.6, 0.8],
-                [1.0, 1.0, 1.0, 0.84808648],
-                [0.75270665, 0.83861077, 1.0, 1.0],
-            ],
-            dtype=np.float32,
-        )
-
     def test_basic(self):
         """Test that the plugin returns expected data types. """
-        result_cube, r_vals_cube, confidence_measure_cube = WindDirection().process(
-            self.cube
-        )
+        result_cube = WindDirection().process(self.cube)
 
         self.assertIsInstance(result_cube, Cube)
-        self.assertIsInstance(r_vals_cube, Cube)
-        self.assertIsInstance(confidence_measure_cube, Cube)
 
     def test_fails_if_data_is_not_cube(self):
         """Test code raises a Type Error if input cube is not a cube."""
@@ -522,33 +466,19 @@ class Test_process(IrisTest):
     def test_return_single_precision(self):
         """Test that the function returns data of float32."""
 
-        result_cube, r_vals_cube, confidence_measure_cube = WindDirection().process(
-            self.cube
-        )
+        result_cube = WindDirection().process(self.cube)
 
         self.assertEqual(result_cube.dtype, np.float32)
-        self.assertEqual(r_vals_cube.dtype, np.float32)
-        self.assertEqual(confidence_measure_cube.dtype, np.float32)
 
     def test_returns_expected_values(self):
         """Test that the function returns correct 2D arrays of floats. """
 
-        result_cube, r_vals_cube, confidence_measure_cube = WindDirection().process(
-            self.cube
-        )
+        result_cube = WindDirection().process(self.cube)
 
         result = result_cube.data
-        r_vals = r_vals_cube.data
-        confidence_measure = confidence_measure_cube.data
 
         self.assertIsInstance(result, np.ndarray)
-        self.assertIsInstance(r_vals, np.ndarray)
-        self.assertIsInstance(confidence_measure, np.ndarray)
         self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
-        self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
-        self.assertArrayAlmostEqual(
-            confidence_measure, self.expected_confidence_measure
-        )
 
     def test_with_backup(self):
         """Test that wind_dir_decider is invoked to select a better value for
@@ -568,24 +498,12 @@ class Test_process(IrisTest):
         cube.coord(axis="y").points = np.arange(0.0, 19000.0, 2000.0)
 
         self.expected_wind_mean[1, 1] = 30.0870
-        self.expected_r_vals[1, 1] = 2.665601e-08
-        self.expected_confidence_measure[1, 1] = 0.0
 
-        result_cube, r_vals_cube, confidence_measure_cube = WindDirection().process(
-            cube
-        )
+        result_cube = WindDirection().process(cube)
 
         result = result_cube.data[3:6, 3:7]
-        r_vals = r_vals_cube.data[3:6, 3:7]
-        confidence_measure = confidence_measure_cube.data[3:6, 3:7]
         self.assertIsInstance(result, np.ndarray)
-        self.assertIsInstance(r_vals, np.ndarray)
-        self.assertIsInstance(confidence_measure, np.ndarray)
         self.assertArrayAlmostEqual(result, self.expected_wind_mean, decimal=4)
-        self.assertArrayAlmostEqual(
-            confidence_measure, self.expected_confidence_measure
-        )
-        self.assertArrayAlmostEqual(r_vals, self.expected_r_vals)
 
 
 if __name__ == "__main__":

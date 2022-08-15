@@ -50,7 +50,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.temporal import iris_time_to_datetime
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_SpotLapseRateAdjust(IrisTest):
@@ -363,8 +362,7 @@ class Test_process(Test_SpotLapseRateAdjust):
                 self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
             )
 
-    @ManageWarnings(record=True)
-    def test_height_coords_match(self, warning_list=None):
+    def test_height_coords_match(self):
         """Test the the appropriate error is called when the input temperature
         cube and the lapse rate cube have differing height coordinates"""
 
@@ -377,8 +375,10 @@ class Test_process(Test_SpotLapseRateAdjust):
             "to calculate the lapse rates. As such the temperatures "
             "were not adjusted with the lapse rates."
         )
-        plugin(self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube)
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(
+                self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+            )
 
 
 if __name__ == "__main__":

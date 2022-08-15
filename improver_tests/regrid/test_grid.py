@@ -31,6 +31,7 @@
 """Unit tests for the functions from grid.py."""
 
 import itertools
+from collections import namedtuple
 from datetime import datetime
 
 import numpy as np
@@ -194,14 +195,32 @@ class Test_calculate_input_grid_spacing(IrisTest):
         self.assertAlmostEqual(result, (10.0, 10.0))
 
 
-def test_create_regrid_cube():
-    """Test the create_regrid_cube function"""
+Names = namedtuple(
+    "Names", ["setup_name", "setup_var_name", "standard_name", "long_name", "var_name"]
+)
+
+
+@pytest.mark.parametrize(
+    "cube_names",
+    [
+        Names("air_temperature", None, "air_temperature", None, None),
+        Names("not_a_standard_name", None, None, "not_a_standard_name", None),
+        Names(
+            "air_temperature", "some_var_name", "air_temperature", None, "some_var_name"
+        ),
+    ],
+)
+def test_create_regrid_cube(cube_names):
+    """Test the create_regrid_cube function, including standard, long and var names."""
 
     source_cube_latlon = set_up_variable_cube(
         np.ones((2, 5, 5), dtype=np.float32),
+        name=cube_names.setup_name,
         time=datetime(2018, 11, 10, 8, 0),
         frt=datetime(2018, 11, 10, 0, 0),
     )
+    if cube_names.setup_var_name:
+        source_cube_latlon.var_name = cube_names.setup_var_name
     target_cube_equalarea = set_up_variable_cube(
         np.ones((10, 10), dtype=np.float32), spatial_grid="equalarea"
     )
@@ -213,3 +232,6 @@ def test_create_regrid_cube():
     assert cube_v.coord("forecast_reference_time") == source_cube_latlon.coord(
         "forecast_reference_time"
     )
+    assert cube_v.standard_name == cube_names.standard_name
+    assert cube_v.long_name == cube_names.long_name
+    assert cube_v.var_name == cube_names.var_name

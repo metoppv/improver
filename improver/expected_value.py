@@ -37,7 +37,6 @@ from iris.cube import Cube
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
-    get_bounds_of_distribution,
 )
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
@@ -72,24 +71,20 @@ class ExpectedValue(PostProcessingPlugin):
         threshold_coord = find_threshold_coordinate(cube)
         threshold_coord_idx = cube.dim_coords.index(threshold_coord)
         thresholds = threshold_coord.points
+        # check the thresholds are in increasing order
+        if np.any(np.diff(thresholds) <= 0.0):
+            raise ValueError("threshold coordinate in decreasing order")
         # add an extra threshold below/above with zero/one probability
         # ensure that the PDF integral covers the full CDF probability range
-        try:
-            ecc_bounds = get_bounds_of_distribution(
-                threshold_coord.name(), threshold_coord.units
-            )
-        except KeyError:
-            # no bound available, this will be skipped below via floating point rules
-            # eg. min(infinty, a) = a and max(-infinity, b) = b
-            ecc_bounds = np.array([np.inf, -np.inf])
-        # expand to the widest of ECC bounds or +/- mean threshold spacing
-        # this will always expand, even if the original data covered the full ECC bounds range
-        threshold_spacing = np.mean(np.diff(thresholds))
+        # thresholds are usually float32 with epsilon of ~= 1.1e-7
+        eps = np.finfo(thresholds.dtype).eps
+        # for small values (especially exactly zero), at least epsilon
+        # for larger values, the next representable float number
         thresholds_expanded = np.array(
             [
-                min(ecc_bounds[0], thresholds[0] - threshold_spacing),
+                thresholds[0] - max(eps, abs(thresholds[0] * eps)),
                 *thresholds,
-                max(ecc_bounds[1], thresholds[-1] + threshold_spacing),
+                thresholds[-1] + max(eps, abs(thresholds[-1] * eps)),
             ]
         )
         # expand the data to match the newly added thresholds

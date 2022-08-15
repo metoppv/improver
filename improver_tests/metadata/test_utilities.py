@@ -31,9 +31,12 @@
 """Tests for the improver.metadata.utilities module"""
 
 import unittest
+from typing import Callable, List
 
 import iris
 import numpy as np
+import pytest
+from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.utilities import (
@@ -41,6 +44,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_hash,
     generate_mandatory_attributes,
+    get_model_id_attr,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -335,6 +339,77 @@ class Test_create_coordinate_hash(unittest.TestCase):
         result1 = create_coordinate_hash(hash_input1)
         result2 = create_coordinate_hash(hash_input2)
         self.assertNotEqual(result1, result2)
+
+
+@pytest.fixture(name="cubes")
+def make_cubes() -> List[Cube]:
+    """Generates a list of three cubes"""
+    cubes = []
+    master_cube = set_up_variable_cube(np.zeros((2, 2), dtype=np.float32))
+    for name in "temperature", "pressure", "humidity":
+        cube = master_cube.copy()
+        cube.rename(name)
+        cubes.append(cube)
+    return cubes
+
+
+@pytest.mark.parametrize("input_count", (1, 3))
+@pytest.mark.parametrize(
+    "model_id_attr, model_id_value", (("test_attribute", "test_value"), (None, None))
+)
+def test_valid_get_model_id_attr(
+    cubes: List[Cube], input_count, model_id_attr, model_id_value
+):
+    """Checks that get_model_id_attr gives the expected result when all input cubes match."""
+    for cube in cubes:
+        cube.attributes[model_id_attr] = model_id_value
+    result = get_model_id_attr(cubes[:input_count], model_id_attr)
+    assert result == model_id_value
+
+
+def attribute_missing_all_cubes(cubes: List[Cube]):
+    """Removes the attribute value from all cubes"""
+    [cube.attributes.pop("test_attribute") for cube in cubes]
+
+
+def attribute_missing_one_cube(cubes: List[Cube]):
+    """Removes the attribute value from the first cube"""
+    cubes[0].attributes.pop("test_attribute")
+
+
+def attribute_not_unique(cubes: List[Cube]):
+    """Changes the attribute value for the first cube so that there is more than one
+    model_id_attr in the cube list."""
+    cubes[0].attributes["test_attribute"] = "kittens"
+
+
+@pytest.mark.parametrize(
+    "method, message",
+    (
+        (
+            attribute_missing_all_cubes,
+            "Model ID attribute test_attribute not present for ",
+        ),
+        (
+            attribute_missing_one_cube,
+            "Model ID attribute test_attribute not present for ",
+        ),
+        (
+            attribute_not_unique,
+            "Attribute test_attribute must be the same for all input cubes. ",
+        ),
+    ),
+)
+def test_errors_get_model_id_attr(cubes: List[Cube], method: Callable, message):
+    """Checks that get_model_id_attr raises useful errors when the required conditions are not met.
+    """
+    model_id_attr = "test_attribute"
+    model_id_value = "test_value"
+    for cube in cubes:
+        cube.attributes[model_id_attr] = model_id_value
+    method(cubes)
+    with pytest.raises(ValueError, match=message):
+        get_model_id_attr(cubes, model_id_attr)
 
 
 if __name__ == "__main__":

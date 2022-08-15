@@ -55,6 +55,9 @@ class PrecipPhaseProbability(BasePlugin):
     For snow; the 80th percentile is taken from a neighbourhood around
     each point and is compared with the orography. Where the orography is
     higher, the returned probability-of-snow is 1, else 0.
+    For hail; the 20th percentile is also taken from a neighbourhood around
+    each point and is compared with the orography. Where the orography is
+    higher, the returned probability-of-rain-from-hail is 1, else 0.
     For rain, the above method is modified to get the 20th percentile
     and where the orography is lower than the percentile value, the returned
     probability-of-rain is 1, else 0.
@@ -74,21 +77,21 @@ class PrecipPhaseProbability(BasePlugin):
     def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
         """
         Separates the input list into the required cubes for this plugin,
-        detects whether snow or rain are required from the input phase-level
+        detects whether snow, rain from hail or rain are required from the input phase-level
         cube name and appropriately initialises the percentile_plugin, sets
         the appropriate comparator operator for comparing with orography and
         the unique part of the output cube name.
 
         Converts units of falling_level_cube to that of orography_cube if
-        necessary. Sets flag for snow or rain depending on name of
+        necessary. Sets flag for snow, rain from hail or rain depending on name of
         falling_level_cube.
 
         Args:
             cubes:
                 Contains cubes of the altitude of the phase-change level (this
-                can be snow->sleet, or sleet->rain) and the altitude of the
+                can be snow->sleet, hail->rain or sleet->rain) and the altitude of the
                 orography. The name of the phase-change level cube must be
-                either "altitude_of_snow_falling_level" or
+                "altitude_of_snow_falling_level", "altitude_of_rain_from_hail_falling_level" or
                 "altitude_of_rain_falling_level". The name of the orography
                 cube must be "surface_altitude".
 
@@ -107,7 +110,6 @@ class PrecipPhaseProbability(BasePlugin):
             raise ValueError(
                 "Spatial coords mismatch between " f"{cubes[0]} and " f"{cubes[1]}"
             )
-
         extracted_cube = cubes.extract("altitude_of_snow_falling_level")
         if extracted_cube:
             (self.falling_level_cube,) = extracted_cube
@@ -116,22 +118,29 @@ class PrecipPhaseProbability(BasePlugin):
             self.get_discriminating_percentile = self.percentile_plugin(
                 self.radius, percentiles=[80.0]
             )
-        else:
+        elif cubes.extract("altitude_of_rain_falling_level"):
             extracted_cube = cubes.extract("altitude_of_rain_falling_level")
-            if not extracted_cube:
-                raise ValueError(
-                    "Could not extract a rain or snow falling-level "
-                    f"cube from {cubes}"
-                )
             (self.falling_level_cube,) = extracted_cube
             self.param = "rain"
             self.comparator = operator.lt
-            # We want rain at or above the surface, so inverse of 80th
+            # We want rain that has come from sleet at or above the surface, so inverse of 80th
             # centile is the 20th centile.
             self.get_discriminating_percentile = self.percentile_plugin(
                 self.radius, percentiles=[20.0]
             )
-
+        else:
+            extracted_cube = cubes.extract("altitude_of_rain_from_hail_falling_level")
+            if not extracted_cube:
+                raise ValueError(
+                    "Could not extract a rain, rain from hail or snow falling-level "
+                    f"cube from {cubes}"
+                )
+            (self.falling_level_cube,) = extracted_cube
+            self.param = "rain_from_hail"
+            self.comparator = operator.lt
+            self.get_discriminating_percentile = self.percentile_plugin(
+                self.radius, percentiles=[20.0]
+            )
         orography_name = "surface_altitude"
         extracted_cube = cubes.extract(orography_name)
         if extracted_cube:
@@ -151,19 +160,23 @@ class PrecipPhaseProbability(BasePlugin):
         the snow-sleet falling-level is supplied, this is the probability of
         snow at (or below) the surface. If the sleet-rain falling-level is
         supplied, this is the probability of rain at (or above) the surface.
+        If the hail-rain falling-level is supplied, this is the probability
+        of rain from hail at (or above) the surface.
 
         Args:
             cubes:
                 Contains cubes of the altitude of the phase-change level (this
-                can be snow->sleet, or sleet->rain) and the altitude of the
-                orography.
+                can be snow->sleet, hail->rain or sleet->rain) and the altitude
+                of the orography.
 
         Returns:
             Cube containing the probability of a specific precipitation phase
             reaching the surface orography. If the falling_level_cube was
             snow->sleet, then this will be the probability of snow at the
             surface. If the falling_level_cube was sleet->rain, then this
-            will be the probability of rain at the surface.
+            will be the probability of rain from sleet at the surface.
+            If the falling_level_cube was hail->rain, then this
+            will be the probability of rain from hail at the surface.
             The probabilities are categorical (1 or 0) allowing
             precipitation to be divided uniquely between snow, sleet and
             rain phases.

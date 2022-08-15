@@ -36,7 +36,7 @@ land-sea awareness
 import numpy as np
 from iris.cube import Cube
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.regrid.bilinear import (
     adjust_for_surface_mismatch,
     apply_weights,
@@ -71,7 +71,7 @@ BILINEAR_MASK2 = f"{BILINEAR}{WITH_MASK}-2"
 NUM_NEIGHBOURS = 4
 
 
-class RegridWithLandSeaMask(BasePlugin):
+class RegridWithLandSeaMask(PostProcessingPlugin):
     """
     Nearest-neighbour and bilinear regridding with or without land-sea mask
     awareness. When land-sea mask considered, surface-type-mismatched source

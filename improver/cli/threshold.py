@@ -46,7 +46,7 @@ def process(
     comparison_operator=">",
     fuzzy_factor: float = None,
     collapse_coord: str = None,
-    vicinity: float = None,
+    vicinity: cli.comma_separated_list = None,
 ):
     """Module to apply thresholding to a parameter dataset.
 
@@ -94,9 +94,10 @@ def process(
         collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
             over.
-        vicinity (float):
-            Distance in metres used to define the vicinity within which to
-            search for an occurrence
+        vicinity (list of float / int):
+            List of distances in metres used to define the vicinities within
+            which to search for an occurrence. Each vicinity provided will
+            lead to a different gridded field.
         land_sea_mask (Cube):
             Binary land-sea mask data. True for land-points, False for sea.
             Restricts in-vicinity processing to only include points of a
@@ -144,9 +145,10 @@ def process(
     each_threshold_func_list = []
 
     if vicinity is not None:
+        vicinity = [float(x) for x in vicinity]
         # smooth thresholded occurrences over local vicinity
         each_threshold_func_list.append(
-            OccurrenceWithinVicinity(radius=vicinity, land_mask_cube=land_sea_mask)
+            OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_sea_mask)
         )
     elif land_sea_mask:
         raise ValueError("Cannot apply land-mask cube without in-vicinity processing")

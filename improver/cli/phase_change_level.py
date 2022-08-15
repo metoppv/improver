@@ -67,6 +67,7 @@ def process(
 
                 snow-sleet - the melting of snow to sleet.
                 sleet-rain - the melting of sleet to rain.
+                hail-rain - the melting of hail to rain.
         grid_point_radius (int):
             The radius in grid points used to calculate the maximum
             height of the orography in a neighbourhood to determine points that

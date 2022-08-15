@@ -31,19 +31,17 @@
 
 """Apply temperature lapse rate adjustments to a spot data cube."""
 
-import warnings
-
 import iris
 import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
 
 
-class SpotLapseRateAdjust(BasePlugin):
+class SpotLapseRateAdjust(PostProcessingPlugin):
     """
     Adjusts spot data temperatures by a lapse rate to better represent the
     conditions at their altitude that may not be captured by the model
@@ -166,13 +164,12 @@ class SpotLapseRateAdjust(BasePlugin):
         # calculate the lapse rates. If so, adjust temperatures using the lapse
         # rate values.
         if not spot_data_cube.coord("height") == lapse_rate_height_coord:
-            warnings.warn(
+            raise ValueError(
                 "A lapse rate cube was provided, but the height of the "
                 "temperature data does not match that of the data used "
                 "to calculate the lapse rates. As such the temperatures "
                 "were not adjusted with the lapse rates."
             )
-            return spot_data_cube
 
         # Check the cubes are compatible.
         check_grid_match([neighbour_cube, spot_data_cube, gridded_lapse_rate_cube])

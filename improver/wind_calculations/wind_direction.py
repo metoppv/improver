@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing wind direction averaging plugins."""
 
-from typing import Tuple, Union
+from typing import Union
 
 import iris
 import numpy as np
@@ -38,12 +38,12 @@ from iris.coords import CellMethod
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
-class WindDirection(BasePlugin):
+class WindDirection(PostProcessingPlugin):
     """Plugin to calculate average wind direction from ensemble realizations.
 
     Science background:
@@ -81,10 +81,6 @@ class WindDirection(BasePlugin):
     4) Convert the complex average back into degrees.
     5) If any point has an radius of nearly zero - replace the
        calculated average with the wind direction from the first ensemble.
-    6) Calculate the confidence measure of the wind direction.
-
-    Step 6 still needs more development so it is only included in the code
-    as a placeholder.
 
     Args:
         backup_method:
@@ -113,7 +109,6 @@ class WindDirection(BasePlugin):
         # Creates cubelists to hold data.
         self.wdir_cube_list = iris.cube.CubeList()
         self.r_vals_cube_list = iris.cube.CubeList()
-        self.confidence_measure_cube_list = iris.cube.CubeList()
         # Radius used in neighbourhood plugin as determined in IMPRO-491
         self.nb_radius = 6000.0  # metres
         # Initialise neighbourhood plugin ready for use
@@ -134,7 +129,6 @@ class WindDirection(BasePlugin):
         self.wdir_slice_mean = None
         self.wdir_mean_complex = None
         self.r_vals_slice = None
-        self.confidence_slice = None
 
     @staticmethod
     def deg_to_complex(
@@ -155,10 +149,8 @@ class WindDirection(BasePlugin):
             3D array or float - wind direction translated to
             complex numbers.
         """
-
         # Convert from degrees to radians.
         angle_rad = np.deg2rad(angle_deg)
-
         # Derive real and imaginary components (also known as a and b)
         real = radius * np.cos(angle_rad)
         imag = radius * np.sin(angle_rad)
@@ -250,84 +242,6 @@ class WindDirection(BasePlugin):
         )
         self.r_vals_slice = self.wdir_slice_mean.copy(data=r_vals)
 
-    def calc_confidence_measure(self) -> None:
-        """Find confidence measure of polar numbers.
-
-        The average wind direction complex values represent the midpoint
-        between the different values and so have r values between 0-1.
-
-        1) From self.wdir_slice_mean - create a new set of complex values.
-           Therefore they will have the same angle but r is fixed as r=1.
-        2) Find the distance between the mean point and all the ensemble
-           realization wind direction complex values.
-        3) Find the average distance between the mean point and the wind
-           direction values. Large average distance == low confidence.
-        4) A confidence value that is between 1 for confident (small spread in
-           ensemble realizations) and 0 for no-confidence. Set to 0 if r value
-           is below threshold as any r value is regarded as meaningless.
-
-        Uses:
-            self.wdir_complex:
-                3D array - wind direction angles in complex numbers.
-            self.wdir_slice_mean:
-                Contains average wind direction in angles.
-            self.realization_axis:
-                Axis to collapse over.
-            self.r_vals_slice.data:
-                3D array - Radius taken from average complex wind direction
-                angle.
-            self.r_thresh:
-                Any r value below threshold is regarded as meaningless.
-
-        Defines:
-            self.confidence_slice:
-                Contains the average distance from mean normalised - used
-                as a confidence value. Inherits meta-data from
-                self.wdir_slice_mean
-        """
-
-        # Recalculate complex mean with radius=1.
-        wdir_mean_complex_r1 = self.deg_to_complex(self.wdir_slice_mean.data)
-
-        # Find difference in the distance between all the observed points and
-        # mean point with fixed r=1.
-        # For maths to work - the "wdir_mean_complex_r1 array" needs to
-        # be "tiled" so that it is the same dimension as "self.wdir_complex".
-        wind_dir_complex_mean_tile = np.tile(
-            wdir_mean_complex_r1, (self.wdir_complex.shape[0], 1, 1)
-        )
-
-        # Calculate distance from each wind direction data point to the
-        # average point.
-        difference = self.wdir_complex - wind_dir_complex_mean_tile
-        dist_from_mean = np.sqrt(
-            np.square(difference.real) + np.square(difference.imag)
-        )
-
-        # Find average distance.
-        dist_from_mean_avg = np.mean(dist_from_mean, axis=self.realization_axis)
-
-        # If we have two points at opposite ends of the compass
-        # (eg. 270 and 90), then their separation distance is 2.
-        # Normalise the array using 2 as the maximum possible value.
-        dist_from_mean_norm = 1 - dist_from_mean_avg * 0.5
-
-        # With two points directly opposite (270 and 90) it returns a
-        # confidence value of 0.29289322 instead of zero due to precision
-        # error.
-        #
-        # angles | confidence
-        # 270/90 | 0.29289322
-        # 270/89 | 0.295985
-        # 270/88 | 0.299091
-        # 270/87 | 0.30221
-        # Therefore any confidence value where the r is less than the threshold
-        # should be set to zero.
-        dist_from_mean_norm = np.where(
-            self.r_vals_slice.data < self.r_thresh, 0.0, dist_from_mean_norm
-        )
-        self.confidence_slice = self.wdir_slice_mean.copy(data=dist_from_mean_norm)
-
     def wind_dir_decider(self, where_low_r: ndarray, wdir_cube: Cube) -> None:
         """If the wind direction is so widely scattered that the r value
            is nearly zero then this indicates that the average wind direction
@@ -389,7 +303,7 @@ class WindDirection(BasePlugin):
             where_low_r, improved_values, self.wdir_slice_mean.data
         )
 
-    def process(self, cube_ens_wdir: Cube) -> Tuple[Cube, ndarray, ndarray]:
+    def process(self, cube_ens_wdir: Cube) -> Cube:
         """Create a cube containing the wind direction averaged over the
         ensemble realizations.
 
@@ -401,10 +315,6 @@ class WindDirection(BasePlugin):
         Returns:
             - Cube containing the wind direction averaged from the
               ensemble realizations.
-            - 3D array - Radius taken from average complex wind direction
-              angle.
-            - 3D array - The average distance from mean normalised - used
-              as a confidence value.
 
         Raises:
             TypeError: If cube_wdir is not a cube.
@@ -430,7 +340,6 @@ class WindDirection(BasePlugin):
             # Extract wind direction data.
             self.wdir_complex = self.deg_to_complex(wdir_slice.data)
             (self.realization_axis,) = wdir_slice.coord_dims("realization")
-
             # Copies input cube and remove realization dimension to create
             # cubes for storing results.
             self.wdir_slice_mean = next(wdir_slice.slices_over("realization"))
@@ -441,11 +350,6 @@ class WindDirection(BasePlugin):
 
             # Find radius values for wind direction average.
             self.find_r_values()
-
-            # Calculate the confidence measure based on the difference
-            # between the complex average and the individual ensemble
-            # realizations.
-            self.calc_confidence_measure()
 
             # Finds any meaningless averages and substitute with
             # the wind direction taken from the first ensemble realization.
@@ -458,13 +362,9 @@ class WindDirection(BasePlugin):
 
             # Append to cubelists.
             self.wdir_cube_list.append(self.wdir_slice_mean)
-            self.r_vals_cube_list.append(self.r_vals_slice)
-            self.confidence_measure_cube_list.append(self.confidence_slice)
 
         # Combine cubelists into cube.
         cube_mean_wdir = self.wdir_cube_list.merge_cube()
-        cube_r_vals = self.r_vals_cube_list.merge_cube()
-        cube_confidence_measure = self.confidence_measure_cube_list.merge_cube()
 
         # Check that the dimensionality of coordinates of the output cube
         # matches the input cube.
@@ -473,9 +373,4 @@ class WindDirection(BasePlugin):
 
         # Change cube identifiers.
         cube_mean_wdir.add_cell_method(CellMethod("mean", coords="realization"))
-        cube_r_vals.long_name = "radius_of_complex_average_wind_from_direction"
-        cube_r_vals.units = None
-        cube_confidence_measure.long_name = "confidence_measure_of_wind_from_direction"
-        cube_confidence_measure.units = None
-
-        return cube_mean_wdir, cube_r_vals, cube_confidence_measure
+        return cube_mean_wdir
