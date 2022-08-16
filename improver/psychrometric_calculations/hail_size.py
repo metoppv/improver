@@ -31,8 +31,6 @@
 
 """module to calculate hail_size"""
 
-
-import iris
 import numpy as np
 from iris.cube import Cube
 
@@ -46,7 +44,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
 )
 from ..utilities.cube_checker import assert_spatial_coords_match
-from improver.utilities.cube_manipulation import MergeCubes
+
 
 class HailSize(BasePlugin):
     def __init__(self, model_id_attr: str = None):
@@ -54,17 +52,14 @@ class HailSize(BasePlugin):
             Args:
                 model_id_attr: 
                     Name of model ID attribute to be copied from source cubes to output cube
-        
         """
-
         self.model_id_attr = model_id_attr
 
     def nomogram_values(self) -> np.ndarray:
 
         """set-up an array of a table containing possible hail sizes (mm) 
-        as described in https://doi.org/10.1002/met.236."""
-
-
+        as described in https://doi.org/10.1002/met.236.
+        """
         lookup_nomogram = (
             [0, 0, 0, 2, 2, 5, 5, 5, 5, 5],
             [0, 0, 0, 2, 5, 5, 5, 5, 10, 10],
@@ -96,75 +91,77 @@ class HailSize(BasePlugin):
 
         return lookup_nomogram
 
+    def variable_at_pressure(self, variable_on_pressure: Cube, pressure: Cube) -> Cube:
+        """extracts the values of a variable at a given pressure 
+        level described by another cube"""
 
-    def variable_at_pressure(
-        self, variable_on_pressure:Cube, pressure: Cube
-    ) -> Cube:
-        """extracts the values of a variable at a given pressure level described 
-        in another cube"""
+        pressure_grid = self.pressure_grid(variable_on_pressure)
 
-        pressure_grid=self.pressure_grid(variable_on_pressure)
+        pressure_diff = abs(pressure_grid - pressure.data)
+        indicies = np.nanargmin(pressure_diff, axis=0)
 
-        pressure_diff= abs(pressure_grid-pressure.data)
-        indicies=np.nanargmin(pressure_diff,axis=0)
-        
-        rea,lat,long=indicies.shape
-        rea,lat,long=np.ogrid[:rea,:lat,:long]
+        rea, lat, long = indicies.shape
+        rea, lat, long = np.ogrid[:rea, :lat, :long]
 
-        variable=variable_on_pressure.data[rea,indicies,lat,long]
+        variable = variable_on_pressure.data[rea, indicies, lat, long]
         return variable
 
-    def pressure_grid(self,temperature_on_pressure):
+    def pressure_grid(self, temperature_on_pressure):
 
-        pressure_points=temperature_on_pressure.coord("pressure").points
-        shape=np.shape(next(temperature_on_pressure.slices_over("pressure")))
+        pressure_points = temperature_on_pressure.coord("pressure").points
+        shape = np.shape(next(temperature_on_pressure.slices_over("pressure")))
 
-        pressure_array=[]
+        pressure_array = []
 
         for points in pressure_points:
-            pressure_array.append(np.full(shape,points))
+            pressure_array.append(np.full(shape, points))
 
         return pressure_array
 
-
     def humidity_mixing_ratio_at_268(
-        self, humidity_mixing_ratio_on_pressure, pressure_at_268):
+        self, humidity_mixing_ratio_on_pressure, pressure_at_268
+    ):
 
-        """Extract the humidity mixing ratio at the 268K"""
+        """Extract the humidity mixing ratio at the 268.15K"""
 
-        humidity=self.variable_at_pressure(humidity_mixing_ratio_on_pressure, pressure_at_268)
+        humidity = self.variable_at_pressure(
+            humidity_mixing_ratio_on_pressure, pressure_at_268
+        )
 
-        humidity_at_ccl=pressure_at_268.copy(data=humidity)
-        humidity_at_ccl.units="kg/kg"
+        humidity_at_ccl = pressure_at_268.copy(data=humidity)
+        humidity_at_ccl.units = "kg/kg"
         humidity_at_ccl.rename("humidity_mixing_ratio_at_268K")
 
         return humidity_at_ccl
 
-
-    def pressure_at_268(self, temperature_on_pressure:Cube) -> Cube:
+    def pressure_at_268(self, temperature_on_pressure: Cube) -> Cube:
         """Extracts the pressure where the environment temperature drops below 
         -5 degrees (268.15K)"""
 
-        pressure_template=next(temperature_on_pressure.slices_over(['pressure']))
+        pressure_template = next(temperature_on_pressure.slices_over(["pressure"]))
         pressure_template.rename("pressure of atmosphere at 268.15K")
         pressure_template.units = temperature_on_pressure.coord("pressure").units
         pressure_template.remove_coord("pressure")
 
-        temperature_template=next(temperature_on_pressure.slices_over(['pressure']))
+        temperature_template = next(temperature_on_pressure.slices_over(["pressure"]))
         temperature_template.rename("tempeature_of_atmosphere_at_268.15K")
         temperature_template.remove_coord("pressure")
 
-        shape=temperature_on_pressure.data.shape
-        r,l,m=(shape[0],shape[2],shape[3]) #ignores pressure axis
+        shape = temperature_on_pressure.data.shape
+        r, l, m = (shape[0], shape[2], shape[3])  # ignores pressure axis
 
-        data = np.ma.masked_greater(temperature_on_pressure.data,268.15)
+        data = np.ma.masked_greater(temperature_on_pressure.data, 268.15)
         data = np.ma.masked_invalid(data)
 
-        indicies=np.ma.notmasked_edges(data,axis=1)[0][1].reshape(r,l,m)
+        indicies = np.ma.notmasked_edges(data, axis=1)[0][1].reshape(r, l, m)
 
-        pressure_template.data=temperature_on_pressure.coord("pressure").points[indicies]
+        pressure_template.data = temperature_on_pressure.coord("pressure").points[
+            indicies
+        ]
 
-        temperature_template.data=self.variable_at_pressure(temperature_on_pressure,pressure_template)
+        temperature_template.data = self.variable_at_pressure(
+            temperature_on_pressure, pressure_template
+        )
 
         return pressure_template, temperature_template
 
@@ -176,7 +173,6 @@ class HailSize(BasePlugin):
         humidity_mixing_ratio_at_268,
         ccl_temperature,
     ):
-
         """Calculates point b. Raises up a saturated adiabat from point C (temperature of atmosphere at CCl) 
         to the pressure of the atmosphere at 268.15K"""
 
@@ -210,13 +206,14 @@ class HailSize(BasePlugin):
 
     def get_hail_size(self, vertical, horizontal):
 
-        """Uses the lookup_table and the vertical and horizontal indexes calculated to extract and store values from nomogram """
+        """Uses the lookup_table and the vertical and horizontal indexes calculated 
+        to extract and store values from nomogram """
 
         lookup_table = self.nomogram_values()
         shape = np.shape(vertical)
 
-        horizontal = np.around(horizontal.data/5, decimals=0)-1  
-        vertical = np.around(vertical.data*2, decimals=0)-1
+        horizontal = np.around(horizontal.data / 5, decimals=0) - 1
+        vertical = np.around(vertical.data * 2, decimals=0) - 1
 
         horizontal_flat = horizontal.flatten(order="C")
         vertical_flat = vertical.flatten(order="C")
@@ -224,15 +221,14 @@ class HailSize(BasePlugin):
         hail_size_list = []
         for vertical, horizontal in zip(vertical_flat, horizontal_flat):
 
-            if min(horizontal,vertical)< 0:
+            if min(horizontal, vertical) < 0:
                 hail_size_list.append(0)
             else:
 
-
-                if vertical > len(lookup_table)-1:
-                    vertical = len(lookup_table)-1
-                if horizontal > len(lookup_table[0])-1:
-                    horizontal = len(lookup_table[0])-1
+                if vertical > len(lookup_table) - 1:
+                    vertical = len(lookup_table) - 1
+                if horizontal > len(lookup_table[0]) - 1:
+                    horizontal = len(lookup_table[0]) - 1
 
                 hail_size_list.append(lookup_table[int(vertical)][int(horizontal)])
 
@@ -262,23 +258,30 @@ class HailSize(BasePlugin):
 
         return hail_size_cube
 
-    def check_cubes(self,ccl_temperature,ccl_pressure,temperature_on_pressure,humidity_mixing_ratio_on_pressure):
+    def check_cubes(
+        self,
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure,
+        humidity_mixing_ratio_on_pressure,
+    ):
         """function to check size and units of input cubes"""
-        
-        temp_slice=next(temperature_on_pressure.slices_over("pressure"))
 
-        assert_spatial_coords_match([ccl_temperature,ccl_pressure,temp_slice])
-        assert_spatial_coords_match([temperature_on_pressure,humidity_mixing_ratio_on_pressure])
+        temp_slice = next(temperature_on_pressure.slices_over("pressure"))
+
+        assert_spatial_coords_match([ccl_temperature, ccl_pressure, temp_slice])
+        assert_spatial_coords_match(
+            [temperature_on_pressure, humidity_mixing_ratio_on_pressure]
+        )
 
         ccl_temperature.convert_units("K")
         ccl_pressure.convert_units("Pa")
         temperature_on_pressure.convert_units("K")
         humidity_mixing_ratio_on_pressure.convert_units("kg/kg")
 
-
     def process(
         self,
-        ccl_temperature:Cube,
+        ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         humidity_mixing_ratio_on_pressure: Cube,
@@ -293,16 +296,20 @@ class HailSize(BasePlugin):
                 cube of temperature on pressure levels 
             humidity_mixing_ratio_on_pressure:
                 cube of humidity mixing ratio on pressure levels
-
         Returns:
             Cube of hail size
         """
 
-        self.check_cubes(ccl_temperature,ccl_pressure,temperature_on_pressure,humidity_mixing_ratio_on_pressure)
+        self.check_cubes(
+            ccl_temperature,
+            ccl_pressure,
+            temperature_on_pressure,
+            humidity_mixing_ratio_on_pressure,
+        )
 
-        np.ma.masked_less(ccl_temperature.data,268.15)
+        np.ma.masked_less(ccl_temperature.data, 268.15) # any points where this is true leads to negative vertical/horizontal values and so no hail size
 
-        pressure_at_268 ,temperature_at_268= self.pressure_at_268(
+        pressure_at_268, temperature_at_268 = self.pressure_at_268(
             temperature_on_pressure
         )
 
@@ -325,7 +332,7 @@ class HailSize(BasePlugin):
         horizontal = c - B
         vertical = b - B
 
-        hail_size = self.get_hail_size(vertical,horizontal)
+        hail_size = self.get_hail_size(vertical, horizontal)
         hail_cube = self.make_hail_cube(hail_size, ccl_temperature, ccl_pressure)
 
         return hail_cube

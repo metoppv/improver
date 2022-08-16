@@ -91,11 +91,11 @@ def t_cube_fixture() -> Cube:
 @pytest.fixture(name="humidity_mixing_ratio_on_pressure")
 def humidity_cube_fixture() -> Cube:
     """Set up a r, p, y, x cube of Temperature on pressure level data"""
-    temperatures = np.array(
+    humidity = np.array(
         [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001], dtype=np.float32
     )
     data = np.broadcast_to(
-        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
+        humidity.reshape((1, len(humidity), 1, 1)), (2, len(humidity), 3, 2)
     )
     humidity_cube = set_up_variable_cube(
         data,
@@ -108,18 +108,17 @@ def humidity_cube_fixture() -> Cube:
 
     return humidity_cube
 
-
-
+"""literiture tephigram link https://journals.ametsoc.org/view/journals/bams/34/6/1520-0477-34_6_235.xml?tab_body=pdf"""
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,humidity,expected",
     (
-    (75000,290,0.001,20),# values approximate from literiture tephigram (https://journals.ametsoc.org/view/journals/bams/34/6/1520-0477-34_6_235.xml?tab_body=pdf)
-    (94000,300,0.001,0), #vertical value negative
-    (1000,360,0.001,0), #horizontal value negative
-    (65000,300,0.001,15), #vertical grreater than table
-    (150000,290,1.0,120),  #horizontal greater than table
-    (80000,250,0.001,0), # ccl temperature below 268.15
-    )
+        (75000,290,0.001,20),  # values approximate from literiture tephigram
+        (94000, 300, 0.001, 0),  # vertical value negative
+        (1000, 360, 0.001, 0),  # horizontal value negative
+        (65000, 300, 0.001, 15),  # vertical grreater than table
+        (150000, 290, 1.0, 120),  # horizontal greater than table
+        (80000, 250, 0.001, 0),  # ccl temperature below 268.15
+    ),
 )
 def test_basic_hail_size(
     ccl_pressure,
@@ -129,12 +128,14 @@ def test_basic_hail_size(
     ccl_p,
     ccl_t,
     humidity,
-    expected
+    expected,
 ):
-    ccl_pressure.data=np.full_like(ccl_pressure.data,ccl_p)
-    ccl_temperature.data=np.full_like(ccl_temperature.data,ccl_t)
-    humidity_mixing_ratio_on_pressure.data=np.full_like(humidity_mixing_ratio_on_pressure.data,humidity)
-    
+    ccl_pressure.data = np.full_like(ccl_pressure.data, ccl_p)
+    ccl_temperature.data = np.full_like(ccl_temperature.data, ccl_t)
+    humidity_mixing_ratio_on_pressure.data = np.full_like(
+        humidity_mixing_ratio_on_pressure.data, humidity
+    )
+
     result = HailSize()(
         ccl_temperature,
         ccl_pressure,
@@ -142,10 +143,7 @@ def test_basic_hail_size(
         humidity_mixing_ratio_on_pressure,
     )
 
-    np.testing.assert_allclose(result.data,expected)
-
-    
-
+    np.testing.assert_allclose(result.data, expected)
 
 
 # following values lead to iteration error
@@ -167,10 +165,3 @@ def test_basic_hail_size(
 #     )
 
 #     print(result.data)
-
-
-
-
-
-
-
