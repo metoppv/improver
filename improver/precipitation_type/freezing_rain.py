@@ -204,9 +204,16 @@ class FreezingRain(PostProcessingPlugin):
         self.sleet = _match_realizations(self.sleet)
         self.temperature = _match_realizations(self.temperature)
 
-    def _generate_template_cube(self, n_realizations):
+    def _generate_template_cube(self, n_realizations: Optional[int]) -> Cube:
         """Generate a freezing rain cube with appropriate coordinates and
-        metadata.
+        metadata. The sleet cube is used as a basis for this to ensure that
+        the lwe (liquid water equivalent) prefix is present in the output cube
+        name.
+
+        Args:
+            n_realizations:
+                The number of realizations if using multi-realization data,
+                else None.
 
         Returns:
             freezing_rain_cube
@@ -247,13 +254,24 @@ class FreezingRain(PostProcessingPlugin):
         freezing_rain_cube.coord(threshold_name).var_name = "threshold"
         return freezing_rain_cube
 
-    def _calculate_freezing_rain_probability(self, n_realizations) -> Cube:
+    def _calculate_freezing_rain_probability(
+        self, n_realizations: Optional[int]
+    ) -> Cube:
         """Calculate the probability of freezing rain from the probabilities
         of rain and sleet rates or accumulations, and the provided probabilities
         of temperature being below the freezing point of water.
 
+        If multiple realizations are present, the contribution of each realization
+        is scaled by a (1 / n_realizations) factor to compute the mean across realizations.
+        This approach is taken, as opposed to collapsing the realization coordinate later,
+        to minimise the memory required.
+
         (probability of rain + probability of sleet) x (probability T < 0C)
 
+        Args:
+            n_realizations:
+                The number of realizations if using multi-realization data,
+                else None.
         Returns:
             Cube of freezing rain probabilities.
         """
@@ -278,7 +296,7 @@ class FreezingRain(PostProcessingPlugin):
 
     def process(self, input_cubes: CubeList) -> Cube:
         """Check input cubes, then calculate a probability of freezing rain
-        diagnostic. Collapses the realization coordinate.
+        diagnostic. Collapses the realization coordinate if present.
 
         Args:
             input_cubes:
