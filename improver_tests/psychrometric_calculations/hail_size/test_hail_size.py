@@ -47,7 +47,7 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 @pytest.fixture(name="ccl_temperature")
 def ccl_temperature() -> Cube:
     """Set up a r, y, x cube of Cloud condensation level data"""
-    data = np.full((2, 2, 2), fill_value=250, dtype=np.float32)
+    data = np.full((2, 3, 2), fill_value=250, dtype=np.float32)
     ccl_temperature_cube = set_up_variable_cube(
         data,
         name="temperature_at_cloud_condensation_level",
@@ -60,7 +60,7 @@ def ccl_temperature() -> Cube:
 @pytest.fixture(name="ccl_pressure")
 def ccl_pressure() -> Cube:
     """Set up a r, y, x cube of Cloud condensation level data"""
-    data = np.full((2, 2, 2), fill_value=85000, dtype=np.float32)
+    data = np.full((2, 3, 2), fill_value=85000, dtype=np.float32)
     ccl_pressure_cube = set_up_variable_cube(
         data,
         name="pressure_at_cloud_condensation_level",
@@ -75,7 +75,7 @@ def t_cube_fixture() -> Cube:
     """Set up a r, p, y, x cube of Temperature on pressure level data"""
     temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
     data = np.broadcast_to(
-        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 2, 2)
+        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
     )
     t_cube = set_up_variable_cube(
         data,
@@ -88,14 +88,14 @@ def t_cube_fixture() -> Cube:
     return t_cube
 
 
-@pytest.fixture(name="humidity_mixing_ratio_on_pressure_levels")
+@pytest.fixture(name="humidity_mixing_ratio_on_pressure")
 def humidity_cube_fixture() -> Cube:
     """Set up a r, p, y, x cube of Temperature on pressure level data"""
     temperatures = np.array(
-        [0.01, 0.01, 0.02, 0.01, 0.02, 0.001, 1, 2], dtype=np.float32
+        [0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001, 0.001], dtype=np.float32
     )
     data = np.broadcast_to(
-        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 2, 2)
+        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
     )
     humidity_cube = set_up_variable_cube(
         data,
@@ -109,18 +109,68 @@ def humidity_cube_fixture() -> Cube:
     return humidity_cube
 
 
-def test_potential_temperature_CCL(
+
+@pytest.mark.parametrize(
+    "ccl_p,ccl_t,humidity,expected",
+    (
+    (75000,290,0.001,20),# values approximate from literiture tephigram (https://journals.ametsoc.org/view/journals/bams/34/6/1520-0477-34_6_235.xml?tab_body=pdf)
+    (94000,300,0.001,0), #vertical value negative
+    (1000,360,0.001,0), #horizontal value negative
+    (65000,300,0.001,15), #vertical grreater than table
+    (150000,290,1.0,120),  #horizontal greater than table
+    (80000,250,0.001,0), # ccl temperature below 268.15
+    )
+)
+def test_basic_hail_size(
     ccl_pressure,
     ccl_temperature,
     temperature_on_pressure_levels,
-    humidity_mixing_ratio_on_pressure_levels,
+    humidity_mixing_ratio_on_pressure,
+    ccl_p,
+    ccl_t,
+    humidity,
+    expected
 ):
-
+    ccl_pressure.data=np.full_like(ccl_pressure.data,ccl_p)
+    ccl_temperature.data=np.full_like(ccl_temperature.data,ccl_t)
+    humidity_mixing_ratio_on_pressure.data=np.full_like(humidity_mixing_ratio_on_pressure.data,humidity)
+    
     result = HailSize()(
         ccl_temperature,
         ccl_pressure,
         temperature_on_pressure_levels,
-        humidity_mixing_ratio_on_pressure_levels,
+        humidity_mixing_ratio_on_pressure,
     )
 
-    print(result)
+    np.testing.assert_allclose(result.data,expected)
+
+    
+
+
+
+# following values lead to iteration error
+
+# @pytest.mark.parametrize(
+#     "ccl_p,ccl_t",
+#     (75000,330),
+# )
+# def test_error_hail_size(ccl_pressure,ccl_temperature,temperature_on_pressure_levels,humidity_mixing_ratio_on_pressure,ccl_p,ccl_t):
+
+#     ccl_pressure.data=np.full_like(ccl_pressure.data,ccl_p)
+#     ccl_temperature.data=np.full_like(ccl_temperature.data,ccl_t)
+
+#     result = HailSize()(
+#         ccl_temperature,
+#         ccl_pressure,
+#         temperature_on_pressure_levels,
+#         humidity_mixing_ratio_on_pressure,
+#     )
+
+#     print(result.data)
+
+
+
+
+
+
+
