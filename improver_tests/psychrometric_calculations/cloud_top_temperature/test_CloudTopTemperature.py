@@ -33,7 +33,6 @@ from unittest.mock import patch
 
 import numpy as np
 import pytest
-from iris.coords import AuxCoord
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
@@ -50,23 +49,28 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 }
 
 
-@pytest.fixture(name="ccl")
-def ccl_cube_fixture() -> Cube:
-    """Set up a r, y, x cube of Cloud condensation level data with pressure coordinate"""
+@pytest.fixture(name="t_at_ccl")
+def t_at_ccl_cube_fixture() -> Cube:
+    """Set up a r, y, x cube of temperature at Cloud condensation level data"""
     data = np.full((2, 2, 2), fill_value=290, dtype=np.float32)
     ccl_cube = set_up_variable_cube(
         data,
-        name="temperature_at_cloud_condensation_level",
+        name="air_temperature_at_cloud_condensation_level",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
-    ccl_cube.add_aux_coord(
-        AuxCoord(
-            standard_name="air_pressure",
-            points=np.full_like(data, fill_value=95000),
-            units="Pa",
-        ),
-        (0, 1, 2),
+    return ccl_cube
+
+
+@pytest.fixture(name="p_at_ccl")
+def p_at_ccl_cube_fixture() -> Cube:
+    """Set up a r, y, x cube of pressure at Cloud condensation level data"""
+    data = np.full((2, 2, 2), fill_value=95000, dtype=np.float32)
+    ccl_cube = set_up_variable_cube(
+        data,
+        name="air_pressure_at_cloud_condensation_level",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return ccl_cube
 
@@ -129,7 +133,7 @@ def metadata_ok(cct: Cube, baseline: Cube, model_id_attr=None) -> None:
         (286, 91000, 0, False),
     ),
 )
-def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
+def test_basic(t_at_ccl, p_at_ccl, temperature, ccl_t, ccl_p, expected):
     """
     When the profile is shifted to be colder, the same saturated ascents
     reach a higher, and therefore colder, level.
@@ -137,12 +141,10 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
     profile has no impact on the final result.
     The last test is for a case where convection does not occur and the result is masked.
     """
-    ccl.data = np.full_like(ccl.data, ccl_t)
-    ccl.coord("air_pressure").points = np.full_like(
-        ccl.coord("air_pressure").points, fill_value=ccl_p
-    )
-    result = CloudTopTemperature()(ccl, temperature)
-    metadata_ok(result, ccl)
+    t_at_ccl.data = np.full_like(t_at_ccl.data, ccl_t)
+    p_at_ccl.data = np.full_like(p_at_ccl.data, ccl_p)
+    result = CloudTopTemperature()(t_at_ccl, p_at_ccl, temperature)
+    metadata_ok(result, t_at_ccl)
     if expected:
         assert not result.data.mask.any()
         np.testing.assert_allclose(result.data, expected, atol=1e-2)
@@ -152,23 +154,28 @@ def test_basic(ccl, temperature, ccl_t, ccl_p, expected):
 
 @pytest.mark.parametrize("profile_shift", (0,))
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
-def test_model_id_attr(ccl, temperature, model_id_attr):
+def test_model_id_attr(t_at_ccl, p_at_ccl, temperature, model_id_attr):
     """Check that tests pass if model_id_attr is set on inputs and is applied or not"""
-    ccl.attributes["mosg__model_configuration"] = "gl_ens"
+    t_at_ccl.attributes["mosg__model_configuration"] = "gl_ens"
+    p_at_ccl.attributes["mosg__model_configuration"] = "gl_ens"
     temperature.attributes["mosg__model_configuration"] = "gl_ens"
-    result = CloudTopTemperature(model_id_attr=model_id_attr)(ccl, temperature)
-    metadata_ok(result, ccl, model_id_attr=model_id_attr)
+    result = CloudTopTemperature(model_id_attr=model_id_attr)(
+        t_at_ccl, p_at_ccl, temperature
+    )
+    metadata_ok(result, t_at_ccl, model_id_attr=model_id_attr)
 
 
 @pytest.mark.parametrize("profile_shift", (0,))
-def test_called_methods(ccl, temperature):
+def test_called_methods(t_at_ccl, p_at_ccl, temperature):
     """Prove that the methods to set units and check spatial consistency have been called"""
     with patch.object(
         cloud_top_temperature, "assert_spatial_coords_match"
     ) as spatial_mock:
-        with patch.object(ccl, "convert_units") as ccl_mock:
-            with patch.object(temperature, "convert_units") as temperature_mock:
-                CloudTopTemperature()(ccl, temperature)
+        with patch.object(t_at_ccl, "convert_units") as t_at_ccl_mock:
+            with patch.object(p_at_ccl, "convert_units") as p_at_ccl_mock:
+                with patch.object(temperature, "convert_units") as temperature_mock:
+                    CloudTopTemperature()(t_at_ccl, p_at_ccl, temperature)
     spatial_mock.assert_called()
-    ccl_mock.assert_called_with("K")
+    t_at_ccl_mock.assert_called_with("K")
+    p_at_ccl_mock.assert_called_with("Pa")
     temperature_mock.assert_called_with("K")

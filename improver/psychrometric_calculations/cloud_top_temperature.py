@@ -65,7 +65,8 @@ class CloudTopTemperature(BasePlugin):
                 Name of model ID attribute to be copied from source cubes to output cube
         """
         self.model_id_attr = model_id_attr
-        self.ccl = Cube(None)
+        self.t_at_ccl = Cube(None)
+        self.p_at_ccl = Cube(None)
         self.temperature = Cube(None)
         self.minimum_t_diff = 4
 
@@ -81,24 +82,20 @@ class CloudTopTemperature(BasePlugin):
         """
         p_coord = self.temperature.coord("pressure")
         t_data = [t.data for t in self.temperature.slices_over("pressure")]
-        cct = np.ma.masked_array(self.ccl.data.copy())
-        q_at_ccl = saturated_humidity(
-            self.ccl.data, self.ccl.coord("air_pressure").points
-        )
-        ccl_with_mask = np.ma.where(True, self.ccl.data, False)
+        cct = np.ma.masked_array(self.t_at_ccl.data.copy())
+        q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
+        ccl_with_mask = np.ma.where(True, self.t_at_ccl.data, False)
         for p, t in zip(p_coord.points, t_data):
-            t_dry = dry_adiabatic_temperature(
-                self.ccl.data, self.ccl.coord("air_pressure").points, p
-            )
+            t_dry = dry_adiabatic_temperature(self.t_at_ccl.data, self.p_at_ccl.data, p)
             t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl, p)
             # Mask out points where parcel temperature, t_2, is less than atmosphere temperature, t,
             # but only after the parcel pressure, p, becomes lower than the cloud base pressure.
             ccl_with_mask = np.ma.masked_where(
-                (t_2 < t) & (p < self.ccl.coord("air_pressure").points), ccl_with_mask,
+                (t_2 < t) & (p < self.p_at_ccl.data), ccl_with_mask,
             )
             cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
 
-        cct = np.ma.masked_where(self.ccl.data - cct < self.minimum_t_diff, cct)
+        cct = np.ma.masked_where(self.t_at_ccl.data - cct < self.minimum_t_diff, cct)
 
         return cct
 
@@ -106,36 +103,41 @@ class CloudTopTemperature(BasePlugin):
         """Puts the data array into a CF-compliant cube"""
         attributes = {}
         if self.model_id_attr:
-            attributes[self.model_id_attr] = self.ccl.attributes[self.model_id_attr]
+            attributes[self.model_id_attr] = self.t_at_ccl.attributes[
+                self.model_id_attr
+            ]
         cube = create_new_diagnostic_cube(
             "air_temperature_at_convective_cloud_top",
             "K",
-            self.ccl,
+            self.t_at_ccl,
             mandatory_attributes=generate_mandatory_attributes(
-                [self.ccl, self.temperature]
+                [self.t_at_ccl, self.p_at_ccl, self.temperature]
             ),
             optional_attributes=attributes,
             data=data,
         )
         return cube
 
-    def process(self, ccl: Cube, temperature: Cube) -> Cube:
+    def process(self, t_at_ccl: Cube, p_at_ccl: Cube, temperature: Cube) -> Cube:
         """
 
         Args:
-            ccl:
-                cloud condensation level
+            t_at_ccl:
+                temperature at cloud condensation level
+            p_at_ccl:
+                pressure at cloud condensation level
             temperature:
                 temperature on pressure levels
 
         Returns:
             Cube of cloud top temperature
         """
-        self.ccl = ccl
+        self.t_at_ccl = t_at_ccl
+        self.p_at_ccl = p_at_ccl
         self.temperature = temperature
-        assert_spatial_coords_match([self.ccl, self.temperature])
+        assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")
-        self.ccl.convert_units("K")
-        self.ccl.coord("air_pressure").convert_units("Pa")
+        self.t_at_ccl.convert_units("K")
+        self.p_at_ccl.convert_units("Pa")
         cct = self._make_cct_cube(self._calculate_cct())
         return cct

@@ -32,10 +32,17 @@
 """CLI to generate the convective cloud top temperature from CCL and temperature profile data."""
 from improver import cli
 
+# Creates the value_converter that clize needs.
+input_ccl = cli.create_constrained_inputcubelist_converter(
+    "air_temperature_at_condensation_level", "air_pressure_at_condensation_level"
+)
+
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, model_id_attr: str = None):
+def process(
+    ccl_cubes: input_ccl, temperature: cli.inputcube, *, model_id_attr: str = None
+):
     """Module to calculate the convective cloud top temperature from the
     cloud condensation level temperature and pressure, and temperature
     on pressure levels data.
@@ -45,12 +52,10 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     the cloud top temperature is masked.
 
     Args:
-        cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            containing:
-                ccl (iris.cube.Cube):
-                    Cube of cloud_condensation_level
-                temperature (iris.cube.Cube):
-                    Cube of temperature_at_pressure_levels
+        ccl_cubes (iris.cube.CubeList or list of iris.cube.Cube):
+            Cubes of air_temperature and air_pressure at cloud_condensation_level
+        temperature (iris.cube.Cube):
+            Cube of temperature_at_pressure_levels
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
@@ -59,14 +64,9 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             Cube of cloud_top_temperature (K).
 
     """
-    from iris.cube import CubeList
 
     from improver.psychrometric_calculations.cloud_top_temperature import (
         CloudTopTemperature,
     )
 
-    ccl, temperature = CubeList(cubes).extract(
-        ["air_temperature_at_condensation_level", "air_temperature"]
-    )
-
-    return CloudTopTemperature(model_id_attr=model_id_attr)(ccl, temperature)
+    return CloudTopTemperature(model_id_attr=model_id_attr)(*ccl_cubes, temperature)
