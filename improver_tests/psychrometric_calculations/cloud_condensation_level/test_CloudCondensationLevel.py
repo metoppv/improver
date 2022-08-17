@@ -112,7 +112,13 @@ def metadata_ok(ccl: Tuple[Cube, Cube], baseline: Cube, model_id_attr=None) -> N
             assert cube.coord_dims(coord) == baseline.coord_dims(base_coord)
             assert coord == base_coord
         for attr in MANDATORY_ATTRIBUTES:
-            assert cube.attributes[attr] == baseline.attributes[attr]
+            if attr == "title":
+                assert (
+                    cube.attributes[attr]
+                    == f"Post-Processed {baseline.attributes[attr]}"
+                )
+            else:
+                assert cube.attributes[attr] == baseline.attributes[attr]
         all_attr_keys = list(cube.attributes.keys())
         if model_id_attr:
             assert cube.attributes[model_id_attr] == baseline.attributes[model_id_attr]

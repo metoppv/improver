@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the CloudTopTemperature plugin"""
+import copy
 from unittest.mock import patch
 
 import numpy as np
@@ -47,6 +48,10 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "source": "unit test",
     "institution": "somewhere",
 }
+POST_PROCESSED_MANDATORY_ATTRIBUTES = copy.deepcopy(LOCAL_MANDATORY_ATTRIBUTES)
+POST_PROCESSED_MANDATORY_ATTRIBUTES[
+    "title"
+] = f"Post-Processed {POST_PROCESSED_MANDATORY_ATTRIBUTES['title']}"
 
 
 @pytest.fixture(name="t_at_ccl")
@@ -57,7 +62,7 @@ def t_at_ccl_cube_fixture() -> Cube:
         data,
         name="air_temperature_at_cloud_condensation_level",
         units="K",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        attributes=POST_PROCESSED_MANDATORY_ATTRIBUTES,
     )
     return ccl_cube
 
@@ -70,7 +75,7 @@ def p_at_ccl_cube_fixture() -> Cube:
         data,
         name="air_pressure_at_cloud_condensation_level",
         units="Pa",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        attributes=POST_PROCESSED_MANDATORY_ATTRIBUTES,
     )
     return ccl_cube
 

@@ -33,7 +33,7 @@ import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -46,7 +46,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
-class CloudTopTemperature(BasePlugin):
+class CloudTopTemperature(PostProcessingPlugin):
     """Plugin to calculate the convective cloud top temperature from the
     cloud condensation level temperature and pressure, and temperature
     on pressure levels data using saturated ascent.
@@ -111,7 +111,7 @@ class CloudTopTemperature(BasePlugin):
             "K",
             self.t_at_ccl,
             mandatory_attributes=generate_mandatory_attributes(
-                [self.t_at_ccl, self.p_at_ccl, self.temperature]
+                [self.t_at_ccl, self.p_at_ccl]
             ),
             optional_attributes=attributes,
             data=data,

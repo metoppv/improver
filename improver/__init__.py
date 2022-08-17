@@ -81,9 +81,15 @@ class PostProcessingPlugin(BasePlugin):
         Returns:
             Output of self.process() with updated title attribute
         """
-        cube = super().__call__(*args, **kwargs)
-        self.post_processed_title(cube)
-        return cube
+        from iris.cube import Cube
+
+        result = super().__call__(*args, **kwargs)
+        if isinstance(result, Cube):
+            self.post_processed_title(result)
+        else:
+            for cube in result:
+                self.post_processed_title(cube)
+        return result
 
     @staticmethod
     def post_processed_title(cube):

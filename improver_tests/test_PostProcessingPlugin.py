@@ -30,55 +30,81 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the improver.PostProcessingPlugin abstract base class"""
 
-import unittest
+from typing import List, Union
 
 import numpy as np
+import pytest
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class DummyPlugin(PostProcessingPlugin):
-    """Dummy class inheriting from the abstract base class"""
+@pytest.fixture(name="dummy_plugin")
+def dummy_plugin_fixture():
+    class DummyPlugin(PostProcessingPlugin):
+        """Dummy class inheriting from the abstract base class"""
 
-    def process(self, cube):
-        """Local process method has no effect"""
+        def process(self, arg):
+            """Local process method has no effect"""
+            return arg
+
+    return DummyPlugin
+
+
+@pytest.fixture(name="plugin_input")
+def input_fixture(is_list: bool) -> Union[Cube, List[Cube]]:
+    cube = set_up_variable_cube(
+        np.ones((3, 3, 3), dtype=np.float32),
+        standard_grid_metadata="uk_det",
+        attributes={"title": "UKV Model Forecast"},
+    )
+    if is_list:
+        return [cube, cube]
+    else:
         return cube
 
 
-class Test_process(unittest.TestCase):
-    """Tests for functionality implemented when "process" is called"""
-
-    def setUp(self):
-        """Set up a plugin and cube"""
-        self.plugin = DummyPlugin()
-        self.cube = set_up_variable_cube(
-            np.ones((3, 3, 3), dtype=np.float32),
-            standard_grid_metadata="uk_det",
-            attributes={"title": "UKV Model Forecast"},
-        )
-
-    def test_title_updated(self):
-        """Test title is updated as expected"""
-        expected_title = "Post-Processed UKV Model Forecast"
-        result = self.plugin(self.cube)
-        self.assertEqual(result.attributes["title"], expected_title)
-
-    def test_title_preserved(self):
-        """Test title is preserved if it contains 'Post-Processed'"""
-        expected_title = "IMPROVER Post-Processed Multi-Model Blend"
-        self.cube.attributes["title"] = expected_title
-        result = self.plugin(self.cube)
-        self.assertEqual(result.attributes["title"], expected_title)
-
-    def test_title_mandatory_attribute_default(self):
-        """Test title is preserved if it is the same as mandatory_attribute['title']"""
-        expected_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
-        self.cube.attributes["title"] = expected_title
-        result = self.plugin(self.cube)
-        self.assertEqual(result.attributes["title"], expected_title)
+def assert_title_attribute(
+    result: Union[Cube, List[Cube]], expected_title: str
+) -> None:
+    if isinstance(result, Cube):
+        assert result.attributes["title"] == expected_title
+    else:
+        for cube in result:
+            assert cube.attributes["title"] == expected_title
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.mark.parametrize("is_list", (True, False))
+def test_title_updated(dummy_plugin, plugin_input):
+    """Test title is updated as expected"""
+    expected_title = "Post-Processed UKV Model Forecast"
+    result = dummy_plugin()(plugin_input)
+    assert_title_attribute(result, expected_title)
+
+
+@pytest.mark.parametrize("is_list", (True, False))
+def test_title_preserved(dummy_plugin, plugin_input, is_list):
+    """Test title is preserved if it contains 'Post-Processed'"""
+    expected_title = "IMPROVER Post-Processed Multi-Model Blend"
+    if is_list:
+        for c in plugin_input:
+            c.attributes["title"] = expected_title
+    else:
+        plugin_input.attributes["title"] = expected_title
+    result = dummy_plugin()(plugin_input)
+    assert_title_attribute(result, expected_title)
+
+
+@pytest.mark.parametrize("is_list", (True, False))
+def test_title_mandatory_attribute_default(dummy_plugin, plugin_input, is_list):
+    """Test title is preserved if it is the same as mandatory_attribute['title']"""
+    expected_title = MANDATORY_ATTRIBUTE_DEFAULTS["title"]
+    if is_list:
+        for c in plugin_input:
+            c.attributes["title"] = expected_title
+    else:
+        plugin_input.attributes["title"] = expected_title
+    result = dummy_plugin()(plugin_input)
+    assert_title_attribute(result, expected_title)

@@ -36,7 +36,7 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from scipy.optimize import newton
 
-from improver import BasePlugin
+from improver import PostProcessingPlugin
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -47,7 +47,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 
 
-class CloudCondensationLevel(BasePlugin):
+class CloudCondensationLevel(PostProcessingPlugin):
     """
     Derives the temperature and pressure of the convective cloud condensation
     level from near-surface values of temperature, pressure and humidity mixing
