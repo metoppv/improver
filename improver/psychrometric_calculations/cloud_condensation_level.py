@@ -33,6 +33,7 @@ from typing import List, Tuple
 
 import numpy as np
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from scipy.optimize import newton
 
 from improver import BasePlugin
@@ -87,6 +88,12 @@ class CloudCondensationLevel(BasePlugin):
             optional_attributes=attributes,
             data=data,
         )
+        # The template cube may have had a height coord describing it as screen-level.
+        # This needs removing:
+        try:
+            cube.remove_coord("height")
+        except CoordinateNotFoundError:
+            pass
         return cube
 
     def _iterate_to_ccl(self) -> Tuple[np.ndarray, np.ndarray]:

@@ -33,6 +33,7 @@ from typing import Tuple
 
 import numpy as np
 import pytest
+from iris.coords import AuxCoord
 from iris.cube import Cube
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTES
@@ -87,6 +88,7 @@ def humidity_cube_fixture() -> Cube:
 def metadata_ok(ccl: Tuple[Cube, Cube], baseline: Cube, model_id_attr=None) -> None:
     """
     Checks cloud_condensation_level Cube long_name, units and dtype are as expected.
+    Ensures that there is no height coord associated with it.
     Compares cloud_condensation_level Cube with baseline to make sure everything else matches.
 
     Args:
@@ -99,8 +101,10 @@ def metadata_ok(ccl: Tuple[Cube, Cube], baseline: Cube, model_id_attr=None) -> N
     t_at_ccl, p_at_ccl = ccl
     assert t_at_ccl.long_name == "air_temperature_at_condensation_level"
     assert t_at_ccl.units == "K"
+    assert "height" not in [c.name() for c in t_at_ccl.coords()]
     assert p_at_ccl.long_name == "air_pressure_at_condensation_level"
     assert p_at_ccl.units == "Pa"
+    assert "height" not in [c.name() for c in p_at_ccl.coords()]
     for cube in ccl:
         assert cube.dtype == np.float32
         for coord in cube.coords():
@@ -155,3 +159,16 @@ def test_model_id_attr(temperature, pressure, humidity, model_id_attr):
         [temperature, pressure, humidity]
     )
     metadata_ok(result, temperature, model_id_attr=model_id_attr)
+
+
+@pytest.mark.parametrize("has_height_coord", (True, False))
+def test_with_height_coord(temperature, pressure, humidity, has_height_coord):
+    """Check that tests pass if a scalar height coord is present on the temperature cube"""
+    if has_height_coord:
+        temperature.add_aux_coord(
+            AuxCoord(
+                np.array([1.65], dtype=np.float32), standard_name="height", units="m"
+            )
+        )
+    result = CloudCondensationLevel()([temperature, pressure, humidity])
+    metadata_ok(result, temperature)
