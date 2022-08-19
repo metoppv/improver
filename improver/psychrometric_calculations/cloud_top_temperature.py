@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing the CloudTopTemperature plugin"""
+import copy
+
 import numpy as np
 from iris.cube import Cube
 from numpy import ndarray
@@ -80,20 +82,21 @@ class CloudTopTemperature(PostProcessingPlugin):
         the profile is buoyant.
         Temperature data are in Kelvin, Pressure data are in pascals, humidity data are in kg/kg.
         """
-        p_coord = self.temperature.coord("pressure")
-        t_data = [t.data for t in self.temperature.slices_over("pressure")]
         cct = np.ma.masked_array(self.t_at_ccl.data.copy())
         q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
         ccl_with_mask = np.ma.where(True, self.t_at_ccl.data, False)
-        for p, t in zip(p_coord.points, t_data):
+        for t in self.temperature.slices_over("pressure"):
+            t_loc = copy.deepcopy(t)
+            (p,) = t.coord("pressure").points
             t_dry = dry_adiabatic_temperature(self.t_at_ccl.data, self.p_at_ccl.data, p)
             t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl, p)
             # Mask out points where parcel temperature, t_2, is less than atmosphere temperature, t,
             # but only after the parcel pressure, p, becomes lower than the cloud base pressure.
             ccl_with_mask = np.ma.masked_where(
-                (t_2 < t) & (p < self.p_at_ccl.data), ccl_with_mask,
+                (t_2 < t_loc.data) & (p < self.p_at_ccl.data), ccl_with_mask,
             )
             cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
+            del t
 
         cct = np.ma.masked_where(self.t_at_ccl.data - cct < self.minimum_t_diff, cct)
 
