@@ -383,8 +383,8 @@ class DayNightMask(BasePlugin):
         daylight hours, the data is not classified as falling at night. This
         is an issue as the time point is always located at the end of the
         time bounds. Without this approach weather symbols representing
-        e.g. 20-21Z will be marked as night symbols should the sunset at
-        20:59 which is not suitable.
+        e.g. 20-21Z will be marked as night symbols should the sun set at
+        20:59, which is not suitable.
 
         Args:
             cube:

@@ -1429,7 +1429,7 @@ class Test_process(Test_WXCode):
         self.assertEqual(result.dtype, np.int32)
 
     def test_day_night(self):
-        """Test process returns the right values for night. """
+        """Test codes for night-time weather symbols are returned."""
         twelve_hours = 3600 * 12
         for i, cube in enumerate(self.cubes):
             time_coord = cube.coord("time")
