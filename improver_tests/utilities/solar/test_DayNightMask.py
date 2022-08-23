@@ -31,11 +31,12 @@
 """ Unit tests for DayNightMask class """
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import cf_units as unit
 import iris
 import numpy as np
+import pytz
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import (
@@ -154,6 +155,21 @@ class Test_process(IrisTest):
             grid_spacing=2000,
             domain_corner=(0, -30000),
             time=vt,
+            frt=vt,
+        )
+
+        # Cube with time coordinate with bounds.  A very small bounding period
+        # is used to capture day-night variation across the small domain.
+        bounds = timedelta(minutes=4)
+        self.cube_time_bounds = set_up_variable_cube(
+            data,
+            "precipitation_amount",
+            "kg m^-2",
+            "equalarea",
+            grid_spacing=2000,
+            domain_corner=(0, -30000),
+            time=vt + bounds,
+            time_bounds=(vt, vt + bounds),
             frt=vt,
         )
 
@@ -283,6 +299,45 @@ class Test_process(IrisTest):
             ]
         )
         self.assertArrayEqual(result.data, expected_result)
+
+    def test_time_bounds_standard_grid_ccrs(self):
+        """Test day_night mask with standard_grid_ccrs projection for a cube
+        with a time coordinate with bounds.
+
+        This test compares against a reference case in which a cube without
+        time bounds is adjusted such that its time falls at the mid-point of
+        the time bounds being tested. This should return the same result as
+        the cube with time bounds. The result is also compared against an
+        array of expected values."""
+
+        vt = datetime(2015, 11, 20, 8, 2, tzinfo=pytz.UTC)
+        ref = self.cube.copy()
+        ref.coord("time").points = [vt.timestamp()]
+        ref_result = DayNightMask().process(ref)
+
+        result = DayNightMask().process(self.cube_time_bounds)
+        expected_result = np.array(
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+            ]
+        )
+        self.assertArrayEqual(result.data, expected_result)
+        self.assertArrayEqual(result.data, ref_result.data)
 
 
 if __name__ == "__main__":
