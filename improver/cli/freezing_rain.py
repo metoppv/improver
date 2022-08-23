@@ -44,6 +44,10 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
         (P(rain rate or accumulation >  threshold) +
          P(sleet rate or accumulation >  threshold)) * P(temperature < 0C)
 
+    If the input data is multi-realization, the realization coordinate is
+    collapsed as part of this calculation to yield an ensemble average
+    probability of freezing rain.
+
     Args:
         cubes (iris.cube.CubeList or list):
             Contains cubes of rain, sleet, and temperature probabilities. The

@@ -33,6 +33,7 @@
 from typing import Optional, Tuple
 
 import iris
+import numpy as np
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
@@ -44,7 +45,6 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_extraction import extract_subcube
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.probability_manipulation import to_threshold_inequality
 
 
@@ -175,20 +175,15 @@ class FreezingRain(PostProcessingPlugin):
 
     def _extract_common_realizations(self) -> None:
         """Picks out the realizations that are common to the rain, sleet, and
-        temperature cubes. Ensure the threshold coordinate leads the returned
-        cubes (if a dimension coordinate) such that broadcasting across
-        thresholds works.
+        temperature cubes.
 
         Raises:
             ValueError: If the input cubes have no shared realizations.
         """
 
-        def _match_realizations_and_order(target):
+        def _match_realizations(target):
             constraint = iris.Constraint(realization=common_realizations)
             matched = target.extract(constraint)
-            enforce_coordinate_ordering(
-                matched, matched.coord(var_name="threshold").name(), anchor_start=True
-            )
             return matched
 
         cubes = [self.rain, self.sleet, self.temperature]
@@ -205,21 +200,30 @@ class FreezingRain(PostProcessingPlugin):
             raise ValueError("Input cubes share no common realizations.")
 
         del cubes
-        self.rain = _match_realizations_and_order(self.rain)
-        self.sleet = _match_realizations_and_order(self.sleet)
-        self.temperature = _match_realizations_and_order(self.temperature)
+        self.rain = _match_realizations(self.rain)
+        self.sleet = _match_realizations(self.sleet)
+        self.temperature = _match_realizations(self.temperature)
 
-    def _calculate_freezing_rain_probability(self) -> Cube:
-        """Calculate the probability of freezing rain from the probabilities
-        of rain and sleet rates or accumulations, and the provided probabilities
-        of temperature being below the freezing point of water.
+    def _generate_template_cube(self, n_realizations: Optional[int]) -> Cube:
+        """Generate a freezing rain cube with appropriate coordinates and
+        metadata. The sleet cube is used as a basis for this to ensure that
+        the lwe (liquid water equivalent) prefix is present in the output cube
+        name.
 
-        (probability of rain + probability of sleet) x (probability T < 0C)
+        Args:
+            n_realizations:
+                The number of realizations if using multi-realization data,
+                else None.
 
         Returns:
-            Cube of freezing rain probabilities.
+            freezing_rain_cube
         """
-        freezing_rain_prob = (self.rain.data + self.sleet.data) * self.temperature.data
+        if n_realizations is not None:
+            template = next(self.sleet.slices_over("realization")).copy()
+            template.remove_coord("realization")
+        else:
+            template = self.sleet.copy()
+
         diagnostic_name = self.sleet.name().replace("sleet", "freezing_rain")
         threshold_name = (
             self.sleet.coord(var_name="threshold")
@@ -241,19 +245,58 @@ class FreezingRain(PostProcessingPlugin):
         freezing_rain_cube = create_new_diagnostic_cube(
             diagnostic_name,
             "1",
-            template_cube=self.sleet,
+            template_cube=template,
             mandatory_attributes=mandatory_attributes,
             optional_attributes=optional_attributes,
-            data=freezing_rain_prob,
+            data=np.zeros(template.shape).astype(np.float32),
         )
         freezing_rain_cube.coord(var_name="threshold").rename(threshold_name)
         freezing_rain_cube.coord(threshold_name).var_name = "threshold"
         return freezing_rain_cube
 
+    def _calculate_freezing_rain_probability(
+        self, n_realizations: Optional[int]
+    ) -> Cube:
+        """Calculate the probability of freezing rain from the probabilities
+        of rain and sleet rates or accumulations, and the provided probabilities
+        of temperature being below the freezing point of water.
+
+        If multiple realizations are present, the contribution of each realization
+        is scaled by a (1 / n_realizations) factor to compute the mean across realizations.
+        This approach is taken, as opposed to collapsing the realization coordinate later,
+        to minimise the memory required.
+
+        (probability of rain + probability of sleet) x (probability T < 0C)
+
+        Args:
+            n_realizations:
+                The number of realizations if using multi-realization data,
+                else None.
+        Returns:
+            Cube of freezing rain probabilities.
+        """
+        freezing_rain = self._generate_template_cube(n_realizations)
+        if n_realizations is not None:
+            rslices = self.rain.slices_over("realization")
+            sslices = self.sleet.slices_over("realization")
+            tslices = self.temperature.slices_over("realization")
+            denominator = n_realizations
+        else:
+            rslices = [self.rain]
+            sslices = [self.sleet]
+            tslices = [self.temperature]
+            denominator = 1.0
+
+        for rslice, sslice, tslice in zip(rslices, sslices, tslices):
+            freezing_rain.data += ((rslice.data + sslice.data) * tslice.data) * (
+                1.0 / denominator
+            )
+
+        return freezing_rain
+
     def process(self, input_cubes: CubeList) -> Cube:
         """Check input cubes, then calculate a probability of freezing rain
-        diagnostic. Ensure that, if a realization coordinate is present on the
-        resulting cube, it is made the leading dimension.
+        diagnostic. Collapses the realization coordinate if present.
 
         Args:
             input_cubes:
@@ -266,9 +309,15 @@ class FreezingRain(PostProcessingPlugin):
             Cube of freezing rain probabilties.
         """
         self._get_input_cubes(input_cubes)
-        self._extract_common_realizations()
-        freezing_rain_cube = self._calculate_freezing_rain_probability()
-        enforce_coordinate_ordering(
-            freezing_rain_cube, "realization", anchor_start=True
-        )
+
+        try:
+            n_realizations = len(list(self.rain.slices_over("realization")))
+        except CoordinateNotFoundError:
+            n_realizations = None
+
+        if n_realizations is not None:
+            self._extract_common_realizations()
+
+        freezing_rain_cube = self._calculate_freezing_rain_probability(n_realizations)
+
         return freezing_rain_cube

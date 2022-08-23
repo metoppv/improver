@@ -218,7 +218,7 @@ def test_no_freezing_threshold(input_cubes):
 def test_realization_matching(
     precipitation_multi_realization,
     temperature_multi_realization,
-    expected_probabilities,
+    expected_probabilities_multi_realization,
 ):
     """Test that only common realizations are used when combining precipitation
     and temperature cubes. In this case the temperature cube has an additional
@@ -227,10 +227,16 @@ def test_realization_matching(
     cubes = iris.cube.CubeList(
         [*precipitation_multi_realization, temperature_multi_realization]
     )
+    plugin = FreezingRain()
+    plugin._get_input_cubes(cubes)
+    plugin._extract_common_realizations()
     result = FreezingRain()(cubes)
 
-    assert all(result.coord("realization").points == [1])
-    assert_almost_equal(result.data, expected_probabilities)
+    assert all(plugin.rain.coord("realization").points == [0, 1])
+    assert all(plugin.sleet.coord("realization").points == [0, 1])
+    assert all(plugin.temperature.coord("realization").points == [0, 1])
+
+    assert_almost_equal(result.data, expected_probabilities_multi_realization)
 
 
 @pytest.mark.parametrize("period", TIME_WINDOW_TYPE)
@@ -242,5 +248,8 @@ def test_no_realization_matching(
         [*precipitation_multi_realization, temperature_multi_realization]
     )
     temperature_multi_realization.coord("realization").points = [10, 11, 12]
+    plugin = FreezingRain()
+    plugin._get_input_cubes(cubes)
+
     with pytest.raises(ValueError, match="Input cubes share no common realizations."):
-        FreezingRain()(cubes)
+        plugin._extract_common_realizations()
