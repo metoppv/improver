@@ -29,44 +29,51 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate the convective cloud top temperature from CCL and temperature profile data."""
-from improver import cli
+"""CLI to generate cloud condensation level from near-surface temperature,
+pressure and humidity data."""
 
-# Creates the value_converter that clize needs.
-input_ccl = cli.create_constrained_inputcubelist_converter(
-    "air_temperature_at_condensation_level", "air_pressure_at_condensation_level"
-)
+from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    ccl_cubes: input_ccl, temperature: cli.inputcube, *, model_id_attr: str = None
-):
-    """Module to calculate the convective cloud top temperature from the
-    cloud condensation level temperature and pressure, and temperature
-    on pressure levels data.
-    The temperature is that of the parcel after saturated ascent at the last pressure level
-    where the parcel is buoyant.
-    If the cloud top temperature is less than 4K colder than the cloud condensation level,
-    the cloud top temperature is masked.
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
+    """Module to generate cloud condensation level.
+
+    Calls the HumidityMixingRatio plugin to calculate humidity mixing ratio from relative humidity.
+
+    Calls the CloudCondensationLevel plugin to calculate cloud condensation level.
 
     Args:
-        ccl_cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            Cubes of air_temperature and air_pressure at cloud_condensation_level
-        temperature (iris.cube.Cube):
-            Cube of temperature_at_pressure_levels
+        cubes (iris.cube.CubeList or list of iris.cube.Cube):
+            containing near-surface values, in this order, of:
+                temperature (iris.cube.Cube):
+                    Cube of air_temperature (K).
+                pressure (iris.cube.Cube):
+                    Cube of surface_air_pressure (Pa).
+                humidity (iris.cube.Cube):
+                    Cube of relative_humidity (1).
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
     Returns:
-        iris.cube.Cube:
-            Cube of cloud_top_temperature (K).
+        tuple:
+            iris.cube.Cube:
+                Cube of temperature at cloud condensation level (K)
+            iris.cube.Cube:
+                Cube of pressure at cloud condensation level (Pa)
 
     """
-
-    from improver.psychrometric_calculations.cloud_top_temperature import (
-        CloudTopTemperature,
+    from improver.psychrometric_calculations.cloud_condensation_level import (
+        CloudCondensationLevel,
+    )
+    from improver.psychrometric_calculations.psychrometric_calculations import (
+        HumidityMixingRatio,
     )
 
-    return CloudTopTemperature(model_id_attr=model_id_attr)(*ccl_cubes, temperature)
+    humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
+    humidity = humidity_plugin(cubes)
+
+    return CloudCondensationLevel(model_id_attr=model_id_attr)(
+        [humidity_plugin.temperature, humidity_plugin.pressure, humidity]
+    )

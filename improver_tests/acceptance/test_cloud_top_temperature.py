@@ -45,8 +45,8 @@ def test_basic(tmp_path, model_id_attr):
     test_dir = acc.kgo_root() / "cloud-top-temperature"
     output_path = tmp_path / "output.nc"
     args = [
-        test_dir / "temperature_on_pressure_levels.nc",
         test_dir / "cloud_condensation_level.nc",
+        test_dir / "temperature_on_pressure_levels.nc",
         "--least-significant-digit",
         "2",
         "--output",

@@ -297,6 +297,60 @@ def adjust_for_latent_heat(
     return temperature, humidity
 
 
+class HumidityMixingRatio(BasePlugin):
+    """Returns the humidity mass mixing ratio from temperature, pressure and relative humidity"""
+
+    def __init__(self, model_id_attr: str = None):
+        """
+        Set up class
+
+        Args:
+            model_id_attr:
+                Name of model ID attribute to be copied from source cubes to output cube
+        """
+        self.model_id_attr = model_id_attr
+        self.model_id_value = None
+        self.mandatory_attributes = None
+        self.temperature, self.pressure, self.rel_humidity = None, None, None
+
+    def _make_humidity_cube(self, data: np.ndarray) -> Cube:
+        """Puts the data array into a CF-compliant cube"""
+        attributes = {}
+        if self.model_id_attr:
+            attributes[self.model_id_attr] = self.rel_humidity.attributes[
+                self.model_id_attr
+            ]
+        cube = create_new_diagnostic_cube(
+            "humidity_mixing_ratio",
+            "kg kg-1",
+            self.rel_humidity,
+            mandatory_attributes=self.mandatory_attributes,
+            optional_attributes=attributes,
+            data=data,
+        )
+        return cube
+
+    def process(self, cubes: List[Cube]) -> Cube:
+        """
+        Calculates the humidity mixing ratio from the inputs.
+
+        Args:
+            cubes:
+                Cubes, in this order, of temperature (K), pressure (Pa) and relative humidity (1)
+
+        Returns:
+            Cube of humidity mixing ratio
+
+        """
+        self.mandatory_attributes = generate_mandatory_attributes(cubes)
+        self.temperature, self.pressure, self.rel_humidity = cubes
+        humidity = (
+            saturated_humidity(self.temperature.data, self.pressure.data)
+            * self.rel_humidity.data
+        )
+        return self._make_humidity_cube(humidity)
+
+
 class PhaseChangeLevel(BasePlugin):
     """Calculate a continuous field of heights relative to sea level at which
     a phase change of precipitation is expected."""

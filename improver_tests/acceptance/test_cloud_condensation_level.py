@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,44 +28,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate the convective cloud top temperature from CCL and temperature profile data."""
-from improver import cli
+"""Tests for the vertical-updraught CLI"""
 
-# Creates the value_converter that clize needs.
-input_ccl = cli.create_constrained_inputcubelist_converter(
-    "air_temperature_at_condensation_level", "air_pressure_at_condensation_level"
-)
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    ccl_cubes: input_ccl, temperature: cli.inputcube, *, model_id_attr: str = None
-):
-    """Module to calculate the convective cloud top temperature from the
-    cloud condensation level temperature and pressure, and temperature
-    on pressure levels data.
-    The temperature is that of the parcel after saturated ascent at the last pressure level
-    where the parcel is buoyant.
-    If the cloud top temperature is less than 4K colder than the cloud condensation level,
-    the cloud top temperature is masked.
-
-    Args:
-        ccl_cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            Cubes of air_temperature and air_pressure at cloud_condensation_level
-        temperature (iris.cube.Cube):
-            Cube of temperature_at_pressure_levels
-        model_id_attr (str):
-            Name of the attribute used to identify the source model for blending.
-
-    Returns:
-        iris.cube.Cube:
-            Cube of cloud_top_temperature (K).
-
-    """
-
-    from improver.psychrometric_calculations.cloud_top_temperature import (
-        CloudTopTemperature,
-    )
-
-    return CloudTopTemperature(model_id_attr=model_id_attr)(*ccl_cubes, temperature)
+@pytest.mark.parametrize("model_id_attr", (True, False))
+def test_basic(tmp_path, model_id_attr):
+    """Test cloud-condensation-level usage, with and without model_id_attr"""
+    test_dir = acc.kgo_root() / "cloud-condensation-level"
+    output_path = tmp_path / "output.nc"
+    args = [
+        test_dir / "temperature.nc",
+        test_dir / "pressure_at_surface.nc",
+        test_dir / "relative_humidity.nc",
+        "--least-significant-digit",
+        "2",
+        "--output",
+        output_path,
+    ]
+    if model_id_attr:
+        args += ["--model-id-attr", "mosg__model_configuration"]
+        kgo_dir = test_dir / "with_id_attr"
+    else:
+        kgo_dir = test_dir / "without_id_attr"
+    kgo_path = kgo_dir / "kgo.nc"
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
