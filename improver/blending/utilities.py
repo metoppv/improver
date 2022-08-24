@@ -35,6 +35,7 @@ from typing import Dict, List, Optional
 
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -196,12 +197,15 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
     blended_cube.coord("forecast_reference_time").bounds = None
     if blended_cube.coords("forecast_period"):
         blended_cube.remove_coord("forecast_period")
-    new_forecast_period = forecast_period_coord(blended_cube)
-    time_dim = blended_cube.coord_dims("time")
-    blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
+        new_forecast_period = forecast_period_coord(blended_cube)
+        time_dim = blended_cube.coord_dims("time")
+        blended_cube.add_aux_coord(new_forecast_period, data_dims=time_dim)
     for coord in ["forecast_period", "forecast_reference_time"]:
         msg = f"{coord} will be removed in future and should not be used"
-        blended_cube.coord(coord).attributes.update({"deprecation_message": msg})
+        try:
+            blended_cube.coord(coord).attributes.update({"deprecation_message": msg})
+        except CoordinateNotFoundError:
+            pass
 
 
 def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:

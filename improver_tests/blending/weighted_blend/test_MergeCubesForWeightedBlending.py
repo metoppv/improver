@@ -441,6 +441,23 @@ class Test_process(IrisTest):
         for coord in ["forecast_period", "forecast_reference_time"]:
             self.assertNotIn("deprecation_message", result.coord(coord).attributes)
 
+    def test_forecast_coord_deprecation_missing_coords(self):
+        """Test removing deprecation warning raises no error if the coordinate
+        on which it is expected is missing."""
+        for cube in [self.cube_ukv, self.cube_enuk]:
+            cube.remove_coord("forecast_period")
+            cube.coord("forecast_reference_time").attributes.update(
+                {"deprecation_message": "blah"}
+            )
+
+        plugin = MergeCubesForWeightedBlending(
+            "model_id", model_id_attr="mosg__model_configuration"
+        )
+        result = plugin([self.cube_ukv, self.cube_enuk])
+        self.assertNotIn(
+            "deprecation_message", result.coord("forecast_reference_time").attributes
+        )
+
 
 if __name__ == "__main__":
     unittest.main()

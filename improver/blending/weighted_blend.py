@@ -169,7 +169,10 @@ class MergeCubesForWeightedBlending(BasePlugin):
         """Remove deprecation warnings from forecast period and forecast reference
         time coordinates so that these can be merged before blending"""
         for coord in ["forecast_period", "forecast_reference_time"]:
-            cube.coord(coord).attributes.pop("deprecation_message", None)
+            try:
+                cube.coord(coord).attributes.pop("deprecation_message", None)
+            except CoordinateNotFoundError:
+                pass
         return cube
 
     def process(
@@ -472,7 +475,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             ValueError : If blending over forecast reference time on a cube
                          with multiple times.
         """
-        if self.timeblending:
+        if self.timeblending or cube.coord("time").ndim > 1:
             return
 
         time_points = cube.coord("time").points

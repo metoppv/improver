@@ -260,6 +260,24 @@ class Test_check_compatible_time_points(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(self.coord, timeblending=True)
         plugin.check_compatible_time_points(self.cube)
 
+    def test_multi_dimensional_time_exemption(self):
+        """Test that no ValueError is raised if the time coordinate is multi-
+        dimensional. A cube with a multi-dimensional time coordinate must have
+        already checked that the times match at each point to be blended into a
+        single cube by iris."""
+        yxshape = next(self.cube.slices(["latitude", "longitude"])).shape
+        yxdims = [*self.cube.coord_dims("latitude"), *self.cube.coord_dims("longitude")]
+
+        time_coord = self.cube.coord("time")
+        time_points = np.full(yxshape, time_coord.points[0])
+        new_time_coord = iris.coords.AuxCoord(time_points, "time")
+
+        self.cube.remove_coord("time")
+        self.cube.add_aux_coord(new_time_coord, data_dims=yxdims)
+        print(self.cube)
+        plugin = WeightedBlendAcrossWholeDimension(self.coord, timeblending=True)
+        plugin.check_compatible_time_points(self.cube)
+
 
 class Test_shape_weights(Test_weighted_blend):
 
