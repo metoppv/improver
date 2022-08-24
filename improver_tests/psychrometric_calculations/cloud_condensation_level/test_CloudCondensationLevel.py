@@ -101,10 +101,9 @@ def metadata_ok(ccl: Tuple[Cube, Cube], baseline: Cube, model_id_attr=None) -> N
     t_at_ccl, p_at_ccl = ccl
     assert t_at_ccl.long_name == "air_temperature_at_condensation_level"
     assert t_at_ccl.units == "K"
-    assert "height" not in [c.name() for c in t_at_ccl.coords()]
+    assert "height" not in [c.name() for c in t_at_ccl.coords() + p_at_ccl.coords()]
     assert p_at_ccl.long_name == "air_pressure_at_condensation_level"
     assert p_at_ccl.units == "Pa"
-    assert "height" not in [c.name() for c in p_at_ccl.coords()]
     for cube in ccl:
         assert cube.dtype == np.float32
         for coord in cube.coords():
