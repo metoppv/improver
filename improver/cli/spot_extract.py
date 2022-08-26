@@ -156,7 +156,7 @@ def process(
     # to minimise processing time; usually there are far fewer spot sites than
     # grid points.
     if extract_percentiles:
-        extract_percentiles = [np.float32(x) for x in extract_percentiles]
+        extract_percentiles = sorted([np.float32(x) for x in extract_percentiles])
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
@@ -184,12 +184,12 @@ def process(
         else:
             constraint = ["{}={}".format(perc_coordinate.name(), extract_percentiles)]
             perc_result = extract_subcube(result, constraint)
-            if perc_result is not None:
+            if perc_result is not None and (perc_result.coord("percentile").points == extract_percentiles).all():
                 result = perc_result
             else:
                 msg = (
-                    "The percentile diagnostic cube does not contain the "
-                    "requested percentile value. Requested {}, available "
+                    "The percentile diagnostic cube does not contain all of the "
+                    "requested percentile values. Requested {}, available "
                     "{}".format(extract_percentiles, perc_coordinate.points)
                 )
                 raise ValueError(msg)
