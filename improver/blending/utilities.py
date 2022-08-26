@@ -175,10 +175,12 @@ def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> No
     """
     For cycle and model blending:
     - Add a "blend_time" coordinate equal to the current cycletime
-    - Update the forecast reference time and forecast period coordinate points
-    to reflect the current cycle time (behaviour is DEPRECATED)
+    - Update the forecast reference time to reflect the current cycle time
+      (behaviour is DEPRECATED)
+    - If a forecast period coordinate is present this will be updated relative
+      to the current cycle time (behaviour is DEPRECATED)
     - Remove any bounds from the forecast reference time (behaviour is DEPRECATED)
-    - Mark the forecast reference time and forecast period as DEPRECATED
+    - Mark any forecast reference time and forecast period coordinates as DEPRECATED
 
     Modifies cube in place.
 

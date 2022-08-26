@@ -475,10 +475,14 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             ValueError : If blending over forecast reference time on a cube
                          with multiple times.
         """
-        if self.timeblending or cube.coord("time").ndim > 1:
+        if self.timeblending:
             return
 
-        time_points = cube.coord("time").points
+        try:
+            time_points = cube.coord("time_in_local_timezone").points
+        except CoordinateNotFoundError:
+            time_points = cube.coord("time").points
+
         if len(set(time_points)) > 1:
             msg = (
                 "Attempting to blend data for different validity times. The"
