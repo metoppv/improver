@@ -298,8 +298,8 @@ def test_percentile_unavailable(tmp_path):
     ]
     msg = (
         "The percentile diagnostic cube does not contain all of the "
-        "requested percentile values. Requested \[45.0, 50.0\], available "
-        "\[  0.  25.  50.  75. 100.\]"
+        "requested percentile values. Requested \\[45.0, 50.0\\], available "
+        "\\[  0.  25.  50.  75. 100.\\]"
     )
     with pytest.raises(ValueError, match=msg):
         run_cli(args)
