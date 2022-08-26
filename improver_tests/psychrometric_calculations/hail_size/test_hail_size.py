@@ -1,0 +1,314 @@
+# -*- coding: utf-8 -*-
+# -----------------------------------------------------------------------------
+# (C) British Crown copyright. The Met Office.
+# All rights reserved.
+#
+# Redistribution and use in source and binary forms, with or without
+# modification, are permitted provided that the following conditions are met:
+#
+# * Redistributions of source code must retain the above copyright notice, this
+#   list of conditions and the following disclaimer.
+#
+# * Redistributions in binary form must reproduce the above copyright notice,
+#   this list of conditions and the following disclaimer in the documentation
+#   and/or other materials provided with the distribution.
+#
+# * Neither the name of the copyright holder nor the names of its
+#   contributors may be used to endorse or promote products derived from
+#   this software without specific prior written permission.
+#
+# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
+# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
+# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
+# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
+# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
+# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
+# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
+# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
+# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
+# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
+# POSSIBILITY OF SUCH DAMAGE.
+
+
+import numpy as np
+import pytest
+from iris.cube import Cube, CubeList
+
+from improver.psychrometric_calculations.hail_size import HailSize
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+
+LOCAL_MANDATORY_ATTRIBUTES = {
+    "title": "unit test data",
+    "source": "unit test",
+    "institution": "somewhere",
+}
+
+
+@pytest.fixture(name="ccl_temperature")
+def ccl_temperature() -> Cube:
+    """Set up a r, y, x cube of cloud condensation level temperature data"""
+    data = np.full((2, 3, 2), fill_value=330, dtype=np.float32)
+    ccl_temperature_cube = set_up_variable_cube(
+        data,
+        name="temperature_at_cloud_condensation_level",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return ccl_temperature_cube
+
+
+@pytest.fixture(name="ccl_pressure")
+def ccl_pressure() -> Cube:
+    """Set up a r, y, x cube of cloud condensation level pressure data"""
+    data = np.full((2, 3, 2), fill_value=120000, dtype=np.float32)
+    ccl_pressure_cube = set_up_variable_cube(
+        data,
+        name="pressure_at_cloud_condensation_level",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return ccl_pressure_cube
+
+
+@pytest.fixture(name="temperature_on_pressure_levels")
+def t_cube_fixture() -> Cube:
+    """Set up a r, p, y, x cube of temperature of atmosphere on pressure levels"""
+    temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
+    data = np.broadcast_to(
+        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
+    )
+    t_cube = set_up_variable_cube(
+        data,
+        pressure=True,
+        height_levels=np.arange(100000, 29999, -10000),
+        name="temperature_on_pressure_levels",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return t_cube
+
+
+@pytest.fixture(name="relative_humidity_on_pressure")
+def relative_humidity_cube_fixture() -> Cube:
+    """Set up a r, p, y, x cube of relative_humidity on pressure levels"""
+    humidity = np.repeat(0.1, 8).astype("float32")
+    data = np.broadcast_to(
+        humidity.reshape((1, len(humidity), 1, 1)), (2, len(humidity), 3, 2)
+    )
+    humidity_cube = set_up_variable_cube(
+        data,
+        pressure=True,
+        height_levels=np.arange(100000, 29999, -10000),
+        name="relative_humidity_on_pressure_levels",
+        units="kg/kg",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+
+    return humidity_cube
+
+
+def metadata_check(hail_cube):
+    """Checks the hail cube produced by plugin has the expected metadata."""
+    assert hail_cube.long_name == "size_of_hail_stones"
+    assert hail_cube.units == "mm"
+    assert hail_cube.dtype == np.int8
+
+    coord_names = [coord.name() for coord in hail_cube.coords()]
+    assert coord_names == [
+        "realization",
+        "latitude",
+        "longitude",
+        "forecast_period",
+        "forecast_reference_time",
+        "time",
+    ]
+    assert hail_cube.shape == (2, 3, 2)
+    attributes = [attr for attr in hail_cube.attributes]
+    if "mosg__model_configuration" in attributes:
+
+        assert attributes == [
+            "title",
+            "source",
+            "institution",
+            "mosg__model_configuration",
+        ]
+    else:
+        assert attributes == ["title", "source", "institution"]
+
+
+"""literiture tephigram link
+Fawbush, E.J., and R.C. Miller. 1953.
+“A method for forecasting hailstone size at the earth’s surface.”
+Bulletin of the American Meteorological Society 34: 235-244.
+https://doi.org/10.1175/1520-0477-34.6.235
+"""
+
+
+@pytest.mark.parametrize(
+    "ccl_p,ccl_t,humidity,expected",
+    (
+        (75000, 290, 0.001, 20,),  # values approx from tephigram in literiture
+        (94000, 300, 0.001, 0),  # vertical value negative
+        (1000, 360, 0.001, 0),  # horizontal value negative
+        (95000, 330, 0.001, 80),  # vertical greater than length of table
+        (150000, 350, 0.1, 20),  # horizontal greater than length of table
+        (75000, 265, 0.001, 0),  # ccl temperature below 268.15
+    ),
+)
+def test_basic_hail_size(
+    ccl_pressure,
+    ccl_temperature,
+    temperature_on_pressure_levels,
+    relative_humidity_on_pressure,
+    ccl_p,
+    ccl_t,
+    humidity,
+    expected,
+):
+    """Tests the hail_size plugin with values for ccl temperature, ccl pressure
+    and relative humidity to check for expected result. Also checks the metadata
+    of the produced hail_size cube"""
+    ccl_pressure.data = np.full_like(ccl_pressure.data, ccl_p)
+    ccl_temperature.data = np.full_like(ccl_temperature.data, ccl_t)
+    relative_humidity_on_pressure.data = np.full_like(
+        relative_humidity_on_pressure.data, humidity
+    )
+
+    result = HailSize()(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        relative_humidity_on_pressure,
+    )
+
+    np.testing.assert_array_equal(result.data, expected)
+    metadata_check(result)
+
+
+def test_temperature_too_high(
+    temperature_on_pressure_levels,
+    ccl_pressure,
+    ccl_temperature,
+    relative_humidity_on_pressure,
+):
+    """Tests for the case where there are grid squares where the temperature
+    doesn't drop below 268.15K at any pressure."""
+    temperature_on_pressure_levels.data = np.full_like(
+        temperature_on_pressure_levels.data, 260
+    )
+    temperature_on_pressure_levels.data[:, :, 1] = 300
+
+    expected = [[[35, 35], [0, 0], [35, 35]], [[35, 35], [0, 0], [35, 35]]]
+
+    result = HailSize()(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        relative_humidity_on_pressure,
+    )
+    np.testing.assert_array_equal(result.data, expected)
+    metadata_check(result)
+
+
+@pytest.mark.parametrize(
+    "variable",
+    (
+        "temperature_on_pressure_levels",
+        "ccl_temperature",
+        "ccl_pressure",
+        "relative_humidity_on_pressure",
+    ),
+)
+def test_spatial_coord_mismatch(variable, request):
+    """Tests that an error is raised if the spatial
+    coordinates of all cubes don't match"""
+
+    variable_new = request.getfixturevalue(variable)
+    variable_slice = next(variable_new.slices_over("longitude"))
+
+    fixtures = [
+        "ccl_temperature",
+        "ccl_pressure",
+        "temperature_on_pressure_levels",
+        "relative_humidity_on_pressure",
+    ]
+    fixtures.remove(variable)
+    cubes = CubeList(request.getfixturevalue(fix) for fix in fixtures)
+    cubes.append(variable_slice)
+
+    ccl_temperature = cubes.extract("temperature_at_cloud_condensation_level")
+    ccl_pressure = cubes.extract("pressure_at_cloud_condensation_level")
+    temperature_on_pressure = cubes.extract("temperature_on_pressure_levels")
+    relative_humidity_on_pressure = cubes.extract(
+        "relative_humidity_on_pressure_levels"
+    )
+
+    with pytest.raises(ValueError):
+        HailSize()(
+            ccl_temperature[0],
+            ccl_pressure[0],
+            temperature_on_pressure[0],
+            relative_humidity_on_pressure[0],
+        )
+
+
+@pytest.mark.parametrize(
+    "variable",
+    (
+        "temperature_on_pressure_levels",
+        "ccl_temperature",
+        "ccl_pressure",
+        "relative_humidity_on_pressure",
+    ),
+)
+def test_incorrect_units(variable, request):
+    """Test to check that an error is raised if any cube hass incorrect units"""
+    variable_new = request.getfixturevalue(variable)
+    variable_new.units = "mm"
+
+    fixtures = [
+        "ccl_temperature",
+        "ccl_pressure",
+        "temperature_on_pressure_levels",
+        "relative_humidity_on_pressure",
+    ]
+    fixtures.remove(variable)
+    cubes = CubeList(request.getfixturevalue(fix) for fix in fixtures)
+    cubes.append(variable_new)
+
+    ccl_temperature = cubes.extract("temperature_at_cloud_condensation_level")
+    ccl_pressure = cubes.extract("pressure_at_cloud_condensation_level")
+    temperature_on_pressure = cubes.extract("temperature_on_pressure_levels")
+    relative_humidity_on_pressure = cubes.extract(
+        "relative_humidity_on_pressure_levels"
+    )
+    with pytest.raises(ValueError):
+        HailSize()(
+            ccl_temperature[0],
+            ccl_pressure[0],
+            temperature_on_pressure[0],
+            relative_humidity_on_pressure[0],
+        )
+
+
+@pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
+def test_model_id_attr(
+    temperature_on_pressure_levels,
+    ccl_pressure,
+    relative_humidity_on_pressure,
+    ccl_temperature,
+    model_id_attr,
+):
+    """Tests plguin if model_id_attr is set on inputs and is applied or not"""
+    temperature_on_pressure_levels.attributes["mosg__model_configuration"] = "gl_ens"
+    ccl_pressure.attributes["mosg__model_configuration"] = "gl_ens"
+    relative_humidity_on_pressure.attributes["mosg__model_configuration"] = "gl_ens"
+    ccl_temperature.attributes["mosg__model_configuration"] = "gl_ens"
+
+    result = HailSize(model_id_attr=model_id_attr)(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        relative_humidity_on_pressure,
+    )
+    metadata_check(result)
