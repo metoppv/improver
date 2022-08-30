@@ -130,6 +130,7 @@ def process(
 
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
+        ResamplePercentiles,
     )
     from improver.metadata.probabilistic import find_percentile_coordinate
     from improver.percentile import PercentileConverter
@@ -182,19 +183,13 @@ def process(
                 if not suppress_warnings:
                     warnings.warn(msg)
         else:
-            constraint = ["{}={}".format(perc_coordinate.name(), extract_percentiles)]
-            perc_result = extract_subcube(result, constraint)
-            if perc_result is not None and np.array_equal(
-                perc_result.coord("percentile").points, extract_percentiles
-            ):
-                result = perc_result
+            if set(extract_percentiles).issubset(perc_coordinate.points):
+                constraint = [
+                    "{}={}".format(perc_coordinate.name(), extract_percentiles)
+                ]
+                result = extract_subcube(result, constraint)
             else:
-                msg = (
-                    "The percentile diagnostic cube does not contain all of the "
-                    "requested percentile values. Requested {}, available "
-                    "{}".format(extract_percentiles, perc_coordinate.points)
-                )
-                raise ValueError(msg)
+                result = ResamplePercentiles()(result, percentiles=extract_percentiles)
 
     # Check whether a lapse rate cube has been provided
     if apply_lapse_rate_correction:
