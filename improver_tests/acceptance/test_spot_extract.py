@@ -282,11 +282,14 @@ def test_percentile_percentile_input(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentile_unavailable(tmp_path):
-    """Test extracting an unavailable percentile from percentile input"""
+def test_percentile_resampling(tmp_path):
+    """Test extracting percentiles that are not provided by percentile
+    input. This invokes percentile resampling to produce the requested
+    outputs."""
     kgo_dir = acc.kgo_root() / "spot-extract"
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
+    kgo_path = kgo_dir / "outputs/extract_resampled_percentiles.nc"
     output_path = tmp_path / "output.nc"
     args = [
         threshold_path,
@@ -294,15 +297,10 @@ def test_percentile_unavailable(tmp_path):
         "--output",
         output_path,
         "--extract-percentiles",
-        "45,50",
+        "45,50,55",
     ]
-    msg = (
-        "The percentile diagnostic cube does not contain all of the "
-        "requested percentile values. Requested \\[45.0, 50.0\\], available "
-        "\\[  0.  25.  50.  75. 100.\\]"
-    )
-    with pytest.raises(ValueError, match=msg):
-        run_cli(args)
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 def test_percentile_deterministic(tmp_path):
