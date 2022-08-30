@@ -184,11 +184,8 @@ def process(
         else:
             constraint = ["{}={}".format(perc_coordinate.name(), extract_percentiles)]
             perc_result = extract_subcube(result, constraint)
-            if (
-                perc_result is not None
-                and (
-                    perc_result.coord("percentile").points == extract_percentiles
-                ).all()
+            if perc_result is not None and np.array_equal(
+                perc_result.coord("percentile").points, extract_percentiles
             ):
                 result = perc_result
             else:
