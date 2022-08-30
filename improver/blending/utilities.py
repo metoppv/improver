@@ -174,6 +174,7 @@ def update_blended_metadata(
 def _set_blended_time_coords(blended_cube: Cube, cycletime: Optional[str]) -> None:
     """
     For cycle and model blending:
+
     - Add a "blend_time" coordinate equal to the current cycletime
     - Update the forecast reference time to reflect the current cycle time
       (behaviour is DEPRECATED)
