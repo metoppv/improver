@@ -123,8 +123,11 @@ def test_get_coords_to_remove_noop(cycle_cube):
     assert not result
 
 
-def test_update_blended_metadata(model_cube):
-    """Test blended metadata is as expected"""
+@pytest.mark.parametrize("forecast_period", (True, False))
+def test_update_blended_metadata(model_cube, forecast_period):
+    """Test blended metadata is as expected. Parameterizes to test that if
+    the input has no forecast_period coordinate, none is created by the
+    method."""
     blend_coord = "model_id"
     expected_attributes = {
         "mosg__model_configuration": "uk_det uk_ens",
@@ -132,6 +135,9 @@ def test_update_blended_metadata(model_cube):
         "institution": MANDATORY_ATTRIBUTE_DEFAULTS["institution"],
         "source": MANDATORY_ATTRIBUTE_DEFAULTS["source"],
     }
+
+    if not forecast_period:
+        model_cube.remove_coord("forecast_period")
 
     collapsed_cube = model_cube.collapsed(blend_coord, iris.analysis.MEAN)
     update_blended_metadata(
@@ -148,7 +154,8 @@ def test_update_blended_metadata(model_cube):
     assert collapsed_cube.attributes == expected_attributes
     # check frt has been updated via fp proxy - input had 3 hours lead time,
     # output has 2 hours lead time relative to current cycle time
-    assert collapsed_cube.coord("forecast_period").points[0] == 2 * 3600
+    if forecast_period:
+        assert collapsed_cube.coord("forecast_period").points[0] == 2 * 3600
 
 
 @pytest.mark.parametrize(
