@@ -87,8 +87,9 @@ def process(
             percentiles being returned from a cube of probabilities,
             percentiles or realizations. Deterministic input data will raise
             a warning message.
-            Note that for percentiles inputs, the desired percentile(s) must
-            exist in the input cube.
+            Note that for percentile inputs, if the desired percentile(s) do
+            not exist in the input cube the available percentiles will be
+            resampled to produce those requested.
         ignore_ecc_bounds (bool):
             Demotes exceptions where calculated percentiles are outside the ECC
             bounds range to warnings.
@@ -157,7 +158,7 @@ def process(
     # to minimise processing time; usually there are far fewer spot sites than
     # grid points.
     if extract_percentiles:
-        extract_percentiles = sorted([np.float32(x) for x in extract_percentiles])
+        extract_percentiles = [np.float32(x) for x in extract_percentiles]
         try:
             perc_coordinate = find_percentile_coordinate(result)
         except CoordinateNotFoundError:
