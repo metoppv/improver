@@ -185,18 +185,18 @@ def test__prepare_error_probability_cube(
     assert result.attributes == error_threshold_cube.attributes
 
 
-def test__prepare_features_dataframe(ensemble_features):
-    """Test dataframe preparation given set of feature cubes."""
+def test__prepare_features_array(ensemble_features):
+    """Test array preparation given set of feature cubes."""
     feature_names = [cube.name() for cube in ensemble_features]
     expected_size = ensemble_features.extract_cube(
         "lwe_thickness_of_precipitation_amount"
     ).data.size
     result = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}
-    )._prepare_features_dataframe(ensemble_features)
+    )._prepare_features_array(ensemble_features)
 
-    assert list(result.columns) == list(sorted(feature_names))
-    assert len(result) == expected_size
+    assert result[0].shape[0] == expected_size
+    assert result[1] == list(sorted(feature_names))
 
     # Drop realization coordinate from one of the ensemble features, to produce
     # cubes of differing length.
@@ -208,7 +208,7 @@ def test__prepare_features_dataframe(ensemble_features):
     with pytest.raises(ValueError):
         ApplyRainForestsCalibrationLightGBM(
             model_config_dict={}
-        )._prepare_features_dataframe(ensemble_features)
+        )._prepare_features_array(ensemble_features)
 
 
 def test_make_decreasing():
