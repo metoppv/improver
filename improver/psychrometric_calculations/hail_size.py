@@ -234,7 +234,7 @@ class HailSize(BasePlugin):
     def pressure_grid(self, variable_on_pressure: Cube) -> np.ndarray:
         """Creates a pressure grid of the same shape as variable_on_pressure cube.
         It is populated at every grid square and for every realization with
-            a column of all pressure levels taken from variable_on_pressure's pressure coordinate
+        a column of all pressure levels taken from variable_on_pressure's pressure coordinate
 
         Args:
             Variable_on_pressure
