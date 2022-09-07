@@ -36,6 +36,7 @@ from iris.cube import Cube, CubeList
 
 from improver.psychrometric_calculations.hail_size import HailSize
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "unit test data",
@@ -44,7 +45,7 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 }
 
 
-@pytest.fixture(name="ccl_temperature")
+@pytest.fixture
 def ccl_temperature() -> Cube:
     """Set up a r, y, x cube of cloud condensation level temperature data"""
     data = np.full((2, 3, 2), fill_value=330, dtype=np.float32)
@@ -57,7 +58,7 @@ def ccl_temperature() -> Cube:
     return ccl_temperature_cube
 
 
-@pytest.fixture(name="ccl_pressure")
+@pytest.fixture
 def ccl_pressure() -> Cube:
     """Set up a r, y, x cube of cloud condensation level pressure data"""
     data = np.full((2, 3, 2), fill_value=120000, dtype=np.float32)
@@ -70,8 +71,8 @@ def ccl_pressure() -> Cube:
     return ccl_pressure_cube
 
 
-@pytest.fixture(name="temperature_on_pressure_levels")
-def t_cube_fixture() -> Cube:
+@pytest.fixture
+def temperature_on_pressure_levels() -> Cube:
     """Set up a r, p, y, x cube of temperature of atmosphere on pressure levels"""
     temperatures = np.array([300, 286, 280, 274, 267, 262, 257, 245], dtype=np.float32)
     data = np.broadcast_to(
@@ -88,8 +89,8 @@ def t_cube_fixture() -> Cube:
     return t_cube
 
 
-@pytest.fixture(name="relative_humidity_on_pressure")
-def relative_humidity_cube_fixture() -> Cube:
+@pytest.fixture
+def relative_humidity_on_pressure() -> Cube:
     """Set up a r, p, y, x cube of relative_humidity on pressure levels"""
     humidity = np.repeat(0.1, 8).astype("float32")
     data = np.broadcast_to(
@@ -109,20 +110,10 @@ def relative_humidity_cube_fixture() -> Cube:
 
 def metadata_check(hail_cube):
     """Checks the hail cube produced by plugin has the expected metadata."""
-    assert hail_cube.long_name == "size_of_hail_stones"
+    assert hail_cube.long_name == "diameter_of_hail_stones"
     assert hail_cube.units == "mm"
     assert hail_cube.dtype == np.int8
 
-    coord_names = [coord.name() for coord in hail_cube.coords()]
-    assert coord_names == [
-        "realization",
-        "latitude",
-        "longitude",
-        "forecast_period",
-        "forecast_reference_time",
-        "time",
-    ]
-    assert hail_cube.shape == (2, 3, 2)
     attributes = [attr for attr in hail_cube.attributes]
     if "mosg__model_configuration" in attributes:
 
@@ -136,7 +127,21 @@ def metadata_check(hail_cube):
         assert attributes == ["title", "source", "institution"]
 
 
-"""literiture tephigram link
+def cube_size_check(hail_cube):
+    """Checks cube coordinates and dimensions"""
+    coord_names = [coord.name() for coord in hail_cube.coords()]
+    assert coord_names == [
+        "realization",
+        "latitude",
+        "longitude",
+        "forecast_period",
+        "forecast_reference_time",
+        "time",
+    ]
+    assert hail_cube.shape == (2, 3, 2)
+
+
+"""literature tephigram link
 Fawbush, E.J., and R.C. Miller. 1953.
 “A method for forecasting hailstone size at the earth’s surface.”
 Bulletin of the American Meteorological Society 34: 235-244.
@@ -151,7 +156,7 @@ https://doi.org/10.1175/1520-0477-34.6.235
         (94000, 300, 0.001, 0),  # vertical value negative
         (1000, 360, 0.001, 0),  # horizontal value negative
         (95000, 330, 0.001, 80),  # vertical greater than length of table
-        (150000, 350, 0.1, 20),  # horizontal greater than length of table
+        (150000, 350, 0.1, 25),  # horizontal greater than length of table
         (75000, 265, 0.001, 0),  # ccl temperature below 268.15
     ),
 )
@@ -183,6 +188,7 @@ def test_basic_hail_size(
 
     np.testing.assert_array_equal(result.data, expected)
     metadata_check(result)
+    cube_size_check(result)
 
 
 def test_temperature_too_high(
@@ -192,12 +198,12 @@ def test_temperature_too_high(
     relative_humidity_on_pressure,
 ):
     """Tests for the case where there are grid squares where the temperature
-    doesn't drop below 268.15K at any pressure."""
+    doesn't drop below 268.15K at any pressure. At these points hail size
+    should be set to zero"""
     temperature_on_pressure_levels.data = np.full_like(
         temperature_on_pressure_levels.data, 260
     )
     temperature_on_pressure_levels.data[:, :, 1] = 300
-
     expected = [[[35, 35], [0, 0], [35, 35]], [[35, 35], [0, 0], [35, 35]]]
 
     result = HailSize()(
@@ -208,6 +214,7 @@ def test_temperature_too_high(
     )
     np.testing.assert_array_equal(result.data, expected)
     metadata_check(result)
+    cube_size_check(result)
 
 
 @pytest.mark.parametrize(
@@ -252,45 +259,6 @@ def test_spatial_coord_mismatch(variable, request):
         )
 
 
-@pytest.mark.parametrize(
-    "variable",
-    (
-        "temperature_on_pressure_levels",
-        "ccl_temperature",
-        "ccl_pressure",
-        "relative_humidity_on_pressure",
-    ),
-)
-def test_incorrect_units(variable, request):
-    """Test to check that an error is raised if any cube hass incorrect units"""
-    variable_new = request.getfixturevalue(variable)
-    variable_new.units = "mm"
-
-    fixtures = [
-        "ccl_temperature",
-        "ccl_pressure",
-        "temperature_on_pressure_levels",
-        "relative_humidity_on_pressure",
-    ]
-    fixtures.remove(variable)
-    cubes = CubeList(request.getfixturevalue(fix) for fix in fixtures)
-    cubes.append(variable_new)
-
-    ccl_temperature = cubes.extract("temperature_at_cloud_condensation_level")
-    ccl_pressure = cubes.extract("pressure_at_cloud_condensation_level")
-    temperature_on_pressure = cubes.extract("temperature_on_pressure_levels")
-    relative_humidity_on_pressure = cubes.extract(
-        "relative_humidity_on_pressure_levels"
-    )
-    with pytest.raises(ValueError):
-        HailSize()(
-            ccl_temperature[0],
-            ccl_pressure[0],
-            temperature_on_pressure[0],
-            relative_humidity_on_pressure[0],
-        )
-
-
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(
     temperature_on_pressure_levels,
@@ -312,3 +280,80 @@ def test_model_id_attr(
         relative_humidity_on_pressure,
     )
     metadata_check(result)
+    cube_size_check(result)
+
+
+def test_re_ordered_cubes(
+    temperature_on_pressure_levels,
+    ccl_pressure,
+    relative_humidity_on_pressure,
+    ccl_temperature,
+):
+
+    """Tests Plugin is input cubes have coordinates in a different order.
+    Checks that the outputted cube has coordinates in the same order as the inputs"""
+
+    enforce_coordinate_ordering(
+        temperature_on_pressure_levels,
+        ["pressure", "latitude", "realization", "longitude"],
+    )
+    enforce_coordinate_ordering(
+        relative_humidity_on_pressure,
+        ["pressure", "latitude", "realization", "longitude"],
+    )
+    enforce_coordinate_ordering(ccl_pressure, ["latitude", "realization", "longitude"])
+    enforce_coordinate_ordering(
+        ccl_temperature, ["latitude", "realization", "longitude"]
+    )
+    result = HailSize()(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        relative_humidity_on_pressure,
+    )
+
+    metadata_check(result)
+    coord_names = [coord.name() for coord in result.coords()]
+    assert coord_names == [
+        "latitude",
+        "realization",
+        "longitude",
+        "forecast_period",
+        "forecast_reference_time",
+        "time",
+    ]
+    assert result.shape == (3, 2, 2)
+
+
+def test_no_realization_coordinate(
+    temperature_on_pressure_levels,
+    ccl_pressure,
+    relative_humidity_on_pressure,
+    ccl_temperature,
+):
+    """Test plugin if input cubes don't have a realization coordinate"""
+
+    temp = next(temperature_on_pressure_levels.slices_over("realization"))
+    temp.remove_coord("realization")
+
+    humidity = next(relative_humidity_on_pressure.slices_over("realization"))
+    humidity.remove_coord("realization")
+
+    cloud_pressure = next(ccl_pressure.slices_over("realization"))
+    cloud_pressure.remove_coord("realization")
+
+    cloud_temp = next(ccl_temperature.slices_over("realization"))
+    cloud_temp.remove_coord("realization")
+
+    result = HailSize()(cloud_temp, cloud_pressure, temp, humidity)
+
+    metadata_check(result)
+    coord_names = [coord.name() for coord in result.coords()]
+    assert coord_names == [
+        "latitude",
+        "longitude",
+        "forecast_period",
+        "forecast_reference_time",
+        "time",
+    ]
+    assert result.shape == (3, 2)

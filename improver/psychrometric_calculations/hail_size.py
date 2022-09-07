@@ -45,9 +45,40 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 
 from ..utilities.cube_checker import assert_spatial_coords_match
+from ..utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class HailSize(BasePlugin):
+    """Plugin to calculate the diameter of the hail stones from input cubes
+    cloud condensation level temperature, cloud condensation level pressure,
+    temperature on pressure levels and relative humidity on pressure levels.
+
+    From these the values for three other cubes are calculated:
+        - Temperature of the environemnet at 268.15K (-5 degrees) and the
+          pressure level where this occurs.
+        - Temperature after a saturated ascent from ccl pressure to the
+          pressure of the enviornment at 268.15K (-5 degrees).
+        - Temperature after a dry adiabatic descent from the pressure of the
+          environment at 268.15K (-5 degrees) to the ccl pressure.
+
+    From these two indexes are calculated as:
+        - Temperature after a dry adiabatic descent - the temperature of the
+          atmosphere at 268.15K
+        - Temperature after a saturated ascent - the temperature of the
+          atmosphere at 268.15K
+
+    These indexes are then used to extract values of hail size from the table
+    taken from Hand and Cappelluti (2011)
+
+    References
+        - Hand, W., and G. Cappelluti. 2011. “A global hail climatology using the UK
+          Met Office convection diagnosis procedure (CDP) and model analyses.”
+          Meteorological Applications 18: 446-458. doi:https://doi.org/10.1002/met.236
+        - Fawbush, E.J., and R.C. Miller. 1953. “A method for forecasting hailstone size
+          at the earth's surface.” Bulletin of the American Meteorological Society 34: 235-244.
+          doi: https://doi.org/10.1175/1520-0477-34.6.235
+    """
+
     def __init__(self, model_id_attr: str = None):
         """Sets up Class
             Args:
@@ -56,23 +87,28 @@ class HailSize(BasePlugin):
         """
         self.model_id_attr = model_id_attr
 
-    def nomogram_values(self) -> np.ndarray:
+    @staticmethod
+    def nomogram_values() -> np.ndarray:
 
-        """set-up an array of a table containing possible hail sizes (mm). It is a
-        transposed version of the table in:
+        """Sets-up an array of a table containing possible diameter of hail stones(mm).
+        It is a transposed version of the table in Hand and Cappelluti (2011).
 
-        Hand, W., and G. Cappelluti. 2011. “A global hail climatology using the UK
-        Met Office convection diagnosis procedure (CDP) and model analyses.”
-        Meteorological Applications 18: 446-458. doi:https://doi.org/10.1002/met.236.
+        The axes of the table are as follows:
 
-        The horizontal axis is the difference between the temperature after dry adiabatic
-        drop from temperature of atmosphere at 268.15K to the cloud condensation level pressure(c)
-        and the temperaure of the atmosphere at 268.15K (B).
-        The vertical axis is the difference between the temperature after a saturated asscent from
-        the ccl temperature to the pressure of atmosphere at 268.15K (b) and the temperature of the
-        atmosphere at 268.15K (B)
-
+            - Horizontal axis is calculated from two values: the temperature after a
+              dry adiabatic descent from the pressure of atmosphere at 268.15K to the
+              cloud condensation level pressure and the temperature of the atmosphere
+              at 268.15K. Each column is represent by a value calculated as the temperature
+              after the dry adiabatic descent minus the temperature of the atmosphere
+              at 268.15K rounded to the nearest 0.5 degrees.
+            - The vertical axis is also calculated from two values: the temperature after
+              a saturated ascent from the ccl pressure to the pressure of environment at
+              268.15K and the temperature of the atmosphere at 268.25K.
+              Each row is represented by a value calculated as the temperature after
+              the saturated ascent minus the temperature of the atmosphere at 268.15K
+              rounded to the nearest 5 degrees.
         """
+
         lookup_nomogram = np.array(
             [
                 [0, 0, 0, 2, 2, 5, 5, 5, 5, 5],
@@ -107,14 +143,25 @@ class HailSize(BasePlugin):
 
         return lookup_nomogram
 
+    @staticmethod
     def check_cubes(
-        self,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
     ) -> None:
-        """Checks the size and units of input cubes"""
+        """Checks the size and units of input cubes
+
+            Args:
+                ccl_temperature
+                    Cube of cloud condensation level temperature
+                ccl_pressure
+                    Cube of cloud condensation level pressure
+                temperature_on_pressure
+                    Cube of environment temperature on pressure levels
+                relative_humididty_on_pressure
+                    Cube of relative humidity on pressure levels
+        """
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
 
@@ -129,29 +176,73 @@ class HailSize(BasePlugin):
         relative_humidity_on_pressure.convert_units("kg/kg")
 
     def variable_at_pressure(
-        self, variable_on_pressure: Cube, pressure: np.ndarray
+        self, variable_on_pressure: Cube, pressure: Cube
     ) -> np.ndarray:
         """Extracts the values from variable_on_pressure cube at pressure
-        levels described by the pressure array"""
+        levels described by the pressure cube.
+
+        Args:
+            Variable_on_pressure
+                Cube of some variable with pressure levels
+            pressure
+                Cube of pressure values
+        Returns:
+            An n dimensional array of values for the variable extracted at
+            the pressure levels described by the pressure cube.
+        """
+
+        coord_names = [coord.name() for coord in variable_on_pressure.coords()]
+
+        re_ordered_cubes = self.coordinate_order([variable_on_pressure, pressure])
+
+        variable_on_pressure_reordered = re_ordered_cubes[0]
+        pressure_reordered = re_ordered_cubes[1]
 
         variable = []
-        pressure_grid = self.pressure_grid(variable_on_pressure)
+        pressure_grid = self.pressure_grid(variable_on_pressure_reordered)
 
-        # deals with each realization independently and puts the arrays back together
-        for rea in range(len(pressure_grid)):
-            pressure_diff = abs(pressure_grid[rea] - pressure[rea])
+        if "realization" in coord_names:
+            coord_names.remove("realization")
+            pressure_index = coord_names.index("pressure")
 
-            indicies = np.nanargmin(pressure_diff, axis=0)
+            # Calculates each realization independently and then puts the arrays back together
+            for rea in range(len(pressure_grid)):
+                pressure_diff = abs(pressure_grid[rea] - pressure_reordered.data[rea])
+
+                indicies = np.nanargmin(pressure_diff, axis=pressure_index)
+                lat, long = indicies.shape
+                lat, long = np.ogrid[:lat, :long]
+
+                variable.append(
+                    variable_on_pressure_reordered.data[rea, indicies, lat, long]
+                )
+
+            return np.array(variable)
+
+        else:
+            pressure_index = coord_names.index("pressure")
+
+            pressure_diff = abs(pressure_grid - pressure.data)
+
+            indicies = np.nanargmin(pressure_diff, axis=pressure_index)
             lat, long = indicies.shape
             lat, long = np.ogrid[:lat, :long]
 
-            variable.append(variable_on_pressure.data[rea, indicies, lat, long])
-
-        return np.array(variable)
+            variable = variable_on_pressure_reordered.data[indicies, lat, long]
+            return np.array(variable)
 
     def pressure_grid(self, variable_on_pressure: Cube) -> np.ndarray:
-        """Creates a pressure_grid of the same shape as variable_on_pressure
-        with all possible pressure levels."""
+        """Creates a pressure grid of the same shape as variable_on_pressure cube.
+        It is populated at every grid square and for every realization with
+            a column of all pressure levels taken from variable_on_pressure's pressure coordinate
+
+        Args:
+            Variable_on_pressure
+                Cube of some variable with pressure levels
+        Returns:
+            An n dimensional array containing at every grid square and for every realization
+            a column of all pressure levels taken from variable_on_pressure's pressure coordinate
+        """
 
         required_shape = variable_on_pressure.shape
         pressure_points = variable_on_pressure.coord("pressure").points
@@ -163,69 +254,172 @@ class HailSize(BasePlugin):
         )
         return pressure_array
 
-    def pressure_at_268(self, temperature_on_pressure: Cube) -> (CubeList):
-        """Extracts the lowest pressure level where the environment
-        temperature is below -5 degrees (268.15K). It also produces
-        the environemnt temperature at that pressure value"""
+    @staticmethod
+    def coordinate_order(cubes: CubeList):
+        """Puts all cubes coordinates into a standard order that depends
+        on if realization coordinate is present
 
-        pressure_template = next(temperature_on_pressure.slices_over(["pressure"]))
-        pressure_template.rename("pressure of atmosphere at 268.15K")
-        pressure_template.units = temperature_on_pressure.coord("pressure").units
+        Args:
+            cubes
+                list of cubes to be re-ordered
+        Returns
+            A list of cubes in the same order as in cubes but with re-ordered coordinates
+        """
+        coord_names = [coord.name() for coord in cubes[0].coords()]
+        if "realization" in coord_names:
+            order = ["realization", "pressure", "latitude", "longitude"]
+        else:
+            order = ["pressure", "latitude", "longitude"]
+
+        ordered_cube = []
+
+        for cube in cubes:
+            order2 = order.copy()
+            cube_coord_names = [coord.name() for coord in cube.coords()]
+            if "pressure" not in cube_coord_names:
+                order2.remove("pressure")
+            enforce_coordinate_ordering(cube, order2)
+            ordered_cube.append(cube)
+        return ordered_cube
+
+    def extract_pressure_at_268(self, temperature_on_pressure: Cube) -> (CubeList):
+        """Extracts the pressure level where the environment
+        temperature first drops below -5 degrees (268.15K) starting at a pressure value
+        near the surface and ascending in atitude from there. It also produces
+        the environment temperature at that pressure value
+
+        Args:
+            temperature_on_pressure
+                A cube of temperature on pressure levels
+        Returns:
+            A list of two cubes containing a cube of the environment pressure at 268.15K
+            and a cube of the temperature at that pressure value
+        """
+
+        coord_order = [coord.name() for coord in temperature_on_pressure.coords()]
+        coord_order.remove("pressure")
+
+        re_ordered_temperature = self.coordinate_order([temperature_on_pressure])[0]
+
+        pressure_template = next(re_ordered_temperature.slices_over(["pressure"]))
+        pressure_template.rename("pressure_of_atmosphere_at_268.15K")
+        pressure_template.units = re_ordered_temperature.coord("pressure").units
         pressure_template.remove_coord("pressure")
 
-        temperature_template = next(temperature_on_pressure.slices_over(["pressure"]))
+        temperature_template = next(re_ordered_temperature.slices_over(["pressure"]))
         temperature_template.rename("tempeature_of_atmosphere_at_268.15K")
         temperature_template.remove_coord("pressure")
 
-        shape = temperature_on_pressure.data.shape
-        r, l, m = (shape[0], shape[2], shape[3])  # ignores pressure axis
-
-        data = np.ma.masked_greater(temperature_on_pressure.data, 268.15)
+        data = np.ma.masked_greater(re_ordered_temperature.data, 268.15)
         data = np.ma.masked_invalid(data)
 
-        indicies = np.ma.notmasked_edges(data, axis=1)[0][1]
+        if "realization" in coord_order:
+            indices = np.ma.notmasked_edges(data, axis=1)[0][1]
+            pressure = re_ordered_temperature.coord("pressure").points[indices]
+            shape = re_ordered_temperature.data.shape
 
-        pressure = temperature_on_pressure.coord("pressure").points[indicies]
+            rea, lat, long = (shape[0], shape[2], shape[3])  # ignores pressure axis
+            # identifies if there are columns where the entire column is masked
+            if len(pressure) != rea * lat * long:
+                columns = np.ma.all(data, axis=1).flatten()
+                columns_mask = np.ma.getmask(columns)
+                index = np.where(columns_mask)[0]
 
-        # identifies if there are columns where the temperature never drops below -5 degrees
-        if len(pressure) != r * l * m:
-            index = np.where(np.amin(data, axis=1).flatten() > 268.15)[0]
-            for x in index:
-                pressure = np.insert(pressure, x, -9999)
-            pressure = np.ma.masked_where(pressure == -9999, pressure)
+                for x in index:
+                    pressure = np.insert(pressure, x, -9999)
+                pressure = np.ma.masked_where(pressure == -9999, pressure)
 
-        pressure = pressure.reshape(r, l, m)
+            pressure = pressure.reshape(rea, lat, long)
+
+        else:
+            indices = np.ma.notmasked_edges(data, axis=0)[0][1]
+
+            pressure = re_ordered_temperature.coord("pressure").points[indices]
+
+            shape = re_ordered_temperature.data.shape
+
+            lat, long = (shape[1], shape[2])  # ignores pressure axis
+
+            # identifies if there are columns where the entire column is masked
+            if len(pressure) != lat * long:
+                columns = np.ma.all(data, axis=1).flatten()
+                columns_mask = np.ma.getmask(columns)
+                index = np.where(columns_mask)[0]
+                for x in index:
+                    pressure = np.insert(pressure, x, -9999)
+                pressure = np.ma.masked_where(pressure == -9999, pressure)
+
+            pressure = pressure.reshape(lat, long)
+
         pressure_template.data = pressure
 
-        temperature = self.variable_at_pressure(temperature_on_pressure, pressure)
+        temperature = self.variable_at_pressure(
+            re_ordered_temperature, pressure_template
+        )
 
         temperature = np.ma.masked_where(np.ma.getmask(pressure), temperature)
         temperature_template.data = temperature
-        return pressure_template, temperature_template
 
-    def relative_humidity_at_268(
+        # returns cubes to the original order
+        enforce_coordinate_ordering(temperature_template, coord_order)
+        enforce_coordinate_ordering(pressure_template, coord_order)
+
+        return (pressure_template, temperature_template)
+
+    def extract_relative_humidity_at_268(
         self, relative_humidity: Cube, pressure_at_268: Cube
     ) -> Cube:
-        """Extract relative humidity at pressure of the environment at 268.15K"""
+        """Extract relative humidity at pressure of the environment at 268.15K
+
+        Args:
+            relative_humidity
+                Cube of relative humidity values on pressure levels
+            pressure_at_268
+                Cube of pressure where the temperature is 268.15K
+        Returns:
+            A cube of relative humidity at the pressure of the environment at 268.15K
+        """
+
+        coord_order = [coord.name() for coord in relative_humidity.coords()]
+        coord_order.remove("pressure")
+
+        relative_humidity_ordered, pressure_at_268_ordered = self.coordinate_order(
+            [relative_humidity, pressure_at_268]
+        )
 
         relative_humidity_data = self.variable_at_pressure(
-            relative_humidity, pressure_at_268.data
+            relative_humidity_ordered, pressure_at_268_ordered
         )
-        relative_humidity = pressure_at_268.copy(data=relative_humidity_data)
+        relative_humidity = pressure_at_268_ordered.copy(data=relative_humidity_data)
         relative_humidity.rename("relative_humidity_at_268.15K")
         relative_humidity.units = "kg/kg"
 
+        enforce_coordinate_ordering(relative_humidity, coord_order)
+        enforce_coordinate_ordering(pressure_at_268, coord_order)
         return relative_humidity
 
+    @staticmethod
     def temperature_after_saturated_ascent_from_CCL(
-        self,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         pressure_at_268: Cube,
         humidity_mixing_ratio_at_268: Cube,
     ) -> np.ndarray:
         """Calculates the temperature after a saturated ascent
-        from the cloud condensation level to the pressure of the atmosphere at 268.15K"""
+        from the cloud condensation level to the pressure of the atmosphere at 268.15K
+
+        Args:
+            ccl_temperature
+                Cube of cloud condensaiton level temperature
+            ccl_pressure
+                Cube of cloud condensaiton level pressure
+            pressure_at_268
+                Cube of the pressure of the environment at 268.15K
+            humidity_mixing_ratio_at_268
+                Cube of humidity mixing ratio at the pressure of the environment at 268.15K
+        Returns
+            Cube of temperature after the saturated ascent
+        """
 
         t_dry = dry_adiabatic_temperature(
             ccl_temperature.data, ccl_pressure.data, pressure_at_268.data
@@ -235,32 +429,59 @@ class HailSize(BasePlugin):
         )
         return t_2
 
-    def dry_adiabatic_drop_to_ccl(
-        self, ccl_pressure: Cube, temperature_at_268: Cube, pressure_at_268: Cube
+    @staticmethod
+    def dry_adiabatic_descent_to_ccl(
+        ccl_pressure: Cube, temperature_at_268: Cube, pressure_at_268: Cube
     ) -> np.ndarray:
-        """Calculates a dry adiabatic drop from the pressure of the environment at
-        268.15K to the cloud condensation level."""
+        """Calculates the temperature due to a dry adiabatic descent from the pressure of the environment at
+        268.15K to the cloud condensation level pressure.
+
+        Args:
+            ccl_pressure
+                Cube of cloud condensation level pressure
+            temperature_at_268
+                Cube of the temperature of the environment at 268.15K
+            pressure_at_268
+                Cube of the pressure of the environment at 268.15K
+        Returns:
+            Cube of temperature after the dry adiabatic descent
+        """
 
         t_dry = dry_adiabatic_temperature(
             temperature_at_268.data, pressure_at_268.data, ccl_pressure.data
         )
         return t_dry
 
-    def get_hail_size(self, vertical: np.ndarray, horizontal: np.ndarray):
+    def get_hail_size(self, vertical: np.ndarray, horizontal: np.ndarray) -> np.ndarray:
         """Uses the lookup_table and the vertical and horizontal indexes calculated
         to extract and store values from the lookup nomogram. Masked data points or
-        if vertical or horizontal values are negative lead to a hail_size of 0."""
+        if vertical or horizontal values are negative lead to a hail_size of 0.
+
+        Args:
+            vertical
+                An n dimensional array containing the values used to calculate the vertical indexes
+            horizontal
+                An n dimensional array containign the values used to calculate the horizontal
+                indexes
+        Returns:
+            an n-dimension array of values for the diameter of hail (mm)
+        """
 
         lookup_table = self.nomogram_values()
         shape = np.shape(vertical)
 
+        # Rounds the calculated horizontal value to the nearest 5 which is
+        # then turned into a relevant index for accessing the appropriate column.
+        # Rounds the calculated vertical values to the nearest 0.5 which is then
+        # turned into a relevant index for accessing the appropriate row.
         horizontal_rounded = np.around(horizontal / 5, decimals=0) - 1
-        vertical_rounded = np.around(vertical * 2, decimals=0) - 1
+        vertical_rounded = np.around(vertical * 2, decimals=0)
 
+        # flattens array's so they can later be accessed
         horizontal_flat = horizontal_rounded.flatten(order="C")
         vertical_flat = vertical_rounded.flatten(order="C")
         hail_size_list = []
-
+        # clips index values to not be longer than the table
         vertical_clipped = np.clip(vertical_flat, None, len(lookup_table) - 1)
         horizontal_clipped = np.clip(horizontal_flat, None, len(lookup_table[0]) - 1)
 
@@ -281,13 +502,28 @@ class HailSize(BasePlugin):
         ccl_temperature: Cube,
         humidity_mixing_ratio_at_268: Cube,
     ) -> np.ndarray:
-        """Gets temperature of environment at 268.15K, dry adiabatic drop
-        from pressure of air at 268.15K to ccl pressure and the temperature
-        after a saturated ascent from ccl to the pressure of air at 268.15K.
-        From these values it calculates vertical and horizontal indicies. It also masks
-        data where the ccl_temperature is below 268.15K."""
+        """Gets temperature of environment at 268.15K, temperature after a dry adiabatic descent
+        from the pressure of air at 268.15K to ccl pressure and the temperature
+        after a saturated ascent from ccl pressure to the pressure of air at 268.15K.
+        From these values it calculates vertical and horizontal indices. It also masks
+        data where the ccl_temperature is below 268.15K.
 
-        temp_dry = self.dry_adiabatic_drop_to_ccl(
+        Args:
+            temperature_at_268
+                Cube of the temperature of the environment at 268.15K
+            pressure_at_268
+                Cube of the pressure of the environment at 268.15K
+            ccl_pressure
+                Cube of cloud condensation level pressure
+            ccl_temperature
+                Cube of cloud condensation level pressure
+            humidity_mixing_ratio_at_268
+                Cube of humidity mixing ratio at the pressure of the environment at 268.15K
+        Returns:
+            An n dimenisonal array of diameter of hail stones
+        """
+
+        temp_dry = self.dry_adiabatic_descent_to_ccl(
             ccl_pressure, temperature_at_268, pressure_at_268
         )
 
@@ -319,7 +555,20 @@ class HailSize(BasePlugin):
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
     ) -> Cube:
-        """Puts the hail data into a cube with appropriate metadata"""
+        """Puts the hail data into a cube with appropriate metadata
+
+        Args:
+            hail_size
+                An n dimensional array of the diameter of hail stones (mm)
+            ccl_temperature
+                Cube of cloud condensation level pressure
+            ccl_pressure
+                Cube of cloud condensation level pressure
+            temperature_on_pressure
+                A cube of temperature on pressure levels
+        Returns:
+            A cube of the diameter of hail stones(mm)
+        """
 
         attributes = {}
         if self.model_id_attr:
@@ -328,7 +577,7 @@ class HailSize(BasePlugin):
             ]
 
         hail_size_cube = create_new_diagnostic_cube(
-            name="size_of_hail_stones",
+            name="diameter_of_hail_stones",
             units="mm",
             template_cube=ccl_temperature,
             data=hail_size,
@@ -367,12 +616,14 @@ class HailSize(BasePlugin):
             relative_humidity_on_pressure,
         )
 
-        pressure_at_268, temperature_at_268 = self.pressure_at_268(
+        pressure_at_268, temperature_at_268 = self.extract_pressure_at_268(
             temperature_on_pressure
         )
-        relative_humidity_at_268 = self.relative_humidity_at_268(
+
+        relative_humidity_at_268 = self.extract_relative_humidity_at_268(
             relative_humidity_on_pressure, pressure_at_268
         )
+
         humidity_mixing_ratio_at_268 = HumidityMixingRatio()(
             [temperature_at_268, pressure_at_268, relative_humidity_at_268]
         )
