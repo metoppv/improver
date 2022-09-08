@@ -35,6 +35,7 @@ from datetime import datetime, timedelta
 import numpy as np
 import pytest
 from cf_units import Unit
+import iris
 from iris.coords import CellMethod
 from iris.cube import Cube
 
@@ -186,6 +187,28 @@ def test_check_input_cube_dims(include_time_coord):
             ValueError, match=r"Expected coords on input_cube: time, y, x "
         ):
             plugin.check_input_cube_dims(cube, timezone_cube)
+
+def test_check_input_cube_dims():
+    """Checks that check_input_cube_dims can work with a auxiliary time
+    coordinate. This occurs when partial periods are allowed. In these
+    cases the lower time bound may be the same between different time
+    points, preventing the creation of a dimension coordinate that
+    required monotonically increasing bounds. In this case a anonymous
+    coordinate is created by iris that can be named and used for
+    reordering.
+
+    A temporary name should be assigned to the time dimension for
+    reordering. This should not be present on the output."""
+    cube = make_input_cube([3, 4])
+    timezone_cube = make_timezone_cube()
+    iris.util.demote_dim_coord_to_aux_coord(cube, "time")
+
+    plugin = TimezoneExtraction()
+    plugin.check_input_cube_dims(cube, timezone_cube)
+    assert plugin.timezone_cube.coord_dims("UTC_offset") == tuple(
+        [plugin.timezone_cube.ndim - 1]
+    )
+    assert "time_points" not in [crd.name() for crd in cube.coords()]
 
 
 @pytest.mark.parametrize(
