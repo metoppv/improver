@@ -32,10 +32,10 @@
 
 from datetime import datetime, timedelta
 
+import iris
 import numpy as np
 import pytest
 from cf_units import Unit
-import iris
 from iris.coords import CellMethod
 from iris.cube import Cube
 
@@ -188,7 +188,8 @@ def test_check_input_cube_dims(include_time_coord):
         ):
             plugin.check_input_cube_dims(cube, timezone_cube)
 
-def test_check_input_cube_dims():
+
+def test_check_aux_time_coord():
     """Checks that check_input_cube_dims can work with a auxiliary time
     coordinate. This occurs when partial periods are allowed. In these
     cases the lower time bound may be the same between different time

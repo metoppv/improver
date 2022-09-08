@@ -41,8 +41,9 @@ from cftime import DatetimeGregorian
 from iris import Constraint
 from iris.coords import AuxCoord, Coord
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from iris.time import PartialDateTime
-from numpy import int64, ndarray
+from numpy import int64
 
 from improver import PostProcessingPlugin
 from improver.metadata.check_datatypes import enforce_dtype
@@ -450,14 +451,16 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If the spatial coords on input_cube and timezone_cube do not match.
         """
         time_coord_name = "time"
-        expected_coords = [time_coord_name] + [input_cube.coord(axis=n).name() for n in "yx"]
+        expected_coords = [time_coord_name] + [
+            input_cube.coord(axis=n).name() for n in "yx"
+        ]
         cube_coords = [coord.name() for coord in input_cube.coords(dim_coords=True)]
         if not all(
             [expected_coord in cube_coords for expected_coord in expected_coords]
         ):
             try:
                 time_aux_dim = input_cube.coord_dims(time_coord_name)
-            except:
+            except CoordinateNotFoundError:
                 raise ValueError(
                     f"Expected coords on input_cube: time, y, x ({expected_coords})."
                     f"Found {cube_coords}"
