@@ -72,14 +72,14 @@ BOUNDS_FOR_ECDF = {
     # Forecast error: precipitation_amount
     "forecast_error_of_lwe_thickness_of_precipitation_amount": Bounds((-0.3, 0.3), "m"),
     # Precipitation rate
-    "lwe_precipitation_rate": Bounds((0, 128.0), "mm h-1"),
-    "lwe_precipitation_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
-    "lwe_precipitation_rate_max": Bounds((0, 128.0), "mm h-1"),
-    "lwe_sleetfall_rate": Bounds((0, 128.0), "mm h-1"),
-    "lwe_snowfall_rate": Bounds((0, 128.0), "mm h-1"),
-    "lwe_snowfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
-    "rainfall_rate": Bounds((0, 128.0), "mm h-1"),
-    "rainfall_rate_in_vicinity": Bounds((0, 128.0), "mm h-1"),
+    "lwe_precipitation_rate": Bounds((0, 400.0), "mm h-1"),
+    "lwe_precipitation_rate_in_vicinity": Bounds((0, 400.0), "mm h-1"),
+    "lwe_precipitation_rate_max": Bounds((0, 400.0), "mm h-1"),
+    "lwe_sleetfall_rate": Bounds((0, 400.0), "mm h-1"),
+    "lwe_snowfall_rate": Bounds((0, 400.0), "mm h-1"),
+    "lwe_snowfall_rate_in_vicinity": Bounds((0, 400.0), "mm h-1"),
+    "rainfall_rate": Bounds((0, 400.0), "mm h-1"),
+    "rainfall_rate_in_vicinity": Bounds((0, 400.0), "mm h-1"),
     # Temperature
     "air_temperature": (Bounds((-100 - ABSOLUTE_ZERO, 60 - ABSOLUTE_ZERO), "Kelvin")),
     "feels_like_temperature": (
