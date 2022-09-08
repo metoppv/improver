@@ -427,26 +427,17 @@ class TimezoneExtraction(PostProcessingPlugin):
         self.time_points = times.sum(axis=-1)
 
         # Sort out the time bounds (if present)
-        bounds_offsets = self._get_time_bounds_offset(input_cube)
-        if bounds_offsets is not None:
-            # Add scalar coords to allow broadcast to spatial coords.
-            self.time_bounds = bounds_offsets.reshape(
-                (1, 1, 2)
-            ) + self.time_points.reshape(list(self.time_points.shape) + [1])
+        if input_cube.coord("time").bounds is not None:
+            bounds = []
+            # Index 0 = lower bound, index 1 = upper bound
+            for index in [0, 1]:
+                time_bounds = input_cube.coord("time").bounds[:, index]
+                time_bounds = time_bounds.reshape((1, 1, len(time_bounds))) * (
+                    1 - self.timezone_cube.data
+                )
+                bounds.append(time_bounds.sum(axis=-1))
 
-    @staticmethod
-    def _get_time_bounds_offset(input_cube: Cube) -> Optional[ndarray]:
-        """Returns the generalised offset of bounds[0] and bounds[1] from points on the
-        time coord. Bound intervals must match as we have used MergeCubes, so only need
-        to access the first time point.
-        """
-        time_coord = input_cube.coord("time")
-        point = time_coord.points[0]
-        if time_coord.has_bounds():
-            bounds = time_coord.bounds[0]
-            return bounds - point
-        else:
-            return None
+            self.time_bounds = np.stack(bounds, axis=-1)
 
     def check_input_cube_dims(self, input_cube: Cube, timezone_cube: Cube) -> None:
         """Ensures input cube has at least three dimensions: time, y, x. Promotes time
@@ -458,20 +449,36 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If the input cube does not have exactly the expected three coords.
                 If the spatial coords on input_cube and timezone_cube do not match.
         """
-        expected_coords = ["time"] + [input_cube.coord(axis=n).name() for n in "yx"]
+        time_coord_name = "time"
+        expected_coords = [time_coord_name] + [input_cube.coord(axis=n).name() for n in "yx"]
         cube_coords = [coord.name() for coord in input_cube.coords(dim_coords=True)]
         if not all(
             [expected_coord in cube_coords for expected_coord in expected_coords]
         ):
-            raise ValueError(
-                f"Expected coords on input_cube: time, y, x ({expected_coords})."
-                f"Found {cube_coords}"
-            )
-        enforce_coordinate_ordering(input_cube, ["time"], anchor_start=False)
+            try:
+                time_aux_dim = input_cube.coord_dims(time_coord_name)
+            except:
+                raise ValueError(
+                    f"Expected coords on input_cube: time, y, x ({expected_coords})."
+                    f"Found {cube_coords}"
+                )
+            else:
+                if time_aux_dim:
+                    tp = input_cube.coord(time_coord_name).copy()
+                    tp.bounds = None
+                    tp.rename("time_points")
+                    input_cube.add_aux_coord(tp, 0)
+                    iris.util.promote_aux_coord_to_dim_coord(input_cube, "time_points")
+                    time_coord_name = "time_points"
+
+        enforce_coordinate_ordering(input_cube, [time_coord_name], anchor_start=False)
         self.timezone_cube = timezone_cube.copy()
         enforce_coordinate_ordering(
             self.timezone_cube, ["UTC_offset"], anchor_start=False
         )
+        # Remove the temporary name for the anonymous time dimension
+        if time_coord_name != "time":
+            input_cube.remove_coord(time_coord_name)
         if not spatial_coords_match([input_cube, self.timezone_cube]):
             raise ValueError(
                 "Spatial coordinates on input_cube and timezone_cube do not match."
