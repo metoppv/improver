@@ -271,21 +271,64 @@ def test_process(with_percentiles, input_as_cube, input_has_time_bounds):
     local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
     row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
-    row2 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
-    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 4
-    expected_times = [row1, row2, row3]
+    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
+    expected_times = [row1, row1, row3]
     expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
+
     if not input_as_cube:
         # Split cube into a list of cubes
         cube = [c for c in cube.slices_over("time")]
     result = TimezoneExtraction()(cube, timezone_cube, local_time)
+
     assert_metadata_ok(result)
-    assert np.isclose(result.data, expected_data).all()
-    assert np.isclose(result.coord("time").points, expected_times).all()
+    assert np.array_equal(result.data, expected_data)
+    assert np.array_equal(result.coord("time").points, expected_times)
     if input_has_time_bounds:
-        assert np.isclose(result.coord("time").bounds, expected_bounds).all()
+        assert np.array_equal(result.coord("time").bounds, expected_bounds)
     else:
         assert result.coord("time").bounds is None
+
+
+def test_partial_period():
+    """Checks that the plugin process method returns a cube with expected data and
+    time coord for a case of partial time periods. In this case the time bounds
+    are not monotonic, rather the first two times share lower bounds. This requires
+    that the time coordinate be an Auxiliary coordinate. The variable time-bounds
+    should be reflected in the output time coordinate."""
+    data_shape = [3, 4]
+    data = np.array(
+        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
+    )
+    expected_data = [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
+
+    cube = make_input_cube(data_shape, time_bounds=True)
+    cube.data = data
+
+    # Make aux time coord with overlapping lower bounds.
+    tcrd = iris.coords.AuxCoord.from_coord(cube.coord("time"))
+    tbounds = tcrd.bounds.copy()
+    tbounds[0, 0] = tbounds[1, 0]
+    tcrd.bounds = tbounds
+    cube.remove_coord("time")
+    cube.add_aux_coord(tcrd, 0)
+
+    local_time = datetime(2017, 11, 10, 5, 0)
+    timezone_cube = make_timezone_cube()
+    row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
+    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
+    expected_times = [row1, row1, row3]
+    expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
+    # The overlapping bounds we expect to see in the output.
+    expected_bounds[:2, :, 0] += 3600
+
+    result = TimezoneExtraction()(cube, timezone_cube, local_time)
+
+    assert_metadata_ok(result)
+    assert np.array_equal(result.data, expected_data)
+    assert np.array_equal(result.coord("time").points, expected_times)
+    assert np.array_equal(result.coord("time").bounds, expected_bounds)
+    # Demonstrate there are different length bounds indicating partial periods.
+    assert len(np.unique(np.diff(result.coord("time").bounds))) > 1
 
 
 def test_bad_dtype():
