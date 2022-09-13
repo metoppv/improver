@@ -45,7 +45,7 @@ from improver.metadata.utilities import (
 class HailFraction(PostProcessingPlugin):
     """
     Calculates the hail fraction using the maximum vertical updraught,
-    the hail_size, the cloud condensation level temperature, the convective cloud top
+    the hail size, the cloud condensation level temperature, the convective cloud top
     temperature and altitude of the hail to rain phase change.
 
     """
@@ -70,7 +70,7 @@ class HailFraction(PostProcessingPlugin):
         orography: Cube,
     ) -> np.ndarray:
         """Computation of a hail fraction using the following steps: firstly,
-        the hail fraction is estimated are varying linearly with the maximum vertical
+        the hail fraction is estimated as varying linearly with the maximum vertical
         updraught so that a maximum vertical updraught of 5 m/s has a hail fraction of
         0 whilst a maximum vertical updraught of 50 m/s has a hail fraction of 0.25.
         The hail size is then checked for hail with a size larger than 2 mm. If the
@@ -154,7 +154,8 @@ class HailFraction(PostProcessingPlugin):
     ) -> Cube:
         """Calculates the hail fraction using the maximum vertical updraught,
         the hail_size, the cloud condensation level temperature, the convective cloud
-        top temperature and altitude of the hail to rain phase change.
+        top temperature, the altitude of the hail to rain phase change and the
+        orography.
 
         Args:
             vertical_updraught: Maximum vertical updraught in m/s.

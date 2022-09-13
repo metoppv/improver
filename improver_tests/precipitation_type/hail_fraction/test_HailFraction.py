@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-""" Tests of SnowFraction plugin"""
+"""Tests for the HailFraction plugin."""
 
 import iris
 import numpy as np
@@ -46,6 +46,7 @@ COMMON_ATTRS = {
 
 
 def setup_cubes():
+    """Set up cubes for testing."""
     vertical_updraught_data = np.zeros((2, 2), dtype=np.float32)
     vertical_updraught = set_up_variable_cube(
         vertical_updraught_data,
@@ -148,6 +149,7 @@ def test_basic(
     expected,
     model_id_attr,
 ):
+    """Test hail fraction plugin."""
     expected_attributes = COMMON_ATTRS.copy()
     if model_id_attr:
         expected_attributes[model_id_attr] = setup_cubes()[0].attributes[model_id_attr]
