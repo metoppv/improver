@@ -424,9 +424,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_dataset, feature_variables = self._prepare_features_array(feature_cubes)
 
-        precipitation_ind = feature_variables.index(
-            "lwe_thickness_of_precipitation_amount"
-        )
+        forecast_variable = forecast_cube.name()
+        precipitation_ind = feature_variables.index(forecast_variable)
         precip_forecast = input_dataset[:, precipitation_ind]
 
         for threshold_index, model in enumerate(self.tree_models):
@@ -836,9 +835,8 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         features_array, feature_variables = self._prepare_features_array(feature_cubes)
         input_dataset = DMatrix(features_array)
 
-        precipitation_ind = feature_variables.index(
-            "lwe_thickness_of_precipitation_amount"
-        )
+        forecast_variable = forecast_cube.name()
+        precipitation_ind = feature_variables.index(forecast_variable)
         precip_forecast = features_array[:, precipitation_ind]
 
         for threshold_index, model in enumerate(self.tree_models):
