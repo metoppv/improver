@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -49,6 +49,7 @@ class HailFraction(PostProcessingPlugin):
     temperature and altitude of the hail to rain phase change.
 
     """
+
     def __init__(self, model_id_attr: Optional[str] = None) -> None:
         """
         Initialise the class.
@@ -102,7 +103,9 @@ class HailFraction(PostProcessingPlugin):
         cct_limit = 258.15
 
         hail_fraction = np.interp(vertical_updraught.data, [5, 50], [0, 0.25])
-        hail_fraction[(hail_size.data > hail_size_limit) & (hail_fraction < 0.05)] = 0.05
+        hail_fraction[
+            (hail_size.data > hail_size_limit) & (hail_fraction < 0.05)
+        ] = 0.05
         hail_fraction[
             (cloud_condensation_level.data < ccl_limit)
             | (convective_cloud_top.data > cct_limit)
@@ -184,4 +187,3 @@ class HailFraction(PostProcessingPlugin):
             convective_cloud_top,
             hail_melting_level,
         )
-

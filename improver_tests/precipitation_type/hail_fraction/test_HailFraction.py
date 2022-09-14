@@ -1,6 +1,6 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
-# (C) British Crown Copyright 2017-2021 Met Office.
+# (C) British Crown copyright. The Met Office.
 # All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
@@ -34,8 +34,8 @@ import iris
 import numpy as np
 import pytest
 from cf_units import Unit
-from improver.precipitation_type.hail_fraction import HailFraction
 
+from improver.precipitation_type.hail_fraction import HailFraction
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 COMMON_ATTRS = {
