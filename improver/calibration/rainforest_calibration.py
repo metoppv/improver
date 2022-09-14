@@ -36,10 +36,11 @@
 
 """
 
+from itertools import product
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import List, Optional, Tuple
+from typing import Callable, List, Optional, Tuple, Union
 
 import numpy as np
 from iris.coords import DimCoord
@@ -400,6 +401,48 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
         return 0.5 * (upper + lower)
 
+    def _evaluate_probabilities(
+        self,
+        forecast_data: ndarray,
+        input_data: ndarray,
+        output_data: ndarray,
+        preprocessing_fun: Optional[Callable[[ndarray], object]] = None,
+    ):
+        """Evaluate probability that error in forecast exceeds thresholds, setting the result to 1 when 
+        `forecast + threshold <= 0`.
+        
+        Args:
+            forecast_data:
+                1-d containing data for the variable to be calibrated.
+            input_data:
+                2-d array of data for the feature variables of the model
+            output_data:
+                array to populate with output; will be modified in place
+            preprocessing_fun:
+                function to convert data from ndarray to model input format, only used for treelite predictor
+        """
+
+        if preprocessing_fun:
+            input_dataset = preprocessing_fun(input_data)
+        else:
+            input_dataset = input_data
+
+        for threshold_index, model in enumerate(self.tree_models):
+            threshold = self.error_thresholds[threshold_index]
+            if threshold >= 0:
+                prediction = model.predict(input_dataset)
+            else:
+                prediction = np.ones(input_data.shape[0], dtype=np.float32)
+                forecast_bool = forecast_data + threshold > 0
+                if np.any(forecast_bool):
+                    input_subset = input_data[forecast_bool]
+                    if preprocessing_fun:
+                        input_subset = preprocessing_fun(input_subset)
+                    prediction[forecast_bool] = model.predict(input_subset)
+            output_data[threshold_index, :] = np.reshape(
+                prediction, output_data.shape[1:]
+            )
+
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
     ) -> Cube:
@@ -428,26 +471,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         precipitation_ind = feature_variables.index(forecast_variable)
         precip_forecast = input_dataset[:, precipitation_ind]
 
-        for threshold_index, model in enumerate(self.tree_models):
-            threshold = self.error_thresholds[threshold_index]
-            if threshold >= 0:
-                prediction = model.predict(input_dataset)
-                error_probability_cube.data[threshold_index, ...] = np.reshape(
-                    prediction, forecast_cube.data.shape
-                )
-            else:
-                forecast_bool = precip_forecast + threshold > 0
-                if np.any(forecast_bool):
-                    prediction = np.ones(input_dataset.shape[0], dtype=np.float32)
-                    input_subset = input_dataset[forecast_bool]
-                    prediction[forecast_bool] = model.predict(input_subset)
-                    error_probability_cube.data[threshold_index, ...] = np.reshape(
-                        prediction, forecast_cube.data.shape
-                    )
-                else:
-                    error_probability_cube.data[threshold_index, ...] = np.ones(
-                        forecast_cube.data.shape
-                    )
+        self._evaluate_probabilities(
+            precip_forecast, input_dataset, error_probability_cube.data
+        )
 
         # Enforcing monotonicity
         error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
@@ -832,33 +858,16 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
-        features_array, feature_variables = self._prepare_features_array(feature_cubes)
-        input_dataset = DMatrix(features_array)
+        input_data, feature_variables = self._prepare_features_array(feature_cubes)
 
         forecast_variable = forecast_cube.name()
         precipitation_ind = feature_variables.index(forecast_variable)
-        precip_forecast = features_array[:, precipitation_ind]
+        precip_forecast = input_data[:, precipitation_ind]
 
-        for threshold_index, model in enumerate(self.tree_models):
-            threshold = self.error_thresholds[threshold_index]
-            if threshold >= 0:
-                prediction = model.predict(input_dataset)
-                error_probability_cube.data[threshold_index, ...] = np.reshape(
-                    prediction, forecast_cube.data.shape
-                )
-            else:
-                forecast_bool = precip_forecast + threshold >= 0
-                if np.any(forecast_bool):
-                    prediction = np.ones(features_array.shape[0], dtype=np.float32)
-                    input_subset = DMatrix(features_array[forecast_bool])
-                    prediction[forecast_bool] = model.predict(input_subset)
-                    error_probability_cube.data[threshold_index, ...] = np.reshape(
-                        prediction, forecast_cube.data.shape
-                    )
-                else:
-                    error_probability_cube.data[threshold_index, ...] = np.ones(
-                        forecast_cube.data.shape
-                    )
+        preprocess = lambda x: DMatrix(x)
+        self._evaluate_probabilities(
+            precip_forecast, input_data, error_probability_cube.data, preprocess
+        )
 
         # Enforcing monotonicity
         error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
