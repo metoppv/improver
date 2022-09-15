@@ -418,7 +418,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_data:
                 array to populate with output; will be modified in place
             preprocessing_fun:
-                function to convert data from ndarray to model input format, 
+                function to convert data from ndarray to model input format,
                 only used for treelite predictor
         """
 
