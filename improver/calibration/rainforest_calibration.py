@@ -433,7 +433,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 prediction = model.predict(input_dataset)
             else:
                 prediction = np.ones(input_data.shape[0], dtype=np.float32)
-                forecast_bool = forecast_data + threshold > 0
+                forecast_bool = forecast_data + threshold >= 0
                 if np.any(forecast_bool):
                     input_subset = input_data[forecast_bool]
                     if preprocessing_fun:
