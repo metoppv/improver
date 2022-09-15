@@ -330,7 +330,6 @@ class TimezoneExtraction(PostProcessingPlugin):
             calendar=self.time_coord_standards.calendar,
         )
         self.timezone_cube = None
-
         self.output_data = None
 
     def create_output_cube(self, cube: Cube, local_time: datetime) -> Cube:
@@ -440,10 +439,9 @@ class TimezoneExtraction(PostProcessingPlugin):
 
             self.time_bounds = np.stack(bounds, axis=-1)
 
-    def check_input_cube_dims(self, input_cube: Cube, timezone_cube: Cube) -> None:
+    def check_input_cube_dims(self, input_cube: Cube) -> None:
         """Ensures input cube has at least three dimensions: time, y, x. Promotes time
-        to be the inner-most dimension (dim=-1). Does the same for the timezone_cube
-        UTC_offset dimension.
+        to be the inner-most dimension (dim=-1).
 
         Raises:
             ValueError:
@@ -475,10 +473,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                     time_coord_name = "time_points"
 
         enforce_coordinate_ordering(input_cube, [time_coord_name], anchor_start=False)
-        self.timezone_cube = timezone_cube.copy()
-        enforce_coordinate_ordering(
-            self.timezone_cube, ["UTC_offset"], anchor_start=False
-        )
+
         # Remove the temporary name for the anonymous time dimension
         if time_coord_name != "time":
             input_cube.remove_coord(time_coord_name)
@@ -487,10 +482,21 @@ class TimezoneExtraction(PostProcessingPlugin):
                 "Spatial coordinates on input_cube and timezone_cube do not match."
             )
 
-    def check_input_cube_time(self, input_cube: Cube, local_time: datetime) -> None:
+    def check_input_cube_time(self, input_cube: Cube, local_time: datetime) -> bool:
         """Ensures input cube and timezone_cube cover exactly the right points and that
-        the time and UTC_offset coords have the same order.
+        the time and UTC_offset coords have the same order. If not a warning is raised
+        and the plugin will return nothing.
 
+        Time points are compared as these fall at the end of time periods under IMPROVER
+        definitions. This means that a partial period, e.g. 15-00, is allowed as long
+        as it runs to the end of the intended period. Any period that is curtailed such
+        that it doesn't reach the end of intended period, e.g. 00-15 will not be allowed.
+        This means that we can update same day forecasts with partial periods, but we
+        don't end up with a whole day summary temperature / weather symbol etc. at long
+        lead-times that is not really a whole day.
+
+        Returns:
+            True if appropriate input data has been provided, False if not.
         Raises:
             ValueError:
                 If the time coord on the input cube does not match the required times.
@@ -499,7 +505,11 @@ class TimezoneExtraction(PostProcessingPlugin):
         # timezone_cube.coord("UTC_offset") is monotonically increasing. It needs to be
         # decreasing so that the required UTC time for local_time will be increasing
         # when it is calculated.
+        enforce_coordinate_ordering(
+            self.timezone_cube, ["UTC_offset"], anchor_start=False
+        )
         self.timezone_cube = self.timezone_cube[:, :, ::-1]
+
         timezone_coord = self.timezone_cube.coord("UTC_offset")
         timezone_coord.convert_units("seconds")
         output_times = [
@@ -507,14 +517,31 @@ class TimezoneExtraction(PostProcessingPlugin):
             for offset in timezone_coord.points
         ]
         if input_time_points != output_times:
+            if input_cube.coord("time").bounds is not None:
+                # When mapping to timezones, the input cube contains data at times that
+                # correspond with different timezones. The earliest times correspond to
+                # the eastern most timezones, and the latest time to the western most.
+                # Incomplete periods in the east are indicative of a same day partial
+                # period, i.e. producing a 15-00 instead of 00-00 forecast for Japan.
+                # These are desirable as they update the same day forecast.
+                # Incomplete periods in the west are indicative of a data shortfall for
+                # representing the whole period at the longest lead-times. These should
+                # not return output as the daily summary would not represent a whole day
+                # for these regions.
+                bounds = input_cube.coord("time").bounds
+                b_diffs = np.diff(bounds)
+                if len(b_diffs) > 1 and any(b_diffs[-1] < b_diffs[:-1]):
+                    return False
+
             raise ValueError(
                 "Time coord on input cube does not match required times. Expected\n"
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in output_times])
                 + "\nFound:\n"
                 + "\n".join([f"{t:%Y%m%dT%H%MZ}" for t in input_time_points])
             )
+        return True
 
-    def check_timezones_are_unique(self, timezone_cube: Cube) -> None:
+    def check_timezones_are_unique(self) -> None:
         """Ensures that each grid point falls into exactly one time zone
 
         Raises:
@@ -522,7 +549,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If the timezone_cube does not map exactly one time zone to each spatial
                 point.
         """
-        if not ((1 - timezone_cube.data).sum(axis=0) == 1).all():
+        if not ((1 - self.timezone_cube.data).sum(axis=0) == 1).all():
             raise ValueError(
                 "Timezone cube does not map exactly one time zone to each spatial point"
             )
@@ -559,9 +586,11 @@ class TimezoneExtraction(PostProcessingPlugin):
         else:
             input_cube = MergeCubes()(CubeList(input_cubes))
 
-        self.check_timezones_are_unique(timezone_cube)
-        self.check_input_cube_dims(input_cube, timezone_cube)
-        self.check_input_cube_time(input_cube, local_time)
+        self.timezone_cube = timezone_cube.copy()
+        self.check_timezones_are_unique()
+        if not self.check_input_cube_time(input_cube, local_time):
+            return None
+        self.check_input_cube_dims(input_cube)
 
         self._fill_timezones(input_cube)
         output_cube = self.create_output_cube(input_cube, local_time)

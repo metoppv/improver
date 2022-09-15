@@ -84,7 +84,9 @@ class PostProcessingPlugin(BasePlugin):
         from iris.cube import Cube
 
         result = super().__call__(*args, **kwargs)
-        if isinstance(result, Cube):
+        if result is None:
+            return result
+        elif isinstance(result, Cube):
             self.post_processed_title(result)
         else:
             for cube in result:
