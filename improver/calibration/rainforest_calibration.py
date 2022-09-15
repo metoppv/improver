@@ -36,11 +36,10 @@
 
 """
 
-from itertools import product
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple, Union
+from typing import Callable, List, Optional, Tuple
 
 import numpy as np
 from iris.coords import DimCoord
@@ -408,9 +407,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         output_data: ndarray,
         preprocessing_fun: Optional[Callable[[ndarray], object]] = None,
     ):
-        """Evaluate probability that error in forecast exceeds thresholds, setting the result to 1 when 
-        `forecast + threshold <= 0`.
-        
+        """Evaluate probability that error in forecast exceeds thresholds, setting
+        the result to 1 when `forecast + threshold <= 0`.
+
         Args:
             forecast_data:
                 1-d containing data for the variable to be calibrated.
@@ -419,7 +418,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_data:
                 array to populate with output; will be modified in place
             preprocessing_fun:
-                function to convert data from ndarray to model input format, only used for treelite predictor
+                function to convert data from ndarray to model input format, 
+                only used for treelite predictor
         """
 
         if preprocessing_fun:
