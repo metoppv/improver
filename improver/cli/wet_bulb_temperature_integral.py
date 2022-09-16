@@ -36,7 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(wet_bulb_temperature: cli.inputcube):
+def process(wet_bulb_temperature: cli.inputcube, *, model_id_attr: str = None):
     """Module to calculate wet bulb temperature integral.
 
     Calculate the wet-bulb temperature integral using the input wet bulb
@@ -46,6 +46,8 @@ def process(wet_bulb_temperature: cli.inputcube):
     Args:
         wet_bulb_temperature (iris.cube.Cube):
             Cube of wet bulb temperatures on height levels.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for blending.
 
     Returns:
         iris.cube.Cube:
@@ -55,4 +57,4 @@ def process(wet_bulb_temperature: cli.inputcube):
         WetBulbTemperatureIntegral,
     )
 
-    return WetBulbTemperatureIntegral()(wet_bulb_temperature)
+    return WetBulbTemperatureIntegral(model_id_attr=model_id_attr)(wet_bulb_temperature)

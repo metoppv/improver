@@ -68,7 +68,7 @@ class WetBulbTemperature(BasePlugin):
         last updated 2014-12-05.
     """
 
-    def __init__(self, precision: float = 0.005) -> None:
+    def __init__(self, precision: float = 0.005, model_id_attr: str = None) -> None:
         """
         Initialise class.
 
@@ -76,9 +76,13 @@ class WetBulbTemperature(BasePlugin):
             precision:
                 The precision to which the Newton iterator must converge before
                 returning wet bulb temperatures.
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for blending.
+
         """
         self.precision = precision
         self.maximum_iterations = 20
+        self.model_id_attr = model_id_attr
 
     @staticmethod
     def _slice_inputs(temperature, relative_humidity, pressure):
@@ -288,7 +292,7 @@ class WetBulbTemperature(BasePlugin):
         )
 
         attributes = generate_mandatory_attributes(
-            [temperature, relative_humidity, pressure]
+            [temperature, relative_humidity, pressure], model_id_attr=self.model_id_attr
         )
         wbt = create_new_diagnostic_cube(
             "wet_bulb_temperature", "K", temperature, attributes, data=wbt_data
@@ -345,8 +349,9 @@ class WetBulbTemperature(BasePlugin):
 class WetBulbTemperatureIntegral(BasePlugin):
     """Calculate a wet-bulb temperature integral."""
 
-    def __init__(self):
+    def __init__(self, model_id_attr: str = None):
         """Initialise class."""
+        self.model_id_attr = model_id_attr
         self.integration_plugin = Integration("height")
 
     def process(self, wet_bulb_temperature: Cube) -> Cube:
@@ -368,6 +373,10 @@ class WetBulbTemperatureIntegral(BasePlugin):
         # otherwise vertical interpolation is slow
         wbt.data
         wet_bulb_temperature_integral = self.integration_plugin(wbt)
+        if self.model_id_attr:
+            wet_bulb_temperature_integral.attributes[
+                self.model_id_attr
+            ] = wbt.attributes[self.model_id_attr]
         # although the integral is computed over degC the standard unit is
         # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit("K m")

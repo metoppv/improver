@@ -37,7 +37,9 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, convergence_condition=0.05):
+def process(
+    *cubes: cli.inputcube, convergence_condition=0.05, model_id_attr: str = None
+):
     """Module to generate wet-bulb temperatures.
 
     Call the calculate_wet_bulb_temperature function to calculate wet-bulb
@@ -59,6 +61,8 @@ def process(*cubes: cli.inputcube, convergence_condition=0.05):
         convergence_condition (float):
             The precision in Kelvin to which the Newton iterator must converge
             before returning wet-bulb temperatures.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for blending.
 
     Returns:
         iris.cube.Cube:
@@ -69,4 +73,6 @@ def process(*cubes: cli.inputcube, convergence_condition=0.05):
         WetBulbTemperature,
     )
 
-    return WetBulbTemperature(precision=convergence_condition)(cubes)
+    return WetBulbTemperature(
+        precision=convergence_condition, model_id_attr=model_id_attr
+    )(cubes)
