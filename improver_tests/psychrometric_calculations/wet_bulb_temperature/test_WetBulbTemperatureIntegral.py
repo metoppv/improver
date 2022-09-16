@@ -86,6 +86,18 @@ class Test_process(IrisTest):
         self.assertEqual(wb_temp_int.name(), "wet_bulb_temperature_integral")
         self.assertEqual(str(wb_temp_int.units), "K m")
 
+    def test_model_id_attr(self):
+        """Test that the wet bulb temperature integral returns a cube
+        with the expected name and model_id_attr attribute."""
+        self.wet_bulb_temperature.attributes["mosg__model_configuration"] = "uk_ens"
+        wb_temp_int = WetBulbTemperatureIntegral(
+            model_id_attr="mosg__model_configuration"
+        ).process(self.wet_bulb_temperature)
+        self.assertIsInstance(wb_temp_int, iris.cube.Cube)
+        self.assertEqual(wb_temp_int.name(), "wet_bulb_temperature_integral")
+        self.assertEqual(str(wb_temp_int.units), "K m")
+        self.assertEqual(wb_temp_int.attributes["mosg__model_configuration"], "uk_ens")
+
     def test_data(self):
         """Test that the wet bulb temperature integral returns a cube
         containing the expected data."""

@@ -167,6 +167,20 @@ class Test_process(Test_WetBulbTemperature):
         self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
         self.assertEqual(result.units, Unit("K"))
 
+    def test_model_id_attr(self):
+        """Basic wet bulb temperature calculation as if calling the
+        create_wet_bulb_temperature_cube function directly with single
+        level data with the model_id_attr attribute present."""
+        for cube in [self.temperature, self.relative_humidity, self.pressure]:
+            cube.attributes["mosg__model_configuration"] = "uk_ens"
+
+        result = WetBulbTemperature(model_id_attr="mosg__model_configuration").process(
+            CubeList([self.temperature, self.relative_humidity, self.pressure])
+        )
+        self.assertArrayAlmostEqual(result.data, self.expected_wbt_data, decimal=3)
+        self.assertEqual(result.units, Unit("K"))
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
+
     def test_values_single_level_reorder_cubes(self):
         """Same test as test_values_single_level but the cubes are in a
         different order."""
