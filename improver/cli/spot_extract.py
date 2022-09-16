@@ -109,11 +109,6 @@ def process(
         iris.cube.Cube:
            Cube of spot data.
 
-    Raises:
-        ValueError:
-            If the percentile diagnostic cube does not contain the requested
-            percentile value.
-
     Warns:
         warning:
            If diagnostic cube is not a known probabilistic type.
