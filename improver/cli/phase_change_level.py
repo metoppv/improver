@@ -41,7 +41,7 @@ def process(
     phase_change,
     grid_point_radius=2,
     horizontal_interpolation=True,
-    model_id_attr: str = None
+    model_id_attr: str = None,
 ):
     """Height of precipitation phase change relative to sea level.
 
@@ -96,7 +96,7 @@ def process(
         phase_change=phase_change,
         grid_point_radius=grid_point_radius,
         horizontal_interpolation=horizontal_interpolation,
-        model_id_attr=model_id_attr
+        model_id_attr=model_id_attr,
     )
     result = plugin(cubes)
     return result
