@@ -282,11 +282,14 @@ def test_percentile_percentile_input(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentile_unavailable(tmp_path):
-    """Test extracting an unavailable percentile from percentile input"""
+def test_percentile_resampling(tmp_path):
+    """Test extracting percentiles that are not provided by percentile
+    input. This invokes percentile resampling to produce the requested
+    outputs."""
     kgo_dir = acc.kgo_root() / "spot-extract"
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
+    kgo_path = kgo_dir / "outputs/extract_resampled_percentiles.nc"
     output_path = tmp_path / "output.nc"
     args = [
         threshold_path,
@@ -294,10 +297,10 @@ def test_percentile_unavailable(tmp_path):
         "--output",
         output_path,
         "--extract-percentiles",
-        "45",
+        "45,50,55",
     ]
-    with pytest.raises(ValueError, match=".*percentile.*"):
-        run_cli(args)
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
 
 def test_percentile_deterministic(tmp_path):
@@ -389,6 +392,28 @@ def test_multiple_percentile_percentile_input(tmp_path):
         output_path,
         "--extract-percentiles",
         "25, 50, 75",
+        "--new-title",
+        UK_SPOT_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_disordered_percentiles_percentile_input(tmp_path):
+    """Test extracting percentiles from percentile input where the
+    requested percentile list is not monotonically increasing."""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    threshold_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
+    kgo_path = kgo_dir / "outputs/extract_multiple_percentiles_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        threshold_path,
+        neighbour_path,
+        "--output",
+        output_path,
+        "--extract-percentiles",
+        "50,75,25",
         "--new-title",
         UK_SPOT_TITLE,
     ]
