@@ -219,7 +219,13 @@ def test__evaluate_probabilities(
     input_dataset = plugin._prepare_features_array(ensemble_features)
     forecast = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
-    plugin._evaluate_probabilities(forecast, input_dataset, error_threshold_cube.data)
+    plugin._evaluate_probabilities(
+        forecast,
+        input_dataset,
+        ensemble_forecast.name(),
+        ensemble_forecast.units,
+        error_threshold_cube.data,
+    )
     diff = error_threshold_cube.data - data_before
     # check each error threshold has been populated
     assert np.all(np.any(diff != 0, axis=0))

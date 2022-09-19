@@ -116,9 +116,13 @@ def test__evaluate_probabilities(
     input_dataset = plugin._prepare_features_array(ensemble_features)
     forecast = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
-    preprocess = lambda x: treelite_runtime.DMatrix(x)
     plugin._evaluate_probabilities(
-        forecast, input_dataset, error_threshold_cube.data, preprocess
+        forecast,
+        input_dataset,
+        ensemble_forecast.name(),
+        ensemble_forecast.units,
+        error_threshold_cube.data,
+        treelite_runtime.DMatrix,
     )
     diff = error_threshold_cube.data - data_before
     # check each error threshold has been populated

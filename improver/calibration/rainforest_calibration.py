@@ -41,6 +41,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import Callable, List, Optional, Tuple
 
+import cf_units as unit
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
@@ -55,6 +56,7 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     RebadgePercentilesAsRealizations,
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
+from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -403,17 +405,24 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self,
         forecast_data: ndarray,
         input_data: ndarray,
+        forecast_variable: str,
+        forecast_variable_unit: str,
         output_data: ndarray,
         model_input_converter: Optional[Callable[[ndarray], object]] = None,
     ):
         """Evaluate probability that error in forecast exceeds thresholds, setting
-        the result to 1 when `forecast + threshold <= 0`.
+        the result to 1 when `forecast + threshold` is less than or equal to
+        the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
 
         Args:
             forecast_data:
                 1-d containing data for the variable to be calibrated.
             input_data:
                 2-d array of data for the feature variables of the model
+            forecast_variable:
+                name of forecast variable
+            forecast_variable_unit:
+                unit of forecast variable
             output_data:
                 array to populate with output; will be modified in place
             model_input_converter:
@@ -426,13 +435,22 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         else:
             input_dataset = input_data
 
+        bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
+        bound_unit = unit.Unit(bounds_data[1])
+        lower_bound = bound_unit.convert(bounds_data[0][0], forecast_variable_unit)
+
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
             if threshold >= 0:
+                # In this case, for all values of forecast we have
+                # forecast + threshold >= forecast >= lower_bound
                 prediction = model.predict(input_dataset)
             else:
+                # In this case, we have error > threshold if and only if
+                # observations > forecast + threshold, which has probability 1
+                # if forecast + threshold < lower_bound
                 prediction = np.ones(input_data.shape[0], dtype=np.float32)
-                forecast_bool = forecast_data + threshold >= 0
+                forecast_bool = forecast_data + threshold >= lower_bound
                 if np.any(forecast_bool):
                     input_subset = input_data[forecast_bool]
                     if model_input_converter:
@@ -469,7 +487,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         forecast = forecast_cube.data.ravel()
 
         self._evaluate_probabilities(
-            forecast, input_dataset, error_probability_cube.data
+            forecast,
+            input_dataset,
+            forecast_cube.name(),
+            forecast_cube.units,
+            error_probability_cube.data,
         )
 
         # Enforcing monotonicity
@@ -860,7 +882,12 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         forecast = forecast_cube.data.ravel()
 
         self._evaluate_probabilities(
-            forecast, input_data, error_probability_cube.data, DMatrix
+            forecast,
+            input_data,
+            forecast_cube.name(),
+            forecast_cube.units,
+            error_probability_cube.data,
+            DMatrix,
         )
 
         # Enforcing monotonicity
