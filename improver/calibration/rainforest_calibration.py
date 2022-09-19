@@ -356,8 +356,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Cubelist containing the independent feature variables for prediction.
 
         Returns:
-            array containing flattened feature variables,
-            list of variable names
+            - Array containing flattened feature variables,
+            - List of variable names
 
         Raises:
             ValueError:
