@@ -39,7 +39,7 @@
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable, List, Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import cf_units as unit
 import numpy as np
@@ -47,7 +47,6 @@ from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
 from numpy import ndarray
-from pandas import DataFrame
 
 from improver import PostProcessingPlugin
 from improver.cli import generate_percentiles
