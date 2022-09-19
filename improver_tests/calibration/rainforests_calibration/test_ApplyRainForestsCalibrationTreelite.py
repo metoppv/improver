@@ -105,7 +105,7 @@ def test__check_num_features(ensemble_features, dummy_treelite_models):
 
 
 def test__evaluate_probabilities(
-    ensemble_features, dummy_treelite_models, error_threshold_cube
+    ensemble_features, ensemble_forecast, dummy_treelite_models, error_threshold_cube
 ):
     """Test that _evaluate_probabilities populates error_threshold_cube.data with
     probability data."""
@@ -114,14 +114,11 @@ def test__evaluate_probabilities(
     plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
-    feature_variables = [cube.name() for cube in ensemble_features]
-    feature_variables.sort()
-    precipitation_ind = feature_variables.index("lwe_thickness_of_precipitation_amount")
-    precip_forecast = input_dataset[:, precipitation_ind]
+    forecast = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
     preprocess = lambda x: treelite_runtime.DMatrix(x)
     plugin._evaluate_probabilities(
-        precip_forecast, input_dataset, error_threshold_cube.data, preprocess
+        forecast, input_dataset, error_threshold_cube.data, preprocess
     )
     diff = error_threshold_cube.data - data_before
     # check each error threshold has been populated
@@ -130,9 +127,7 @@ def test__evaluate_probabilities(
     assert np.all(error_threshold_cube.data >= 0)
     assert np.all(error_threshold_cube.data <= 1)
     # check data is 1 where forecast + error < 0
-    precip_forecast_reshaped = np.reshape(
-        precip_forecast, error_threshold_cube.data.shape[1:]
-    )
+    precip_forecast_reshaped = np.reshape(forecast, error_threshold_cube.data.shape[1:])
     for i, t in enumerate(plugin.error_thresholds):
         invalid_error = precip_forecast_reshaped + t < 0
         print(precip_forecast_reshaped[invalid_error] + t)
