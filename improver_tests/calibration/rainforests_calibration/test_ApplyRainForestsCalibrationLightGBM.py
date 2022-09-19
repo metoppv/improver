@@ -187,7 +187,6 @@ def test__prepare_error_probability_cube(
 
 def test__prepare_features_array(ensemble_features):
     """Test array preparation given set of feature cubes."""
-    feature_names = [cube.name() for cube in ensemble_features]
     expected_size = ensemble_features.extract_cube(
         "lwe_thickness_of_precipitation_amount"
     ).data.size
@@ -195,8 +194,7 @@ def test__prepare_features_array(ensemble_features):
         model_config_dict={}
     )._prepare_features_array(ensemble_features)
 
-    assert result[0].shape[0] == expected_size
-    assert result[1] == list(sorted(feature_names))
+    assert result.shape[0] == expected_size
 
     # Drop realization coordinate from one of the ensemble features, to produce
     # cubes of differing length.
@@ -218,7 +216,9 @@ def test__evaluate_probabilities(
     probability data."""
     plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
-    input_dataset, feature_variables = plugin._prepare_features_array(ensemble_features)
+    input_dataset = plugin._prepare_features_array(ensemble_features)
+    feature_variables = [cube.name() for cube in ensemble_features]
+    feature_variables.sort()
     precipitation_ind = feature_variables.index("lwe_thickness_of_precipitation_amount")
     precip_forecast = input_dataset[:, precipitation_ind]
     data_before = error_threshold_cube.data.copy()

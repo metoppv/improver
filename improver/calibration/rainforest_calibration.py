@@ -855,15 +855,12 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
-        input_data, feature_variables = self._prepare_features_array(feature_cubes)
+        input_data = self._prepare_features_array(feature_cubes)
 
-        forecast_variable = forecast_cube.name()
-        precipitation_ind = feature_variables.index(forecast_variable)
-        precip_forecast = input_data[:, precipitation_ind]
+        forecast = forecast_cube.data.ravel()
 
-        preprocess = lambda x: DMatrix(x)
         self._evaluate_probabilities(
-            precip_forecast, input_data, error_probability_cube.data, preprocess
+            forecast, input_data, error_probability_cube.data, DMatrix
         )
 
         # Enforcing monotonicity

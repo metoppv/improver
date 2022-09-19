@@ -113,7 +113,9 @@ def test__evaluate_probabilities(
 
     plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
-    input_dataset, feature_variables = plugin._prepare_features_array(ensemble_features)
+    input_dataset = plugin._prepare_features_array(ensemble_features)
+    feature_variables = [cube.name() for cube in ensemble_features]
+    feature_variables.sort()
     precipitation_ind = feature_variables.index("lwe_thickness_of_precipitation_amount")
     precip_forecast = input_dataset[:, precipitation_ind]
     data_before = error_threshold_cube.data.copy()
