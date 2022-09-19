@@ -155,7 +155,6 @@ def test_invalid_nonlin_lin(tmp_path):
         run_cli(args)
 
 
-@pytest.mark.xfail(run=False, reason="takes ~5 minutes to run")
 def test_percentile(tmp_path):
     """Test percentile blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/percentiles"
@@ -339,7 +338,6 @@ def test_weights_dict(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.xfail(run=False, reason="takes ~5 minutes to run")
 def test_percentile_weights_dict(tmp_path):
     """Test percentile blending with weights dictionary"""
     kgo_dir = acc.kgo_root() / "weighted_blending/percentile_weights_from_dict"
@@ -422,7 +420,6 @@ def test_non_mo_model(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_nowcast_cycle_blending(tmp_path):
     """Test blending nowcast cycles"""
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
@@ -450,7 +447,6 @@ def test_nowcast_cycle_blending(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_spatial_model_blending(tmp_path):
     """Test spatial model blending"""
     kgo_dir = acc.kgo_root() / "weighted_blending/spatial_weights"
