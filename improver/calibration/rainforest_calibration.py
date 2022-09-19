@@ -51,12 +51,12 @@ from pandas import DataFrame
 
 from improver import PostProcessingPlugin
 from improver.cli import generate_percentiles
+from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertProbabilitiesToPercentiles,
     RebadgePercentilesAsRealizations,
 )
 from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
-from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
