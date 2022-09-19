@@ -344,9 +344,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         return error_probability_cube
 
-    def _prepare_features_array(
-        self, feature_cubes: CubeList
-    ) -> ndarray:
+    def _prepare_features_array(self, feature_cubes: CubeList) -> ndarray:
         """Convert gridded feature cubes into a numpy array, with feature variables
         sorted alphabetically.
 
