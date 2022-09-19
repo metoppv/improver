@@ -107,7 +107,7 @@ def test_single_level_output(tmp_path):
         "--model-resolution",
         "1500",
         "--output-height-level",
-        "10",
+        "50",
         "--output",
         output_path,
     ]
@@ -153,7 +153,7 @@ def test_single_level_units(tmp_path):
         "--model-resolution",
         "1500",
         "--output-height-level",
-        "1000",
+        "5000",
         "--output-height-level-units",
         "cm",
         "--output",
