@@ -404,7 +404,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         forecast_data: ndarray,
         input_data: ndarray,
         output_data: ndarray,
-        preprocessing_fun: Optional[Callable[[ndarray], object]] = None,
+        model_input_converter: Optional[Callable[[ndarray], object]] = None,
     ):
         """Evaluate probability that error in forecast exceeds thresholds, setting
         the result to 1 when `forecast + threshold <= 0`.
@@ -416,13 +416,13 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 2-d array of data for the feature variables of the model
             output_data:
                 array to populate with output; will be modified in place
-            preprocessing_fun:
+            model_input_converter:
                 function to convert data from ndarray to model input format,
                 only used for treelite predictor
         """
 
-        if preprocessing_fun:
-            input_dataset = preprocessing_fun(input_data)
+        if model_input_converter:
+            input_dataset = model_input_converter(input_data)
         else:
             input_dataset = input_data
 
@@ -435,8 +435,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 forecast_bool = forecast_data + threshold >= 0
                 if np.any(forecast_bool):
                     input_subset = input_data[forecast_bool]
-                    if preprocessing_fun:
-                        input_subset = preprocessing_fun(input_subset)
+                    if model_input_converter:
+                        input_subset = model_input_converter(input_subset)
                     prediction[forecast_bool] = model.predict(input_subset)
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
