@@ -39,7 +39,6 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.slow
 def test_basic(tmp_path):
     """Test basic wind downscaling"""
     kgo_dir = acc.kgo_root() / "wind_downscaling/basic"
@@ -54,7 +53,6 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_vegetation(tmp_path):
     """Test wind downscaling with vegetation roughness"""
     kgo_dir = acc.kgo_root() / "wind_downscaling/veg"
@@ -77,7 +75,6 @@ def test_vegetation(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_realization(tmp_path):
     """Test wind downscaling with realization coordinate"""
     kgo_dir = acc.kgo_root() / "wind_downscaling/with_realization"
