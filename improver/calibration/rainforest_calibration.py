@@ -356,8 +356,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Cubelist containing the independent feature variables for prediction.
 
         Returns:
-            - Array containing flattened feature variables,
-            - List of variable names
+            Array containing flattened feature variables,
 
         Raises:
             ValueError:
@@ -374,7 +373,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             features_list.append(cube.data.ravel()[:, np.newaxis])
         features_arr = np.concatenate(features_list, axis=1)
 
-        return features_arr, feature_variables
+        return features_arr
 
     def _make_decreasing(self, probability_data: ndarray) -> ndarray:
         """Enforce monotonicity on the error CDF data, where threshold dimension
@@ -465,11 +464,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
-        input_dataset, feature_variables = self._prepare_features_array(feature_cubes)
+        input_dataset = self._prepare_features_array(feature_cubes)
 
-        forecast_variable = forecast_cube.name()
-        forecast_variable_ind = feature_variables.index(forecast_variable)
-        forecast = input_dataset[:, forecast_variable_ind]
+        forecast = forecast_cube.data.ravel()
 
         self._evaluate_probabilities(
             forecast, input_dataset, error_probability_cube.data
