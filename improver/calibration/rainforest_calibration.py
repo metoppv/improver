@@ -346,7 +346,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def _prepare_features_array(
         self, feature_cubes: CubeList
-    ) -> Tuple[DataFrame, List[str]]:
+    ) -> ndarray:
         """Convert gridded feature cubes into a numpy array, with feature variables
         sorted alphabetically.
 
