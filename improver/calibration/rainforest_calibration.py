@@ -468,11 +468,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         input_dataset, feature_variables = self._prepare_features_array(feature_cubes)
 
         forecast_variable = forecast_cube.name()
-        precipitation_ind = feature_variables.index(forecast_variable)
-        precip_forecast = input_dataset[:, precipitation_ind]
+        forecast_variable_ind = feature_variables.index(forecast_variable)
+        forecast = input_dataset[:, forecast_variable_ind]
 
         self._evaluate_probabilities(
-            precip_forecast, input_dataset, error_probability_cube.data
+            forecast, input_dataset, error_probability_cube.data
         )
 
         # Enforcing monotonicity
