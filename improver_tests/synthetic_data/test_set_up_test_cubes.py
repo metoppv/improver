@@ -97,8 +97,8 @@ class Test_construct_yx_coords(IrisTest):
         self.assertArrayEqual(y_coord.points, [15.0, 17.0, 19.0])
 
     def test_lat_lon_domain_corner(self):
-        """Test grid points generated with default grid spacing if domain corner provided and grid spacing
-        not provided"""
+        """Test grid points generated with default grid spacing if domain corner
+        provided and grid spacing not provided"""
         y_coord, x_coord = construct_yx_coords(3, 3, "latlon", domain_corner=(0, 0))
         self.assertArrayEqual(x_coord.points, [0.0, 10.0, 20.0])
         self.assertArrayEqual(y_coord.points, [0.0, 10.0, 20.0])
@@ -116,8 +116,8 @@ class Test_construct_yx_coords(IrisTest):
         self.assertEqual(len(x_coord.points), 3)
 
     def test_equal_area_grid_spacing(self):
-        """Test projection_y_coordinate and projection_x_coordinate point values created around 0,0 with
-        provided grid spacing"""
+        """Test projection_y_coordinate and projection_x_coordinate point
+        values created around 0,0 with provided grid spacing"""
         y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", grid_spacing=1)
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
         self.assertArrayEqual(y_coord.points, [-1.0, 0.0, 1.0])
@@ -127,8 +127,8 @@ class Test_construct_yx_coords(IrisTest):
         self.assertArrayEqual(y_coord.points, [-1.5, -0.5, 0.5, 1.5])
 
     def test_equal_area_grid_spacing_domain_corner(self):
-        """Test projection_y_coordinate and projection_x_coordinate point values start at domain corner
-        with provided grid spacing"""
+        """Test projection_y_coordinate and projection_x_coordinate point values
+        start at domain corner with provided grid spacing"""
         y_coord, x_coord = construct_yx_coords(
             3, 3, "equalarea", grid_spacing=2, domain_corner=(15, 12)
         )
@@ -136,8 +136,8 @@ class Test_construct_yx_coords(IrisTest):
         self.assertArrayEqual(y_coord.points, [15.0, 17.0, 19.0])
 
     def test_equal_area_domain_corner(self):
-        """Test grid points generated with default grid spacing if domain corner provided and grid spacing
-        not provided"""
+        """Test grid points generated with default grid spacing if domain
+        corner provided and grid spacing not provided"""
         y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", domain_corner=(0, 0))
         self.assertArrayEqual(x_coord.points, [0.0, 2000.0, 4000.0])
         self.assertArrayEqual(y_coord.points, [0.0, 2000.0, 4000.0])
@@ -568,8 +568,8 @@ class Test_set_up_variable_cube(IrisTest):
         )
 
     def test_latlon_domain_corner(self):
-        """Test grid points generated with default grid spacing if domain corner provided and grid spacing
-        not provided"""
+        """Test grid points generated with default grid spacing if domain
+        corner provided and grid spacing not provided"""
         domain_corner = (-17, -10)
         result = set_up_variable_cube(
             self.data, spatial_grid="latlon", domain_corner=domain_corner
@@ -580,8 +580,8 @@ class Test_set_up_variable_cube(IrisTest):
         )
 
     def test_equalarea_domain_corner(self):
-        """Test grid points generated with default grid spacing if domain corner provided and grid spacing
-        not provided"""
+        """Test grid points generated with default grid spacing if domain
+        corner provided and grid spacing not provided"""
         domain_corner = (1100, 300)
         result = set_up_variable_cube(
             self.data, spatial_grid="equalarea", domain_corner=domain_corner
