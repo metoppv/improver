@@ -31,21 +31,23 @@
 """ Provides support utilities for flattening."""
 
 from collections.abc import Iterable
-from typing import Iterator
+from typing import List
 
 
-def flatten(an_iterable: Iterable) -> Iterator:
+def flatten(an_iterable: Iterable) -> List:
     """Flatten an arbitrarily nested iterable.
 
     Args:
         an_iterable:
             An arbitrarily nested iterable to be flattened.
 
-    Yields:
-        An iterator to generate a flattened version of the arbitrarily nested input.
+    Returns:
+        A list containing a flattened version of the arbitrarily nested input.
     """
+    alist = []
     for item in an_iterable:
         if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
-            yield from flatten(item)
+            alist.extend(flatten(item))
         else:
-            yield item
+            alist.append(item)
+    return alist

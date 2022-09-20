@@ -66,5 +66,6 @@ def cube() -> Cube:
 )
 def test_basic(nested, expected):
     """Test flattening an arbitrarily nested iterable."""
-    result = list(flatten(nested))
+    result = flatten(nested)
     assert result == expected
+    assert isinstance(result, list)
