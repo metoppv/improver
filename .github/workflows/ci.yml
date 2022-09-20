@@ -17,7 +17,7 @@ jobs:
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 2
+        CACHE_NUMBER: 3
       with:
         path: /usr/share/miniconda/envs/im${{ matrix.env }}
         key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
@@ -76,7 +76,7 @@ jobs:
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 2
+        CACHE_NUMBER: 3
       with:
         path: /usr/share/miniconda/envs/im${{ matrix.env }}
         key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
@@ -130,7 +130,7 @@ jobs:
       id: cache
       env:
         # Increase this value to reset cache
-        CACHE_NUMBER: 2
+        CACHE_NUMBER: 3
       with:
         path: /usr/share/miniconda/envs/im${{ matrix.env }}
         key: ${{ format('{0}-conda-improver-{1}-{2}-{3}', runner.os, env.CACHE_NUMBER, matrix.env, hashFiles(format('envs/{0}.yml', matrix.env))) }}
