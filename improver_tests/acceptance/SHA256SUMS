@@ -61,10 +61,10 @@ dd1bb29ed9de85fce38a04ecad7802027eabd432f08f88eef5b81d3ec4bb9408  ./apply-lapse-
 1d59a7d420124fc517ceaa984627fe250862b30aa213c6837806e828859c7c19  ./apply-lapse-rate/realizations/enukx_orography.nc
 7b7b52bd6da9c3f60f1675c0b0c592005c171783b3ed26428a46aa53762824fb  ./apply-lapse-rate/realizations/enukx_temperature.nc
 10fface12fba3345a12a12d2903292d1f4f5d4b78ccb85fc7e3ed4d209fdfebc  ./apply-lapse-rate/realizations/kgo.nc
-15bddae27ff2c8d1e46e90a3ecfd9becd8ebbbc9d1e3974ccfc145790a7ef592  ./apply-night-mask/global_basic/input.nc
-3fd42cca343388ddb110c8b1c1eacf878d2e4f4d7ff9dad7e79f61fceb328695  ./apply-night-mask/global_basic/kgo.nc
-6564fd98afbed70eb278f8fc33fbba7bc2d3e621dc64c91e691d846ba89b707b  ./apply-night-mask/uk_basic/input.nc
-24903d364a70212cddcf200a1434c78ed7d3574577529ece721ffe5f161f191d  ./apply-night-mask/uk_basic/kgo.nc
+ae30f5ff1099dec934f3d01e877f33cbab1d026f0ea11622fceeff0bf907184d  ./apply-night-mask/global_basic/input.nc
+b33df90e239685bb0b5be03c9922191b60a00139ca075d66ba233137bea3d715  ./apply-night-mask/global_basic/kgo.nc
+864f3fdbd6abedb2cac9dfebbcc2fe71bec9b94435afa7604682f4b669f75269  ./apply-night-mask/uk_basic/input.nc
+1a236e10db14641d92db45881e20f0c42c9997279d8dd3d7bb090658f37e358f  ./apply-night-mask/uk_basic/kgo.nc
 3cee471c64623a6cd706d72f9e687bb85d13e70f6c1062a26be53706dafdad65  ./apply-night-mask/uk_prob/invalid_input.nc
 f0a7b2d3ae61eb37e4727b832be1dfbebf0e00bd4e5637bd7c411cef8976ebcb  ./apply-night-mask/uk_prob/kgo.nc
 63571477686ee038ea18ef1619ceae23154890a2c3f3938fc69f4f56a3e77321  ./apply-night-mask/uk_prob/valid_input.nc
