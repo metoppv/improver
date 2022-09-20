@@ -63,12 +63,10 @@ def test_phase_change(tmp_path, phase_type, kgo_name, horiz_interp, model_id_att
     test_dir = acc.kgo_root() / CLI
     kgo_name = "{}_kgo.nc".format(kgo_name)
     output_path = tmp_path / "output.nc"
-    input_paths = [test_dir / x for x in ("orog.nc", "land_mask.nc")]
-    for x in ("wet_bulb_temperature.nc", "wbti.nc"):
-        if model_id_attr:
-            input_paths.append(test_dir / "with_id_attr" / x)
-        else:
-            input_paths.append(test_dir / "without_id_attr" / x)
+    input_paths = [
+        test_dir / x
+        for x in ("wet_bulb_temperature.nc", "wbti.nc", "orog.nc", "land_mask.nc")
+    ]
     args = [
         *input_paths,
         "--phase-change",

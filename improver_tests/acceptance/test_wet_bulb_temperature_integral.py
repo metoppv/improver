@@ -46,11 +46,7 @@ def test_basic(tmp_path, model_id_attr):
     """Test basic wet bulb temperature integral calculation"""
     test_dir = acc.kgo_root() / "wet-bulb-temperature-integral/basic"
     output_path = tmp_path / "output.nc"
-    input_path = (
-        test_dir / "with_id_attr" / "input.nc"
-        if model_id_attr
-        else test_dir / "without_id_attr" / "input.nc"
-    )
+    input_path = test_dir / "input.nc"
     args = [input_path, "--output", output_path]
     if model_id_attr:
         args += ["--model-id-attr", "mosg__model_configuration"]

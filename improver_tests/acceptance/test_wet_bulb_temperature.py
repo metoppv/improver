@@ -45,12 +45,10 @@ run_cli = acc.run_cli(CLI)
 def test_basic(tmp_path, model_id_attr):
     """Test basic wet bulb temperature calculation"""
     test_dir = acc.kgo_root() / "wet-bulb-temperature/basic"
-    input_paths = []
-    for x in ("temperature", "relative_humidity", "pressure"):
-        if model_id_attr:
-            input_paths.append(test_dir / "with_id_attr" / f"enukx_{x}.nc")
-        else:
-            input_paths.append(test_dir / "without_id_attr" / f"enukx_{x}.nc")
+    input_paths = [
+        test_dir / f"enukx_{p}.nc"
+        for p in ("temperature", "relative_humidity", "pressure")
+    ]
     output_path = tmp_path / "output.nc"
     args = [*input_paths, "--output", output_path]
     if model_id_attr:

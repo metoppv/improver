@@ -57,7 +57,7 @@ def test_phase_probabilities(tmp_path, kgo_name, input_file):
     input_paths = [
         acc.kgo_root() / x
         for x in (
-            "phase-change-level/basic/orog.nc",
+            "phase-change-level/orog.nc",
             "phase-probability/basic/" f"{input_file}.nc",
         )
     ]
@@ -74,7 +74,7 @@ def test_rain_large_radius(tmp_path):
     input_paths = [
         acc.kgo_root() / x
         for x in (
-            "phase-change-level/basic/orog.nc",
+            "phase-change-level/orog.nc",
             "phase-probability/basic/sleet_rain_input.nc",
         )
     ]
