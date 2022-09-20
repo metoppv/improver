@@ -45,12 +45,12 @@ def test_basic(tmp_path, model_id_attr):
     test_dir = acc.kgo_root() / CLI
     output_path = tmp_path / "output.nc"
     args = [
-        test_dir / "vu.nc",
-        test_dir / "hs.nc",
-        test_dir / "kgo.nc",
-        test_dir / "ctt.nc",
-        test_dir / "hail_rain_kgo.nc",
-        test_dir / "uk_highres_orog.nc",
+        test_dir / "vertical_updraught.nc",
+        test_dir / "hail_size.nc",
+        test_dir / "cloud_condensation_level.nc",
+        test_dir / "convective_cloud_top_temperature.nc",
+        test_dir / "hail_melting_level.nc",
+        test_dir / "orography.nc",
         "--output",
         output_path,
     ]

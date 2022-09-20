@@ -102,7 +102,9 @@ class HailFraction(PostProcessingPlugin):
         # a hail fraction of 0 is set.
         cct_limit = 258.15
 
-        hail_fraction = np.interp(vertical_updraught.data, [5, 50], [0, 0.25])
+        hail_fraction = np.interp(vertical_updraught.data, [5, 50], [0, 0.25]).astype(
+            np.float32
+        )
         hail_fraction[
             (hail_size.data > hail_size_limit) & (hail_fraction < 0.05)
         ] = 0.05
