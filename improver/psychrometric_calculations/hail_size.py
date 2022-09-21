@@ -32,6 +32,7 @@
 
 import numpy as np
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -54,10 +55,10 @@ class HailSize(BasePlugin):
     temperature on pressure levels and relative humidity on pressure levels.
 
     From these the values for three other cubes are calculated:
-        - Temperature of the environemnet at 268.15K (-5 degrees) and the
+        - Temperature of the environment at 268.15K (-5 degrees) and the
           pressure level where this occurs.
         - Temperature after a saturated ascent from ccl pressure to the
-          pressure of the enviornment at 268.15K (-5 degrees).
+          pressure of the environment at 268.15K (-5 degrees).
         - Temperature after a dry adiabatic descent from the pressure of the
           environment at 268.15K (-5 degrees) to the ccl pressure.
 
@@ -182,7 +183,7 @@ class HailSize(BasePlugin):
         levels described by the pressure cube.
 
         Args:
-            Variable_on_pressure
+            variable_on_pressure
                 Cube of some variable with pressure levels
             pressure
                 Cube of pressure values
@@ -191,45 +192,35 @@ class HailSize(BasePlugin):
             the pressure levels described by the pressure cube.
         """
 
-        coord_names = [coord.name() for coord in variable_on_pressure.coords()]
+        variable_on_pressure_reordered, pressure_reordered = self.coordinate_order(
+            [variable_on_pressure, pressure]
+        )
 
-        re_ordered_cubes = self.coordinate_order([variable_on_pressure, pressure])
-
-        variable_on_pressure_reordered = re_ordered_cubes[0]
-        pressure_reordered = re_ordered_cubes[1]
-
-        variable = []
         pressure_grid = self.pressure_grid(variable_on_pressure_reordered)
 
-        if "realization" in coord_names:
-            coord_names.remove("realization")
-            pressure_index = coord_names.index("pressure")
+        try:
+            press_slices = pressure_reordered.slices_over("realization")
+            var_slices = variable_on_pressure_reordered.slices_over("realization")
+            grid_slices = pressure_grid[:]
+            variable = []
+        except CoordinateNotFoundError:
+            press_slices = [pressure_reordered]
+            var_slices = [variable_on_pressure_reordered]
+            grid_slices = [pressure_grid]
+            variable = None
 
-            # Calculates each realization independently and then puts the arrays back together
-            for rea in range(len(pressure_grid)):
-                pressure_diff = abs(pressure_grid[rea] - pressure_reordered.data[rea])
+        for press, var, grid in zip(press_slices, var_slices, grid_slices):
 
-                indicies = np.nanargmin(pressure_diff, axis=pressure_index)
-                lat, long = indicies.shape
-                lat, long = np.ogrid[:lat, :long]
-
-                variable.append(
-                    variable_on_pressure_reordered.data[rea, indicies, lat, long]
-                )
-
-            return np.array(variable)
-
-        else:
-            pressure_index = coord_names.index("pressure")
-
-            pressure_diff = abs(pressure_grid - pressure.data)
-
-            indicies = np.nanargmin(pressure_diff, axis=pressure_index)
-            lat, long = indicies.shape
+            pressure_diff = abs(grid - press.data)
+            indices = np.nanargmin(pressure_diff, axis=0)
+            lat, long = indices.shape
             lat, long = np.ogrid[:lat, :long]
+            if variable is None:
+                variable = var.data[indices, lat, long]
+            else:
+                variable.append(var.data[indices, lat, long])
 
-            variable = variable_on_pressure_reordered.data[indicies, lat, long]
-            return np.array(variable)
+        return variable
 
     def pressure_grid(self, variable_on_pressure: Cube) -> np.ndarray:
         """Creates a pressure grid of the same shape as variable_on_pressure cube.
@@ -256,8 +247,8 @@ class HailSize(BasePlugin):
 
     @staticmethod
     def coordinate_order(cubes: CubeList):
-        """Puts all cubes coordinates into a standard order that depends
-        on if realization coordinate is present
+        """Takes a Cubelist and puts coordinates in each cube into the order realization, pressure,
+        latitude, longitude if those coordinates exist.
 
         Args:
             cubes
@@ -265,27 +256,20 @@ class HailSize(BasePlugin):
         Returns
             A list of cubes in the same order as in cubes but with re-ordered coordinates
         """
-        coord_names = [coord.name() for coord in cubes[0].coords()]
-        if "realization" in coord_names:
-            order = ["realization", "pressure", "latitude", "longitude"]
-        else:
-            order = ["pressure", "latitude", "longitude"]
+
+        order = ["realization", "pressure", "latitude", "longitude"]
 
         ordered_cube = []
 
         for cube in cubes:
-            order2 = order.copy()
-            cube_coord_names = [coord.name() for coord in cube.coords()]
-            if "pressure" not in cube_coord_names:
-                order2.remove("pressure")
-            enforce_coordinate_ordering(cube, order2)
+            enforce_coordinate_ordering(cube, order)
             ordered_cube.append(cube)
         return ordered_cube
 
     def extract_pressure_at_268(self, temperature_on_pressure: Cube) -> (CubeList):
         """Extracts the pressure level where the environment
         temperature first drops below -5 degrees (268.15K) starting at a pressure value
-        near the surface and ascending in atitude from there. It also produces
+        near the surface and ascending in altitude from there. It also produces
         the environment temperature at that pressure value
 
         Args:
@@ -299,7 +283,7 @@ class HailSize(BasePlugin):
         coord_order = [coord.name() for coord in temperature_on_pressure.coords()]
         coord_order.remove("pressure")
 
-        re_ordered_temperature = self.coordinate_order([temperature_on_pressure])[0]
+        [re_ordered_temperature] = self.coordinate_order([temperature_on_pressure])
 
         pressure_template = next(re_ordered_temperature.slices_over(["pressure"]))
         pressure_template.rename("pressure_of_atmosphere_at_268.15K")
@@ -312,43 +296,33 @@ class HailSize(BasePlugin):
 
         data = np.ma.masked_greater(re_ordered_temperature.data, 268.15)
         data = np.ma.masked_invalid(data)
+        shape = re_ordered_temperature.data.shape
 
         if "realization" in coord_order:
-            indices = np.ma.notmasked_edges(data, axis=1)[0][1]
-            pressure = re_ordered_temperature.coord("pressure").points[indices]
-            shape = re_ordered_temperature.data.shape
-
+            axis = 1
             rea, lat, long = (shape[0], shape[2], shape[3])  # ignores pressure axis
-            # identifies if there are columns where the entire column is masked
-            if len(pressure) != rea * lat * long:
-                columns = np.ma.all(data, axis=1).flatten()
-                columns_mask = np.ma.getmask(columns)
-                index = np.where(columns_mask)[0]
-
-                for x in index:
-                    pressure = np.insert(pressure, x, -9999)
-                pressure = np.ma.masked_where(pressure == -9999, pressure)
-
-            pressure = pressure.reshape(rea, lat, long)
-
+            max_length = rea * lat * long
         else:
-            indices = np.ma.notmasked_edges(data, axis=0)[0][1]
-
-            pressure = re_ordered_temperature.coord("pressure").points[indices]
-
-            shape = re_ordered_temperature.data.shape
-
+            axis = 0
             lat, long = (shape[1], shape[2])  # ignores pressure axis
+            max_length = lat * long
 
-            # identifies if there are columns where the entire column is masked
-            if len(pressure) != lat * long:
-                columns = np.ma.all(data, axis=1).flatten()
-                columns_mask = np.ma.getmask(columns)
-                index = np.where(columns_mask)[0]
-                for x in index:
-                    pressure = np.insert(pressure, x, -9999)
-                pressure = np.ma.masked_where(pressure == -9999, pressure)
+        indices = np.ma.notmasked_edges(data, axis=axis)[0][axis]
 
+        pressure = re_ordered_temperature.coord("pressure").points[indices]
+
+        # identifies if there are columns where the entire column is masked
+        if len(pressure) != max_length:
+            columns = np.ma.all(data, axis=axis).flatten()
+            columns_mask = np.ma.getmask(columns)
+            index = np.where(columns_mask)[0]
+            for x in index:
+                pressure = np.insert(pressure, x, -9999)
+            pressure = np.ma.masked_where(pressure == -9999, pressure)
+
+        if "realization" in coord_order:
+            pressure = pressure.reshape(rea, lat, long)
+        else:
             pressure = pressure.reshape(lat, long)
 
         pressure_template.data = pressure
@@ -363,7 +337,6 @@ class HailSize(BasePlugin):
         # returns cubes to the original order
         enforce_coordinate_ordering(temperature_template, coord_order)
         enforce_coordinate_ordering(pressure_template, coord_order)
-
         return (pressure_template, temperature_template)
 
     def extract_relative_humidity_at_268(
@@ -410,9 +383,9 @@ class HailSize(BasePlugin):
 
         Args:
             ccl_temperature
-                Cube of cloud condensaiton level temperature
+                Cube of cloud condensation level temperature
             ccl_pressure
-                Cube of cloud condensaiton level pressure
+                Cube of cloud condensation level pressure
             pressure_at_268
                 Cube of the pressure of the environment at 268.15K
             humidity_mixing_ratio_at_268
@@ -461,10 +434,10 @@ class HailSize(BasePlugin):
             vertical
                 An n dimensional array containing the values used to calculate the vertical indexes
             horizontal
-                An n dimensional array containign the values used to calculate the horizontal
+                An n dimensional array containing the values used to calculate the horizontal
                 indexes
         Returns:
-            an n-dimension array of values for the diameter of hail (mm)
+            an n-dimension array of values for the diameter of hail (m)
         """
 
         lookup_table = self.nomogram_values()
@@ -520,7 +493,7 @@ class HailSize(BasePlugin):
             humidity_mixing_ratio_at_268
                 Cube of humidity mixing ratio at the pressure of the environment at 268.15K
         Returns:
-            An n dimenisonal array of diameter of hail stones
+            An n dimenisonal array of diameter of hail stones(m)
         """
 
         temp_dry = self.dry_adiabatic_descent_to_ccl(
@@ -544,7 +517,7 @@ class HailSize(BasePlugin):
         )
 
         hail_size = self.get_hail_size(vertical_masked, horizontal_masked)
-        hail_size = np.int8(hail_size)
+        hail_size = hail_size / 1000
 
         return hail_size
 
@@ -559,7 +532,7 @@ class HailSize(BasePlugin):
 
         Args:
             hail_size
-                An n dimensional array of the diameter of hail stones (mm)
+                An n dimensional array of the diameter of hail stones (m)
             ccl_temperature
                 Cube of cloud condensation level pressure
             ccl_pressure
@@ -567,7 +540,7 @@ class HailSize(BasePlugin):
             temperature_on_pressure
                 A cube of temperature on pressure levels
         Returns:
-            A cube of the diameter of hail stones(mm)
+            A cube of the diameter of hail stones(m)
         """
 
         attributes = {}
@@ -578,7 +551,7 @@ class HailSize(BasePlugin):
 
         hail_size_cube = create_new_diagnostic_cube(
             name="diameter_of_hail_stones",
-            units="mm",
+            units="m",
             template_cube=ccl_temperature,
             data=hail_size,
             mandatory_attributes=generate_mandatory_attributes(
@@ -606,7 +579,7 @@ class HailSize(BasePlugin):
             relative_humidity_on_pressure:
                 Cube of relative_humidity ratio on pressure levels
         Returns:
-            Cube of hail size
+            Cube of hail diameter (m)
         """
 
         self.check_cubes(

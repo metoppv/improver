@@ -111,8 +111,7 @@ def relative_humidity_on_pressure() -> Cube:
 def metadata_check(hail_cube):
     """Checks the hail cube produced by plugin has the expected metadata."""
     assert hail_cube.long_name == "diameter_of_hail_stones"
-    assert hail_cube.units == "mm"
-    assert hail_cube.dtype == np.int8
+    assert hail_cube.units == "m"
 
     attributes = [attr for attr in hail_cube.attributes]
     if "mosg__model_configuration" in attributes:
@@ -152,11 +151,11 @@ https://doi.org/10.1175/1520-0477-34.6.235
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,humidity,expected",
     (
-        (75000, 290, 0.001, 20,),  # values approx from tephigram in literiture
+        (75000, 290, 0.001, 0.02,),  # values approx from tephigram in literiture
         (94000, 300, 0.001, 0),  # vertical value negative
         (1000, 360, 0.001, 0),  # horizontal value negative
-        (95000, 330, 0.001, 80),  # vertical greater than length of table
-        (150000, 350, 0.1, 25),  # horizontal greater than length of table
+        (95000, 330, 0.001, 0.08),  # vertical greater than length of table
+        (150000, 350, 0.1, 0.025),  # horizontal greater than length of table
         (75000, 265, 0.001, 0),  # ccl temperature below 268.15
     ),
 )
@@ -185,7 +184,6 @@ def test_basic_hail_size(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
     )
-
     np.testing.assert_array_equal(result.data, expected)
     metadata_check(result)
     cube_size_check(result)
@@ -204,7 +202,10 @@ def test_temperature_too_high(
         temperature_on_pressure_levels.data, 260
     )
     temperature_on_pressure_levels.data[:, :, 1] = 300
-    expected = [[[35, 35], [0, 0], [35, 35]], [[35, 35], [0, 0], [35, 35]]]
+    expected = [
+        [[0.035, 0.035], [0, 0], [0.035, 0.035]],
+        [[0.035, 0.035], [0, 0], [0.035, 0.035]],
+    ]
 
     result = HailSize()(
         ccl_temperature,
@@ -279,6 +280,8 @@ def test_model_id_attr(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
     )
+
+    np.testing.assert_array_equal(result.data, 0.035)
     metadata_check(result)
     cube_size_check(result)
 
@@ -290,7 +293,7 @@ def test_re_ordered_cubes(
     ccl_temperature,
 ):
 
-    """Tests Plugin is input cubes have coordinates in a different order.
+    """Tests the plugin if the input cubes have coordinates that need to be rearanged.
     Checks that the outputted cube has coordinates in the same order as the inputs"""
 
     enforce_coordinate_ordering(
@@ -311,7 +314,7 @@ def test_re_ordered_cubes(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
     )
-
+    np.testing.assert_array_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
@@ -335,7 +338,6 @@ def test_no_realization_coordinate(
 
     temp = next(temperature_on_pressure_levels.slices_over("realization"))
     temp.remove_coord("realization")
-
     humidity = next(relative_humidity_on_pressure.slices_over("realization"))
     humidity.remove_coord("realization")
 
@@ -346,7 +348,7 @@ def test_no_realization_coordinate(
     cloud_temp.remove_coord("realization")
 
     result = HailSize()(cloud_temp, cloud_pressure, temp, humidity)
-
+    np.testing.assert_array_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
