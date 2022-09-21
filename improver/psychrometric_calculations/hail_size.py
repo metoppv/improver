@@ -438,7 +438,7 @@ class HailSize(BasePlugin):
                 An n dimensional array containing the values used to calculate the horizontal
                 indexes
         Returns:
-            an n-dimension array of values for the diameter of hail (m)
+            an n-dimension array of values for the diameter of hail (mm)
         """
 
         lookup_table = self.nomogram_values()
