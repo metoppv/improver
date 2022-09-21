@@ -128,7 +128,7 @@ def setup_cubes():
         (1, 0.0, -10, -12, 100, 50, 0),  # No indications of hail
         (25, 0.1, -10, -12, 100, 50, 0),  # Larger updraught, no other indications of hail
         (5, 0.1, -2, -20, 20, 50, 0),  # Low vertical updraught prevents hail
-        (25, 0.1, -2, -20, 20, 50, 1/9),  # Sufficient vertical updraught, non-zero hail fraction
+        (25, 0.1, -2, -20, 20, 50, 1 / 9),  # Sufficient vertical updraught, non-zero hail fraction
         (50, 0.1, -2, -20, 20, 50, 0.25),  # Sufficient vertical updraught, non-zero hail fraction
         (75, 0.1, -2, -20, 20, 50, 0.25),  # Large vertical updraught, non-zero hail fraction
         (1, 3, -2, -20, 20, 50, 0.05),  # Hail size indicates non-zero hail fraction
