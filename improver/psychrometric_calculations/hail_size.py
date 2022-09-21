@@ -406,8 +406,9 @@ class HailSize(BasePlugin):
     def dry_adiabatic_descent_to_ccl(
         ccl_pressure: Cube, temperature_at_268: Cube, pressure_at_268: Cube
     ) -> np.ndarray:
-        """Calculates the temperature due to a dry adiabatic descent from the pressure of the environment at
-        268.15K to the cloud condensation level pressure.
+        """Calculates the temperature due to a dry adiabatic descent from the
+        pressure of the environment at 268.15K to the cloud condensation level
+        pressure.
 
         Args:
             ccl_pressure
