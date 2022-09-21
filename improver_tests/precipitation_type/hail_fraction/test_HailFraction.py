@@ -120,19 +120,26 @@ def setup_cubes():
     "vertical_updraught_value,hail_size_value,cloud_condensation_level_value,"
     + "convective_cloud_top_value,hail_melting_level_value,altitude_value,expected",
     (
-        # fmt: off
-        (1, 0.0, 263.15, 261.15, 100, 50, 0),  # No indications of hail
-        (25, 0.001, 263.15, 261.15, 100, 50, 0),  # Larger updraught, no other indications of hail
-        (5, 0.001, 271.15, 253.15, 20, 50, 0),  # Low vertical updraught prevents hail
-        (25, 0.001, 271.15, 253.15, 20, 50, 1 / 9),  # Sufficient vertical updraught, non-zero hail fraction
-        (50, 0.001, 271.15, 253.15, 20, 50, 0.25),  # Sufficient vertical updraught, non-zero hail fraction
-        (75, 0.001, 271.15, 253.15, 20, 50, 0.25),  # Large vertical updraught, non-zero hail fraction
-        (1, 0.003, 271.15, 253.15, 20, 50, 0.05),  # Hail size indicates non-zero hail fraction
-        (75, 0.001, 263.15, 253.15, 20, 50, 0),  # Cloud condensation level temperature prevents hail
-        (75, 0.001, 271.15, 263.15, 20, 50, 0),  # Convective cloud top temperature prevents hail
-        (75, 0.001, 271.15, 253.15, 100, 50, 0),
+        # No indications of hail
+        (1, 0.0, 263.15, 261.15, 100, 50, 0),
+        # Larger updraught, no other indications of hail
+        (25, 0.001, 263.15, 261.15, 100, 50, 0),
+        # Low vertical updraught prevents hail
+        (5, 0.001, 271.15, 253.15, 20, 50, 0),
+        # Sufficient vertical updraught, non-zero hail fraction
+        (25, 0.001, 271.15, 253.15, 20, 50, 1 / 9),
+        # Sufficient vertical updraught, non-zero hail fraction
+        (50, 0.001, 271.15, 253.15, 20, 50, 0.25),
+        # Large vertical updraught, non-zero hail fraction
+        (75, 0.001, 271.15, 253.15, 20, 50, 0.25),
+        # Hail size indicates non-zero hail fraction
+        (1, 0.003, 271.15, 253.15, 20, 50, 0.05),
+        # Cloud condensation level temperature prevents hail
+        (75, 0.001, 263.15, 253.15, 20, 50, 0),
+        # Convective cloud top temperature prevents hail
+        (75, 0.001, 271.15, 263.15, 20, 50, 0),
         # Hail melting level prevents hail
-        # fmt: on
+        (75, 0.001, 271.15, 253.15, 100, 50, 0),
     ),
 )
 def test_basic(
