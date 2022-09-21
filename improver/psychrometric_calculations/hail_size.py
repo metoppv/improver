@@ -194,8 +194,8 @@ class HailSize(BasePlugin):
         coord_order = [coord.name() for coord in variable_on_pressure.coords()]
         order = ["realization", "pressure", "latitude", "longitude"]
 
-        enforce_coordinate_ordering(variable_on_pressure,order)
-        enforce_coordinate_ordering(pressure,order)
+        enforce_coordinate_ordering(variable_on_pressure, order)
+        enforce_coordinate_ordering(pressure, order)
 
         pressure_grid = self.pressure_grid(variable_on_pressure)
 
@@ -220,10 +220,10 @@ class HailSize(BasePlugin):
                 variable = var.data[indices, lat, long]
             else:
                 variable.append(var.data[indices, lat, long])
-        
-        variable_cube=pressure.copy(data=variable)
-        enforce_coordinate_ordering(variable_cube,coord_order)
-        enforce_coordinate_ordering(pressure,coord_order)
+
+        variable_cube = pressure.copy(data=variable)
+        enforce_coordinate_ordering(variable_cube, coord_order)
+        enforce_coordinate_ordering(pressure, coord_order)
         return variable_cube.data
 
     def pressure_grid(self, variable_on_pressure: Cube) -> np.ndarray:
@@ -276,7 +276,7 @@ class HailSize(BasePlugin):
         data = np.ma.masked_invalid(data)
 
         shape = temperature_template.data.shape
-        axis=temperature_on_pressure.coord_dims("pressure")[0]
+        axis = temperature_on_pressure.coord_dims("pressure")[0]
         max_length = np.product(shape)
 
         indices = np.ma.notmasked_edges(data, axis=axis)[0][axis]
