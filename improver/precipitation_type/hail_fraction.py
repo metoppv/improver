@@ -78,7 +78,7 @@ class HailFraction(PostProcessingPlugin):
         hail size is above this limit but the hail fraction is below 0.05, the hail
         fraction is set to 0.05. As a final check, the hail fraction is set to zero if
         either the cloud condensation level temperature is below -5 Celsius, the
-        convective cloud top temperature is above -15 Celsius and the hail melting level
+        convective cloud top temperature is above -15 Celsius or the hail melting level
         is above orography.
 
         The values chosen are based on expert elicitation with some information from
