@@ -32,7 +32,7 @@
 
 import numpy as np
 import pytest
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.flatten import flatten
@@ -56,12 +56,11 @@ def cube() -> Cube:
             [np.array([0]), np.array([1]), np.array([2]), np.array([2])],
         ),
         ([cube, cube, [cube, cube]], [cube, cube, cube, cube]),
+        (CubeList([cube, cube, CubeList([cube, cube])]), [cube, cube, cube, cube]),
         ([0, [1, [2, [3]]]], [0, 1, 2, 3]),
         ([0, [1, 2], [3]], [0, 1, 2, 3]),
-        ("cat", ["c", "a", "t"]),
         (["cat"], ["cat"]),
         ((0, 1, (2, 3)), [0, 1, 2, 3]),
-        ({0: {1: "cat"}, 1: {2: "dog"}}, [0, 1]),
     ),
 )
 def test_basic(nested, expected):
@@ -69,3 +68,14 @@ def test_basic(nested, expected):
     result = flatten(nested)
     assert result == expected
     assert isinstance(result, list)
+
+
+@pytest.mark.parametrize(
+    "nested", ((0), ("cat"), ({0: {1: "cat"}, 1: {2: "dog"}}),),
+)
+def test_exception(nested):
+    """Test an exception is raised if inappropriate types
+    are provided for flattening."""
+    msg = "Expected object of type list or tuple"
+    with pytest.raises(ValueError, match=msg):
+        flatten(nested)
