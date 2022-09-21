@@ -519,6 +519,7 @@ class HailSize(BasePlugin):
 
         hail_size = self.get_hail_size(vertical_masked, horizontal_masked)
         hail_size = hail_size / 1000
+        hail_size = hail_size.astype("float32")
 
         return hail_size
 

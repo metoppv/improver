@@ -184,7 +184,7 @@ def test_basic_hail_size(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
     )
-    np.testing.assert_array_equal(result.data, expected)
+    np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
     cube_size_check(result)
 
@@ -213,7 +213,7 @@ def test_temperature_too_high(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
     )
-    np.testing.assert_array_equal(result.data, expected)
+    np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
     cube_size_check(result)
 
@@ -281,7 +281,7 @@ def test_model_id_attr(
         relative_humidity_on_pressure,
     )
 
-    np.testing.assert_array_equal(result.data, 0.035)
+    np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
     cube_size_check(result)
 
@@ -314,7 +314,7 @@ def test_re_ordered_cubes(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
     )
-    np.testing.assert_array_equal(result.data, 0.035)
+    np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
@@ -348,7 +348,7 @@ def test_no_realization_coordinate(
     cloud_temp.remove_coord("realization")
 
     result = HailSize()(cloud_temp, cloud_pressure, temp, humidity)
-    np.testing.assert_array_equal(result.data, 0.035)
+    np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
