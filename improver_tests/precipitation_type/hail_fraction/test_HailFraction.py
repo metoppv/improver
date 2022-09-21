@@ -33,7 +33,6 @@
 import iris
 import numpy as np
 import pytest
-from cf_units import Unit
 
 from improver.precipitation_type.hail_fraction import HailFraction
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -66,7 +65,6 @@ def setup_cubes():
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
     )
-    hail_size.convert_units("m")
 
     cloud_condensation_level_data = np.zeros((2, 2), dtype=np.float32)
     cloud_condensation_level = set_up_variable_cube(
@@ -77,7 +75,6 @@ def setup_cubes():
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
     )
-    cloud_condensation_level.convert_units("Kelvin")
 
     convective_cloud_top_data = np.zeros((2, 2), dtype=np.float32)
     convective_cloud_top = set_up_variable_cube(
@@ -88,7 +85,6 @@ def setup_cubes():
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
     )
-    convective_cloud_top.convert_units("Kelvin")
 
     hail_melting_level_data = np.zeros((2, 2), dtype=np.float32)
     hail_melting_level = set_up_variable_cube(
@@ -125,16 +121,16 @@ def setup_cubes():
     + "convective_cloud_top_value,hail_melting_level_value,altitude_value,expected",
     (
         # fmt: off
-        (1, 0.0, -10, -12, 100, 50, 0),  # No indications of hail
-        (25, 0.1, -10, -12, 100, 50, 0),  # Larger updraught, no other indications of hail
-        (5, 0.1, -2, -20, 20, 50, 0),  # Low vertical updraught prevents hail
-        (25, 0.1, -2, -20, 20, 50, 1 / 9),  # Sufficient vertical updraught, non-zero hail fraction
-        (50, 0.1, -2, -20, 20, 50, 0.25),  # Sufficient vertical updraught, non-zero hail fraction
-        (75, 0.1, -2, -20, 20, 50, 0.25),  # Large vertical updraught, non-zero hail fraction
-        (1, 3, -2, -20, 20, 50, 0.05),  # Hail size indicates non-zero hail fraction
-        (75, 0.1, -10, -20, 20, 50, 0),  # Cloud condensation level temperature prevents hail
-        (75, 0.1, -2, -10, 20, 50, 0),  # Convective cloud top temperature prevents hail
-        (75, 0.1, -2, -20, 100, 50, 0),
+        (1, 0.0, 263.15, 261.15, 100, 50, 0),  # No indications of hail
+        (25, 0.001, 263.15, 261.15, 100, 50, 0),  # Larger updraught, no other indications of hail
+        (5, 0.001, 271.15, 253.15, 20, 50, 0),  # Low vertical updraught prevents hail
+        (25, 0.001, 271.15, 253.15, 20, 50, 1 / 9),  # Sufficient vertical updraught, non-zero hail fraction
+        (50, 0.001, 271.15, 253.15, 20, 50, 0.25),  # Sufficient vertical updraught, non-zero hail fraction
+        (75, 0.001, 271.15, 253.15, 20, 50, 0.25),  # Large vertical updraught, non-zero hail fraction
+        (1, 0.003, 271.15, 253.15, 20, 50, 0.05),  # Hail size indicates non-zero hail fraction
+        (75, 0.001, 263.15, 253.15, 20, 50, 0),  # Cloud condensation level temperature prevents hail
+        (75, 0.001, 271.15, 263.15, 20, 50, 0),  # Convective cloud top temperature prevents hail
+        (75, 0.001, 271.15, 253.15, 100, 50, 0),
         # Hail melting level prevents hail
         # fmt: on
     ),
@@ -166,16 +162,12 @@ def test_basic(
     vertical_updraught.data = np.full_like(
         vertical_updraught.data, vertical_updraught_value
     )
-    hail_size.data = np.full_like(
-        hail_size.data, Unit("mm").convert(hail_size_value, "m")
-    )
+    hail_size.data = np.full_like(hail_size.data, hail_size_value)
     cloud_condensation_level.data = np.full_like(
-        cloud_condensation_level.data,
-        Unit("Celsius").convert(cloud_condensation_level_value, "K"),
+        cloud_condensation_level.data, cloud_condensation_level_value,
     )
     convective_cloud_top.data = np.full_like(
-        convective_cloud_top.data,
-        Unit("Celsius").convert(convective_cloud_top_value, "K"),
+        convective_cloud_top.data, convective_cloud_top_value,
     )
     hail_melting_level.data = np.full_like(
         hail_melting_level.data, hail_melting_level_value

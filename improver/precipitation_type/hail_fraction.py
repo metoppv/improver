@@ -115,39 +115,6 @@ class HailFraction(PostProcessingPlugin):
         ] = 0
         return hail_fraction
 
-    def _make_hail_fraction_cube(
-        self,
-        hail_fraction: np.ndarray,
-        vertical_updraught: Cube,
-        hail_size,
-        cloud_condensation_level,
-        convective_cloud_top,
-        hail_melting_level,
-    ) -> Cube:
-        """Create a cube containing the hail fraction array using information
-        from the other available cubes.
-
-        Returns:
-            Hail fraction cube.
-        """
-        hail_fraction_cube = create_new_diagnostic_cube(
-            "hail_fraction",
-            "1",
-            template_cube=vertical_updraught,
-            mandatory_attributes=generate_mandatory_attributes(
-                [
-                    vertical_updraught,
-                    hail_size,
-                    cloud_condensation_level,
-                    convective_cloud_top,
-                    hail_melting_level,
-                ],
-                model_id_attr=self.model_id_attr,
-            ),
-            data=hail_fraction,
-        )
-        return hail_fraction_cube
-
     def process(
         self,
         vertical_updraught: Cube,
@@ -173,6 +140,13 @@ class HailFraction(PostProcessingPlugin):
         Returns:
             Hail fraction cube.
         """
+        vertical_updraught.convert_units("m s-1")
+        hail_size.convert_units("m")
+        cloud_condensation_level.convert_units("K")
+        convective_cloud_top.convert_units("K")
+        hail_melting_level.convert_units("m")
+        orography.convert_units("m")
+
         hail_fraction = self._compute_hail_fraction(
             vertical_updraught,
             hail_size,
@@ -181,11 +155,21 @@ class HailFraction(PostProcessingPlugin):
             hail_melting_level,
             orography,
         )
-        return self._make_hail_fraction_cube(
-            hail_fraction,
-            vertical_updraught,
-            hail_size,
-            cloud_condensation_level,
-            convective_cloud_top,
-            hail_melting_level,
+
+        hail_fraction_cube = create_new_diagnostic_cube(
+            "hail_fraction",
+            "1",
+            template_cube=vertical_updraught,
+            mandatory_attributes=generate_mandatory_attributes(
+                [
+                    vertical_updraught,
+                    hail_size,
+                    cloud_condensation_level,
+                    convective_cloud_top,
+                    hail_melting_level,
+                ],
+                model_id_attr=self.model_id_attr,
+            ),
+            data=hail_fraction,
         )
+        return hail_fraction_cube
