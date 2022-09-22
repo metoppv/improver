@@ -38,6 +38,7 @@ import pytest
 from cf_units import Unit
 from iris.coords import CellMethod
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -182,17 +183,17 @@ def test_check_input_cube_dims(include_time_coord):
     else:
         cube.remove_coord("time")
         with pytest.raises(
-            ValueError, match=r"Expected coords on input_cube: time, y, x "
+            CoordinateNotFoundError, match=r"Expected coords on input_cube: time, y, x "
         ):
             plugin.check_input_cube_dims(cube)
 
 
 def test_check_aux_time_coord():
-    """Checks that check_input_cube_dims can work with a auxiliary time
+    """Checks that check_input_cube_dims can work with an auxiliary time
     coordinate. This occurs when partial periods are allowed. In these
     cases the lower time bound may be the same between different time
     points, preventing the creation of a dimension coordinate that
-    required monotonically increasing bounds. In this case a anonymous
+    requires monotonically increasing bounds. In this case an anonymous
     coordinate is created by iris that can be named and used for
     reordering.
 
@@ -206,8 +207,8 @@ def test_check_aux_time_coord():
     plugin = TimezoneExtraction()
     plugin.timezone_cube = timezone_cube
     plugin.check_input_cube_dims(cube)
-    print(cube)
     assert cube.coord_dims("time") == tuple([cube.ndim - 1])
+    assert len(cube.dim_coords) == len(cube.shape) - 1
     assert "time_points" not in [crd.name() for crd in cube.coords()]
 
 

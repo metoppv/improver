@@ -108,3 +108,13 @@ def test_title_mandatory_attribute_default(dummy_plugin, plugin_input, is_list):
         plugin_input.attributes["title"] = expected_title
     result = dummy_plugin()(plugin_input)
     assert_title_attribute(result, expected_title)
+
+
+def test_non_cubes(dummy_plugin):
+    """Test non-cube types are returned unchanged"""
+    result = dummy_plugin()(None)
+    assert result is None
+
+    iterable_input = ["list", "of", "strings"]
+    result = dummy_plugin()(iterable_input)
+    assert result == iterable_input
