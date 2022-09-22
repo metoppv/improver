@@ -550,7 +550,6 @@ class HailSize(BasePlugin):
         pressure_at_268, temperature_at_268 = self.extract_pressure_at_268(
             temperature_on_pressure
         )
-        print(pressure_at_268)
 
         relative_humidity_at_268 = self.extract_relative_humidity_at_268(
             relative_humidity_on_pressure, pressure_at_268
