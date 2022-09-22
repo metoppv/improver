@@ -876,6 +876,10 @@ class PhaseChangeLevel(BasePlugin):
 
         Returns:
             Cube of phase change level above sea level (asl).
+
+        Raises:
+            ValueError: Raise exception if the model_id_attr attribute does not
+                match on the input cubes.
         """
 
         names_to_extract = [

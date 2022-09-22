@@ -43,7 +43,8 @@ run_cli = acc.run_cli(CLI)
 
 @pytest.mark.parametrize("model_id_attr", (True, False))
 def test_basic(tmp_path, model_id_attr):
-    """Test basic wet bulb temperature calculation"""
+    """Test basic wet bulb temperature calculation with and without the model_id_attr
+    attribute."""
     test_dir = acc.kgo_root() / "wet-bulb-temperature/basic"
     input_paths = [
         test_dir / f"enukx_{p}.nc"
