@@ -458,19 +458,18 @@ class TimezoneExtraction(PostProcessingPlugin):
         ):
             try:
                 time_aux_dim = input_cube.coord_dims(time_coord_name)
-            except CoordinateNotFoundError:
-                raise ValueError(
+            except CoordinateNotFoundError as err:
+                raise CoordinateNotFoundError(
                     f"Expected coords on input_cube: time, y, x ({expected_coords})."
                     f"Found {cube_coords}"
-                )
-            else:
-                if time_aux_dim:
-                    tp = input_cube.coord(time_coord_name).copy()
-                    tp.bounds = None
-                    tp.rename("time_points")
-                    input_cube.add_aux_coord(tp, 0)
-                    iris.util.promote_aux_coord_to_dim_coord(input_cube, "time_points")
-                    time_coord_name = "time_points"
+                ) from err
+
+            temporary_time_dimcoord = input_cube.coord(time_coord_name).copy()
+            temporary_time_dimcoord.bounds = None
+            time_coord_name = "time_points"
+            temporary_time_dimcoord.rename(time_coord_name)
+            input_cube.add_aux_coord(temporary_time_dimcoord, time_aux_dim)
+            iris.util.promote_aux_coord_to_dim_coord(input_cube, time_coord_name)
 
         enforce_coordinate_ordering(input_cube, [time_coord_name], anchor_start=False)
 
@@ -524,10 +523,11 @@ class TimezoneExtraction(PostProcessingPlugin):
                 # Incomplete periods in the east are indicative of a same day partial
                 # period, i.e. producing a 15-00 instead of 00-00 forecast for Japan.
                 # These are desirable as they update the same day forecast.
-                # Incomplete periods in the west are indicative of a data shortfall for
-                # representing the whole period at the longest lead-times. These should
-                # not return output as the daily summary would not represent a whole day
-                # for these regions.
+                # Periods in the west that are shorter than periods in the east are
+                # indicative of a data shortfall for representing the whole period at
+                # the longest lead-times, i.e. 00-15 instead of 00-00. These should not
+                # return output as the period summary would not represent the expected
+                #  whole period for these regions.
                 bounds = input_cube.coord("time").bounds
                 b_diffs = np.diff(bounds)
                 if len(b_diffs) > 1 and any(b_diffs[-1] < b_diffs[:-1]):
