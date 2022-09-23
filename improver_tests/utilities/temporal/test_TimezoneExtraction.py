@@ -45,21 +45,25 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.temporal import TimezoneExtraction
 
 
-def assert_metadata_ok(output_cube):
+def assert_metadata_ok(output_cube, gridded=True):
     """Checks that the meta-data of output_cube are as expected"""
     assert isinstance(output_cube, Cube)
     assert output_cube.dtype == np.float32
-    assert list(output_cube.coord_dims("time")) == [
-        n for n, in [output_cube.coord_dims(c) for c in ["latitude", "longitude"]]
-    ]
+    if gridded:
+        assert list(output_cube.coord_dims("time")) == [
+            n for n, in [output_cube.coord_dims(c) for c in ["latitude", "longitude"]]
+        ]
+    else:
+        assert output_cube.coord_dims("time") == output_cube.coord_dims("spot_index")
     assert output_cube.coord("time").dtype == np.int64
     check_mandatory_standards(output_cube)
 
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("percentiles", (True, False))
+@pytest.mark.parametrize("gridded", (True, False))
 @pytest.mark.parametrize("with_cell_method", (True, False))
-def test_create_output_cube(input_cube, data_shape, with_cell_method):
+def test_create_output_cube(input_cube, gridded, data_shape, with_cell_method):
     """Tests that the create_output_cube method builds a cube with appropriate
     meta-data. The Time coord is tested in test_process as it depends on multiple
     methods."""
@@ -68,9 +72,11 @@ def test_create_output_cube(input_cube, data_shape, with_cell_method):
         input_cube.add_cell_method(cell_method)
     local_time = datetime(2017, 11, 9, 12, 0)
     plugin = TimezoneExtraction()
+    plugin.gridded = gridded
     plugin.output_data = np.zeros(data_shape, dtype=np.float32)
+    shape = data_shape[-2:] if gridded else data_shape[-1]
     plugin.time_points = np.full(
-        data_shape[-2:],
+        shape,
         fill_value=Unit(TIME_COORDS["time"].units).date2num(
             datetime(2017, 11, 10, 4, 0)
         ),
@@ -78,7 +84,8 @@ def test_create_output_cube(input_cube, data_shape, with_cell_method):
     )
     plugin.time_bounds = None
     result = plugin.create_output_cube(input_cube, local_time)
-    assert_metadata_ok(result)
+
+    assert_metadata_ok(result, gridded=gridded)
     assert result.name() == input_cube.name()
     assert result.units == input_cube.units
     result_local_time = result.coord("time_in_local_timezone")
@@ -92,11 +99,13 @@ def test_create_output_cube(input_cube, data_shape, with_cell_method):
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("percentiles", (True, False))
+@pytest.mark.parametrize("gridded", (True, False))
 @pytest.mark.parametrize("include_time_coord", (True, False))
-def test_check_input_cube_dims(input_cube, timezone_cube, include_time_coord):
+def test_check_input_cube_dims(input_cube, gridded, timezone_cube, include_time_coord):
     """Checks that check_input_cube_dims can differentiate between an input cube
     with time + other coords and one where time is missing."""
     plugin = TimezoneExtraction()
+    plugin.gridded = gridded
     plugin.timezone_cube = timezone_cube
     if include_time_coord:
         plugin.check_input_cube_dims(input_cube)
@@ -111,6 +120,7 @@ def test_check_input_cube_dims(input_cube, timezone_cube, include_time_coord):
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("percentiles", (True, False))
+@pytest.mark.parametrize("gridded", (True, False))
 def test_check_aux_time_coord(input_cube, timezone_cube):
     """Checks that check_input_cube_dims can work with an auxiliary time
     coordinate. This occurs when partial periods are allowed. In these
@@ -135,6 +145,7 @@ def test_check_aux_time_coord(input_cube, timezone_cube):
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("percentiles", (True, False))
+@pytest.mark.parametrize("gridded", (True, False))
 @pytest.mark.parametrize(
     "local_time, expect_success",
     ((datetime(2017, 11, 10, 5, 0), True), (datetime(2017, 11, 10, 6, 0), False)),
@@ -159,6 +170,7 @@ def test_check_input_cube_time(input_cube, timezone_cube, local_time, expect_suc
             plugin.check_input_cube_time(input_cube, local_time)
 
 
+@pytest.mark.parametrize("gridded", (True, False))
 def test_check_timezones_are_unique_pass(timezone_cube):
     """Checks that check_timezones_are_unique allows our test cube"""
     plugin = TimezoneExtraction()
@@ -167,9 +179,10 @@ def test_check_timezones_are_unique_pass(timezone_cube):
 
 
 @pytest.mark.parametrize("offset", (1, -1))
+@pytest.mark.parametrize("gridded", (True, False))
 def test_check_timezones_are_unique_fail(timezone_cube, offset):
     """Checks that check_timezones_are_unique fails if we break our test cube"""
-    timezone_cube.data[0, 0, 0] += offset
+    timezone_cube.data[..., 0] += offset
     plugin = TimezoneExtraction()
     plugin.timezone_cube = timezone_cube
     with pytest.raises(
@@ -181,102 +194,88 @@ def test_check_timezones_are_unique_fail(timezone_cube, offset):
 
 @pytest.mark.parametrize("time_bounds", (True, False))
 @pytest.mark.parametrize("percentiles", (True, False))
+@pytest.mark.parametrize("gridded", (True, False))
 @pytest.mark.parametrize("input_as_cube", (True, False))
-def test_process(input_cube, input_as_cube, timezone_cube):
+def test_process(
+    input_cube, test_data, expected_times, gridded, input_as_cube, timezone_cube
+):
     """Checks that the plugin process method returns a cube with expected data and
     time coord for our test data"""
 
-    data_shape = [3, 4]
     time_bounds = input_cube.coord("time").has_bounds()
-    percentiles = "percentile" in [crd.name() for crd in input_cube.coords()]
-
-    data = np.array(
-        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
-    )
-
-    expected_data = [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
-    if percentiles:
-        data = np.array([data, data, data])
-        expected_data = np.array([expected_data, expected_data, expected_data])
-
-    input_cube.data = data
     local_time = datetime(2017, 11, 10, 5, 0)
-    row1 = [input_cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
-    row3 = [input_cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
-    expected_times = [row1, row1, row3]
-    expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
+
+    input_cube.data = test_data[0]
 
     if not input_as_cube:
         # Split cube into a list of cubes
         input_cube = [c for c in input_cube.slices_over("time")]
     result = TimezoneExtraction()(input_cube, timezone_cube, local_time)
 
-    assert_metadata_ok(result)
-    assert np.array_equal(result.data, expected_data)
-    assert np.array_equal(result.coord("time").points, expected_times)
+    assert_metadata_ok(result, gridded=gridded)
+    assert np.array_equal(result.data, test_data[1])
+    assert np.array_equal(result.coord("time").points, expected_times[0])
     if time_bounds:
-        assert np.array_equal(result.coord("time").bounds, expected_bounds)
+        assert np.array_equal(result.coord("time").bounds, expected_times[1])
     else:
         assert result.coord("time").bounds is None
 
 
 @pytest.mark.parametrize("time_bounds", [True])
-@pytest.mark.parametrize("percentiles", [False])
-def test_partial_period_update(input_cube, data_shape, timezone_cube):
+@pytest.mark.parametrize("percentiles", (True, False))
+@pytest.mark.parametrize("gridded", (True, False))
+def test_partial_period_update(
+    input_cube, test_data, expected_times, gridded, timezone_cube
+):
     """Checks that the plugin process method returns a cube with expected data and
     time coord for a case of partial time periods inidicative of a same day update.
     In this case the time bounds are not monotonic, rather the first two times
     share lower bounds. This requires that the time coordinate be an Auxiliary
     coordinate. The variable time-bounds should be reflected in the output time
     coordinate."""
-    data = np.array(
-        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
-    )
-    expected_data = [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
-    input_cube.data = data
+
+    local_time = datetime(2017, 11, 10, 5, 0)
+    input_cube.data = test_data[0]
 
     # Make aux time coord with overlapping lower bounds.
     tcrd = iris.coords.AuxCoord.from_coord(input_cube.coord("time"))
+    tdim = input_cube.coord_dims("time")
     tbounds = tcrd.bounds.copy()
     tbounds[0, 0] = tbounds[1, 0]
     tcrd.bounds = tbounds
     input_cube.remove_coord("time")
-    input_cube.add_aux_coord(tcrd, 0)
+    input_cube.add_aux_coord(tcrd, tdim)
 
-    local_time = datetime(2017, 11, 10, 5, 0)
-    row1 = [input_cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
-    row3 = [input_cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
-    expected_times = [row1, row1, row3]
-    expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
     # The overlapping bounds we expect to see in the output.
-    expected_bounds[:2, :, 0] += 3600
+    if gridded:
+        expected_times[1][:2, :, 0] += 3600
+    else:
+        for i in range(2, len(expected_times[1]), 4):
+            expected_times[1][i : i + 2, 0] += 3600
 
     result = TimezoneExtraction()(input_cube, timezone_cube, local_time)
 
-    assert_metadata_ok(result)
-    assert np.array_equal(result.data, expected_data)
-    assert np.array_equal(result.coord("time").points, expected_times)
-    assert np.array_equal(result.coord("time").bounds, expected_bounds)
+    assert_metadata_ok(result, gridded=gridded)
+    assert np.array_equal(result.data, test_data[1])
+    assert np.array_equal(result.coord("time").points, expected_times[0])
+    assert np.array_equal(result.coord("time").bounds, expected_times[1])
     # Demonstrate there are different length bounds indicating partial periods.
     assert len(np.unique(np.diff(result.coord("time").bounds))) > 1
 
 
 @pytest.mark.parametrize("time_bounds", [True])
 @pytest.mark.parametrize("percentiles", [False])
+@pytest.mark.parametrize("gridded", (True, False))
 def test_incomplete_period(input_cube, timezone_cube):
     """Checks that the plugin process method returns None when an incomplete
     period is provided that indicates the inputs are not a same-day update. This
     is an incomplete period that is missing data at the end of a period rather
     than the beginning, i.e. the upper time bound doesn't match the time target
     time point."""
-    data_shape = [3, 4]
-    data = np.array(
-        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
-    )
-    input_cube.data = data
 
     # Make aux time coord with curtailed final point.
     tcrd = input_cube.coord("time").copy()
+    tdim = input_cube.coord_dims("time")
     tpoints = tcrd.points.copy()
     tbounds = tcrd.bounds.copy()
     tpoints[-1] = tpoints[-1] - 1800
@@ -285,7 +284,7 @@ def test_incomplete_period(input_cube, timezone_cube):
     tcrd.points = tpoints
     tcrd.bounds = tbounds
     input_cube.remove_coord("time")
-    input_cube.add_dim_coord(tcrd, 0)
+    input_cube.add_dim_coord(tcrd, tdim)
 
     local_time = datetime(2017, 11, 10, 5, 0)
     result = TimezoneExtraction()(input_cube, timezone_cube, local_time)
@@ -295,6 +294,7 @@ def test_incomplete_period(input_cube, timezone_cube):
 
 @pytest.mark.parametrize("time_bounds", [True])
 @pytest.mark.parametrize("percentiles", [False])
+@pytest.mark.parametrize("gridded", (True, False))
 def test_bad_dtype(input_cube, timezone_cube):
     """Checks that the plugin raises a useful error if the output are float64"""
     local_time = datetime(2017, 11, 10, 5, 0)
@@ -308,6 +308,7 @@ def test_bad_dtype(input_cube, timezone_cube):
 
 @pytest.mark.parametrize("time_bounds", [True])
 @pytest.mark.parametrize("percentiles", [False])
+@pytest.mark.parametrize("gridded", (True, False))
 def test_bad_spatial_coords(input_cube, timezone_cube):
     """Checks that the plugin raises a useful error if the longitude coord is shifted by
     180 degrees"""
