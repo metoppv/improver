@@ -43,17 +43,33 @@ GRIDS = ["uk", "global"]
 
 
 @pytest.mark.parametrize("grid", GRIDS)
-def test_basic(tmp_path, grid):
+def test_gridded(tmp_path, grid):
     """Test collapsing multiple input times into a single local-time output. For global,
     timezone_mask.nc is a copy of generate-timezone-mask-ancillary/global/grouped_kgo.nc
     which has 2 time-zones (-6 and +6), so only 2 input files required.
     For UK, there are 4 timezones (-2 to +1)."""
 
-    kgo_dir = acc.kgo_root() / f"map-to-timezones/{grid}/"
+    kgo_dir = acc.kgo_root() / f"map-to-timezones/gridded/{grid}/"
     kgo_path = kgo_dir / "kgo.nc"
     input_path = kgo_dir / "input_*.nc"
     timezone_path = kgo_dir / "timezone_mask.nc"
     local_time = "20201203T0000"
+    output_path = tmp_path / "output.nc"
+    args = [local_time, input_path, timezone_path, "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_spot(tmp_path):
+    """Test collapsing multiple input times into a single local-time output. This test
+    uses spot input data and a matching spot timezone ancillary. The sites are found
+    all over the world."""
+
+    kgo_dir = acc.kgo_root() / "map-to-timezones/spot/"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input_*.nc"
+    timezone_path = kgo_dir / "timezone_mask.nc"
+    local_time = "20220923T1800Z"
     output_path = tmp_path / "output.nc"
     args = [local_time, input_path, timezone_path, "--output", output_path]
     run_cli(args)

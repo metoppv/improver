@@ -331,6 +331,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         )
         self.timezone_cube = None
         self.output_data = None
+        self.gridded = True
 
     def create_output_cube(self, cube: Cube, local_time: datetime) -> Cube:
         """
@@ -379,6 +380,10 @@ class TimezoneExtraction(PostProcessingPlugin):
                 units=local_time_units,
             )
         )
+        target_dimension = output_cube.ndim - 1
+        if self.gridded:
+            target_dimension = [n + output_cube.ndim for n in [-2, -1]]
+
         output_cube.add_aux_coord(
             AuxCoord(
                 self.time_points,
@@ -386,7 +391,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 standard_name="time",
                 units=self.time_units,
             ),
-            [n + output_cube.ndim for n in [-2, -1]],
+            target_dimension,
         )
         return output_cube
 
@@ -421,9 +426,12 @@ class TimezoneExtraction(PostProcessingPlugin):
         # Sort out the time points
         input_time_points = input_cube.coord("time").points
         # Add scalar coords to allow broadcast to spatial coords.
-        times = input_time_points.reshape((1, 1, len(input_time_points))) * (
-            1 - self.timezone_cube.data
-        )
+        if self.gridded:
+            input_time_points = input_time_points.reshape(
+                (1, 1, len(input_time_points))
+            )
+
+        times = input_time_points * (1 - self.timezone_cube.data)
         self.time_points = times.sum(axis=-1)
 
         # Sort out the time bounds (if present)
@@ -432,16 +440,18 @@ class TimezoneExtraction(PostProcessingPlugin):
             # Index 0 = lower bound, index 1 = upper bound
             for index in [0, 1]:
                 time_bounds = input_cube.coord("time").bounds[:, index]
-                time_bounds = time_bounds.reshape((1, 1, len(time_bounds))) * (
-                    1 - self.timezone_cube.data
-                )
+                if self.gridded:
+                    time_bounds = time_bounds.reshape((1, 1, len(time_bounds)))
+
+                time_bounds = time_bounds * (1 - self.timezone_cube.data)
                 bounds.append(time_bounds.sum(axis=-1))
 
             self.time_bounds = np.stack(bounds, axis=-1)
 
     def check_input_cube_dims(self, input_cube: Cube) -> None:
-        """Ensures input cube has at least three dimensions: time, y, x. Promotes time
-        to be the inner-most dimension (dim=-1).
+        """Ensures input cube has the expected dimensions. These are "time, y, x" if
+        working with gridded data, and "time, spot_index" if working with spot data.
+        Promotes time to be the inner-most dimension (dim=-1).
 
         Raises:
             ValueError:
@@ -449,9 +459,16 @@ class TimezoneExtraction(PostProcessingPlugin):
                 If the spatial coords on input_cube and timezone_cube do not match.
         """
         time_coord_name = "time"
-        expected_coords = [time_coord_name] + [
-            input_cube.coord(axis=n).name() for n in "yx"
-        ]
+        try:
+            input_cube.coord_dims("spot_index")
+        except CoordinateNotFoundError:
+            expected_coords = [time_coord_name] + [
+                input_cube.coord(axis=n).name() for n in "yx"
+            ]
+        else:
+            self.gridded = False
+            expected_coords = [time_coord_name, "spot_index"]
+
         cube_coords = [coord.name() for coord in input_cube.coords(dim_coords=True)]
         if not all(
             [expected_coord in cube_coords for expected_coord in expected_coords]
@@ -460,7 +477,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 time_aux_dim = input_cube.coord_dims(time_coord_name)
             except CoordinateNotFoundError as err:
                 raise CoordinateNotFoundError(
-                    f"Expected coords on input_cube: time, y, x ({expected_coords})."
+                    f"Expected coords on input_cube: {expected_coords}."
                     f"Found {cube_coords}"
                 ) from err
 
@@ -507,7 +524,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         enforce_coordinate_ordering(
             self.timezone_cube, ["UTC_offset"], anchor_start=False
         )
-        self.timezone_cube = self.timezone_cube[:, :, ::-1]
+        self.timezone_cube = self.timezone_cube[..., ::-1]
 
         timezone_coord = self.timezone_cube.coord("UTC_offset")
         timezone_coord.convert_units("seconds")
