@@ -116,5 +116,5 @@ def test_non_cubes(dummy_plugin):
     assert result is None
 
     iterable_input = ["list", "of", "strings"]
-    result = dummy_plugin()(iterable_input)
+    result = dummy_plugin()(iterable_input.copy())
     assert result == iterable_input
