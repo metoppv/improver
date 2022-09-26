@@ -405,7 +405,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         forecast_variable: str,
         forecast_variable_unit: str,
         output_data: ndarray,
-        model_input_converter: Optional[Callable[[ndarray], object]] = None,
+        model_input_converter: Optional[Callable[[ndarray], object]] = np.array,
     ):
         """Evaluate probability that error in forecast exceeds thresholds, setting
         the result to 1 when `forecast + threshold` is less than or equal to
@@ -427,10 +427,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 only used for treelite predictor
         """
 
-        if model_input_converter:
-            input_dataset = model_input_converter(input_data)
-        else:
-            input_dataset = input_data
+        input_dataset = model_input_converter(input_data)
 
         bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
         bound_unit = unit.Unit(bounds_data[1])
