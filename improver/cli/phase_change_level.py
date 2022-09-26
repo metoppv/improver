@@ -41,6 +41,7 @@ def process(
     phase_change,
     grid_point_radius=2,
     horizontal_interpolation=True,
+    model_id_attr: str = None,
 ):
     """Height of precipitation phase change relative to sea level.
 
@@ -80,6 +81,8 @@ def process(
             If True apply horizontal interpolation to fill in holes in
             the returned phase-change-level that occur because the level
             falls below the orography. If False these areas will be masked.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for blending.
 
     Returns:
         iris.cube.Cube:
@@ -93,6 +96,7 @@ def process(
         phase_change=phase_change,
         grid_point_radius=grid_point_radius,
         horizontal_interpolation=horizontal_interpolation,
+        model_id_attr=model_id_attr,
     )
     result = plugin(cubes)
     return result

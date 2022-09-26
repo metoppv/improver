@@ -257,8 +257,21 @@ class CubeCombiner(BasePlugin):
             TypeError: if the operation results in an escalated datatype
         """
         result = cube_list[0].copy()
-        for cube in cube_list[1:]:
-            result.data = self.operator(result.data, cube.data)
+
+        # Slice over realization if possible to reduce memory usage.
+        if "realization" in [crd.name() for crd in result.coords(dim_coords=True)]:
+            rslices = iris.cube.CubeList(result.slices_over("realization"))
+            for cube in cube_list[1:]:
+                cslices = cube.slices_over("realization")
+                for rslice, cslice in zip(rslices, cslices):
+                    rslice.data = self.operator(rslice.data, cslice.data)
+            result = rslices.merge_cube()
+            enforce_coordinate_ordering(
+                result, [d.name() for d in cube_list[0].coords(dim_coords=True)]
+            )
+        else:
+            for cube in cube_list[1:]:
+                result.data = self.operator(result.data, cube.data)
 
         if self.normalise:
             result.data = result.data / len(cube_list)

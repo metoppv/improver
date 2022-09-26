@@ -41,13 +41,20 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_basic(tmp_path):
-    """Test basic wet bulb temperature integral calculation"""
-    kgo_dir = acc.kgo_root() / "wet-bulb-temperature-integral/basic"
-    kgo_path = kgo_dir / "kgo.nc"
+@pytest.mark.parametrize("model_id_attr", (True, False))
+def test_basic(tmp_path, model_id_attr):
+    """Test basic wet bulb temperature integral calculation with and without the
+    model_id_attr attribute."""
+    test_dir = acc.kgo_root() / "wet-bulb-temperature-integral/basic"
     output_path = tmp_path / "output.nc"
-    input_path = kgo_dir / "input.nc"
+    input_path = test_dir / "input.nc"
     args = [input_path, "--output", output_path]
+    if model_id_attr:
+        args += ["--model-id-attr", "mosg__model_configuration"]
+        test_dir = test_dir / "with_id_attr"
+    else:
+        test_dir = test_dir / "without_id_attr"
+    kgo_path = test_dir / "kgo.nc"
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

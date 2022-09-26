@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,32 +28,29 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate wet bulb temperature integral."""
+""" Provides support utilities for flattening."""
 
-from improver import cli
+from typing import List, Tuple, Union
 
 
-@cli.clizefy
-@cli.with_output
-def process(wet_bulb_temperature: cli.inputcube, *, model_id_attr: str = None):
-    """Module to calculate wet bulb temperature integral.
-
-    Calculate the wet-bulb temperature integral using the input wet bulb
-    temperature data. The integral will be calculated at the height levels on
-    which the wet bulb temperatures are provided.
+def flatten(nested_list: Union[List, Tuple]) -> List:
+    """Flatten an arbitrarily nested iterable.
 
     Args:
-        wet_bulb_temperature (iris.cube.Cube):
-            Cube of wet bulb temperatures on height levels.
-        model_id_attr (str):
-            Name of the attribute used to identify the source model for blending.
+        nested_list:
+            An arbitrarily nested iterable to be flattened.
 
     Returns:
-        iris.cube.Cube:
-            Processed Cube of wet bulb integrals.
+        A list containing a flattened version of the arbitrarily nested input.
     """
-    from improver.psychrometric_calculations.wet_bulb_temperature import (
-        WetBulbTemperatureIntegral,
-    )
-
-    return WetBulbTemperatureIntegral(model_id_attr=model_id_attr)(wet_bulb_temperature)
+    flat_list = []
+    if not isinstance(nested_list, (list, tuple)):
+        raise ValueError(
+            f"Expected object of type list or tuple, not {type(nested_list)}"
+        )
+    for item in nested_list:
+        if isinstance(item, (list, tuple)):
+            flat_list.extend(flatten(item))
+        else:
+            flat_list.append(item)
+    return flat_list

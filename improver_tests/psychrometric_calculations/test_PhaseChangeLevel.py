@@ -717,6 +717,56 @@ class Test_process(IrisTest):
         if hasattr(result.data, "mask"):
             self.assertFalse(result.data.mask.any())
 
+    def test_model_id_attr(self):
+        """Test that process returns a cube with the right name, units and
+        values when the model_id_attr is provided. In this instance the phase change
+        is from snow to sleet. The returned level has three values, all above
+        orography."""
+        self.wet_bulb_temperature_cube.attributes[
+            "mosg__model_configuration"
+        ] = "uk_ens"
+        self.wet_bulb_integral_cube.attributes["mosg__model_configuration"] = "uk_ens"
+        result = PhaseChangeLevel(
+            phase_change="snow-sleet", model_id_attr="mosg__model_configuration"
+        ).process(
+            CubeList(
+                [
+                    self.wet_bulb_temperature_cube,
+                    self.wet_bulb_integral_cube,
+                    self.orog,
+                    self.land_sea,
+                ]
+            )
+        )
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.name(), "altitude_of_snow_falling_level")
+        self.assertEqual(result.units, Unit("m"))
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_ens")
+        self.assertArrayAlmostEqual(result.data, self.expected_snow_sleet)
+        if hasattr(result.data, "mask"):
+            self.assertFalse(result.data.mask.any())
+
+    def test_model_id_attr_exception(self):
+        """Test that non-matching model_id_attr values result in an exception."""
+        self.wet_bulb_temperature_cube.attributes[
+            "mosg__model_configuration"
+        ] = "uk_ens"
+        self.wet_bulb_integral_cube.attributes["mosg__model_configuration"] = "uk_det"
+        msg = "Attribute mosg__model_configuration"
+        with self.assertRaisesRegex(ValueError, msg):
+            PhaseChangeLevel(
+                phase_change="snow-sleet", model_id_attr="mosg__model_configuration"
+            ).process(
+                CubeList(
+                    [
+                        self.wet_bulb_temperature_cube,
+                        self.wet_bulb_integral_cube,
+                        self.orog,
+                        self.land_sea,
+                    ]
+                )
+            )
+
     def test_snow_sleet_phase_change_reorder_cubes(self):
         """Same test as test_snow_sleet_phase_change but the cubes are in a
         different order"""

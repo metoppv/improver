@@ -360,6 +360,7 @@ class PhaseChangeLevel(BasePlugin):
         phase_change: str,
         grid_point_radius: int = 2,
         horizontal_interpolation: bool = True,
+        model_id_attr: str = None,
     ) -> None:
         """
         Initialise class.
@@ -388,6 +389,8 @@ class PhaseChangeLevel(BasePlugin):
                 If True apply horizontal interpolation to fill in holes in
                 the returned phase-change-level that occur because the level
                 falls below the orography. If False these areas will be masked.
+            model_id_attr (str):
+                Name of the attribute used to identify the source model for blending.
         """
         phase_changes = {
             "snow-sleet": {"threshold": 90.0, "name": "snow_falling"},
@@ -407,6 +410,7 @@ class PhaseChangeLevel(BasePlugin):
         self.phase_change_name = phase_change_def["name"]
         self.grid_point_radius = grid_point_radius
         self.horizontal_interpolation = horizontal_interpolation
+        self.model_id_attr = model_id_attr
 
     def find_falling_level(
         self, wb_int_data: ndarray, orog_data: ndarray, height_points: ndarray
@@ -840,7 +844,9 @@ class PhaseChangeLevel(BasePlugin):
             Cube with phase change data
         """
         name = "altitude_of_{}_level".format(self.phase_change_name)
-        attributes = generate_mandatory_attributes([wbt])
+        attributes = generate_mandatory_attributes(
+            [wbt], model_id_attr=self.model_id_attr
+        )
         template = next(wbt.slices_over(["height"])).copy()
         template.remove_coord("height")
         return create_new_diagnostic_cube(
@@ -870,6 +876,10 @@ class PhaseChangeLevel(BasePlugin):
 
         Returns:
             Cube of phase change level above sea level (asl).
+
+        Raises:
+            ValueError: Raise exception if the model_id_attr attribute does not
+                match on the input cubes.
         """
 
         names_to_extract = [
@@ -889,6 +899,17 @@ class PhaseChangeLevel(BasePlugin):
 
         wet_bulb_temperature.convert_units("celsius")
         wet_bulb_integral.convert_units("K m")
+
+        if self.model_id_attr:
+            if (
+                wet_bulb_temperature.attributes[self.model_id_attr]
+                != wet_bulb_integral.attributes[self.model_id_attr]
+            ):
+                raise ValueError(
+                    f"Attribute {self.model_id_attr} does not match on input cubes. "
+                    f"{wet_bulb_temperature.attributes[self.model_id_attr]} != "
+                    f"{wet_bulb_integral.attributes[self.model_id_attr]}"
+                )
 
         # Ensure the wet bulb integral cube's height coordinate is in
         # descending order

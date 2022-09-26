@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,32 +28,54 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate wet bulb temperature integral."""
+"""Unit tests for flattening an arbitrarily nested iterable."""
 
-from improver import cli
+import numpy as np
+import pytest
+from iris.cube import Cube, CubeList
+
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.utilities.flatten import flatten
 
 
-@cli.clizefy
-@cli.with_output
-def process(wet_bulb_temperature: cli.inputcube, *, model_id_attr: str = None):
-    """Module to calculate wet bulb temperature integral.
+@pytest.fixture
+def cube() -> Cube:
+    """Sets up a cube for testing"""
+    return set_up_variable_cube(np.zeros((2, 2), dtype=np.float32),)
 
-    Calculate the wet-bulb temperature integral using the input wet bulb
-    temperature data. The integral will be calculated at the height levels on
-    which the wet bulb temperatures are provided.
 
-    Args:
-        wet_bulb_temperature (iris.cube.Cube):
-            Cube of wet bulb temperatures on height levels.
-        model_id_attr (str):
-            Name of the attribute used to identify the source model for blending.
+@pytest.mark.parametrize(
+    "nested,expected",
+    (
+        ([0, 1, 2], [0, 1, 2]),
+        ([0, 1, [2, 3]], [0, 1, 2, 3]),
+        (["a", "b", "c"], ["a", "b", "c"]),
+        (["a", "b", ["c", "d"]], ["a", "b", "c", "d"]),
+        (
+            [np.array([0]), np.array([1]), [np.array([2]), np.array([2])]],
+            [np.array([0]), np.array([1]), np.array([2]), np.array([2])],
+        ),
+        ([cube, cube, [cube, cube]], [cube, cube, cube, cube]),
+        (CubeList([cube, cube, CubeList([cube, cube])]), [cube, cube, cube, cube]),
+        ([0, [1, [2, [3]]]], [0, 1, 2, 3]),
+        ([0, [1, 2], [3]], [0, 1, 2, 3]),
+        (["cat"], ["cat"]),
+        ((0, 1, (2, 3)), [0, 1, 2, 3]),
+    ),
+)
+def test_basic(nested, expected):
+    """Test flattening an arbitrarily nested iterable."""
+    result = flatten(nested)
+    assert result == expected
+    assert isinstance(result, list)
 
-    Returns:
-        iris.cube.Cube:
-            Processed Cube of wet bulb integrals.
-    """
-    from improver.psychrometric_calculations.wet_bulb_temperature import (
-        WetBulbTemperatureIntegral,
-    )
 
-    return WetBulbTemperatureIntegral(model_id_attr=model_id_attr)(wet_bulb_temperature)
+@pytest.mark.parametrize(
+    "nested", ((0), ("cat"), ({0: {1: "cat"}, 1: {2: "dog"}}),),
+)
+def test_exception(nested):
+    """Test an exception is raised if inappropriate types
+    are provided for flattening."""
+    msg = "Expected object of type list or tuple"
+    with pytest.raises(ValueError, match=msg):
+        flatten(nested)
