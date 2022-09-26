@@ -431,20 +431,23 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
         bounds_unit = unit.Unit(bounds_data[1])
-        lower_bound = bounds_unit.convert(bounds_data[0][0], forecast_variable_unit)
+        lower_bound = bounds_data[0][0]
+        lower_bound_in_fcst_units = bounds_unit.convert(
+            lower_bound, forecast_variable_unit
+        )
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
             if threshold >= 0:
                 # In this case, for all values of forecast we have
-                # forecast + threshold >= forecast >= lower_bound
+                # forecast + threshold >= forecast >= lower_bound_in_fcst_units
                 prediction = model.predict(input_dataset)
             else:
                 # In this case, we have error > threshold if and only if
                 # observations > forecast + threshold, which has probability 1
-                # if forecast + threshold < lower_bound
+                # if forecast + threshold < lower_bound_in_fcst_units
                 prediction = np.ones(input_data.shape[0], dtype=np.float32)
-                forecast_bool = forecast_data + threshold >= lower_bound
+                forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
                 if np.any(forecast_bool):
                     input_subset = input_data[forecast_bool]
                     if model_input_converter:
