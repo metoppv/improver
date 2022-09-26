@@ -41,6 +41,7 @@ from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.check_datatypes import enforce_dtype
+from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_diagnostic_cube_name_from_probability_name,
@@ -516,3 +517,82 @@ class CubeMultiplier(CubeCombiner):
         result.rename(new_diagnostic_name)
 
         return result
+
+
+class MaxInTimeWindow(BasePlugin):
+    """Find the maximum within a time window for a period diagnostic. For example,
+    find the maximum 3-hour precipitation accumulation within a 24 hour window."""
+
+    def process(self, cubes: CubeList) -> Cube:
+        """Compute the maximum within a time window for a period diagnostic using
+        the Combine plugin. The resulting cube has a time coordinate with bounds that
+        represent the time window whilst the cell method has been updated to represent
+        the period recorded on the input cubes. For example, the time window might be
+        24 hours, whilst the period might be 3 hours.
+
+        Args:
+            cubes (iris.cube.CubeList or list of iris.cube.Cube):
+                An iris CubeList to be combined.
+
+        Returns:
+            result (iris.cube.Cube):
+                Returns a cube with the combined data.
+
+        Raises:
+            ValueError: The input cubes do not have bounds.
+            ValueError: The input cubes do not all have bounds.
+            ValueError: The input cubes have bounds that imply mismatching periods.
+        """
+        msg = None
+        time_units_in_hours = TIME_COORDS["time"].units.replace("seconds", "hours")
+        coords = [c.coord("time").copy() for c in cubes]
+        [c.convert_units(time_units_in_hours) for c in coords]
+        if not any([c.has_bounds() for c in coords]):
+            msg = (
+                "The cubes provided do not have bounds. "
+                "When computing the maximum over a time window, the inputs "
+                "are expected to be diagnostics representing a time period "
+                "with bounds."
+            )
+        elif not all([c.has_bounds() for c in coords]):
+            [c.convert_units(time_units_in_hours) for c in coords]
+            period = np.unique([np.diff(c.bounds) for c in coords if c.has_bounds()])
+            msg = (
+                "The cubes provided do not all have bounds. "
+                "When computing the maximum over a time window, the inputs "
+                "are expected to be diagnostics representing a time period "
+                "with bounds."
+                f"Period(s) indicated by bounds: {period} hours"
+            )
+        elif len(np.unique([np.diff(c.bounds) for c in coords])) > 1:
+            [c.convert_units(time_units_in_hours) for c in coords]
+            period = np.unique([np.diff(c.bounds) for c in coords])
+            msg = (
+                "The bounds on the cubes imply mismatching periods. "
+                f"Period(s) indicated by bounds: {period} hours"
+            )
+
+        if msg:
+            raise ValueError(msg)
+
+        (period,) = np.unique([np.diff(c.bounds) for c in coords])
+        cube = Combine("max")(cubes)
+        if cube.name().startswith("probability_of"):
+            diag_name = cube.coord(var_name="threshold").name()
+        else:
+            diag_name = cube.name()
+        intervals = f"of {diag_name} over {period} hours within time window"
+
+        # Remove cell methods with the same method as will be added.
+        cell_methods = []
+        for cm in cube.cell_methods:
+            if cm.method in ["sum", "maximum"] and "time" in cm.coord_names:
+                continue
+            else:
+                cell_methods.append(cm)
+        cube.cell_methods = tuple(cell_methods)
+        # Add cell methods to record that a maximum over time has been computed,
+        # as well as some information about the inputs to this value.
+        cube.add_cell_method(CellMethod("sum", coords=["time"], intervals=intervals))
+        cube.add_cell_method(CellMethod("maximum", coords=["time"]))
+        return cube
