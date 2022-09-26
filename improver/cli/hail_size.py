@@ -39,7 +39,7 @@ def process(
     *cubes: cli.inputcube, ccl_cubes: cli.inputcubelist, model_id_attr: str = None
 ):
     """Module to calculate the size of hail stones from the
-    cloud condensation level temperature and pressure, temperature
+    cloud condensation level (ccl) temperature and pressure, temperature
     on pressure levels data and relative humidity on pressure levels.
 
     Args:
@@ -49,16 +49,16 @@ def process(
                     Cube of temperature on pressure_levels
                 relative_humidity (iris.cube.Cube)
                     Cube of relative_humidity on pressure levels
-        ccl_cubes (iris.cube.CubeList)
-            Cube list containing a cube of air temperature at ccl
-            and a cube of air pressure at ccl
+                ccl_cubes (iris.cube.CubeList)
+                    Cube list containing a cube of air temperature at ccl
+                    and a cube of air pressure at ccl
 
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
     Returns:
         iris.cube.Cube:
-            Cube of size_of_hail (mm).
+            Cube of size_of_hail (m).
 
     """
     from iris.cube import CubeList

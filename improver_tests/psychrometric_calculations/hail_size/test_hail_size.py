@@ -114,19 +114,14 @@ def metadata_check(hail_cube):
     assert hail_cube.units == "m"
 
     attributes = [attr for attr in hail_cube.attributes]
+
     if "mosg__model_configuration" in attributes:
-
-        assert attributes == [
-            "title",
-            "source",
-            "institution",
-            "mosg__model_configuration",
-        ]
+        assert hail_cube.attributes == {'title': 'unit test data', 'source': 'unit test', 'institution': 'somewhere', 'mosg__model_configuration': 'gl_ens'}
     else:
-        assert attributes == ["title", "source", "institution"]
+        assert hail_cube.attributes == {'title': 'unit test data', 'source': 'unit test', 'institution': 'somewhere'}
 
 
-def cube_size_check(hail_cube):
+def cube_shape_check(hail_cube):
     """Checks cube coordinates and dimensions"""
     coord_names = [coord.name() for coord in hail_cube.coords()]
     assert coord_names == [
@@ -151,7 +146,7 @@ https://doi.org/10.1175/1520-0477-34.6.235
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,humidity,expected",
     (
-        (75000, 290, 0.001, 0.02,),  # values approx from tephigram in literiture
+        (75000, 290, 0.001, 0.02,),  # values approx from tephigram in literature
         (94000, 300, 0.001, 0),  # vertical value negative
         (1000, 360, 0.001, 0),  # horizontal value negative
         (95000, 330, 0.001, 0.08),  # vertical greater than length of table
@@ -186,7 +181,7 @@ def test_basic_hail_size(
     )
     np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
-    cube_size_check(result)
+    cube_shape_check(result)
 
 
 def test_temperature_too_high(
@@ -215,7 +210,7 @@ def test_temperature_too_high(
     )
     np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
-    cube_size_check(result)
+    cube_shape_check(result)
 
 
 @pytest.mark.parametrize(
@@ -268,7 +263,7 @@ def test_model_id_attr(
     ccl_temperature,
     model_id_attr,
 ):
-    """Tests plguin if model_id_attr is set on inputs and is applied or not"""
+    """Tests plugin if model_id_attr is set on inputs and is applied or not"""
     temperature_on_pressure_levels.attributes["mosg__model_configuration"] = "gl_ens"
     ccl_pressure.attributes["mosg__model_configuration"] = "gl_ens"
     relative_humidity_on_pressure.attributes["mosg__model_configuration"] = "gl_ens"
@@ -283,7 +278,7 @@ def test_model_id_attr(
 
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
-    cube_size_check(result)
+    cube_shape_check(result)
 
 
 def test_re_ordered_cubes(
@@ -293,7 +288,7 @@ def test_re_ordered_cubes(
     ccl_temperature,
 ):
 
-    """Tests the plugin if the input cubes have coordinates that need to be rearanged.
+    """Tests the plugin if the input cubes have coordinates that need to be rearranged.
     Checks that the outputted cube has coordinates in the same order as the inputs"""
 
     enforce_coordinate_ordering(
