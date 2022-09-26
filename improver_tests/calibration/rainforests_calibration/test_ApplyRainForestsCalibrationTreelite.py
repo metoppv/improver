@@ -131,12 +131,8 @@ def test__evaluate_probabilities(
     assert np.all(error_threshold_cube.data >= 0)
     assert np.all(error_threshold_cube.data <= 1)
     # check data is 1 where forecast + error < 0
-    precip_forecast_reshaped = np.reshape(
-        forecast_data, error_threshold_cube.data.shape[1:]
-    )
     for i, t in enumerate(plugin.error_thresholds):
-        invalid_error = precip_forecast_reshaped + t < 0
-        print(precip_forecast_reshaped[invalid_error] + t)
+        invalid_error = ensemble_forecast.data + t < 0
         np.testing.assert_almost_equal(error_threshold_cube.data[i, invalid_error], 1)
 
 
