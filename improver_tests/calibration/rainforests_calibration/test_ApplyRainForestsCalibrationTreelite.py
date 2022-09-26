@@ -117,7 +117,7 @@ def test__evaluate_probabilities(
     forecast_data = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
     plugin._evaluate_probabilities(
-        forecast,
+        forecast_data,
         input_dataset,
         ensemble_forecast.name(),
         ensemble_forecast.units,
