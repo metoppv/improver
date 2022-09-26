@@ -217,10 +217,10 @@ def test__evaluate_probabilities(
     plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
-    forecast = ensemble_forecast.data.ravel()
+    forecast_data = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
     plugin._evaluate_probabilities(
-        forecast,
+        forecast_data,
         input_dataset,
         ensemble_forecast.name(),
         ensemble_forecast.units,

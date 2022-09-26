@@ -114,7 +114,7 @@ def test__evaluate_probabilities(
     plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
-    forecast = ensemble_forecast.data.ravel()
+    forecast_data = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
     plugin._evaluate_probabilities(
         forecast,
@@ -131,7 +131,9 @@ def test__evaluate_probabilities(
     assert np.all(error_threshold_cube.data >= 0)
     assert np.all(error_threshold_cube.data <= 1)
     # check data is 1 where forecast + error < 0
-    precip_forecast_reshaped = np.reshape(forecast, error_threshold_cube.data.shape[1:])
+    precip_forecast_reshaped = np.reshape(
+        forecast_data, error_threshold_cube.data.shape[1:]
+    )
     for i, t in enumerate(plugin.error_thresholds):
         invalid_error = precip_forecast_reshaped + t < 0
         print(precip_forecast_reshaped[invalid_error] + t)

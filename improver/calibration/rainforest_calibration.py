@@ -478,10 +478,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_dataset = self._prepare_features_array(feature_cubes)
 
-        forecast = forecast_cube.data.ravel()
+        forecast_data = forecast_cube.data.ravel()
 
         self._evaluate_probabilities(
-            forecast,
+            forecast_data,
             input_dataset,
             forecast_cube.name(),
             forecast_cube.units,
@@ -873,10 +873,10 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
         input_data = self._prepare_features_array(feature_cubes)
 
-        forecast = forecast_cube.data.ravel()
+        forecast_data = forecast_cube.data.ravel()
 
         self._evaluate_probabilities(
-            forecast,
+            forecast_data,
             input_data,
             forecast_cube.name(),
             forecast_cube.units,
