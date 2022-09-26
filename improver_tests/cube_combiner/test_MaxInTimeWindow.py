@@ -115,9 +115,7 @@ def test_basic(forecast_cubes):
 def test_existing_cell_methods():
     """Test the handling of existing cell methods."""
     cubes = setup_realization_cubes()
-    intervals = (
-        "of lwe_thickness_of_precipitation_amount"
-    )
+    intervals = "of lwe_thickness_of_precipitation_amount"
     for cube in cubes:
         cube.add_cell_method(CellMethod("sum", coords=["time"], intervals=intervals))
         cube.add_cell_method(CellMethod("maximum", coords=["height"]))

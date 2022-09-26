@@ -36,9 +36,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube,
-):
+def process(*cubes: cli.inputcube,):
     """Find the maximum within a time window for a period diagnostic. For example,
     find the maximum 3-hour precipitation accumulation within a 24 hour window.
 
