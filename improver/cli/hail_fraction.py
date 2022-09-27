@@ -53,20 +53,10 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
             A single cube containing the hail fraction.
 
     """
-    from collections.abc import Iterable
-
     from iris.cube import CubeList
 
     from improver.precipitation_type.hail_fraction import HailFraction
-
-    def flatten(alist):
-        for item in alist:
-            if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
-                yield from flatten(item)
-            else:
-                yield item
-
-    cubelist = CubeList(flatten(cubes))
+    from improver.utilities.flatten import flatten
 
     (
         vertical_updraught,
@@ -75,7 +65,7 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
         convective_cloud_top,
         hail_melting_level,
         altitude,
-    ) = cubelist.extract(
+    ) = CubeList(flatten(cubes)).extract(
         [
             "maximum_vertical_updraught",
             "diameter_of_hail_stones",

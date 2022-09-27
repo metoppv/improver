@@ -74,12 +74,12 @@ class HailFraction(PostProcessingPlugin):
         the hail fraction is estimated as varying linearly with the maximum vertical
         updraught so that a maximum vertical updraught of 5 m/s has a hail fraction of
         0 whilst a maximum vertical updraught of 50 m/s has a hail fraction of 0.25.
-        The hail size is then checked for hail with a size larger than 2 mm. If the
+        Next, the hail fraction is set to zero if either the cloud condensation level
+        temperature is below -5 Celsius, the convective cloud top temperature is above
+        -15 Celsius or the hail melting level is above orography. As a final check,
+        the hail size is then checked for hail with a size larger than 2 mm. If the
         hail size is above this limit but the hail fraction is below 0.05, the hail
-        fraction is set to 0.05. As a final check, the hail fraction is set to zero if
-        either the cloud condensation level temperature is below -5 Celsius, the
-        convective cloud top temperature is above -15 Celsius or the hail melting level
-        is above orography.
+        fraction is set to 0.05.
 
         The values chosen are based on expert elicitation with some information from
         Dennis & Kumjian, 2017.
@@ -106,13 +106,13 @@ class HailFraction(PostProcessingPlugin):
             np.float32
         )
         hail_fraction[
-            (hail_size.data > hail_size_limit) & (hail_fraction < 0.05)
-        ] = 0.05
-        hail_fraction[
             (cloud_condensation_level.data < ccl_limit)
             | (convective_cloud_top.data > cct_limit)
             | (hail_melting_level.data > orography.data)
         ] = 0
+        hail_fraction[
+            (hail_size.data > hail_size_limit) & (hail_fraction < 0.05)
+        ] = 0.05
         return hail_fraction
 
     def process(

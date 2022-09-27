@@ -140,6 +140,9 @@ def setup_cubes():
         (75, 0.001, 271.15, 263.15, 20, 50, 0),
         # Hail melting level prevents hail
         (75, 0.001, 271.15, 253.15, 100, 50, 0),
+        # Hail size causes non-zero hail fraction despite inhibitive cloud condensation
+        # level temperature, convective cloud top temperature and hail melting level
+        (1, 0.003, 263.15, 263.15, 100, 50, 0.05),
     ),
 )
 def test_basic(
