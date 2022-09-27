@@ -35,43 +35,42 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube, ccl_cubes: cli.inputcubelist, model_id_attr: str = None
-):
+def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     """Module to calculate the size of hail stones from the
-    cloud condensation level (ccl) temperature and pressure, temperature
+    cloud condensation level temperature and pressure, temperature
     on pressure levels data and relative humidity on pressure levels.
 
-    Args:
+   Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing:
                 temperature (iris.cube.Cube):
                     Cube of temperature on pressure_levels
                 relative_humidity (iris.cube.Cube)
                     Cube of relative_humidity on pressure levels
-                ccl_cubes (iris.cube.CubeList)
-                    Cube list containing a cube of air temperature at ccl
-                    and a cube of air pressure at ccl
-
-        model_id_attr (str):
+                air temperature at ccl
+                air pressure at ccl
+       model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
-
-    Returns:
+   Returns:
         iris.cube.Cube:
-            Cube of size_of_hail (m).
-
-    """
+            Cube of size_of_hail (mm).
+   """
     from iris.cube import CubeList
 
     from improver.psychrometric_calculations.hail_size import HailSize
+    from improver.utilities.flatten import flatten
 
-    temperature, relative_humidity = CubeList(cubes).extract(
-        ["air_temperature", "relative_humidity"]
+    cubes = flatten(cubes)
+    temperature, relative_humidity, ccl_pressure, ccl_temperature = CubeList(
+        cubes
+    ).extract(
+        [
+            "air_temperature",
+            "relative_humidity",
+            "air_pressure_at_condensation_level",
+            "air_temperature_at_condensation_level",
+        ]
     )
-    ccl_pressure, ccl_temperature = CubeList(ccl_cubes).extract(
-        ["air_pressure_at_condensation_level", "air_temperature_at_condensation_level"]
-    )
-
     return HailSize(model_id_attr=model_id_attr)(
         ccl_temperature, ccl_pressure, temperature, relative_humidity
     )

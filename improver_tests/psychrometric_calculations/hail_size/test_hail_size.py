@@ -116,9 +116,18 @@ def metadata_check(hail_cube):
     attributes = [attr for attr in hail_cube.attributes]
 
     if "mosg__model_configuration" in attributes:
-        assert hail_cube.attributes == {'title': 'unit test data', 'source': 'unit test', 'institution': 'somewhere', 'mosg__model_configuration': 'gl_ens'}
+        assert hail_cube.attributes == {
+            "title": "unit test data",
+            "source": "unit test",
+            "institution": "somewhere",
+            "mosg__model_configuration": "gl_ens",
+        }
     else:
-        assert hail_cube.attributes == {'title': 'unit test data', 'source': 'unit test', 'institution': 'somewhere'}
+        assert hail_cube.attributes == {
+            "title": "unit test data",
+            "source": "unit test",
+            "institution": "somewhere",
+        }
 
 
 def cube_shape_check(hail_cube):

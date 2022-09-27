@@ -42,12 +42,11 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.parametrize("model_id_attr", (True, False))
 def test_basic(tmp_path, model_id_attr):
     """Test hail size plugin, with and without model_id_attr"""
-    test_dir = acc.kgo_root() / "hail_size"
+    test_dir = acc.kgo_root() / "hail-size"
     output_path = tmp_path / "output.nc"
     args = [
         test_dir / "temperature_on_pressure_levels.nc",
         test_dir / "relative_humidity_on_pressure.nc",
-        "--ccl-cubes",
         test_dir / "ccl.nc",
         "--output",
         output_path,

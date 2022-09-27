@@ -31,7 +31,7 @@
 """module to calculate hail_size"""
 
 import numpy as np
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -44,7 +44,6 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     adjust_for_latent_heat,
     dry_adiabatic_temperature,
 )
-
 from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
@@ -69,7 +68,7 @@ class HailSize(BasePlugin):
           atmosphere at 268.15K
 
     These indexes are then used to extract values of hail size from the table
-    taken from Hand and Cappelluti (2011) which is a tabular version of a 
+    taken from Hand and Cappelluti (2011) which is a tabular version of a
     graph from Fawbush and Miller(1953)
 
     References
@@ -87,6 +86,7 @@ class HailSize(BasePlugin):
                 model_id_attr:
                     Name of model ID attribute to be copied from source cubes to output cube
         """
+        
         self.model_id_attr = model_id_attr
 
     @staticmethod
@@ -193,8 +193,11 @@ class HailSize(BasePlugin):
             of values for the variable extracted at the pressure levels described
             by the pressure cube.
         """
+
         coord_order = [coord.name() for coord in variable_on_pressure.coords()]
-        order = ["realization","pressure"]+[variable_on_pressure.coord(axis=axis).name() for axis in "yx"]
+        order = ["realization", "pressure"] + [
+            variable_on_pressure.coord(axis=axis).name() for axis in "yx"
+        ]
 
         enforce_coordinate_ordering(variable_on_pressure, order)
         enforce_coordinate_ordering(pressure, order)
@@ -253,7 +256,9 @@ class HailSize(BasePlugin):
         )
         return pressure_array
 
-    def extract_pressure_at_268(self, temperature_on_pressure: Cube) -> tuple((Cube,Cube)):
+    def extract_pressure_at_268(
+        self, temperature_on_pressure: Cube
+    ) -> tuple((Cube, Cube)):
         """Extracts the pressure level where the environment
         temperature first drops below -5 Celsius (268.15K) starting at a pressure value
         near the surface and ascending in altitude from there. It also produces
@@ -489,7 +494,6 @@ class HailSize(BasePlugin):
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
-        relative_humidity_on_pressure: Cube,
     ) -> Cube:
         """Puts the hail data into a cube with appropriate metadata
 
@@ -502,11 +506,16 @@ class HailSize(BasePlugin):
                 Cube of cloud condensation level pressure
             temperature_on_pressure
                 Cube of temperature on pressure levels
-            relative_humidity_on_pressure
-                Cube of relative humidity on pressure levels
+
         Returns:
             A cube of the diameter of hail stones (m)
         """
+
+        attributes = {}
+        if self.model_id_attr:
+            attributes[self.model_id_attr] = temperature_on_pressure.attributes[
+                self.model_id_attr
+            ]
 
         hail_size_cube = create_new_diagnostic_cube(
             name="diameter_of_hail_stones",
@@ -514,12 +523,13 @@ class HailSize(BasePlugin):
             template_cube=ccl_temperature,
             data=hail_size,
             mandatory_attributes=generate_mandatory_attributes(
-                [ccl_temperature, ccl_pressure,relative_humidity_on_pressure,temperature_on_pressure],
-                model_id_attr=self.model_id_attr,
+                [ccl_temperature, ccl_pressure]
             ),
+            optional_attributes=attributes,
         )
         return hail_size_cube
 
+    # relative_humidity_on_pressure,temperature_on_pressure
     def process(
         self,
         ccl_temperature: Cube,
@@ -571,7 +581,7 @@ class HailSize(BasePlugin):
         )
 
         hail_cube = self.make_hail_cube(
-            hail_size, ccl_temperature, ccl_pressure, temperature_on_pressure,relative_humidity_on_pressure
+            hail_size, ccl_temperature, ccl_pressure, temperature_on_pressure
         )
-        print(hail_cube)
+        print(hail_cube.data)
         return hail_cube
