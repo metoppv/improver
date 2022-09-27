@@ -321,12 +321,12 @@ class CubeMultiplier(CubeCombiner):
     """Class to multiply input cubes
 
     The behaviour for the "multiply" operation is different from
-    other types of cube combination.  The only valid use case for
-    "multiply" is to apply a factor that conditions an input probability
-    field - that is, to apply Bayes Theorem.  The input probability is
-    therefore used as the source of ALL input metadata, and should always
-    be the first cube in the input list.  The factor(s) by which this is
-    multiplied are not compared for any mis-match in scalar coordinates.
+    other types of cube combination.  You can either apply a factor that
+    conditions an input probability field - that is, to apply Bayes Theorem,
+    or separate out a fraction of a variable (e.g. rain from precipitation).
+    The first input field is used as the source of ALL input metadata.
+    The factor(s) by which this is multiplied are not compared for any
+    mis-match in scalar coordinates.
 
     """
 
