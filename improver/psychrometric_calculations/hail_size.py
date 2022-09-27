@@ -528,7 +528,7 @@ class HailSize(BasePlugin):
             optional_attributes=attributes,
         )
         return hail_size_cube
-        
+
     def process(
         self,
         ccl_temperature: Cube,
