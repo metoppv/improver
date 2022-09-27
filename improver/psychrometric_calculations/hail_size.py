@@ -86,7 +86,7 @@ class HailSize(BasePlugin):
                 model_id_attr:
                     Name of model ID attribute to be copied from source cubes to output cube
         """
-        
+
         self.model_id_attr = model_id_attr
 
     @staticmethod

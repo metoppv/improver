@@ -40,7 +40,7 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     cloud condensation level temperature and pressure, temperature
     on pressure levels data and relative humidity on pressure levels.
 
-   Args:
+    Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing:
                 temperature (iris.cube.Cube):
@@ -51,10 +51,11 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
                 air pressure at ccl
        model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
-   Returns:
+    Returns:
         iris.cube.Cube:
             Cube of size_of_hail (mm).
-   """
+    """
+
     from iris.cube import CubeList
 
     from improver.psychrometric_calculations.hail_size import HailSize
