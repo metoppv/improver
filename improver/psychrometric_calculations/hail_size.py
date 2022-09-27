@@ -528,8 +528,7 @@ class HailSize(BasePlugin):
             optional_attributes=attributes,
         )
         return hail_size_cube
-
-    # relative_humidity_on_pressure,temperature_on_pressure
+        
     def process(
         self,
         ccl_temperature: Cube,
@@ -583,5 +582,4 @@ class HailSize(BasePlugin):
         hail_cube = self.make_hail_cube(
             hail_size, ccl_temperature, ccl_pressure, temperature_on_pressure
         )
-        print(hail_cube.data)
         return hail_cube
