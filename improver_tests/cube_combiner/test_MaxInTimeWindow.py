@@ -163,3 +163,22 @@ def test_bound_mismatch():
     msg = "The bounds on the cubes imply mismatching periods"
     with pytest.raises(ValueError, match=msg):
         MaxInTimeWindow()(cubes)
+
+
+@pytest.mark.parametrize(
+    "minimum_realizations", [(4), (5)],
+)
+def test_minimum_realizations(minimum_realizations):
+    """Test if the number of realizations is less than the minimum allowed."""
+    plugin = MaxInTimeWindow(minimum_realizations=minimum_realizations)
+    if minimum_realizations == 5:
+        msg = (
+            "After filtering, number of realizations 4 is less than the minimum number "
+            rf"of realizations allowed \({minimum_realizations}\)"
+        )
+        with pytest.raises(ValueError, match=msg):
+            plugin(setup_realization_cubes())
+    elif minimum_realizations == 4:
+        expected = np.full((4, 2, 2), 0.4)
+        result = plugin(setup_realization_cubes())
+        np.testing.assert_allclose(result.data, expected)

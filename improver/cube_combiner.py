@@ -523,8 +523,18 @@ class MaxInTimeWindow(BasePlugin):
     """Find the maximum within a time window for a period diagnostic. For example,
     find the maximum 3-hour precipitation accumulation within a 24 hour window."""
 
-    def __init__(self):
-        """Initialise class"""
+    def __init__(self, minimum_realizations: Union[str, int, None] = None):
+        """Initialise class.
+
+        Args:
+            minimum_realizations (int):
+                If specified, the input cubes will be filtered to ensure that only realizations that
+                include all available lead times are combined. If the number of realizations that
+                meet this criteria are fewer than this integer, an error will be raised.
+                Minimum value is 1.
+
+        """
+        self.minimum_realizations = minimum_realizations
         self.time_units_in_hours = TIME_COORDS["time"].units.replace("seconds", "hours")
 
     def _get_coords_in_hours(self, cubes):
@@ -639,6 +649,6 @@ class MaxInTimeWindow(BasePlugin):
         """
         coords_in_hours = self._get_coords_in_hours(cubes)
         self._check_input_cubes(coords_in_hours)
-        cube = Combine("max")(cubes)
+        cube = Combine("max", minimum_realizations=self.minimum_realizations)(cubes)
         cube = self._correct_metadata(cube, coords_in_hours)
         return cube
