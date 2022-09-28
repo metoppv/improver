@@ -30,10 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """module to calculate hail_size"""
 
+from bisect import bisect_right
+
 import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from bisect import bisect_left,bisect_right
 
 from improver import BasePlugin
 from improver.metadata.utilities import (
@@ -171,19 +172,19 @@ class HailSize(BasePlugin):
         the original hail size that was calculated from nomogram_values table.
         Specifically each column associated hail size is [<5,<10,<20,<25,<50,<75,<100,<125].
         The largest possible value where the equality still holds should be used.
-        
+
         If the wet bulb freezing height is less than 3350m then the original hail size is used.
         If the wet bulb freezing height is greater than 4400m then all hail sizes are set to 0.
         """
-        dict={
-        3350: [0,5,10,15,25,50,65,75],
-        3550: [0,0,5,10,20,20,25,30],
-        3750: [0,0,0,5,10,15,15,15],
-        3950:[0,0,0,0,5,10,10,10],
-        4150: [0,0,0,0,0,0,5,5],
-        4400: [0,0,0,0,0,0,0,0],
+        dict = {
+            3350: [0, 5, 10, 15, 25, 50, 65, 75],
+            3550: [0, 0, 5, 10, 20, 20, 25, 30],
+            3750: [0, 0, 0, 5, 10, 15, 15, 15],
+            3950: [0, 0, 0, 0, 5, 10, 10, 10],
+            4150: [0, 0, 0, 0, 0, 0, 5, 5],
+            4400: [0, 0, 0, 0, 0, 0, 0, 0],
         }
-        return dict   
+        return dict
 
     @staticmethod
     def check_cubes(
@@ -191,7 +192,7 @@ class HailSize(BasePlugin):
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
-        wet_bulb_zero: Cube
+        wet_bulb_zero: Cube,
     ) -> None:
         """Checks the size and units of input cubes
 
@@ -210,7 +211,9 @@ class HailSize(BasePlugin):
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
 
-        assert_spatial_coords_match([ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero])
+        assert_spatial_coords_match(
+            [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero]
+        )
         assert_spatial_coords_match(
             [temperature_on_pressure, relative_humidity_on_pressure]
         )
@@ -435,7 +438,9 @@ class HailSize(BasePlugin):
         )
         return t_dry
 
-    def get_hail_size(self, vertical: np.ndarray, horizontal: np.ndarray, wet_bulb_zero: np.ndarray) -> np.ndarray:
+    def get_hail_size(
+        self, vertical: np.ndarray, horizontal: np.ndarray, wet_bulb_zero: np.ndarray
+    ) -> np.ndarray:
         """Uses the lookup_table and the vertical and horizontal indexes calculated
         to extract and store values from the lookup nomogram. Masked data points,
         if vertical or horizontal values are negative or if the wet bulb freezing
@@ -467,27 +472,29 @@ class HailSize(BasePlugin):
         # flattens array's so they can later be accessed
         horizontal_flat = horizontal_rounded.flatten(order="C")
         vertical_flat = vertical_rounded.flatten(order="C")
-        wet_bulb_zero_flat= wet_bulb_zero.flatten(order="C")
+        wet_bulb_zero_flat = wet_bulb_zero.flatten(order="C")
 
         hail_size_list = []
         # clips index values to not be longer than the table
         vertical_clipped = np.clip(vertical_flat, None, len(lookup_table) - 1)
         horizontal_clipped = np.clip(horizontal_flat, None, len(lookup_table[0]) - 1)
 
-        for vert, hor, wbz in zip(vertical_clipped, horizontal_clipped, wet_bulb_zero_flat):
-            if min(hor, vert) < 0 or not (vert and hor) or wbz>4400:
-                hail_size=0
-            elif wbz<3300:
-                hail_size=lookup_table[int(vert)][int(hor)]
+        for vert, hor, wbz in zip(
+            vertical_clipped, horizontal_clipped, wet_bulb_zero_flat
+        ):
+            if min(hor, vert) < 0 or not (vert and hor) or wbz > 4400:
+                hail_size = 0
+            elif wbz < 3300:
+                hail_size = lookup_table[int(vert)][int(hor)]
             else:
-                hail_size=lookup_table[int(vert)][int(hor)]
-                hail_size=self.updated_hail_size(hail_size,wbz)
+                hail_size = lookup_table[int(vert)][int(hor)]
+                hail_size = self.updated_hail_size(hail_size, wbz)
             hail_size_list.append(hail_size)
 
         hail_size = np.reshape(hail_size_list, shape, order="C")
         return hail_size
 
-    def updated_hail_size(self, hail_size:int ,wet_bulb_height:float) -> int:
+    def updated_hail_size(self, hail_size: int, wet_bulb_height: float) -> int:
         """Uses the updated_nomogram values dictionary to access an updated hail size
         based on the original predicted hail size and a wet bulb freezing height.
 
@@ -500,16 +507,16 @@ class HailSize(BasePlugin):
             An updated value for the hail diameter (mm)
         """
 
-        updated_values=self.updated_nomogram()
+        updated_values = self.updated_nomogram()
 
-        keys=list(updated_values.keys())
-        height_index=[bisect_right(keys,wet_bulb_height)][0]-1
-        height_key=keys[height_index]
+        keys = list(updated_values.keys())
+        height_index = [bisect_right(keys, wet_bulb_height)][0] - 1
+        height_key = keys[height_index]
 
-        hail_groups=[5,10,20,25,50,75,100,125]
-        hail_index=[bisect_right(hail_groups,hail_size)][0]
+        hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
+        hail_index = [bisect_right(hail_groups, hail_size)][0]
 
-        updated_hail_size=updated_values[height_key][hail_index]
+        updated_hail_size = updated_values[height_key][hail_index]
 
         return updated_hail_size
 
@@ -565,7 +572,9 @@ class HailSize(BasePlugin):
             np.ma.getmask(temperature_mask), horizontal
         )
 
-        hail_size = self.get_hail_size(vertical_masked, horizontal_masked, wet_bulb_zero.data)
+        hail_size = self.get_hail_size(
+            vertical_masked, horizontal_masked, wet_bulb_zero.data
+        )
         hail_size = hail_size / 1000
         hail_size = hail_size.astype("float32")
 

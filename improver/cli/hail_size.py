@@ -49,7 +49,7 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
                 relative_humidity (iris.cube.Cube)
                     Cube of relative humidity on pressure levels
                 wet_bulb_freezing (iris.cube.Cube)
-                    Cube of the height of the wet bulb freezing level 
+                    Cube of the height of the wet bulb freezing level
                 ccl (iris.cube.CubeList)
                     Cube list containing 2 cubes: air temperature at ccl
                     and air pressure at ccl
@@ -67,15 +67,19 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     from improver.utilities.flatten import flatten
 
     cubes = flatten(cubes)
-    temperature, relative_humidity, ccl_pressure, ccl_temperature, wet_bulb_zero = CubeList(
-        cubes
-    ).extract(
+    (
+        temperature,
+        relative_humidity,
+        ccl_pressure,
+        ccl_temperature,
+        wet_bulb_zero,
+    ) = CubeList(cubes).extract(
         [
             "air_temperature",
             "relative_humidity",
             "air_pressure_at_condensation_level",
             "air_temperature_at_condensation_level",
-            "wet_bulb_freezing_level_altitude"
+            "wet_bulb_freezing_level_altitude",
         ]
     )
     return HailSize(model_id_attr=model_id_attr)(

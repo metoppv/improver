@@ -70,6 +70,7 @@ def ccl_pressure() -> Cube:
     )
     return ccl_pressure_cube
 
+
 @pytest.fixture
 def wet_bulb_freezing() -> Cube:
     """Set up a r, y, x cube of wet bulb freezing height data"""
@@ -167,14 +168,20 @@ https://doi.org/10.1175/1520-0477-34.6.235
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,humidity,wbz,expected",
     (
-        (75000, 290, 0.001,2200, 0.02),  # values approx from tephigram in literature
-        (75000, 290, 0.001,5000, 0), #wet bulb zero height above 4400m
-        (75000, 290, 0.001,3400, 0.015), #wet bulb zero height above 3350m but less than 4400m
-        (94000, 300, 0.001,2200, 0),  # vertical value negative
-        (1000, 360, 0.001,2200, 0),  # horizontal value negative
-        (95000, 330, 0.001,2200, 0.08),  # vertical greater than length of table
-        (150000, 350, 0.1,2200, 0.025),  # horizontal greater than length of table
-        (75000, 265, 0.001,2200, 0),  # ccl temperature below 268.15
+        (75000, 290, 0.001, 2200, 0.02),  # values approx from tephigram in literature
+        (75000, 290, 0.001, 5000, 0),  # wet bulb zero height above 4400m
+        (
+            75000,
+            290,
+            0.001,
+            3400,
+            0.015,
+        ),  # wet bulb zero height above 3350m but less than 4400m
+        (94000, 300, 0.001, 2200, 0),  # vertical value negative
+        (1000, 360, 0.001, 2200, 0),  # horizontal value negative
+        (95000, 330, 0.001, 2200, 0.08),  # vertical greater than length of table
+        (150000, 350, 0.1, 2200, 0.025),  # horizontal greater than length of table
+        (75000, 265, 0.001, 2200, 0),  # ccl temperature below 268.15
     ),
 )
 def test_basic_hail_size(
@@ -249,7 +256,7 @@ def test_temperature_too_high(
         "ccl_temperature",
         "ccl_pressure",
         "relative_humidity_on_pressure",
-        "wet_bulb_freezing"
+        "wet_bulb_freezing",
     ),
 )
 def test_spatial_coord_mismatch(variable, request):
@@ -309,7 +316,7 @@ def test_model_id_attr(
         ccl_pressure,
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
-        wet_bulb_freezing
+        wet_bulb_freezing,
     )
 
     np.testing.assert_array_almost_equal(result.data, 0.035)
@@ -348,7 +355,7 @@ def test_re_ordered_cubes(
         ccl_pressure,
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
-        wet_bulb_freezing
+        wet_bulb_freezing,
     )
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
@@ -369,7 +376,7 @@ def test_no_realization_coordinate(
     ccl_pressure,
     relative_humidity_on_pressure,
     ccl_temperature,
-    wet_bulb_freezing
+    wet_bulb_freezing,
 ):
     """Test plugin if input cubes don't have a realization coordinate"""
 
@@ -387,7 +394,7 @@ def test_no_realization_coordinate(
     wet_bulb_zero = next(wet_bulb_freezing.slices_over("realization"))
     wet_bulb_zero.remove_coord("realization")
 
-    result = HailSize()(cloud_temp, cloud_pressure, temp, humidity,wet_bulb_zero)
+    result = HailSize()(cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero)
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
