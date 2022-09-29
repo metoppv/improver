@@ -518,7 +518,7 @@ class HailSize(BasePlugin):
 
         updated_hail_size = updated_values[height_key][hail_index]
 
-        return updated_hail_size
+        return np.int8(updated_hail_size)
 
     def hail_size_data(
         self,
