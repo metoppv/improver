@@ -321,12 +321,12 @@ class CubeMultiplier(CubeCombiner):
     """Class to multiply input cubes
 
     The behaviour for the "multiply" operation is different from
-    other types of cube combination.  The only valid use case for
-    "multiply" is to apply a factor that conditions an input probability
-    field - that is, to apply Bayes Theorem.  The input probability is
-    therefore used as the source of ALL input metadata, and should always
-    be the first cube in the input list.  The factor(s) by which this is
-    multiplied are not compared for any mis-match in scalar coordinates.
+    other types of cube combination.  You can either apply a factor that
+    conditions an input probability field - that is, to apply Bayes Theorem,
+    or separate out a fraction of a variable (e.g. rain from precipitation).
+    The first input field is used as the source of ALL input metadata.
+    The factor(s) by which this is multiplied are not compared for any
+    mis-match in scalar coordinates.
 
     """
 
@@ -403,9 +403,7 @@ class CubeMultiplier(CubeCombiner):
 
     @staticmethod
     def _update_cell_methods(
-        cell_methods: Tuple[CellMethod],
-        probabilistic_name: str,
-        new_diagnostic_name: str,
+        cell_methods: Tuple[CellMethod], original_name: str, new_diagnostic_name: str,
     ) -> List[CellMethod]:
         """
         Update any cell methods that include a comment that refers to the
@@ -417,7 +415,7 @@ class CubeMultiplier(CubeCombiner):
             cell_methods:
                 The cell methods found on the cube that is being used as the
                 metadata template.
-            probabilistic_name:
+            original_name:
                 The full name of the metadata template cube.
             new_diagnostic_name:
                 The new diagnostic name to use in the modified cell methods.
@@ -425,11 +423,13 @@ class CubeMultiplier(CubeCombiner):
         Returns:
             A list of modified cell methods to replace the originals.
         """
-
-        # strip probability and vicinity components to provide the diagnostic name
-        diagnostic_name = get_threshold_coord_name_from_probability_name(
-            probabilistic_name
-        )
+        try:
+            # strip probability and vicinity components to provide the diagnostic name
+            diagnostic_name = get_threshold_coord_name_from_probability_name(
+                original_name
+            )
+        except ValueError:
+            diagnostic_name = original_name
 
         new_cell_methods = []
         for cell_method in cell_methods:
@@ -490,18 +490,18 @@ class CubeMultiplier(CubeCombiner):
         # where necessary; excludes the in_vicinity component.
         new_base_name = new_diagnostic_name.replace("_in_vicinity", "")
 
-        probabilistic_name = cube_list[0].name()
+        original_name = cube_list[0].name()
 
         if self.broadcast_to_threshold:
             diagnostic_name = get_diagnostic_cube_name_from_probability_name(
-                probabilistic_name
+                original_name
             )
             # Rename the threshold coordinate to match the name of the diagnostic
             # that results from the combine operation.
             result.coord(var_name="threshold").rename(new_base_name)
             result.coord(new_base_name).var_name = "threshold"
 
-            new_diagnostic_name = probabilistic_name.replace(
+            new_diagnostic_name = original_name.replace(
                 diagnostic_name, new_diagnostic_name
             )
 
@@ -510,7 +510,7 @@ class CubeMultiplier(CubeCombiner):
         cell_methods = cube_list[0].cell_methods
         if cell_methods:
             result.cell_methods = self._update_cell_methods(
-                cell_methods, probabilistic_name, new_base_name
+                cell_methods, original_name, new_base_name
             )
 
         result.rename(new_diagnostic_name)

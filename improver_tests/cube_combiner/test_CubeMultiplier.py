@@ -126,7 +126,7 @@ class Test_process(MultiplierTest):
         precipitation accumulation by a point-time probability of snow retains
         the bounds on the original accumulation."""
         validity_time = datetime(2015, 11, 19, 0)
-        time_bounds = [datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0)]
+        time_bounds = (datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0))
         forecast_reference_time = datetime(2015, 11, 18, 22)
         precip_accum = set_up_variable_cube(
             np.full((2, 3, 3), 1.5, dtype=np.float32),
@@ -158,15 +158,35 @@ class Test_process(MultiplierTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, "new_cube_name")
 
-    def test_update_cell_methods(self):
+    def test_update_cell_methods_probabilistic(self):
         """Test that plugin updates cell methods where required when a new
-        diagnostic name is provided."""
+        diagnostic name is provided for a probabilistic cube."""
         cubelist = iris.cube.CubeList([self.cube, self.multiplier])
 
         new_cube_name = "new_cube_name"
         expected = CellMethod("sum", coords="time", comments=f"of {new_cube_name}")
 
         result = CubeMultiplier(broadcast_to_threshold=True)(cubelist, new_cube_name)
+        self.assertEqual(result.cell_methods[0], expected)
+
+    def test_update_cell_methods_non_probabilistic(self):
+        """Test that plugin updates cell methods where required when a new
+        diagnostic name is provided for a non-probabilistic cube."""
+        cube = set_up_variable_cube(
+            np.full_like(self.cube.data[:, 0], 0.001),
+            name="lwe_thickness_of_precipitation_amount",
+            units="m",
+            time=datetime(2015, 11, 19, 1),
+            time_bounds=(datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)),
+            frt=datetime(2015, 11, 18, 22),
+        )
+        cube.cell_methods = self.cube.cell_methods
+        cubelist = iris.cube.CubeList([cube, self.multiplier])
+
+        new_cube_name = "new_cube_name"
+        expected = CellMethod("sum", coords="time", comments=f"of {new_cube_name}")
+
+        result = CubeMultiplier()(cubelist, new_cube_name)
         self.assertEqual(result.cell_methods[0], expected)
 
     def test_unmodified_cell_methods(self):
