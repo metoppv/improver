@@ -37,16 +37,19 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube, minimum_realizations=None):
-    """Find the maximum within a time window for a period diagnostic. For example,
-    find the maximum 3-hour precipitation accumulation within a 24 hour window.
+    """Find the maximum probability or maximum diagnostic value within a time window
+    for a period diagnostic. For example, find the maximum probability of exceeding
+    a given accumulation threshold in a period e.g. 20 mm in 3 hours, over the course
+    of a longer interval e.g. a 24 hour time window.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             Cubes over which to find the maximum.
         minimum_realizations (int):
-            If specified, the input cubes will be filtered to ensure that only realizations that
-            include all available lead times are combined. If the number of realizations that
-            meet this criteria are fewer than this integer, an error will be raised.
+            If specified, the input cubes will be filtered to ensure that only
+            realizations that include all available lead times are combined. If the
+            number of realizations that meet this criteria are fewer than this integer,
+            an error will be raised.
 
     Returns:
         result (iris.cube.Cube):

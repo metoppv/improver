@@ -537,7 +537,9 @@ class MaxInTimeWindow(BasePlugin):
         self.minimum_realizations = minimum_realizations
         self.time_units_in_hours = TIME_COORDS["time"].units.replace("seconds", "hours")
 
-    def _get_coords_in_hours(self, cubes):
+    def _get_coords_in_hours(
+        self, cubes: List[Cube]
+    ) -> List[Union[AuxCoord, DimCoord]]:
         """Get the time coordinates from the input cubes in units of hours
         since 1970-01-01 00:00:00.
 
@@ -566,23 +568,21 @@ class MaxInTimeWindow(BasePlugin):
 
         """
         msg = None
-        if not any([c.has_bounds() for c in coords]):
+        if not all([c.has_bounds() for c in coords]):
             msg = (
-                "The cubes provided do not have bounds. "
                 "When computing the maximum over a time window, the inputs "
                 "are expected to be diagnostics representing a time period "
-                "with bounds."
+                "with bounds. "
             )
-        elif not all([c.has_bounds() for c in coords]):
             [c.convert_units(self.time_units_in_hours) for c in coords]
             period = np.unique([np.diff(c.bounds) for c in coords if c.has_bounds()])
-            msg = (
-                "The cubes provided do not all have bounds. "
-                "When computing the maximum over a time window, the inputs "
-                "are expected to be diagnostics representing a time period "
-                "with bounds."
-                f"Period(s) indicated by bounds: {period} hours"
-            )
+            if not any([c.has_bounds() for c in coords]):
+                msg = msg + ("The cubes provided do not have bounds.")
+            else:
+                msg = msg + (
+                    "The cubes provided do not all have bounds. "
+                    f"Period(s) indicated by bounds: {period} hours"
+                )
         elif len(np.unique([np.diff(c.bounds) for c in coords])) > 1:
             [c.convert_units(self.time_units_in_hours) for c in coords]
             period = np.unique([np.diff(c.bounds) for c in coords])
@@ -598,7 +598,7 @@ class MaxInTimeWindow(BasePlugin):
         self, cube: Cube, coords_in_hours: List[Union[AuxCoord, DimCoord]]
     ) -> Cube:
         """Correct metadata in particular to ensure that the cell methods are
-        updated to represent a time window for a period diagnostic.
+        updated to represent a period for a time window diagnostic.
 
         Args:
             cube: Cube representating the maximum over a time window for a period
@@ -615,7 +615,8 @@ class MaxInTimeWindow(BasePlugin):
         else:
             diag_name = cube.name()
         (period,) = np.unique([np.diff(c.bounds) for c in coords_in_hours])
-        intervals = f"of {diag_name} over {period} hours within time window"
+        hour_text = "hour" if int(period) == 1 else "hours"
+        intervals = f"of {diag_name} over {period} {hour_text} within time window"
 
         # Remove cell methods with the same method and coordinate name as will be added.
         cell_methods = []
@@ -632,11 +633,12 @@ class MaxInTimeWindow(BasePlugin):
         return cube
 
     def process(self, cubes: CubeList) -> Cube:
-        """Compute the maximum within a time window for a period diagnostic using
-        the Combine plugin. The resulting cube has a time coordinate with bounds that
-        represent the time window whilst the cell method has been updated to represent
-        the period recorded on the input cubes. For example, the time window might be
-        24 hours, whilst the period might be 3 hours.
+        """Compute the maximum probability or maximum diagnostic value within a
+        time window for a period diagnostic using the Combine plugin. The resulting
+        cube has a time coordinate with bounds that represent the time window whilst
+        the cell method has been updated to represent the period recorded on the input
+        cubes. For example, the time window might be 24 hours, whilst the period might
+        be 3 hours.
 
         Args:
             cubes (iris.cube.CubeList or list of iris.cube.Cube):

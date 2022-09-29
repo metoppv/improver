@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing classes for metadata interpretation"""
 
+import re
 from typing import Callable, Dict, Iterable, List
 
 from iris.coords import CellMethod, Coord
@@ -279,7 +280,13 @@ class MOMetadataInterpreter:
             if cm.method in COMPLIANT_CM_METHODS:
                 self.methods += f" {cm.method} over {cm.coord_names[0]}"
                 if self.field_type == self.PROB:
-                    if not cm.comments or cm.comments[0] != f"of {self.diagnostic}":
+                    cm_options = [
+                        f"of {self.diagnostic}",
+                        f"of {self.diagnostic} over .* within time window",
+                    ]
+                    if not cm.comments or not any(
+                        [re.match(cm.comments[0], cmo) for cmo in cm_options]
+                    ):
                         self.errors.append(
                             f"Cell method {cm} on probability data should have comment "
                             f"'of {self.diagnostic}'"
