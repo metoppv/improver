@@ -616,9 +616,10 @@ class MaxInTimeWindow(BasePlugin):
             diag_name = cube.name()
         (period,) = np.unique([np.diff(c.bounds) for c in coords_in_hours])
         hour_text = "hour" if round(period) == 1 else "hours"
-        intervals = (
+        sum_comment = (
             f"of {diag_name} over {round(period)} {hour_text} within time window"
         )
+        max_comment = f"of {diag_name}"
 
         # Remove cell methods with the same method and coordinate name as will be added.
         cell_methods = []
@@ -630,8 +631,10 @@ class MaxInTimeWindow(BasePlugin):
         cube.cell_methods = tuple(cell_methods)
         # Add cell methods to record that a maximum over time has been computed,
         # as well as some information about the inputs to this value.
-        cube.add_cell_method(CellMethod("sum", coords=["time"], intervals=intervals))
-        cube.add_cell_method(CellMethod("maximum", coords=["time"]))
+        cube.add_cell_method(CellMethod("sum", coords=["time"], comments=sum_comment))
+        cube.add_cell_method(
+            CellMethod("maximum", coords=["time"], comments=max_comment)
+        )
         return cube
 
     def process(self, cubes: CubeList) -> Cube:

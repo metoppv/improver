@@ -285,7 +285,7 @@ class MOMetadataInterpreter:
                         f"of {self.diagnostic} over .* within time window",
                     ]
                     if not cm.comments or not any(
-                        [re.match(cm.comments[0], cmo) for cmo in cm_options]
+                        [re.match(cmo, cm.comments[0]) for cmo in cm_options]
                     ):
                         self.errors.append(
                             f"Cell method {cm} on probability data should have comment "

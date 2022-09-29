@@ -95,12 +95,13 @@ def test_basic(forecast_cubes, period):
     """Test for max in a time window."""
     expected = np.full((4, 2, 2), 0.4)
     hour_text = "1 hour" if int(period) == 1 else "3 hours"
-    intervals = (
+    sum_comment = (
         f"of lwe_thickness_of_precipitation_amount over {hour_text} within time window"
     )
+    max_comment = "of lwe_thickness_of_precipitation_amount"
     cell_methods = (
-        CellMethod("sum", coords=["time"], intervals=intervals),
-        CellMethod("maximum", coords=["time"]),
+        CellMethod("sum", coords=["time"], comments=sum_comment),
+        CellMethod("maximum", coords=["time"], comments=max_comment),
     )
     result = MaxInTimeWindow()(forecast_cubes(period=period))
     if result.coords("lwe_thickness_of_precipitation_amount"):
@@ -117,17 +118,17 @@ def test_basic(forecast_cubes, period):
 def test_existing_cell_methods():
     """Test the handling of existing cell methods."""
     cubes = setup_realization_cubes()
-    intervals = "of lwe_thickness_of_precipitation_amount"
+    comment = "of lwe_thickness_of_precipitation_amount"
     for cube in cubes:
-        cube.add_cell_method(CellMethod("sum", coords=["time"], intervals=intervals))
-        cube.add_cell_method(CellMethod("maximum", coords=["height"]))
-    intervals = (
+        cube.add_cell_method(CellMethod("sum", coords=["time"], comments=comment))
+        cube.add_cell_method(CellMethod("maximum", coords=["height"], comments=comment))
+    sum_comment = (
         "of lwe_thickness_of_precipitation_amount over 3 hours within time window"
     )
     cell_methods = (
-        CellMethod("maximum", coords=["height"]),
-        CellMethod("sum", coords=["time"], intervals=intervals),
-        CellMethod("maximum", coords=["time"]),
+        CellMethod("maximum", coords=["height"], comments=comment),
+        CellMethod("sum", coords=["time"], comments=sum_comment),
+        CellMethod("maximum", coords=["time"], comments=comment),
     )
     result = MaxInTimeWindow()(cubes)
     assert result.cell_methods == cell_methods
