@@ -94,7 +94,7 @@ def setup_probability_cubes(period=3) -> CubeList:
 def test_basic(forecast_cubes, period):
     """Test for max in a time window."""
     expected = np.full((4, 2, 2), 0.4)
-    hour_text = "1.0 hour" if int(period) == 1 else "3.0 hours"
+    hour_text = "1 hour" if int(period) == 1 else "3 hours"
     intervals = (
         f"of lwe_thickness_of_precipitation_amount over {hour_text} within time window"
     )
@@ -122,7 +122,7 @@ def test_existing_cell_methods():
         cube.add_cell_method(CellMethod("sum", coords=["time"], intervals=intervals))
         cube.add_cell_method(CellMethod("maximum", coords=["height"]))
     intervals = (
-        "of lwe_thickness_of_precipitation_amount over 3.0 hours within time window"
+        "of lwe_thickness_of_precipitation_amount over 3 hours within time window"
     )
     cell_methods = (
         CellMethod("maximum", coords=["height"]),

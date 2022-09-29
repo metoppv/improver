@@ -352,7 +352,7 @@ f7eec028502a0c233149362f0f839f5856d31c7ff1469b35b7a9ebb56f85a2a8  ./map-to-timez
 0829e33a7e1508bc646f38744369c977f2c89e34645d5f75a8afffae1f446f9d  ./map-to-timezones/uk/timezone_mask.nc
 a8b1b554438308b4e48b8b5647c7a660c32755108b17088d5eb8249f90e923d0  ./max-in-time-window/input_PT0029H00M.nc
 ecc913d410d71ac52e8dd0f745c44a88ec0f9773a1f7c62859195bb5b21e7c2a  ./max-in-time-window/input_PT0032H00M.nc
-56bb0cd04573e9cd546615037f36c89f4977c4a88c444611e445de0281a7b8a9  ./max-in-time-window/kgo.nc
+58c2355ba2a80b86532c1a228e5daaa9381cf8fb96ec8ff8c50d17bbf37dd605  ./max-in-time-window/kgo.nc
 782429bc4d7d4a5d7b91aa97c22a054d73b2163a91b6219086b3c39598eab6e9  ./merge/multiple_file_kgo.nc
 75c7b44cfb822f7db67899281f5b5c02ed2dab721bc186e2a0505743a18d1d2e  ./merge/orographic_enhancement_T3.nc
 f0e05b3e7ca855a495f3e61a1625dcdfde0bd788fa9191203928828e2bd7277c  ./merge/orographic_enhancement_T4.nc

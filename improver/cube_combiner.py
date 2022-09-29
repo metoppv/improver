@@ -615,8 +615,10 @@ class MaxInTimeWindow(BasePlugin):
         else:
             diag_name = cube.name()
         (period,) = np.unique([np.diff(c.bounds) for c in coords_in_hours])
-        hour_text = "hour" if int(period) == 1 else "hours"
-        intervals = f"of {diag_name} over {period} {hour_text} within time window"
+        hour_text = "hour" if round(period) == 1 else "hours"
+        intervals = (
+            f"of {diag_name} over {round(period)} {hour_text} within time window"
+        )
 
         # Remove cell methods with the same method and coordinate name as will be added.
         cell_methods = []
