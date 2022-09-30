@@ -48,7 +48,7 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
                     Cube of temperature on pressure levels
                 relative_humidity (iris.cube.Cube)
                     Cube of relative humidity on pressure levels
-                wet_bulb_freezing (iris.cube.Cube)
+                wet_bulb_freezing_level_altitude (iris.cube.Cube)
                     Cube of the height of the wet bulb freezing level
                 ccl (iris.cube.CubeList)
                     Cube list containing 2 cubes: air temperature at ccl
