@@ -319,7 +319,15 @@ def relabel_to_period(cube: Cube, period: Optional[int] = None):
 
 
 class TimezoneExtraction(PostProcessingPlugin):
-    """Plugin to extract local time offsets"""
+    """Plugin to construct forecasts in local-timezones. Using gridded or
+    spot forecasts and an appropriate ancillary this plugin extracts data
+    from different validity time forecasts to construct forecasts that are
+    all valid at the same local time in each timezone.
+
+    .. Further information is available in:
+    .. include:: extended_documentation/utilities/temporal/
+       timezone_extraction.rst
+    """
 
     def __init__(self) -> None:
         self.time_coord_standards = TIME_COORDS["time"]
@@ -396,7 +404,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         multiplying the inverse of the timezone_cube.data with the input_cube.data and
         summing along the time axis. Because timezone_cube.data is a mask of 1 and 0,
         inverting it gives 1 where we WANT data and 0 where we don't. Summing these up
-        produces the result. The same logic can be used for times.
+        produces the result. The same logic can be used for the time coordinate.
         Modifies self.output_cube and self.time_points.
         Assumes that input_cube and self.timezone_cube have been arranged so that time
         or UTC_offset are the inner-most coord (dim=-1).
@@ -443,6 +451,18 @@ class TimezoneExtraction(PostProcessingPlugin):
         """Ensures input cube has at least three dimensions: time, y, x. Promotes time
         to be the inner-most dimension (dim=-1).
 
+        Using partial periods, the merged input cubes may have a time coordinate as an
+        auxiliary rather than dimension coordinate. This is due to the overlapping
+        bounds that prevent the construction of a monotonic coordinate, which is
+        required for dimensions. For example, consider a 24 hour period diagnostic.
+        The same day update may mean two input cubes for adjacent time zones might
+        have bounds 01-00 and 01-01, with the former being a same day update missing
+        the first hour, leading to identical lower bounds as the data for the
+        adjacent timezone. A dimension coordinate is required to order the cube as
+        expected. In these cases a time_points dimension is constructed and
+        assigned to the same dimension as the timne aux coord. This is then used to
+        reorder the cube and removed to ensure it does not persist.
+
         Raises:
             ValueError:
                 If the input cube does not have exactly the expected three coords.
@@ -483,8 +503,10 @@ class TimezoneExtraction(PostProcessingPlugin):
 
     def check_input_cube_time(self, input_cube: Cube, local_time: datetime) -> bool:
         """Ensures input cube and timezone_cube cover exactly the right points and that
-        the time and UTC_offset coords have the same order. If not a warning is raised
-        and the plugin will return nothing.
+        the time and UTC_offset coords have the same order. If the correct inputs are
+        not provided an exception is raised, barring instances where bounded periods
+        are simply incomplete. An incomplete period leads to the this function
+        returning false and the plugin returning nothing.
 
         Time points are compared as these fall at the end of time periods under IMPROVER
         definitions. This means that a partial period, e.g. 15-00, is allowed as long
@@ -527,7 +549,7 @@ class TimezoneExtraction(PostProcessingPlugin):
                 # indicative of a data shortfall for representing the whole period at
                 # the longest lead-times, i.e. 00-15 instead of 00-00. These should not
                 # return output as the period summary would not represent the expected
-                #  whole period for these regions.
+                # whole period for these regions.
                 bounds = input_cube.coord("time").bounds
                 b_diffs = np.diff(bounds)
                 if len(b_diffs) > 1 and any(b_diffs[-1] < b_diffs[:-1]):
@@ -559,7 +581,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         input_cubes: Union[CubeList, List[Cube]],
         timezone_cube: Cube,
         local_time: datetime,
-    ) -> Cube:
+    ) -> Optional[Cube]:
         """
         Calculates timezone-offset data for the specified UTC output times
 

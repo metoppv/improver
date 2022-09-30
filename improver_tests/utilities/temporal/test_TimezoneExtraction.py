@@ -174,9 +174,8 @@ def test_check_input_cube_dims(include_time_coord):
     """Checks that check_input_cube_dims can differentiate between an input cube
     with time, y, x coords and one where time is missing."""
     cube = make_input_cube([3, 4])
-    timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
-    plugin.timezone_cube = timezone_cube
+    plugin.timezone_cube = make_timezone_cube()
     if include_time_coord:
         plugin.check_input_cube_dims(cube)
         assert cube.coord_dims("time") == tuple([cube.ndim - 1])
@@ -201,11 +200,10 @@ def test_check_aux_time_coord():
     reordering. This should not be present on the output, but the time
     coordinate should have been moved to the last dimension."""
     cube = make_input_cube([3, 4])
-    timezone_cube = make_timezone_cube()
     iris.util.demote_dim_coord_to_aux_coord(cube, "time")
 
     plugin = TimezoneExtraction()
-    plugin.timezone_cube = timezone_cube
+    plugin.timezone_cube = make_timezone_cube()
     plugin.check_input_cube_dims(cube)
     assert cube.coord_dims("time") == tuple([cube.ndim - 1])
     assert len(cube.dim_coords) == len(cube.shape) - 1
@@ -221,9 +219,8 @@ def test_check_input_cube_time(local_time, expect_success):
     expected times and arguments that don't. Also checks that timezone_cube
     has been reordered correctly."""
     cube = make_input_cube([3, 4])
-    timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
-    plugin.timezone_cube = timezone_cube
+    plugin.timezone_cube = make_timezone_cube()
     plugin.check_input_cube_dims(cube)
     if expect_success:
         plugin.check_input_cube_time(cube, local_time)
@@ -239,9 +236,8 @@ def test_check_input_cube_time(local_time, expect_success):
 
 def test_check_timezones_are_unique_pass():
     """Checks that check_timezones_are_unique allows our test cube"""
-    timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
-    plugin.timezone_cube = timezone_cube
+    plugin.timezone_cube = make_timezone_cube()
     plugin.check_timezones_are_unique()
 
 
@@ -300,7 +296,7 @@ def test_process(with_percentiles, input_as_cube, input_has_time_bounds):
 
 def test_partial_period_update():
     """Checks that the plugin process method returns a cube with expected data and
-    time coord for a case of partial time periods inidicative of a same day update.
+    time coord for a case of partial time periods indicative of a same day update.
     In this case the time bounds are not monotonic, rather the first two times
     share lower bounds. This requires that the time coordinate be an Auxiliary
     coordinate. The variable time-bounds should be reflected in the output time
