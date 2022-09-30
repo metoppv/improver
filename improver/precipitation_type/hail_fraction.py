@@ -40,6 +40,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
 class HailFraction(PostProcessingPlugin):
@@ -74,12 +75,13 @@ class HailFraction(PostProcessingPlugin):
         the hail fraction is estimated as varying linearly with the maximum vertical
         updraught so that a maximum vertical updraught of 5 m/s has a hail fraction of
         0 whilst a maximum vertical updraught of 50 m/s has a hail fraction of 0.25.
-        Next, the hail fraction is set to zero if either the cloud condensation level
-        temperature is below -5 Celsius, the convective cloud top temperature is above
-        -15 Celsius or the hail melting level is above orography. As a final check,
-        the hail size is then checked for hail with a size larger than 2 mm. If the
-        hail size is above this limit but the hail fraction is below 0.05, the hail
-        fraction is set to 0.05.
+        These values, including the hail fraction upper bound, are based on expert
+        elicitation. Next, the hail fraction is set to zero if either the cloud
+        condensation level temperature is below -5 Celsius, the convective cloud top
+        temperature is above -15 Celsius or the hail melting level is above orography.
+        As a final check, the hail size is then checked for hail with a size larger
+        than 2 mm. If the hail size is above this limit but the hail fraction is
+        below 0.05, the hail fraction is set to 0.05.
 
         The values chosen are based on expert elicitation with some information from
         Dennis & Kumjian, 2017.
@@ -130,12 +132,12 @@ class HailFraction(PostProcessingPlugin):
         orography.
 
         Args:
-            vertical_updraught: Maximum vertical updraught in m/s.
-            hail_size: Hail size in m.
-            cloud_condensation_level: Cloud condensation level temperature in K.
-            convective_cloud_top: Convective cloud top in K.
-            hail_melting_level: Altitude of the melting of hail to rain in metres.
-            orography: Altitude of the orography in metres.
+            vertical_updraught: Maximum vertical updraught.
+            hail_size: Hail size.
+            cloud_condensation_level: Cloud condensation level temperature.
+            convective_cloud_top: Convective cloud top.
+            hail_melting_level: Altitude of the melting of hail to rain.
+            orography: Altitude of the orography.
 
         Returns:
             Hail fraction cube.
@@ -146,6 +148,16 @@ class HailFraction(PostProcessingPlugin):
         convective_cloud_top.convert_units("K")
         hail_melting_level.convert_units("m")
         orography.convert_units("m")
+        assert_spatial_coords_match(
+            [
+                vertical_updraught,
+                hail_size,
+                cloud_condensation_level,
+                convective_cloud_top,
+                hail_melting_level,
+                orography,
+            ]
+        )
 
         hail_fraction = self._compute_hail_fraction(
             vertical_updraught,
