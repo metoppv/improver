@@ -69,16 +69,18 @@ class HailSize(BasePlugin):
         - Temperature after a saturated ascent - the temperature of the
           atmosphere at 268.15K
 
-    These indexes are then used to extract values of hail size from the first table.
+    These indexes can then used to extract values of hail size depending on
+    the wet bulb freezing altitude.
 
-    If the wet bulb freezing altitude is between 3350m and 4400m then a second table
-    is accessed to reduce the hail size. This table is stored as a dictionary, with the
+    If the wet bulb freezing altitude is between 3350m and 4400m then the indexes are used
+    to extract an initial hail value from the first table. A second table
+    is then accessed to reduce the hail size. The second table is stored as a dictionary, with the
     key being the wet bulb freezing altitude and each column in the associated
     arrays referring to the previously calculated hail diameter being less than a pre-defined
     value. An updated hail_size is then extracted and stored.
 
-    If the wet_bulb_freezing_altitude is greater that 4400m then the hail size is set to
-    0 and if the wet bulb_freezing_altitude is less that 3350m then the originally calculated
+    If the wet_bulb_freezing_altitude is greater than 4400m then the hail size is set to
+    0 and if the wet bulb_freezing_altitude is less than 3350m then the originally calculated
     hail size is not altered.
 
     Both tables are taken from Hand and Cappelluti (2011) which are a tabular versions of the
@@ -164,19 +166,19 @@ class HailSize(BasePlugin):
 
         """Sets up a dictionary of updated hail diameter values (mm).
 
-        The dictionary keys are the height of the wet bulb freezing level (m) where
-        when accessing at some height value it should be rounded to the nearest lower values
+        The dictionary keys are the height of the wet bulb freezing level (m) where,
+        when accessing at some height value, it should be rounded to the nearest lower value
         (e.g. 3549m should access 3350m key).
 
-        Each key has an associated array in which each element is a new hail diameter based on
+        Each key has an associated list in which each element is a new hail diameter based on
         the original hail size that was calculated from nomogram_values table.
-        Specifically each column associated hail size is [<5,<10,<20,<25,<50,<75,<100,<125].
+        Specifically each column associated hail size (mm) is [<5,<10,<20,<25,<50,<75,<100,<125].
         The largest possible value where the equality still holds should be used.
 
         If the wet bulb freezing height is less than 3350m then the original hail size is used.
         If the wet bulb freezing height is greater than 4400m then all hail sizes are set to 0.
         """
-        dict = {
+        lookup_dict = {
             3350: [0, 5, 10, 15, 25, 50, 65, 75],
             3550: [0, 0, 5, 10, 20, 20, 25, 30],
             3750: [0, 0, 0, 5, 10, 15, 15, 15],
@@ -184,7 +186,7 @@ class HailSize(BasePlugin):
             4150: [0, 0, 0, 0, 0, 0, 5, 5],
             4400: [0, 0, 0, 0, 0, 0, 0, 0],
         }
-        return dict
+        return lookup_dict
 
     @staticmethod
     def check_cubes(
@@ -442,10 +444,14 @@ class HailSize(BasePlugin):
         self, vertical: np.ndarray, horizontal: np.ndarray, wet_bulb_zero: np.ndarray
     ) -> np.ndarray:
         """Uses the lookup_table and the vertical and horizontal indexes calculated
-        to extract and store values from the lookup nomogram. Masked data points,
-        if vertical or horizontal values are negative or if the wet bulb freezing
-        altitude is greater that 4400m lead to a hail_size of 0. If the wet bulb
-        freezing altitude is greater that 3300m then the hail_size is reduced.
+        to extract and store values from the lookup nomogram.
+
+        The hail size will be set to 0 if
+            1) there are masked data points,
+            2) vertical or horizontal values are negative,
+            3) the wet bulb freezing altitude is greater that 4400m.
+
+        If the wet bulb freezing altitude is greater that 3300m then the hail_size is reduced.
 
         Args:
             vertical
@@ -494,7 +500,7 @@ class HailSize(BasePlugin):
         hail_size = np.reshape(hail_size_list, shape, order="C")
         return hail_size
 
-    def updated_hail_size(self, hail_size: int, wet_bulb_height: float) -> int:
+    def updated_hail_size(self, hail_size: int, wet_bulb_height: float) -> np.int8:
         """Uses the updated_nomogram values dictionary to access an updated hail size
         based on the original predicted hail size and a wet bulb freezing height.
 
@@ -510,11 +516,11 @@ class HailSize(BasePlugin):
         updated_values = self.updated_nomogram()
 
         keys = list(updated_values.keys())
-        height_index = [bisect_right(keys, wet_bulb_height)][0] - 1
+        height_index = bisect_right(keys, wet_bulb_height) - 1
         height_key = keys[height_index]
 
         hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
-        hail_index = [bisect_right(hail_groups, hail_size)][0]
+        hail_index = bisect_right(hail_groups, hail_size)
 
         updated_hail_size = updated_values[height_key][hail_index]
 
@@ -547,7 +553,7 @@ class HailSize(BasePlugin):
             humidity_mixing_ratio_at_268
                 Cube of humidity mixing ratio at the pressure of the environment at 268.15K
             wet_bulb_zero
-                Cube of the height of the wet-bulb freezing level (m)
+                Cube of the height of the wet-bulb freezing level
         Returns:
             An n dimensional array of diameter of hail stones (m)
         """

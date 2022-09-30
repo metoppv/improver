@@ -75,13 +75,13 @@ def ccl_pressure() -> Cube:
 def wet_bulb_freezing() -> Cube:
     """Set up a r, y, x cube of wet bulb freezing height data"""
     data = np.full((2, 3, 2), fill_value=2000, dtype=np.float32)
-    ccl_pressure_cube = set_up_variable_cube(
+    wet_bulb_freezing_cube = set_up_variable_cube(
         data,
         name="wet_bulb_freezing_level_altitude",
         units="m",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
-    return ccl_pressure_cube
+    return wet_bulb_freezing_cube
 
 
 @pytest.fixture
