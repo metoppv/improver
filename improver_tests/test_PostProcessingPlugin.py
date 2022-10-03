@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the improver.PostProcessingPlugin abstract base class"""
 
+import copy
 from typing import List, Union
 
 import numpy as np
@@ -110,11 +111,11 @@ def test_title_mandatory_attribute_default(dummy_plugin, plugin_input, is_list):
     assert_title_attribute(result, expected_title)
 
 
-def test_non_cubes(dummy_plugin):
+@pytest.mark.parametrize(
+    "non_cube", (None, ["list", "of", "strings"], 0, "kittens", {"inputs": "outputs"})
+)
+def test_non_cubes(dummy_plugin, non_cube):
     """Test non-cube types are returned unchanged"""
-    result = dummy_plugin()(None)
-    assert result is None
-
-    iterable_input = ["list", "of", "strings"]
-    result = dummy_plugin()(iterable_input.copy())
-    assert result == iterable_input
+    expected = copy.copy(non_cube)
+    result = dummy_plugin()(non_cube)
+    assert result == expected

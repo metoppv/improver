@@ -460,7 +460,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         the first hour, leading to identical lower bounds as the data for the
         adjacent timezone. A dimension coordinate is required to order the cube as
         expected. In these cases a time_points dimension is constructed and
-        assigned to the same dimension as the timne aux coord. This is then used to
+        assigned to the same dimension as the time aux coord. This is then used to
         reorder the cube and removed to ensure it does not persist.
 
         Raises:
@@ -505,7 +505,7 @@ class TimezoneExtraction(PostProcessingPlugin):
         """Ensures input cube and timezone_cube cover exactly the right points and that
         the time and UTC_offset coords have the same order. If the correct inputs are
         not provided an exception is raised, barring instances where bounded periods
-        are simply incomplete. An incomplete period leads to the this function
+        are simply incomplete. An incomplete period leads to this function
         returning false and the plugin returning nothing.
 
         Time points are compared as these fall at the end of time periods under IMPROVER

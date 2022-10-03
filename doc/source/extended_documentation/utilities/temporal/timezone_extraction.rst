@@ -25,7 +25,7 @@ one into which they fall.
     :alt: UK area timezone masks.
 
 The plugin also takes a target local time as input, which is used to ensure
-that the correct forecasts are provided. The final input to the plugin is
+that the correct forecasts are provided. The final input to the plugin are
 forecasts valid at times that span the UTC offset range required by the
 ancillary and which are valid at the target local times.
 
@@ -33,8 +33,18 @@ The forecast data is stacked to align the time coordinate with the UTC offset
 coordinate in the ancillary and the mask is then applied. Following this step
 there will be only one forecast value that is not masked for each grid point
 or site. The time coordinate can then be collapsed, keeping only unmasked
-forecast values. This produces a forecast valid at the same local time in
-each location on a given calendar day.
+forecast values. This produces a forecast valid at the same local time in each
+location on a given calendar day. This process is shown below. In this example
+12-hour precipitation accumulation data is being combined into a gridded
+local-timezone product.
+
+.. figure:: extended_documentation/utilities/temporal/
+    timezone_field_creation.jpg
+    :align: center
+    :scale: 100 %
+    :alt: Schematic demonstrating how data is combined into a local-timezone field.
+
+
 
 **Missing timezones**
 
