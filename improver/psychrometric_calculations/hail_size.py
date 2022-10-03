@@ -53,7 +53,8 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 class HailSize(BasePlugin):
     """Plugin to calculate the diameter of the hail stones from input cubes
     cloud condensation level (ccl) temperature, cloud condensation level pressure,
-    temperature on pressure levels and relative humidity on pressure levels.
+    temperature on pressure levels, relative humidity on pressure levels and the height
+    of the wet bulb freezing level.
 
     From these, the values for three other cubes are calculated:
         - Temperature of the environment at 268.15K (-5 Celsius) and the
@@ -69,7 +70,7 @@ class HailSize(BasePlugin):
         - Temperature after a saturated ascent - the temperature of the
           atmosphere at 268.15K
 
-    These indexes can then used to extract values of hail size depending on
+    These indexes can then be used to extract values of hail size depending on
     the wet bulb freezing altitude.
 
     If the wet bulb freezing altitude is between 3350m and 4400m then the indexes are used
