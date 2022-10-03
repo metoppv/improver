@@ -31,6 +31,7 @@
 """Module containing plugin base class."""
 
 from abc import ABC, abstractmethod
+from collections.abc import Iterable
 
 from pkg_resources import DistributionNotFound, get_distribution
 
@@ -86,9 +87,10 @@ class PostProcessingPlugin(BasePlugin):
         result = super().__call__(*args, **kwargs)
         if isinstance(result, Cube):
             self.post_processed_title(result)
-        else:
-            for cube in result:
-                self.post_processed_title(cube)
+        elif isinstance(result, Iterable) and not isinstance(result, str):
+            for item in result:
+                if isinstance(item, Cube):
+                    self.post_processed_title(item)
         return result
 
     @staticmethod

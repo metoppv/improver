@@ -32,11 +32,13 @@
 
 from datetime import datetime, timedelta
 
+import iris
 import numpy as np
 import pytest
 from cf_units import Unit
 from iris.coords import CellMethod
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.time_types import TIME_COORDS
@@ -170,22 +172,42 @@ def test_create_output_cube(with_cell_method):
 @pytest.mark.parametrize("include_time_coord", (True, False))
 def test_check_input_cube_dims(include_time_coord):
     """Checks that check_input_cube_dims can differentiate between an input cube
-    with time, y, x coords and one where time is missing. Also checks that timezone_cube
-    has been reordered correctly."""
+    with time, y, x coords and one where time is missing."""
     cube = make_input_cube([3, 4])
-    timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
+    plugin.timezone_cube = make_timezone_cube()
     if include_time_coord:
-        plugin.check_input_cube_dims(cube, timezone_cube)
-        assert plugin.timezone_cube.coord_dims("UTC_offset") == tuple(
-            [plugin.timezone_cube.ndim - 1]
-        )
+        plugin.check_input_cube_dims(cube)
+        assert cube.coord_dims("time") == tuple([cube.ndim - 1])
     else:
         cube.remove_coord("time")
         with pytest.raises(
-            ValueError, match=r"Expected coords on input_cube: time, y, x "
+            CoordinateNotFoundError, match=r"Expected coords on input_cube: time, y, x "
         ):
-            plugin.check_input_cube_dims(cube, timezone_cube)
+            plugin.check_input_cube_dims(cube)
+
+
+def test_check_aux_time_coord():
+    """Checks that check_input_cube_dims can work with an auxiliary time
+    coordinate. This occurs when partial periods are allowed. In these
+    cases the lower time bound may be the same between different time
+    points, preventing the creation of a dimension coordinate that
+    requires monotonically increasing bounds. In this case an anonymous
+    coordinate is created by iris that can be named and used for
+    reordering.
+
+    A temporary name should be assigned to the time dimension for
+    reordering. This should not be present on the output, but the time
+    coordinate should have been moved to the last dimension."""
+    cube = make_input_cube([3, 4])
+    iris.util.demote_dim_coord_to_aux_coord(cube, "time")
+
+    plugin = TimezoneExtraction()
+    plugin.timezone_cube = make_timezone_cube()
+    plugin.check_input_cube_dims(cube)
+    assert cube.coord_dims("time") == tuple([cube.ndim - 1])
+    assert len(cube.dim_coords) == len(cube.shape) - 1
+    assert "time_points" not in [crd.name() for crd in cube.coords()]
 
 
 @pytest.mark.parametrize(
@@ -194,13 +216,17 @@ def test_check_input_cube_dims(include_time_coord):
 )
 def test_check_input_cube_time(local_time, expect_success):
     """Checks that check_input_cube_time can differentiate between arguments that match
-    expected times and arguments that don't."""
+    expected times and arguments that don't. Also checks that timezone_cube
+    has been reordered correctly."""
     cube = make_input_cube([3, 4])
-    timezone_cube = make_timezone_cube()
     plugin = TimezoneExtraction()
-    plugin.check_input_cube_dims(cube, timezone_cube)
+    plugin.timezone_cube = make_timezone_cube()
+    plugin.check_input_cube_dims(cube)
     if expect_success:
         plugin.check_input_cube_time(cube, local_time)
+        assert plugin.timezone_cube.coord_dims("UTC_offset") == tuple(
+            [plugin.timezone_cube.ndim - 1]
+        )
     else:
         with pytest.raises(
             ValueError, match=r"Time coord on input cube does not match required times."
@@ -210,8 +236,9 @@ def test_check_input_cube_time(local_time, expect_success):
 
 def test_check_timezones_are_unique_pass():
     """Checks that check_timezones_are_unique allows our test cube"""
-    timezone_cube = make_timezone_cube()
-    TimezoneExtraction().check_timezones_are_unique(timezone_cube)
+    plugin = TimezoneExtraction()
+    plugin.timezone_cube = make_timezone_cube()
+    plugin.check_timezones_are_unique()
 
 
 @pytest.mark.parametrize("offset", (1, -1))
@@ -219,11 +246,13 @@ def test_check_timezones_are_unique_fail(offset):
     """Checks that check_timezones_are_unique fails if we break our test cube"""
     timezone_cube = make_timezone_cube()
     timezone_cube.data[0, 0, 0] += offset
+    plugin = TimezoneExtraction()
+    plugin.timezone_cube = timezone_cube
     with pytest.raises(
         ValueError,
         match=r"Timezone cube does not map exactly one time zone to each spatial point",
     ):
-        TimezoneExtraction().check_timezones_are_unique(timezone_cube)
+        plugin.check_timezones_are_unique()
 
 
 @pytest.mark.parametrize("with_percentiles", (True, False))
@@ -247,21 +276,97 @@ def test_process(with_percentiles, input_as_cube, input_has_time_bounds):
     local_time = datetime(2017, 11, 10, 5, 0)
     timezone_cube = make_timezone_cube()
     row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
-    row2 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
-    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 6, 0))] * 4
-    expected_times = [row1, row2, row3]
+    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
+    expected_times = [row1, row1, row3]
     expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
+
     if not input_as_cube:
         # Split cube into a list of cubes
         cube = [c for c in cube.slices_over("time")]
     result = TimezoneExtraction()(cube, timezone_cube, local_time)
+
     assert_metadata_ok(result)
-    assert np.isclose(result.data, expected_data).all()
-    assert np.isclose(result.coord("time").points, expected_times).all()
+    assert np.array_equal(result.data, expected_data)
+    assert np.array_equal(result.coord("time").points, expected_times)
     if input_has_time_bounds:
-        assert np.isclose(result.coord("time").bounds, expected_bounds).all()
+        assert np.array_equal(result.coord("time").bounds, expected_bounds)
     else:
         assert result.coord("time").bounds is None
+
+
+def test_partial_period_update():
+    """Checks that the plugin process method returns a cube with expected data and
+    time coord for a case of partial time periods indicative of a same day update.
+    In this case the time bounds are not monotonic, rather the first two times
+    share lower bounds. This requires that the time coordinate be an Auxiliary
+    coordinate. The variable time-bounds should be reflected in the output time
+    coordinate."""
+    data_shape = [3, 4]
+    data = np.array(
+        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
+    )
+    expected_data = [[0, 0, 0, 0], [0, 0, 0, 0], [1, 1, 1, 1]]
+
+    cube = make_input_cube(data_shape, time_bounds=True)
+    cube.data = data
+
+    # Make aux time coord with overlapping lower bounds.
+    tcrd = iris.coords.AuxCoord.from_coord(cube.coord("time"))
+    tbounds = tcrd.bounds.copy()
+    tbounds[0, 0] = tbounds[1, 0]
+    tcrd.bounds = tbounds
+    cube.remove_coord("time")
+    cube.add_aux_coord(tcrd, 0)
+
+    local_time = datetime(2017, 11, 10, 5, 0)
+    timezone_cube = make_timezone_cube()
+    row1 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 4, 0))] * 4
+    row3 = [cube.coord("time").units.date2num(datetime(2017, 11, 10, 5, 0))] * 4
+    expected_times = [row1, row1, row3]
+    expected_bounds = np.array(expected_times).reshape((3, 4, 1)) + [[[-3600, 0]]]
+    # The overlapping bounds we expect to see in the output.
+    expected_bounds[:2, :, 0] += 3600
+
+    result = TimezoneExtraction()(cube, timezone_cube, local_time)
+
+    assert_metadata_ok(result)
+    assert np.array_equal(result.data, expected_data)
+    assert np.array_equal(result.coord("time").points, expected_times)
+    assert np.array_equal(result.coord("time").bounds, expected_bounds)
+    # Demonstrate there are different length bounds indicating partial periods.
+    assert len(np.unique(np.diff(result.coord("time").bounds))) > 1
+
+
+def test_incomplete_period():
+    """Checks that the plugin process method returns None when an incomplete
+    period is provided that indicates the inputs are not a same-day update. This
+    is an incomplete period that is missing data at the end of a period rather
+    than the beginning, i.e. the upper time bound doesn't match the time target
+    time point."""
+    data_shape = [3, 4]
+    data = np.array(
+        [np.zeros(data_shape, dtype=np.float32), np.ones(data_shape, dtype=np.float32)]
+    )
+    cube = make_input_cube(data_shape, time_bounds=True)
+    cube.data = data
+
+    # Make aux time coord with curtailed final point.
+    tcrd = cube.coord("time").copy()
+    tpoints = tcrd.points.copy()
+    tbounds = tcrd.bounds.copy()
+    tpoints[-1] = tpoints[-1] - 1800
+    tbounds[-1, -1] = tbounds[-1, -1] - 1800
+
+    tcrd.points = tpoints
+    tcrd.bounds = tbounds
+    cube.remove_coord("time")
+    cube.add_dim_coord(tcrd, 0)
+
+    local_time = datetime(2017, 11, 10, 5, 0)
+    timezone_cube = make_timezone_cube()
+    result = TimezoneExtraction()(cube, timezone_cube, local_time)
+
+    assert result is None
 
 
 def test_bad_dtype():
