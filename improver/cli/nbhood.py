@@ -70,6 +70,8 @@ def process(
             the percentiles are calculated with a neighbourhood. Calculating
             percentiles from a neighbourhood is only supported for a circular
             neighbourhood, and the input cube should be ensemble realizations.
+            The calculation of percentiles from a neighbourhood is notably slower
+            than neighbourhood processing using a thresholded probability field.
             Options: "probabilities", "percentiles".
         neighbourhood_shape (str):
             Name of the neighbourhood method to use. Only a "circular"
