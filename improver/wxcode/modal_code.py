@@ -96,10 +96,6 @@ class ModalWeatherCode(BasePlugin):
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
 
-        # Create the expected cell method for use with single cube inputs
-        # that do not pass through the aggregator.
-        self.mode_cell_method = iris.coords.CellMethod("mode", coords="time")
-
     @staticmethod
     def _unify_day_and_night(cube: Cube):
         """Remove distinction between day and night codes so they can each
@@ -219,15 +215,30 @@ class ModalWeatherCode(BasePlugin):
             set_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
 
         cube = MergeCubes()(cubes)
+
+        # Create the expected cell method. The aggregator adds a cell method
+        # but cannot include an interval, so we create it here manually,
+        # ensuring to preserve any existing cell methods.
+        cell_methods = list(cube.cell_methods)
+        (input_data_period,) = np.unique(np.diff(cube.coord("time").bounds)) / 3600
+        cell_methods.append(
+            iris.coords.CellMethod(
+                "mode", coords="time", intervals=f"{input_data_period} hour"
+            )
+        )
+
         self._unify_day_and_night(cube)
 
         # Handle case in which a single time is provided.
         if len(cube.coord("time").points) == 1:
             result = cube
-            result.add_cell_method(self.mode_cell_method)
         else:
             result = cube.collapsed("time", self.aggregator_instance)
         self._set_blended_times(result)
+
+        result.cell_methods = None
+        for cell_method in cell_methods:
+            result.add_cell_method(cell_method)
 
         if self.model_id_attr:
             # Update contributing models
