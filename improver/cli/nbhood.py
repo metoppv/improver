@@ -58,7 +58,7 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            The Cube to be processed.
+            The Cube to be processed, usually a thresholded data set.
         mask (iris.cube.Cube):
             A cube to mask the input cube. The data should contain 1 for
             usable points and 0 for discarded points.
@@ -69,7 +69,7 @@ def process(
             neighbourhood is calculated. If "percentiles" is selected, then
             the percentiles are calculated with a neighbourhood. Calculating
             percentiles from a neighbourhood is only supported for a circular
-            neighbourhood.
+            neighbourhood, and the input cube should be ensemble realizations.
             Options: "probabilities", "percentiles".
         neighbourhood_shape (str):
             Name of the neighbourhood method to use. Only a "circular"
