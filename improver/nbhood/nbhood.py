@@ -174,7 +174,7 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
         Supply a cube with a forecast period coordinate in order to set the
         correct radius for use in neighbourhood processing.
 
-        Also checkes there are no unmasked NaNs in the input cube.
+        Also checks there are no unmasked NaNs in the input cube.
 
         Args:
             cube:
@@ -352,14 +352,14 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         point. The neighbourhood mean is then calculated by dividing the
         neighbourhood sum at each grid point by the total number of valid grid
         points that contributed to that sum. If a mask_cube is provided then
-        this is used to mask each x-y-slice prior to the neighburhood sum
+        this is used to mask each x-y-slice prior to the neighbourhood sum
         or mean being calculated.
 
 
         Args:
             cube:
                 Cube containing the array to which the neighbourhood processing
-                will be applied.
+                will be applied. Usually thresholded data.
             mask_cube:
                 Cube containing the array to be used as a mask. Zero values in
                 this array are taken as points to be masked.
@@ -574,7 +574,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
         Args:
             cube:
-                Cube containing array to apply processing to.
+                Cube containing array to apply processing to. Usually ensemble realizations.
 
         Returns:
             Cube containing the percentile fields.
