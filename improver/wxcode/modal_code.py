@@ -220,7 +220,12 @@ class ModalWeatherCode(BasePlugin):
         # but cannot include an interval, so we create it here manually,
         # ensuring to preserve any existing cell methods.
         cell_methods = list(cube.cell_methods)
-        (input_data_period,) = np.unique(np.diff(cube.coord("time").bounds)) / 3600
+        try:
+            (input_data_period,) = np.unique(np.diff(cube.coord("time").bounds)) / 3600
+        except ValueError as err:
+            raise ValueError(
+                "Input diagnostics do not have consistent periods."
+            ) from err
         cell_methods.append(
             iris.coords.CellMethod(
                 "mode", coords="time", intervals=f"{input_data_period} hour"

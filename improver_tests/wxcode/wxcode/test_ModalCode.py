@@ -55,6 +55,7 @@ TIME_FORMAT = "%Y%m%dT%H%MZ"
 def wxcode_series_fixture(
     data,
     cube_type,
+    interval: int,
     offset_reference_times: bool,
     model_id_attr: bool,
     record_run_attr: bool,
@@ -69,12 +70,12 @@ def wxcode_series_fixture(
     wxcubes = CubeList()
 
     for i in range(ntimes):
-        wxtime = time - timedelta(hours=i)
-        wxbounds = [wxtime - timedelta(hours=1), wxtime]
+        wxtime = time - timedelta(hours=i * interval)
+        wxbounds = [wxtime - timedelta(hours=interval), wxtime]
         if offset_reference_times:
-            wxfrt = time - timedelta(hours=18) - timedelta(hours=i)
+            wxfrt = time - timedelta(hours=42) - timedelta(hours=i)
         else:
-            wxfrt = time - timedelta(hours=18)
+            wxfrt = time - timedelta(hours=42)
         wxdata = np.ones((2, 2), dtype=np.int8)
         wxdata[0, 0] = data[i]
 
@@ -130,11 +131,12 @@ def wxcode_series_fixture(
                     {RECORD_RUN_ATTR: f"uk_ens:{enukx_time:{TIME_FORMAT}}:"}
                 )
 
-    return model_id_attr, record_run_attr, offset_reference_times, wxcubes
+    return interval, model_id_attr, record_run_attr, offset_reference_times, wxcubes
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
 @pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("interval", [1])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
@@ -172,13 +174,14 @@ def wxcode_series_fixture(
 )
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
-    _, _, _, wxcode_cubes = wxcode_series
+    _, _, _, _, wxcode_cubes = wxcode_series
     result = ModalWeatherCode()(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
 @pytest.mark.parametrize("record_run_attr", [False, True])
 @pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("interval", [1, 3])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize("data", [np.ones(12), np.ones(1)])
@@ -196,7 +199,13 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    model_id_attr, record_run_attr, offset_reference_times, wxcode_cubes = wxcode_series
+    (
+        interval,
+        model_id_attr,
+        record_run_attr,
+        offset_reference_times,
+        wxcode_cubes,
+    ) = wxcode_series
 
     kwargs = {}
     if model_id_attr:
@@ -208,17 +217,16 @@ def test_metadata(wxcode_series):
 
     n_times = len(wxcode_cubes)
     expected_time = TARGET_TIME
-    expected_bounds = [TARGET_TIME - timedelta(hours=n_times), TARGET_TIME]
-    expected_reference_time = TARGET_TIME - timedelta(hours=18)
+    expected_bounds = [TARGET_TIME - timedelta(hours=n_times * interval), TARGET_TIME]
+    expected_reference_time = TARGET_TIME - timedelta(hours=42)
     expected_forecast_period = (expected_time - expected_reference_time).total_seconds()
     expected_forecast_period_bounds = [
-        expected_forecast_period - n_times * 3600,
+        expected_forecast_period - n_times * interval * 3600,
         expected_forecast_period,
     ]
-    expected_cell_method = ["mode", "time"]
     expected_model_id_attr = "uk_det uk_ens"
-    expected_record_det = "uk_det:20200614T2300Z:\n"
-    expected_record_ens = "uk_ens:20200614T{}00Z:"
+    expected_record_det = "uk_det:20200613T2300Z:\n"
+    expected_record_ens = "uk_ens:20200613T{}00Z:"
 
     # Expected record_run attribute contains all contributing cycle times.
     if offset_reference_times and len(wxcode_cubes) > 1:
@@ -239,8 +247,9 @@ def test_metadata(wxcode_series):
     assert np.allclose(
         result.coord("forecast_period").bounds[0], expected_forecast_period_bounds
     )
-    assert result.cell_methods[0].method == expected_cell_method[0]
-    assert result.cell_methods[0].coord_names[0] == expected_cell_method[1]
+    assert result.cell_methods[0].method == "mode"
+    assert result.cell_methods[0].coord_names[0] == "time"
+    assert result.cell_methods[0].intervals[0] == f"{interval:2.1f} hour"
     if model_id_attr:
         assert result.attributes[MODEL_ID_ATTR] == expected_model_id_attr
     else:
@@ -249,3 +258,22 @@ def test_metadata(wxcode_series):
         assert result.attributes[RECORD_RUN_ATTR] == expected_record_run_attr
     else:
         assert RECORD_RUN_ATTR not in result.attributes.keys()
+
+
+@pytest.mark.parametrize("record_run_attr", [False])
+@pytest.mark.parametrize("model_id_attr", [False])
+@pytest.mark.parametrize("interval", [1, 3])
+@pytest.mark.parametrize("offset_reference_times", [False])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("data", [[1, 1, 1, 15]])
+def test_unmatching_bounds_exception(wxcode_series):
+    """Test that an exception is raised is inputs do not represent the same
+    intervals."""
+    _, _, _, _, wxcode_cubes = wxcode_series
+    bounds = wxcode_cubes[0].coord("time").bounds.copy()
+    bounds[0][0] += 1800
+    wxcode_cubes[0].coord("time").bounds = bounds
+    with pytest.raises(
+        ValueError, match="Input diagnostics do not have consistent periods."
+    ):
+        ModalWeatherCode()(wxcode_cubes)
