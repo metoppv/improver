@@ -499,10 +499,9 @@ class HailSize(BasePlugin):
         ):
             if min(hor, vert) < 0 or not (vert and hor) or wbz > 4400:
                 hail_size = 0
-            elif wbz < 3300:
-                hail_size = lookup_table[int(vert)][int(hor)]
             else:
-                hail_size = lookup_table[int(vert)][int(hor)]
+                hail_size = lookup_table[int(vert)][int(hor)]           
+            if wbz>=3300:
                 hail_size = self.updated_hail_size(hail_size, wbz)
             hail_size_list.append(hail_size)
 
