@@ -71,7 +71,7 @@ class HailSize(BasePlugin):
           atmosphere at 268.15K
 
     These indexes can then be used to extract values of hail size depending on
-    the wet bulb freezing altitude. The wet bulb freezing altitude is calculated 
+    the wet bulb freezing altitude. The wet bulb freezing altitude is calculated
     by subtracting the orography from the wet bulb freezing altitude above sea level.
 
     If the wet bulb freezing altitude is between 3350m and 4400m then the indexes are used
