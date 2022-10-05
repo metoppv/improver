@@ -75,7 +75,7 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
         ccl_pressure,
         ccl_temperature,
         wet_bulb_zero,
-        orography
+        orography,
     ) = CubeList(cubes).extract(
         [
             "air_temperature",
@@ -83,9 +83,14 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
             "air_pressure_at_condensation_level",
             "air_temperature_at_condensation_level",
             "wet_bulb_freezing_level_altitude",
-            "surface_altitude"
+            "surface_altitude",
         ]
     )
     return HailSize(model_id_attr=model_id_attr)(
-        ccl_temperature, ccl_pressure, temperature, relative_humidity, wet_bulb_zero,orography
+        ccl_temperature,
+        ccl_pressure,
+        temperature,
+        relative_humidity,
+        wet_bulb_zero,
+        orography,
     )

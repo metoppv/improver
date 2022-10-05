@@ -196,7 +196,7 @@ class HailSize(BasePlugin):
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
         wet_bulb_zero_ASL: Cube,
-        orography:Cube,
+        orography: Cube,
     ) -> None:
         """Checks the size and units of input cubes
 
@@ -217,10 +217,10 @@ class HailSize(BasePlugin):
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
         try:
-            wb_slice=next(wet_bulb_zero_ASL.slices_over("realization"))
+            wb_slice = next(wet_bulb_zero_ASL.slices_over("realization"))
         except CoordinateNotFoundError:
-            wb_slice=wet_bulb_zero_ASL
-        assert_spatial_coords_match([wb_slice,orography])
+            wb_slice = wet_bulb_zero_ASL
+        assert_spatial_coords_match([wb_slice, orography])
         assert_spatial_coords_match(
             [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero_ASL]
         )
@@ -500,8 +500,8 @@ class HailSize(BasePlugin):
             if min(hor, vert) < 0 or not (vert and hor) or wbz > 4400:
                 hail_size = 0
             else:
-                hail_size = lookup_table[int(vert)][int(hor)]           
-            if wbz>=3300:
+                hail_size = lookup_table[int(vert)][int(hor)]
+            if wbz >= 3300:
                 hail_size = self.updated_hail_size(hail_size, wbz)
             hail_size_list.append(hail_size)
 
@@ -642,7 +642,7 @@ class HailSize(BasePlugin):
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
         wet_bulb_zero_height_ASL: Cube,
-        orography: Cube
+        orography: Cube,
     ) -> Cube:
         """
         Main entry point of this class
@@ -670,7 +670,7 @@ class HailSize(BasePlugin):
             temperature_on_pressure,
             relative_humidity_on_pressure,
             wet_bulb_zero_height_ASL,
-            orography
+            orography,
         )
 
         pressure_at_268, temperature_at_268 = self.extract_pressure_at_268(
@@ -685,7 +685,7 @@ class HailSize(BasePlugin):
             [temperature_at_268, pressure_at_268, relative_humidity_at_268]
         )
 
-        wet_bulb_zero_height=wet_bulb_zero_height_ASL-orography
+        wet_bulb_zero_height = wet_bulb_zero_height_ASL - orography
 
         hail_size = self.hail_size_data(
             temperature_at_268,

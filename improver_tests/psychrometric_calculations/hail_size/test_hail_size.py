@@ -83,17 +83,16 @@ def wet_bulb_freezing() -> Cube:
     )
     return wet_bulb_freezing_cube
 
+
 @pytest.fixture
 def orography() -> Cube:
     """Set up a r, y, x cube of orography data"""
     data = np.full((3, 2), fill_value=0, dtype=np.float32)
     orography_cube = set_up_variable_cube(
-        data,
-        name="surface_altitude",
-        units="m",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="surface_altitude", units="m", attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return orography_cube
+
 
 @pytest.fixture
 def temperature_on_pressure_levels() -> Cube:
@@ -179,9 +178,23 @@ https://doi.org/10.1175/1520-0477-34.6.235
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,humidity,wbz,orog,expected",
     (
-        (75000, 290, 0.001, 2200,0, 0.02),  # values approx from tephigram in literature
-        (75000, 290, 0.001, 5000,0, 0),  # wet bulb zero (wbz) height greater than 4400m
-        (75000, 290, 0.001, 5000,2800, 0.02), # orography reduces wbz height to 2200m
+        (
+            75000,
+            290,
+            0.001,
+            2200,
+            0,
+            0.02,
+        ),  # values approx from tephigram in literature
+        (
+            75000,
+            290,
+            0.001,
+            5000,
+            0,
+            0,
+        ),  # wet bulb zero (wbz) height greater than 4400m
+        (75000, 290, 0.001, 5000, 2800, 0.02),  # orography reduces wbz height to 2200m
         (
             75000,
             290,
@@ -190,11 +203,11 @@ https://doi.org/10.1175/1520-0477-34.6.235
             0,
             0.015,
         ),  # wbz height above 3350m but less than 4400m
-        (94000, 300, 0.001, 2200,0, 0),  # vertical value negative
-        (1000, 360, 0.001, 2200,0, 0),  # horizontal value negative
-        (95000, 330, 0.001, 2200,0, 0.08),  # vertical greater than length of table
-        (150000, 350, 0.1, 2200,0, 0.025),  # horizontal greater than length of table
-        (75000, 265, 0.001, 2200,0, 0),  # ccl temperature below 268.15
+        (94000, 300, 0.001, 2200, 0, 0),  # vertical value negative
+        (1000, 360, 0.001, 2200, 0, 0),  # horizontal value negative
+        (95000, 330, 0.001, 2200, 0, 0.08),  # vertical greater than length of table
+        (150000, 350, 0.1, 2200, 0, 0.025),  # horizontal greater than length of table
+        (75000, 265, 0.001, 2200, 0, 0),  # ccl temperature below 268.15
     ),
 )
 def test_basic_hail_size(
@@ -220,7 +233,7 @@ def test_basic_hail_size(
         relative_humidity_on_pressure.data, humidity
     )
     wet_bulb_freezing.data = np.full_like(wet_bulb_freezing.data, wbz)
-    orography.data=np.full_like(orography.data,orog)
+    orography.data = np.full_like(orography.data, orog)
 
     result = HailSize()(
         ccl_temperature,
@@ -261,7 +274,7 @@ def test_temperature_too_high(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
         wet_bulb_freezing,
-        orography
+        orography,
     )
     np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
@@ -276,7 +289,7 @@ def test_temperature_too_high(
         "ccl_pressure",
         "relative_humidity_on_pressure",
         "wet_bulb_freezing",
-        "orography"
+        "orography",
     ),
 )
 def test_spatial_coord_mismatch(variable, request):
@@ -315,6 +328,7 @@ def test_spatial_coord_mismatch(variable, request):
             wet_bulb_freezing[0],
             orography[0],
         )
+
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(
@@ -375,9 +389,7 @@ def test_re_ordered_cubes(
     enforce_coordinate_ordering(
         wet_bulb_freezing, ["latitude", "realization", "longitude"]
     )
-    enforce_coordinate_ordering(
-        orography, ["latitude","longitude"]
-    )
+    enforce_coordinate_ordering(orography, ["latitude", "longitude"])
 
     result = HailSize()(
         ccl_temperature,
@@ -385,7 +397,7 @@ def test_re_ordered_cubes(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
         wet_bulb_freezing,
-        orography
+        orography,
     )
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
@@ -425,7 +437,9 @@ def test_no_realization_coordinate(
     wet_bulb_zero = next(wet_bulb_freezing.slices_over("realization"))
     wet_bulb_zero.remove_coord("realization")
 
-    result = HailSize()(cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero,orography)
+    result = HailSize()(
+        cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero, orography
+    )
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
