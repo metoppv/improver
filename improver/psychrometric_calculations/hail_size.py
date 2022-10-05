@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """module to calculate hail_size"""
 
+from bisect import bisect_right
+
 import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -51,7 +53,8 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 class HailSize(BasePlugin):
     """Plugin to calculate the diameter of the hail stones from input cubes
     cloud condensation level (ccl) temperature, cloud condensation level pressure,
-    temperature on pressure levels and relative humidity on pressure levels.
+    temperature on pressure levels, relative humidity on pressure levels, the height
+    of the wet bulb freezing level above sea level and orography.
 
     From these, the values for three other cubes are calculated:
         - Temperature of the environment at 268.15K (-5 Celsius) and the
@@ -67,9 +70,24 @@ class HailSize(BasePlugin):
         - Temperature after a saturated ascent - the temperature of the
           atmosphere at 268.15K
 
-    These indexes are then used to extract values of hail size from the table
-    taken from Hand and Cappelluti (2011) which is a tabular version of a
-    graph from Fawbush and Miller(1953)
+    These indexes can then be used to extract values of hail size depending on
+    the wet bulb freezing altitude. The wet bulb freezing altitude is calculated
+    by subtracting the orography from the wet bulb freezing altitude above sea level.
+
+    If the wet bulb freezing altitude is between 3350m and 4400m then the indexes are used
+    to extract an initial hail value from the first table. A second table
+    is then accessed to reduce the hail size. The second table is stored as a dictionary, with the
+    key being the wet bulb freezing altitude and each column in the associated
+    arrays referring to the previously calculated hail diameter being less than a pre-defined
+    value. An updated hail_size is then extracted and stored.
+
+    If the wet_bulb_freezing_altitude is greater than 4400m then the hail size is set to
+    0 and if the wet bulb_freezing_altitude is less than 3350m then the originally calculated
+    hail size is not altered.
+
+    Both tables are taken from Hand and Cappelluti (2011) which are a tabular versions of the
+    graphs from Fawbush and Miller(1953)
+
 
     References
         - Hand, W., and G. Cappelluti. 2011. “A global hail climatology using the UK
@@ -146,11 +164,40 @@ class HailSize(BasePlugin):
         return lookup_nomogram
 
     @staticmethod
+    def updated_nomogram() -> dict:
+
+        """Sets up a dictionary of updated hail diameter values (mm).
+
+        The dictionary keys are the height of the wet bulb freezing level (m) where,
+        when accessing at some height value, it should be rounded to the nearest lower value
+        (e.g. 3549m should access 3350m key).
+
+        Each key has an associated list in which each element is a new hail diameter based on
+        the original hail size that was calculated from nomogram_values table.
+        Specifically each column associated hail size (mm) is [<5,<10,<20,<25,<50,<75,<100,<125].
+        The largest possible value where the equality still holds should be used.
+
+        If the wet bulb freezing height is less than 3350m then the original hail size is used.
+        If the wet bulb freezing height is greater than 4400m then all hail sizes are set to 0.
+        """
+        lookup_dict = {
+            3350: [0, 5, 10, 15, 25, 50, 65, 75],
+            3550: [0, 0, 5, 10, 20, 20, 25, 30],
+            3750: [0, 0, 0, 5, 10, 15, 15, 15],
+            3950: [0, 0, 0, 0, 5, 10, 10, 10],
+            4150: [0, 0, 0, 0, 0, 0, 5, 5],
+            4400: [0, 0, 0, 0, 0, 0, 0, 0],
+        }
+        return lookup_dict
+
+    @staticmethod
     def check_cubes(
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
+        wet_bulb_zero_asl: Cube,
+        orography: Cube,
     ) -> None:
         """Checks the size and units of input cubes
 
@@ -163,11 +210,21 @@ class HailSize(BasePlugin):
                     Cube of environment temperature on pressure levels
                 relative_humidity_on_pressure
                     Cube of relative humidity on pressure levels
+                wet_bulb_zero_asl
+                    Cube of the height of the wet bulb freezing level above sea level
+                orography (iris.cube.Cube):
+                    Cube of the orography height.
         """
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
-
-        assert_spatial_coords_match([ccl_temperature, ccl_pressure, temp_slice])
+        try:
+            wb_slice = next(wet_bulb_zero_asl.slices_over("realization"))
+        except CoordinateNotFoundError:
+            wb_slice = wet_bulb_zero_asl
+        assert_spatial_coords_match([wb_slice, orography])
+        assert_spatial_coords_match(
+            [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero_asl]
+        )
         assert_spatial_coords_match(
             [temperature_on_pressure, relative_humidity_on_pressure]
         )
@@ -176,6 +233,8 @@ class HailSize(BasePlugin):
         ccl_pressure.convert_units("Pa")
         temperature_on_pressure.convert_units("K")
         relative_humidity_on_pressure.convert_units("kg/kg")
+        wet_bulb_zero_asl.convert_units("m")
+        orography.convert_units("m")
 
     def variable_at_pressure(
         self, variable_on_pressure: Cube, pressure: Cube
@@ -391,10 +450,18 @@ class HailSize(BasePlugin):
         )
         return t_dry
 
-    def get_hail_size(self, vertical: np.ndarray, horizontal: np.ndarray) -> np.ndarray:
+    def get_hail_size(
+        self, vertical: np.ndarray, horizontal: np.ndarray, wet_bulb_zero: np.ndarray
+    ) -> np.ndarray:
         """Uses the lookup_table and the vertical and horizontal indexes calculated
-        to extract and store values from the lookup nomogram. Masked data points or
-        if vertical or horizontal values are negative lead to a hail_size of 0.
+        to extract and store values from the lookup nomogram.
+
+        The hail size will be set to 0 if
+            1) there are masked data points,
+            2) vertical or horizontal values are negative,
+            3) the wet bulb freezing altitude is greater that 4400m.
+
+        If the wet bulb freezing altitude is greater that 3300m then the hail_size is reduced.
 
         Args:
             vertical
@@ -402,6 +469,8 @@ class HailSize(BasePlugin):
             horizontal
                 An n dimensional array containing the values used to calculate the horizontal
                 indexes
+            wet_bulb_zero
+                An n dimensional array containing the height of the wet bulb freezing level
         Returns:
             an n dimension array of values for the diameter of hail (mm)
         """
@@ -419,19 +488,52 @@ class HailSize(BasePlugin):
         # flattens array's so they can later be accessed
         horizontal_flat = horizontal_rounded.flatten(order="C")
         vertical_flat = vertical_rounded.flatten(order="C")
+        wet_bulb_zero_flat = wet_bulb_zero.flatten(order="C")
+
         hail_size_list = []
         # clips index values to not be longer than the table
         vertical_clipped = np.clip(vertical_flat, None, len(lookup_table) - 1)
         horizontal_clipped = np.clip(horizontal_flat, None, len(lookup_table[0]) - 1)
 
-        for vert, hor in zip(vertical_clipped, horizontal_clipped):
-            if min(hor, vert) < 0 or not (vert and hor):
-                hail_size_list.append(0)
+        for vert, hor, wbz in zip(
+            vertical_clipped, horizontal_clipped, wet_bulb_zero_flat
+        ):
+            if min(hor, vert) < 0 or not (vert and hor) or wbz > 4400:
+                hail_size = 0
             else:
-                hail_size_list.append(lookup_table[int(vert)][int(hor)])
+                hail_size = lookup_table[int(vert)][int(hor)]
+            if wbz >= 3300:
+                hail_size = self.updated_hail_size(hail_size, wbz)
+            hail_size_list.append(hail_size)
 
         hail_size = np.reshape(hail_size_list, shape, order="C")
         return hail_size
+
+    def updated_hail_size(self, hail_size: int, wet_bulb_height: float) -> np.int8:
+        """Uses the updated_nomogram values dictionary to access an updated hail size
+        based on the original predicted hail size and a wet bulb freezing height.
+
+        Args:
+            hail_size
+                An integer hail diameter value taken from the original nomogram
+            wet_bulb_height
+                A float of the height of the wet bulb freezing level
+        Returns:
+            An updated value for the hail diameter (mm)
+        """
+
+        updated_values = self.updated_nomogram()
+
+        keys = list(updated_values.keys())
+        height_index = bisect_right(keys, wet_bulb_height) - 1
+        height_key = keys[height_index]
+
+        hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
+        hail_index = bisect_right(hail_groups, hail_size)
+
+        updated_hail_size = updated_values[height_key][hail_index]
+
+        return np.int8(updated_hail_size)
 
     def hail_size_data(
         self,
@@ -440,6 +542,7 @@ class HailSize(BasePlugin):
         ccl_pressure: Cube,
         ccl_temperature: Cube,
         humidity_mixing_ratio_at_268: Cube,
+        wet_bulb_zero: Cube,
     ) -> np.ndarray:
         """Gets temperature of environment at 268.15K, temperature after a dry adiabatic descent
         from the pressure of air at 268.15K to ccl pressure and the temperature
@@ -458,6 +561,8 @@ class HailSize(BasePlugin):
                 Cube of cloud condensation level pressure
             humidity_mixing_ratio_at_268
                 Cube of humidity mixing ratio at the pressure of the environment at 268.15K
+            wet_bulb_zero
+                Cube of the height of the wet-bulb freezing level
         Returns:
             An n dimensional array of diameter of hail stones (m)
         """
@@ -482,7 +587,9 @@ class HailSize(BasePlugin):
             np.ma.getmask(temperature_mask), horizontal
         )
 
-        hail_size = self.get_hail_size(vertical_masked, horizontal_masked)
+        hail_size = self.get_hail_size(
+            vertical_masked, horizontal_masked, wet_bulb_zero.data
+        )
         hail_size = hail_size / 1000
         hail_size = hail_size.astype("float32")
 
@@ -535,6 +642,8 @@ class HailSize(BasePlugin):
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
+        wet_bulb_zero_height_asl: Cube,
+        orography: Cube,
     ) -> Cube:
         """
         Main entry point of this class
@@ -548,6 +657,10 @@ class HailSize(BasePlugin):
                 Cube of temperature on pressure levels
             relative_humidity_on_pressure:
                 Cube of relative_humidity ratio on pressure levels
+            wet_bulb_zero_height_asl:
+                Cube of the height of the wet-bulb freezing level above sea level
+            orography (iris.cube.Cube):
+                Cube of the orography height.
         Returns:
             Cube of hail diameter (m)
         """
@@ -557,6 +670,8 @@ class HailSize(BasePlugin):
             ccl_pressure,
             temperature_on_pressure,
             relative_humidity_on_pressure,
+            wet_bulb_zero_height_asl,
+            orography,
         )
 
         pressure_at_268, temperature_at_268 = self.extract_pressure_at_268(
@@ -571,12 +686,15 @@ class HailSize(BasePlugin):
             [temperature_at_268, pressure_at_268, relative_humidity_at_268]
         )
 
+        wet_bulb_zero_height = wet_bulb_zero_height_asl - orography
+
         hail_size = self.hail_size_data(
             temperature_at_268,
             pressure_at_268,
             ccl_pressure,
             ccl_temperature,
             humidity_mixing_ratio_at_268,
+            wet_bulb_zero_height,
         )
 
         hail_cube = self.make_hail_cube(

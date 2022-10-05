@@ -48,6 +48,8 @@ def test_basic(tmp_path, model_id_attr):
         test_dir / "temperature_on_pressure_levels.nc",
         test_dir / "relative_humidity_on_pressure.nc",
         test_dir / "ccl.nc",
+        test_dir / "wet_bulb_freezing_altitude.nc",
+        test_dir / "orography.nc",
         "--output",
         output_path,
     ]

@@ -38,18 +38,23 @@ from improver import cli
 def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     """Module to calculate the size of hail stones from the
     cloud condensation level (ccl) temperature and pressure, temperature
-    on pressure levels data and relative humidity on pressure levels.
+    on pressure levels data, relative humidity on pressure levels, wet
+    bulb freezing altitude above sea level and orography.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing:
                 temperature (iris.cube.Cube):
-                    Cube of temperature on pressure_levels
+                    Cube of temperature on pressure levels
                 relative_humidity (iris.cube.Cube)
-                    Cube of relative_humidity on pressure levels
+                    Cube of relative humidity on pressure levels
+                wet_bulb_freezing_level_altitude (iris.cube.Cube)
+                    Cube of the height of the wet bulb freezing level
                 ccl (iris.cube.CubeList)
                     Cube list containing 2 cubes: air temperature at ccl
                     and air pressure at ccl
+                orography (iris.cube.Cube):
+                    Cube of the orography height.
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
@@ -64,16 +69,28 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     from improver.utilities.flatten import flatten
 
     cubes = flatten(cubes)
-    temperature, relative_humidity, ccl_pressure, ccl_temperature = CubeList(
-        cubes
-    ).extract(
+    (
+        temperature,
+        relative_humidity,
+        ccl_pressure,
+        ccl_temperature,
+        wet_bulb_zero,
+        orography,
+    ) = CubeList(cubes).extract(
         [
             "air_temperature",
             "relative_humidity",
             "air_pressure_at_condensation_level",
             "air_temperature_at_condensation_level",
+            "wet_bulb_freezing_level_altitude",
+            "surface_altitude",
         ]
     )
     return HailSize(model_id_attr=model_id_attr)(
-        ccl_temperature, ccl_pressure, temperature, relative_humidity
+        ccl_temperature,
+        ccl_pressure,
+        temperature,
+        relative_humidity,
+        wet_bulb_zero,
+        orography,
     )
