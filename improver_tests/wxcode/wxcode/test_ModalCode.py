@@ -249,7 +249,7 @@ def test_metadata(wxcode_series):
     )
     assert result.cell_methods[0].method == "mode"
     assert result.cell_methods[0].coord_names[0] == "time"
-    assert result.cell_methods[0].intervals[0] == f"{interval:2.1f} hour"
+    assert result.cell_methods[0].intervals[0] == f"{interval} hour"
     if model_id_attr:
         assert result.attributes[MODEL_ID_ATTR] == expected_model_id_attr
     else:
@@ -267,7 +267,7 @@ def test_metadata(wxcode_series):
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize("data", [[1, 1, 1, 15]])
 def test_unmatching_bounds_exception(wxcode_series):
-    """Test that an exception is raised is inputs do not represent the same
+    """Test that an exception is raised if inputs do not represent the same
     intervals."""
     _, _, _, _, wxcode_cubes = wxcode_series
     bounds = wxcode_cubes[0].coord("time").bounds.copy()

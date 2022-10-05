@@ -228,7 +228,7 @@ class ModalWeatherCode(BasePlugin):
             ) from err
         cell_methods.append(
             iris.coords.CellMethod(
-                "mode", coords="time", intervals=f"{input_data_period} hour"
+                "mode", coords="time", intervals=f"{int(input_data_period)} hour"
             )
         )
 
