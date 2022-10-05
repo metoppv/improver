@@ -196,7 +196,7 @@ class HailSize(BasePlugin):
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
-        wet_bulb_zero_ASL: Cube,
+        wet_bulb_zero_asl: Cube,
         orography: Cube,
     ) -> None:
         """Checks the size and units of input cubes
@@ -210,7 +210,7 @@ class HailSize(BasePlugin):
                     Cube of environment temperature on pressure levels
                 relative_humidity_on_pressure
                     Cube of relative humidity on pressure levels
-                wet_bulb_zero_ASL
+                wet_bulb_zero_asl
                     Cube of the height of the wet bulb freezing level above sea level
                 orography (iris.cube.Cube):
                     Cube of the orography height.
@@ -218,12 +218,12 @@ class HailSize(BasePlugin):
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
         try:
-            wb_slice = next(wet_bulb_zero_ASL.slices_over("realization"))
+            wb_slice = next(wet_bulb_zero_asl.slices_over("realization"))
         except CoordinateNotFoundError:
-            wb_slice = wet_bulb_zero_ASL
+            wb_slice = wet_bulb_zero_asl
         assert_spatial_coords_match([wb_slice, orography])
         assert_spatial_coords_match(
-            [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero_ASL]
+            [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero_asl]
         )
         assert_spatial_coords_match(
             [temperature_on_pressure, relative_humidity_on_pressure]
@@ -233,7 +233,7 @@ class HailSize(BasePlugin):
         ccl_pressure.convert_units("Pa")
         temperature_on_pressure.convert_units("K")
         relative_humidity_on_pressure.convert_units("kg/kg")
-        wet_bulb_zero_ASL.convert_units("m")
+        wet_bulb_zero_asl.convert_units("m")
         orography.convert_units("m")
 
     def variable_at_pressure(
@@ -642,7 +642,7 @@ class HailSize(BasePlugin):
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
         relative_humidity_on_pressure: Cube,
-        wet_bulb_zero_height_ASL: Cube,
+        wet_bulb_zero_height_asl: Cube,
         orography: Cube,
     ) -> Cube:
         """
@@ -657,7 +657,7 @@ class HailSize(BasePlugin):
                 Cube of temperature on pressure levels
             relative_humidity_on_pressure:
                 Cube of relative_humidity ratio on pressure levels
-            wet_bulb_zero_height_ASL:
+            wet_bulb_zero_height_asl:
                 Cube of the height of the wet-bulb freezing level above sea level
             orography (iris.cube.Cube):
                 Cube of the orography height.
@@ -670,7 +670,7 @@ class HailSize(BasePlugin):
             ccl_pressure,
             temperature_on_pressure,
             relative_humidity_on_pressure,
-            wet_bulb_zero_height_ASL,
+            wet_bulb_zero_height_asl,
             orography,
         )
 
@@ -686,7 +686,7 @@ class HailSize(BasePlugin):
             [temperature_at_268, pressure_at_268, relative_humidity_at_268]
         )
 
-        wet_bulb_zero_height = wet_bulb_zero_height_ASL - orography
+        wet_bulb_zero_height = wet_bulb_zero_height_asl - orography
 
         hail_size = self.hail_size_data(
             temperature_at_268,
