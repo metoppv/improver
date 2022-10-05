@@ -38,8 +38,8 @@ from improver import cli
 def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     """Module to calculate the size of hail stones from the
     cloud condensation level (ccl) temperature and pressure, temperature
-    on pressure levels data, relative humidity on pressure levels and wet
-    bulb freezing altitude.
+    on pressure levels data, relative humidity on pressure levels, wet
+    bulb freezing altitude above sea level and orography.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
@@ -53,6 +53,8 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
                 ccl (iris.cube.CubeList)
                     Cube list containing 2 cubes: air temperature at ccl
                     and air pressure at ccl
+                orography (iris.cube.Cube):
+                    Cube of the orography height.
         model_id_attr (str):
             Name of the attribute used to identify the source model for blending.
 
@@ -73,6 +75,7 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
         ccl_pressure,
         ccl_temperature,
         wet_bulb_zero,
+        orography
     ) = CubeList(cubes).extract(
         [
             "air_temperature",
@@ -80,8 +83,9 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
             "air_pressure_at_condensation_level",
             "air_temperature_at_condensation_level",
             "wet_bulb_freezing_level_altitude",
+            "surface_altitude"
         ]
     )
     return HailSize(model_id_attr=model_id_attr)(
-        ccl_temperature, ccl_pressure, temperature, relative_humidity, wet_bulb_zero
+        ccl_temperature, ccl_pressure, temperature, relative_humidity, wet_bulb_zero,orography
     )

@@ -83,6 +83,17 @@ def wet_bulb_freezing() -> Cube:
     )
     return wet_bulb_freezing_cube
 
+@pytest.fixture
+def orography() -> Cube:
+    """Set up a r, y, x cube of orography data"""
+    data = np.full((3, 2), fill_value=0, dtype=np.float32)
+    orography_cube = set_up_variable_cube(
+        data,
+        name="surface_altitude",
+        units="m",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return orography_cube
 
 @pytest.fixture
 def temperature_on_pressure_levels() -> Cube:
@@ -166,22 +177,24 @@ https://doi.org/10.1175/1520-0477-34.6.235
 
 
 @pytest.mark.parametrize(
-    "ccl_p,ccl_t,humidity,wbz,expected",
+    "ccl_p,ccl_t,humidity,wbz,orog,expected",
     (
-        (75000, 290, 0.001, 2200, 0.02),  # values approx from tephigram in literature
-        (75000, 290, 0.001, 5000, 0),  # wet bulb zero height above 4400m
+        (75000, 290, 0.001, 2200,0, 0.02),  # values approx from tephigram in literature
+        (75000, 290, 0.001, 5000,0, 0),  # wet bulb zero (wbz) height greater than 4400m
+        (75000, 290, 0.001, 5000,2800, 0.02), # orography reduces wbz height to 2200m
         (
             75000,
             290,
             0.001,
             3400,
+            0,
             0.015,
-        ),  # wet bulb zero height above 3350m but less than 4400m
-        (94000, 300, 0.001, 2200, 0),  # vertical value negative
-        (1000, 360, 0.001, 2200, 0),  # horizontal value negative
-        (95000, 330, 0.001, 2200, 0.08),  # vertical greater than length of table
-        (150000, 350, 0.1, 2200, 0.025),  # horizontal greater than length of table
-        (75000, 265, 0.001, 2200, 0),  # ccl temperature below 268.15
+        ),  # wbz height above 3350m but less than 4400m
+        (94000, 300, 0.001, 2200,0, 0),  # vertical value negative
+        (1000, 360, 0.001, 2200,0, 0),  # horizontal value negative
+        (95000, 330, 0.001, 2200,0, 0.08),  # vertical greater than length of table
+        (150000, 350, 0.1, 2200,0, 0.025),  # horizontal greater than length of table
+        (75000, 265, 0.001, 2200,0, 0),  # ccl temperature below 268.15
     ),
 )
 def test_basic_hail_size(
@@ -190,10 +203,12 @@ def test_basic_hail_size(
     temperature_on_pressure_levels,
     relative_humidity_on_pressure,
     wet_bulb_freezing,
+    orography,
     ccl_p,
     ccl_t,
     humidity,
     wbz,
+    orog,
     expected,
 ):
     """Tests the hail_size plugin with values for ccl temperature, ccl pressure,
@@ -205,6 +220,7 @@ def test_basic_hail_size(
         relative_humidity_on_pressure.data, humidity
     )
     wet_bulb_freezing.data = np.full_like(wet_bulb_freezing.data, wbz)
+    orography.data=np.full_like(orography.data,orog)
 
     result = HailSize()(
         ccl_temperature,
@@ -212,6 +228,7 @@ def test_basic_hail_size(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
         wet_bulb_freezing,
+        orography,
     )
     np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
@@ -224,6 +241,7 @@ def test_temperature_too_high(
     ccl_temperature,
     relative_humidity_on_pressure,
     wet_bulb_freezing,
+    orography,
 ):
     """Tests for the case where there are grid squares where the temperature
     doesn't drop below 268.15K at any pressure. At these points hail size
@@ -243,6 +261,7 @@ def test_temperature_too_high(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
         wet_bulb_freezing,
+        orography
     )
     np.testing.assert_array_almost_equal(result.data, expected)
     metadata_check(result)
@@ -257,6 +276,7 @@ def test_temperature_too_high(
         "ccl_pressure",
         "relative_humidity_on_pressure",
         "wet_bulb_freezing",
+        "orography"
     ),
 )
 def test_spatial_coord_mismatch(variable, request):
@@ -265,13 +285,13 @@ def test_spatial_coord_mismatch(variable, request):
 
     variable_new = request.getfixturevalue(variable)
     variable_slice = next(variable_new.slices_over("longitude"))
-
     fixtures = [
         "ccl_temperature",
         "ccl_pressure",
         "temperature_on_pressure_levels",
         "relative_humidity_on_pressure",
         "wet_bulb_freezing",
+        "orography",
     ]
     fixtures.remove(variable)
     cubes = CubeList(request.getfixturevalue(fix) for fix in fixtures)
@@ -284,6 +304,7 @@ def test_spatial_coord_mismatch(variable, request):
         "relative_humidity_on_pressure_levels"
     )
     wet_bulb_freezing = cubes.extract("wet_bulb_freezing_level_altitude")
+    orography = cubes.extract("surface_altitude")
 
     with pytest.raises(ValueError):
         HailSize()(
@@ -292,8 +313,8 @@ def test_spatial_coord_mismatch(variable, request):
             temperature_on_pressure[0],
             relative_humidity_on_pressure[0],
             wet_bulb_freezing[0],
+            orography[0],
         )
-
 
 @pytest.mark.parametrize("model_id_attr", ("mosg__model_configuration", None))
 def test_model_id_attr(
@@ -302,6 +323,7 @@ def test_model_id_attr(
     relative_humidity_on_pressure,
     ccl_temperature,
     wet_bulb_freezing,
+    orography,
     model_id_attr,
 ):
     """Tests plugin if model_id_attr is set on inputs and is applied or not"""
@@ -310,6 +332,7 @@ def test_model_id_attr(
     relative_humidity_on_pressure.attributes["mosg__model_configuration"] = "gl_ens"
     ccl_temperature.attributes["mosg__model_configuration"] = "gl_ens"
     wet_bulb_freezing.attributes["mosg__model_configuration"] = "gl_ens"
+    orography.attributes["mosg__model_configuration"] = "gl_ens"
 
     result = HailSize(model_id_attr=model_id_attr)(
         ccl_temperature,
@@ -317,6 +340,7 @@ def test_model_id_attr(
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
         wet_bulb_freezing,
+        orography,
     )
 
     np.testing.assert_array_almost_equal(result.data, 0.035)
@@ -330,6 +354,7 @@ def test_re_ordered_cubes(
     relative_humidity_on_pressure,
     ccl_temperature,
     wet_bulb_freezing,
+    orography,
 ):
 
     """Tests the plugin if the input cubes have coordinates that need to be rearranged.
@@ -350,12 +375,17 @@ def test_re_ordered_cubes(
     enforce_coordinate_ordering(
         wet_bulb_freezing, ["latitude", "realization", "longitude"]
     )
+    enforce_coordinate_ordering(
+        orography, ["latitude","longitude"]
+    )
+
     result = HailSize()(
         ccl_temperature,
         ccl_pressure,
         temperature_on_pressure_levels,
         relative_humidity_on_pressure,
         wet_bulb_freezing,
+        orography
     )
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
@@ -377,6 +407,7 @@ def test_no_realization_coordinate(
     relative_humidity_on_pressure,
     ccl_temperature,
     wet_bulb_freezing,
+    orography,
 ):
     """Test plugin if input cubes don't have a realization coordinate"""
 
@@ -394,7 +425,7 @@ def test_no_realization_coordinate(
     wet_bulb_zero = next(wet_bulb_freezing.slices_over("realization"))
     wet_bulb_zero.remove_coord("realization")
 
-    result = HailSize()(cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero)
+    result = HailSize()(cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero,orography)
     np.testing.assert_array_almost_equal(result.data, 0.035)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
