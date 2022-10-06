@@ -215,17 +215,17 @@ class HailSize(BasePlugin):
         """Checks the size and units of input cubes
 
             Args:
-                ccl_temperature
+                ccl_temperature:
                     Cube of cloud condensation level temperature
-                ccl_pressure
+                ccl_pressure:
                     Cube of cloud condensation level pressure
-                temperature_on_pressure
+                temperature_on_pressure:
                     Cube of environment temperature on pressure levels
-                relative_humidity_on_pressure
+                relative_humidity_on_pressure:
                     Cube of relative humidity on pressure levels
-                wet_bulb_zero_asl
+                wet_bulb_zero_asl:
                     Cube of the height of the wet bulb freezing level above sea level
-                orography (iris.cube.Cube):
+                orography:
                     Cube of the orography height.
         """
 
@@ -256,9 +256,9 @@ class HailSize(BasePlugin):
         levels described by the pressure cube.
 
         Args:
-            variable_on_pressure
+            variable_on_pressure:
                 Cube of some variable with pressure levels
-            pressure
+            pressure:
                 Cube of pressure values
         Returns:
             An n dimensional array, with the same dimensions as the pressure cube,
@@ -304,13 +304,14 @@ class HailSize(BasePlugin):
         enforce_coordinate_ordering(pressure, coord_order)
         return variable_cube.data
 
-    def pressure_grid(self, variable_on_pressure: Cube) -> np.ndarray:
+    @staticmethod
+    def pressure_grid(variable_on_pressure: Cube) -> np.ndarray:
         """Creates a pressure grid of the same shape as variable_on_pressure cube.
         It is populated at every grid square and for every realization with
         a column of all pressure levels taken from variable_on_pressure's pressure coordinate
 
         Args:
-            Variable_on_pressure
+            variable_on_pressure:
                 Cube of some variable with pressure levels
         Returns:
             An n dimensional array with the same dimensions as variable_on_pressure containing,
@@ -330,14 +331,14 @@ class HailSize(BasePlugin):
 
     def extract_pressure_at_268(
         self, temperature_on_pressure: Cube
-    ) -> tuple((Cube, Cube)):
+    ) -> Tuple[Cube, Cube]:
         """Extracts the pressure level where the environment
         temperature first drops below -5 Celsius (268.15K) starting at a pressure value
         near the surface and ascending in altitude from there. It also produces
         the environment temperature at that pressure value
 
         Args:
-            temperature_on_pressure
+            temperature_on_pressure:
                 A cube of temperature on pressure levels
         Returns:
             A tuple of two cubes containing a cube of the environment pressure at 268.15K
@@ -391,9 +392,9 @@ class HailSize(BasePlugin):
         """Extract relative humidity at pressure of the environment at 268.15K
 
         Args:
-            relative_humidity
+            relative_humidity:
                 Cube of relative humidity values on pressure levels
-            pressure_at_268
+            pressure_at_268:
                 Cube of pressure where the temperature is 268.15K
         Returns:
             A cube of relative humidity at the pressure of the environment at 268.15K
@@ -419,15 +420,15 @@ class HailSize(BasePlugin):
         from the cloud condensation level to the pressure of the atmosphere at 268.15K
 
         Args:
-            ccl_temperature
+            ccl_temperature:
                 Cube of cloud condensation level temperature
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            pressure_at_268
+            pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
-            humidity_mixing_ratio_at_268
+            humidity_mixing_ratio_at_268:
                 Cube of humidity mixing ratio at the pressure of the environment at 268.15K
-        Returns
+        Returns:
             Cube of temperature after the saturated ascent
         """
 
@@ -448,11 +449,11 @@ class HailSize(BasePlugin):
         pressure.
 
         Args:
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            temperature_at_268
+            temperature_at_268:
                 Cube of the temperature of the environment at 268.15K
-            pressure_at_268
+            pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
         Returns:
             Cube of temperature after the dry adiabatic descent
@@ -477,12 +478,12 @@ class HailSize(BasePlugin):
         If the wet bulb freezing altitude is greater that 3300m then the hail_size is reduced.
 
         Args:
-            vertical
+            vertical:
                 An n dimensional array containing the values used to calculate the vertical indexes
-            horizontal
+            horizontal:
                 An n dimensional array containing the values used to calculate the horizontal
                 indexes
-            wet_bulb_zero
+            wet_bulb_zero:
                 An n dimensional array containing the height of the wet bulb freezing level
         Returns:
             an n dimension array of values for the diameter of hail (mm)
@@ -533,9 +534,9 @@ class HailSize(BasePlugin):
         based on the original predicted hail size and a wet bulb freezing height.
 
         Args:
-            hail_size
+            hail_size:
                 Integers of hail diameter value taken from the original nomogram
-            wet_bulb_height
+            wet_bulb_height:
                 Floats of the height of the wet bulb freezing level
         Returns:
             An updated value for the hail diameter (mm)
@@ -567,17 +568,17 @@ class HailSize(BasePlugin):
         data where the ccl_temperature is below 268.15K.
 
         Args:
-            temperature_at_268
+            temperature_at_268:
                 Cube of the temperature of the environment at 268.15K
-            pressure_at_268
+            pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            ccl_temperature
+            ccl_temperature:
                 Cube of cloud condensation level pressure
-            humidity_mixing_ratio_at_268
+            humidity_mixing_ratio_at_268:
                 Cube of humidity mixing ratio at the pressure of the environment at 268.15K
-            wet_bulb_zero
+            wet_bulb_zero:
                 Cube of the height of the wet-bulb freezing level
         Returns:
             An n dimensional array of diameter of hail stones (m)
@@ -611,8 +612,8 @@ class HailSize(BasePlugin):
 
         return hail_size
 
+    @staticmethod
     def make_hail_cube(
-        self,
         hail_size: np.ndarray,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
@@ -621,11 +622,11 @@ class HailSize(BasePlugin):
         """Puts the hail data into a cube with appropriate metadata
 
         Args:
-            hail_size
+            hail_size:
                 An n dimensional array of the diameter of hail stones (m)
-            ccl_temperature
+            ccl_temperature:
                 Cube of cloud condensation level pressure
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
             temperature_on_pressure
                 Cube of temperature on pressure levels
