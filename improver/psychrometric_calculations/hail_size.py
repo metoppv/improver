@@ -499,32 +499,25 @@ class HailSize(BasePlugin):
         horizontal_rounded = np.around(horizontal / 5, decimals=0) - 1
         vertical_rounded = np.around(vertical * 2, decimals=0)
 
-        # flattens array's so they can later be accessed
-        horizontal_flat = horizontal_rounded.flatten(order="C")
-        vertical_flat = vertical_rounded.flatten(order="C")
-        wet_bulb_zero_flat = wet_bulb_zero.flatten(order="C")
-
         # clips index values to not be longer than the table
-        vertical_clipped = np.clip(vertical_flat, None, len(lookup_table) - 1)
-        horizontal_clipped = np.clip(horizontal_flat, None, len(lookup_table[0]) - 1)
+        vertical_clipped = np.clip(vertical_rounded, None, len(lookup_table) - 1)
+        horizontal_clipped = np.clip(horizontal_rounded, None, len(lookup_table[0]) - 1)
 
         vertical_clipped = np.ma.where(
-            (vertical_flat >= 0) & (horizontal_flat >= 0), vertical_clipped, 0
+            (vertical_rounded >= 0) & (horizontal_rounded >= 0), vertical_clipped, 0
         ).filled(0)
         horizontal_clipped = np.ma.where(
-            (vertical_flat >= 0) & (horizontal_flat >= 0), horizontal_clipped, 0
+            (vertical_rounded >= 0) & (horizontal_rounded >= 0), horizontal_clipped, 0
         ).filled(0)
 
         hail_size = lookup_table[
             vertical_clipped.astype(int), horizontal_clipped.astype(int)
         ]
         hail_size = np.where(
-            wet_bulb_zero_flat >= 3300,
-            self.updated_hail_size(hail_size, wet_bulb_zero_flat),
+            wet_bulb_zero >= 3300,
+            self.updated_hail_size(hail_size, wet_bulb_zero),
             hail_size,
         )
-
-        hail_size = np.reshape(hail_size, shape, order="C")
         return hail_size
 
     def updated_hail_size(
