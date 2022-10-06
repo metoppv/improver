@@ -617,7 +617,7 @@ class HailSize(BasePlugin):
         hail_size: np.ndarray,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
-        temperature_on_pressure: Cube,
+        attributes: dict,
     ) -> Cube:
         """Puts the hail data into a cube with appropriate metadata
 
@@ -628,18 +628,12 @@ class HailSize(BasePlugin):
                 Cube of cloud condensation level pressure
             ccl_pressure:
                 Cube of cloud condensation level pressure
-            temperature_on_pressure
-                Cube of temperature on pressure levels
+            attributes:
+                Dictionary of attributes for the new cube
 
         Returns:
             A cube of the diameter of hail stones (m)
         """
-
-        attributes = {}
-        if self.model_id_attr:
-            attributes[self.model_id_attr] = temperature_on_pressure.attributes[
-                self.model_id_attr
-            ]
 
         hail_size_cube = create_new_diagnostic_cube(
             name="diameter_of_hail_stones",
@@ -695,9 +689,17 @@ class HailSize(BasePlugin):
             temperature_on_pressure
         )
 
+        attributes = {}
+        if self.model_id_attr:
+            attributes[self.model_id_attr] = temperature_on_pressure.attributes[
+                self.model_id_attr
+            ]
+        del temperature_on_pressure
+
         relative_humidity_at_268 = self.extract_relative_humidity_at_268(
             relative_humidity_on_pressure, pressure_at_268
         )
+        del relative_humidity_on_pressure
 
         humidity_mixing_ratio_at_268 = HumidityMixingRatio()(
             [temperature_at_268, pressure_at_268, relative_humidity_at_268]
@@ -715,6 +717,6 @@ class HailSize(BasePlugin):
         )
 
         hail_cube = self.make_hail_cube(
-            hail_size, ccl_temperature, ccl_pressure, temperature_on_pressure
+            hail_size, ccl_temperature, ccl_pressure, attributes
         )
         return hail_cube
