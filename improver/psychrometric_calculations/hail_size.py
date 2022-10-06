@@ -490,7 +490,6 @@ class HailSize(BasePlugin):
         """
 
         lookup_table = self.nomogram_values()
-        shape = np.shape(vertical)
 
         # Rounds the calculated horizontal value to the nearest 5 which is
         # then turned into a relevant index for accessing the appropriate column.
