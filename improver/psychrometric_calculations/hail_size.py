@@ -31,6 +31,7 @@
 """module to calculate hail_size"""
 
 from bisect import bisect_right
+from typing import List, Tuple
 
 import numpy as np
 from iris.cube import Cube
@@ -107,6 +108,12 @@ class HailSize(BasePlugin):
 
         self.model_id_attr = model_id_attr
 
+        (
+            self._wbzh_keys,
+            self._hail_groups,
+            self._updated_values,
+        ) = self.updated_nomogram()
+
     @staticmethod
     def nomogram_values() -> np.ndarray:
 
@@ -164,7 +171,7 @@ class HailSize(BasePlugin):
         return lookup_nomogram
 
     @staticmethod
-    def updated_nomogram() -> dict:
+    def updated_nomogram() -> Tuple[List, List, np.array]:
 
         """Sets up a dictionary of updated hail diameter values (mm).
 
@@ -188,7 +195,13 @@ class HailSize(BasePlugin):
             4150: [0, 0, 0, 0, 0, 0, 5, 5],
             4400: [0, 0, 0, 0, 0, 0, 0, 0],
         }
-        return lookup_dict
+        hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
+
+        return (
+            list(lookup_dict.keys()),
+            hail_groups,
+            np.array(list(lookup_dict.values())),
+        )
 
     @staticmethod
     def check_cubes(
@@ -490,48 +503,51 @@ class HailSize(BasePlugin):
         vertical_flat = vertical_rounded.flatten(order="C")
         wet_bulb_zero_flat = wet_bulb_zero.flatten(order="C")
 
-        hail_size_list = []
         # clips index values to not be longer than the table
         vertical_clipped = np.clip(vertical_flat, None, len(lookup_table) - 1)
         horizontal_clipped = np.clip(horizontal_flat, None, len(lookup_table[0]) - 1)
 
-        for vert, hor, wbz in zip(
-            vertical_clipped, horizontal_clipped, wet_bulb_zero_flat
-        ):
-            if min(hor, vert) < 0 or not (vert and hor) or wbz > 4400:
-                hail_size = 0
-            else:
-                hail_size = lookup_table[int(vert)][int(hor)]
-            if wbz >= 3300:
-                hail_size = self.updated_hail_size(hail_size, wbz)
-            hail_size_list.append(hail_size)
+        vertical_clipped = np.ma.where(
+            (vertical_flat >= 0) & (horizontal_flat >= 0), vertical_clipped, 0
+        ).filled(0)
+        horizontal_clipped = np.ma.where(
+            (vertical_flat >= 0) & (horizontal_flat >= 0), horizontal_clipped, 0
+        ).filled(0)
 
-        hail_size = np.reshape(hail_size_list, shape, order="C")
+        hail_size = lookup_table[
+            vertical_clipped.astype(int), horizontal_clipped.astype(int)
+        ]
+        hail_size = np.where(
+            wet_bulb_zero_flat >= 3300,
+            self.updated_hail_size(hail_size, wet_bulb_zero_flat),
+            hail_size,
+        )
+
+        hail_size = np.reshape(hail_size, shape, order="C")
         return hail_size
 
-    def updated_hail_size(self, hail_size: int, wet_bulb_height: float) -> np.int8:
+    def updated_hail_size(
+        self, hail_size: np.array, wet_bulb_height: np.array
+    ) -> np.int8:
         """Uses the updated_nomogram values dictionary to access an updated hail size
         based on the original predicted hail size and a wet bulb freezing height.
 
         Args:
             hail_size
-                An integer hail diameter value taken from the original nomogram
+                Integers of hail diameter value taken from the original nomogram
             wet_bulb_height
-                A float of the height of the wet bulb freezing level
+                Floats of the height of the wet bulb freezing level
         Returns:
             An updated value for the hail diameter (mm)
         """
 
-        updated_values = self.updated_nomogram()
+        vectorised = np.vectorize(lambda n: bisect_right(self._wbzh_keys, n))
+        height_index = np.array(vectorised(wet_bulb_height) - 1).astype(int)
 
-        keys = list(updated_values.keys())
-        height_index = bisect_right(keys, wet_bulb_height) - 1
-        height_key = keys[height_index]
+        vectorised = np.vectorize(lambda n: bisect_right(self._hail_groups, n))
+        hail_index = vectorised(hail_size)
 
-        hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
-        hail_index = bisect_right(hail_groups, hail_size)
-
-        updated_hail_size = updated_values[height_key][hail_index]
+        updated_hail_size = self._updated_values[height_index, hail_index]
 
         return np.int8(updated_hail_size)
 
