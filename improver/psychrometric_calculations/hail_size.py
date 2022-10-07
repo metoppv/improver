@@ -31,7 +31,7 @@
 """module to calculate hail_size"""
 
 from bisect import bisect_right
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 import numpy as np
 from iris.cube import Cube
@@ -49,6 +49,205 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+
+class ExtractPressureLevel(BasePlugin):
+    """
+    Class for extracting a pressure surface from data-on-pressure-levels.
+    """
+    def __init__(
+        self,
+        value_of_pressure_level: Optional[float] = None,
+        model_id_attr: Optional[str] = None,
+    ):
+        """Sets up Class
+            Args:
+                value_of_pressure_level:
+                    The value of the input cube for which the pressure level is required
+                model_id_attr:
+                    Name of model ID attribute to be copied from source cubes to output cube
+        """
+
+        self.model_id_attr = model_id_attr
+        self.value_of_pressure_level = value_of_pressure_level
+
+    def process(self, cube: Cube, pressure: Optional[Cube] = None) -> Cube:
+        """
+        Main entry point.
+
+        Args:
+            cube: Variable on pressure levels from which a pressure slice is required
+            pressure: A pre-defined pressure slice. If provided, this is used to return
+                the variable on this 2D surface, otherwise, a pressure surface is
+                calculated for the point where the variable equals self.value_at_pressure_level
+
+        Returns:
+            iris.cube.Cube: Either a pressure surface where the variable equals a specific value
+                or a variable on such a pressure surface
+        """
+        if pressure:
+            return self.extract_level_at_pressure(cube, pressure)
+        else:
+            return self.extract_pressure_at_value(cube)
+
+    def variable_at_pressure(
+        self, variable_on_pressure: Cube, pressure: Cube
+    ) -> np.ndarray:
+        """Extracts the values from variable_on_pressure cube at pressure
+        levels described by the pressure cube.
+
+        Args:
+            variable_on_pressure:
+                Cube of some variable with pressure levels
+            pressure:
+                Cube of pressure values
+        Returns:
+            An n dimensional array, with the same dimensions as the pressure cube,
+            of values for the variable extracted at the pressure levels described
+            by the pressure cube.
+        """
+
+        coord_order = [coord.name() for coord in variable_on_pressure.coords()]
+        order = ["realization", "pressure"] + [
+            variable_on_pressure.coord(axis=axis).name() for axis in "yx"
+        ]
+
+        enforce_coordinate_ordering(variable_on_pressure, order)
+        enforce_coordinate_ordering(pressure, order)
+
+        pressure_grid = self.pressure_grid(variable_on_pressure)
+
+        try:
+            press_slices = pressure.slices_over("realization")
+            var_slices = variable_on_pressure.slices_over("realization")
+        except CoordinateNotFoundError:
+            press_slices = [pressure]
+            var_slices = [variable_on_pressure]
+            grid_slices = [pressure_grid]
+            variable = None
+        else:
+            grid_slices = pressure_grid[:]
+            variable = []
+
+        counter = 0
+        for press, var, grid in zip(press_slices, var_slices, grid_slices):
+            counter += 1
+            pressure_diff = abs(grid - press.data)
+            indices = np.nanargmin(pressure_diff, axis=0)
+            lat, long = indices.shape
+            lat, long = np.ogrid[:lat, :long]
+            if variable is None:
+                variable = var.data[indices, lat, long]
+            else:
+                variable.append(var.data[indices, lat, long])
+
+        variable_cube = pressure.copy(data=variable)
+        enforce_coordinate_ordering(variable_cube, coord_order)
+        enforce_coordinate_ordering(pressure, coord_order)
+        return variable_cube.data
+
+    @staticmethod
+    def pressure_grid(variable_on_pressure: Cube) -> np.ndarray:
+        """Creates a pressure grid of the same shape as variable_on_pressure cube.
+        It is populated at every grid square and for every realization with
+        a column of all pressure levels taken from variable_on_pressure's pressure coordinate
+
+        Args:
+            variable_on_pressure:
+                Cube of some variable with pressure levels
+        Returns:
+            An n dimensional array with the same dimensions as variable_on_pressure containing,
+            at every grid square and for every realization, a column of all pressure levels
+            taken from variable_on_pressure's pressure coordinate
+        """
+
+        required_shape = variable_on_pressure.shape
+        pressure_points = variable_on_pressure.coord("pressure").points
+        (pressure_axis,) = variable_on_pressure.coord_dims("pressure")
+        pressure_shape = np.ones_like(required_shape)
+        pressure_shape[pressure_axis] = required_shape[pressure_axis]
+        pressure_array = np.broadcast_to(
+            pressure_points.reshape(pressure_shape), required_shape
+        )
+        return pressure_array
+
+    @staticmethod
+    def fill_invalid(cube: Cube):
+        """Populate any invalid values with the maximum in that column on the assumption
+        that missing values fall below the model's surface."""
+        (pressure_axis,) = cube.coord_dims("pressure")
+        cube_shape = np.array(cube.shape)
+        max_shape = cube_shape.copy()
+        max_shape[pressure_axis] = 1
+        max_values = np.nanmax(cube.data, axis=pressure_axis).reshape(max_shape)
+        cube.data = np.where(np.isnan(cube.data), max_values, cube.data)
+
+    def extract_pressure_at_value(self, temperature_on_pressure: Cube) -> Cube:
+        """Extracts the pressure level where the environment
+        temperature first drops below -5 Celsius (268.15K) starting at a pressure value
+        near the surface and ascending in altitude from there. It also produces
+        the environment temperature at that pressure value
+
+        Args:
+            temperature_on_pressure:
+                A cube of temperature on pressure levels
+        Returns:
+            A cube of the environment pressure at 268.15K
+        """
+        from stratify import interpolate
+
+        self.fill_invalid(temperature_on_pressure)
+
+        slicer = temperature_on_pressure.slices_over((["realization"]))
+        one_slice = temperature_on_pressure.slices_over((["realization"])).next()
+        p_grid = self.pressure_grid(one_slice).astype(np.float32)
+        (pressure_axis,) = one_slice.coord_dims("pressure")
+        result_data = np.empty_like(
+            temperature_on_pressure.slices_over((["pressure"])).next().data
+        )
+        for i, zyx_slice in enumerate(slicer):
+            result_data[i] = interpolate(
+                np.array([self.value_of_pressure_level], dtype=np.float32),
+                zyx_slice.data.data,
+                p_grid,
+                axis=pressure_axis,
+            ).squeeze(axis=pressure_axis)
+        result_data = np.ma.masked_invalid(result_data)
+
+        pressure_cube = next(temperature_on_pressure.slices_over(["pressure"])).copy(
+            result_data
+        )
+        pressure_cube.rename(
+            "pressure_of_atmosphere_at_"
+            f"{self.value_of_pressure_level}{temperature_on_pressure.units}"
+        )
+        pressure_cube.units = temperature_on_pressure.coord("pressure").units
+        pressure_cube.remove_coord("pressure")
+        return pressure_cube
+
+    def extract_level_at_pressure(self, cube: Cube, pressure: Cube) -> Cube:
+        """Extract relative humidity at pressure of the environment at 268.15K
+
+        Args:
+            cube:
+                Cube of data values on pressure levels
+            pressure:
+                Cube of pressure values to extract data at
+        Returns:
+            A cube of data values at the pressure specified
+        """
+
+        data_on_pressure = self.variable_at_pressure(cube, pressure)
+        cube_on_pressure = pressure.copy(data=data_on_pressure)
+        divider = pressure.name().index("_at_")
+        cube_on_pressure.rename(f"{cube.name()}{pressure.name()[divider:]}")
+        cube_on_pressure.units = cube.units
+        if self.model_id_attr:
+            cube_on_pressure.attributes[self.model_id_attr] = cube.attributes[
+                self.model_id_attr
+            ]
+
+        return cube_on_pressure
 
 
 class HailSize(BasePlugin):
@@ -248,166 +447,6 @@ class HailSize(BasePlugin):
         relative_humidity_on_pressure.convert_units("kg/kg")
         wet_bulb_zero_asl.convert_units("m")
         orography.convert_units("m")
-
-    def variable_at_pressure(
-        self, variable_on_pressure: Cube, pressure: Cube
-    ) -> np.ndarray:
-        """Extracts the values from variable_on_pressure cube at pressure
-        levels described by the pressure cube.
-
-        Args:
-            variable_on_pressure:
-                Cube of some variable with pressure levels
-            pressure:
-                Cube of pressure values
-        Returns:
-            An n dimensional array, with the same dimensions as the pressure cube,
-            of values for the variable extracted at the pressure levels described
-            by the pressure cube.
-        """
-
-        coord_order = [coord.name() for coord in variable_on_pressure.coords()]
-        order = ["realization", "pressure"] + [
-            variable_on_pressure.coord(axis=axis).name() for axis in "yx"
-        ]
-
-        enforce_coordinate_ordering(variable_on_pressure, order)
-        enforce_coordinate_ordering(pressure, order)
-
-        pressure_grid = self.pressure_grid(variable_on_pressure)
-
-        try:
-            press_slices = pressure.slices_over("realization")
-            var_slices = variable_on_pressure.slices_over("realization")
-        except CoordinateNotFoundError:
-            press_slices = [pressure]
-            var_slices = [variable_on_pressure]
-            grid_slices = [pressure_grid]
-            variable = None
-        else:
-            grid_slices = pressure_grid[:]
-            variable = []
-
-        for press, var, grid in zip(press_slices, var_slices, grid_slices):
-
-            pressure_diff = abs(grid - press.data)
-            indices = np.nanargmin(pressure_diff, axis=0)
-            lat, long = indices.shape
-            lat, long = np.ogrid[:lat, :long]
-            if variable is None:
-                variable = var.data[indices, lat, long]
-            else:
-                variable.append(var.data[indices, lat, long])
-
-        variable_cube = pressure.copy(data=variable)
-        enforce_coordinate_ordering(variable_cube, coord_order)
-        enforce_coordinate_ordering(pressure, coord_order)
-        return variable_cube.data
-
-    @staticmethod
-    def pressure_grid(variable_on_pressure: Cube) -> np.ndarray:
-        """Creates a pressure grid of the same shape as variable_on_pressure cube.
-        It is populated at every grid square and for every realization with
-        a column of all pressure levels taken from variable_on_pressure's pressure coordinate
-
-        Args:
-            variable_on_pressure:
-                Cube of some variable with pressure levels
-        Returns:
-            An n dimensional array with the same dimensions as variable_on_pressure containing,
-            at every grid square and for every realization, a column of all pressure levels
-            taken from variable_on_pressure's pressure coordinate
-        """
-
-        required_shape = variable_on_pressure.shape
-        pressure_points = variable_on_pressure.coord("pressure").points
-        (pressure_axis,) = variable_on_pressure.coord_dims("pressure")
-        pressure_shape = np.ones_like(required_shape)
-        pressure_shape[pressure_axis] = required_shape[pressure_axis]
-        pressure_array = np.broadcast_to(
-            pressure_points.reshape(pressure_shape), required_shape
-        )
-        return pressure_array
-
-    def extract_pressure_at_268(
-        self, temperature_on_pressure: Cube
-    ) -> Tuple[Cube, Cube]:
-        """Extracts the pressure level where the environment
-        temperature first drops below -5 Celsius (268.15K) starting at a pressure value
-        near the surface and ascending in altitude from there. It also produces
-        the environment temperature at that pressure value
-
-        Args:
-            temperature_on_pressure:
-                A cube of temperature on pressure levels
-        Returns:
-            A tuple of two cubes containing a cube of the environment pressure at 268.15K
-            and a cube of the temperature at that pressure value
-        """
-
-        pressure_template = next(temperature_on_pressure.slices_over(["pressure"]))
-        pressure_template.rename("pressure_of_atmosphere_at_268.15K")
-        pressure_template.units = temperature_on_pressure.coord("pressure").units
-        pressure_template.remove_coord("pressure")
-
-        temperature_template = next(temperature_on_pressure.slices_over(["pressure"]))
-        temperature_template.rename("temperature_of_atmosphere_at_268.15K")
-        temperature_template.remove_coord("pressure")
-
-        data = np.ma.masked_greater(temperature_on_pressure.data, 268.15)
-        data = np.ma.masked_invalid(data)
-
-        shape = temperature_template.data.shape
-        axis = temperature_on_pressure.coord_dims("pressure")[0]
-        max_length = np.product(shape)
-
-        indices = np.ma.notmasked_edges(data, axis=axis)[0][axis]
-
-        pressure = temperature_on_pressure.coord("pressure").points[indices]
-
-        # identifies if there are columns where the entire column is masked
-        if len(pressure) != max_length:
-            columns = np.ma.all(data, axis=axis).flatten()
-            columns_mask = np.ma.getmask(columns)
-            index = np.where(columns_mask)[0]
-            for x in index:
-                pressure = np.insert(pressure, x, -9999)
-            pressure = np.ma.masked_where(pressure == -9999, pressure)
-
-        pressure = pressure.reshape(shape)
-
-        pressure_template.data = pressure
-        temperature = self.variable_at_pressure(
-            temperature_on_pressure, pressure_template
-        )
-
-        temperature = np.ma.masked_where(np.ma.getmask(pressure), temperature)
-        temperature_template.data = temperature
-
-        return pressure_template, temperature_template
-
-    def extract_relative_humidity_at_268(
-        self, relative_humidity: Cube, pressure_at_268: Cube
-    ) -> Cube:
-        """Extract relative humidity at pressure of the environment at 268.15K
-
-        Args:
-            relative_humidity:
-                Cube of relative humidity values on pressure levels
-            pressure_at_268:
-                Cube of pressure where the temperature is 268.15K
-        Returns:
-            A cube of relative humidity at the pressure of the environment at 268.15K
-        """
-
-        relative_humidity_data = self.variable_at_pressure(
-            relative_humidity, pressure_at_268
-        )
-        relative_humidity = pressure_at_268.copy(data=relative_humidity_data)
-        relative_humidity.rename("relative_humidity_at_268.15K")
-        relative_humidity.units = "kg/kg"
-
-        return relative_humidity
 
     @staticmethod
     def temperature_after_saturated_ascent_from_ccl(
@@ -676,10 +715,19 @@ class HailSize(BasePlugin):
             wet_bulb_zero_height_asl,
             orography,
         )
+        extract_pressure = ExtractPressureLevel(value_of_pressure_level=268.15)
+        pressure_at_268 = extract_pressure(temperature_on_pressure)
 
-        pressure_at_268, temperature_at_268 = self.extract_pressure_at_268(
-            temperature_on_pressure
+        temperature_at_268 = next(temperature_on_pressure.slices_over(["pressure"]))
+        temperature_at_268.rename("temperature_of_atmosphere_at_268.15K")
+        temperature_at_268.remove_coord("pressure")
+        temperature = np.full_like(
+            temperature_at_268.data,
+            extract_pressure.value_of_pressure_level,
+            dtype=np.float32,
         )
+        temperature = np.ma.masked_where(np.ma.getmask(pressure_at_268), temperature)
+        temperature_at_268.data = temperature
 
         attributes = {}
         if self.model_id_attr:
@@ -688,7 +736,7 @@ class HailSize(BasePlugin):
             ]
         del temperature_on_pressure
 
-        relative_humidity_at_268 = self.extract_relative_humidity_at_268(
+        relative_humidity_at_268 = extract_pressure(
             relative_humidity_on_pressure, pressure_at_268
         )
         del relative_humidity_on_pressure
