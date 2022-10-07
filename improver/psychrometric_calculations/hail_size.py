@@ -48,13 +48,13 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class ExtractPressureLevel(BasePlugin):
     """
     Class for extracting a pressure surface from data-on-pressure-levels.
     """
+
     def __init__(
         self,
         value_of_pressure_level: Optional[float] = None,
@@ -86,9 +86,10 @@ class ExtractPressureLevel(BasePlugin):
                 or a variable on such a pressure surface
         """
         if pressure:
-            return self.extract_level_at_pressure(cube, pressure)
+            result = self.extract_level_at_pressure(cube, pressure)
         else:
-            return self.extract_pressure_at_value(cube)
+            result = self.extract_pressure_at_value(cube)
+        return result
 
     def variable_at_pressure(
         self, variable_on_pressure: Cube, pressure: Cube
@@ -106,14 +107,6 @@ class ExtractPressureLevel(BasePlugin):
             of values for the variable extracted at the pressure levels described
             by the pressure cube.
         """
-
-        coord_order = [coord.name() for coord in variable_on_pressure.coords()]
-        order = ["realization", "pressure"] + [
-            variable_on_pressure.coord(axis=axis).name() for axis in "yx"
-        ]
-
-        enforce_coordinate_ordering(variable_on_pressure, order)
-        enforce_coordinate_ordering(pressure, order)
 
         pressure_grid = self.pressure_grid(variable_on_pressure)
 
@@ -142,8 +135,6 @@ class ExtractPressureLevel(BasePlugin):
                 variable.append(var.data[indices, lat, long])
 
         variable_cube = pressure.copy(data=variable)
-        enforce_coordinate_ordering(variable_cube, coord_order)
-        enforce_coordinate_ordering(pressure, coord_order)
         return variable_cube.data
 
     @staticmethod
@@ -198,20 +189,31 @@ class ExtractPressureLevel(BasePlugin):
 
         self.fill_invalid(temperature_on_pressure)
 
-        slicer = temperature_on_pressure.slices_over((["realization"]))
-        one_slice = temperature_on_pressure.slices_over((["realization"])).next()
+        try:
+            slicer = temperature_on_pressure.slices_over((["realization"]))
+        except CoordinateNotFoundError:
+            slicer = [temperature_on_pressure]
+            one_slice = temperature_on_pressure
+            has_r_coord = False
+        else:
+            one_slice = temperature_on_pressure.slices_over((["realization"])).next()
+            has_r_coord = True
         p_grid = self.pressure_grid(one_slice).astype(np.float32)
         (pressure_axis,) = one_slice.coord_dims("pressure")
         result_data = np.empty_like(
             temperature_on_pressure.slices_over((["pressure"])).next().data
         )
         for i, zyx_slice in enumerate(slicer):
-            result_data[i] = interpolate(
+            interp_data = interpolate(
                 np.array([self.value_of_pressure_level], dtype=np.float32),
                 zyx_slice.data.data,
                 p_grid,
                 axis=pressure_axis,
             ).squeeze(axis=pressure_axis)
+            if has_r_coord:
+                result_data[i] = interp_data
+            else:
+                result_data = interp_data
         result_data = np.ma.masked_invalid(result_data)
 
         pressure_cube = next(temperature_on_pressure.slices_over(["pressure"])).copy(

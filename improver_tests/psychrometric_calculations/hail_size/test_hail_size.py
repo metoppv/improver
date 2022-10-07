@@ -206,7 +206,7 @@ https://doi.org/10.1175/1520-0477-34.6.235
         (94000, 300, 0.001, 2200, 0, 0),  # vertical value negative
         (1000, 360, 0.001, 2200, 0, 0),  # horizontal value negative
         (95000, 330, 0.001, 2200, 0, 0.08),  # vertical greater than length of table
-        (150000, 350, 0.1, 2200, 0, 0.025),  # horizontal greater than length of table
+        (150000, 350, 0.1, 2200, 0, 0.035),  # horizontal greater than length of table
         (75000, 265, 0.001, 2200, 0, 0),  # ccl temperature below 268.15
     ),
 )
@@ -259,13 +259,12 @@ def test_temperature_too_high(
     """Tests for the case where there are grid squares where the temperature
     doesn't drop below 268.15K at any pressure. At these points hail size
     should be set to zero"""
-    temperature_on_pressure_levels.data = np.full_like(
-        temperature_on_pressure_levels.data, 260
-    )
-    temperature_on_pressure_levels.data[:, :, 1] = 300
+    data = temperature_on_pressure_levels.data.copy()
+    data[:, :, 1] = 300
+    temperature_on_pressure_levels.data = data
     expected = [
-        [[0.035, 0.035], [0, 0], [0.035, 0.035]],
-        [[0.035, 0.035], [0, 0], [0.035, 0.035]],
+        [[0.045, 0.045], [0, 0], [0.045, 0.045]],
+        [[0.045, 0.045], [0, 0], [0.045, 0.045]],
     ]
 
     result = HailSize()(
@@ -357,7 +356,7 @@ def test_model_id_attr(
         orography,
     )
 
-    np.testing.assert_array_almost_equal(result.data, 0.035)
+    np.testing.assert_array_almost_equal(result.data, 0.045)
     metadata_check(result)
     cube_shape_check(result)
 
@@ -440,7 +439,7 @@ def test_no_realization_coordinate(
     result = HailSize()(
         cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero, orography
     )
-    np.testing.assert_array_almost_equal(result.data, 0.035)
+    np.testing.assert_array_almost_equal(result.data, 0.045)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
