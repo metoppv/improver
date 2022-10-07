@@ -560,7 +560,7 @@ class HailSize(BasePlugin):
 
     def updated_hail_size(
         self, hail_size: np.array, wet_bulb_height: np.array
-    ) -> np.int8:
+    ) -> np.array:
         """Uses the updated_nomogram values dictionary to access an updated hail size
         based on the original predicted hail size and a wet bulb freezing height.
 
@@ -701,7 +701,7 @@ class HailSize(BasePlugin):
                 Cube of relative_humidity ratio on pressure levels
             wet_bulb_zero_height_asl:
                 Cube of the height of the wet-bulb freezing level above sea level
-            orography (iris.cube.Cube):
+            orography:
                 Cube of the orography height.
         Returns:
             Cube of hail diameter (m)
