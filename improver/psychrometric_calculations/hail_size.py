@@ -48,6 +48,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class ExtractPressureLevel(BasePlugin):
@@ -307,6 +308,7 @@ class HailSize(BasePlugin):
                     Name of model ID attribute to be copied from source cubes to output cube
         """
 
+        self.final_order = None
         self.model_id_attr = model_id_attr
 
         (
@@ -404,8 +406,8 @@ class HailSize(BasePlugin):
             np.array(list(lookup_dict.values())),
         )
 
-    @staticmethod
     def check_cubes(
+        self,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
@@ -429,6 +431,17 @@ class HailSize(BasePlugin):
                 orography:
                     Cube of the orography height.
         """
+        coord_order = ["realization", "pressure", "longitude", "latitude"]
+        self.final_order = [c.name() for c in wet_bulb_zero_asl.dim_coords]
+        for cube in [
+            ccl_temperature,
+            ccl_pressure,
+            temperature_on_pressure,
+            relative_humidity_on_pressure,
+            wet_bulb_zero_asl,
+            orography,
+        ]:
+            enforce_coordinate_ordering(cube, coord_order)
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
         try:
@@ -761,4 +774,5 @@ class HailSize(BasePlugin):
         hail_cube = self.make_hail_cube(
             hail_size, ccl_temperature, ccl_pressure, attributes
         )
+        enforce_coordinate_ordering(hail_cube, self.final_order)
         return hail_cube

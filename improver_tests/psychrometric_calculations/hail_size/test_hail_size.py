@@ -280,6 +280,82 @@ def test_temperature_too_high(
     cube_shape_check(result)
 
 
+def test_real_profile(
+    temperature_on_pressure_levels,
+    ccl_pressure,
+    ccl_temperature,
+    relative_humidity_on_pressure,
+    wet_bulb_freezing,
+    orography,
+):
+    """Puts in a real test from the acceptance data"""
+    temperatures = np.array(
+        [275.0, 272.875, 270.6875, 268.625, 266.8125, 264.6875, 262.125, 261.375]
+    )
+    data = np.broadcast_to(
+        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
+    ).copy()
+    data[0, :, 0, 0] = [
+        279.8125,
+        277.6875,
+        275.5625,
+        274.25,
+        273.6875,
+        270.5625,
+        267.9375,
+        264.6875,
+    ]
+    temperature_on_pressure_levels.data = data
+
+    relhumidities = np.array(
+        [
+            0.8417969,
+            0.9189453,
+            0.9951172,
+            1.0302734,
+            0.9238281,
+            0.26953125,
+            0.12695312,
+            0.24121094,
+        ]
+    )
+    data = np.broadcast_to(
+        relhumidities.reshape((1, len(temperatures), 1, 1)),
+        (2, len(temperatures), 3, 2),
+    ).copy()
+    data[0, :, 0, 0] = [
+        0.8203125,
+        0.8984375,
+        0.98535156,
+        0.8798828,
+        0.8222656,
+        0.8515625,
+        0.89453125,
+        0.9199219,
+    ]
+    relative_humidity_on_pressure.data = data
+    ccl_pressure.data = np.full_like(ccl_pressure.data, 94776.75)
+    ccl_pressure.data[0, 0, 0] = 96197.945
+    ccl_temperature.data = np.full_like(ccl_temperature.data, 291.70312)
+    ccl_temperature.data[0, 0, 0] = 296.17188
+    wet_bulb_freezing.data = np.full_like(wet_bulb_freezing.data, 0.0)
+
+    expected = np.zeros_like(wet_bulb_freezing.data)
+    # expected[0,0,0] = 0.035
+
+    result = HailSize()(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        relative_humidity_on_pressure,
+        wet_bulb_freezing,
+        orography,
+    )
+    np.testing.assert_array_almost_equal(result.data, expected)
+    metadata_check(result)
+    cube_shape_check(result)
+
+
 @pytest.mark.parametrize(
     "variable",
     (
@@ -398,7 +474,7 @@ def test_re_ordered_cubes(
         wet_bulb_freezing,
         orography,
     )
-    np.testing.assert_array_almost_equal(result.data, 0.035)
+    np.testing.assert_array_almost_equal(result.data, 0.045)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
