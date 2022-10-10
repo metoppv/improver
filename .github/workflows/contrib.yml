@@ -1,0 +1,51 @@
+name: Check Shortlog
+description: |
+  Check the output of git shortlog -s matches the list of contributors in the
+  CONTRIBUTING.md file.
+inputs:
+  contributing_file:
+    description: Path to contributing file.
+    default: CONTRIBUTING.md
+    required: false
+
+runs:
+  using: composite
+  steps:
+    - name: Get known contributors from contributing file
+      shell: bash
+      run: |
+        echo '::group::Get known contributors from contributing file'
+        sed \
+            -n \
+            -e 's/ - //' \
+            -e 's/ (.*)//' \
+            -e 's/^(//' -e 's/)$//' \
+            -e '/start-shortlog/,${p;/end-shortlog/q}' \
+            "${{ inputs.contributing_file }}" \
+            | head -n -1 \
+            | tail -n +2 \
+            | sort \
+            > contributors
+        cat contributors
+        echo "::endgroup::"
+    - name: List commit authors
+      shell: bash
+      run: |
+        git shortlog -s "${{ github.sha }}" \
+            | awk '{$1=""; print substr($0,2) }' \
+            | sort \
+            | grep -v '\[bot\]' \
+            > shortlog
+        echo '::group::List commit authors'
+        cat shortlog
+        echo '::endgroup::'
+    - name: See if they differ
+      shell: bash
+      run: |
+        echo "[command]diff"
+        diff -u shortlog contributors \
+          || (echo '::error::${{ inputs.contributing_file }} or .mailmap needs updating.' \
+          && echo '::warning::If you have not added yourself to this file please do so.' \
+          && echo '::warning::If you need to register a second email address add an entry to the .mailmap file (https://git-scm.com/docs/gitmailmap).' \
+          && echo '::warning::If you want to change the appearence of your name add/edit the entry in the .mailmap file.' \
+          && false)
