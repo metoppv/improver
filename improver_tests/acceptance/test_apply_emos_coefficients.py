@@ -406,6 +406,7 @@ def test_perc_in_prob_out_sites_additional_predictor(tmp_path):
 def test_no_coefficients(tmp_path):
     """Test no coefficients provided"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
+    kgo_path = kgo_dir / "kgo_with_comment.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -417,12 +418,18 @@ def test_no_coefficients(tmp_path):
     ]
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
         run_cli(args)
+    # Check output matches input excluding the comment attribute.
     acc.compare(
         output_path,
         input_path,
         recreate=False,
         atol=LOOSE_TOLERANCE,
         rtol=LOOSE_TOLERANCE,
+        exclude_attributes="comment",
+    )
+    # Check output matches kgo.
+    acc.compare(
+        output_path, kgo_path, atol=LOOSE_TOLERANCE,
     )
 
 

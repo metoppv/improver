@@ -35,7 +35,6 @@ from datetime import datetime
 
 import iris
 import numpy as np
-import pytest
 from iris.cube import CubeList
 
 from improver.calibration import (
@@ -542,6 +541,8 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
 
 
 def test_add_warning_to_comment():
+    """Test the addition of a warning comment if calibration has been attempted
+    but not applied successfully."""
     expected = (
         "Warning: Calibration of this forecast has been attempted, "
         "however, no calibration has been applied."

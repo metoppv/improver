@@ -214,9 +214,10 @@ def add_warning_comment(forecast: Cube) -> Cube:
 
     Args:
         forecast: The forecast to which a comment will be added.
+
+    Returns:
+        Forecast with an additional comment.
     """
-    import pdb
-    pdb.set_trace()
     forecast.attributes["comment"] = (
         "Warning: Calibration of this forecast has been attempted, "
         "however, no calibration has been applied."
