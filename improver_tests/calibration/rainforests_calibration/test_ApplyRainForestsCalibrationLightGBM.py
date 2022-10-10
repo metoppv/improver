@@ -305,7 +305,7 @@ def test__calculate_error_probabilities(
     plugin.tree_models, plugin.error_thresholds = dummy_models
     result = plugin._calculate_error_probabilities(ensemble_forecast, ensemble_features)
 
-    # Check that data has sensible probability values
+    # Check that data has sensible probability values.
     # Note: here we are NOT checking the returned value against an expected value
     # as this will be sensitive to changes in associated GBDT libraries, given that
     # the tree models are created dynamically within fixtures. Here we implicitly trust

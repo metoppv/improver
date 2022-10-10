@@ -900,7 +900,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         output_data: ndarray,
     ):
         # Docstring same as ApplyRainForestsCalibrationLightGBM
-        # Sphinx should handle inherit this inheritance
+        # Sphinx should handle this inheritance
         from treelite_runtime import DMatrix
 
         return super()._evaluate_probabilities_implementation(
