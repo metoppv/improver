@@ -4,6 +4,13 @@ on:
   pull_request:
   push:
   workflow_dispatch:
+
+inputs:
+  contributing_file:
+    description: Path to contributing file.
+    default: CONTRIBUTING.md
+    required: false
+
 jobs:
   Sphinx-Pytest-Coverage:
     runs-on: ubuntu-latest
@@ -116,8 +123,40 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0 
-      - name: Check CONTRIBUTING.md
-        uses: cylc/release-actions/check-shortlog@v1
+      - name: Get known contributors from contributing file
+        shell: bash
+        run: |
+          sed \
+              -n \
+              -e 's/ - //' \
+              -e 's/ (.*)//' \
+              -e 's/^(//' -e 's/)$//' \
+              -e '/start-shortlog/,${p;/end-shortlog/q}' \
+              "${{ inputs.contributing_file }}" \
+              | head -n -1 \
+              | tail -n +2 \
+              | sort \
+              > contributors
+          cat contributors
+      - name: List commit authors
+        shell: bash
+        run: |
+          git shortlog -s "${{ github.sha }}" \
+              | awk '{$1=""; print substr($0,2) }' \
+              | sort \
+              | grep -v '\[bot\]' \
+              > shortlog
+          git shortlog -se
+      - name: See if they differ
+        shell: bash
+        run: |
+          echo "[command]diff"
+          diff -u shortlog contributors \
+            || (echo '::error::${{ inputs.contributing_file }} or .mailmap needs updating.' \
+            && echo '::warning::If you have not added yourself to this file please do so.' \
+            && echo '::warning::If you need to register a second email address add an entry to the .mailmap file (https://git-scm.com/docs/gitmailmap).' \
+            && echo '::warning::If you want to change the appearence of your name add/edit the entry in the .mailmap file.' \
+            && false)
   Safety-Bandit:
     runs-on: ubuntu-latest
     strategy:
