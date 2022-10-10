@@ -36,6 +36,7 @@ from typing import Sequence, Union
 
 import iris
 import numpy as np
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
@@ -491,6 +492,40 @@ class Test_process(IrisTest):
         self.assertArrayEqual(
             result.coord("percentile").points, self.alternative_percentiles
         )
+
+    def test_period_percentiles(self):
+        """Test that cell methods are preserved on the calibrated forecast, if
+        present on the input forecast."""
+        attributes = {
+            "title": "MOGREPS-UK Forecast",
+            "source": "Met Office Unified Model",
+            "institution": "Met Office",
+        }
+        percentiles = np.array(
+            [np.full((3, 3), 10.2), np.full((3, 3), 10.4), np.full((3, 3), 10.6)],
+            dtype=np.float32,
+        )
+        percentiles_cube = set_up_percentile_cube(
+            percentiles,
+            np.array([25, 50, 75], dtype=np.float32),
+            time=datetime.datetime(2017, 11, 10, 4, 0),
+            time_bounds=[
+                datetime.datetime(2017, 11, 9, 4, 0),
+                datetime.datetime(2017, 11, 10, 4, 0),
+            ],
+            units="degC",
+            attributes=attributes,
+        )
+        cell_methods = CellMethod("maximum", coords="time")
+        percentiles_cube.add_cell_method(cell_methods)
+
+        result = ApplyEMOS()(percentiles_cube, self.coefficients, realizations_count=3)
+        self.assertIn("percentile", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        self.assertAlmostEqual(
+            np.mean(result.data), self.null_percentiles_expected_mean
+        )
+        self.assertEqual(result.cell_methods[0], cell_methods)
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution
