@@ -496,30 +496,15 @@ class Test_process(IrisTest):
     def test_period_percentiles(self):
         """Test that cell methods are preserved on the calibrated forecast, if
         present on the input forecast."""
-        attributes = {
-            "title": "MOGREPS-UK Forecast",
-            "source": "Met Office Unified Model",
-            "institution": "Met Office",
-        }
-        percentiles = np.array(
-            [np.full((3, 3), 10.2), np.full((3, 3), 10.4), np.full((3, 3), 10.6)],
-            dtype=np.float32,
-        )
-        percentiles_cube = set_up_percentile_cube(
-            percentiles,
-            np.array([25, 50, 75], dtype=np.float32),
-            time=datetime.datetime(2017, 11, 10, 4, 0),
-            time_bounds=[
-                datetime.datetime(2017, 11, 9, 4, 0),
-                datetime.datetime(2017, 11, 10, 4, 0),
-            ],
-            units="degC",
-            attributes=attributes,
-        )
-        cell_methods = CellMethod("maximum", coords="time")
-        percentiles_cube.add_cell_method(cell_methods)
+        self.percentiles.coord("time").bounds = [
+            int(self.percentiles.coord("time").points - 3600),
+            int(self.percentiles.coord("time").points)
+        ]
 
-        result = ApplyEMOS()(percentiles_cube, self.coefficients, realizations_count=3)
+        cell_methods = CellMethod("maximum", coords="time")
+        self.percentiles.add_cell_method(cell_methods)
+
+        result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
         self.assertIn("percentile", get_dim_coord_names(result))
         self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
         self.assertAlmostEqual(
