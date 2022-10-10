@@ -207,3 +207,18 @@ def split_forecasts_and_coeffs(
         land_sea_mask,
         prob_template,
     )
+
+
+def add_warning_comment(forecast: Cube) -> Cube:
+    """Add a comment to warn that calibration has not been applied.
+
+    Args:
+        forecast: The forecast to which a comment will be added.
+    """
+    import pdb
+    pdb.set_trace()
+    forecast.attributes["comment"] = (
+        "Warning: Calibration of this forecast has been attempted, "
+        "however, no calibration has been applied."
+    )
+    return forecast

@@ -35,9 +35,14 @@ from datetime import datetime
 
 import iris
 import numpy as np
+import pytest
 from iris.cube import CubeList
 
-from improver.calibration import split_forecasts_and_coeffs, split_forecasts_and_truth
+from improver.calibration import (
+    add_warning_comment,
+    split_forecasts_and_coeffs,
+    split_forecasts_and_truth,
+)
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
@@ -534,6 +539,17 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
                 ),
                 self.land_sea_mask_name,
             )
+
+
+def test_add_warning_to_comment():
+    expected = (
+        "Warning: Calibration of this forecast has been attempted, "
+        "however, no calibration has been applied."
+    )
+    data = np.zeros((2, 2), dtype=np.float32)
+    cube = set_up_variable_cube(data)
+    result = add_warning_comment(cube)
+    assert result.attributes["comment"] == expected
 
 
 if __name__ == "__main__":

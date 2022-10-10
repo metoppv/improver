@@ -131,7 +131,7 @@ def process(
 
     import numpy as np
 
-    from improver.calibration import split_forecasts_and_coeffs
+    from improver.calibration import add_warning_comment, split_forecasts_and_coeffs
     from improver.calibration.ensemble_calibration import ApplyEMOS
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ResamplePercentiles,
@@ -168,6 +168,8 @@ def process(
             "uncalibrated forecast will be returned."
         )
         warnings.warn(msg)
+
+        forecast = add_warning_comment(forecast)
         return forecast
 
     calibration_plugin = ApplyEMOS(percentiles=percentiles)
