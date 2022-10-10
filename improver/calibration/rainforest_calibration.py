@@ -493,7 +493,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             forecast_variable,
             forecast_variable_unit,
             output_data,
-            np.array)
+            np.array,
+        )
 
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
@@ -896,18 +897,19 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         input_data: ndarray,
         forecast_variable: str,
         forecast_variable_unit: str,
-        output_data: ndarray
+        output_data: ndarray,
     ):
         # Docstring same as ApplyRainForestsCalibrationLightGBM
         # Sphinx should handle inherit this inheritance
         from treelite_runtime import DMatrix
+
         return super()._evaluate_probabilities_implementation(
             forecast_data,
             input_data,
             forecast_variable,
             forecast_variable_unit,
             output_data,
-            DMatrix
+            DMatrix,
         )
 
     def _calculate_error_probabilities(
@@ -939,7 +941,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             input_data,
             forecast_cube.name(),
             forecast_cube.units,
-            error_probability_cube.data
+            error_probability_cube.data,
         )
 
         # Enforcing monotonicity

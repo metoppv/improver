@@ -35,13 +35,13 @@ import pytest
 from iris import Constraint
 from iris.cube import CubeList
 
+import improver.calibration.rainforest_calibration as rainforest
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
-import improver.calibration.rainforest_calibration as rainforest
 
 ATTRIBUTES = {
     "title": "Test forecast",
@@ -253,6 +253,7 @@ def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
 
 @pytest.fixture(params=["LightGBM", "Treelite"])
 def plugin_and_dummy_models(request):
+    _ = pytest.importorskip(request.param.lower())
     models = request.getfixturevalue(f"dummy_{request.param.lower()}_models")
     plugin_cls = getattr(rainforest, f"ApplyRainForestsCalibration{request.param}")
     return plugin_cls, models
