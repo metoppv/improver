@@ -185,18 +185,16 @@ def test__prepare_error_probability_cube(
     assert result.attributes == error_threshold_cube.attributes
 
 
-def test__prepare_features_dataframe(ensemble_features):
-    """Test dataframe preparation given set of feature cubes."""
-    feature_names = [cube.name() for cube in ensemble_features]
+def test__prepare_features_array(ensemble_features):
+    """Test array preparation given set of feature cubes."""
     expected_size = ensemble_features.extract_cube(
         "lwe_thickness_of_precipitation_amount"
     ).data.size
     result = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}
-    )._prepare_features_dataframe(ensemble_features)
+    )._prepare_features_array(ensemble_features)
 
-    assert list(result.columns) == list(sorted(feature_names))
-    assert len(result) == expected_size
+    assert result.shape[0] == expected_size
 
     # Drop realization coordinate from one of the ensemble features, to produce
     # cubes of differing length.
@@ -208,7 +206,36 @@ def test__prepare_features_dataframe(ensemble_features):
     with pytest.raises(ValueError):
         ApplyRainForestsCalibrationLightGBM(
             model_config_dict={}
-        )._prepare_features_dataframe(ensemble_features)
+        )._prepare_features_array(ensemble_features)
+
+
+def test__evaluate_probabilities(
+    ensemble_features, ensemble_forecast, dummy_lightgbm_models, error_threshold_cube
+):
+    """Test that _evaluate_probabilities populates error_threshold_cube.data with
+    probability data."""
+    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+    input_dataset = plugin._prepare_features_array(ensemble_features)
+    forecast_data = ensemble_forecast.data.ravel()
+    data_before = error_threshold_cube.data.copy()
+    plugin._evaluate_probabilities(
+        forecast_data,
+        input_dataset,
+        ensemble_forecast.name(),
+        ensemble_forecast.units,
+        error_threshold_cube.data,
+    )
+    diff = error_threshold_cube.data - data_before
+    # check each error threshold has been populated
+    assert np.all(np.any(diff != 0, axis=0))
+    # check data is between 0 and 1
+    assert np.all(error_threshold_cube.data >= 0)
+    assert np.all(error_threshold_cube.data <= 1)
+    # check data is 1 where forecast + error < 0
+    for i, t in enumerate(plugin.error_thresholds):
+        invalid_error = ensemble_forecast.data + t < 0
+        np.testing.assert_almost_equal(error_threshold_cube.data[i, invalid_error], 1)
 
 
 def test_make_decreasing():
