@@ -498,7 +498,7 @@ class Test_process(IrisTest):
         present on the input forecast."""
         self.percentiles.coord("time").bounds = [
             int(self.percentiles.coord("time").points - 3600),
-            int(self.percentiles.coord("time").points)
+            int(self.percentiles.coord("time").points),
         ]
 
         cell_methods = CellMethod("maximum", coords="time")
