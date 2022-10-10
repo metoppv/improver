@@ -95,24 +95,24 @@ def test__init__(
         assert f"{threshold:06.4f}" in str(model.model_file)
 
 
-def test__check_num_features(ensemble_features, dummy_treelite_models):
+def test__check_num_features(ensemble_features, plugin_and_dummy_models):
     """Test number of features expected by tree_models matches features passed in."""
-    plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
-    plugin.tree_models, _ = dummy_treelite_models
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, _ = dummy_models
     plugin._check_num_features(ensemble_features)
     with pytest.raises(ValueError):
         plugin._check_num_features(ensemble_features[:-1])
 
 
 def test__evaluate_probabilities(
-    ensemble_features, ensemble_forecast, dummy_treelite_models, error_threshold_cube
+    ensemble_features, ensemble_forecast, error_threshold_cube, plugin_and_dummy_models
 ):
     """Test that _evaluate_probabilities populates error_threshold_cube.data with
     probability data."""
-    import treelite_runtime
-
-    plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
     forecast_data = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
@@ -122,7 +122,6 @@ def test__evaluate_probabilities(
         ensemble_forecast.name(),
         ensemble_forecast.units,
         error_threshold_cube.data,
-        treelite_runtime.DMatrix,
     )
     diff = error_threshold_cube.data - data_before
     # check each error threshold has been populated
@@ -137,11 +136,12 @@ def test__evaluate_probabilities(
 
 
 def test__calculate_error_probabilities(
-    ensemble_features, ensemble_forecast, dummy_treelite_models
+    ensemble_features, ensemble_forecast, plugin_and_dummy_models
 ):
     """Test calculation of error probability cube when using treelite Predictors."""
-    plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
     result = plugin._calculate_error_probabilities(ensemble_forecast, ensemble_features)
 
     # Check that data has sensible probability values
@@ -159,11 +159,12 @@ def test__calculate_error_probabilities(
 
 
 def test_process_with_treelite(
-    ensemble_forecast, ensemble_features, dummy_treelite_models
+    ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
     """Test process routine using treelite Predictor."""
-    plugin = ApplyRainForestsCalibrationTreelite(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_treelite_models
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
 
     for output_realization_count in (None, 10):
         result = plugin.process(

@@ -41,6 +41,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+import improver.calibration.rainforest_calibration as rainforest
 
 ATTRIBUTES = {
     "title": "Test forecast",
@@ -248,6 +249,13 @@ def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
         tree_models.append(predictor)
 
     return tree_models, error_thresholds
+
+
+@pytest.fixture(params=["LightGBM", "Treelite"])
+def plugin_and_dummy_models(request):
+    models = request.getfixturevalue(f"dummy_{request.param.lower()}_models")
+    plugin_cls = getattr(rainforest, f"ApplyRainForestsCalibration{request.param}")
+    return plugin_cls, models
 
 
 @pytest.fixture

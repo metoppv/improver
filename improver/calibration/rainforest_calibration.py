@@ -398,18 +398,21 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
         return 0.5 * (upper + lower)
 
-    def _evaluate_probabilities(
+    def _evaluate_probabilities_implementation(
         self,
         forecast_data: ndarray,
         input_data: ndarray,
         forecast_variable: str,
         forecast_variable_unit: str,
         output_data: ndarray,
-        model_input_converter: Optional[Callable[[ndarray], object]] = np.array,
+        model_input_converter: Callable[[ndarray], object],
     ):
         """Evaluate probability that error in forecast exceeds thresholds, setting
         the result to 1 when `forecast + threshold` is less than or equal to
         the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
+
+        This method contains generalised implementation - for normal usage, use
+        the specialised _evaluate_probabilities instead.
 
         Args:
             forecast_data:
@@ -456,6 +459,41 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
             )
+        return
+
+    def _evaluate_probabilities(
+        self,
+        forecast_data: ndarray,
+        input_data: ndarray,
+        forecast_variable: str,
+        forecast_variable_unit: str,
+        output_data: ndarray,
+    ):
+        """Evaluate probability that error in forecast exceeds thresholds, setting
+        the result to 1 when `forecast + threshold` is less than or equal to
+        the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
+
+        This method internally converts to appropriate format for the GBDT library in use.
+
+        Args:
+            forecast_data:
+                1-d containing data for the variable to be calibrated.
+            input_data:
+                2-d array of data for the feature variables of the model
+            forecast_variable:
+                name of forecast variable
+            forecast_variable_unit:
+                unit of forecast variable
+            output_data:
+                array to populate with output; will be modified in place
+        """
+        return self._evaluate_probabilities_implementation(
+            forecast_data,
+            input_data,
+            forecast_variable,
+            forecast_variable_unit,
+            output_data,
+            np.array)
 
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
@@ -852,6 +890,26 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 "Number of expected features does not match number of feature cubes."
             )
 
+    def _evaluate_probabilities(
+        self,
+        forecast_data: ndarray,
+        input_data: ndarray,
+        forecast_variable: str,
+        forecast_variable_unit: str,
+        output_data: ndarray
+    ):
+        # Docstring same as ApplyRainForestsCalibrationLightGBM
+        # Sphinx should handle inherit this inheritance
+        from treelite_runtime import DMatrix
+        return super()._evaluate_probabilities_implementation(
+            forecast_data,
+            input_data,
+            forecast_variable,
+            forecast_variable_unit,
+            output_data,
+            DMatrix
+        )
+
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
     ) -> Cube:
@@ -870,8 +928,6 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 If an unsupported model object is passed. Expects lightgbm Booster, or
                 treelite_runtime Predictor (if treelite dependency is available).
         """
-        from treelite_runtime import DMatrix
-
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
         input_data = self._prepare_features_array(feature_cubes)
@@ -883,8 +939,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             input_data,
             forecast_cube.name(),
             forecast_cube.units,
-            error_probability_cube.data,
-            DMatrix,
+            error_probability_cube.data
         )
 
         # Enforcing monotonicity
