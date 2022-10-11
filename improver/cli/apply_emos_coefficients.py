@@ -156,9 +156,7 @@ def process(
         prob_template,
     ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
 
-    if validity_times is not None and not validity_time_check(
-        forecast, validity_times
-    ):
+    if validity_times is not None and not validity_time_check(forecast, validity_times):
         forecast = add_warning_comment(forecast)
         return forecast
 
