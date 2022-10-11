@@ -85,7 +85,7 @@ def process(
             template is provided, the probability template forecast will be
             returned as the uncalibrated probability forecast.
         validity_times (List[str]):
-            Times at which the forecast must be valid at. This must be provided
+            Times at which the forecast must be valid. This must be provided
             as a four digit string (HHMM) where the first two digits represent the hour
             and the last two digits represent the minutes e.g. 0300 or 0315. If the
             forecast provided is at a different validity time then no coefficients
@@ -156,13 +156,9 @@ def process(
         prob_template,
     ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
 
-    if not validity_time_check(forecast, validity_times):
-        msg = (
-            "The forecast provided is not at an accepted validity time. The "
-            f"forecast provided has a validity time of {forecast.coord('time').cell(0)}."
-            f"The validity times provided were {validity_times}."
-        )
-        warnings.warn(msg)
+    if validity_times is not None and not validity_time_check(
+        forecast, validity_times
+    ):
         forecast = add_warning_comment(forecast)
         return forecast
 

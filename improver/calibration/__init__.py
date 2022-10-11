@@ -217,7 +217,7 @@ def validity_time_check(forecast: Cube, validity_times) -> bool:
         forecast:
             Cube containing the forecast to be calibrated.
         validity_times (List[str]):
-            Times at which the forecast must be valid at. This must be provided
+            Times at which the forecast must be valid. This must be provided
             as a four digit string (HHMM) where the first two digits represent the hour
             and the last two digits represent the minutes e.g. 0300 or 0315. If the
             forecast provided is at a different validity time then no coefficients
