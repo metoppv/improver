@@ -34,6 +34,7 @@ import pytest
 
 from . import acceptance as acc
 
+pytest.importorskip("stratify")
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)

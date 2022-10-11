@@ -43,6 +43,7 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "source": "unit test",
     "institution": "somewhere",
 }
+pytest.importorskip("stratify")
 
 
 @pytest.fixture
