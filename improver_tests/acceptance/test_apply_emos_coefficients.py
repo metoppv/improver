@@ -537,7 +537,10 @@ def test_mismatching_validity_times(tmp_path):
         "--output",
         output_path,
     ]
-    run_cli(args)
+    with pytest.warns(
+        UserWarning, match="The forecast provided is not at an accepted validity time.*"
+    ):
+        run_cli(args)
     # Check output matches input excluding the comment attribute.
     acc.compare(
         output_path,
