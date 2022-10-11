@@ -209,6 +209,30 @@ def split_forecasts_and_coeffs(
     )
 
 
+def validity_time_check(forecast: Cube, validity_times) -> bool:
+    """Check the validity time of the forecast matches the accepted validity times
+    within the validity times list.
+
+    Args:
+        forecast:
+            Cube containing the forecast to be calibrated.
+        validity_times (List[str]):
+            Times at which the forecast must be valid at. This must be provided
+            as a four digit string (HHMM) where the first two digits represent the hour
+            and the last two digits represent the minutes e.g. 0300 or 0315. If the
+            forecast provided is at a different validity time then no coefficients
+            will be applied.
+
+    Returns:
+        If the validity time within the cube matches a validity time within the
+        validity time list, then True is returned. Otherwise, False is returned.
+    """
+    point = forecast.coord("time").cell(0).point
+    if f"{point.hour:02}{point.minute:02}" not in validity_times:
+        return False
+    return True
+
+
 def add_warning_comment(forecast: Cube) -> Cube:
     """Add a comment to warn that calibration has not been applied.
 
