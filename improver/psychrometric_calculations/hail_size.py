@@ -406,8 +406,14 @@ class HailSize(BasePlugin):
             np.array(list(lookup_dict.values())),
         )
 
-    def check_cubes(self, ccl_temperature: Cube, ccl_pressure: Cube, temperature_on_pressure: Cube,
-                    wet_bulb_zero_asl: Cube, orography: Cube) -> None:
+    def check_cubes(
+        self,
+        ccl_temperature: Cube,
+        ccl_pressure: Cube,
+        temperature_on_pressure: Cube,
+        wet_bulb_zero_asl: Cube,
+        orography: Cube,
+    ) -> None:
         """Checks the size and units of input cubes
 
             Args:
@@ -685,8 +691,14 @@ class HailSize(BasePlugin):
         )
         return hail_size_cube
 
-    def process(self, ccl_temperature: Cube, ccl_pressure: Cube, temperature_on_pressure: Cube,
-                wet_bulb_zero_height_asl: Cube, orography: Cube) -> Cube:
+    def process(
+        self,
+        ccl_temperature: Cube,
+        ccl_pressure: Cube,
+        temperature_on_pressure: Cube,
+        wet_bulb_zero_height_asl: Cube,
+        orography: Cube,
+    ) -> Cube:
         """
         Main entry point of this class
 
@@ -705,8 +717,13 @@ class HailSize(BasePlugin):
             Cube of hail diameter (m)
         """
 
-        self.check_cubes(ccl_temperature, ccl_pressure, temperature_on_pressure,
-                         wet_bulb_zero_height_asl, orography)
+        self.check_cubes(
+            ccl_temperature,
+            ccl_pressure,
+            temperature_on_pressure,
+            wet_bulb_zero_height_asl,
+            orography,
+        )
         extract_pressure = ExtractPressureLevel(value_of_pressure_level=268.15)
         pressure_at_268 = extract_pressure(temperature_on_pressure)
 
@@ -728,7 +745,9 @@ class HailSize(BasePlugin):
             ]
         del temperature_on_pressure
 
-        humidity_mixing_ratio_at_ccl = saturated_humidity(ccl_temperature.data, ccl_pressure.data)
+        humidity_mixing_ratio_at_ccl = saturated_humidity(
+            ccl_temperature.data, ccl_pressure.data
+        )
 
         wet_bulb_zero_height = wet_bulb_zero_height_asl - orography
 
