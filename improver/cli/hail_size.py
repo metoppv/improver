@@ -38,16 +38,13 @@ from improver import cli
 def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     """Module to calculate the size of hail stones from the
     cloud condensation level (ccl) temperature and pressure, temperature
-    on pressure levels data, relative humidity on pressure levels, wet
-    bulb freezing altitude above sea level and orography.
+    on pressure levels data, wet bulb freezing altitude above sea level and orography.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
             containing:
                 temperature (iris.cube.Cube):
                     Cube of temperature on pressure levels
-                relative_humidity (iris.cube.Cube)
-                    Cube of relative humidity on pressure levels
                 wet_bulb_freezing_level_altitude (iris.cube.Cube)
                     Cube of the height of the wet bulb freezing level
                 ccl (iris.cube.CubeList)
@@ -69,17 +66,11 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
     from improver.utilities.flatten import flatten
 
     cubes = flatten(cubes)
-    (
-        temperature,
-        relative_humidity,
-        ccl_pressure,
-        ccl_temperature,
-        wet_bulb_zero,
-        orography,
-    ) = CubeList(cubes).extract(
+    (temperature, ccl_pressure, ccl_temperature, wet_bulb_zero, orography,) = CubeList(
+        cubes
+    ).extract(
         [
             "air_temperature",
-            "relative_humidity",
             "air_pressure_at_condensation_level",
             "air_temperature_at_condensation_level",
             "wet_bulb_freezing_level_altitude",
@@ -87,10 +78,5 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
         ]
     )
     return HailSize(model_id_attr=model_id_attr)(
-        ccl_temperature,
-        ccl_pressure,
-        temperature,
-        relative_humidity,
-        wet_bulb_zero,
-        orography,
+        ccl_temperature, ccl_pressure, temperature, wet_bulb_zero, orography,
     )

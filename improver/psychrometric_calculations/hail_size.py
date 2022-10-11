@@ -43,9 +43,9 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    HumidityMixingRatio,
     adjust_for_latent_heat,
     dry_adiabatic_temperature,
+    saturated_humidity,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -256,8 +256,8 @@ class ExtractPressureLevel(BasePlugin):
 class HailSize(BasePlugin):
     """Plugin to calculate the diameter of the hail stones from input cubes
     cloud condensation level (ccl) temperature, cloud condensation level pressure,
-    temperature on pressure levels, relative humidity on pressure levels, the height
-    of the wet bulb freezing level above sea level and orography.
+    temperature on pressure levels, the height of the wet bulb freezing level
+    above sea level and orography.
 
     From these, the values for three other cubes are calculated:
         - Temperature of the environment at 268.15K (-5 Celsius) and the
@@ -406,15 +406,8 @@ class HailSize(BasePlugin):
             np.array(list(lookup_dict.values())),
         )
 
-    def check_cubes(
-        self,
-        ccl_temperature: Cube,
-        ccl_pressure: Cube,
-        temperature_on_pressure: Cube,
-        relative_humidity_on_pressure: Cube,
-        wet_bulb_zero_asl: Cube,
-        orography: Cube,
-    ) -> None:
+    def check_cubes(self, ccl_temperature: Cube, ccl_pressure: Cube, temperature_on_pressure: Cube,
+                    wet_bulb_zero_asl: Cube, orography: Cube) -> None:
         """Checks the size and units of input cubes
 
             Args:
@@ -424,8 +417,6 @@ class HailSize(BasePlugin):
                     Cube of cloud condensation level pressure
                 temperature_on_pressure:
                     Cube of environment temperature on pressure levels
-                relative_humidity_on_pressure:
-                    Cube of relative humidity on pressure levels
                 wet_bulb_zero_asl:
                     Cube of the height of the wet bulb freezing level above sea level
                 orography:
@@ -437,7 +428,6 @@ class HailSize(BasePlugin):
             ccl_temperature,
             ccl_pressure,
             temperature_on_pressure,
-            relative_humidity_on_pressure,
             wet_bulb_zero_asl,
             orography,
         ]:
@@ -452,14 +442,10 @@ class HailSize(BasePlugin):
         assert_spatial_coords_match(
             [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero_asl]
         )
-        assert_spatial_coords_match(
-            [temperature_on_pressure, relative_humidity_on_pressure]
-        )
 
         ccl_temperature.convert_units("K")
         ccl_pressure.convert_units("Pa")
         temperature_on_pressure.convert_units("K")
-        relative_humidity_on_pressure.convert_units("kg/kg")
         wet_bulb_zero_asl.convert_units("m")
         orography.convert_units("m")
 
@@ -468,7 +454,7 @@ class HailSize(BasePlugin):
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         pressure_at_268: Cube,
-        humidity_mixing_ratio_at_268: Cube,
+        humidity_mixing_ratio_at_ccl: np.array,
     ) -> np.ndarray:
         """Calculates the temperature after a saturated ascent
         from the cloud condensation level to the pressure of the atmosphere at 268.15K
@@ -480,8 +466,8 @@ class HailSize(BasePlugin):
                 Cube of cloud condensation level pressure
             pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
-            humidity_mixing_ratio_at_268:
-                Cube of humidity mixing ratio at the pressure of the environment at 268.15K
+            humidity_mixing_ratio_at_ccl:
+                Array of humidity mixing ratio at the pressure of the environment at the CCL
         Returns:
             Cube of temperature after the saturated ascent
         """
@@ -490,7 +476,7 @@ class HailSize(BasePlugin):
             ccl_temperature.data, ccl_pressure.data, pressure_at_268.data
         )
         t_2, _ = adjust_for_latent_heat(
-            t_dry, humidity_mixing_ratio_at_268.data, pressure_at_268.data
+            t_dry, humidity_mixing_ratio_at_ccl, pressure_at_268.data
         )
         return t_2
 
@@ -604,7 +590,7 @@ class HailSize(BasePlugin):
         pressure_at_268: Cube,
         ccl_pressure: Cube,
         ccl_temperature: Cube,
-        humidity_mixing_ratio_at_268: Cube,
+        humidity_mixing_ratio_at_ccl: np.array,
         wet_bulb_zero: Cube,
     ) -> np.ndarray:
         """Gets temperature of environment at 268.15K, temperature after a dry adiabatic descent
@@ -622,26 +608,32 @@ class HailSize(BasePlugin):
                 Cube of cloud condensation level pressure
             ccl_temperature:
                 Cube of cloud condensation level pressure
-            humidity_mixing_ratio_at_268:
-                Cube of humidity mixing ratio at the pressure of the environment at 268.15K
+            humidity_mixing_ratio_at_ccl:
+                Array of humidity mixing ratio at the pressure of the environment at the CCL
             wet_bulb_zero:
                 Cube of the height of the wet-bulb freezing level
         Returns:
             An n dimensional array of diameter of hail stones (m)
         """
 
+        # temperature_at_268 is big-B in Hand (2011).
+        # ccl_temperature is big-C in Hand (2011).
+        # temp_dry is little-c in Hand (2011).
         temp_dry = self.dry_adiabatic_descent_to_ccl(
             ccl_pressure, temperature_at_268, pressure_at_268
         )
 
+        # temp_saturated_ascent is little-b in Hand (2011).
         temp_saturated_ascent = self.temperature_after_saturated_ascent_from_ccl(
             ccl_temperature,
             ccl_pressure,
             pressure_at_268,
-            humidity_mixing_ratio_at_268,
+            humidity_mixing_ratio_at_ccl,
         )
 
+        # horizontal is c - B in Hand (2011).
         horizontal = temp_dry.data - temperature_at_268.data
+        # vertical is b - B in Hand (2011).
         vertical = temp_saturated_ascent.data - temperature_at_268.data
 
         temperature_mask = np.ma.masked_less(ccl_temperature.data, 268.15)
@@ -693,15 +685,8 @@ class HailSize(BasePlugin):
         )
         return hail_size_cube
 
-    def process(
-        self,
-        ccl_temperature: Cube,
-        ccl_pressure: Cube,
-        temperature_on_pressure: Cube,
-        relative_humidity_on_pressure: Cube,
-        wet_bulb_zero_height_asl: Cube,
-        orography: Cube,
-    ) -> Cube:
+    def process(self, ccl_temperature: Cube, ccl_pressure: Cube, temperature_on_pressure: Cube,
+                wet_bulb_zero_height_asl: Cube, orography: Cube) -> Cube:
         """
         Main entry point of this class
 
@@ -712,8 +697,6 @@ class HailSize(BasePlugin):
                 Cube of the cloud condensation level pressure.
             temperature_on_pressure:
                 Cube of temperature on pressure levels
-            relative_humidity_on_pressure:
-                Cube of relative_humidity ratio on pressure levels
             wet_bulb_zero_height_asl:
                 Cube of the height of the wet-bulb freezing level above sea level
             orography:
@@ -722,14 +705,8 @@ class HailSize(BasePlugin):
             Cube of hail diameter (m)
         """
 
-        self.check_cubes(
-            ccl_temperature,
-            ccl_pressure,
-            temperature_on_pressure,
-            relative_humidity_on_pressure,
-            wet_bulb_zero_height_asl,
-            orography,
-        )
+        self.check_cubes(ccl_temperature, ccl_pressure, temperature_on_pressure,
+                         wet_bulb_zero_height_asl, orography)
         extract_pressure = ExtractPressureLevel(value_of_pressure_level=268.15)
         pressure_at_268 = extract_pressure(temperature_on_pressure)
 
@@ -751,14 +728,7 @@ class HailSize(BasePlugin):
             ]
         del temperature_on_pressure
 
-        relative_humidity_at_268 = extract_pressure(
-            relative_humidity_on_pressure, pressure_at_268
-        )
-        del relative_humidity_on_pressure
-
-        humidity_mixing_ratio_at_268 = HumidityMixingRatio()(
-            [temperature_at_268, pressure_at_268, relative_humidity_at_268]
-        )
+        humidity_mixing_ratio_at_ccl = saturated_humidity(ccl_temperature.data, ccl_pressure.data)
 
         wet_bulb_zero_height = wet_bulb_zero_height_asl - orography
 
@@ -767,7 +737,7 @@ class HailSize(BasePlugin):
             pressure_at_268,
             ccl_pressure,
             ccl_temperature,
-            humidity_mixing_ratio_at_268,
+            humidity_mixing_ratio_at_ccl,
             wet_bulb_zero_height,
         )
 

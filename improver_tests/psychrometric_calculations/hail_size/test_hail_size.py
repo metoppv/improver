@@ -48,7 +48,7 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 @pytest.fixture
 def ccl_temperature() -> Cube:
     """Set up a r, y, x cube of cloud condensation level temperature data"""
-    data = np.full((2, 3, 2), fill_value=330, dtype=np.float32)
+    data = np.full((2, 3, 2), fill_value=300, dtype=np.float32)
     ccl_temperature_cube = set_up_variable_cube(
         data,
         name="temperature_at_cloud_condensation_level",
@@ -61,7 +61,7 @@ def ccl_temperature() -> Cube:
 @pytest.fixture
 def ccl_pressure() -> Cube:
     """Set up a r, y, x cube of cloud condensation level pressure data"""
-    data = np.full((2, 3, 2), fill_value=120000, dtype=np.float32)
+    data = np.full((2, 3, 2), fill_value=97500, dtype=np.float32)
     ccl_pressure_cube = set_up_variable_cube(
         data,
         name="pressure_at_cloud_condensation_level",
@@ -112,25 +112,6 @@ def temperature_on_pressure_levels() -> Cube:
     return t_cube
 
 
-@pytest.fixture
-def relative_humidity_on_pressure() -> Cube:
-    """Set up a r, p, y, x cube of relative_humidity on pressure levels"""
-    humidity = np.repeat(0.1, 8).astype("float32")
-    data = np.broadcast_to(
-        humidity.reshape((1, len(humidity), 1, 1)), (2, len(humidity), 3, 2)
-    )
-    humidity_cube = set_up_variable_cube(
-        data,
-        pressure=True,
-        height_levels=np.arange(100000, 29999, -10000),
-        name="relative_humidity_on_pressure_levels",
-        units="kg/kg",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
-
-    return humidity_cube
-
-
 def metadata_check(hail_cube):
     """Checks the hail cube produced by plugin has the expected metadata."""
     assert hail_cube.long_name == "diameter_of_hail_stones"
@@ -176,50 +157,27 @@ https://doi.org/10.1175/1520-0477-34.6.235
 
 
 @pytest.mark.parametrize(
-    "ccl_p,ccl_t,humidity,wbz,orog,expected",
+    "ccl_p,ccl_t,wbz,orog,expected",
     (
-        (
-            75000,
-            290,
-            0.001,
-            2200,
-            0,
-            0.02,
-        ),  # values approx from tephigram in literature
-        (
-            75000,
-            290,
-            0.001,
-            5000,
-            0,
-            0,
-        ),  # wet bulb zero (wbz) height greater than 4400m
-        (75000, 290, 0.001, 5000, 2800, 0.02),  # orography reduces wbz height to 2200m
-        (
-            75000,
-            290,
-            0.001,
-            3400,
-            0,
-            0.015,
-        ),  # wbz height above 3350m but less than 4400m
-        (94000, 300, 0.001, 2200, 0, 0),  # vertical value negative
-        (1000, 360, 0.001, 2200, 0, 0),  # horizontal value negative
-        (95000, 330, 0.001, 2200, 0, 0.08),  # vertical greater than length of table
-        (150000, 350, 0.1, 2200, 0, 0.035),  # horizontal greater than length of table
-        (75000, 265, 0.001, 2200, 0, 0),  # ccl temperature below 268.15
+        (75000, 290, 2200, 0, 0.035,),  # values approx from tephigram in literature
+        (75000, 290, 5000, 0, 0,),  # wet bulb zero (wbz) height greater than 4400m
+        (75000, 290, 5000, 2800, 0.035),  # orography reduces wbz height to 2200m
+        (75000, 290, 3400, 0, 0.025,),  # wbz height above 3350m but less than 4400m
+        (94000, 273, 2200, 0, 0),  # vertical value negative
+        (1000, 270, 2200, 0, 0),  # horizontal value negative
+        (95000, 330, 2200, 0, 0.08),  # vertical greater than length of table
+        (150000, 350, 2200, 0, 0.12),  # horizontal greater than length of table
+        (75000, 265, 2200, 0, 0),  # ccl temperature below 268.15
     ),
 )
 def test_basic_hail_size(
     ccl_pressure,
     ccl_temperature,
     temperature_on_pressure_levels,
-    relative_humidity_on_pressure,
     wet_bulb_freezing,
     orography,
     ccl_p,
     ccl_t,
-    humidity,
     wbz,
     orog,
     expected,
@@ -229,9 +187,6 @@ def test_basic_hail_size(
     Also checks the metadata of the produced hail_size cube"""
     ccl_pressure.data = np.full_like(ccl_pressure.data, ccl_p)
     ccl_temperature.data = np.full_like(ccl_temperature.data, ccl_t)
-    relative_humidity_on_pressure.data = np.full_like(
-        relative_humidity_on_pressure.data, humidity
-    )
     wet_bulb_freezing.data = np.full_like(wet_bulb_freezing.data, wbz)
     orography.data = np.full_like(orography.data, orog)
 
@@ -239,7 +194,6 @@ def test_basic_hail_size(
         ccl_temperature,
         ccl_pressure,
         temperature_on_pressure_levels,
-        relative_humidity_on_pressure,
         wet_bulb_freezing,
         orography,
     )
@@ -252,7 +206,6 @@ def test_temperature_too_high(
     temperature_on_pressure_levels,
     ccl_pressure,
     ccl_temperature,
-    relative_humidity_on_pressure,
     wet_bulb_freezing,
     orography,
 ):
@@ -263,15 +216,14 @@ def test_temperature_too_high(
     data[:, :, 1] = 300
     temperature_on_pressure_levels.data = data
     expected = [
-        [[0.045, 0.045], [0, 0], [0.045, 0.045]],
-        [[0.045, 0.045], [0, 0], [0.045, 0.045]],
+        [[0.1, 0.1], [0, 0], [0.1, 0.1]],
+        [[0.1, 0.1], [0, 0], [0.1, 0.1]],
     ]
 
     result = HailSize()(
         ccl_temperature,
         ccl_pressure,
         temperature_on_pressure_levels,
-        relative_humidity_on_pressure,
         wet_bulb_freezing,
         orography,
     )
@@ -286,7 +238,6 @@ def test_temperature_too_high(
         "temperature_on_pressure_levels",
         "ccl_temperature",
         "ccl_pressure",
-        "relative_humidity_on_pressure",
         "wet_bulb_freezing",
         "orography",
     ),
@@ -301,7 +252,6 @@ def test_spatial_coord_mismatch(variable, request):
         "ccl_temperature",
         "ccl_pressure",
         "temperature_on_pressure_levels",
-        "relative_humidity_on_pressure",
         "wet_bulb_freezing",
         "orography",
     ]
@@ -309,23 +259,19 @@ def test_spatial_coord_mismatch(variable, request):
     cubes = CubeList(request.getfixturevalue(fix) for fix in fixtures)
     cubes.append(variable_slice)
 
-    ccl_temperature = cubes.extract("temperature_at_cloud_condensation_level")
-    ccl_pressure = cubes.extract("pressure_at_cloud_condensation_level")
-    temperature_on_pressure = cubes.extract("temperature_on_pressure_levels")
-    relative_humidity_on_pressure = cubes.extract(
-        "relative_humidity_on_pressure_levels"
-    )
-    wet_bulb_freezing = cubes.extract("wet_bulb_freezing_level_altitude")
-    orography = cubes.extract("surface_altitude")
+    (ccl_temperature,) = cubes.extract("temperature_at_cloud_condensation_level")
+    (ccl_pressure,) = cubes.extract("pressure_at_cloud_condensation_level")
+    (temperature_on_pressure,) = cubes.extract("temperature_on_pressure_levels")
+    (wet_bulb_freezing,) = cubes.extract("wet_bulb_freezing_level_altitude")
+    (orography,) = cubes.extract("surface_altitude")
 
     with pytest.raises(ValueError):
         HailSize()(
-            ccl_temperature[0],
-            ccl_pressure[0],
-            temperature_on_pressure[0],
-            relative_humidity_on_pressure[0],
-            wet_bulb_freezing[0],
-            orography[0],
+            ccl_temperature,
+            ccl_pressure,
+            temperature_on_pressure,
+            wet_bulb_freezing,
+            orography,
         )
 
 
@@ -333,7 +279,6 @@ def test_spatial_coord_mismatch(variable, request):
 def test_model_id_attr(
     temperature_on_pressure_levels,
     ccl_pressure,
-    relative_humidity_on_pressure,
     ccl_temperature,
     wet_bulb_freezing,
     orography,
@@ -342,7 +287,6 @@ def test_model_id_attr(
     """Tests plugin if model_id_attr is set on inputs and is applied or not"""
     temperature_on_pressure_levels.attributes["mosg__model_configuration"] = "gl_ens"
     ccl_pressure.attributes["mosg__model_configuration"] = "gl_ens"
-    relative_humidity_on_pressure.attributes["mosg__model_configuration"] = "gl_ens"
     ccl_temperature.attributes["mosg__model_configuration"] = "gl_ens"
     wet_bulb_freezing.attributes["mosg__model_configuration"] = "gl_ens"
     orography.attributes["mosg__model_configuration"] = "gl_ens"
@@ -351,12 +295,11 @@ def test_model_id_attr(
         ccl_temperature,
         ccl_pressure,
         temperature_on_pressure_levels,
-        relative_humidity_on_pressure,
         wet_bulb_freezing,
         orography,
     )
 
-    np.testing.assert_array_almost_equal(result.data, 0.045)
+    np.testing.assert_array_almost_equal(result.data, 0.1)
     metadata_check(result)
     cube_shape_check(result)
 
@@ -364,7 +307,6 @@ def test_model_id_attr(
 def test_re_ordered_cubes(
     temperature_on_pressure_levels,
     ccl_pressure,
-    relative_humidity_on_pressure,
     ccl_temperature,
     wet_bulb_freezing,
     orography,
@@ -375,10 +317,6 @@ def test_re_ordered_cubes(
 
     enforce_coordinate_ordering(
         temperature_on_pressure_levels,
-        ["pressure", "latitude", "realization", "longitude"],
-    )
-    enforce_coordinate_ordering(
-        relative_humidity_on_pressure,
         ["pressure", "latitude", "realization", "longitude"],
     )
     enforce_coordinate_ordering(ccl_pressure, ["latitude", "realization", "longitude"])
@@ -394,11 +332,10 @@ def test_re_ordered_cubes(
         ccl_temperature,
         ccl_pressure,
         temperature_on_pressure_levels,
-        relative_humidity_on_pressure,
         wet_bulb_freezing,
         orography,
     )
-    np.testing.assert_array_almost_equal(result.data, 0.045)
+    np.testing.assert_array_almost_equal(result.data, 0.1)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
@@ -415,7 +352,6 @@ def test_re_ordered_cubes(
 def test_no_realization_coordinate(
     temperature_on_pressure_levels,
     ccl_pressure,
-    relative_humidity_on_pressure,
     ccl_temperature,
     wet_bulb_freezing,
     orography,
@@ -424,8 +360,6 @@ def test_no_realization_coordinate(
 
     temp = next(temperature_on_pressure_levels.slices_over("realization"))
     temp.remove_coord("realization")
-    humidity = next(relative_humidity_on_pressure.slices_over("realization"))
-    humidity.remove_coord("realization")
 
     cloud_pressure = next(ccl_pressure.slices_over("realization"))
     cloud_pressure.remove_coord("realization")
@@ -436,10 +370,8 @@ def test_no_realization_coordinate(
     wet_bulb_zero = next(wet_bulb_freezing.slices_over("realization"))
     wet_bulb_zero.remove_coord("realization")
 
-    result = HailSize()(
-        cloud_temp, cloud_pressure, temp, humidity, wet_bulb_zero, orography
-    )
-    np.testing.assert_array_almost_equal(result.data, 0.045)
+    result = HailSize()(cloud_temp, cloud_pressure, temp, wet_bulb_zero, orography)
+    np.testing.assert_array_almost_equal(result.data, 0.1)
     metadata_check(result)
     coord_names = [coord.name() for coord in result.coords()]
     assert coord_names == [
@@ -450,3 +382,96 @@ def test_no_realization_coordinate(
         "time",
     ]
     assert result.shape == (3, 2)
+
+
+def test_real_profile(
+    ccl_pressure, ccl_temperature, wet_bulb_freezing, orography,
+):
+    """Puts in a real test from the acceptance data"""
+    temperatures = np.array(
+        [
+            275.0,
+            272.875,
+            270.6875,
+            268.625,
+            266.8125,
+            264.6875,
+            262.125,
+            261.375,
+            266.8125,
+            264.6875,
+            262.125,
+            261.375,
+            264.6875,
+            262.125,
+            261.375,
+        ],
+        dtype=np.float32,
+    )
+    data = np.broadcast_to(
+        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
+    ).copy()
+    temperature_on_pressure_levels = set_up_variable_cube(
+        data,
+        pressure=True,
+        height_levels=np.array(
+            [
+                100000.0,
+                97500.0,
+                95000.0,
+                92500.0,
+                90000.0,
+                85000.0,
+                80000.0,
+                75000.0,
+                70000.0,
+                65000.0,
+                60000.0,
+                55000.0,
+                50000.0,
+                45000.0,
+                40000.0,
+            ],
+            dtype=np.float32,
+        ),
+        name="temperature_on_pressure_levels",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    data[0, :, 0, 0] = [
+        277.0,
+        274.875,
+        272.875,
+        271.3125,
+        270.75,
+        272.625,
+        268.875,
+        266.0,
+        262.75,
+        258.0,
+        253.5625,
+        250.875,
+        248.0625,
+        244.3125,
+        236.8125,
+    ]
+    temperature_on_pressure_levels.data = data
+    ccl_pressure.data = np.full_like(ccl_pressure.data, 93022.85)
+    ccl_pressure.data[0, 0, 0] = 93022.85
+    ccl_temperature.data = np.full_like(ccl_temperature.data, 293.15625)
+    ccl_temperature.data[0, 0, 0] = 293.15625
+    wet_bulb_freezing.data = np.full_like(wet_bulb_freezing.data, 30.0)
+
+    expected = np.zeros_like(wet_bulb_freezing.data)
+    expected[0, 0, 0] = 0.035
+
+    result = HailSize()(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        wet_bulb_freezing,
+        orography,
+    )
+    np.testing.assert_array_almost_equal(result.data, expected)
+    metadata_check(result)
+    cube_shape_check(result)
