@@ -213,7 +213,7 @@ class HailSize(BasePlugin):
         wet_bulb_zero_asl: Cube,
         orography: Cube,
     ) -> None:
-        """Checks the size and units of input cubes
+        """Checks the size and units of input cubes and enforces the standard coord order
 
             Args:
                 ccl_temperature:

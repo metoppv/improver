@@ -184,7 +184,7 @@ def test_basic_hail_size(
     expected,
 ):
     """Tests the hail_size plugin with values for ccl temperature, ccl pressure,
-    wet_bulb_freezing_height and relative humidity to check for expected result.
+    and wet_bulb_freezing_height to check for expected result.
     Also checks the metadata of the produced hail_size cube"""
     ccl_pressure.data[..., 0, 0] = ccl_p
     ccl_temperature.data[..., 0, 0] = ccl_t

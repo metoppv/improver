@@ -46,7 +46,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            containing near-surface values, in this order, of:
+            containing near-surface values, in any order, of:
                 temperature (iris.cube.Cube):
                     Cube of air_temperature (K).
                 pressure (iris.cube.Cube):
