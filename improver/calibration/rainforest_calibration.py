@@ -39,18 +39,18 @@
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Callable, Optional, Tuple
 
+import cf_units as unit
 import numpy as np
-import pandas as pd
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from iris.util import new_axis
 from numpy import ndarray
-from pandas import DataFrame
 
 from improver import PostProcessingPlugin
 from improver.cli import generate_percentiles
+from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertProbabilitiesToPercentiles,
     RebadgePercentilesAsRealizations,
@@ -343,8 +343,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         return error_probability_cube
 
-    def _prepare_features_dataframe(self, feature_cubes: CubeList) -> DataFrame:
-        """Convert gridded feature cubes into a dataframe, with feature variables
+    def _prepare_features_array(self, feature_cubes: CubeList) -> ndarray:
+        """Convert gridded feature cubes into a numpy array, with feature variables
         sorted alphabetically.
 
         Note: It is expected that feature_cubes has been aligned using
@@ -355,7 +355,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Cubelist containing the independent feature variables for prediction.
 
         Returns:
-            Dataframe containing flattened feature variables.
+            Array containing flattened feature variables,
 
         Raises:
             ValueError:
@@ -365,13 +365,14 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         feature_variables = [cube.name() for cube in feature_cubes]
         feature_variables.sort()
 
-        # Unpack the cube-data into dataframe to feed into the tree-models.
-        features_df = pd.DataFrame()
+        # Unpack the cube-data into an array to feed into the tree-models.
+        features_list = []
         for feature in feature_variables:
             cube = feature_cubes.extract_cube(feature)
-            features_df[feature] = cube.data.ravel()
+            features_list.append(cube.data.ravel()[:, np.newaxis])
+        features_arr = np.concatenate(features_list, axis=1)
 
-        return features_df
+        return features_arr
 
     def _make_decreasing(self, probability_data: ndarray) -> ndarray:
         """Enforce monotonicity on the error CDF data, where threshold dimension
@@ -397,6 +398,65 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
         return 0.5 * (upper + lower)
 
+    def _evaluate_probabilities(
+        self,
+        forecast_data: ndarray,
+        input_data: ndarray,
+        forecast_variable: str,
+        forecast_variable_unit: str,
+        output_data: ndarray,
+        model_input_converter: Optional[Callable[[ndarray], object]] = np.array,
+    ):
+        """Evaluate probability that error in forecast exceeds thresholds, setting
+        the result to 1 when `forecast + threshold` is less than or equal to
+        the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
+
+        Args:
+            forecast_data:
+                1-d containing data for the variable to be calibrated.
+            input_data:
+                2-d array of data for the feature variables of the model
+            forecast_variable:
+                name of forecast variable
+            forecast_variable_unit:
+                unit of forecast variable
+            output_data:
+                array to populate with output; will be modified in place
+            model_input_converter:
+                function to convert data from ndarray to model input format,
+                only used for treelite predictor
+        """
+
+        input_dataset = model_input_converter(input_data)
+
+        bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
+        bounds_unit = unit.Unit(bounds_data[1])
+        lower_bound = bounds_data[0][0]
+        lower_bound_in_fcst_units = bounds_unit.convert(
+            lower_bound, forecast_variable_unit
+        )
+
+        for threshold_index, model in enumerate(self.tree_models):
+            threshold = self.error_thresholds[threshold_index]
+            if threshold >= 0:
+                # In this case, for all values of forecast we have
+                # forecast + threshold >= forecast >= lower_bound_in_fcst_units
+                prediction = model.predict(input_dataset)
+            else:
+                # In this case, we have error > threshold if and only if
+                # observations > forecast + threshold, which has probability 1
+                # if forecast + threshold < lower_bound_in_fcst_units
+                prediction = np.ones(input_data.shape[0], dtype=np.float32)
+                forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
+                if np.any(forecast_bool):
+                    input_subset = input_data[forecast_bool]
+                    if model_input_converter:
+                        input_subset = model_input_converter(input_subset)
+                    prediction[forecast_bool] = model.predict(input_subset)
+            output_data[threshold_index, :] = np.reshape(
+                prediction, output_data.shape[1:]
+            )
+
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
     ) -> Cube:
@@ -419,13 +479,17 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
-        input_dataset = self._prepare_features_dataframe(feature_cubes)
+        input_dataset = self._prepare_features_array(feature_cubes)
 
-        for threshold_index, model in enumerate(self.tree_models):
-            prediction = model.predict(input_dataset)
-            error_probability_cube.data[threshold_index, ...] = np.reshape(
-                prediction, forecast_cube.data.shape
-            )
+        forecast_data = forecast_cube.data.ravel()
+
+        self._evaluate_probabilities(
+            forecast_data,
+            input_dataset,
+            forecast_cube.name(),
+            forecast_cube.units,
+            error_probability_cube.data,
+        )
 
         # Enforcing monotonicity
         error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
@@ -800,6 +864,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 Cubelist containing the independent feature variables for prediction.
         Returns:
             A cube containing error exceedence probabilities.
+
         Raises:
             ValueError:
                 If an unsupported model object is passed. Expects lightgbm Booster, or
@@ -809,14 +874,18 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
-        features_df = self._prepare_features_dataframe(feature_cubes)
-        input_dataset = DMatrix(features_df.values)
+        input_data = self._prepare_features_array(feature_cubes)
 
-        for threshold_index, model in enumerate(self.tree_models):
-            prediction = model.predict(input_dataset)
-            error_probability_cube.data[threshold_index, ...] = np.reshape(
-                prediction, forecast_cube.data.shape
-            )
+        forecast_data = forecast_cube.data.ravel()
+
+        self._evaluate_probabilities(
+            forecast_data,
+            input_data,
+            forecast_cube.name(),
+            forecast_cube.units,
+            error_probability_cube.data,
+            DMatrix,
+        )
 
         # Enforcing monotonicity
         error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
