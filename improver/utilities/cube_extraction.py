@@ -36,7 +36,6 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from iris import Constraint
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -392,17 +391,16 @@ class ExtractPressureLevel(BasePlugin):
 
         self.fill_invalid(variable_on_pressure_levels)
 
-        try:
+        if "realization" in [c.name() for c in variable_on_pressure_levels.dim_coords]:
             slicer = variable_on_pressure_levels.slices_over((["realization"]))
-        except CoordinateNotFoundError:
-            slicer = [variable_on_pressure_levels]
-            one_slice = variable_on_pressure_levels
-            has_r_coord = False
-        else:
             one_slice = variable_on_pressure_levels.slices_over(
                 (["realization"])
             ).next()
             has_r_coord = True
+        else:
+            slicer = [variable_on_pressure_levels]
+            one_slice = variable_on_pressure_levels
+            has_r_coord = False
         p_grid = self.pressure_grid(one_slice).astype(np.float32)
         (pressure_axis,) = one_slice.coord_dims("pressure")
         result_data = np.empty_like(
