@@ -31,7 +31,7 @@
 """module to calculate hail_size"""
 
 from bisect import bisect_right
-from typing import List, Optional, Tuple
+from typing import List, Tuple
 
 import numpy as np
 from iris.cube import Cube
@@ -48,127 +48,8 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     saturated_humidity,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.cube_extraction import ExtractPressureLevel
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-
-
-class ExtractPressureLevel(BasePlugin):
-    """
-    Class for extracting a pressure surface from data-on-pressure-levels.
-    """
-
-    def __init__(
-        self,
-        value_of_pressure_level: Optional[float] = None,
-    ):
-        """Sets up Class
-            Args:
-                value_of_pressure_level:
-                    The value of the input cube for which the pressure level is required
-        """
-
-        self.value_of_pressure_level = value_of_pressure_level
-
-    def process(self, cube: Cube) -> Cube:
-        """
-        Main entry point.
-
-        Args:
-            cube: Variable on pressure levels from which a pressure slice is required
-
-        Returns:
-            iris.cube.Cube: A pressure surface where the variable equals a specific value
-        """
-        result = self.extract_pressure_at_value(cube)
-        return result
-
-    @staticmethod
-    def pressure_grid(variable_on_pressure: Cube) -> np.ndarray:
-        """Creates a pressure grid of the same shape as variable_on_pressure cube.
-        It is populated at every grid square and for every realization with
-        a column of all pressure levels taken from variable_on_pressure's pressure coordinate
-
-        Args:
-            variable_on_pressure:
-                Cube of some variable with pressure levels
-        Returns:
-            An n dimensional array with the same dimensions as variable_on_pressure containing,
-            at every grid square and for every realization, a column of all pressure levels
-            taken from variable_on_pressure's pressure coordinate
-        """
-
-        required_shape = variable_on_pressure.shape
-        pressure_points = variable_on_pressure.coord("pressure").points
-        (pressure_axis,) = variable_on_pressure.coord_dims("pressure")
-        pressure_shape = np.ones_like(required_shape)
-        pressure_shape[pressure_axis] = required_shape[pressure_axis]
-        pressure_array = np.broadcast_to(
-            pressure_points.reshape(pressure_shape), required_shape
-        )
-        return pressure_array
-
-    @staticmethod
-    def fill_invalid(cube: Cube):
-        """Populate any invalid values with the maximum in that column on the assumption
-        that missing values fall below the model's surface."""
-        (pressure_axis,) = cube.coord_dims("pressure")
-        cube_shape = np.array(cube.shape)
-        max_shape = cube_shape.copy()
-        max_shape[pressure_axis] = 1
-        max_values = np.nanmax(cube.data, axis=pressure_axis).reshape(max_shape)
-        cube.data = np.where(np.isnan(cube.data), max_values, cube.data)
-
-    def extract_pressure_at_value(self, variable_on_pressure_levels: Cube) -> Cube:
-        """Extracts the pressure level where the environment
-        variable first drops below self.value_of_pressure_level starting at a pressure value
-        near the surface and ascending in altitude from there.
-
-        Args:
-            variable_on_pressure_levels:
-                A cube of data on pressure levels
-        Returns:
-            A cube of the environment pressure at self.value_of_pressure_level
-        """
-        from stratify import interpolate
-
-        self.fill_invalid(variable_on_pressure_levels)
-
-        try:
-            slicer = variable_on_pressure_levels.slices_over((["realization"]))
-        except CoordinateNotFoundError:
-            slicer = [variable_on_pressure_levels]
-            one_slice = variable_on_pressure_levels
-            has_r_coord = False
-        else:
-            one_slice = variable_on_pressure_levels.slices_over((["realization"])).next()
-            has_r_coord = True
-        p_grid = self.pressure_grid(one_slice).astype(np.float32)
-        (pressure_axis,) = one_slice.coord_dims("pressure")
-        result_data = np.empty_like(
-            variable_on_pressure_levels.slices_over((["pressure"])).next().data
-        )
-        for i, zyx_slice in enumerate(slicer):
-            interp_data = interpolate(
-                np.array([self.value_of_pressure_level], dtype=np.float32),
-                zyx_slice.data.data,
-                p_grid,
-                axis=pressure_axis,
-            ).squeeze(axis=pressure_axis)
-            if has_r_coord:
-                result_data[i] = interp_data
-            else:
-                result_data = interp_data
-        result_data = np.ma.masked_invalid(result_data)
-
-        pressure_cube = next(variable_on_pressure_levels.slices_over(["pressure"])).copy(
-            result_data
-        )
-        pressure_cube.rename(
-            "pressure_of_atmosphere_at_"
-            f"{self.value_of_pressure_level}{variable_on_pressure_levels.units}"
-        )
-        pressure_cube.units = variable_on_pressure_levels.coord("pressure").units
-        pressure_cube.remove_coord("pressure")
-        return pressure_cube
 
 
 class HailSize(BasePlugin):
