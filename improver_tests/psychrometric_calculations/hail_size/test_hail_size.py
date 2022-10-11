@@ -185,10 +185,12 @@ def test_basic_hail_size(
     """Tests the hail_size plugin with values for ccl temperature, ccl pressure,
     wet_bulb_freezing_height and relative humidity to check for expected result.
     Also checks the metadata of the produced hail_size cube"""
-    ccl_pressure.data = np.full_like(ccl_pressure.data, ccl_p)
-    ccl_temperature.data = np.full_like(ccl_temperature.data, ccl_t)
-    wet_bulb_freezing.data = np.full_like(wet_bulb_freezing.data, wbz)
-    orography.data = np.full_like(orography.data, orog)
+    ccl_pressure.data[..., 0, 0] = ccl_p
+    ccl_temperature.data[..., 0, 0] = ccl_t
+    wet_bulb_freezing.data[..., 0, 0] = wbz
+    orography.data[0, 0] = orog
+    expected_data = np.full_like(ccl_temperature.data, 0.1)
+    expected_data[..., 0, 0] = expected
 
     result = HailSize()(
         ccl_temperature,
@@ -197,7 +199,7 @@ def test_basic_hail_size(
         wet_bulb_freezing,
         orography,
     )
-    np.testing.assert_array_almost_equal(result.data, expected)
+    np.testing.assert_array_almost_equal(result.data, expected_data)
     metadata_check(result)
     cube_shape_check(result)
 
