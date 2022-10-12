@@ -64,7 +64,7 @@ def temperature_on_pressure_levels() -> Cube:
 
 
 def metadata_check(pressure_slice_cube: Cube, value: float, units: str):
-    """Checks the hail cube produced by plugin has the expected metadata."""
+    """Checks the cube produced by plugin has the expected metadata."""
     assert pressure_slice_cube.long_name == f"pressure_of_atmosphere_at_{value}{units}"
     assert pressure_slice_cube.units == "Pa"
     assert pressure_slice_cube.attributes == {
@@ -112,7 +112,7 @@ def cube_shape_check_without_realizations(pressure_slice_cube):
         (244, 30000),  # Temperature below min snaps to min
     ),
 )
-def test_basic_hail_size(
+def test_basic(
     temperature, temperature_on_pressure_levels, expected, with_realization,
 ):
     """Tests the ExtractPressureLevel plugin with values for temperature and
