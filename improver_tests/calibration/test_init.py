@@ -560,7 +560,10 @@ def test_matching_validity_times(time, validity_times, expected):
     assert result is expected
 
 
-def test_add_warning_to_comment():
+@pytest.mark.parametrize(
+    "comment", [(None), ("Example comment")],
+)
+def test_add_warning_to_comment(comment):
     """Test the addition of a warning comment if calibration has been attempted
     but not applied successfully."""
     expected = (
@@ -569,6 +572,9 @@ def test_add_warning_to_comment():
     )
     data = np.zeros((2, 2), dtype=np.float32)
     cube = set_up_variable_cube(data)
+    if comment:
+        cube.attributes["comment"] = comment
+        expected = "\n".join([comment, expected])
     result = add_warning_comment(cube)
     assert result.attributes["comment"] == expected
 

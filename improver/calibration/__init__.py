@@ -209,14 +209,14 @@ def split_forecasts_and_coeffs(
     )
 
 
-def validity_time_check(forecast: Cube, validity_times) -> bool:
+def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:
     """Check the validity time of the forecast matches the accepted validity times
     within the validity times list.
 
     Args:
         forecast:
             Cube containing the forecast to be calibrated.
-        validity_times (List[str]):
+        validity_times:
             Times at which the forecast must be valid. This must be provided
             as a four digit string (HHMM) where the first two digits represent the hour
             and the last two digits represent the minutes e.g. 0300 or 0315. If the
@@ -242,8 +242,14 @@ def add_warning_comment(forecast: Cube) -> Cube:
     Returns:
         Forecast with an additional comment.
     """
-    forecast.attributes["comment"] = (
-        "Warning: Calibration of this forecast has been attempted, "
-        "however, no calibration has been applied."
-    )
+    if forecast.attributes.get("comment", None):
+        forecast.attributes["comment"] = forecast.attributes["comment"] + (
+            "\nWarning: Calibration of this forecast has been attempted, "
+            "however, no calibration has been applied."
+        )
+    else:
+        forecast.attributes["comment"] = (
+            "Warning: Calibration of this forecast has been attempted, "
+            "however, no calibration has been applied."
+        )
     return forecast
