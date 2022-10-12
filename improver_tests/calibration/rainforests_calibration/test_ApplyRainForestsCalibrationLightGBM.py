@@ -299,7 +299,7 @@ def test_make_decreasing():
 def test__calculate_error_probabilities(
     ensemble_features, ensemble_forecast, plugin_and_dummy_models
 ):
-    """Test calculation of error probability cube when using treelite Predictors."""
+    """Test calculation of error probability cube."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_models
