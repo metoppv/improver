@@ -29,7 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing the CloudTopTemperature plugin"""
-import copy
 
 import numpy as np
 from iris.cube import Cube
@@ -81,22 +80,36 @@ class CloudTopTemperature(PostProcessingPlugin):
         CCT is the saturated adiabatic temperature at the last atmosphere pressure level where
         the profile is buoyant.
         Temperature data are in Kelvin, Pressure data are in pascals, humidity data are in kg/kg.
+        A mask is used to keep track of which columns have already been solved, so that they
+        are not included in future iterations (x3 speed-up).
         """
         cct = np.ma.masked_array(self.t_at_ccl.data.copy())
         q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
-        ccl_with_mask = np.ma.where(True, self.t_at_ccl.data, False)
+        ccl_with_mask = np.ma.masked_array(
+            self.t_at_ccl.data, np.full_like(self.t_at_ccl.data, False, dtype=bool)
+        )
         for t in self.temperature.slices_over("pressure"):
-            t_loc = copy.deepcopy(t)
+            t_loc = t.data[~ccl_with_mask.mask]
             (p,) = t.coord("pressure").points
-            t_dry = dry_adiabatic_temperature(self.t_at_ccl.data, self.p_at_ccl.data, p)
-            t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl, p)
+            t_dry = dry_adiabatic_temperature(
+                self.t_at_ccl.data[~ccl_with_mask.mask],
+                self.p_at_ccl.data[~ccl_with_mask.mask],
+                p,
+            )
+            t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl[~ccl_with_mask.mask], p)
             # Mask out points where parcel temperature, t_2, is less than atmosphere temperature, t,
             # but only after the parcel pressure, p, becomes lower than the cloud base pressure.
+            t_2_full = np.full_like(t.data, 99999)
+            t_2_full[~ccl_with_mask.mask] = t_2
+            t_loc_full = np.zeros_like(t.data)
+            t_loc_full[~ccl_with_mask.mask] = t_loc
             ccl_with_mask = np.ma.masked_where(
-                (t_2 < t_loc.data) & (p < self.p_at_ccl.data), ccl_with_mask,
+                (t_2_full < t_loc_full) & (p < self.p_at_ccl.data), ccl_with_mask,
             )
-            cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
+            cct[~ccl_with_mask.mask] = t_2_full[~ccl_with_mask.mask]
             del t
+            if (~ccl_with_mask.mask).sum() == 0:
+                break
 
         cct = np.ma.masked_where(self.t_at_ccl.data - cct < self.minimum_t_diff, cct)
 
