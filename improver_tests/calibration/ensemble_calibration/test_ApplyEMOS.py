@@ -36,6 +36,7 @@ from typing import Sequence, Union
 
 import iris
 import numpy as np
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
@@ -491,6 +492,25 @@ class Test_process(IrisTest):
         self.assertArrayEqual(
             result.coord("percentile").points, self.alternative_percentiles
         )
+
+    def test_period_percentiles(self):
+        """Test that cell methods are preserved on the calibrated forecast, if
+        present on the input forecast."""
+        self.percentiles.coord("time").bounds = [
+            int(self.percentiles.coord("time").points - 3600),
+            int(self.percentiles.coord("time").points),
+        ]
+
+        cell_methods = CellMethod("maximum", coords="time")
+        self.percentiles.add_cell_method(cell_methods)
+
+        result = ApplyEMOS()(self.percentiles, self.coefficients, realizations_count=3)
+        self.assertIn("percentile", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        self.assertAlmostEqual(
+            np.mean(result.data), self.null_percentiles_expected_mean
+        )
+        self.assertEqual(result.cell_methods[0], cell_methods)
 
     def test_invalid_attribute(self):
         """Test that an exception is raised if multiple different distribution

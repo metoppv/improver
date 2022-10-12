@@ -376,6 +376,28 @@ def test_percentile_sites_additional_predictor(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_percentile_sites_period_diagnostic(tmp_path):
+    """Test using percentile site forecasts where the diagnostic supplied
+    represents a period e.g. daytime max temperature."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/percentile_period"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / ".." / "percentile_period_input.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--realizations-count",
+        "18",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_perc_in_prob_out_sites_additional_predictor(tmp_path):
     """Test using percentile site forecasts with a static additional
     predictor and a probability template to generate a probability
