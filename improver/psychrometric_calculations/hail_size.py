@@ -227,7 +227,9 @@ class HailSize(BasePlugin):
                 orography:
                     Cube of the orography height.
         """
-        coord_order = ["realization", "pressure"] + [temperature_on_pressure.coord(axis=axis).name() for axis in "yx"]
+        coord_order = ["realization", "pressure"] + [
+            temperature_on_pressure.coord(axis=axis).name() for axis in "yx"
+        ]
         self.final_order = [c.name() for c in wet_bulb_zero_asl.dim_coords]
         for cube in [
             ccl_temperature,
