@@ -122,6 +122,26 @@ def test_mean_temperature(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_mean_temperature_cell_method(tmp_path):
+    """Test combining mean temperature with a cell_method_coordinate provided."""
+    kgo_dir = acc.kgo_root() / "combine/mean_cellmethods"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_dir = acc.kgo_root() / "combine/bounds"
+    temperatures = sorted(input_dir.glob("*temperature_at_screen_level.nc"))
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--operation",
+        "mean",
+        "--cell-method-coordinate",
+        "time",
+        *temperatures,
+        "--output",
+        f"{output_path}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_combine_broadcast(tmp_path):
     """Test combining precipitation realizations with phaseprob"""
     kgo_dir = acc.kgo_root() / "combine/broadcast"
@@ -142,9 +162,9 @@ def test_combine_broadcast(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_cell_methods(tmp_path):
+def test_multiplication_cell_methods(tmp_path):
     """Test cell method comments are updated for multiplication"""
-    kgo_dir = acc.kgo_root() / "combine/cellmethods"
+    kgo_dir = acc.kgo_root() / "combine/multiplication_cellmethods"
     kgo_path = kgo_dir / "kgo.nc"
     precipaccum = kgo_dir / "precipitation_accumulation-PT01H.nc"
     precipphase = kgo_dir / "precipitation_is_snow.nc"
