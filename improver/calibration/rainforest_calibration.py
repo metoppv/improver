@@ -405,7 +405,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         forecast_variable: str,
         forecast_variable_unit: str,
         output_data: ndarray,
-    ):
+    ) -> None:
         """Evaluate probability that error in forecast exceeds thresholds, setting
         the result to 1 when `forecast + threshold` is less than or equal to
         the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
