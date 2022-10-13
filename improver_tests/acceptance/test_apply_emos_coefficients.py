@@ -428,6 +428,7 @@ def test_perc_in_prob_out_sites_additional_predictor(tmp_path):
 def test_no_coefficients(tmp_path):
     """Test no coefficients provided"""
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
+    kgo_path = kgo_dir / "kgo_with_comment.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -439,13 +440,17 @@ def test_no_coefficients(tmp_path):
     ]
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
         run_cli(args)
+    # Check output matches input excluding the comment attribute.
     acc.compare(
         output_path,
         input_path,
         recreate=False,
         atol=LOOSE_TOLERANCE,
         rtol=LOOSE_TOLERANCE,
+        exclude_attributes="comment",
     )
+    # Check output matches kgo.
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
 def test_no_coefficients_percentiles(tmp_path):
@@ -512,3 +517,57 @@ def test_wrong_coefficients(tmp_path):
     ]
     with pytest.raises(ValueError, match="Multiple items have been provided.*"):
         run_cli(args)
+
+
+def test_matching_validity_times(tmp_path):
+    """Test passing validity times when the forecast validity time matches
+    one of the validity times within the list."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    emos_est_path = kgo_dir / "normal_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--validity-times",
+        "1500,1800,2100",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
+def test_mismatching_validity_times(tmp_path):
+    """Test passing validity times when the forecast validity time does not match
+    any of the validity times within the list."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
+    kgo_path = kgo_dir / "kgo_with_comment.nc"
+    input_path = kgo_dir / "input.nc"
+    emos_est_path = kgo_dir / "normal_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--validity-times",
+        "0600,0900,1200",
+        "--random-seed",
+        "0",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    # Check output matches input excluding the comment attribute.
+    acc.compare(
+        output_path,
+        input_path,
+        recreate=False,
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
+        exclude_attributes="comment",
+    )
+    # Check output matches kgo.
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)

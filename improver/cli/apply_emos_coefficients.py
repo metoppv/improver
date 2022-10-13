@@ -40,6 +40,7 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcubelist,
+    validity_times: cli.comma_separated_list = None,
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
@@ -83,6 +84,12 @@ def process(
             or percentiles. If no coefficients are provided and a probability
             template is provided, the probability template forecast will be
             returned as the uncalibrated probability forecast.
+        validity_times (List[str]):
+            Times at which the forecast must be valid. This must be provided
+            as a four digit string (HHMM) where the first two digits represent the hour
+            and the last two digits represent the minutes e.g. 0300 or 0315. If the
+            forecast provided is at a different validity time then no coefficients
+            will be applied.
         realizations_count (int):
             Option to specify the number of ensemble realizations that will be
             created from probabilities or percentiles when applying the EMOS
@@ -131,7 +138,11 @@ def process(
 
     import numpy as np
 
-    from improver.calibration import split_forecasts_and_coeffs
+    from improver.calibration import (
+        add_warning_comment,
+        split_forecasts_and_coeffs,
+        validity_time_check,
+    )
     from improver.calibration.ensemble_calibration import ApplyEMOS
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ResamplePercentiles,
@@ -144,6 +155,10 @@ def process(
         land_sea_mask,
         prob_template,
     ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+
+    if validity_times is not None and not validity_time_check(forecast, validity_times):
+        forecast = add_warning_comment(forecast)
+        return forecast
 
     if coefficients is None:
         if prob_template:
@@ -168,6 +183,8 @@ def process(
             "uncalibrated forecast will be returned."
         )
         warnings.warn(msg)
+
+        forecast = add_warning_comment(forecast)
         return forecast
 
     calibration_plugin = ApplyEMOS(percentiles=percentiles)

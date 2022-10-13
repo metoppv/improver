@@ -35,9 +35,15 @@ from datetime import datetime
 
 import iris
 import numpy as np
+import pytest
 from iris.cube import CubeList
 
-from improver.calibration import split_forecasts_and_coeffs, split_forecasts_and_truth
+from improver.calibration import (
+    add_warning_comment,
+    split_forecasts_and_coeffs,
+    split_forecasts_and_truth,
+    validity_time_check,
+)
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
@@ -534,6 +540,43 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
                 ),
                 self.land_sea_mask_name,
             )
+
+
+@pytest.mark.parametrize(
+    "time,validity_times,expected",
+    [
+        (datetime(2017, 11, 10, 4, 0), ["0400", "0500", "0600"], True),
+        (datetime(2017, 11, 10, 4, 15), ["0415", "0430", "0445"], True),
+        (datetime(2017, 11, 10, 4, 0), ["0000", "0100", "0200"], False),
+    ],
+)
+def test_matching_validity_times(time, validity_times, expected):
+    """Test that True is returned if the forecast contains a validity time that
+    matches with a validity time within the list provided.
+    Otherwise, False is returned."""
+    data = np.zeros((2, 2), dtype=np.float32)
+    forecast = set_up_variable_cube(data, time=time)
+    result = validity_time_check(forecast, validity_times)
+    assert result is expected
+
+
+@pytest.mark.parametrize(
+    "comment", [(None), ("Example comment")],
+)
+def test_add_warning_to_comment(comment):
+    """Test the addition of a warning comment if calibration has been attempted
+    but not applied successfully."""
+    expected = (
+        "Warning: Calibration of this forecast has been attempted, "
+        "however, no calibration has been applied."
+    )
+    data = np.zeros((2, 2), dtype=np.float32)
+    cube = set_up_variable_cube(data)
+    if comment:
+        cube.attributes["comment"] = comment
+        expected = "\n".join([comment, expected])
+    result = add_warning_comment(cube)
+    assert result.attributes["comment"] == expected
 
 
 if __name__ == "__main__":

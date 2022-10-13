@@ -331,6 +331,7 @@ def compare(
     atol=DEFAULT_TOLERANCE,
     rtol=DEFAULT_TOLERANCE,
     exclude_vars=None,
+    exclude_attributes=None,
 ):
     """
     Compare output against expected using KGO file with absolute and
@@ -343,6 +344,7 @@ def compare(
         atol (float): Absolute tolerance
         rtol (float): Relative tolerance
         exclude_vars (Iterable[str]): Variables to exclude from comparison
+        exclude_attributes (Iterable[str]): Attributes to exclude from comparison
 
     Returns:
         None
@@ -365,6 +367,13 @@ def compare(
         difference_found = True
         message = exception_message
 
+    if exclude_attributes:
+        if isinstance(exclude_attributes, str):
+            exclude_attributes = [exclude_attributes]
+        exclude_attributes.extend(IGNORED_ATTRIBUTES)
+    else:
+        exclude_attributes = IGNORED_ATTRIBUTES
+
     compare_netcdfs(
         output_path,
         kgo_path,
@@ -372,7 +381,7 @@ def compare(
         rtol=rtol,
         exclude_vars=exclude_vars,
         reporter=message_recorder,
-        ignored_attributes=IGNORED_ATTRIBUTES,
+        ignored_attributes=exclude_attributes,
     )
     if difference_found:
         if recreate:
