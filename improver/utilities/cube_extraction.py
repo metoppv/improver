@@ -327,19 +327,6 @@ class ExtractPressureLevel(BasePlugin):
 
         self.value_of_pressure_level = value_of_pressure_level
 
-    def process(self, cube: Cube) -> Cube:
-        """
-        Main entry point.
-
-        Args:
-            cube: Variable on pressure levels from which a pressure slice is required
-
-        Returns:
-            iris.cube.Cube: A pressure surface where the variable equals a specific value
-        """
-        result = self.extract_pressure_at_value(cube)
-        return result
-
     @staticmethod
     def pressure_grid(variable_on_pressure: Cube) -> np.ndarray:
         """Creates a pressure grid of the same shape as variable_on_pressure cube.
@@ -429,3 +416,16 @@ class ExtractPressureLevel(BasePlugin):
         pressure_cube.units = variable_on_pressure_levels.coord("pressure").units
         pressure_cube.remove_coord("pressure")
         return pressure_cube
+
+    def process(self, cube: Cube) -> Cube:
+        """
+        Main entry point.
+
+        Args:
+            cube: Variable on pressure levels from which a pressure slice is required
+
+        Returns:
+            iris.cube.Cube: A pressure surface where the variable equals a specific value
+        """
+        result = self.extract_pressure_at_value(cube)
+        return result
