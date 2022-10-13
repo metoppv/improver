@@ -363,7 +363,22 @@ class ExtractPressureLevel(BasePlugin):
         max_values = np.nanmax(cube.data, axis=pressure_axis).reshape(max_shape)
         cube.data = np.where(np.isnan(cube.data), max_values, cube.data)
 
-    def extract_pressure_at_value(self, variable_on_pressure_levels: Cube) -> Cube:
+    def _make_pressure_cube(
+        self, result_data: np.array, variable_on_pressure_levels: Cube
+    ) -> Cube:
+        """Creates a cube of the variable on a pressure level based on the input cube"""
+        pressure_cube = next(
+            variable_on_pressure_levels.slices_over(["pressure"])
+        ).copy(result_data)
+        pressure_cube.rename(
+            "pressure_of_atmosphere_at_"
+            f"{self.value_of_pressure_level}{variable_on_pressure_levels.units}"
+        )
+        pressure_cube.units = variable_on_pressure_levels.coord("pressure").units
+        pressure_cube.remove_coord("pressure")
+        return pressure_cube
+
+    def process(self, variable_on_pressure_levels: Cube) -> Cube:
         """Extracts the pressure level where the environment
         variable first intersects self.value_of_pressure_level starting at a pressure value
         near the surface and ascending in altitude from there.
@@ -406,26 +421,7 @@ class ExtractPressureLevel(BasePlugin):
                 result_data = interp_data
         result_data = np.ma.masked_invalid(result_data)
 
-        pressure_cube = next(
-            variable_on_pressure_levels.slices_over(["pressure"])
-        ).copy(result_data)
-        pressure_cube.rename(
-            "pressure_of_atmosphere_at_"
-            f"{self.value_of_pressure_level}{variable_on_pressure_levels.units}"
+        pressure_cube = self._make_pressure_cube(
+            result_data, variable_on_pressure_levels
         )
-        pressure_cube.units = variable_on_pressure_levels.coord("pressure").units
-        pressure_cube.remove_coord("pressure")
         return pressure_cube
-
-    def process(self, cube: Cube) -> Cube:
-        """
-        Main entry point.
-
-        Args:
-            cube: Variable on pressure levels from which a pressure slice is required
-
-        Returns:
-            iris.cube.Cube: A pressure surface where the variable equals a specific value
-        """
-        result = self.extract_pressure_at_value(cube)
-        return result

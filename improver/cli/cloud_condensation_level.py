@@ -76,7 +76,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     cubes = flatten(cubes)
     (temperature, pressure, humidity,) = CubeList(cubes).extract(
-        ["air_temperature", "air_pressure", "relative_humidity"]
+        ["air_temperature", "surface_air_pressure", "relative_humidity"]
     )
 
     humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
