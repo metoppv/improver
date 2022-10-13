@@ -35,6 +35,10 @@ import pytest
 from iris import Constraint
 from iris.cube import CubeList
 
+from improver.calibration.rainforest_calibration import (
+    ApplyRainForestsCalibrationLightGBM,
+    ApplyRainForestsCalibrationTreelite,
+)
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
@@ -248,6 +252,24 @@ def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
         tree_models.append(predictor)
 
     return tree_models, error_thresholds
+
+
+@pytest.fixture(params=["lightgbm", "treelite"])
+def plugin_and_dummy_models(request):
+    if request.param == "lightgbm":
+        _ = pytest.importorskip("lightgbm")
+        return (
+            ApplyRainForestsCalibrationLightGBM,
+            request.getfixturevalue("dummy_lightgbm_models"),
+        )
+    elif request.param == "treelite":
+        _ = pytest.importorskip("treelite")
+        return (
+            ApplyRainForestsCalibrationTreelite,
+            request.getfixturevalue("dummy_treelite_models"),
+        )
+    else:
+        pytest.fail("unknown plugin type")
 
 
 @pytest.fixture

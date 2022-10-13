@@ -39,7 +39,7 @@
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Optional, Tuple
 
 import cf_units as unit
 import numpy as np
@@ -204,7 +204,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         self.error_thresholds = np.array([*sorted_model_config_dict.keys()])
-
+        self.model_input_converter = np.array
         lightgbm_model_filenames = [
             Path(threshold_dict.get("lightgbm_model")).expanduser()
             for threshold_dict in sorted_model_config_dict.values()
@@ -405,8 +405,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         forecast_variable: str,
         forecast_variable_unit: str,
         output_data: ndarray,
-        model_input_converter: Optional[Callable[[ndarray], object]] = np.array,
-    ):
+    ) -> None:
         """Evaluate probability that error in forecast exceeds thresholds, setting
         the result to 1 when `forecast + threshold` is less than or equal to
         the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
@@ -422,12 +421,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 unit of forecast variable
             output_data:
                 array to populate with output; will be modified in place
-            model_input_converter:
-                function to convert data from ndarray to model input format,
-                only used for treelite predictor
         """
 
-        input_dataset = model_input_converter(input_data)
+        input_dataset = self.model_input_converter(input_data)
 
         bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
         bounds_unit = unit.Unit(bounds_data[1])
@@ -449,13 +445,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 prediction = np.ones(input_data.shape[0], dtype=np.float32)
                 forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
                 if np.any(forecast_bool):
-                    input_subset = input_data[forecast_bool]
-                    if model_input_converter:
-                        input_subset = model_input_converter(input_subset)
+                    input_subset = self.model_input_converter(input_data[forecast_bool])
                     prediction[forecast_bool] = model.predict(input_subset)
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
             )
+        return
 
     def _calculate_error_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
@@ -820,7 +815,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         The keys specify the error threshold value, while the associated values
         are the path to the corresponding tree-model objects for that threshold.
         """
-        from treelite_runtime import Predictor
+        from treelite_runtime import DMatrix, Predictor
 
         # Dictionary keys represent error thresholds, however may be strings as they
         # are sourced from json files. In order use these in processing, and to sort
@@ -830,7 +825,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         )
 
         self.error_thresholds = np.array([*sorted_model_config_dict.keys()])
-
+        self.model_input_converter = DMatrix
         treelite_model_filenames = [
             Path(threshold_dict.get("treelite_model")).expanduser()
             for threshold_dict in sorted_model_config_dict.values()
@@ -851,43 +846,3 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             raise ValueError(
                 "Number of expected features does not match number of feature cubes."
             )
-
-    def _calculate_error_probabilities(
-        self, forecast_cube: Cube, feature_cubes: CubeList,
-    ) -> Cube:
-        """Evaluate the error exceedence probabilities for forecast_cube using the tree_models,
-        with the associated feature_cubes taken as inputs to the tree_model predictors.
-        Args:
-            forecast_cube:
-                Cube containing the variable to be calibrated.
-            feature_cubes:
-                Cubelist containing the independent feature variables for prediction.
-        Returns:
-            A cube containing error exceedence probabilities.
-
-        Raises:
-            ValueError:
-                If an unsupported model object is passed. Expects lightgbm Booster, or
-                treelite_runtime Predictor (if treelite dependency is available).
-        """
-        from treelite_runtime import DMatrix
-
-        error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
-
-        input_data = self._prepare_features_array(feature_cubes)
-
-        forecast_data = forecast_cube.data.ravel()
-
-        self._evaluate_probabilities(
-            forecast_data,
-            input_data,
-            forecast_cube.name(),
-            forecast_cube.units,
-            error_probability_cube.data,
-            DMatrix,
-        )
-
-        # Enforcing monotonicity
-        error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
-
-        return error_probability_cube

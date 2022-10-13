@@ -95,10 +95,11 @@ def test__init__(
         assert f"{threshold:06.4f}" in str(model.model_file)
 
 
-def test__check_num_features(ensemble_features, dummy_lightgbm_models):
+def test__check_num_features(ensemble_features, plugin_and_dummy_models):
     """Test number of features expected by tree_models matches features passed in."""
-    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
-    plugin.tree_models, _ = dummy_lightgbm_models
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, _ = dummy_models
     plugin._check_num_features(ensemble_features)
     with pytest.raises(ValueError):
         plugin._check_num_features(ensemble_features[:-1])
@@ -210,12 +211,13 @@ def test__prepare_features_array(ensemble_features):
 
 
 def test__evaluate_probabilities(
-    ensemble_features, ensemble_forecast, dummy_lightgbm_models, error_threshold_cube
+    ensemble_features, ensemble_forecast, error_threshold_cube, plugin_and_dummy_models
 ):
     """Test that _evaluate_probabilities populates error_threshold_cube.data with
     probability data."""
-    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
     forecast_data = ensemble_forecast.data.ravel()
     data_before = error_threshold_cube.data.copy()
@@ -295,11 +297,12 @@ def test_make_decreasing():
 
 
 def test__calculate_error_probabilities(
-    ensemble_features, ensemble_forecast, dummy_lightgbm_models
+    ensemble_features, ensemble_forecast, plugin_and_dummy_models
 ):
-    """Test calculation of error probability cube when using lightgbm Boosters."""
-    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+    """Test calculation of error probability cube."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
     result = plugin._calculate_error_probabilities(ensemble_forecast, ensemble_features)
 
     # Check that data has sensible probability values.
@@ -423,10 +426,13 @@ def test__combine_subensembles(error_percentile_cube):
     assert result.coord("realization").points.size == 10
 
 
-def test_process_ensemble(ensemble_forecast, ensemble_features, dummy_lightgbm_models):
-    """Test process routine using lightgbm booster."""
-    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+def test_process_ensemble(
+    ensemble_forecast, ensemble_features, plugin_and_dummy_models
+):
+    """Test process routine with ensemble data."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
 
     for output_realization_count in (None, 10):
         result = plugin.process(
@@ -457,11 +463,12 @@ def test_process_ensemble(ensemble_forecast, ensemble_features, dummy_lightgbm_m
 
 
 def test_process_deterministic(
-    deterministic_forecast, deterministic_features, dummy_lightgbm_models
+    deterministic_forecast, deterministic_features, plugin_and_dummy_models
 ):
-    """Test process routine using lightgbm booster."""
-    plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_lightgbm_models
+    """Test process routine with deterministic data."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
 
     for output_realization_count in (None, 10):
         result = plugin.process(
