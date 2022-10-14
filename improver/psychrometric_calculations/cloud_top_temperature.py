@@ -89,24 +89,28 @@ class CloudTopTemperature(PostProcessingPlugin):
             self.t_at_ccl.data, np.full_like(self.t_at_ccl.data, False, dtype=bool)
         )
         for t in self.temperature.slices_over("pressure"):
-            t_loc = t.data[~ccl_with_mask.mask]
-            (p,) = t.coord("pressure").points
-            t_dry = dry_adiabatic_temperature(
+            t_environment = t.data[~ccl_with_mask.mask]
+            (pressure,) = t.coord("pressure").points
+            t_dry_parcel = dry_adiabatic_temperature(
                 self.t_at_ccl.data[~ccl_with_mask.mask],
                 self.p_at_ccl.data[~ccl_with_mask.mask],
-                p,
+                pressure,
             )
-            t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl[~ccl_with_mask.mask], p)
-            # Mask out points where parcel temperature, t_2, is less than atmosphere temperature, t,
-            # but only after the parcel pressure, p, becomes lower than the cloud base pressure.
-            t_2_full = np.full_like(t.data, 99999)
-            t_2_full[~ccl_with_mask.mask] = t_2
-            t_loc_full = np.zeros_like(t.data)
-            t_loc_full[~ccl_with_mask.mask] = t_loc
+            t_parcel, _ = adjust_for_latent_heat(
+                t_dry_parcel, q_at_ccl[~ccl_with_mask.mask], pressure
+            )
+            # Mask out points where parcel temperature, t_parcel, is less than atmosphere
+            # temperature, t, but only after the parcel pressure, becomes lower than the
+            # cloud base pressure.
+            t_parcel_full = np.full_like(t.data, 99999)
+            t_parcel_full[~ccl_with_mask.mask] = t_parcel
+            t_env_full = np.zeros_like(t.data)
+            t_env_full[~ccl_with_mask.mask] = t_environment
             ccl_with_mask = np.ma.masked_where(
-                (t_2_full < t_loc_full) & (p < self.p_at_ccl.data), ccl_with_mask,
+                (t_parcel_full < t_env_full) & (pressure < self.p_at_ccl.data),
+                ccl_with_mask,
             )
-            cct[~ccl_with_mask.mask] = t_2_full[~ccl_with_mask.mask]
+            cct[~ccl_with_mask.mask] = t_parcel_full[~ccl_with_mask.mask]
             del t
             if (~ccl_with_mask.mask).sum() == 0:
                 break
