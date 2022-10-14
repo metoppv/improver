@@ -186,16 +186,13 @@ class Test_process(CombinerTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_addition_cell_method_coordinate(self):
-        """Test that a cell method is not added, if a cell method coordinate is
-        provided and an addition operation is undertaken."""
+        """Test that an exception is raised if a cell method coordinate is provided
+        and the operation is not max, min or mean."""
         plugin = CubeCombiner("add", cell_method_coordinate="time")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
-        input_copy = deepcopy(cubelist)
-        result = plugin.process(cubelist, "new_cube_name")
-        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
-        self.assertArrayAlmostEqual(result.data, expected_data)
-        self.assertArrayAlmostEqual(result.cell_methods, ())
-        self.assertCubeListEqual(input_copy, cubelist)
+        msg = "A cell method coordinate has been produced with operation: add"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(cubelist, "new_cube_name")
 
     def test_mean_cell_method_coordinate(self):
         """Test that a cell method is added, if a cell method coordinate is provided

@@ -268,6 +268,13 @@ class CubeCombiner(BasePlugin):
                     coords=self.cell_method_coordinate,
                 )
             )
+        elif self.cell_method_coordinate:
+            msg = (
+                "A cell method coordinate has been produced with "
+                f"operation: {self.operation}. A cell method coordinate "
+                "can only be added if the operation is max, min or mean."
+            )
+            raise ValueError(msg)
 
     def _combine_cube_data(self, cube_list: Union[List[Cube], CubeList]) -> Cube:
         """
