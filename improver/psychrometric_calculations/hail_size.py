@@ -31,6 +31,7 @@
 """module to calculate hail_size"""
 
 from bisect import bisect_right
+from typing import List, Tuple
 
 import numpy as np
 from iris.cube import Cube
@@ -42,19 +43,20 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
-    HumidityMixingRatio,
     adjust_for_latent_heat,
     dry_adiabatic_temperature,
+    saturated_humidity,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.cube_extraction import ExtractPressureLevel
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class HailSize(BasePlugin):
     """Plugin to calculate the diameter of the hail stones from input cubes
     cloud condensation level (ccl) temperature, cloud condensation level pressure,
-    temperature on pressure levels, relative humidity on pressure levels, the height
-    of the wet bulb freezing level above sea level and orography.
+    temperature on pressure levels, the height of the wet bulb freezing level
+    above sea level and orography.
 
     From these, the values for three other cubes are calculated:
         - Temperature of the environment at 268.15K (-5 Celsius) and the
@@ -105,7 +107,14 @@ class HailSize(BasePlugin):
                     Name of model ID attribute to be copied from source cubes to output cube
         """
 
+        self.final_order = None
         self.model_id_attr = model_id_attr
+
+        (
+            self._wbzh_keys,
+            self._hail_groups,
+            self._updated_values,
+        ) = self.updated_nomogram()
 
     @staticmethod
     def nomogram_values() -> np.ndarray:
@@ -164,7 +173,7 @@ class HailSize(BasePlugin):
         return lookup_nomogram
 
     @staticmethod
-    def updated_nomogram() -> dict:
+    def updated_nomogram() -> Tuple[List, List, np.array]:
 
         """Sets up a dictionary of updated hail diameter values (mm).
 
@@ -188,33 +197,48 @@ class HailSize(BasePlugin):
             4150: [0, 0, 0, 0, 0, 0, 5, 5],
             4400: [0, 0, 0, 0, 0, 0, 0, 0],
         }
-        return lookup_dict
+        hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
 
-    @staticmethod
+        return (
+            list(lookup_dict.keys()),
+            hail_groups,
+            np.array(list(lookup_dict.values())),
+        )
+
     def check_cubes(
+        self,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
-        relative_humidity_on_pressure: Cube,
         wet_bulb_zero_asl: Cube,
         orography: Cube,
     ) -> None:
-        """Checks the size and units of input cubes
+        """Checks the size and units of input cubes and enforces the standard coord order
 
             Args:
-                ccl_temperature
+                ccl_temperature:
                     Cube of cloud condensation level temperature
-                ccl_pressure
+                ccl_pressure:
                     Cube of cloud condensation level pressure
-                temperature_on_pressure
+                temperature_on_pressure:
                     Cube of environment temperature on pressure levels
-                relative_humidity_on_pressure
-                    Cube of relative humidity on pressure levels
-                wet_bulb_zero_asl
+                wet_bulb_zero_asl:
                     Cube of the height of the wet bulb freezing level above sea level
-                orography (iris.cube.Cube):
+                orography:
                     Cube of the orography height.
         """
+        coord_order = ["realization", "pressure"] + [
+            temperature_on_pressure.coord(axis=axis).name() for axis in "yx"
+        ]
+        self.final_order = [c.name() for c in wet_bulb_zero_asl.dim_coords]
+        for cube in [
+            ccl_temperature,
+            ccl_pressure,
+            temperature_on_pressure,
+            wet_bulb_zero_asl,
+            orography,
+        ]:
+            enforce_coordinate_ordering(cube, coord_order)
 
         temp_slice = next(temperature_on_pressure.slices_over("pressure"))
         try:
@@ -225,196 +249,33 @@ class HailSize(BasePlugin):
         assert_spatial_coords_match(
             [ccl_temperature, ccl_pressure, temp_slice, wet_bulb_zero_asl]
         )
-        assert_spatial_coords_match(
-            [temperature_on_pressure, relative_humidity_on_pressure]
-        )
 
         ccl_temperature.convert_units("K")
         ccl_pressure.convert_units("Pa")
         temperature_on_pressure.convert_units("K")
-        relative_humidity_on_pressure.convert_units("kg/kg")
         wet_bulb_zero_asl.convert_units("m")
         orography.convert_units("m")
-
-    def variable_at_pressure(
-        self, variable_on_pressure: Cube, pressure: Cube
-    ) -> np.ndarray:
-        """Extracts the values from variable_on_pressure cube at pressure
-        levels described by the pressure cube.
-
-        Args:
-            variable_on_pressure
-                Cube of some variable with pressure levels
-            pressure
-                Cube of pressure values
-        Returns:
-            An n dimensional array, with the same dimensions as the pressure cube,
-            of values for the variable extracted at the pressure levels described
-            by the pressure cube.
-        """
-
-        coord_order = [coord.name() for coord in variable_on_pressure.coords()]
-        order = ["realization", "pressure"] + [
-            variable_on_pressure.coord(axis=axis).name() for axis in "yx"
-        ]
-
-        enforce_coordinate_ordering(variable_on_pressure, order)
-        enforce_coordinate_ordering(pressure, order)
-
-        pressure_grid = self.pressure_grid(variable_on_pressure)
-
-        try:
-            press_slices = pressure.slices_over("realization")
-            var_slices = variable_on_pressure.slices_over("realization")
-        except CoordinateNotFoundError:
-            press_slices = [pressure]
-            var_slices = [variable_on_pressure]
-            grid_slices = [pressure_grid]
-            variable = None
-        else:
-            grid_slices = pressure_grid[:]
-            variable = []
-
-        for press, var, grid in zip(press_slices, var_slices, grid_slices):
-
-            pressure_diff = abs(grid - press.data)
-            indices = np.nanargmin(pressure_diff, axis=0)
-            lat, long = indices.shape
-            lat, long = np.ogrid[:lat, :long]
-            if variable is None:
-                variable = var.data[indices, lat, long]
-            else:
-                variable.append(var.data[indices, lat, long])
-
-        variable_cube = pressure.copy(data=variable)
-        enforce_coordinate_ordering(variable_cube, coord_order)
-        enforce_coordinate_ordering(pressure, coord_order)
-        return variable_cube.data
-
-    def pressure_grid(self, variable_on_pressure: Cube) -> np.ndarray:
-        """Creates a pressure grid of the same shape as variable_on_pressure cube.
-        It is populated at every grid square and for every realization with
-        a column of all pressure levels taken from variable_on_pressure's pressure coordinate
-
-        Args:
-            Variable_on_pressure
-                Cube of some variable with pressure levels
-        Returns:
-            An n dimensional array with the same dimensions as variable_on_pressure containing,
-            at every grid square and for every realization, a column of all pressure levels
-            taken from variable_on_pressure's pressure coordinate
-        """
-
-        required_shape = variable_on_pressure.shape
-        pressure_points = variable_on_pressure.coord("pressure").points
-        (pressure_axis,) = variable_on_pressure.coord_dims("pressure")
-        pressure_shape = np.ones_like(required_shape)
-        pressure_shape[pressure_axis] = required_shape[pressure_axis]
-        pressure_array = np.broadcast_to(
-            pressure_points.reshape(pressure_shape), required_shape
-        )
-        return pressure_array
-
-    def extract_pressure_at_268(
-        self, temperature_on_pressure: Cube
-    ) -> tuple((Cube, Cube)):
-        """Extracts the pressure level where the environment
-        temperature first drops below -5 Celsius (268.15K) starting at a pressure value
-        near the surface and ascending in altitude from there. It also produces
-        the environment temperature at that pressure value
-
-        Args:
-            temperature_on_pressure
-                A cube of temperature on pressure levels
-        Returns:
-            A tuple of two cubes containing a cube of the environment pressure at 268.15K
-            and a cube of the temperature at that pressure value
-        """
-
-        pressure_template = next(temperature_on_pressure.slices_over(["pressure"]))
-        pressure_template.rename("pressure_of_atmosphere_at_268.15K")
-        pressure_template.units = temperature_on_pressure.coord("pressure").units
-        pressure_template.remove_coord("pressure")
-
-        temperature_template = next(temperature_on_pressure.slices_over(["pressure"]))
-        temperature_template.rename("temperature_of_atmosphere_at_268.15K")
-        temperature_template.remove_coord("pressure")
-
-        data = np.ma.masked_greater(temperature_on_pressure.data, 268.15)
-        data = np.ma.masked_invalid(data)
-
-        shape = temperature_template.data.shape
-        axis = temperature_on_pressure.coord_dims("pressure")[0]
-        max_length = np.product(shape)
-
-        indices = np.ma.notmasked_edges(data, axis=axis)[0][axis]
-
-        pressure = temperature_on_pressure.coord("pressure").points[indices]
-
-        # identifies if there are columns where the entire column is masked
-        if len(pressure) != max_length:
-            columns = np.ma.all(data, axis=axis).flatten()
-            columns_mask = np.ma.getmask(columns)
-            index = np.where(columns_mask)[0]
-            for x in index:
-                pressure = np.insert(pressure, x, -9999)
-            pressure = np.ma.masked_where(pressure == -9999, pressure)
-
-        pressure = pressure.reshape(shape)
-
-        pressure_template.data = pressure
-        temperature = self.variable_at_pressure(
-            temperature_on_pressure, pressure_template
-        )
-
-        temperature = np.ma.masked_where(np.ma.getmask(pressure), temperature)
-        temperature_template.data = temperature
-
-        return pressure_template, temperature_template
-
-    def extract_relative_humidity_at_268(
-        self, relative_humidity: Cube, pressure_at_268: Cube
-    ) -> Cube:
-        """Extract relative humidity at pressure of the environment at 268.15K
-
-        Args:
-            relative_humidity
-                Cube of relative humidity values on pressure levels
-            pressure_at_268
-                Cube of pressure where the temperature is 268.15K
-        Returns:
-            A cube of relative humidity at the pressure of the environment at 268.15K
-        """
-
-        relative_humidity_data = self.variable_at_pressure(
-            relative_humidity, pressure_at_268
-        )
-        relative_humidity = pressure_at_268.copy(data=relative_humidity_data)
-        relative_humidity.rename("relative_humidity_at_268.15K")
-        relative_humidity.units = "kg/kg"
-
-        return relative_humidity
 
     @staticmethod
     def temperature_after_saturated_ascent_from_ccl(
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         pressure_at_268: Cube,
-        humidity_mixing_ratio_at_268: Cube,
+        humidity_mixing_ratio_at_ccl: np.array,
     ) -> np.ndarray:
         """Calculates the temperature after a saturated ascent
         from the cloud condensation level to the pressure of the atmosphere at 268.15K
 
         Args:
-            ccl_temperature
+            ccl_temperature:
                 Cube of cloud condensation level temperature
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            pressure_at_268
+            pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
-            humidity_mixing_ratio_at_268
-                Cube of humidity mixing ratio at the pressure of the environment at 268.15K
-        Returns
+            humidity_mixing_ratio_at_ccl:
+                Array of humidity mixing ratio at the pressure of the environment at the CCL
+        Returns:
             Cube of temperature after the saturated ascent
         """
 
@@ -422,7 +283,7 @@ class HailSize(BasePlugin):
             ccl_temperature.data, ccl_pressure.data, pressure_at_268.data
         )
         t_2, _ = adjust_for_latent_heat(
-            t_dry, humidity_mixing_ratio_at_268.data, pressure_at_268.data
+            t_dry, humidity_mixing_ratio_at_ccl, pressure_at_268.data
         )
         return t_2
 
@@ -435,11 +296,11 @@ class HailSize(BasePlugin):
         pressure.
 
         Args:
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            temperature_at_268
+            temperature_at_268:
                 Cube of the temperature of the environment at 268.15K
-            pressure_at_268
+            pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
         Returns:
             Cube of temperature after the dry adiabatic descent
@@ -464,19 +325,18 @@ class HailSize(BasePlugin):
         If the wet bulb freezing altitude is greater that 3300m then the hail_size is reduced.
 
         Args:
-            vertical
+            vertical:
                 An n dimensional array containing the values used to calculate the vertical indexes
-            horizontal
+            horizontal:
                 An n dimensional array containing the values used to calculate the horizontal
                 indexes
-            wet_bulb_zero
+            wet_bulb_zero:
                 An n dimensional array containing the height of the wet bulb freezing level
         Returns:
             an n dimension array of values for the diameter of hail (mm)
         """
 
         lookup_table = self.nomogram_values()
-        shape = np.shape(vertical)
 
         # Rounds the calculated horizontal value to the nearest 5 which is
         # then turned into a relevant index for accessing the appropriate column.
@@ -485,53 +345,49 @@ class HailSize(BasePlugin):
         horizontal_rounded = np.around(horizontal / 5, decimals=0) - 1
         vertical_rounded = np.around(vertical * 2, decimals=0)
 
-        # flattens array's so they can later be accessed
-        horizontal_flat = horizontal_rounded.flatten(order="C")
-        vertical_flat = vertical_rounded.flatten(order="C")
-        wet_bulb_zero_flat = wet_bulb_zero.flatten(order="C")
-
-        hail_size_list = []
         # clips index values to not be longer than the table
-        vertical_clipped = np.clip(vertical_flat, None, len(lookup_table) - 1)
-        horizontal_clipped = np.clip(horizontal_flat, None, len(lookup_table[0]) - 1)
+        vertical_clipped = np.clip(vertical_rounded, None, len(lookup_table) - 1)
+        horizontal_clipped = np.clip(horizontal_rounded, None, len(lookup_table[0]) - 1)
 
-        for vert, hor, wbz in zip(
-            vertical_clipped, horizontal_clipped, wet_bulb_zero_flat
-        ):
-            if min(hor, vert) < 0 or not (vert and hor) or wbz > 4400:
-                hail_size = 0
-            else:
-                hail_size = lookup_table[int(vert)][int(hor)]
-            if wbz >= 3300:
-                hail_size = self.updated_hail_size(hail_size, wbz)
-            hail_size_list.append(hail_size)
+        vertical_clipped = np.ma.where(
+            (vertical_rounded >= 0) & (horizontal_rounded >= 0), vertical_clipped, 0
+        ).filled(0)
+        horizontal_clipped = np.ma.where(
+            (vertical_rounded >= 0) & (horizontal_rounded >= 0), horizontal_clipped, 0
+        ).filled(0)
 
-        hail_size = np.reshape(hail_size_list, shape, order="C")
+        hail_size = lookup_table[
+            vertical_clipped.astype(int), horizontal_clipped.astype(int)
+        ]
+        hail_size = np.where(
+            wet_bulb_zero >= 3300,
+            self.updated_hail_size(hail_size, wet_bulb_zero),
+            hail_size,
+        )
         return hail_size
 
-    def updated_hail_size(self, hail_size: int, wet_bulb_height: float) -> np.int8:
+    def updated_hail_size(
+        self, hail_size: np.array, wet_bulb_height: np.array
+    ) -> np.array:
         """Uses the updated_nomogram values dictionary to access an updated hail size
         based on the original predicted hail size and a wet bulb freezing height.
 
         Args:
-            hail_size
-                An integer hail diameter value taken from the original nomogram
-            wet_bulb_height
-                A float of the height of the wet bulb freezing level
+            hail_size:
+                Integers of hail diameter value taken from the original nomogram
+            wet_bulb_height:
+                Floats of the height of the wet bulb freezing level
         Returns:
             An updated value for the hail diameter (mm)
         """
 
-        updated_values = self.updated_nomogram()
+        vectorised = np.vectorize(lambda n: bisect_right(self._wbzh_keys, n))
+        height_index = np.array(vectorised(wet_bulb_height) - 1).astype(int)
 
-        keys = list(updated_values.keys())
-        height_index = bisect_right(keys, wet_bulb_height) - 1
-        height_key = keys[height_index]
+        vectorised = np.vectorize(lambda n: bisect_right(self._hail_groups, n))
+        hail_index = vectorised(hail_size)
 
-        hail_groups = [5, 10, 20, 25, 50, 75, 100, 125]
-        hail_index = bisect_right(hail_groups, hail_size)
-
-        updated_hail_size = updated_values[height_key][hail_index]
+        updated_hail_size = self._updated_values[height_index, hail_index]
 
         return np.int8(updated_hail_size)
 
@@ -541,7 +397,7 @@ class HailSize(BasePlugin):
         pressure_at_268: Cube,
         ccl_pressure: Cube,
         ccl_temperature: Cube,
-        humidity_mixing_ratio_at_268: Cube,
+        humidity_mixing_ratio_at_ccl: np.array,
         wet_bulb_zero: Cube,
     ) -> np.ndarray:
         """Gets temperature of environment at 268.15K, temperature after a dry adiabatic descent
@@ -551,34 +407,40 @@ class HailSize(BasePlugin):
         data where the ccl_temperature is below 268.15K.
 
         Args:
-            temperature_at_268
+            temperature_at_268:
                 Cube of the temperature of the environment at 268.15K
-            pressure_at_268
+            pressure_at_268:
                 Cube of the pressure of the environment at 268.15K
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            ccl_temperature
+            ccl_temperature:
                 Cube of cloud condensation level pressure
-            humidity_mixing_ratio_at_268
-                Cube of humidity mixing ratio at the pressure of the environment at 268.15K
-            wet_bulb_zero
+            humidity_mixing_ratio_at_ccl:
+                Array of humidity mixing ratio at the pressure of the environment at the CCL
+            wet_bulb_zero:
                 Cube of the height of the wet-bulb freezing level
         Returns:
             An n dimensional array of diameter of hail stones (m)
         """
 
+        # temperature_at_268 is big-B in Hand (2011).
+        # ccl_temperature is big-C in Hand (2011).
+        # temp_dry is little-c in Hand (2011).
         temp_dry = self.dry_adiabatic_descent_to_ccl(
             ccl_pressure, temperature_at_268, pressure_at_268
         )
 
+        # temp_saturated_ascent is little-b in Hand (2011).
         temp_saturated_ascent = self.temperature_after_saturated_ascent_from_ccl(
             ccl_temperature,
             ccl_pressure,
             pressure_at_268,
-            humidity_mixing_ratio_at_268,
+            humidity_mixing_ratio_at_ccl,
         )
 
+        # horizontal is c - B in Hand (2011).
         horizontal = temp_dry.data - temperature_at_268.data
+        # vertical is b - B in Hand (2011).
         vertical = temp_saturated_ascent.data - temperature_at_268.data
 
         temperature_mask = np.ma.masked_less(ccl_temperature.data, 268.15)
@@ -595,34 +457,28 @@ class HailSize(BasePlugin):
 
         return hail_size
 
+    @staticmethod
     def make_hail_cube(
-        self,
         hail_size: np.ndarray,
         ccl_temperature: Cube,
         ccl_pressure: Cube,
-        temperature_on_pressure: Cube,
+        attributes: dict,
     ) -> Cube:
         """Puts the hail data into a cube with appropriate metadata
 
         Args:
-            hail_size
+            hail_size:
                 An n dimensional array of the diameter of hail stones (m)
-            ccl_temperature
+            ccl_temperature:
                 Cube of cloud condensation level pressure
-            ccl_pressure
+            ccl_pressure:
                 Cube of cloud condensation level pressure
-            temperature_on_pressure
-                Cube of temperature on pressure levels
+            attributes:
+                Dictionary of attributes for the new cube
 
         Returns:
             A cube of the diameter of hail stones (m)
         """
-
-        attributes = {}
-        if self.model_id_attr:
-            attributes[self.model_id_attr] = temperature_on_pressure.attributes[
-                self.model_id_attr
-            ]
 
         hail_size_cube = create_new_diagnostic_cube(
             name="diameter_of_hail_stones",
@@ -641,7 +497,6 @@ class HailSize(BasePlugin):
         ccl_temperature: Cube,
         ccl_pressure: Cube,
         temperature_on_pressure: Cube,
-        relative_humidity_on_pressure: Cube,
         wet_bulb_zero_height_asl: Cube,
         orography: Cube,
     ) -> Cube:
@@ -655,11 +510,9 @@ class HailSize(BasePlugin):
                 Cube of the cloud condensation level pressure.
             temperature_on_pressure:
                 Cube of temperature on pressure levels
-            relative_humidity_on_pressure:
-                Cube of relative_humidity ratio on pressure levels
             wet_bulb_zero_height_asl:
                 Cube of the height of the wet-bulb freezing level above sea level
-            orography (iris.cube.Cube):
+            orography:
                 Cube of the orography height.
         Returns:
             Cube of hail diameter (m)
@@ -669,21 +522,32 @@ class HailSize(BasePlugin):
             ccl_temperature,
             ccl_pressure,
             temperature_on_pressure,
-            relative_humidity_on_pressure,
             wet_bulb_zero_height_asl,
             orography,
         )
+        extract_pressure = ExtractPressureLevel(value_of_pressure_level=268.15)
+        pressure_at_268 = extract_pressure(temperature_on_pressure)
 
-        pressure_at_268, temperature_at_268 = self.extract_pressure_at_268(
-            temperature_on_pressure
+        temperature_at_268 = next(temperature_on_pressure.slices_over(["pressure"]))
+        temperature_at_268.rename("temperature_of_atmosphere_at_268.15K")
+        temperature_at_268.remove_coord("pressure")
+        temperature = np.full_like(
+            temperature_at_268.data,
+            extract_pressure.value_of_pressure_level,
+            dtype=np.float32,
         )
+        temperature = np.ma.masked_where(np.ma.getmask(pressure_at_268), temperature)
+        temperature_at_268.data = temperature
 
-        relative_humidity_at_268 = self.extract_relative_humidity_at_268(
-            relative_humidity_on_pressure, pressure_at_268
-        )
+        attributes = {}
+        if self.model_id_attr:
+            attributes[self.model_id_attr] = temperature_on_pressure.attributes[
+                self.model_id_attr
+            ]
+        del temperature_on_pressure
 
-        humidity_mixing_ratio_at_268 = HumidityMixingRatio()(
-            [temperature_at_268, pressure_at_268, relative_humidity_at_268]
+        humidity_mixing_ratio_at_ccl = saturated_humidity(
+            ccl_temperature.data, ccl_pressure.data
         )
 
         wet_bulb_zero_height = wet_bulb_zero_height_asl - orography
@@ -693,11 +557,12 @@ class HailSize(BasePlugin):
             pressure_at_268,
             ccl_pressure,
             ccl_temperature,
-            humidity_mixing_ratio_at_268,
+            humidity_mixing_ratio_at_ccl,
             wet_bulb_zero_height,
         )
 
         hail_cube = self.make_hail_cube(
-            hail_size, ccl_temperature, ccl_pressure, temperature_on_pressure
+            hail_size, ccl_temperature, ccl_pressure, attributes
         )
+        enforce_coordinate_ordering(hail_cube, self.final_order)
         return hail_cube

@@ -34,6 +34,7 @@ import pytest
 
 from . import acceptance as acc
 
+pytest.importorskip("stratify")
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
@@ -46,7 +47,6 @@ def test_basic(tmp_path, model_id_attr):
     output_path = tmp_path / "output.nc"
     args = [
         test_dir / "temperature_on_pressure_levels.nc",
-        test_dir / "relative_humidity_on_pressure.nc",
         test_dir / "ccl.nc",
         test_dir / "wet_bulb_freezing_altitude.nc",
         test_dir / "orography.nc",

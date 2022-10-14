@@ -46,7 +46,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            containing near-surface values, in this order, of:
+            containing near-surface values, in any order, of:
                 temperature (iris.cube.Cube):
                     Cube of air_temperature (K).
                 pressure (iris.cube.Cube):
@@ -64,15 +64,23 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
                 Cube of pressure at cloud condensation level (Pa)
 
     """
+    from iris.cube import CubeList
+
     from improver.psychrometric_calculations.cloud_condensation_level import (
         CloudCondensationLevel,
     )
     from improver.psychrometric_calculations.psychrometric_calculations import (
         HumidityMixingRatio,
     )
+    from improver.utilities.flatten import flatten
+
+    cubes = flatten(cubes)
+    (temperature, pressure, humidity,) = CubeList(cubes).extract(
+        ["air_temperature", "surface_air_pressure", "relative_humidity"]
+    )
 
     humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
-    humidity = humidity_plugin(cubes)
+    humidity = humidity_plugin([temperature, pressure, humidity])
 
     return CloudCondensationLevel(model_id_attr=model_id_attr)(
         [humidity_plugin.temperature, humidity_plugin.pressure, humidity]
