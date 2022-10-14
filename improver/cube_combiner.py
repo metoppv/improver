@@ -259,6 +259,10 @@ class CubeCombiner(BasePlugin):
         Args:
             cube:
                 Cube to which a cell method will be added.
+
+        Raises:
+            ValueError: If a cell_method_coordinate is provided and the operation
+                is not max, min or mean.
         """
         cell_method_lookup = {"max": "maximum", "min": "minimum", "mean": "mean"}
         if self.operation in ["max", "min", "mean"] and self.cell_method_coordinate:
