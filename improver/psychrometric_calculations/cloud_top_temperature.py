@@ -85,36 +85,36 @@ class CloudTopTemperature(PostProcessingPlugin):
         """
         cct = np.ma.masked_array(self.t_at_ccl.data.copy())
         q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
-        ccl_with_mask = np.ma.masked_array(
-            self.t_at_ccl.data, np.full_like(self.t_at_ccl.data, False, dtype=bool)
-        )
+        ccl_with_mask = np.ma.masked_array(self.t_at_ccl.data, False)
+        mask = ~ccl_with_mask.mask
         for t in self.temperature.slices_over("pressure"):
-            t_environment = t.data[~ccl_with_mask.mask]
+            t_environment = np.full_like(t.data, np.nan)
+            t_environment[mask] = t.data[mask]
+
             (pressure,) = t.coord("pressure").points
             t_dry_parcel = dry_adiabatic_temperature(
-                self.t_at_ccl.data[~ccl_with_mask.mask],
-                self.p_at_ccl.data[~ccl_with_mask.mask],
-                pressure,
+                self.t_at_ccl.data[mask], self.p_at_ccl.data[mask], pressure,
             )
-            t_parcel, _ = adjust_for_latent_heat(
-                t_dry_parcel, q_at_ccl[~ccl_with_mask.mask], pressure
+
+            t_parcel = np.full_like(t.data, np.nan)
+            t_parcel[mask], _ = adjust_for_latent_heat(
+                t_dry_parcel, q_at_ccl[mask], pressure
             )
             # Mask out points where parcel temperature, t_parcel, is less than atmosphere
             # temperature, t, but only after the parcel pressure, becomes lower than the
             # cloud base pressure.
-            t_parcel_full = np.full_like(t.data, 99999)
-            t_parcel_full[~ccl_with_mask.mask] = t_parcel
-            t_env_full = np.zeros_like(t.data)
-            t_env_full[~ccl_with_mask.mask] = t_environment
-            ccl_with_mask = np.ma.masked_where(
-                (t_parcel_full < t_env_full) & (pressure < self.p_at_ccl.data),
-                ccl_with_mask,
+            ccl_with_mask[mask] = np.ma.masked_where(
+                (t_parcel[mask] < t_environment[mask])
+                & (pressure < self.p_at_ccl.data[mask]),
+                ccl_with_mask[mask],
             )
-            cct[~ccl_with_mask.mask] = t_parcel_full[~ccl_with_mask.mask]
-            del t
-            if (~ccl_with_mask.mask).sum() == 0:
-                break
+            # Find mask with CCL points that are still not masked.
+            mask = ~ccl_with_mask.mask
 
+            cct[mask] = t_parcel[mask]
+            del t
+            if mask.sum() == 0:
+                break
         cct = np.ma.masked_where(self.t_at_ccl.data - cct < self.minimum_t_diff, cct)
 
         return cct
