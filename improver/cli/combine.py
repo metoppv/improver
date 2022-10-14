@@ -42,6 +42,7 @@ def process(
     new_name=None,
     broadcast_to_threshold=False,
     minimum_realizations=None,
+    cell_method_coordinate=None,
 ):
     r"""Combine input cubes.
 
@@ -66,6 +67,9 @@ def process(
             If specified, the input cubes will be filtered to ensure that only realizations that
             include all available lead times are combined. If the number of realizations that
             meet this criteria are fewer than this integer, an error will be raised.
+        cell_method_coordinate (str):
+            If specified, a cell method is added to the output with the coordinate
+            provided. This is only available for max, min and mean operations.
 
     Returns:
         result (iris.cube.Cube):
@@ -80,4 +84,5 @@ def process(
         broadcast_to_threshold=broadcast_to_threshold,
         minimum_realizations=minimum_realizations,
         new_name=new_name,
+        cell_method_coordinate=cell_method_coordinate,
     )(CubeList(cubes))

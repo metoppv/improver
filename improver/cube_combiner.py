@@ -70,6 +70,7 @@ class Combine(BasePlugin):
         broadcast_to_threshold: bool = False,
         minimum_realizations: Union[str, int, None] = None,
         new_name: str = None,
+        cell_method_coordinate: str = None,
     ):
         r"""
         Args:
@@ -86,6 +87,9 @@ class Combine(BasePlugin):
                 Minimum value is 1.
             new_name (str):
                 New name for the resulting dataset.
+            cell_method_coordinate (str):
+                If specified, a cell method is added to the output with the coordinate
+                provided. This is only available for max, min and mean operations.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -95,13 +99,16 @@ class Combine(BasePlugin):
             self.minimum_realizations = None
         self.new_name = new_name
         self.broadcast_to_threshold = broadcast_to_threshold
+        self.cell_method_coordinate = cell_method_coordinate
 
         if operation == "*" or operation == "multiply":
             self.plugin = CubeMultiplier(
                 broadcast_to_threshold=self.broadcast_to_threshold
             )
         else:
-            self.plugin = CubeCombiner(operation)
+            self.plugin = CubeCombiner(
+                operation, cell_method_coordinate=cell_method_coordinate
+            )
 
     def process(self, cubes: CubeList) -> Cube:
         """
@@ -161,7 +168,7 @@ class CubeCombiner(BasePlugin):
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation: str) -> None:
+    def __init__(self, operation: str, cell_method_coordinate: str = None) -> None:
         """Create a CubeCombiner plugin
 
         Args:
@@ -171,6 +178,8 @@ class CubeCombiner(BasePlugin):
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
+        self.operation = operation
+        self.cell_method_coordinate = cell_method_coordinate
         try:
             self.operator = self.COMBINE_OPERATORS[operation]
         except KeyError:
@@ -244,6 +253,33 @@ class CubeCombiner(BasePlugin):
                     expanded_coords.append(coord)
         return expanded_coords
 
+    def _add_cell_method(self, cube: Cube) -> None:
+        """Add a cell method to record the operation undertaken.
+
+        Args:
+            cube:
+                Cube to which a cell method will be added.
+
+        Raises:
+            ValueError: If a cell_method_coordinate is provided and the operation
+                is not max, min or mean.
+        """
+        cell_method_lookup = {"max": "maximum", "min": "minimum", "mean": "mean"}
+        if self.operation in ["max", "min", "mean"] and self.cell_method_coordinate:
+            cube.add_cell_method(
+                CellMethod(
+                    cell_method_lookup[self.operation],
+                    coords=self.cell_method_coordinate,
+                )
+            )
+        elif self.cell_method_coordinate:
+            msg = (
+                "A cell method coordinate has been produced with "
+                f"operation: {self.operation}. A cell method coordinate "
+                "can only be added if the operation is max, min or mean."
+            )
+            raise ValueError(msg)
+
     def _combine_cube_data(self, cube_list: Union[List[Cube], CubeList]) -> Cube:
         """
         Perform cumulative operation to combine cube data
@@ -314,6 +350,7 @@ class CubeCombiner(BasePlugin):
         expanded_coord_names = self._get_expanded_coord_names(cube_list)
         if expanded_coord_names:
             result = expand_bounds(result, cube_list, expanded_coord_names)
+        self._add_cell_method(result)
         result.rename(new_diagnostic_name)
         return result
 

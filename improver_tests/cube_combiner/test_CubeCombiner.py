@@ -35,6 +35,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
+from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -183,6 +184,41 @@ class Test_process(CombinerTest):
         expected_data = np.full((2, 2), 0.55, dtype=np.float32)
         self.assertEqual(result.name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_addition_cell_method_coordinate(self):
+        """Test that an exception is raised if a cell method coordinate is provided
+        and the operation is not max, min or mean."""
+        plugin = CubeCombiner("add", cell_method_coordinate="time")
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        msg = "A cell method coordinate has been produced with operation: add"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin.process(cubelist, "new_cube_name")
+
+    def test_mean_cell_method_coordinate(self):
+        """Test that a cell method is added, if a cell method coordinate is provided
+        and a mean operation is undertaken."""
+        plugin = CubeCombiner("mean", cell_method_coordinate="time")
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        input_copy = deepcopy(cubelist)
+        result = plugin.process(cubelist, "new_cube_name")
+        expected_data = np.full((2, 2), 0.55, dtype=np.float32)
+        expected_cell_methods = (CellMethod("mean", coords="time"),)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.cell_methods, expected_cell_methods)
+        self.assertCubeListEqual(input_copy, cubelist)
+
+    def test_max_cell_method_coordinate(self):
+        """Test that a cell method is added, if a cell method coordinate is provided
+        and a max operation is undertaken."""
+        plugin = CubeCombiner("max", cell_method_coordinate="time")
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        input_copy = deepcopy(cubelist)
+        result = plugin.process(cubelist, "new_cube_name")
+        expected_data = np.full((2, 2), 0.6, dtype=np.float32)
+        expected_cell_methods = (CellMethod("maximum", coords="time"),)
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.cell_methods, expected_cell_methods)
+        self.assertCubeListEqual(input_copy, cubelist)
 
     def test_mixed_dtypes(self):
         """Test that the plugin calculates the sum correctly and doesn't mangle dtypes."""
