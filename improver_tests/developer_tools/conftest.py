@@ -376,5 +376,7 @@ def wxcode_fixture():
 def wxcode_mode_fixture(wxcode_cube, period):
     """Weather symbols cube representing mode over time"""
     cube = wxcode_cube.copy()
-    cube.add_cell_method(iris.coords.CellMethod("mode", coords="time", intervals=f"{period} hour"))
+    cube.add_cell_method(
+        iris.coords.CellMethod("mode", coords="time", intervals=f"{period} hour")
+    )
     return cube

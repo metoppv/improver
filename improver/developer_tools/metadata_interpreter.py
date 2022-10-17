@@ -110,7 +110,9 @@ PRECIP_ACCUM_NAMES = [
     "lwe_thickness_of_snowfall_amount",
     "thickness_of_rainfall_amount",
 ]
-WXCODE_MODE_CM = lambda hour: CellMethod(method="mode", coords="time", intervals=f"{hour} hour")
+WXCODE_MODE_CM = lambda hour: CellMethod(
+    method="mode", coords="time", intervals=f"{hour} hour"
+)
 WXCODE_NAMES = ["weather_code"]
 
 # Compliant, required and forbidden attributes

@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the display_interpretation function"""
 
-from improver.developer_tools.metadata_interpreter import display_interpretation
 import pytest
+
+from improver.developer_tools.metadata_interpreter import display_interpretation
 
 
 def test_unhandled(emos_coefficient_cube, interpreter):
