@@ -29,7 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing the CloudTopTemperature plugin"""
-import copy
 
 import numpy as np
 from iris.cube import Cube
@@ -81,23 +80,41 @@ class CloudTopTemperature(PostProcessingPlugin):
         CCT is the saturated adiabatic temperature at the last atmosphere pressure level where
         the profile is buoyant.
         Temperature data are in Kelvin, Pressure data are in pascals, humidity data are in kg/kg.
+        A mask is used to keep track of which columns have already been solved, so that they
+        are not included in future iterations (x3 speed-up).
         """
         cct = np.ma.masked_array(self.t_at_ccl.data.copy())
         q_at_ccl = saturated_humidity(self.t_at_ccl.data, self.p_at_ccl.data)
-        ccl_with_mask = np.ma.where(True, self.t_at_ccl.data, False)
+        ccl_with_mask = np.ma.masked_array(self.t_at_ccl.data, False)
+        mask = ~ccl_with_mask.mask
         for t in self.temperature.slices_over("pressure"):
-            t_loc = copy.deepcopy(t)
-            (p,) = t.coord("pressure").points
-            t_dry = dry_adiabatic_temperature(self.t_at_ccl.data, self.p_at_ccl.data, p)
-            t_2, _ = adjust_for_latent_heat(t_dry, q_at_ccl, p)
-            # Mask out points where parcel temperature, t_2, is less than atmosphere temperature, t,
-            # but only after the parcel pressure, p, becomes lower than the cloud base pressure.
-            ccl_with_mask = np.ma.masked_where(
-                (t_2 < t_loc.data) & (p < self.p_at_ccl.data), ccl_with_mask,
-            )
-            cct[~ccl_with_mask.mask] = t_2[~ccl_with_mask.mask]
-            del t
+            t_environment = np.full_like(t.data, np.nan)
+            t_environment[mask] = t.data[mask]
 
+            (pressure,) = t.coord("pressure").points
+            t_dry_parcel = dry_adiabatic_temperature(
+                self.t_at_ccl.data[mask], self.p_at_ccl.data[mask], pressure,
+            )
+
+            t_parcel = np.full_like(t.data, np.nan)
+            t_parcel[mask], _ = adjust_for_latent_heat(
+                t_dry_parcel, q_at_ccl[mask], pressure
+            )
+            # Mask out points where parcel temperature, t_parcel, is less than atmosphere
+            # temperature, t, but only after the parcel pressure, becomes lower than the
+            # cloud base pressure.
+            ccl_with_mask[mask] = np.ma.masked_where(
+                (t_parcel[mask] < t_environment[mask])
+                & (pressure < self.p_at_ccl.data[mask]),
+                ccl_with_mask[mask],
+            )
+            # Find mask with CCL points that are still not masked.
+            mask = ~ccl_with_mask.mask
+
+            cct[mask] = t_parcel[mask]
+            del t
+            if mask.sum() == 0:
+                break
         cct = np.ma.masked_where(self.t_at_ccl.data - cct < self.minimum_t_diff, cct)
 
         return cct
