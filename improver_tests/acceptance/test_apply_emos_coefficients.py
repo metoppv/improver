@@ -571,3 +571,30 @@ def test_mismatching_validity_times(tmp_path):
     )
     # Check output matches kgo.
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
+def test_mismatching_validity_times_percentiles(tmp_path):
+    """Test passing validity times when the forecast validity time does not match
+    any of the validity times within the list. The desired percentiles are supplied."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/subsetted_percentiles"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    emos_est_path = (
+        acc.kgo_root() / "apply-emos-coefficients/normal/normal_coefficients.nc"
+    )
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        "--validity-times",
+        "1200,1500,1800",
+        "--random-seed",
+        "0",
+        "--percentiles",
+        "25,50,75",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    # Check output matches kgo.
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)

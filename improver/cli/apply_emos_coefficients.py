@@ -157,6 +157,13 @@ def process(
     ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
 
     if validity_times is not None and not validity_time_check(forecast, validity_times):
+        if percentiles:
+            # Ensure that a consistent set of percentiles are returned,
+            # regardless of whether EMOS is successfully applied.
+            percentiles = [np.float32(p) for p in percentiles]
+            forecast = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
+                forecast, percentiles=percentiles
+            )
         forecast = add_warning_comment(forecast)
         return forecast
 
@@ -173,6 +180,8 @@ def process(
             return prob_template
 
         if percentiles:
+            # Ensure that a consistent set of percentiles are returned,
+            # regardless of whether EMOS is successfully applied.
             percentiles = [np.float32(p) for p in percentiles]
             forecast = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
                 forecast, percentiles=percentiles
