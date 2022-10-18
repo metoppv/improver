@@ -483,7 +483,10 @@ class MOMetadataInterpreter:
                         wx_cell_method = WXCODE_MODE_CM(hour)
                         if cm == wx_cell_method:
                             diagnostic = self.diagnostic.replace("_", " ")
-                            self.methods += f"{cm.method} of {cm.intervals[0]} {diagnostic} over {cm.coord_names[0]}"
+                            self.methods += (
+                                f"{cm.method} of {cm.intervals[0]} "
+                                f"{diagnostic} over {cm.coord_names[0]}"
+                            )
                             valid_wx_cm = True
                             break
                     if not valid_wx_cm:
