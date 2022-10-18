@@ -110,7 +110,9 @@ PRECIP_ACCUM_NAMES = [
     "lwe_thickness_of_snowfall_amount",
     "thickness_of_rainfall_amount",
 ]
-WXCODE_MODE_CM = CellMethod(method="mode", coords="time")
+WXCODE_MODE_CM = lambda hour: CellMethod(
+    method="mode", coords="time", intervals=f"{hour} hour"
+)
 WXCODE_NAMES = ["weather_code"]
 
 # Compliant, required and forbidden attributes
@@ -474,11 +476,20 @@ class MOMetadataInterpreter:
 
         elif cube.name() in SPECIAL_CASES:
             self.field_type = self.diagnostic = cube.name()
-            if cube.name() == "weather_code":
+            if cube.name() in WXCODE_NAMES:
                 for cm in cube.cell_methods:
-                    if cm == WXCODE_MODE_CM and cube.name() in WXCODE_NAMES:
-                        pass
-                    else:
+                    valid_wx_cm = False
+                    for hour in [1, 3]:
+                        wx_cell_method = WXCODE_MODE_CM(hour)
+                        if cm == wx_cell_method:
+                            diagnostic = self.diagnostic.replace("_", " ")
+                            self.methods += (
+                                f"{cm.method} of {cm.intervals[0]} "
+                                f"{diagnostic} over {cm.coord_names[0]}"
+                            )
+                            valid_wx_cm = True
+                            break
+                    if not valid_wx_cm:
                         self.errors.append(
                             f"Unexpected cell methods {cube.cell_methods}"
                         )
@@ -646,6 +657,11 @@ def display_interpretation(
 
     if interpreter.diagnostic not in SPECIAL_CASES:
         output.extend(_format_standard_cases(interpreter, verbose, vstring))
+
+    if interpreter.diagnostic in WXCODE_NAMES and interpreter.methods:
+        output.append(f"These {field_type} are {interpreter.methods}")
+        if verbose:
+            output.append(vstring("cell methods"))
 
     if interpreter.diagnostic in ANCILLARIES:
         output.append("This is a static ancillary with no time information")

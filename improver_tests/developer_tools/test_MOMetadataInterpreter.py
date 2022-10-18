@@ -223,7 +223,8 @@ def test_weather_code(wxcode_cube, interpreter):
     assert interpreter.blended
 
 
-def test_weather_mode_code(wxcode_mode_cube, interpreter):
+@pytest.mark.parametrize("period", [1, 3])
+def test_weather_mode_code(wxcode_mode_cube, period, interpreter):
     """Test interpretation of weather code mode-in-time field"""
     interpreter.run(wxcode_mode_cube)
     assert interpreter.diagnostic == "weather_code"
@@ -231,6 +232,8 @@ def test_weather_mode_code(wxcode_mode_cube, interpreter):
         interpreter.model
         == "UKV (cycle: 20171109T2300Z), MOGREPS-UK (cycle: 20171109T2100Z)"
     )
+    expected_cm = f"mode of {period} hour weather code over time"
+    assert interpreter.methods == expected_cm
     assert interpreter.blended
 
 

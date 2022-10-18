@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the display_interpretation function"""
 
+import pytest
+
 from improver.developer_tools.metadata_interpreter import display_interpretation
 
 
@@ -215,5 +217,19 @@ def test_weather_code(wxcode_cube, interpreter):
         "MOGREPS-UK (cycle: 20171109T2100Z)\n"
     )
     interpreter.run(wxcode_cube)
+    result = display_interpretation(interpreter)
+    assert result == expected_result
+
+
+@pytest.mark.parametrize("period", [1, 3])
+def test_weather_mode_code(wxcode_mode_cube, period, interpreter):
+    """Test interpretation of weather code field"""
+    expected_result = (
+        "This is a gridded weather code file\n"
+        f"These weather code are mode of {period} hour weather code over time\n"
+        "It contains blended data from models: UKV (cycle: 20171109T2300Z), "
+        "MOGREPS-UK (cycle: 20171109T2100Z)\n"
+    )
+    interpreter.run(wxcode_mode_cube)
     result = display_interpretation(interpreter)
     assert result == expected_result
