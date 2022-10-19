@@ -118,7 +118,7 @@ class RebadgePercentilesAsRealizations(BasePlugin):
         )
         percentile_diffs = np.diff(percentile_coords)
 
-        # percentiles cannot be rabadged unless they are evenly spaced,
+        # percentiles cannot be rebadged unless they are evenly spaced,
         # centred on 50th percentile, and equally partition percentile
         # space
         if not np.isclose(np.max(percentile_diffs), np.min(percentile_diffs)):
