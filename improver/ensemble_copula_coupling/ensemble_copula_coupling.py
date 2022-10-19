@@ -118,13 +118,14 @@ class RebadgePercentilesAsRealizations(BasePlugin):
         )
         percentile_diffs = np.diff(percentile_coords)
 
-        # we can't rebadge as percentiles unless the percentiles
-        # are evenly spaced and centred on 50
+        # percentiles cannot be rabadged unless they are evenly spaced,
+        # centred on 50th percentile, and equally partition percentile
+        # space
         if not np.isclose(np.max(percentile_diffs), np.min(percentile_diffs)):
             msg = (
                 "The percentile cube provided cannot be rebadged as ensemble "
                 "realizations. The input percentiles need to be equally spaced, "
-                "centred on the 50th percentile, and to equally partition percentile "
+                "be centred on the 50th percentile, and to equally partition percentile "
                 "space. The percentiles provided were "
                 f"{cube.coord(percentile_coord_name).points}"
             )
