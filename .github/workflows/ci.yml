@@ -116,8 +116,7 @@ jobs:
         uses: actions/checkout@v2
         with:
           fetch-depth: 0
-        name: Check CONTRIBUTING.md
-
+      - name: Check CONTRIBUTING.md
         uses: cylc/release-actions/check-shortlog@v1
   Safety-Bandit:
     runs-on: ubuntu-latest
