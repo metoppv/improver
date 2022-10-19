@@ -86,8 +86,8 @@ class Test_process(IrisTest):
         )
 
     def test_raises_exception_if_realization_already_exists(self):
-        """Check that we raise an exception if a realization coordinate already
-        exists."""
+        """Check that an exception is raised if a realization
+        coordinate already exists."""
         self.cube.add_aux_coord(AuxCoord(0, "realization"))
         msg = r"Cannot rebadge percentile coordinate to realization.*"
         with self.assertRaisesRegex(InvalidCubeError, msg):
@@ -116,8 +116,8 @@ class Test_process(IrisTest):
             Plugin().process(cube)
 
     def test_raises_exception_if_percentiles_unequal_partition_percentile_space(self):
-        """Check that we an exception is raised if the input percentiles
-        don't evenly partition percentile space"""
+        """Check that an exception is raised if the input percentiles
+        don't evenly partition percentile space."""
         cube = set_up_percentile_cube(
             np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
             np.array([10, 50, 90], dtype=np.float32),
