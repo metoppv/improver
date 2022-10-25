@@ -207,7 +207,7 @@ class MergeCubesForWeightedBlending(BasePlugin):
         )
 
         if self.record_run_attr is not None and self.model_id_attr is not None:
-            set_record_run_attr(cubelist, self.record_run_attr, self.model_id_attr)
+            set_record_run_attr(cubelist, self.record_run_attr, self.blend_coord, self.model_id_attr)
 
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]

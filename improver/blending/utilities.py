@@ -34,11 +34,12 @@ from datetime import datetime
 from typing import Dict, List, Optional
 
 import numpy as np
+from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
-from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD, RECORD_COORD
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
@@ -236,7 +237,7 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
 
 
 def set_record_run_attr(
-    cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
+    cubelist: CubeList, record_run_attr: str, blend_coord: str, model_id_attr: Optional[str]
 ) -> None:
     """Set a record_run attribute that records the model identifier and
     forecast reference time of each cube in the cubelist. From the list of cubes,
@@ -292,10 +293,9 @@ def set_record_run_attr(
     cycle_strings = []
     for cube in cubelist:
         if record_run_attr in cube.attributes:
-            model_attrs = cube.attributes[record_run_attr].splitlines()
-            for model_attr in model_attrs:
-                if model_attr not in cycle_strings:
-                    cycle_strings.append(model_attr)
+            run_attr = cube.attributes[record_run_attr]
+            record_coord = AuxCoord([run_attr], long_name=RECORD_COORD)
+            cube.add_aux_coord(record_coord)
             continue
 
         if model_id_attr not in cube.attributes:
@@ -312,9 +312,12 @@ def set_record_run_attr(
 
         blending_weight = ""  # TODO: include actual blending weight here.
         run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
-        if run_attr not in cycle_strings:
-            cycle_strings.append(run_attr)
 
-    cycle_strings.sort()
-    for cube in cubelist:
-        cube.attributes[record_run_attr] = "\n".join(cycle_strings)
+        record_coord = AuxCoord([run_attr], long_name=RECORD_COORD)
+        cube.add_aux_coord(record_coord)
+
+def apply_record_run_attr(target, source, record_run_attr):
+
+    source_data = source.coord(RECORD_COORD).points
+    target.attributes[record_run_attr] = "\n".join(source_data)
+

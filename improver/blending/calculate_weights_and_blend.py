@@ -41,7 +41,7 @@ from iris.cube import Cube, CubeList
 from improver import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
-from improver.blending.utilities import get_coords_to_remove, update_blended_metadata
+from improver.blending.utilities import get_coords_to_remove, update_blended_metadata, apply_record_run_attr
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending,
     WeightedBlendAcrossWholeDimension,
@@ -320,6 +320,8 @@ class WeightAndBlend(PostProcessingPlugin):
             # Blend across specified dimension
             BlendingPlugin = WeightedBlendAcrossWholeDimension(self.blend_coord)
             result = BlendingPlugin(cube, weights=weights)
+
+        apply_record_run_attr(result, cube, record_run_attr)
 
         # Remove custom metadata and and update time-type coordinates.  Remove
         # non-time-type coordinate that were previously associated with the blend
