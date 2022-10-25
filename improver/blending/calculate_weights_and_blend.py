@@ -41,7 +41,12 @@ from iris.cube import Cube, CubeList
 from improver import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
-from improver.blending.utilities import get_coords_to_remove, update_blended_metadata, apply_record_run_attr
+from improver.blending.utilities import (
+    apply_record_run_attr,
+    get_coords_to_remove,
+    update_blended_metadata,
+    update_record_run_weights,
+)
 from improver.blending.weighted_blend import (
     MergeCubesForWeightedBlending,
     WeightedBlendAcrossWholeDimension,
@@ -303,6 +308,9 @@ class WeightAndBlend(PostProcessingPlugin):
         if len(cube.coord(self.blend_coord).points) > 1:
             weights = self._calculate_blending_weights(cube)
             cube, weights = self._remove_zero_weighted_slices(cube, weights)
+
+        if record_run_attr is not None:
+            cube = update_record_run_weights(cube, weights, self.blend_coord)
 
         # Deal with case of only one input cube or non-zero-weighted slice
         if len(cube.coord(self.blend_coord).points) == 1:

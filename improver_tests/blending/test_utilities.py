@@ -40,7 +40,7 @@ from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.utilities import (
     find_blend_dim_coord,
     get_coords_to_remove,
-    set_record_run_attr,
+    store_record_run_attr,
     update_blended_metadata,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -165,7 +165,7 @@ def test_update_blended_metadata(model_cube, forecast_period):
         ([0, 0], "uk_det:20171110T0100Z:"),
     ),
 )
-def test_set_record_run_attr_basic(model_cube, indices, expected):
+def test_store_record_run_attr_basic(model_cube, indices, expected):
     """Test use case where the record_run_attr is constructed from other
     information on the cubes. There are two tests here:
 
@@ -179,7 +179,7 @@ def test_set_record_run_attr_basic(model_cube, indices, expected):
     for cube in cubes:
         cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
 
-    set_record_run_attr(cubes, record_run_attr, model_id_attr)
+    store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
     for cube in cubes:
         assert cube.attributes[record_run_attr] == expected
@@ -205,7 +205,7 @@ def test_set_record_run_attr_basic(model_cube, indices, expected):
         ),
     ),
 )
-def test_set_record_run_attr_existing_attribute(model_cube, existing, expected):
+def test_store_record_run_attr_existing_attribute(model_cube, existing, expected):
     """Test the case in which the cubes already have record_run_attr entries
     and these must be combined to create a new shared attribute. There are three
     tests here:
@@ -225,13 +225,13 @@ def test_set_record_run_attr_existing_attribute(model_cube, existing, expected):
     for run_attr, cube in zip(existing, cubes):
         cube.attributes.update({record_run_attr: run_attr})
 
-    set_record_run_attr(cubes, record_run_attr, model_id_attr)
+    store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
     for cube in cubes:
         assert cube.attributes[record_run_attr] == expected
 
 
-def test_set_record_run_attr_mixed_inputs(model_cube):
+def test_store_record_run_attr_mixed_inputs(model_cube):
     """Test use case where the record_run_attr is constructed from one cube
     with an existing record_run_attr, and one where other information on the
     cube is used."""
@@ -245,13 +245,13 @@ def test_set_record_run_attr_mixed_inputs(model_cube):
     }
     expected = "uk_det:20171110T0000Z:\nuk_ens:20171110T0100Z:"
 
-    set_record_run_attr(cubes, record_run_attr, model_id_attr)
+    store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
     for cube in cubes:
         assert cube.attributes[record_run_attr] == expected
 
 
-def test_set_record_run_attr_exception_model_id_unset(model_cube):
+def test_store_record_run_attr_exception_model_id_unset(model_cube):
     """Test an exception is raised if the model_id_attr argument provided is
     none and the input cubes do not all have an existing record_run_attr."""
     record_run_attr = "mosg__model_run"
@@ -259,10 +259,10 @@ def test_set_record_run_attr_exception_model_id_unset(model_cube):
     cubes = [model_cube[0], model_cube[1]]
 
     with pytest.raises(Exception, match="Not all input cubes contain an existing"):
-        set_record_run_attr(cubes, record_run_attr, model_id_attr)
+        store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
 
-def test_set_record_run_attr_exception_model_id(model_cube):
+def test_store_record_run_attr_exception_model_id(model_cube):
     """Test an exception is raised if no model_id_attr is set on the input
     cubes and no existing record_run_attr was present."""
     record_run_attr = "mosg__model_run"
@@ -270,4 +270,4 @@ def test_set_record_run_attr_exception_model_id(model_cube):
     cubes = [model_cube[0], model_cube[1]]
 
     with pytest.raises(Exception, match="Failure to record run information"):
-        set_record_run_attr(cubes, record_run_attr, model_id_attr)
+        store_record_run_attr(cubes, record_run_attr, model_id_attr)
