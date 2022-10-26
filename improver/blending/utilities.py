@@ -350,7 +350,9 @@ def store_record_run_attr(
         cube.add_aux_coord(record_coord)
 
 
-def apply_record_run_attr(target: Cube, source: Cube, record_run_attr: str) -> None:
+def apply_record_run_attr(
+    target: Cube, source: Cube, record_run_attr: str, discard_weights: bool = False
+) -> None:
     """
     Extracts record_run entries from the RECORD_COORD auxiliary
     coordinate on the source cube. These are joined together and added
@@ -366,12 +368,21 @@ def apply_record_run_attr(target: Cube, source: Cube, record_run_attr: str) -> N
             to use in constructing the attribute.
         record_run_attr:
             The name of the attribute used to store model and cycle sources.
+        discard_weights:
+            If cubes have been combined rather than blended the weights may
+            well not provide much information, i.e. in weather symbols. They
+            may also not be normalised and could give a total contributing
+            weight much larger than 1. In these cases, setting discard_weights
+            to true will produce an attribute that records only the models
+            and cycles without the weights.
     """
     source_data = source.coord(RECORD_COORD).points
-    # all_points = []
-    # for point in source_data:
-    #     all_points.extend(point.split("\n"))
-    # all_points = set(all_points)
+    if discard_weights:
+        all_points = []
+        for point in source_data:
+            all_points.extend(point.split("\n"))
+        all_points = [point.rsplit(":", 1)[0] + ":" for point in all_points]
+        source_data = list(set(all_points))
     target.attributes[record_run_attr] = "\n".join(sorted(source_data))
 
 

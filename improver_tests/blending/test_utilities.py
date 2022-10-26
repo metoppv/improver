@@ -36,20 +36,27 @@ import iris
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
+from iris.cube import Cube, CubeList
 
-from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD, RECORD_COORD
+from improver.blending import (
+    MODEL_BLEND_COORD,
+    MODEL_NAME_COORD,
+    RECORD_COORD,
+    WEIGHT_PRECISION,
+)
 from improver.blending.utilities import (
+    apply_record_run_attr,
     find_blend_dim_coord,
     get_coords_to_remove,
     store_record_run_attr,
     update_blended_metadata,
+    update_record_run_weights,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
-@pytest.fixture(name="cycle_cube")
-def cycle_cube_fixture():
+def setup_cycle_cube():
     """Set up a cube for cycle blending"""
     thresholds = [10, 20]
     data = np.ones((2, 2, 2), dtype=np.float32)
@@ -67,13 +74,58 @@ def cycle_cube_fixture():
                 spatial_grid="equalarea",
                 time=datetime(2017, 11, 10, 4, 0),
                 frt=frt,
+                attributes={"mosg__model_configuration": "uk_det"},
             )
         )
     return cycle_cubes.merge_cube()
 
 
-@pytest.fixture(name="model_cube")
-def model_cube_fixture():
+@pytest.fixture
+def cycle_cube():
+    return setup_cycle_cube()
+
+
+@pytest.fixture
+def cycle_cube_with_blend_record():
+    cubes = setup_cycle_cube()
+    updated_cubes = CubeList()
+    for cube in cubes.slices_over("forecast_reference_time"):
+        time = (
+            cube.coord("forecast_reference_time").cell(0).point.strftime("%Y%m%dT%H%MZ")
+        )
+
+        blend_record_coord = AuxCoord([f"uk_det:{time}:1.000"], long_name=RECORD_COORD)
+        cube.add_aux_coord(blend_record_coord)
+        updated_cubes.append(cube)
+    return updated_cubes.merge_cube()
+
+
+def create_weights(cube, blending_coord, weights):
+    weights_cube = next(cube.slices(blending_coord))
+    weights_cube.attributes = None
+    blending_dim = cube.coord_dims(blending_coord)
+    defunct_coords = [
+        crd.name()
+        for crd in cube.coords(dim_coords=True)
+        if not cube.coord_dims(crd) == blending_dim
+    ]
+    for crd in defunct_coords:
+        weights_cube.remove_coord(crd)
+    weights_cube.data = weights
+    weights_cube.rename("weights")
+    weights_cube.units = 1
+
+    return weights_cube
+
+
+@pytest.fixture
+def cycle_weights(weights):
+    cube = setup_cycle_cube()
+    blending_coord = "forecast_reference_time"
+    return create_weights(cube, blending_coord, weights)
+
+
+def setup_model_cube():
     """Set up a cube for model blending"""
     thresholds = [10, 20]
     data = np.ones((2, 2, 2), dtype=np.float32)
@@ -97,11 +149,44 @@ def model_cube_fixture():
 
 
 @pytest.fixture
-def blend_record():
-    return AuxCoord(
-        ["uk_det:20171110T0100Z:1.000", "uk_ens:20171110T0100Z:1.000"],
-        long_name=RECORD_COORD,
-    )
+def model_cube():
+    return setup_model_cube()
+
+
+def model_blend_record_template():
+    return [
+        "uk_det:20171110T0000Z:{uk_det_weight:{WEIGHT_PRECISION}}\n"
+        "uk_det:20171110T0100Z:{uk_det_weight:{WEIGHT_PRECISION}}",
+        "uk_ens:20171109T2300Z:{uk_ens_weight:{WEIGHT_PRECISION}}\n"
+        "uk_ens:20171110T0000Z:{uk_ens_weight:{WEIGHT_PRECISION}}\n"
+        "uk_ens:20171110T0100Z:{uk_ens_weight:{WEIGHT_PRECISION}}",
+    ]
+
+
+@pytest.fixture
+def model_blend_record():
+    return model_blend_record_template()
+
+
+@pytest.fixture
+def model_cube_with_blend_record():
+    cube = setup_model_cube()
+    points = [
+        item.format(
+            uk_det_weight=0.5, uk_ens_weight=1 / 3, WEIGHT_PRECISION=WEIGHT_PRECISION
+        )
+        for item in model_blend_record_template()
+    ]
+    blend_record_coord = AuxCoord(points, long_name=RECORD_COORD)
+    cube.add_aux_coord(blend_record_coord, 0)
+    return cube
+
+
+@pytest.fixture
+def model_weights(weights):
+    cube = setup_model_cube()
+    blending_coord = MODEL_BLEND_COORD
+    return create_weights(cube, blending_coord, weights)
 
 
 @pytest.mark.parametrize(
@@ -120,12 +205,11 @@ def test_find_blend_dim_coord_error_no_dim(cycle_cube):
         find_blend_dim_coord(cube, "forecast_reference_time")
 
 
-def test_get_coords_to_remove(model_cube, blend_record):
+def test_get_coords_to_remove(model_cube_with_blend_record):
     """Test correct coordinates are identified for removal for a cube with
     a non-scalar blend coordinate. This should include the temporary
     RECORD_COORD which is added to test its identification."""
-    model_cube.add_aux_coord(blend_record, 0)
-    result = get_coords_to_remove(model_cube, MODEL_BLEND_COORD)
+    result = get_coords_to_remove(model_cube_with_blend_record, MODEL_BLEND_COORD)
     assert set(result) == {RECORD_COORD, MODEL_BLEND_COORD, MODEL_NAME_COORD}
 
 
@@ -135,7 +219,7 @@ def test_get_coords_to_remove_noop(cycle_cube):
     assert not result
 
 
-def test_get_coords_to_remove_scalar(model_cube, blend_record):
+def test_get_coords_to_remove_scalar(model_cube, model_cube_with_blend_record):
     """Test correct coordinates are identified for removal for a cube with
     a scalar blend coordinate. If a RECORD_COORD exists this must also be
     listed for removal."""
@@ -147,12 +231,11 @@ def test_get_coords_to_remove_scalar(model_cube, blend_record):
     result = get_coords_to_remove(model_cube[0], "time")
     assert result is None
 
-    model_cube.add_aux_coord(blend_record, 0)
     # Scalar cube, model blending, RECORD_COORD
-    result = get_coords_to_remove(model_cube[0], MODEL_BLEND_COORD)
+    result = get_coords_to_remove(model_cube_with_blend_record[0], MODEL_BLEND_COORD)
     assert result == [RECORD_COORD, MODEL_BLEND_COORD, MODEL_NAME_COORD]
     # Scalar cube, non-model-blending, RECORD_COORD
-    result = get_coords_to_remove(model_cube[0], "time")
+    result = get_coords_to_remove(model_cube_with_blend_record[0], "time")
     assert result == [RECORD_COORD]
 
 
@@ -282,3 +365,109 @@ def test_store_record_run_attr_exception_model_id(model_cube):
 
     with pytest.raises(Exception, match="Failure to record run information"):
         store_record_run_attr(cubes, record_run_attr, model_id_attr)
+
+
+def test_apply_record_run_attr_basic(model_cube, model_cube_with_blend_record):
+    """Test that the apply record method can take a RECORD_COORD from a source
+    cube and construct a record run attribute on a target cube."""
+
+    expected = (
+        "uk_det:20171110T0000Z:0.500\nuk_det:20171110T0100Z:0.500\n"
+        "uk_ens:20171109T2300Z:0.333\nuk_ens:20171110T0000Z:0.333\n"
+        "uk_ens:20171110T0100Z:0.333"
+    )
+    record_run_attr = "mosg__model_run"
+    apply_record_run_attr(model_cube, model_cube_with_blend_record, record_run_attr)
+
+    assert model_cube.attributes[record_run_attr] == expected
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        [1 / 3, 1 / 3, 1 / 3],  # Evenly weighted
+        [0.25, 0.25, 0.5],  # Unevenly weighted
+        [1, 1, 1]  # Overweighted. This method does nothing to prevent this; relies on
+        # sensible input weights.
+    ],
+)
+def test_update_record_run_weights_cycle(
+    cycle_cube_with_blend_record, cycle_weights, weights
+):
+    """Test that weights are updated as expected in a virgin RECORD_COORD
+    in which all weights are 1. The returned cube should have otherwise identical
+    data and metadata to the input cube."""
+
+    frts = [
+        cube.coord("forecast_reference_time").cell(0).point.strftime("%Y%m%dT%H%MZ")
+        for cube in cycle_cube_with_blend_record.slices_over("forecast_reference_time")
+    ]
+
+    expected = [
+        f"uk_det:{frt}:{weight:{WEIGHT_PRECISION}}"
+        for frt, weight in zip(frts, weights)
+    ]
+
+    result = update_record_run_weights(
+        cycle_cube_with_blend_record, cycle_weights, "forecast_reference_time"
+    )
+    assert isinstance(result, Cube)
+    # Check weights updates as expected.
+    assert list(result.coord(RECORD_COORD).points) == expected
+    # Check data, metadata, and other coords are unmodified.
+    assert (cycle_cube_with_blend_record.data == result.data).all()
+    assert cycle_cube_with_blend_record.metadata == result.metadata
+    for coord in result.coords():
+        if coord.name() == RECORD_COORD:
+            continue
+        assert coord == cycle_cube_with_blend_record.coord(coord.name())
+
+
+@pytest.mark.parametrize(
+    "weights",
+    [
+        [0.5, 0.5],  # Evenly weighted (uk_det=0.5, uk_ens=0.5)
+        [0.25, 0.75],  # Unevenly weighted (uk_det=0.25, uk_ens=0.75)
+        [0.0001, 0.9999],  # A contribution so low that we end up with a zero weight
+        # (uk_det=0.0001, uk_ens=0.9999)
+    ],
+)
+def test_update_record_run_weights_model(
+    model_cube_with_blend_record, model_weights, weights, model_blend_record
+):
+    """Test that weights are updated as expected in a model blend cube where
+    the RECORD_COORD has been constructed from the record_run attributes of
+    the separate model inputs. The uk_det input is a blend of two cycles with
+    equal weights (0.5 each), and the uk_ens input is a blend of three cycles
+    with equal weights (1/3 each).
+
+    The final test demonstrates that it is possbile to end up with a zero
+    weight in the attribute if the contribution falls below what is
+    representable at the attribute precision."""
+
+    uk_det_final_weight = 0.5 * weights[0]
+    uk_ens_final_weight = (1 / 3) * weights[1]
+
+    expected = [
+        item.format(
+            uk_det_weight=uk_det_final_weight,
+            uk_ens_weight=uk_ens_final_weight,
+            WEIGHT_PRECISION=WEIGHT_PRECISION,
+        )
+        for item in model_blend_record_template()
+    ]
+
+    result = update_record_run_weights(
+        model_cube_with_blend_record, model_weights, MODEL_BLEND_COORD
+    )
+
+    assert isinstance(result, Cube)
+    # Check weights updates as expected.
+    assert list(result.coord(RECORD_COORD).points) == expected
+    # Check data, metadata, and other coords are unmodified.
+    assert (model_cube_with_blend_record.data == result.data).all()
+    assert model_cube_with_blend_record.metadata == result.metadata
+    for coord in result.coords():
+        if coord.name() == RECORD_COORD:
+            continue
+        assert coord == model_cube_with_blend_record.coord(coord.name())

@@ -40,6 +40,7 @@ from numpy import ndarray
 from scipy import stats
 
 from improver import BasePlugin
+from improver.blending import RECORD_COORD
 from improver.blending.utilities import apply_record_run_attr, store_record_run_attr
 from improver.utilities.cube_manipulation import MergeCubes
 
@@ -255,7 +256,10 @@ class ModalWeatherCode(BasePlugin):
             )
 
         if self.record_run_attr and self.model_id_attr is not None:
-            apply_record_run_attr(result, cube, self.record_run_attr)
+            apply_record_run_attr(
+                result, cube, self.record_run_attr, discard_weights=True
+            )
+            result.remove_coord(RECORD_COORD)
 
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == UNSET_CODE_INDICATOR).any():

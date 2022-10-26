@@ -39,6 +39,7 @@ import numpy as np
 import pytest
 from iris.cube import CubeList
 
+from improver.blending import WEIGHT_PRECISION
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.wxcode.modal_code import ModalWeatherCode
@@ -117,18 +118,28 @@ def wxcode_series_fixture(
             else:
                 wxcubes[-1].attributes.update({MODEL_ID_ATTR: "uk_ens"})
 
-        if record_run_attr:
+        if record_run_attr and model_id_attr:
             ukv_time = wxfrt - timedelta(hours=1)
             enukx_time = wxfrt - timedelta(hours=3)
             if i == 0:
+                ukv_weight = 0.5
+                enukx_weight = 0.5
                 wxcubes[-1].attributes.update(
                     {
-                        RECORD_RUN_ATTR: f"uk_det:{ukv_time:{TIME_FORMAT}}:\nuk_ens:{enukx_time:{TIME_FORMAT}}:"  # noqa: E501
+                        RECORD_RUN_ATTR: (
+                            f"uk_det:{ukv_time:{TIME_FORMAT}}:{ukv_weight:{WEIGHT_PRECISION}}\n"
+                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_PRECISION}}"
+                        )
                     }
                 )
             else:
+                enukx_weight = 1.0
                 wxcubes[-1].attributes.update(
-                    {RECORD_RUN_ATTR: f"uk_ens:{enukx_time:{TIME_FORMAT}}:"}
+                    {
+                        RECORD_RUN_ATTR: (
+                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_PRECISION}}"
+                        )
+                    }
                 )
 
     return interval, model_id_attr, record_run_attr, offset_reference_times, wxcubes
@@ -254,7 +265,8 @@ def test_metadata(wxcode_series):
         assert result.attributes[MODEL_ID_ATTR] == expected_model_id_attr
     else:
         assert MODEL_ID_ATTR not in result.attributes.keys()
-    if record_run_attr:
+    if record_run_attr and model_id_attr:
+        assert RECORD_RUN_ATTR in result.attributes.keys()
         assert result.attributes[RECORD_RUN_ATTR] == expected_record_run_attr
     else:
         assert RECORD_RUN_ATTR not in result.attributes.keys()

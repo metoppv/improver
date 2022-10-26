@@ -551,7 +551,7 @@ class WeatherSymbols(BasePlugin):
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
             )
         if self.record_run_attr and self.model_id_attr is not None:
-            store_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
+            store_record_run_attr(set(cubes), self.record_run_attr, self.model_id_attr)
             run_attrs = []
             for cube in cubes:
                 run_attrs.extend(cube.coord("blend_record").points[0].split("\n"))
