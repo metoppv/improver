@@ -40,7 +40,12 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
-from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD, RECORD_COORD
+from improver.blending import (
+    MODEL_BLEND_COORD,
+    MODEL_NAME_COORD,
+    RECORD_COORD,
+    WEIGHT_PRECISION,
+)
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
@@ -102,9 +107,20 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
     try:
         (blend_dim,) = cube.coord_dims(blend_coord)
     except ValueError:
-        # occurs if the blend coordinate is scalar
+        # occurs if the blend coordinate is scalar, in which case the
+        # RECORD_COORD must be added manully if present as scalar coords
+        # are not associated with one another.
+        try:
+            cube.coord(RECORD_COORD)
+        except CoordinateNotFoundError:
+            crds_to_remove = []
+        else:
+            crds_to_remove = [RECORD_COORD]
+
         if blend_coord == MODEL_BLEND_COORD:
-            return [MODEL_BLEND_COORD, MODEL_NAME_COORD]
+            crds_to_remove.extend([MODEL_BLEND_COORD, MODEL_NAME_COORD])
+        if crds_to_remove:
+            return crds_to_remove
         return None
 
     crds_to_remove = []
@@ -324,8 +340,11 @@ def store_record_run_attr(
         )
         cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
 
-        blending_weight = "1"
-        run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
+        blending_weight = 1
+        run_attr = (
+            f"{cube.attributes[model_id_attr]}:{cycle_str}:"
+            f"{blending_weight:{WEIGHT_PRECISION}}"
+        )
 
         record_coord = AuxCoord([run_attr], long_name=RECORD_COORD)
         cube.add_aux_coord(record_coord)
@@ -348,9 +367,12 @@ def apply_record_run_attr(target: Cube, source: Cube, record_run_attr: str) -> N
         record_run_attr:
             The name of the attribute used to store model and cycle sources.
     """
-
     source_data = source.coord(RECORD_COORD).points
-    target.attributes[record_run_attr] = "\n".join(source_data)
+    # all_points = []
+    # for point in source_data:
+    #     all_points.extend(point.split("\n"))
+    # all_points = set(all_points)
+    target.attributes[record_run_attr] = "\n".join(sorted(source_data))
 
 
 def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cube:
@@ -402,8 +424,8 @@ def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cu
             components = run_record.rsplit(":", 1)
             key = components[0]
             value = float(components[-1]) * weight.data
-            updated_records.append(f"{key}:{value:1.3f}")
-        cslice.coord(RECORD_COORD).points = "\n".join(updated_records)
+            updated_records.append(f"{key}:{value:{WEIGHT_PRECISION}}")
+        cslice.coord(RECORD_COORD).points = "\n".join(sorted(updated_records))
         cubes.append(cslice)
 
     return cubes.merge_cube()

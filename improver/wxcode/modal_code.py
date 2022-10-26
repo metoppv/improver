@@ -210,7 +210,7 @@ class ModalWeatherCode(BasePlugin):
             the input weather code cubes.
         """
         # Store the information for the record_run attribute on the cubes.
-        if self.record_run_attr:
+        if self.record_run_attr and self.model_id_attr is not None:
             store_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
 
         cube = MergeCubes()(cubes)
@@ -254,7 +254,7 @@ class ModalWeatherCode(BasePlugin):
                 sorted(list(contributing_models))
             )
 
-        if self.record_run_attr:
+        if self.record_run_attr and self.model_id_attr is not None:
             apply_record_run_attr(result, cube, self.record_run_attr)
 
         # Handle any unset points where it was hard to determine a suitable mode

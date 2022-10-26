@@ -367,7 +367,7 @@ class Test_process(IrisTest):
         self.assertEqual(result[1].metadata, cube2.metadata)
 
     def test_record_run(self):
-        """Test recording the source runs in a blend record run attribute."""
+        """Test recording the source cycles in a blend record auxiliary coordinate."""
         plugin = MergeCubesForWeightedBlending(
             "model",
             weighting_coord="forecast_period",
@@ -375,13 +375,14 @@ class Test_process(IrisTest):
             record_run_attr="mosg__model_run",
         )
         cube = plugin.process(self.cubelist)
-        self.assertEqual(
-            cube.attributes["mosg__model_run"],
-            "uk_det:20151123T0300Z:\nuk_ens:20151123T0000Z:",
+        self.assertArrayEqual(
+            cube.coord("blend_record").points,
+            ["uk_ens:20151123T0000Z:1.000", "uk_det:20151123T0300Z:1.000"],
         )
 
     def test_record_run_existing(self):
-        """Test recording blend source runs with existing record attributes."""
+        """Test recording blend source cycles from existing record attributes
+        into a blend record auxiliary coordinate."""
         plugin = MergeCubesForWeightedBlending(
             "model",
             weighting_coord="forecast_period",
@@ -390,15 +391,19 @@ class Test_process(IrisTest):
         )
         self.cube_ukv.attributes[
             "mosg__model_run"
-        ] = "uk_det:20151123T0200Z:\nuk_det:20151123T0300Z:"
+        ] = "uk_det:20151123T0200Z:0.500\nuk_det:20151123T0300Z:0.500"
         cube = plugin.process([self.cube_ukv, self.cube_enuk])
-        self.assertEqual(
-            cube.attributes["mosg__model_run"],
-            "uk_det:20151123T0200Z:\nuk_det:20151123T0300Z:\nuk_ens:20151123T0000Z:",
+        self.assertArrayEqual(
+            cube.coord("blend_record").points,
+            [
+                "uk_det:20151123T0200Z:0.500\nuk_det:20151123T0300Z:0.500",
+                "uk_ens:20151123T0000Z:1.000",
+            ],
         )
 
     def test_record_run_no_model_attr(self):
-        """Test recording the source runs without a model attribute."""
+        """Test recording the source runs without a model ID attribute
+        raises an exception."""
         plugin = MergeCubesForWeightedBlending(
             "model",
             weighting_coord="forecast_period",

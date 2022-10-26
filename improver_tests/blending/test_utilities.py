@@ -35,8 +35,9 @@ from datetime import datetime
 import iris
 import numpy as np
 import pytest
+from iris.coords import AuxCoord
 
-from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
+from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD, RECORD_COORD
 from improver.blending.utilities import (
     find_blend_dim_coord,
     get_coords_to_remove,
@@ -95,6 +96,14 @@ def model_cube_fixture():
     return model_cubes.merge_cube()
 
 
+@pytest.fixture
+def blend_record():
+    return AuxCoord(
+        ["uk_det:20171110T0100Z:1.000", "uk_ens:20171110T0100Z:1.000"],
+        long_name=RECORD_COORD,
+    )
+
+
 @pytest.mark.parametrize(
     "input_coord_name", ("forecast_reference_time", "forecast_period")
 )
@@ -111,16 +120,40 @@ def test_find_blend_dim_coord_error_no_dim(cycle_cube):
         find_blend_dim_coord(cube, "forecast_reference_time")
 
 
-def test_get_coords_to_remove(model_cube):
-    """Test correct coordinates are identified for removal"""
+def test_get_coords_to_remove(model_cube, blend_record):
+    """Test correct coordinates are identified for removal for a cube with
+    a non-scalar blend coordinate. This should include the temporary
+    RECORD_COORD which is added to test its identification."""
+    model_cube.add_aux_coord(blend_record, 0)
     result = get_coords_to_remove(model_cube, MODEL_BLEND_COORD)
-    assert set(result) == {MODEL_BLEND_COORD, MODEL_NAME_COORD}
+    assert set(result) == {RECORD_COORD, MODEL_BLEND_COORD, MODEL_NAME_COORD}
 
 
 def test_get_coords_to_remove_noop(cycle_cube):
     """Test time coordinates are not removed"""
     result = get_coords_to_remove(cycle_cube, "forecast_reference_time")
     assert not result
+
+
+def test_get_coords_to_remove_scalar(model_cube, blend_record):
+    """Test correct coordinates are identified for removal for a cube with
+    a scalar blend coordinate. If a RECORD_COORD exists this must also be
+    listed for removal."""
+
+    # Scalar cube, model-blending, no RECORD_COORD
+    result = get_coords_to_remove(model_cube[0], MODEL_BLEND_COORD)
+    assert result == [MODEL_BLEND_COORD, MODEL_NAME_COORD]
+    # Scalar cube, non-model-blending, no RECORD_COORD
+    result = get_coords_to_remove(model_cube[0], "time")
+    assert result is None
+
+    model_cube.add_aux_coord(blend_record, 0)
+    # Scalar cube, model blending, RECORD_COORD
+    result = get_coords_to_remove(model_cube[0], MODEL_BLEND_COORD)
+    assert result == [RECORD_COORD, MODEL_BLEND_COORD, MODEL_NAME_COORD]
+    # Scalar cube, non-model-blending, RECORD_COORD
+    result = get_coords_to_remove(model_cube[0], "time")
+    assert result == [RECORD_COORD]
 
 
 @pytest.mark.parametrize("forecast_period", (True, False))
@@ -158,63 +191,41 @@ def test_update_blended_metadata(model_cube, forecast_period):
         assert collapsed_cube.coord("forecast_period").points[0] == 2 * 3600
 
 
-@pytest.mark.parametrize(
-    "indices, expected",
-    (
-        ([0, 1], "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:"),
-        ([0, 0], "uk_det:20171110T0100Z:"),
-    ),
-)
-def test_store_record_run_attr_basic(model_cube, indices, expected):
+def test_store_record_run_attr_basic(model_cube):
     """Test use case where the record_run_attr is constructed from other
-    information on the cubes. There are two tests here:
-
-      - cubes with unique attributes that are combined
-      - cubes with identical attributes attributes that are combined such that
-        only a single entry is returned."""
+    information on the cubes. The resulting cubes have an additional
+    auxiliary RECORD_COORD that stores the cycle and model information."""
 
     record_run_attr = "mosg__model_run"
     model_id_attr = "mosg__model_configuration"
-    cubes = [model_cube[index] for index in indices]
+    cubes = cubes = [model_cube[0], model_cube[1]]
     for cube in cubes:
         cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
 
+    expected_points = [["uk_det:20171110T0100Z:1.000"], ["uk_ens:20171110T0100Z:1.000"]]
+
     store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
-    for cube in cubes:
-        assert cube.attributes[record_run_attr] == expected
+    for cube, expected in zip(cubes, expected_points):
+        assert cube.coord(RECORD_COORD).points == expected
 
 
 @pytest.mark.parametrize(
-    "existing, expected",
+    "attributes",
     (
-        (
-            ["uk_det:20171110T0100Z:", "uk_ens:20171110T0100Z:"],
-            "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:",
-        ),
-        (
+        [
+            ["uk_det:20171110T0100Z:0.500", "uk_ens:20171110T0100Z:0.500"],
             [
-                "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:",
-                "uk_ens:20171110T0100Z:",
+                "uk_det:20171110T0100Z:0.500\nuk_ens:20171110T0100Z:0.500",
+                "uk_ens:20171110T0100Z:1.000",
             ],
-            "uk_det:20171110T0100Z:\nuk_ens:20171110T0100Z:",
-        ),
-        (
-            ["uk_det:20171110T0100Z:", "uk_det:20171110T0100Z:"],
-            "uk_det:20171110T0100Z:",
-        ),
+        ]
     ),
 )
-def test_store_record_run_attr_existing_attribute(model_cube, existing, expected):
-    """Test the case in which the cubes already have record_run_attr entries
-    and these must be combined to create a new shared attribute. There are three
-    tests here:
-
-      - cubes with unique model_run attributes that are combined
-      - cubes with distinct but overlapping model_run attributes from which the
-        elements are combined without duplicates
-      - cubes with identical model_run attributes that are combined such that
-        only a single entry is returned.
+def test_store_record_run_attr_existing_attribute(model_cube, attributes):
+    """Test the case in which the cubes already have record_run_attr entries.
+    In this case the existing attribute is simply stored as it is within the
+    RECORD_COORD.
 
     The test cubes are only vehicles for the attributes in this test, such that
     the attributes imposed do not necessarily match the other cube metadata."""
@@ -222,13 +233,13 @@ def test_store_record_run_attr_existing_attribute(model_cube, existing, expected
     record_run_attr = "mosg__model_run"
     model_id_attr = "mosg__model_configuration"
     cubes = [model_cube[0], model_cube[1]]
-    for run_attr, cube in zip(existing, cubes):
+    for run_attr, cube in zip(attributes, cubes):
         cube.attributes.update({record_run_attr: run_attr})
 
     store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
-    for cube in cubes:
-        assert cube.attributes[record_run_attr] == expected
+    for cube, expected in zip(cubes, attributes):
+        assert cube.coord(RECORD_COORD).points == expected
 
 
 def test_store_record_run_attr_mixed_inputs(model_cube):
@@ -239,16 +250,16 @@ def test_store_record_run_attr_mixed_inputs(model_cube):
     record_run_attr = "mosg__model_run"
     model_id_attr = "mosg__model_configuration"
     cubes = [model_cube[0], model_cube[1]]
-    cubes[0].attributes.update({record_run_attr: "uk_det:20171110T0000Z:"})
+    cubes[0].attributes.update({record_run_attr: "uk_det:20171110T0000Z:1.000"})
     cubes[1].attributes = {
         model_id_attr: cubes[1].coord("model_configuration").points[0]
     }
-    expected = "uk_det:20171110T0000Z:\nuk_ens:20171110T0100Z:"
+    expected_points = [["uk_det:20171110T0000Z:1.000"], ["uk_ens:20171110T0100Z:1.000"]]
 
     store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
-    for cube in cubes:
-        assert cube.attributes[record_run_attr] == expected
+    for cube, expected in zip(cubes, expected_points):
+        assert cube.coord(RECORD_COORD).points == expected
 
 
 def test_store_record_run_attr_exception_model_id_unset(model_cube):

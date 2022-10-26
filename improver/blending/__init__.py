@@ -33,3 +33,4 @@
 MODEL_BLEND_COORD = "model_id"
 MODEL_NAME_COORD = "model_configuration"
 RECORD_COORD = "blend_record"
+WEIGHT_PRECISION = "1.3f"

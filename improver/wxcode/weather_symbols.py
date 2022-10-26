@@ -550,14 +550,14 @@ class WeatherSymbols(BasePlugin):
             optional_attributes.update(
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
             )
-        if self.record_run_attr:
+        if self.record_run_attr and self.model_id_attr is not None:
             store_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
             run_attrs = []
             for cube in cubes:
                 run_attrs.extend(cube.coord("blend_record").points[0].split("\n"))
 
             optional_attributes.update(
-                {self.record_run_attr: "\n".join(set(run_attrs))}
+                {self.record_run_attr: "\n".join(sorted(set(run_attrs)))}
             )
 
         symbols = create_new_diagnostic_cube(
