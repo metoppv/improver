@@ -382,6 +382,67 @@ def test_apply_record_run_attr_basic(model_cube, model_cube_with_blend_record):
     assert model_cube.attributes[record_run_attr] == expected
 
 
+def test_apply_record_run_attr_cubelist(model_cube, model_cube_with_blend_record):
+    """Test that the apply record method can take RECORD_COORDs from a list of
+    cubes and construct a record run attribute on a target cube."""
+
+    expected = (
+        "uk_det:20171110T0000Z:0.500\nuk_det:20171110T0100Z:0.500\n"
+        "uk_ens:20171109T2300Z:0.333\nuk_ens:20171110T0000Z:0.333\n"
+        "uk_ens:20171110T0100Z:0.333"
+    )
+    record_run_attr = "mosg__model_run"
+    cubes = list(model_cube_with_blend_record.slices_over(MODEL_BLEND_COORD))
+
+    apply_record_run_attr(model_cube, cubes, record_run_attr)
+    assert model_cube.attributes[record_run_attr] == expected
+
+    cubes = CubeList(model_cube_with_blend_record.slices_over(MODEL_BLEND_COORD))
+    apply_record_run_attr(model_cube, cubes, record_run_attr)
+    assert model_cube.attributes[record_run_attr] == expected
+
+
+def test_apply_record_run_attr_discard_weights(
+    model_cube, model_cube_with_blend_record
+):
+    """Test that the apply record method can remove weights from the resulting
+    attribute if so desired. This is for composite diagnostics like weather
+    symbols where the weights have little meaning."""
+
+    expected = (
+        "uk_det:20171110T0000Z:\nuk_det:20171110T0100Z:\n"
+        "uk_ens:20171109T2300Z:\nuk_ens:20171110T0000Z:\n"
+        "uk_ens:20171110T0100Z:"
+    )
+    record_run_attr = "mosg__model_run"
+    apply_record_run_attr(
+        model_cube, model_cube_with_blend_record, record_run_attr, discard_weights=True
+    )
+
+    assert model_cube.attributes[record_run_attr] == expected
+
+
+def test_apply_record_run_attr_discard_weights_no_duplicates(
+    model_cube, model_cube_with_blend_record
+):
+    """Test that the apply record method can remove weights from the resulting
+    attribute if so desired. If this results in any duplicates (as weights were
+    the differentiating feature) these should be removed."""
+
+    record_run_attr = "mosg__model_run"
+    cube = model_cube_with_blend_record
+    cube.coord(RECORD_COORD).points = [
+        "uk_det:20171110T0000Z:0.750",
+        "uk_det:20171110T0000Z:0.250",
+    ]
+
+    expected = "uk_det:20171110T0000Z:"
+
+    apply_record_run_attr(model_cube, cube, record_run_attr, discard_weights=True)
+
+    assert model_cube.attributes[record_run_attr] == expected
+
+
 @pytest.mark.parametrize(
     "weights",
     [

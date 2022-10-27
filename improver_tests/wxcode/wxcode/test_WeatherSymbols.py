@@ -1288,7 +1288,7 @@ class Test_create_symbol_cube(IrisTest):
         self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         self.cube.attributes[
             "mosg__model_run"
-        ] = "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:"
+        ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
@@ -1322,7 +1322,8 @@ class Test_create_symbol_cube(IrisTest):
 
     def test_record_run_attr(self):
         """Test cube is constructed with appropriate metadata when setting both
-        the model_id_attr and record_run attributes"""
+        the model_id_attr and record_run attributes. Weights should be discarded
+        from the record_run attribute."""
         self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
         self.plugin.record_run_attr = "mosg__model_run"
@@ -1336,6 +1337,27 @@ class Test_create_symbol_cube(IrisTest):
         )
         self.assertArrayEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
+        )
+        self.assertTrue((result.data.mask).all())
+
+    def test_record_run_attr_multiple_inputs(self):
+        """Test cube is constructed with appropriate record_run_attr with multiple
+        source cubes. Weights should be discarded from the record_run attribute."""
+        self.plugin.template_cube = self.cube
+        self.plugin.model_id_attr = "mosg__model_configuration"
+        self.plugin.record_run_attr = "mosg__model_run"
+        cube1 = self.cube.copy()
+        cube1.attributes["mosg__model_run"] = "gl_ens:20171109T1800Z:1.000"
+        cube1.attributes["mosg__model_configuration"] = "gl_ens"
+
+        result = self.plugin.create_symbol_cube([self.cube, cube1])
+
+        self.assertArrayEqual(
+            result.attributes["mosg__model_run"],
+            "gl_ens:20171109T1800Z:\nuk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
+        )
+        self.assertArrayEqual(
+            result.attributes["mosg__model_configuration"], "gl_ens uk_det uk_ens"
         )
         self.assertTrue((result.data.mask).all())
 

@@ -31,7 +31,7 @@
 """Utilities to support weighted blending"""
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
 from iris import Constraint
@@ -351,7 +351,10 @@ def store_record_run_attr(
 
 
 def apply_record_run_attr(
-    target: Cube, source: Cube, record_run_attr: str, discard_weights: bool = False
+    target: Cube,
+    source: Union[Cube, CubeList, List[Cube]],
+    record_run_attr: str,
+    discard_weights: bool = False,
 ) -> None:
     """
     Extracts record_run entries from the RECORD_COORD auxiliary
@@ -376,7 +379,13 @@ def apply_record_run_attr(
             to true will produce an attribute that records only the models
             and cycles without the weights.
     """
-    source_data = source.coord(RECORD_COORD).points
+    if isinstance(source, Cube):
+        source_data = source.coord(RECORD_COORD).points
+    else:
+        source_data = []
+        for cube in source:
+            source_data.extend(cube.coord(RECORD_COORD).points)
+
     if discard_weights:
         all_points = []
         for point in source_data:
