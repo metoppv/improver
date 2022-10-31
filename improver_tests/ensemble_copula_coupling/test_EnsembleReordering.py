@@ -395,7 +395,7 @@ class Test__check_input_cube_masks(IrisTest):
         )
         self.post_processed_percentiles = set_up_percentile_cube(
             np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
+            np.array([25, 50, 75], dtype=np.float32),
         )
 
     def test_unmasked_data(self):
@@ -495,7 +495,7 @@ class Test_process(IrisTest):
         )
         self.post_processed_percentiles = set_up_percentile_cube(
             np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
+            np.array([25, 50, 75], dtype=np.float32),
         )
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])

@@ -48,6 +48,7 @@ below:
  - Zhiliang Fan (Bureau of Meteorology, Australia)
  - Ben Fitzpatrick (Met Office, UK)
  - Tom Gale (Bureau of Meteorology, Australia)
+ - Ben Hooper (Met Office, UK)
  - Aaron Hopkinson (Met Office, UK)
  - Kathryn Howard (Met Office, UK)
  - Tim Hume (Bureau of Meteorology, Australia)
