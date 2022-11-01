@@ -44,7 +44,7 @@ from improver.blending import (
     MODEL_BLEND_COORD,
     MODEL_NAME_COORD,
     RECORD_COORD,
-    WEIGHT_PRECISION,
+    WEIGHT_FORMAT,
 )
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
@@ -343,7 +343,7 @@ def store_record_run_attr(
         blending_weight = 1
         run_attr = (
             f"{cube.attributes[model_id_attr]}:{cycle_str}:"
-            f"{blending_weight:{WEIGHT_PRECISION}}"
+            f"{blending_weight:{WEIGHT_FORMAT}}"
         )
 
         record_coord = AuxCoord([run_attr], long_name=RECORD_COORD)
@@ -397,11 +397,11 @@ def apply_record_run_attr(
 
 def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cube:
     """
-    Split about record_run components and update the weight component to
-    reflect the blending weights being applied.
+    Update each weight component of record_run to reflect the blending
+    weights being applied.
 
-    When cycle blending the weights recorded in the record_run entries will
-    all initially be set to 1 following their creation. These are modifies
+    When cycle blending, the weights recorded in the record_run entries will
+    all initially be set to 1 following their creation. These are modified
     to reflect the weight each cycle contributes to the blend.
 
     When model blending the record_run entries will likely be multiple,
@@ -444,7 +444,7 @@ def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cu
             components = run_record.rsplit(":", 1)
             key = components[0]
             value = float(components[-1]) * weight.data
-            updated_records.append(f"{key}:{value:{WEIGHT_PRECISION}}")
+            updated_records.append(f"{key}:{value:{WEIGHT_FORMAT}}")
         cslice.coord(RECORD_COORD).points = "\n".join(sorted(updated_records))
         cubes.append(cslice)
 

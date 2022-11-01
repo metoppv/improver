@@ -39,7 +39,7 @@ import numpy as np
 import pytest
 from iris.cube import CubeList
 
-from improver.blending import WEIGHT_PRECISION
+from improver.blending import WEIGHT_FORMAT
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver.wxcode.modal_code import ModalWeatherCode
@@ -127,8 +127,8 @@ def wxcode_series_fixture(
                 wxcubes[-1].attributes.update(
                     {
                         RECORD_RUN_ATTR: (
-                            f"uk_det:{ukv_time:{TIME_FORMAT}}:{ukv_weight:{WEIGHT_PRECISION}}\n"
-                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_PRECISION}}"
+                            f"uk_det:{ukv_time:{TIME_FORMAT}}:{ukv_weight:{WEIGHT_FORMAT}}\n"
+                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_FORMAT}}"
                         )
                     }
                 )
@@ -137,7 +137,7 @@ def wxcode_series_fixture(
                 wxcubes[-1].attributes.update(
                     {
                         RECORD_RUN_ATTR: (
-                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_PRECISION}}"
+                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_FORMAT}}"
                         )
                     }
                 )

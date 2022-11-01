@@ -31,18 +31,20 @@
 """Test utilities to support weighted blending"""
 
 from datetime import datetime
+from typing import List, Union
 
 import iris
 import numpy as np
 import pytest
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
+from numpy import ndarray
 
 from improver.blending import (
     MODEL_BLEND_COORD,
     MODEL_NAME_COORD,
     RECORD_COORD,
-    WEIGHT_PRECISION,
+    WEIGHT_FORMAT,
 )
 from improver.blending.utilities import (
     apply_record_run_attr,
@@ -56,7 +58,7 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
-def setup_cycle_cube():
+def setup_cycle_cube() -> Cube:
     """Set up a cube for cycle blending"""
     thresholds = [10, 20]
     data = np.ones((2, 2, 2), dtype=np.float32)
@@ -81,12 +83,16 @@ def setup_cycle_cube():
 
 
 @pytest.fixture
-def cycle_cube():
+def cycle_cube() -> Cube:
+    """Return a cube suitable for cycle blending."""
     return setup_cycle_cube()
 
 
 @pytest.fixture
-def cycle_cube_with_blend_record():
+def cycle_cube_with_blend_record() -> Cube:
+    """Return a cube suitable for cycle blending which includes a blend
+    record auxiliary coordinate. This is used to construct a record_run
+    attribute."""
     cubes = setup_cycle_cube()
     updated_cubes = CubeList()
     for cube in cubes.slices_over("forecast_reference_time"):
@@ -94,13 +100,19 @@ def cycle_cube_with_blend_record():
             cube.coord("forecast_reference_time").cell(0).point.strftime("%Y%m%dT%H%MZ")
         )
 
-        blend_record_coord = AuxCoord([f"uk_det:{time}:1.000"], long_name=RECORD_COORD)
+        blend_record_coord = AuxCoord(
+            [f"uk_det:{time}:{1:{WEIGHT_FORMAT}}"], long_name=RECORD_COORD
+        )
         cube.add_aux_coord(blend_record_coord)
         updated_cubes.append(cube)
     return updated_cubes.merge_cube()
 
 
-def create_weights(cube, blending_coord, weights):
+def create_weights_cube(
+    cube: Cube, blending_coord: str, weights: Union[List, np.ndarray]
+) -> Cube:
+    """Creates a weights cube using the provided weights. These weights are
+    associated with the provided blending_coord."""
     weights_cube = next(cube.slices(blending_coord))
     weights_cube.attributes = None
     blending_dim = cube.coord_dims(blending_coord)
@@ -119,13 +131,16 @@ def create_weights(cube, blending_coord, weights):
 
 
 @pytest.fixture
-def cycle_weights(weights):
+def cycle_blending_weights(weights: Union[List, np.ndarray]) -> Cube:
+    """Using a template cube that is constructed for cycle blending,
+    create a weights cube that can be applied to it. The weights
+    within the cube are those provided."""
     cube = setup_cycle_cube()
     blending_coord = "forecast_reference_time"
-    return create_weights(cube, blending_coord, weights)
+    return create_weights_cube(cube, blending_coord, weights)
 
 
-def setup_model_cube():
+def setup_model_cube() -> Cube:
     """Set up a cube for model blending"""
     thresholds = [10, 20]
     data = np.ones((2, 2, 2), dtype=np.float32)
@@ -149,32 +164,38 @@ def setup_model_cube():
 
 
 @pytest.fixture
-def model_cube():
+def model_cube() -> Cube:
+    """Return a cube suitable for model blending."""
     return setup_model_cube()
 
 
-def model_blend_record_template():
+def model_blend_record_template() -> List[str]:
+    """Return blend_record template entries for a cycle blended uk_det cube
+    and a cycle blended uk_ens cube. Two template entries are returned that
+    can be formatted with the required weights."""
     return [
-        "uk_det:20171110T0000Z:{uk_det_weight:{WEIGHT_PRECISION}}\n"
-        "uk_det:20171110T0100Z:{uk_det_weight:{WEIGHT_PRECISION}}",
-        "uk_ens:20171109T2300Z:{uk_ens_weight:{WEIGHT_PRECISION}}\n"
-        "uk_ens:20171110T0000Z:{uk_ens_weight:{WEIGHT_PRECISION}}\n"
-        "uk_ens:20171110T0100Z:{uk_ens_weight:{WEIGHT_PRECISION}}",
+        "uk_det:20171110T0000Z:{uk_det_weight:{WEIGHT_FORMAT}}\n"
+        "uk_det:20171110T0100Z:{uk_det_weight:{WEIGHT_FORMAT}}",
+        "uk_ens:20171109T2300Z:{uk_ens_weight:{WEIGHT_FORMAT}}\n"
+        "uk_ens:20171110T0000Z:{uk_ens_weight:{WEIGHT_FORMAT}}\n"
+        "uk_ens:20171110T0100Z:{uk_ens_weight:{WEIGHT_FORMAT}}",
     ]
 
 
 @pytest.fixture
-def model_blend_record():
+def model_blend_record() -> List[str]:
+    """Return a blend record template."""
     return model_blend_record_template()
 
 
 @pytest.fixture
-def model_cube_with_blend_record():
+def model_cube_with_blend_record() -> Cube:
+    """Return a cube suitable for model blending which includes a blend
+    record auxiliary coordinate. This is used to construct a record_run
+    attribute."""
     cube = setup_model_cube()
     points = [
-        item.format(
-            uk_det_weight=0.5, uk_ens_weight=1 / 3, WEIGHT_PRECISION=WEIGHT_PRECISION
-        )
+        item.format(uk_det_weight=0.5, uk_ens_weight=1 / 3, WEIGHT_FORMAT=WEIGHT_FORMAT)
         for item in model_blend_record_template()
     ]
     blend_record_coord = AuxCoord(points, long_name=RECORD_COORD)
@@ -183,10 +204,13 @@ def model_cube_with_blend_record():
 
 
 @pytest.fixture
-def model_weights(weights):
+def model_blending_weights(weights: Union[List, np.ndarray]) -> Cube:
+    """Using a template cube that is constructed for model blending,
+    create a weights cube that can be applied to it. The weights
+    within the cube are those provided."""
     cube = setup_model_cube()
     blending_coord = MODEL_BLEND_COORD
-    return create_weights(cube, blending_coord, weights)
+    return create_weights_cube(cube, blending_coord, weights)
 
 
 @pytest.mark.parametrize(
@@ -367,38 +391,27 @@ def test_store_record_run_attr_exception_model_id(model_cube):
         store_record_run_attr(cubes, record_run_attr, model_id_attr)
 
 
-def test_apply_record_run_attr_basic(model_cube, model_cube_with_blend_record):
+@pytest.mark.parametrize("input_type", (Cube, list, CubeList))
+def test_apply_record_run_attr_basic(
+    model_cube, model_cube_with_blend_record, model_blend_record, input_type
+):
     """Test that the apply record method can take a RECORD_COORD from a source
-    cube and construct a record run attribute on a target cube."""
-
+    cube, or RECORD_COORDs from a list of cubes, and construct a record run
+    attribute on a target cube."""
     expected = (
         "uk_det:20171110T0000Z:0.500\nuk_det:20171110T0100Z:0.500\n"
         "uk_ens:20171109T2300Z:0.333\nuk_ens:20171110T0000Z:0.333\n"
         "uk_ens:20171110T0100Z:0.333"
     )
+
     record_run_attr = "mosg__model_run"
-    apply_record_run_attr(model_cube, model_cube_with_blend_record, record_run_attr)
-
-    assert model_cube.attributes[record_run_attr] == expected
-
-
-def test_apply_record_run_attr_cubelist(model_cube, model_cube_with_blend_record):
-    """Test that the apply record method can take RECORD_COORDs from a list of
-    cubes and construct a record run attribute on a target cube."""
-
-    expected = (
-        "uk_det:20171110T0000Z:0.500\nuk_det:20171110T0100Z:0.500\n"
-        "uk_ens:20171109T2300Z:0.333\nuk_ens:20171110T0000Z:0.333\n"
-        "uk_ens:20171110T0100Z:0.333"
-    )
-    record_run_attr = "mosg__model_run"
-    cubes = list(model_cube_with_blend_record.slices_over(MODEL_BLEND_COORD))
-
-    apply_record_run_attr(model_cube, cubes, record_run_attr)
-    assert model_cube.attributes[record_run_attr] == expected
-
-    cubes = CubeList(model_cube_with_blend_record.slices_over(MODEL_BLEND_COORD))
-    apply_record_run_attr(model_cube, cubes, record_run_attr)
+    if input_type is Cube:
+        input_object = model_cube_with_blend_record
+    else:
+        input_object = input_type(
+            model_cube_with_blend_record.slices_over(MODEL_BLEND_COORD)
+        )
+    apply_record_run_attr(model_cube, input_object, record_run_attr)
     assert model_cube.attributes[record_run_attr] == expected
 
 
@@ -453,7 +466,7 @@ def test_apply_record_run_attr_discard_weights_no_duplicates(
     ],
 )
 def test_update_record_run_weights_cycle(
-    cycle_cube_with_blend_record, cycle_weights, weights
+    cycle_cube_with_blend_record, cycle_blending_weights, weights
 ):
     """Test that weights are updated as expected in a virgin RECORD_COORD
     in which all weights are 1. The returned cube should have otherwise identical
@@ -465,12 +478,11 @@ def test_update_record_run_weights_cycle(
     ]
 
     expected = [
-        f"uk_det:{frt}:{weight:{WEIGHT_PRECISION}}"
-        for frt, weight in zip(frts, weights)
+        f"uk_det:{frt}:{weight:{WEIGHT_FORMAT}}" for frt, weight in zip(frts, weights)
     ]
 
     result = update_record_run_weights(
-        cycle_cube_with_blend_record, cycle_weights, "forecast_reference_time"
+        cycle_cube_with_blend_record, cycle_blending_weights, "forecast_reference_time"
     )
     assert isinstance(result, Cube)
     # Check weights updates as expected.
@@ -494,7 +506,7 @@ def test_update_record_run_weights_cycle(
     ],
 )
 def test_update_record_run_weights_model(
-    model_cube_with_blend_record, model_weights, weights, model_blend_record
+    model_cube_with_blend_record, model_blending_weights, weights, model_blend_record
 ):
     """Test that weights are updated as expected in a model blend cube where
     the RECORD_COORD has been constructed from the record_run attributes of
@@ -513,13 +525,13 @@ def test_update_record_run_weights_model(
         item.format(
             uk_det_weight=uk_det_final_weight,
             uk_ens_weight=uk_ens_final_weight,
-            WEIGHT_PRECISION=WEIGHT_PRECISION,
+            WEIGHT_FORMAT=WEIGHT_FORMAT,
         )
         for item in model_blend_record_template()
     ]
 
     result = update_record_run_weights(
-        model_cube_with_blend_record, model_weights, MODEL_BLEND_COORD
+        model_cube_with_blend_record, model_blending_weights, MODEL_BLEND_COORD
     )
 
     assert isinstance(result, Cube)
