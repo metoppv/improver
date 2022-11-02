@@ -109,7 +109,7 @@ def cycle_cube_with_blend_record() -> Cube:
 
 
 def create_weights_cube(
-    cube: Cube, blending_coord: str, weights: Union[List, np.ndarray]
+    cube: Cube, blending_coord: str, weights: Union[List, ndarray]
 ) -> Cube:
     """Creates a weights cube using the provided weights. These weights are
     associated with the provided blending_coord."""
@@ -131,7 +131,7 @@ def create_weights_cube(
 
 
 @pytest.fixture
-def cycle_blending_weights(weights: Union[List, np.ndarray]) -> Cube:
+def cycle_blending_weights(weights: Union[List, ndarray]) -> Cube:
     """Using a template cube that is constructed for cycle blending,
     create a weights cube that can be applied to it. The weights
     within the cube are those provided."""
@@ -204,7 +204,7 @@ def model_cube_with_blend_record() -> Cube:
 
 
 @pytest.fixture
-def model_blending_weights(weights: Union[List, np.ndarray]) -> Cube:
+def model_blending_weights(weights: Union[List, ndarray]) -> Cube:
     """Using a template cube that is constructed for model blending,
     create a weights cube that can be applied to it. The weights
     within the cube are those provided."""
