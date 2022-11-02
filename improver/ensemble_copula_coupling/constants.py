@@ -64,6 +64,7 @@ BOUNDS_FOR_ECDF = {
     "medium_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
     # Precipitation amount
     "lwe_thickness_of_freezing_rainfall_amount": Bounds((0, 0.5), "m"),
+    "lwe_thickness_of_graupel_and_hail_fall_amount": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_precipitation_amount": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_precipitation_amount_in_vicinity": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_sleetfall_amount": Bounds((0, 0.5), "m"),
