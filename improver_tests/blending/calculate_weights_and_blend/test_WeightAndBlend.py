@@ -391,9 +391,17 @@ class Test_process(IrisTest):
         linear weightings"""
         expected_data = np.array([[[0.95]], [[0.55]], [[0.1]]], dtype=np.float32)
         result = self.plugin_cycle.process(
-            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+            [self.ukv_cube, self.ukv_cube_latest],
+            cycletime=self.cycletime,
+            model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det")
+        self.assertEqual(
+            result.attributes["mosg__model_run"],
+            "uk_det:20180910T0300Z:0.500\nuk_det:20180910T0400Z:0.500",
+        )
         self.assertArrayEqual(
             result.coord("time").points, self.ukv_cube_latest.coord("time").points
         )
@@ -409,16 +417,22 @@ class Test_process(IrisTest):
     @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_model_blend(self):
         """Test plugin produces correct output for UKV-ENUKX model blend
-        with 50-50 weightings defined by dictionary"""
+        with 50-50 weightings defined by dictionary. Check weights are
+        reflected in the returned record_run attribute"""
         expected_data = np.array([[[0.8]], [[0.4]], [[0]]], dtype=np.float32)
         result = self.plugin_model.process(
             [self.ukv_cube, self.enukx_cube],
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
+        )
+        self.assertEqual(
+            result.attributes["mosg__model_run"],
+            "uk_det:20180910T0300Z:0.500\nuk_ens:20180910T0300Z:0.500",
         )
         result_coords = [coord.name() for coord in result.coords()]
         self.assertNotIn("model_id", result_coords)
@@ -464,18 +478,28 @@ class Test_process(IrisTest):
     def test_blend_three_models(self):
         """Test plugin produces correct output for 3-model blend when all
         models have (equal) non-zero weights. Each model in WEIGHTS_DICT has
-        a weight of 0.5 at 4 hours lead time, and the total weights are
-        re-normalised during the process, so the final blend contains 1/3
-        contribution from each of the three models."""
+        a weight of 0.5 at the lead time used here (T+4 for the models, and
+        T+2 for the nowcast). The total weights are re-normalised during the
+        process, so the final blend contains 1/3 contribution from each of
+        the three models. This can be seen in the resulting record_run
+        attribute."""
         expected_data = np.array(
             [[[0.8666667]], [[0.4666667]], [[0.0666667]]], dtype=np.float32
         )
         result = self.plugin_model.process(
             [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(
+            result.attributes["mosg__model_configuration"], "nc_det uk_det uk_ens"
+        )
+        self.assertEqual(
+            result.attributes["mosg__model_run"],
+            "nc_det:20180910T0500Z:0.333\nuk_det:20180910T0300Z:0.333\nuk_ens:20180910T0300Z:0.333",
+        )
         # make sure output cube has the forecast reference time and period
         # from the most recent contributing model
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
@@ -496,11 +520,16 @@ class Test_process(IrisTest):
         result = plugin.process(
             [self.ukv_cube, self.enukx_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(
             result.attributes["mosg__model_configuration"], "nc_det uk_ens"
+        )
+        self.assertEqual(
+            result.attributes["mosg__model_run"],
+            "nc_det:20180910T0500Z:0.500\nuk_ens:20180910T0300Z:0.500",
         )
 
     def test_blend_with_zero_weight_one_model_valid(self):
@@ -515,10 +544,14 @@ class Test_process(IrisTest):
         result = plugin.process(
             [self.ukv_cube, self.nowcast_cube],
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "nc_det")
+        self.assertEqual(
+            result.attributes["mosg__model_run"], "nc_det:20180910T0500Z:1.000"
+        )
 
     def test_blend_with_zero_weight_one_model_input(self):
         """Test plugin returns data unchanged from a single model, even if that
@@ -533,10 +566,14 @@ class Test_process(IrisTest):
         result = plugin.process(
             self.ukv_cube,
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertEqual(result.attributes["mosg__model_configuration"], "uk_det")
+        self.assertEqual(
+            result.attributes["mosg__model_run"], "uk_det:20180910T0300Z:1.000"
+        )
 
     def test_forecast_coord_deprecation(self):
         """Test model blending works if some (but not all) inputs have previously
@@ -563,6 +600,7 @@ class Test_process(IrisTest):
         result = self.plugin_model.process(
             [self.enukx_cube],
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime=self.cycletime,
             attributes_dict={"source": "IMPROVER"},
         )
@@ -571,6 +609,9 @@ class Test_process(IrisTest):
             {coord.name() for coord in result.coords()}, expected_coords
         )
         self.assertEqual(result.attributes["source"], "IMPROVER")
+        self.assertEqual(
+            result.attributes["mosg__model_run"], "uk_ens:20180910T0300Z:1.000"
+        )
 
     def test_one_cube_error_no_cycletime(self):
         """Test an error is raised if no cycletime is provided for model blending"""
@@ -582,18 +623,23 @@ class Test_process(IrisTest):
 
     def test_one_cube_with_cycletime_model_blending(self):
         """Test the plugin returns a single input cube with an updated forecast
-        reference time and period if given the "cycletime" option."""
+        reference time and period if given the "cycletime" option. The record_run
+        attribute captures the original forecast reference time."""
         expected_frt = self.enukx_cube.coord("forecast_reference_time").points[0] + 3600
         expected_fp = self.enukx_cube.coord("forecast_period").points[0] - 3600
         result = self.plugin_model.process(
             [self.enukx_cube],
             model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
             cycletime="20180910T0400Z",
         )
         self.assertEqual(
             result.coord("forecast_reference_time").points[0], expected_frt
         )
         self.assertEqual(result.coord("forecast_period").points[0], expected_fp)
+        self.assertEqual(
+            result.attributes["mosg__model_run"], "uk_ens:20180910T0300Z:1.000"
+        )
 
     def test_one_cube_with_cycletime_cycle_blending(self):
         """Test the plugin returns a single input cube with an updated forecast
@@ -601,12 +647,18 @@ class Test_process(IrisTest):
         expected_frt = self.enukx_cube.coord("forecast_reference_time").points[0] + 3600
         expected_fp = self.enukx_cube.coord("forecast_period").points[0] - 3600
         result = self.plugin_cycle.process(
-            [self.enukx_cube], cycletime="20180910T0400Z"
+            [self.enukx_cube],
+            cycletime="20180910T0400Z",
+            model_id_attr="mosg__model_configuration",
+            record_run_attr="mosg__model_run",
         )
         self.assertEqual(
             result.coord("forecast_reference_time").points[0], expected_frt
         )
         self.assertEqual(result.coord("forecast_period").points[0], expected_fp)
+        self.assertEqual(
+            result.attributes["mosg__model_run"], "uk_ens:20180910T0300Z:1.000"
+        )
 
     def test_error_blend_coord_absent(self):
         """Test error is raised if blend coord is not present on input cubes"""
@@ -614,6 +666,22 @@ class Test_process(IrisTest):
         msg = "kittens coordinate is not present on all input cubes"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process([self.ukv_cube, self.ukv_cube_latest])
+
+    def test_error_record_run_without_model_id(self):
+        """Test error is raised if record_run_attr is set for use without
+        also providing the model_id_attr. The latter may be used without the
+        former, but not vice-versa."""
+
+        msg = (
+            "record_run_attr can only be used with model_id_attr, which has "
+            "not been provided."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin_cycle.process(
+                [self.enukx_cube],
+                cycletime="20180910T0400Z",
+                record_run_attr="mosg__model_run",
+            )
 
 
 class Test_process_spatial_weights(IrisTest):

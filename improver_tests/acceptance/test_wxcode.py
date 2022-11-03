@@ -96,6 +96,7 @@ def test_native_units(tmp_path):
     ]
     wxtree = kgo_dir / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
+
     args = [
         *param_paths,
         "--wxtree",

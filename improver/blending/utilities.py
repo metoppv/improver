@@ -31,14 +31,21 @@
 """Utilities to support weighted blending"""
 
 from datetime import datetime
-from typing import Dict, List, Optional
+from typing import Dict, List, Optional, Union
 
 import numpy as np
+from iris import Constraint
+from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import int64
 
-from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
+from improver.blending import (
+    MODEL_BLEND_COORD,
+    MODEL_NAME_COORD,
+    RECORD_COORD,
+    WEIGHT_FORMAT,
+)
 from improver.metadata.amend import amend_attributes
 from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
@@ -82,11 +89,12 @@ def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
     return cube.coord(dimensions=blend_dim[0], dim_coords=True).name()
 
 
-def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
+def get_coords_to_remove(cube: Cube, blend_coord: str) -> List[str]:
     """
     Generate a list of coordinate names associated with the blend
     dimension.  Unless these are time-related coordinates, they should be
-    removed after blending.
+    removed after blending. An empty list is returned if there are no
+    coordinates to remove.
 
     Args:
         cube:
@@ -97,15 +105,21 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
     Returns:
         List of names of coordinates to remove
     """
+    crds_to_remove = []
     try:
         (blend_dim,) = cube.coord_dims(blend_coord)
     except ValueError:
-        # occurs if the blend coordinate is scalar
-        if blend_coord == MODEL_BLEND_COORD:
-            return [MODEL_BLEND_COORD, MODEL_NAME_COORD]
-        return None
+        # occurs if the blend coordinate is scalar, in which case the
+        # RECORD_COORD must be added manually if present as scalar coords
+        # are not associated with one another.
+        if cube.coords(RECORD_COORD):
+            crds_to_remove.append(RECORD_COORD)
 
-    crds_to_remove = []
+        if blend_coord == MODEL_BLEND_COORD:
+            crds_to_remove.extend([MODEL_BLEND_COORD, MODEL_NAME_COORD])
+
+        return crds_to_remove
+
     for coord in cube.coords():
         if coord.name() in TIME_COORDS:
             continue
@@ -235,44 +249,58 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
     return round_close(cycletime_point, dtype=np.int64)
 
 
-def set_record_run_attr(
+def store_record_run_as_coord(
     cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
 ) -> None:
-    """Set a record_run attribute that records the model identifier and
-    forecast reference time of each cube in the cubelist. From the list of cubes,
-    pre-existing record_run attributes, model IDs and forecast reference
-    times are extracted as required to build a new record_run attribute.
+    """Stores model identifiers and forecast_reference_times on the input
+    cubes as auxiliary coordinates. These are used to construct record_run
+    attributes that can be applied to a cube produced by merging or combining
+    these cubes. By storing this information as a coordinate it will persist
+    in merged cubes in which forecast_reference_times are otherwise updated.
+    It also allows the data to be discarded when cubes for blending are
+    filtered to remove zero-weight contributors, ensuring the resulting
+    attribute is consistent with what has actually contributed to a blended
+    forecast.
 
-    The new attribute is applied to each cube in the cubelist in preparation
-    for blending / combining the cubes. The resulting composite product will
-    have a record of the contributing models and their associated forecast
-    reference times.
+    From the list of cubes, pre-existing record_run attributes, model IDs and
+    forecast reference times are extracted as required. These are combined
+    and stored as a RECORD_COORD auxiliary coordinate. The constructed
+    attribute has the form:
 
-    There are three ways this method may work:
+        model : cycle : weight
 
-      - None of the input cubes have an existing record_run attribute.
-        The model_id_attr argument must be provided to enable the model
-        identifiers to be extracted and used in conjunction with the forecast
-        reference time to build the record_run attribute.
+    e.g.:
+
+        uk_ens : 20201105T1200Z : 1.0
+
+    If a new record is being constructed the weight is always set to 1. This
+    will be updated using the weights applied in blending the cubes. When
+    combining (rather than blending) cubes (e.g. weather symbols) it is
+    expected that each input will already possess a record_run attribute
+    that contains the real weights used.
+
+    Existing records may contain multiple of these attribute components joined
+    with newline characters.
+
+    There are two ways this method may work:
+
       - All of the input cubes have an existing record_run attribute. The
-        model_id_attr argument is not required as a new record_run attribute
-        will be constructed by combining the existing record_run attributes on
-        each input cube.
-      - Some of the input cubes have an existing record_run attribute, and some
-        have not. The model_id_attr argument must be provided so that those cubes
+        model_id_attr argument is not required as the existing record_run
+        attribute is used to create the RECORD_COORD.
+      - Some or none of the input cubes have an existing record_run attribute.
+        The model_id_attr argument must be provided so that those cubes
         without an existing record_run attribute can be interrogated for their
-        model identifier.
-
-    The cubes are modified in place.
+        model identifier. This is used to create a model:cycle:weight
+        attribute that is stored in the RECORD_COORD.
 
     Args:
         cubelist:
-            Cubes from which to obtain model and cycle information, and to which
-            the resulting run record attribute is added.
+            Cubes from which to obtain model and cycle information, or an existing
+            record_run attribute.
         record_run_attr:
-            The name of the record run attribute that is to be created.
+            The name of the record_run attribute that may exist on the input cubes.
         model_id_attr:
-            The name of the attribute that contains the source model information.
+            The name of the model_id attribute that may exist on the input cubes.
 
     Raises:
         ValueError: If model_id_attr is not set and is required to construct a
@@ -289,13 +317,11 @@ def set_record_run_attr(
             f"of a new {record_run_attr} attribute."
         )
 
-    cycle_strings = []
     for cube in cubelist:
         if record_run_attr in cube.attributes:
-            model_attrs = cube.attributes[record_run_attr].splitlines()
-            for model_attr in model_attrs:
-                if model_attr not in cycle_strings:
-                    cycle_strings.append(model_attr)
+            run_attr = cube.attributes[record_run_attr]
+            record_coord = AuxCoord([run_attr], long_name=RECORD_COORD)
+            cube.add_aux_coord(record_coord)
             continue
 
         if model_id_attr not in cube.attributes:
@@ -310,11 +336,112 @@ def set_record_run_attr(
         )
         cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
 
-        blending_weight = ""  # TODO: include actual blending weight here.
-        run_attr = f"{cube.attributes[model_id_attr]}:{cycle_str}:{blending_weight}"
-        if run_attr not in cycle_strings:
-            cycle_strings.append(run_attr)
+        blending_weight = 1
+        run_attr = (
+            f"{cube.attributes[model_id_attr]}:{cycle_str}:"
+            f"{blending_weight:{WEIGHT_FORMAT}}"
+        )
 
-    cycle_strings.sort()
-    for cube in cubelist:
-        cube.attributes[record_run_attr] = "\n".join(cycle_strings)
+        record_coord = AuxCoord([run_attr], long_name=RECORD_COORD)
+        cube.add_aux_coord(record_coord)
+
+
+def record_run_coord_to_attr(
+    target: Cube,
+    source: Union[Cube, CubeList, List[Cube]],
+    record_run_attr: str,
+    discard_weights: bool = False,
+) -> None:
+    """
+    Extracts record_run entries from the RECORD_COORD auxiliary
+    coordinate on the source cube. These are joined together and added
+    as the record_run_attr attribute to the target cube.
+
+    Args:
+        target:
+            Cube to which the record_run_attr should be added. This is the
+            product of blending the data in the source cube.
+        source:
+            The cubes merged together in preparation for blending. This cube
+            contains the RECORD_COORD that includes the record_run entries
+            to use in constructing the attribute.
+        record_run_attr:
+            The name of the attribute used to store model and cycle sources.
+        discard_weights:
+            If cubes have been combined rather than blended the weights may
+            well not provide much information, i.e. in weather symbols. They
+            may also not be normalised and could give a total contributing
+            weight much larger than 1. In these cases, setting discard_weights
+            to true will produce an attribute that records only the models
+            and cycles without the weights.
+    """
+    if isinstance(source, Cube):
+        source_data = source.coord(RECORD_COORD).points
+    else:
+        source_data = []
+        for cube in source:
+            source_data.extend(cube.coord(RECORD_COORD).points)
+
+    if discard_weights:
+        all_points = []
+        for point in source_data:
+            all_points.extend(point.split("\n"))
+        all_points = [point.rsplit(":", 1)[0] + ":" for point in all_points]
+        source_data = list(set(all_points))
+    target.attributes[record_run_attr] = "\n".join(sorted(source_data))
+
+
+def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cube:
+    """
+    Update each weight component of record_run to reflect the blending
+    weights being applied.
+
+    When cycle blending, the weights recorded in the record_run entries will
+    all initially be set to 1 following their creation. These are modified
+    to reflect the weight each cycle contributes to the blend.
+
+    When model blending the record_run entries will likely be multiple,
+    reflecting the several cycles that have already been blended. These are
+    split up so that the weights can be modified to reflect their final
+    contribution to the model blend.
+
+    As an example, consider 4 deterministic cycles that have been cycle blended
+    using equal weights. Each cycle will have a weight of 0.25. These might
+    then be model blended with another model, each contributing 0.5 of the
+    total. Each of the 4 deterministic cycles will end up with a modified
+    weight of 0.125 contributing to the final blend.
+
+    Args:
+        cube:
+            The cubes merged together in preparation for blending. These
+            contain the RECORD_COORD in which the weights need to be
+            updated.
+        weights:
+            The weights cube that is being applied in the blending. Note
+            that these should be simple weights, rather than spatial
+            weights. The attribute cannot hope to capture the spatially
+            varying weights, so the high-level contribution is recorded
+            ignoring local variation.
+        blend_coord:
+            The coordinate over which blending is being performed.
+
+    Returns:
+        A copy of the input cube with the updated weights.
+    """
+    cubes = CubeList()
+    for cslice in cube.slices_over(blend_coord):
+        blend_point = cslice.coord(blend_coord).cell(0).point
+        weight = weights.extract(
+            Constraint(coord_values={blend_coord: lambda cell: cell == blend_point})
+        )
+        run_records = cslice.coord(RECORD_COORD).points[0].split("\n")
+        updated_records = []
+        for run_record in run_records:
+            components = run_record.rsplit(":", 1)
+            model_cycle = components[0]
+            value = float(components[-1]) * weight.data
+            updated_records.append(f"{model_cycle}:{value:{WEIGHT_FORMAT}}")
+        cslice.coord(RECORD_COORD).points = "\n".join(sorted(updated_records))
+        cubes.append(cslice)
+
+    return cubes.merge_cube()
