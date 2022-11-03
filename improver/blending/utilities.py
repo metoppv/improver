@@ -108,7 +108,7 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
         (blend_dim,) = cube.coord_dims(blend_coord)
     except ValueError:
         # occurs if the blend coordinate is scalar, in which case the
-        # RECORD_COORD must be added manully if present as scalar coords
+        # RECORD_COORD must be added manually if present as scalar coords
         # are not associated with one another.
         try:
             cube.coord(RECORD_COORD)
@@ -409,7 +409,7 @@ def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cu
     split up so that the weights can be modified to reflect their final
     contribution to the model blend.
 
-    As an example, consider 4 deterministic cycles have been cycle blended
+    As an example, consider 4 deterministic cycles that have been cycle blended
     using equal weights. Each cycle will have a weight of 0.25. These might
     then be model blended with another model, each contributing 0.5 of the
     total. Each of the 4 deterministic cycles will end up with a modified
