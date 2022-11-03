@@ -567,6 +567,10 @@ class WeatherSymbols(BasePlugin):
             data=np.ma.masked_all_like(template_cube.data).astype(np.int32),
         )
         if self.record_run_attr and self.model_id_attr is not None:
+            # Use set(cubes) here as the prepare_input_cubes method returns a list
+            # of inputs that contains duplicate pointers to the same threshold
+            # slices. Using set here ensures each contributing model/cycle/diagnostic
+            # is only considered once when creating the record run coordinate.
             record_run_coord_to_attr(
                 symbols, set(cubes), self.record_run_attr, discard_weights=True
             )

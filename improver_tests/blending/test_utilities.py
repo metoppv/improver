@@ -299,7 +299,7 @@ def test_store_record_run_as_coord_basic(model_cube):
 
     record_run_attr = "mosg__model_run"
     model_id_attr = "mosg__model_configuration"
-    cubes = cubes = [model_cube[0], model_cube[1]]
+    cubes = [model_cube[0], model_cube[1]]
     for cube in cubes:
         cube.attributes = {model_id_attr: cube.coord("model_configuration").points[0]}
 
