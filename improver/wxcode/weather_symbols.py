@@ -43,7 +43,10 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import BasePlugin
-from improver.blending.utilities import apply_record_run_attr, store_record_run_attr
+from improver.blending.utilities import (
+    record_run_coord_to_attr,
+    store_record_run_as_coord,
+)
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
@@ -551,7 +554,9 @@ class WeatherSymbols(BasePlugin):
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
             )
         if self.record_run_attr and self.model_id_attr:
-            store_record_run_attr(set(cubes), self.record_run_attr, self.model_id_attr)
+            store_record_run_as_coord(
+                set(cubes), self.record_run_attr, self.model_id_attr
+            )
 
         symbols = create_new_diagnostic_cube(
             "weather_code",
@@ -562,7 +567,7 @@ class WeatherSymbols(BasePlugin):
             data=np.ma.masked_all_like(template_cube.data).astype(np.int32),
         )
         if self.record_run_attr and self.model_id_attr is not None:
-            apply_record_run_attr(
+            record_run_coord_to_attr(
                 symbols, set(cubes), self.record_run_attr, discard_weights=True
             )
 

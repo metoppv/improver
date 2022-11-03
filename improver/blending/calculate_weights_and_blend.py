@@ -42,8 +42,8 @@ from improver import PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.utilities import (
-    apply_record_run_attr,
     get_coords_to_remove,
+    record_run_coord_to_attr,
     update_blended_metadata,
     update_record_run_weights,
 )
@@ -313,6 +313,8 @@ class WeightAndBlend(PostProcessingPlugin):
         if "model" in self.blend_coord:
             self.blend_coord = copy(MODEL_BLEND_COORD)
 
+        # Record coordinates associated with the blend coord that will be removed
+        # later once the blend coord has been collapsed.
         coords_to_remove = get_coords_to_remove(cube, self.blend_coord)
 
         weights = None
@@ -341,7 +343,7 @@ class WeightAndBlend(PostProcessingPlugin):
             result = BlendingPlugin(cube, weights=weights)
 
         if record_run_attr is not None:
-            apply_record_run_attr(result, cube, record_run_attr)
+            record_run_coord_to_attr(result, cube, record_run_attr)
 
         # Remove custom metadata and and update time-type coordinates.  Remove
         # non-time-type coordinate that were previously associated with the blend

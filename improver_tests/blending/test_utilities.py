@@ -47,10 +47,10 @@ from improver.blending import (
     WEIGHT_FORMAT,
 )
 from improver.blending.utilities import (
-    apply_record_run_attr,
     find_blend_dim_coord,
     get_coords_to_remove,
-    store_record_run_attr,
+    record_run_coord_to_attr,
+    store_record_run_as_coord,
     update_blended_metadata,
     update_record_run_weights,
 )
@@ -183,12 +183,6 @@ def model_blend_record_template() -> List[str]:
 
 
 @pytest.fixture
-def model_blend_record() -> List[str]:
-    """Return a blend record template."""
-    return model_blend_record_template()
-
-
-@pytest.fixture
 def model_cube_with_blend_record() -> Cube:
     """Return a cube suitable for model blending which includes a blend
     record auxiliary coordinate. This is used to construct a record_run
@@ -253,7 +247,7 @@ def test_get_coords_to_remove_scalar(model_cube, model_cube_with_blend_record):
     assert result == [MODEL_BLEND_COORD, MODEL_NAME_COORD]
     # Scalar cube, non-model-blending, no RECORD_COORD
     result = get_coords_to_remove(model_cube[0], "time")
-    assert result is None
+    assert result == []
 
     # Scalar cube, model blending, RECORD_COORD
     result = get_coords_to_remove(model_cube_with_blend_record[0], MODEL_BLEND_COORD)
@@ -298,7 +292,7 @@ def test_update_blended_metadata(model_cube, forecast_period):
         assert collapsed_cube.coord("forecast_period").points[0] == 2 * 3600
 
 
-def test_store_record_run_attr_basic(model_cube):
+def test_store_record_run_as_coord_basic(model_cube):
     """Test use case where the record_run_attr is constructed from other
     information on the cubes. The resulting cubes have an additional
     auxiliary RECORD_COORD that stores the cycle and model information."""
@@ -311,7 +305,7 @@ def test_store_record_run_attr_basic(model_cube):
 
     expected_points = [["uk_det:20171110T0100Z:1.000"], ["uk_ens:20171110T0100Z:1.000"]]
 
-    store_record_run_attr(cubes, record_run_attr, model_id_attr)
+    store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
 
     for cube, expected in zip(cubes, expected_points):
         assert cube.coord(RECORD_COORD).points == expected
@@ -329,7 +323,7 @@ def test_store_record_run_attr_basic(model_cube):
         ]
     ),
 )
-def test_store_record_run_attr_existing_attribute(model_cube, attributes):
+def test_store_record_run_as_coord_existing_attribute(model_cube, attributes):
     """Test the case in which the cubes already have record_run_attr entries.
     In this case the existing attribute is simply stored as it is within the
     RECORD_COORD.
@@ -343,13 +337,13 @@ def test_store_record_run_attr_existing_attribute(model_cube, attributes):
     for run_attr, cube in zip(attributes, cubes):
         cube.attributes.update({record_run_attr: run_attr})
 
-    store_record_run_attr(cubes, record_run_attr, model_id_attr)
+    store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
 
     for cube, expected in zip(cubes, attributes):
         assert cube.coord(RECORD_COORD).points == expected
 
 
-def test_store_record_run_attr_mixed_inputs(model_cube):
+def test_store_record_run_as_coord_mixed_inputs(model_cube):
     """Test use case where the record_run_attr is constructed from one cube
     with an existing record_run_attr, and one where other information on the
     cube is used."""
@@ -363,13 +357,13 @@ def test_store_record_run_attr_mixed_inputs(model_cube):
     }
     expected_points = [["uk_det:20171110T0000Z:1.000"], ["uk_ens:20171110T0100Z:1.000"]]
 
-    store_record_run_attr(cubes, record_run_attr, model_id_attr)
+    store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
 
     for cube, expected in zip(cubes, expected_points):
         assert cube.coord(RECORD_COORD).points == expected
 
 
-def test_store_record_run_attr_exception_model_id_unset(model_cube):
+def test_store_record_run_as_coord_exception_model_id_unset(model_cube):
     """Test an exception is raised if the model_id_attr argument provided is
     none and the input cubes do not all have an existing record_run_attr."""
     record_run_attr = "mosg__model_run"
@@ -377,10 +371,10 @@ def test_store_record_run_attr_exception_model_id_unset(model_cube):
     cubes = [model_cube[0], model_cube[1]]
 
     with pytest.raises(Exception, match="Not all input cubes contain an existing"):
-        store_record_run_attr(cubes, record_run_attr, model_id_attr)
+        store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
 
 
-def test_store_record_run_attr_exception_model_id(model_cube):
+def test_store_record_run_as_coord_exception_model_id(model_cube):
     """Test an exception is raised if no model_id_attr is set on the input
     cubes and no existing record_run_attr was present."""
     record_run_attr = "mosg__model_run"
@@ -388,12 +382,12 @@ def test_store_record_run_attr_exception_model_id(model_cube):
     cubes = [model_cube[0], model_cube[1]]
 
     with pytest.raises(Exception, match="Failure to record run information"):
-        store_record_run_attr(cubes, record_run_attr, model_id_attr)
+        store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
 
 
 @pytest.mark.parametrize("input_type", (Cube, list, CubeList))
-def test_apply_record_run_attr_basic(
-    model_cube, model_cube_with_blend_record, model_blend_record, input_type
+def test_record_run_coord_to_attr_basic(
+    model_cube, model_cube_with_blend_record, input_type
 ):
     """Test that the apply record method can take a RECORD_COORD from a source
     cube, or RECORD_COORDs from a list of cubes, and construct a record run
@@ -411,11 +405,11 @@ def test_apply_record_run_attr_basic(
         input_object = input_type(
             model_cube_with_blend_record.slices_over(MODEL_BLEND_COORD)
         )
-    apply_record_run_attr(model_cube, input_object, record_run_attr)
+    record_run_coord_to_attr(model_cube, input_object, record_run_attr)
     assert model_cube.attributes[record_run_attr] == expected
 
 
-def test_apply_record_run_attr_discard_weights(
+def test_record_run_coord_to_attr_discard_weights(
     model_cube, model_cube_with_blend_record
 ):
     """Test that the apply record method can remove weights from the resulting
@@ -428,14 +422,14 @@ def test_apply_record_run_attr_discard_weights(
         "uk_ens:20171110T0100Z:"
     )
     record_run_attr = "mosg__model_run"
-    apply_record_run_attr(
+    record_run_coord_to_attr(
         model_cube, model_cube_with_blend_record, record_run_attr, discard_weights=True
     )
 
     assert model_cube.attributes[record_run_attr] == expected
 
 
-def test_apply_record_run_attr_discard_weights_no_duplicates(
+def test_record_run_coord_to_attr_discard_weights_no_duplicates(
     model_cube, model_cube_with_blend_record
 ):
     """Test that the apply record method can remove weights from the resulting
@@ -451,7 +445,7 @@ def test_apply_record_run_attr_discard_weights_no_duplicates(
 
     expected = "uk_det:20171110T0000Z:"
 
-    apply_record_run_attr(model_cube, cube, record_run_attr, discard_weights=True)
+    record_run_coord_to_attr(model_cube, cube, record_run_attr, discard_weights=True)
 
     assert model_cube.attributes[record_run_attr] == expected
 
@@ -506,7 +500,7 @@ def test_update_record_run_weights_cycle(
     ],
 )
 def test_update_record_run_weights_model(
-    model_cube_with_blend_record, model_blending_weights, weights, model_blend_record
+    model_cube_with_blend_record, model_blending_weights, weights
 ):
     """Test that weights are updated as expected in a model blend cube where
     the RECORD_COORD has been constructed from the record_run attributes of

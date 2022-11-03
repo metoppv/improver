@@ -41,7 +41,10 @@ from scipy import stats
 
 from improver import BasePlugin
 from improver.blending import RECORD_COORD
-from improver.blending.utilities import apply_record_run_attr, store_record_run_attr
+from improver.blending.utilities import (
+    record_run_coord_to_attr,
+    store_record_run_as_coord,
+)
 from improver.utilities.cube_manipulation import MergeCubes
 
 from ..metadata.forecast_times import forecast_period_coord
@@ -212,7 +215,7 @@ class ModalWeatherCode(BasePlugin):
         """
         # Store the information for the record_run attribute on the cubes.
         if self.record_run_attr and self.model_id_attr:
-            store_record_run_attr(cubes, self.record_run_attr, self.model_id_attr)
+            store_record_run_as_coord(cubes, self.record_run_attr, self.model_id_attr)
 
         cube = MergeCubes()(cubes)
 
@@ -256,7 +259,7 @@ class ModalWeatherCode(BasePlugin):
             )
 
         if self.record_run_attr and self.model_id_attr:
-            apply_record_run_attr(
+            record_run_coord_to_attr(
                 result, cube, self.record_run_attr, discard_weights=True
             )
             result.remove_coord(RECORD_COORD)

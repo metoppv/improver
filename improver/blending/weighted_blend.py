@@ -44,7 +44,7 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
-from improver.blending.utilities import find_blend_dim_coord, store_record_run_attr
+from improver.blending.utilities import find_blend_dim_coord, store_record_run_as_coord
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.cube_manipulation import (
@@ -207,7 +207,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
         )
 
         if self.record_run_attr is not None and self.model_id_attr is not None:
-            store_record_run_attr(cubelist, self.record_run_attr, self.model_id_attr)
+            store_record_run_as_coord(
+                cubelist, self.record_run_attr, self.model_id_attr
+            )
 
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]

@@ -89,11 +89,12 @@ def find_blend_dim_coord(cube: Cube, blend_coord: str) -> str:
     return cube.coord(dimensions=blend_dim[0], dim_coords=True).name()
 
 
-def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
+def get_coords_to_remove(cube: Cube, blend_coord: str) -> List[str]:
     """
     Generate a list of coordinate names associated with the blend
     dimension.  Unless these are time-related coordinates, they should be
-    removed after blending.
+    removed after blending. An empty list is returned if there are no
+    coordinates to remove.
 
     Args:
         cube:
@@ -104,26 +105,21 @@ def get_coords_to_remove(cube: Cube, blend_coord: str) -> Optional[List[str]]:
     Returns:
         List of names of coordinates to remove
     """
+    crds_to_remove = []
     try:
         (blend_dim,) = cube.coord_dims(blend_coord)
     except ValueError:
         # occurs if the blend coordinate is scalar, in which case the
         # RECORD_COORD must be added manually if present as scalar coords
         # are not associated with one another.
-        try:
-            cube.coord(RECORD_COORD)
-        except CoordinateNotFoundError:
-            crds_to_remove = []
-        else:
-            crds_to_remove = [RECORD_COORD]
+        if cube.coords(RECORD_COORD):
+            crds_to_remove.append(RECORD_COORD)
 
         if blend_coord == MODEL_BLEND_COORD:
             crds_to_remove.extend([MODEL_BLEND_COORD, MODEL_NAME_COORD])
-        if crds_to_remove:
-            return crds_to_remove
-        return None
 
-    crds_to_remove = []
+        return crds_to_remove
+
     for coord in cube.coords():
         if coord.name() in TIME_COORDS:
             continue
@@ -253,7 +249,7 @@ def _get_cycletime_point(cube: Cube, cycletime: str) -> int64:
     return round_close(cycletime_point, dtype=np.int64)
 
 
-def store_record_run_attr(
+def store_record_run_as_coord(
     cubelist: CubeList, record_run_attr: str, model_id_attr: Optional[str]
 ) -> None:
     """Stores model identifiers and forecast_reference_times on the input
@@ -350,7 +346,7 @@ def store_record_run_attr(
         cube.add_aux_coord(record_coord)
 
 
-def apply_record_run_attr(
+def record_run_coord_to_attr(
     target: Cube,
     source: Union[Cube, CubeList, List[Cube]],
     record_run_attr: str,
@@ -442,9 +438,9 @@ def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cu
         updated_records = []
         for run_record in run_records:
             components = run_record.rsplit(":", 1)
-            key = components[0]
+            model_cycle = components[0]
             value = float(components[-1]) * weight.data
-            updated_records.append(f"{key}:{value:{WEIGHT_FORMAT}}")
+            updated_records.append(f"{model_cycle}:{value:{WEIGHT_FORMAT}}")
         cslice.coord(RECORD_COORD).points = "\n".join(sorted(updated_records))
         cubes.append(cslice)
 
