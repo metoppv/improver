@@ -1,0 +1,64 @@
+netcdf \20220224T1200Z-B20220224T0900Z-rainfall_rate {
+dimensions:
+	threshold = 12 ;
+	projection_y_coordinate = 970 ;
+	projection_x_coordinate = 1042 ;
+	bnds = 2 ;
+variables:
+	float probability_of_rainfall_rate_above_threshold(threshold, projection_y_coordinate, projection_x_coordinate) ;
+		probability_of_rainfall_rate_above_threshold:least_significant_digit = 3LL ;
+		probability_of_rainfall_rate_above_threshold:long_name = "probability_of_rainfall_rate_above_threshold" ;
+		probability_of_rainfall_rate_above_threshold:units = "1" ;
+		probability_of_rainfall_rate_above_threshold:grid_mapping = "lambert_azimuthal_equal_area" ;
+		probability_of_rainfall_rate_above_threshold:coordinates = "blend_time forecast_period forecast_reference_time time" ;
+	int lambert_azimuthal_equal_area ;
+		lambert_azimuthal_equal_area:grid_mapping_name = "lambert_azimuthal_equal_area" ;
+		lambert_azimuthal_equal_area:longitude_of_prime_meridian = 0. ;
+		lambert_azimuthal_equal_area:semi_major_axis = 6378137. ;
+		lambert_azimuthal_equal_area:semi_minor_axis = 6356752.31414036 ;
+		lambert_azimuthal_equal_area:longitude_of_projection_origin = -2.5 ;
+		lambert_azimuthal_equal_area:latitude_of_projection_origin = 54.9 ;
+		lambert_azimuthal_equal_area:false_easting = 0. ;
+		lambert_azimuthal_equal_area:false_northing = 0. ;
+	float threshold(threshold) ;
+		threshold:units = "m s-1" ;
+		threshold:standard_name = "rainfall_rate" ;
+		threshold:spp__relative_to_threshold = "greater_than" ;
+	float projection_y_coordinate(projection_y_coordinate) ;
+		projection_y_coordinate:axis = "Y" ;
+		projection_y_coordinate:bounds = "projection_y_coordinate_bnds" ;
+		projection_y_coordinate:units = "m" ;
+		projection_y_coordinate:standard_name = "projection_y_coordinate" ;
+	float projection_y_coordinate_bnds(projection_y_coordinate, bnds) ;
+	float projection_x_coordinate(projection_x_coordinate) ;
+		projection_x_coordinate:axis = "X" ;
+		projection_x_coordinate:bounds = "projection_x_coordinate_bnds" ;
+		projection_x_coordinate:units = "m" ;
+		projection_x_coordinate:standard_name = "projection_x_coordinate" ;
+	float projection_x_coordinate_bnds(projection_x_coordinate, bnds) ;
+	int64 blend_time ;
+		blend_time:units = "seconds since 1970-01-01 00:00:00" ;
+		blend_time:long_name = "blend_time" ;
+		blend_time:calendar = "gregorian" ;
+	int forecast_period ;
+		forecast_period:units = "seconds" ;
+		forecast_period:standard_name = "forecast_period" ;
+		forecast_period:deprecation_message = "forecast_period will be removed in future and should not be used" ;
+	int64 forecast_reference_time ;
+		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00" ;
+		forecast_reference_time:standard_name = "forecast_reference_time" ;
+		forecast_reference_time:calendar = "gregorian" ;
+		forecast_reference_time:deprecation_message = "forecast_reference_time will be removed in future and should not be used" ;
+	int64 time ;
+		time:units = "seconds since 1970-01-01 00:00:00" ;
+		time:standard_name = "time" ;
+		time:calendar = "gregorian" ;
+
+// global attributes:
+		:institution = "Met Office" ;
+		:mosg__model_configuration = "nc_det uk_det uk_ens" ;
+		:mosg__model_run = "gl_ens:20220224T0000Z:\nnc_det:20220224T0845Z:\nuk_det:20220224T0700Z:\nuk_ens:20220224T0600Z:" ;
+		:source = "IMPROVER" ;
+		:title = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid" ;
+		:Conventions = "CF-1.7" ;
+}
