@@ -177,6 +177,7 @@ def process(
                 "forecast."
             )
             warnings.warn(msg)
+            prob_template = add_warning_comment(prob_template)
             return prob_template
 
         if percentiles:

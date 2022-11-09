@@ -478,6 +478,7 @@ def test_no_coefficients_with_prob_template(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
     input_path = kgo_dir / ".." / "percentile_input.nc"
     prob_template = kgo_dir / "probability_template.nc"
+    kgo_path = kgo_dir / "probability_template_kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -493,12 +494,18 @@ def test_no_coefficients_with_prob_template(tmp_path):
         UserWarning, match=".*no coefficients provided.*probability template.*"
     ):
         run_cli(args)
+    # Check output matches the probability template excluding the comment attribute.
     acc.compare(
         output_path,
         prob_template,
         recreate=False,
         atol=LOOSE_TOLERANCE,
         rtol=LOOSE_TOLERANCE,
+        exclude_attributes="comment",
+    )
+    # Check output matches kgo.
+    acc.compare(
+        output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE,
     )
 
 

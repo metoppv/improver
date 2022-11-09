@@ -23,6 +23,7 @@ bd56f09033f7a37323e04be7b509e8e363eb2474c04fb8aa4fb5e3769acb81f7  ./apply-emos-c
 e2551504357f9c8e98e569ff7fa3ba1d7f1c8ca02354d1045defa171b8bf00ff  ./apply-emos-coefficients/sites/additional_predictor/percentile_kgo.nc
 cba168f494f2fd91b6a6dc5a0844c03e9573747e91960eef33706fcdc7f30961  ./apply-emos-coefficients/sites/additional_predictor/probability_kgo.nc
 ad84567485d14563d243cbef40a576488c074533978d94b4075d00950b7b8273  ./apply-emos-coefficients/sites/additional_predictor/probability_template.nc
+66052676e8266c29fef7f3a1d5a1cedaa997f41ff0108b2aff33c71617d1bbed  ./apply-emos-coefficients/sites/additional_predictor/probability_template_kgo.nc
 a0112b5a48ba99a1a4a345d43b0c453caaf25181504fb9a13786b5722f84cc10  ./apply-emos-coefficients/sites/offset/coefficients.nc
 22d950494dc9d76d642b0ecc75414e95bfb78fa693e5701fe7cd2fc462a0c6a7  ./apply-emos-coefficients/sites/offset/kgo.nc
 2722b1d08a87cebf1f36ac914d5badb9af38859b2150da83311dc202ce9be4dd  ./apply-emos-coefficients/sites/offset/offset_input.nc
