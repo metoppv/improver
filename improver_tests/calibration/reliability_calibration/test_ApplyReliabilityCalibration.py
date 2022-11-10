@@ -485,9 +485,7 @@ class Test_process(Test_ReliabilityCalibrate):
             threshold_cube.remove_coord(y_name)
             threshold_cube.remove_coord(x_name)
             threshold_list = iris.cube.CubeList()
-            for forecast_point in self.forecast.slices_over(
-                    [y_name, x_name]
-            ):
+            for forecast_point in self.forecast.slices_over([y_name, x_name]):
                 reliability_cube_spatial = threshold_cube.copy()
                 reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
                 reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
@@ -497,14 +495,10 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_0 = np.array(
             [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
         )
-        expected_1 = np.array(
-            [[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]]
-        )
+        expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
         result = self.plugin.process(
-            self.forecast,
-            reliability_cube_list,
-            point_by_point=True,
+            self.forecast, reliability_cube_list, point_by_point=True,
         )
 
         # check that data is as expected

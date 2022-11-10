@@ -71,7 +71,6 @@ def process(
     from improver.calibration.reliability_calibration import ManipulateReliabilityTable
 
     plugin = ManipulateReliabilityTable(
-        minimum_forecast_count=minimum_forecast_count,
-        point_by_point=point_by_point,
+        minimum_forecast_count=minimum_forecast_count, point_by_point=point_by_point,
     )
     return plugin(reliability_table)

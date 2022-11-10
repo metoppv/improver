@@ -57,8 +57,8 @@ from improver.metadata.utilities import generate_mandatory_attributes
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
-    get_dim_coord_names,
     enforce_coordinate_ordering,
+    get_dim_coord_names,
 )
 
 
@@ -1273,9 +1273,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return np.clip(interpolated, 0, 1)
 
     def _get_calibrated_forecast(
-        self,
-        forecast: Cube,
-        reliability_table: Union[Cube, CubeList],
+        self, forecast: Cube, reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
         Apply reliability calibration to a forecast.
@@ -1331,9 +1329,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return calibrated_forecast
 
     def _point_by_point_calibration(
-        self,
-        forecast: Cube,
-        reliability_table: CubeList,
+        self, forecast: Cube, reliability_table: CubeList,
     ) -> Cube:
         """
         Apply point by point reliability calibration by iteratively picking a spatial
@@ -1377,9 +1373,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # and apply reliability calibration separately to each slice
         # using a slice of the input reliability table at the same
         # spatial point
-        for forecast_point in forecast.slices_over(
-                [y_name, x_name]
-        ):
+        for forecast_point in forecast.slices_over([y_name, x_name]):
             y_point = forecast_point.coord(y_name).points[0]
             x_point = forecast_point.coord(x_name).points[0]
 
@@ -1389,9 +1383,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             for threshold_table in reliability_table:
                 reliability_table_point.append(
                     threshold_table.extract(
-                        iris.Constraint(
-                            coord_values={y_name: y_point, x_name: x_point}
-                        )
+                        iris.Constraint(coord_values={y_name: y_point, x_name: x_point})
                     )
                 )
 
@@ -1402,8 +1394,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 if isinstance(entry, iris.cube.CubeList):
                     reliability_table_point[i] = reliability_table_point[i][0]
             calibrated_cube = self._get_calibrated_forecast(
-                forecast=forecast_point,
-                reliability_table=reliability_table_point
+                forecast=forecast_point, reliability_table=reliability_table_point
             )
             calibrated_cubes.append(calibrated_cube)
 
@@ -1418,9 +1409,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # add auxiliary coordinates back to the calibrated cube
         for associated_coord_list in dim_associated_coords:
             for coord in associated_coord_list[1]:
-                dim = [x for x in calibrated_forecast.coord_dims(
-                    associated_coord_list[0]
-                )]
+                dim = [
+                    x for x in calibrated_forecast.coord_dims(associated_coord_list[0])
+                ]
                 calibrated_forecast.add_aux_coord(coord, dim)
 
         # ensure that calibrated forecast dimensions are in the same
@@ -1460,17 +1451,15 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         if point_by_point:
             calibrated_forecast = self._point_by_point_calibration(
-                forecast=forecast,
-                reliability_table=reliability_table
+                forecast=forecast, reliability_table=reliability_table
             )
 
         else:
             calibrated_forecast = self._get_calibrated_forecast(
-                forecast=forecast,
-                reliability_table=reliability_table,
+                forecast=forecast, reliability_table=reliability_table,
             )
 
         # ensure correct data type
-        calibrated_forecast.data = calibrated_forecast.data.astype('float32')
+        calibrated_forecast.data = calibrated_forecast.data.astype("float32")
 
         return calibrated_forecast
