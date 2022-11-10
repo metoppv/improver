@@ -469,6 +469,55 @@ class Test_process(Test_ReliabilityCalibrate):
         assert_allclose(result[1].data, expected_1)
         self.assertFalse(warning_list)
 
+    def test_calibrating_point_by_point(self, warning_list=None):
+        """Test application of reliability table to the forecast. In this case
+        the forecast and reliability table have been altered so that point_by_point
+        functionality can be tested."""
+
+        y_name = self.forecast.coord(axis="y").name()
+        x_name = self.forecast.coord(axis="x").name()
+
+        # create reliability table in same format as that output from
+        # ManipulateReliabilityTable when point_by_point=True
+        reliability_table = self.reliability_cubelist.copy()
+        reliability_cube_list = iris.cube.CubeList()
+        for threshold_cube in reliability_table:
+            threshold_cube.remove_coord(y_name)
+            threshold_cube.remove_coord(x_name)
+            threshold_list = iris.cube.CubeList()
+            for forecast_point in self.forecast.slices_over(
+                    [y_name, x_name]
+            ):
+                reliability_cube_spatial = threshold_cube.copy()
+                reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
+                reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
+                threshold_list.append(reliability_cube_spatial)
+            reliability_cube_list.append(threshold_list)
+
+        expected_0 = np.array(
+            [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
+        )
+        expected_1 = np.array(
+            [[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]]
+        )
+
+        result = self.plugin.process(
+            self.forecast,
+            reliability_cube_list,
+            point_by_point=True,
+        )
+
+        # check that data is as expected
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
+
+        # check that coordinates match
+        coords_table = [c.name() for c in self.forecast.coords()]
+        coords_result = [c.name() for c in result.coords()]
+        assert coords_table == coords_result
+
+        self.assertFalse(warning_list)
+
 
 if __name__ == "__main__":
     unittest.main()

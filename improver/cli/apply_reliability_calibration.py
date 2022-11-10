@@ -37,7 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast: cli.inputcube, reliability_table: cli.inputcubelist = None,
+    forecast: cli.inputcube,
+    reliability_table: cli.inputcubelist = None,
+    point_by_point: bool = False,
 ):
     """
     Calibrate a probability forecast using the provided reliability calibration
@@ -57,6 +59,10 @@ def process(
             The reliability calibration table to use in calibrating the
             forecast. If input is a CubeList the CubeList should contain
             separate cubes for each threshold in the forecast cube.
+        point_by_point:
+            Whether to process each point in the input cube independently.
+            Please note this option is memory intensive and is unsuitable
+            for gridded input
 
     Returns:
         iris.cube.Cube:
@@ -67,4 +73,4 @@ def process(
     if reliability_table is None:
         return forecast
     plugin = ApplyReliabilityCalibration()
-    return plugin(forecast, reliability_table)
+    return plugin(forecast, reliability_table, point_by_point)

@@ -37,7 +37,10 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    reliability_table: cli.inputcube, *, minimum_forecast_count: int = 200,
+    reliability_table: cli.inputcube,
+    *,
+    minimum_forecast_count: int = 200,
+    point_by_point: bool = False,
 ):
     """
     Manipulate a reliability table to ensure sufficient sample counts in
@@ -52,6 +55,10 @@ def process(
             The minimum number of forecast counts in a forecast probability
             bin for it to be used in calibration.
             The default value of 200 is that used in Flowerdew 2014.
+        point_by_point:
+            Whether to process each point in the input cube independently.
+            Please note this option is memory intensive and is unsuitable
+            for gridded input
 
     Returns:
         iris.cube.CubeList:
@@ -63,5 +70,8 @@ def process(
     """
     from improver.calibration.reliability_calibration import ManipulateReliabilityTable
 
-    plugin = ManipulateReliabilityTable(minimum_forecast_count=minimum_forecast_count)
+    plugin = ManipulateReliabilityTable(
+        minimum_forecast_count=minimum_forecast_count,
+        point_by_point=point_by_point,
+    )
     return plugin(reliability_table)

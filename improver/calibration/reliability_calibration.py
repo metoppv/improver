@@ -54,7 +54,12 @@ from improver.metadata.probabilistic import (
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.utilities.cube_manipulation import MergeCubes, collapsed
+from improver.utilities.cube_manipulation import (
+    MergeCubes,
+    collapsed,
+    get_dim_coord_names,
+    enforce_coordinate_ordering,
+)
 
 
 class ConstructReliabilityCalibrationTables(BasePlugin):
@@ -1090,7 +1095,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     def __init__(self) -> None:
         """
         Initialise class for applying reliability calibration.
-
         """
         self.threshold_coord = None
 
@@ -1267,27 +1271,27 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         return np.clip(interpolated, 0, 1)
 
-    def process(self, forecast: Cube, reliability_table: Union[Cube, CubeList]) -> Cube:
+    def _get_calibrated_forecast(
+        self,
+        forecast: Cube,
+        reliability_table: Union[Cube, CubeList],
+    ) -> Cube:
         """
-        Apply reliability calibration to a forecast. The reliability table
-        and the forecast cube must share an identical threshold coordinate.
+        Apply reliability calibration to a forecast.
 
         Args:
             forecast:
                 The forecast to be calibrated.
             reliability_table:
                 The reliability table to use for applying calibration.
-                x and y dimensions must be collapsed.
 
         Returns:
             The forecast cube following calibration.
         """
-        self.threshold_coord = find_threshold_coordinate(forecast)
-
-        forecast_thresholds = forecast.slices_over(self.threshold_coord)
-
-        uncalibrated_thresholds = []
         calibrated_cubes = iris.cube.CubeList()
+        forecast_thresholds = forecast.slices_over(self.threshold_coord)
+        uncalibrated_thresholds = []
+
         for forecast_threshold in forecast_thresholds:
             reliability_threshold = self._extract_matching_reliability_table(
                 forecast_threshold, reliability_table
@@ -1322,5 +1326,150 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 "{}".format(uncalibrated_thresholds)
             )
             warnings.warn(msg)
+
+        return calibrated_forecast
+
+    def _point_by_point_calibration(
+        self,
+        forecast: Cube,
+        reliability_table: CubeList,
+    ) -> Cube:
+        """
+        Apply point by point reliability calibration by iteratively picking a spatial
+        coordinate within the forecast cube, extracting the forecast at that point
+        and the reliability table corresponding to that point, then passing the
+        extracted forecast and reliability table to _get_calibrated_forecast().
+
+        Args:
+            forecast:
+                The forecast to be calibrated.
+            reliability_table:
+                The reliability table to use for applying calibration.
+
+        Returns:
+            The forecast cube following calibration.
+        """
+
+        calibrated_cubes = iris.cube.CubeList()
+        y_name = forecast.coord(axis="y").name()
+        x_name = forecast.coord(axis="x").name()
+
+        # create list of dimensions other than time dimension
+        # and threshold dimension
+        dim_names = get_dim_coord_names(forecast)
+        dim_associated_coords = []
+
+        # create lists with first entry a dimension name and second
+        # entry a list of auxiliary coordinates associated with that
+        # dimension. Collect these lists together into a list.
+        for dim_name in dim_names:
+            dim = forecast.coord_dims(dim_name)
+            template_dim = [x for x in dim]
+            associated_coords = [
+                c
+                for d in template_dim
+                for c in forecast.coords(dimensions=d, dim_coords=False)
+            ]
+            dim_associated_coords.append([dim_name, associated_coords])
+
+        # slice over the spatial dimension/s of the forecast cube
+        # and apply reliability calibration separately to each slice
+        # using a slice of the input reliability table at the same
+        # spatial point
+        for forecast_point in forecast.slices_over(
+                [y_name, x_name]
+        ):
+            y_point = forecast_point.coord(y_name).points[0]
+            x_point = forecast_point.coord(x_name).points[0]
+
+            # create reliability table containing only those cubes
+            # relating to the currently considered spatial point
+            reliability_table_point = iris.cube.CubeList()
+            for threshold_table in reliability_table:
+                reliability_table_point.append(
+                    threshold_table.extract(
+                        iris.Constraint(
+                            coord_values={y_name: y_point, x_name: x_point}
+                        )
+                    )
+                )
+
+            # using .extract() on a cubelist returns a cubelist, so this loop
+            # checks for unwanted cubelists and converts them to cubes
+            for i in range(len(reliability_table_point)):
+                entry = reliability_table_point[i]
+                if isinstance(entry, iris.cube.CubeList):
+                    reliability_table_point[i] = reliability_table_point[i][0]
+            calibrated_cube = self._get_calibrated_forecast(
+                forecast=forecast_point,
+                reliability_table=reliability_table_point
+            )
+            calibrated_cubes.append(calibrated_cube)
+
+        # remove auxiliary coordinates from calibrated cubes to ensure
+        # merge promotes desired dimension coordinate
+        for associated_coord_list in dim_associated_coords:
+            for coord in associated_coord_list[1]:
+                for cube in calibrated_cubes:
+                    cube.remove_coord(coord.name())
+
+        calibrated_forecast = calibrated_cubes.merge_cube()
+        # add auxiliary coordinates back to the calibrated cube
+        for associated_coord_list in dim_associated_coords:
+            for coord in associated_coord_list[1]:
+                dim = [x for x in calibrated_forecast.coord_dims(
+                    associated_coord_list[0]
+                )]
+                calibrated_forecast.add_aux_coord(coord, dim)
+
+        # ensure that calibrated forecast dimensions are in the same
+        # order as the dimensions in the input forecast
+        enforce_coordinate_ordering(calibrated_forecast, dim_names)
+
+        return calibrated_forecast
+
+    def process(
+        self,
+        forecast: Cube,
+        reliability_table: Union[Cube, CubeList],
+        point_by_point: bool = False,
+    ) -> Cube:
+        """
+        Apply reliability calibration to a forecast. The reliability table
+        and the forecast cube must share an identical threshold coordinate.
+
+        Args:
+            forecast:
+                The forecast to be calibrated.
+            reliability_table:
+                The reliability table to use for applying calibration.
+            point_by_point:
+                Whether to calibrate each point in the input cube independently.
+                Utilising this option requires that each spatial point in the
+                forecast cube has a corresponding spatial point in the
+                reliability table.
+                Please note this option is memory intensive and is unsuitable
+                for gridded input
+
+        Returns:
+            The forecast cube following calibration.
+        """
+
+        self.threshold_coord = find_threshold_coordinate(forecast)
+
+        if point_by_point:
+            calibrated_forecast = self._point_by_point_calibration(
+                forecast=forecast,
+                reliability_table=reliability_table
+            )
+
+        else:
+            calibrated_forecast = self._get_calibrated_forecast(
+                forecast=forecast,
+                reliability_table=reliability_table,
+            )
+
+        # ensure correct data type
+        calibrated_forecast.data = calibrated_forecast.data.astype('float32')
 
         return calibrated_forecast
