@@ -439,7 +439,19 @@ def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cu
         for run_record in run_records:
             components = run_record.rsplit(":", 1)
             model_cycle = components[0]
-            value = float(components[-1]) * weight.data
+            try:
+                value = float(components[-1]) * weight.data
+            except ValueError as err:
+                msg = (
+                    "record_run attributes are expected to be of the form "
+                    "'model_id:model_cycle:blending weight'. The weight is "
+                    f"absent in this case: {run_record}. This suggests one "
+                    "of the sources of data is using an older version of "
+                    "IMPROVER that did not include the weights in this "
+                    "attribute."
+                )
+                raise ValueError(msg) from err
+
             updated_records.append(f"{model_cycle}:{value:{WEIGHT_FORMAT}}")
         cslice.coord(RECORD_COORD).points = "\n".join(sorted(updated_records))
         cubes.append(cslice)

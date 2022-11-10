@@ -538,3 +538,31 @@ def test_update_record_run_weights_model(
         if coord.name() == RECORD_COORD:
             continue
         assert coord == model_cube_with_blend_record.coord(coord.name())
+
+
+@pytest.mark.parametrize("weights", [[0.5, 0.5]])
+def test_update_record_run_weights_old_inputs(
+    model_cube_with_blend_record, model_blending_weights
+):
+    """Test that an exception is raised if older inputs without a weight
+    recorded in the record_run attribute are passed in. This might happen
+    if a source model has been processed with an older version of IMPROVER,
+    the output of which is then included in a model blend with the model
+    blending suite using a version of IMPROVER that includes the weight
+    recording."""
+
+    attributes = []
+    attribute_entries = model_blend_record_template()
+    attributes.append(attribute_entries[0].format(uk_det_weight="", WEIGHT_FORMAT=""))
+    attributes.append(
+        attribute_entries[1].format(uk_ens_weight=1 / 3, WEIGHT_FORMAT=WEIGHT_FORMAT)
+    )
+
+    model_cube_with_blend_record.coord(RECORD_COORD).points = attributes
+
+    with pytest.raises(
+        ValueError, match="record_run attributes are expected to be of the form"
+    ):
+        update_record_run_weights(
+            model_cube_with_blend_record, model_blending_weights, MODEL_BLEND_COORD
+        )
