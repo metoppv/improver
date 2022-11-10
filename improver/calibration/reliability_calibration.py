@@ -1095,7 +1095,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     def __init__(self) -> None:
         """
         Initialise class for applying reliability calibration.
-        
+
         """
         self.threshold_coord = None
 
