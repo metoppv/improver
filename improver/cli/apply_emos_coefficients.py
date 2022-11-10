@@ -65,7 +65,6 @@ def process(
             - A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
             - A cubelist containing the coefficients used for calibration or None.
-            - A cubelist containing the coefficients used for calibration or None.
             If none then the input, or probability template if provided,
             is returned unchanged.
             - Optionally, cubes representing static additional predictors.
@@ -177,6 +176,7 @@ def process(
                 "forecast."
             )
             warnings.warn(msg)
+            prob_template = add_warning_comment(prob_template)
             return prob_template
 
         if percentiles:
