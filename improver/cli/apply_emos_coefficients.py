@@ -163,6 +163,8 @@ def process(
             forecast = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
                 forecast, percentiles=percentiles
             )
+        elif prob_template:
+            forecast = prob_template
         forecast = add_warning_comment(forecast)
         return forecast
 
@@ -210,5 +212,4 @@ def process(
         randomise=randomise,
         random_seed=random_seed,
     )
-
     return result
