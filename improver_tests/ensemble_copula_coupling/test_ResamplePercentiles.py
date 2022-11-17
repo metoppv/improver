@@ -481,6 +481,18 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.expected)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_specifying_large_percentile_number(self):
+        """
+        Test that the plugin returns an Iris.cube.Cube with the expected
+        data values when the specific number of percentiles is larger than the data supports.
+        17 equally-spaced percentiles would start at 5.88%, but the input starts at 10%,
+        so we get 10%, 15%, 20% etc up to 90%. Slicing [3::5] gets the 25, 50, 75 percentiles,
+        which match self.expected.
+        """
+        result = Plugin().process(self.percentile_cube, no_of_percentiles=17)
+        self.assertArrayAlmostEqual(result.data[3::5], self.expected)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_not_specifying_percentile_number(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected

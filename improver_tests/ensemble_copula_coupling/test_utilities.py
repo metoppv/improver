@@ -137,6 +137,25 @@ class Test_choose_set_of_percentiles(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             choose_set_of_percentiles(no_of_percentiles, sampling="unknown")
 
+    def test_minimum_active(self):
+        """
+        Test that the plugin returns a narrower list when the minimum percentile is specified.
+        """
+        data = np.array([30, 50, 70])
+        no_of_percentiles = 3
+        result = choose_set_of_percentiles(no_of_percentiles, minimum_percentile=30)
+        self.assertArrayAlmostEqual(result, data)
+
+    def test_minimum_passive(self):
+        """
+        Test that the plugin returns test_data list when the minimum percentile is
+        lower than 1/no_of_percentiles.
+        """
+        data = np.array([25, 50, 75])
+        no_of_percentiles = 3
+        result = choose_set_of_percentiles(no_of_percentiles, minimum_percentile=20)
+        self.assertArrayAlmostEqual(result, data)
+
 
 class Test_create_cube_with_percentiles(IrisTest):
 

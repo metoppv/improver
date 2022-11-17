@@ -77,7 +77,9 @@ def concatenate_2d_array_with_2d_array_endpoints(
 
 
 def choose_set_of_percentiles(
-    no_of_percentiles: int, sampling: str = "quantile"
+    no_of_percentiles: int,
+    sampling: str = "quantile",
+    minimum_percentile: Optional[float] = 0,
 ) -> List[float]:
     """
     Function to create percentiles.
@@ -85,6 +87,10 @@ def choose_set_of_percentiles(
     Args:
         no_of_percentiles:
             Number of percentiles.
+        minimum_percentile:
+            The smallest percentile allowed in the output list
+            (symmetry means this also determines the largest).
+            Has no effect if this is lower than 100 / no_of_percentiles.
         sampling:
             Type of sampling of the distribution to produce a set of
             percentiles e.g. quantile or random.
@@ -111,22 +117,15 @@ def choose_set_of_percentiles(
         Copula Coupling.
         Statistical Science, 28(4), pp.616-640.
     """
+    # Generate percentiles from 1/N+1 to N/N+1 or minimum_percentile to 1-minimum_percentile,
+    # whichever is the narrower range.
+    min_perc = max(minimum_percentile / 100, 1 / float(1 + no_of_percentiles))
     if sampling in ["quantile"]:
-        # Generate percentiles from 1/N+1 to N/N+1.
-        percentiles = np.linspace(
-            1 / float(1 + no_of_percentiles),
-            no_of_percentiles / float(1 + no_of_percentiles),
-            no_of_percentiles,
-        ).tolist()
+        percentiles = np.linspace(min_perc, 1 - min_perc, no_of_percentiles,).tolist()
     elif sampling in ["random"]:
-        # Generate percentiles from 1/N+1 to N/N+1.
         # Random sampling doesn't currently sample the ends of the
         # distribution i.e. 0 to 1/N+1 and N/N+1 to 1.
-        percentiles = np.random.uniform(
-            1 / float(1 + no_of_percentiles),
-            no_of_percentiles / float(1 + no_of_percentiles),
-            no_of_percentiles,
-        )
+        percentiles = np.random.uniform(min_perc, 1 - min_perc, no_of_percentiles,)
         percentiles = sorted(list(percentiles))
     else:
         msg = "Unrecognised sampling option '{}'".format(sampling)

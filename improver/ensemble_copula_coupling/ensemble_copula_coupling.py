@@ -395,8 +395,11 @@ class ResamplePercentiles(BasePlugin):
                 no_of_percentiles = len(
                     forecast_at_percentiles.coord(percentile_coord).points
                 )
+            minimum_percentile = percentile_coord.points.min()
             percentiles = choose_set_of_percentiles(
-                no_of_percentiles, sampling=sampling
+                no_of_percentiles,
+                sampling=sampling,
+                minimum_percentile=minimum_percentile,
             )
 
         cube_units = forecast_at_percentiles.units
