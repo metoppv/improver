@@ -580,6 +580,40 @@ def test_mismatching_validity_times(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_mismatching_validity_times_perc_in_prob_out(tmp_path):
+    """Test using percentiles as input whilst providing a probability
+    template cube, so that probabilities are output. In this case
+    validity times are provided that the forecast validity time does
+    not match."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/percentiles"
+    kgo_path = kgo_dir / "../probabilities/kgo_unchanged_with_comment.nc"
+    input_path = kgo_dir / "input.nc"
+    emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
+    prob_template_path = kgo_dir / "../probabilities/input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        prob_template_path,
+        "--validity-times",
+        "0600,0900,1200",
+        "--realizations-count",
+        "18",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path,
+        prob_template_path,
+        recreate=False,
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
+        exclude_attributes="comment",
+    )
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
+
+
 def test_mismatching_validity_times_percentiles(tmp_path):
     """Test passing validity times when the forecast validity time does not match
     any of the validity times within the list. The desired percentiles are supplied."""
