@@ -41,4 +41,5 @@ dependencies:
   - pytest-xdist
   - safety
   - sphinx-autodoc-typehints
+  - sphinx_rtd_theme
   - threadpoolctl
