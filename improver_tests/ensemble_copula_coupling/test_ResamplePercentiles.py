@@ -222,7 +222,7 @@ class Test__interpolate_percentiles(IrisTest):
 
     def test_transpose_cube_dimensions(self):
         """
-        Test that the plugin returns an the expected data, when comparing
+        Test that the plugin returns the expected data, when comparing
         input cubes which have dimensions in a different order.
         """
         # Calculate result for nontransposed cube.

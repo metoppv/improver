@@ -286,7 +286,7 @@ class ResamplePercentiles(BasePlugin):
                 Cube containing a percentile coordinate.
             desired_percentiles:
                 Array of the desired percentiles.
-             percentile_coord_name:
+            percentile_coord_name:
                 Name of required percentile coordinate.
 
         Returns:
