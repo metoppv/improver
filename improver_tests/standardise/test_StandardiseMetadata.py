@@ -172,6 +172,25 @@ class Test_process(IrisTest):
         self.assertEqual(cube.dtype, np.float32)
         self.assertEqual(result.data.dtype, np.float32)
 
+    def test_air_temperature_status_flag_coord(self):
+        """
+        Ensure we handle cubes which now include a 'air_temperature_status flag'
+        coord to signify points below surface altitude, where previously this
+        was denoted by NaN values in the data
+
+        See https://github.com/metoppv/improver/pull/1839
+        """
+        cube = set_up_variable_cube(
+            282 * np.ones((3, 3, 5, 5), dtype=np.float32),
+            spatial_grid="latlon",
+            standard_grid_metadata="gl_det",
+            pressure=True,
+            height_levels = [100000.,  97500.,  95000.],
+            realizations = [0, 18, 19]
+        )
+        cube.data[:, ]
+        self.cube
+
 
 if __name__ == "__main__":
     unittest.main()
