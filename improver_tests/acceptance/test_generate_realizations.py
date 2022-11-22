@@ -159,7 +159,7 @@ def test_ecc_bounds_warning(tmp_path):
         input_path,
         "--realizations-count",
         "5",
-        "--ignore-ecc-bounds",
+        "--ignore-ecc-bounds-exceedance",
         "--output",
         output_path,
     ]

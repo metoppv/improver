@@ -212,12 +212,11 @@ class Test__interpolate_percentiles(IrisTest):
             name="air_temperature",
             units="degC",
         )
-        self.bounds_pairing = (-40, 50)
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         result = Plugin()._interpolate_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing, self.perc_coord
+            self.cube, self.percentiles, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
 
@@ -228,7 +227,7 @@ class Test__interpolate_percentiles(IrisTest):
         """
         # Calculate result for nontransposed cube.
         nontransposed_result = Plugin()._interpolate_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing, self.perc_coord
+            self.cube, self.percentiles, self.perc_coord
         )
 
         # Calculate result for transposed cube.
@@ -236,7 +235,7 @@ class Test__interpolate_percentiles(IrisTest):
         # Transposed cube dimensions are [X, Y, P].
         self.cube.transpose([2, 1, 0])
         transposed_result = Plugin()._interpolate_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing, self.perc_coord
+            self.cube, self.percentiles, self.perc_coord
         )
 
         # Result cube will be [P, X, Y]
@@ -261,7 +260,7 @@ class Test__interpolate_percentiles(IrisTest):
         )
 
         result = Plugin()._interpolate_percentiles(
-            cube, self.percentiles, self.bounds_pairing, self.perc_coord
+            cube, self.percentiles, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
@@ -280,7 +279,7 @@ class Test__interpolate_percentiles(IrisTest):
 
         percentiles = [20, 60, 80]
         result = Plugin()._interpolate_percentiles(
-            self.cube, percentiles, self.bounds_pairing, self.perc_coord
+            self.cube, percentiles, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -329,9 +328,7 @@ class Test__interpolate_percentiles(IrisTest):
         cube.data = data.astype(np.float32)
 
         percentiles = [20, 60, 80]
-        result = Plugin()._interpolate_percentiles(
-            cube, percentiles, self.bounds_pairing, self.perc_coord
-        )
+        result = Plugin()._interpolate_percentiles(cube, percentiles, self.perc_coord)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_check_single_threshold(self):
@@ -344,14 +341,14 @@ class Test__interpolate_percentiles(IrisTest):
             [
                 [[4.0, 4.625, 5.25], [5.875, 6.5, 7.125], [7.75, 8.375, 9.0]],
                 [
-                    [24.44444444, 24.79166667, 25.13888889],
-                    [25.48611111, 25.83333333, 26.18055556],
-                    [26.52777778, 26.875, 27.22222222],
+                    [28.88889, 29.23611, 29.583334],
+                    [29.930555, 30.277779, 30.625],
+                    [30.972221, 31.319445, 31.666666],
                 ],
                 [
-                    [44.88888889, 44.95833333, 45.02777778],
-                    [45.09722222, 45.16666667, 45.23611111],
-                    [45.30555556, 45.375, 45.44444444],
+                    [53.77778, 53.84722, 53.916668],
+                    [53.98611, 54.055557, 54.125],
+                    [54.194443, 54.26389, 54.333332],
                 ],
             ],
             dtype=np.float32,
@@ -360,8 +357,9 @@ class Test__interpolate_percentiles(IrisTest):
         cube = next(self.cube.slices_over(self.perc_coord))
 
         result = Plugin()._interpolate_percentiles(
-            cube, self.percentiles, self.bounds_pairing, self.perc_coord
+            cube, self.percentiles, self.perc_coord
         )
+
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_lots_of_input_percentiles(self):
@@ -386,7 +384,7 @@ class Test__interpolate_percentiles(IrisTest):
         )
 
         result = Plugin()._interpolate_percentiles(
-            cube, self.percentiles, self.bounds_pairing, self.perc_coord
+            cube, self.percentiles, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
@@ -399,9 +397,9 @@ class Test__interpolate_percentiles(IrisTest):
         data = np.array(
             [
                 [
-                    [-18.0, -17.6875, -17.375],
-                    [-17.0625, -16.75, -16.4375],
-                    [-16.125, -15.8125, -15.5],
+                    [-48.0, -47.6875, -47.375],
+                    [-47.0625, -46.75, -46.4375],
+                    [-46.125, -45.8125, -45.5],
                 ],
                 [[4.25, 4.875, 5.5], [6.125, 6.75, 7.375], [8.0, 8.625, 9.25]],
                 [[4.75, 5.375, 6.0], [6.625, 7.25, 7.875], [8.5, 9.125, 9.75]],
@@ -412,16 +410,16 @@ class Test__interpolate_percentiles(IrisTest):
                 [[7.25, 7.875, 8.5], [9.125, 9.75, 10.375], [11.0, 11.625, 12.25]],
                 [[7.75, 8.375, 9.0], [9.625, 10.25, 10.875], [11.5, 12.125, 12.75]],
                 [
-                    [29.0, 29.3125, 29.625],
-                    [29.9375, 30.25, 30.5625],
-                    [30.875, 31.1875, 31.5],
+                    [34.0, 34.3125, 34.625],
+                    [34.9375, 35.25, 35.5625],
+                    [35.875, 36.1875, 36.5],
                 ],
             ]
         )
 
         percentiles = np.arange(5, 100, 10)
         result = Plugin()._interpolate_percentiles(
-            self.cube, percentiles, self.bounds_pairing, self.perc_coord
+            self.cube, percentiles, self.perc_coord
         )
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -431,20 +429,26 @@ class Test__interpolate_percentiles(IrisTest):
         data values for the percentiles for spot forecasts.
         """
         spot_percentile_cube = set_up_spot_test_cube(cube_type="percentile")
-        spot_percentile_cube.data = np.tile(np.linspace(5, 10, 3), 9).reshape(3, 9)
+        spot_percentile_cube.data = (
+            np.tile(np.linspace(5, 10, 3), 9).reshape(3, 9) + 273.15
+        )
 
-        data = np.array(
-            [
-                [5.0, 7.5, 10.0, 5.0, 7.5, 10.0, 5.0, 7.5, 10.0],
-                [5.0, 7.5, 10.0, 5.0, 7.5, 10.0, 5.0, 7.5, 10.0],
-                [5.0, 7.5, 10.0, 5.0, 7.5, 10.0, 5.0, 7.5, 10.0],
-            ]
+        data = (
+            np.array(
+                [
+                    [5.0, 7.5, 10.0, 5.0, 7.5, 10.0, 5.0, 7.5, 10.0],
+                    [5.0, 7.5, 10.0, 5.0, 7.5, 10.0, 5.0, 7.5, 10.0],
+                    [5.0, 7.5, 10.0, 5.0, 7.5, 10.0, 5.0, 7.5, 10.0],
+                ]
+            )
+            + 273.15
         )
         percentiles = spot_percentile_cube.coord("percentile").points
+
         result = Plugin()._interpolate_percentiles(
-            spot_percentile_cube, percentiles, self.bounds_pairing, self.perc_coord
+            spot_percentile_cube, percentiles, self.perc_coord
         )
-        self.assertArrayAlmostEqual(result.data, data)
+        self.assertArrayAlmostEqual(result.data, data, decimal=5)
 
 
 class Test_process(IrisTest):
@@ -554,20 +558,17 @@ class Test_process(IrisTest):
     def test_check_data_specifying_extreme_percentiles_without_ecc_bounds(self):
         """
         Test that the plugin returns data with the expected
-        values corresponding to percentiles that are constrained by the source data values.
+        values where percentiles outside of the range given by the input percentiles
+        have been filled using nearest neighbour interpolation.
         """
         expected = np.array(
             [
-                [[4.0, 4.0625, 4.125], [4.1875, 4.25, 4.3125], [4.375, 4.4375, 4.5]],
+                self.percentile_cube[0].data,
                 self.expected[1] + 0.5,
-                [
-                    [12.5, 12.5625, 12.625],
-                    [12.6875, 12.75, 12.8125],
-                    [12.875, 12.9375, 13.0],
-                ],
+                self.percentile_cube[-1].data,
             ]
         )
-        result = Plugin(retain_data_bounds=True).process(
+        result = Plugin(skip_ecc_bounds=True).process(
             self.percentile_cube, percentiles=[1, 60, 99]
         )
         self.assertArrayAlmostEqual(result.data, expected)
