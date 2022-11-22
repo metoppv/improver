@@ -57,7 +57,7 @@ class StandardiseMetadata(BasePlugin):
         """
         Remove air_temperature status_flag coord by applying as NaN to cube data.
 
-        See github issue for further details.
+        See https://github.com/metoppv/improver/pull/1839 for further details.
         """
         coord_name = "air_temperature status_flag"
         try:
