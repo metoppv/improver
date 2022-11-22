@@ -41,7 +41,8 @@ def process(
     *,
     realizations_count: int = None,
     random_seed: int = None,
-    ignore_ecc_bounds=False,
+    ignore_ecc_bounds: bool = False,
+    retain_data_bounds: bool = False,
 ):
     """Converts an incoming cube into one containing realizations.
 
@@ -65,6 +66,10 @@ def process(
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
+        retain_data_bounds (bool):
+            If True where percentiles (calculated as an intermediate output
+            before realization) exceed the source data bounds, data are truncated to
+            these bounds rather than to ECC bounds.
 
     Returns:
         iris.cube.Cube:
@@ -93,9 +98,9 @@ def process(
             raise ValueError(msg)
 
     if cube.coords("percentile"):
-        percentiles = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
-            cube, no_of_percentiles=realizations_count
-        )
+        percentiles = ResamplePercentiles(
+            ecc_bounds_warning=ignore_ecc_bounds, retain_data_bounds=retain_data_bounds
+        )(cube, no_of_percentiles=realizations_count)
     else:
         percentiles = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ignore_ecc_bounds

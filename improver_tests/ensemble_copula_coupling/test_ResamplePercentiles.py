@@ -527,6 +527,52 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.expected + 0.5)
 
     @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_specifying_extreme_percentiles_with_ecc_bounds(self):
+        """
+        Test that the plugin returns data with the expected
+        values corresponding to percentiles that require ECC bounds to resolve.
+        """
+        expected = np.array(
+            [
+                [
+                    [-89.6, -89.5375, -89.475],
+                    [-89.4125, -89.35, -89.2875],
+                    [-89.225, -89.1625, -89.1],
+                ],
+                self.expected[1] + 0.5,
+                [
+                    [54.8, 54.8625, 54.925],
+                    [54.9875, 55.05, 55.1125],
+                    [55.175, 55.2375, 55.3],
+                ],
+            ]
+        )
+        result = Plugin().process(self.percentile_cube, percentiles=[1, 60, 99])
+        self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
+    def test_check_data_specifying_extreme_percentiles_without_ecc_bounds(self):
+        """
+        Test that the plugin returns data with the expected
+        values corresponding to percentiles that are constrained by the source data values.
+        """
+        expected = np.array(
+            [
+                [[4.0, 4.0625, 4.125], [4.1875, 4.25, 4.3125], [4.375, 4.4375, 4.5]],
+                self.expected[1] + 0.5,
+                [
+                    [12.5, 12.5625, 12.625],
+                    [12.6875, 12.75, 12.8125],
+                    [12.875, 12.9375, 13.0],
+                ],
+            ]
+        )
+        result = Plugin(retain_data_bounds=True).process(
+            self.percentile_cube, percentiles=[1, 60, 99]
+        )
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_percentiles_too_low(self):
         """
         Test that an exception is raised if a percentile value is below 0.
