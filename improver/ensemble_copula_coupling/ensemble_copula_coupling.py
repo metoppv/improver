@@ -410,9 +410,7 @@ class ResamplePercentiles(BasePlugin):
             )
 
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles,
-            percentiles,
-            percentile_coord.name(),
+            forecast_at_percentiles, percentiles, percentile_coord.name(),
         )
         return forecast_at_percentiles
 

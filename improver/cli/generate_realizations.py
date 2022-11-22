@@ -103,7 +103,7 @@ def process(
     if cube.coords("percentile"):
         percentiles = ResamplePercentiles(
             ecc_bounds_warning=ignore_ecc_bounds_exceedance,
-            skip_ecc_bounds=skip_ecc_bounds
+            skip_ecc_bounds=skip_ecc_bounds,
         )(cube, no_of_percentiles=realizations_count)
     else:
         percentiles = ConvertProbabilitiesToPercentiles(
