@@ -34,7 +34,7 @@ from typing import Any, Dict, List, Optional
 
 import numpy as np
 from iris.coords import CellMethod
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import dtype, ndarray
 
@@ -51,6 +51,41 @@ from improver.utilities.round import round_close
 
 class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
+
+    @staticmethod
+    def _rm_air_temperature_status_flag(cube: Cube) -> Cube:
+        """
+        Remove air_temperature status_flag coord by applying as NaN to cube data.
+
+        See github issue for further details.
+        """
+        coord_name = "air_temperature status_flag"
+        try:
+            coord = cube.coord(coord_name)
+        except CoordinateNotFoundError:
+            coord = None
+
+        if coord:
+            if coord.attributes != {
+                "flag_meanings": "above_surface_pressure below_surface_pressure",
+                "flag_values": np.array([0, 1], dtype="int8"),
+            }:
+                raise ValueError(
+                    f"'{coord_name}' coordinate is not of the expected form."
+                )
+            ncube = CubeList()
+            for cc in cube.slices_over("realization"):
+                coord = cc.coord(coord_name)
+                if np.ma.is_masked(coord.points):
+                    raise ValueError(
+                        f"'{coord_name}' coordinate has unexpected mask values."
+                    )
+                mask = np.asarray(coord.points)
+                cc.data[mask.astype(bool)] = np.nan
+                cc.remove_coord(coord_name)
+                ncube.append(cc)
+            cube = ncube.merge_cube()
+        return cube
 
     @staticmethod
     def _collapse_scalar_dimensions(cube: Cube) -> Cube:
@@ -175,6 +210,7 @@ class StandardiseMetadata(BasePlugin):
         Returns:
             The processed cube
         """
+        cube = self._rm_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
 
         if new_name:
