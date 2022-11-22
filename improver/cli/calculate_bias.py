@@ -37,33 +37,30 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(forecast_cube: cli.inputcube, *bias_cubes: cli.inputcube):
-    """Apply simple bias correction to ensemble members based on the bias from the
-    reference forecast dataset.
+def process(*cubes: cli.inputcube, truth_attribute: str):
+    """Calculate bias terms from from the specified forecast dataset.
 
     Args:
-        forecast_cube (iris.cube.Cube):
-            Cube containing the forecast to apply bias correction to.
-        bias_cubes (iris.cube.Cube or list of iris.cube.Cube):
-            A cube or list of cubes containing forecast bias data over the a specified
-            set of forecast reference times. If a list of cubes is passed in, the mean
-            value will be taken over the forecast_reference_time coordinate.
+        cubes (list of iris.cube.Cube):
+            A list of cubes containing the historical forecasts and corresponding
+            truths used for calibration. The cubes much include the same diagnostic
+            name in their names. The cubes will be distinguished using the user
+            specified truth attribute.
+        truth_attribite (str):
+            An attribute and its value in the format of "attribute=value",
+            which must be present on truth cubes.
 
     Returns:
         iris.cube.Cube:
             Forecast cube with bias correction applied on a per member basis.
     """
-    import iris
+    from improver.calibration import split_forecasts_and_truth
+    from improver.calibration.simple_bias_correction import CalculateForecastBias
 
-    from improver.calibration.simple_bias_correction import ApplySimpleBiasCorrection
-    from improver.utilities.cube_manipulation import collapsed, get_dim_coord_names
+    historical_forecast, historical_truth, _ = split_forecasts_and_truth(
+        cubes, truth_attribute
+    )
 
-    # If bias_cubes are specified as a list of forecast_reference_times, collapse
-    # the list over this coordinate.
-    bias_cube = iris.cube.CubeList(bias_cubes).merge_cube()
-    if "forecast_reference_time" in get_dim_coord_names(bias_cube):
-        bias_cube = collapsed(bias_cube, "forecast_reference_time", iris.analysis.MEAN)
+    plugin = CalculateForecastBias()
 
-    plugin = ApplySimpleBiasCorrection()
-
-    return plugin.process(forecast_cube, bias_cube)
+    return plugin(historical_forecast, historical_truth)
