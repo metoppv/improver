@@ -82,7 +82,7 @@ def test_percentiles_reordering(tmp_path):
     "bounds_option, kgo",
     (
         ("", "with_ecc_bounds_kgo.nc"),
-        ("--retain-data-bounds", "without_ecc_bounds_kgo.nc"),
+        ("--skip-ecc-bounds", "without_ecc_bounds_kgo.nc"),
     ),
 )
 def test_extreme_percentiles(tmp_path, bounds_option, kgo):
