@@ -97,11 +97,12 @@ def test_extreme_percentiles(tmp_path, bounds_option, kgo):
         "5",
         "--random-seed",
         "0",
-        bounds_option,
         percentiles_path,
         "--output",
         output_path,
     ]
+    if bounds_option:
+        args += [bounds_option]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
