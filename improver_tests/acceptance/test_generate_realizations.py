@@ -95,8 +95,6 @@ def test_extreme_percentiles(tmp_path, bounds_option, kgo):
     args = [
         "--realizations-count",
         "5",
-        "--random-seed",
-        "0",
         percentiles_path,
         "--output",
         output_path,
