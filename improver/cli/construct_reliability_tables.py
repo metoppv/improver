@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *cubes: cli.inputcube_nolazy,
     truth_attribute,
     n_probability_bins: int = 5,
     single_value_lower_limit: bool = False,
