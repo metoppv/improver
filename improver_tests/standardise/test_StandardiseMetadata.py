@@ -185,11 +185,32 @@ class Test_process(IrisTest):
             spatial_grid="latlon",
             standard_grid_metadata="gl_det",
             pressure=True,
-            height_levels = [100000.,  97500.,  95000.],
-            realizations = [0, 18, 19]
+            height_levels=[100000.0, 97500.0, 95000.0],
+            realizations=[0, 18, 19],
         )
-        cube.data[:, ]
-        self.cube
+        # The target cube has 'NaN' values in its data to denote points below
+        # surface altitude.
+        result_no_sf = cube.copy()
+        result_no_sf.data[:, 0, ...] = np.nan
+        target = self.plugin.process(result_no_sf)
+
+        cube_with_flags = cube.copy()
+        flag_status = np.zeros((3, 3, 5, 5), dtype=np.int8)
+        flag_status[:, 0, ...] = 1
+        status_flag_coord = AuxCoord(
+            points=flag_status,
+            standard_name="air_temperature status_flag",
+            var_name="flag",
+            attributes={
+                "flag_meanings": "above_surface_pressure below_surface_pressure",
+                "flag_values": np.array([0, 1], dtype="int8"),
+            },
+        )
+        cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2, 3))
+
+        result = self.plugin.process(cube_with_flags)
+        self.assertArrayEqual(result.data, target.data)
+        self.assertEqual(result.coords(), target.coords())
 
 
 if __name__ == "__main__":
