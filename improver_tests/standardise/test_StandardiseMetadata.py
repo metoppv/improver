@@ -174,9 +174,9 @@ class Test_process(IrisTest):
 
     def test_air_temperature_status_flag_coord(self):
         """
-        Ensure we handle cubes which now include a 'air_temperature_status flag'
+        Ensure we handle cubes which now include an 'air_temperature_status flag'
         coord to signify points below surface altitude, where previously this
-        was denoted by NaN values in the data
+        was denoted by NaN values in the data.
 
         See https://github.com/metoppv/improver/pull/1839
         """
