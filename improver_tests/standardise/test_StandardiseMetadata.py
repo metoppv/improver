@@ -181,7 +181,7 @@ class Test_process(IrisTest):
         See https://github.com/metoppv/improver/pull/1839
         """
         cube = set_up_variable_cube(
-            282 * np.ones((3, 3, 5, 5), dtype=np.float32),
+            np.full((3, 3, 5, 5), fill_value=282, dtype=np.float32),
             spatial_grid="latlon",
             standard_grid_metadata="gl_det",
             pressure=True,
