@@ -42,7 +42,7 @@ def process(
     land_constraint=False,
     similar_altitude=False,
     extract_percentiles: cli.comma_separated_list = None,
-    ignore_ecc_bounds=False,
+    ignore_ecc_bounds_exceedance=False,
     new_title: str = None,
     suppress_warnings=False,
     realization_collapse=False,
@@ -159,7 +159,7 @@ def process(
         except CoordinateNotFoundError:
             if "probability_of_" in result.name():
                 result = ConvertProbabilitiesToPercentiles(
-                    ecc_bounds_warning=ignore_ecc_bounds
+                    ecc_bounds_warning=ignore_ecc_bounds_exceedance
                 )(result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords("realization", dim_coords=True):
