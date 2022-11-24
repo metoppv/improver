@@ -93,7 +93,7 @@ def test_eccbounds(tmp_path):
         "realization",
         "--percentiles",
         "25,50,75",
-        "--ignore-ecc-bounds",
+        "--ignore-ecc-bounds-exceedance",
     ]
     with pytest.warns(UserWarning, match="The calculated threshold values"):
         run_cli(args)
