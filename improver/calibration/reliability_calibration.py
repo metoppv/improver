@@ -1059,19 +1059,18 @@ class ManipulateReliabilityTable(BasePlugin):
         reliability_table_cubelist = iris.cube.CubeList()
         for rel_table_threshold in reliability_table.slices_over(threshold_coord):
             if self.point_by_point:
-                rel_table_processed = iris.cube.CubeList()
                 for rel_table_point in rel_table_threshold.slices_over(
                     [y_name, x_name]
                 ):
                     rel_table_point_emcam = self._enforce_min_count_and_montonicity(
                         rel_table_point
                     )
-                    rel_table_processed.append(rel_table_point_emcam)
+                    reliability_table_cubelist.append(rel_table_point_emcam)
             else:
                 rel_table_processed = self._enforce_min_count_and_montonicity(
                     rel_table_threshold
                 )
-            reliability_table_cubelist.append(rel_table_processed)
+                reliability_table_cubelist.append(rel_table_processed)
         return reliability_table_cubelist
 
 
@@ -1379,20 +1378,13 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
             # create reliability table containing only those cubes
             # relating to the currently considered spatial point
-            reliability_table_point = iris.cube.CubeList()
-            for threshold_table in reliability_table:
-                reliability_table_point.append(
-                    threshold_table.extract(
-                        iris.Constraint(coord_values={y_name: y_point, x_name: x_point})
-                    )
-                )
 
-            # using .extract() on a cubelist returns a cubelist, so this loop
-            # checks for unwanted cubelists and converts them to cubes
-            for i in range(len(reliability_table_point)):
-                entry = reliability_table_point[i]
-                if isinstance(entry, iris.cube.CubeList):
-                    reliability_table_point[i] = reliability_table_point[i][0]
+            reliability_table_point = reliability_table.extract(
+                iris.Constraint(
+                    coord_values={y_name: y_point, x_name: x_point}
+                )
+            )
+
             calibrated_cube = self._get_calibrated_forecast(
                 forecast=forecast_point, reliability_table=reliability_table_point
             )
@@ -1439,9 +1431,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 Whether to calibrate each point in the input cube independently.
                 Utilising this option requires that each spatial point in the
                 forecast cube has a corresponding spatial point in the
-                reliability table.
-                Please note this option is memory intensive and is unsuitable
-                for gridded input
+                reliability table. Please note this option is memory intensive and is
+                unsuitable for gridded input.
 
         Returns:
             The forecast cube following calibration.
@@ -1459,7 +1450,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 forecast=forecast, reliability_table=reliability_table,
             )
 
-        # ensure correct data type
+        # enforce correct data type
         calibrated_forecast.data = calibrated_forecast.data.astype("float32")
 
         return calibrated_forecast

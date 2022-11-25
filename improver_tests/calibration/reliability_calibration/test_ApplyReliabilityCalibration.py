@@ -477,6 +477,12 @@ class Test_process(Test_ReliabilityCalibrate):
         y_name = self.forecast.coord(axis="y").name()
         x_name = self.forecast.coord(axis="x").name()
 
+        test_coord = iris.coords.AuxCoord(
+            points=np.arange(len(self.forecast.coord(x_name).points)),
+            long_name="test_coord"
+        )
+        self.forecast.add_aux_coord(test_coord, data_dims=1)
+
         # create reliability table in same format as that output from
         # ManipulateReliabilityTable when point_by_point=True
         reliability_table = self.reliability_cubelist.copy()
@@ -484,13 +490,11 @@ class Test_process(Test_ReliabilityCalibrate):
         for threshold_cube in reliability_table:
             threshold_cube.remove_coord(y_name)
             threshold_cube.remove_coord(x_name)
-            threshold_list = iris.cube.CubeList()
             for forecast_point in self.forecast.slices_over([y_name, x_name]):
                 reliability_cube_spatial = threshold_cube.copy()
                 reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
                 reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
-                threshold_list.append(reliability_cube_spatial)
-            reliability_cube_list.append(threshold_list)
+                reliability_cube_list.append(reliability_cube_spatial)
 
         expected_0 = np.array(
             [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
