@@ -479,7 +479,7 @@ class Test_process(Test_ReliabilityCalibrate):
 
         test_coord = iris.coords.AuxCoord(
             points=np.arange(len(self.forecast.coord(x_name).points)),
-            long_name="test_coord"
+            long_name="test_coord",
         )
         self.forecast.add_aux_coord(test_coord, data_dims=1)
 

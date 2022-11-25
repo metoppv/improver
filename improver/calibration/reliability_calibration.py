@@ -1380,9 +1380,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             # relating to the currently considered spatial point
 
             reliability_table_point = reliability_table.extract(
-                iris.Constraint(
-                    coord_values={y_name: y_point, x_name: x_point}
-                )
+                iris.Constraint(coord_values={y_name: y_point, x_name: x_point})
             )
 
             calibrated_cube = self._get_calibrated_forecast(
