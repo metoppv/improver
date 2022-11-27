@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Simple bias correction plugins."""
 
-from typing import Dict
+from typing import Dict, Optional
 
 import iris
 from iris.cube import Cube
@@ -73,23 +73,37 @@ class CalculateForecastBias(BasePlugin):
 
     def _define_metadata(self, forecast_slice: Cube) -> Dict[str, str]:
         """
-        Define metadata that is specifically required for reliability table
-        cubes, whilst ensuring any mandatory attributes are also populated.
+        Define metadata for forecast error cube, whilst ensuring any mandatory
+        attributes are also populated.
+
         Args:
             forecast_slice:
                 The source cube from which to get pre-existing metadata of use.
+
         Returns:
-            A dictionary of attributes that are appropriate for the
-            reliability table cube.
+            A dictionary of attributes that are appropriate for the forecast error
+            (bias) cube.
         """
+        # NEED TO ESTABLISH WHAT ATTRIBUTES SHOULD BE USED FOR BIAS CUBES.
         attributes = generate_mandatory_attributes([forecast_slice])
         attributes["title"] = "Forecast error data"
         return attributes
 
-    def _create_forecast_bias_cube(self, forecasts):
-        """Create a cube to store the forecast bias data."""
+    def _create_forecast_bias_cube(self, forecasts: Cube):
+        """
+        Create a cube to store the forecast bias data.
 
+        Args:
+            forecasts:
+                Cube containing the reference forecasts to use in calculation
+                of forecast error.
+
+        Returns:
+            A copy of the forecast cube with the attributes updated to reflect
+            the cube is the forecast error of the associated diagnostic.
+        """
         attributes = self._define_metadata(forecasts)
+        # NEED TO ESTABLISH WHAT THE APPROPRIATE DIAGNOSTIC NAME SHOULD BE HERE.
         forecast_bias_cube = create_new_diagnostic_cube(
             name=f"{forecasts.name()} forecast error",
             units=forecasts.units,
@@ -99,8 +113,24 @@ class CalculateForecastBias(BasePlugin):
 
         return forecast_bias_cube
 
-    def _collapse_time(self, bias):
-        """Collapse the time dimension coordinate if present."""
+    def _collapse_time(self, bias: Cube):
+        """
+        Collapse the time dimension coordinate if present by taking the
+        mean value along this dimension.
+
+        Args:
+            bias:
+                Cube containing the forecast error values.
+
+        Returns:
+            Cube containing the mean forecast error over the range of
+            specified forecasts. A single forecast reference time is assigned
+            with the bounds reflecting the range of forecast times over which
+            the forecast error is evaluated.
+        """
+        # NEED TO ESTABLISH WHETHER FRT IS THE SUITABLE COORDINATE TO USE HERE.
+        # - this coord is flagged as deprecated
+        # - check what is used in reliability calibration
         if "time" in get_dim_coord_names(bias):
             frt_coord = create_unified_frt_coord(bias.coord("forecast_reference_time"))
             mean_bias = collapsed(bias, "forecast_reference_time", iris.analysis.MEAN)
@@ -113,8 +143,27 @@ class CalculateForecastBias(BasePlugin):
 
         return mean_bias
 
-    def process(self, historic_forecasts, truths):
+    def process(self, historic_forecasts: Cube, truths: Cube):
+        """
+        Evaluate forecast error over the set of historic forecasts and associated
+        truth values.
 
+        Where mulitple forecasts are provided, forecasts must have
+        consistent forecast period and valid-hour. The resultant value returned
+        is the mean value over the set of forecast/truth pairs.
+
+        Args:
+            historic_forecasts:
+                Cube containing one or more historic forecasts over which to evaluate
+                the forecast error.
+            truths:
+                Cube containing one or more truth values from which to evaluate the forecast
+                error.
+
+        Returns:
+            A cube containing the mean forecast error value evaluated over the set of
+            historic forecasts and truth values.
+        """
         # Ensure that valid times match over forecasts/truth
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths
@@ -143,7 +192,32 @@ class ApplySimpleBiasCorrection(BasePlugin):
         """
         self.correction_method = apply_additive_bias
 
-    def process(self, forecast, bias_terms):
+    def process(self, forecast: Cube, bias: Cube, lower_bound: Optional[float]) -> Cube:
+        """
+        Apply bias correction using the specified bias values.
+
+        Where a lower bound is specified, all values that fall below this
+        lower bound (after bias correction) will be remapped to this value
+        to ensure physical realistic values.
+
+        Args:
+            forecast:
+                The cube to which bias correction is to be applied.
+            bias:
+                The cube containing the bias values for which to use in
+                the bias correction.
+            lower_bound:
+                A lower bound below which all values will be remapped to
+                after applying the bias correction.
+
+        Returns:
+            Bias corrected forecast cube.
+        """
         corrected_forecast = forecast.copy()
-        corrected_forecast.data = self.correction_method(forecast, bias_terms)
+        corrected_forecast.data = self.correction_method(forecast, bias)
+
+        if lower_bound:
+            below_lower_bound = corrected_forecast.data < lower_bound
+            corrected_forecast.data[below_lower_bound] = lower_bound
+
         return corrected_forecast
