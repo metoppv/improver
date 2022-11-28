@@ -43,11 +43,13 @@ from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.cube_combiner import Combine
+from improver.utilities.cube_manipulation import (
+    collapse_realizations,
+    enforce_coordinate_ordering,
+)
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
-from improver.utilities.cube_manipulation import collapse_realizations
+
 
 class BasicThreshold(PostProcessingPlugin):
 
@@ -303,17 +305,19 @@ class BasicThreshold(PostProcessingPlugin):
 
         self.threshold_coord_name = input_cube.name()
         thresholded_cubes = iris.cube.CubeList()
-        masked_data=np.ma.is_masked(input_cube.data)
+        masked_data = np.ma.is_masked(input_cube.data)
 
         if collapse_realizations in self.each_threshold_func:
-            input_slices=[slices for slices in input_cube.slices_over("realization")]
+            # If the realization are going to be collapsed each
+            # realizations threshold value is calculated sequentially.
+            input_slices = [slices for slices in input_cube.slices_over("realization")]
         else:
-            input_slices=[input_cube]
+            input_slices = [input_cube]
 
         for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
-            total_weights=np.zeros(np.shape(input_slices[0].data))
-            cube_total=np.ma.array(total_weights,mask=masked_data)
-            
+            total_weights = np.zeros(np.shape(input_slices[0].data))
+            cube_total = np.ma.array(total_weights, mask=masked_data)
+
             for input_cube_slice in input_slices:
                 cube = input_cube_slice.copy()
                 if self.threshold_units is not None:
@@ -322,7 +326,9 @@ class BasicThreshold(PostProcessingPlugin):
                 # if upper and lower bounds are equal, set a deterministic 0/1
                 # probability based on exceedance of the threshold
                 if bounds[0] == bounds[1]:
-                    truth_value = self.comparison_operator.function(cube.data, threshold)
+                    truth_value = self.comparison_operator.function(
+                        cube.data, threshold
+                    )
                 # otherwise, scale exceedance probabilities linearly between 0/1
                 # at the min/max fuzzy bounds and 0.5 at the threshold value
                 else:
@@ -351,7 +357,9 @@ class BasicThreshold(PostProcessingPlugin):
                 truth_value = truth_value.astype(FLOAT_DTYPE)
                 if masked_data:
                     # update unmasked points only
-                    cube.data[~input_cube_slice.data.mask] = truth_value[~input_cube_slice.data.mask]
+                    cube.data[~input_cube_slice.data.mask] = truth_value[
+                        ~input_cube_slice.data.mask
+                    ]
                 else:
                     cube.data = truth_value
 
@@ -364,28 +372,33 @@ class BasicThreshold(PostProcessingPlugin):
                         cube = func(cube)
 
                 if collapse_realizations in self.each_threshold_func:
+                    # The threshold values from the current realization
+                    # is added onto the sum of all prior realizations. When all
+                    # realizations are summed each point is divided by the
+                    # number of unmasked points that have contributed to the total.
+                    # Masked points are set to 0 when summing the realizations.
+                    # If at some point every realization is masked then the
+                    # final points shall be masked.
                     if masked_data:
-                        weights=np.where(cube.data.mask,0,1)
-                        total_weights=total_weights+weights      
-                        cube_zero_mask=np.where(cube.data.mask,0,cube.data)
-                        mask=np.logical_and(cube.data.mask,cube_total.mask)
-                        sum_array=cube_total.data+cube_zero_mask 
-                        cube_total=np.ma.array(sum_array,mask=mask)
+                        weights = np.where(cube.data.mask, 0, 1)
+                        total_weights = total_weights + weights
+                        cube_zero_mask = np.where(cube.data.mask, 0, cube.data)
+                        mask = np.logical_and(cube.data.mask, cube_total.mask)
+                        sum_array = cube_total.data + cube_zero_mask
+                        cube_total = np.ma.array(sum_array, mask=mask)
                     else:
-                        weights=np.full_like(total_weights,1)
-                        total_weights=total_weights+weights
-                        cube_total=cube_total+cube.data
+                        weights = np.full_like(total_weights, 1)
+                        total_weights = total_weights + weights
+                        cube_total = cube_total + cube.data
                 else:
-                    cube_total=cube.data
-
+                    cube_total = cube.data
 
             if collapse_realizations in self.each_threshold_func:
-                cube_total=cube_total/total_weights
+                cube_total = cube_total / total_weights
                 cube.remove_coord("realization")
 
-            cube_average=cube.copy(data=cube_total)
+            cube_average = cube.copy(data=cube_total)
             thresholded_cubes.append(cube_average)
-        
 
         (cube,) = thresholded_cubes.merge()
 
@@ -395,7 +408,7 @@ class BasicThreshold(PostProcessingPlugin):
         ).points.astype(FLOAT_DTYPE)
 
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
-        cube.data=cube.data.astype(FLOAT_DTYPE)
+        cube.data = cube.data.astype(FLOAT_DTYPE)
 
         return cube
 
