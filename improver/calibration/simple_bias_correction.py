@@ -50,12 +50,12 @@ from improver.utilities.cube_manipulation import collapsed, get_dim_coord_names
 
 def mean_additive_error(forecasts, truths):
     """Evaluate the mean error between the forecast and truth dataset."""
-    forecast_errors = truths - forecasts
+    forecast_errors = forecasts - truths
     return forecast_errors.data
 
 
 def apply_additive_bias(forecast, bias):
-    forecast = forecast + bias
+    forecast = forecast - bias
     return forecast.data
 
 
