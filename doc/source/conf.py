@@ -74,6 +74,7 @@ extensions = [
     "sphinx.ext.viewcode",
     "sphinx.ext.mathjax",
     "sphinx_autodoc_typehints",
+    "sphinx_rtd_theme",
 ]
 
 autodoc_default_flags = ["members", "private-members"]
@@ -168,7 +169,7 @@ todo_include_todos = False
 # The theme to use for HTML and HTML Help pages.  See the documentation for
 # a list of builtin themes.
 #
-html_theme = "default"
+html_theme = "sphinx_rtd_theme"
 
 # Theme options are theme-specific and customize the look and feel of a theme
 # further.  For a list of options available for each theme, see the
@@ -394,13 +395,13 @@ texinfo_documents = [
 
 # Example configuration for intersphinx: refer to the Python standard library.
 intersphinx_mapping = {
-    "https://docs.python.org/3/": None,
-    "https://scitools-iris.readthedocs.io/en/latest/": None,
-    "https://scitools.org.uk/cartopy/docs/latest/": None,
-    "https://cf-units.readthedocs.io/en/stable/": None,
-    "https://numpy.org/doc/stable/": None,
-    "https://docs.scipy.org/doc/scipy-1.6.2/reference/": None,
-    "https://pandas.pydata.org/pandas-docs/dev/": None,
+    "python": ("https://docs.python.org/3/", None),
+    "iris": ("https://scitools-iris.readthedocs.io/en/latest/", None),
+    "cartopy": ("https://scitools.org.uk/cartopy/docs/latest/", None),
+    "cf_units": ("https://cf-units.readthedocs.io/en/stable/", None),
+    "numpy": ("https://numpy.org/doc/stable/", None),
+    "scipy": ("https://docs.scipy.org/doc/scipy-1.6.2/reference/", None),
+    "pandas": ("https://pandas.pydata.org/pandas-docs/dev/", None),
 }
 
 # Get napoleon to document constructor methods.
