@@ -29,8 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to apply simple bias correction to ensemble members based on bias from the
-reference forecast dataset."""
+"""CLI to calculate the bias values from the specified set of reference forecasts."""
 
 from improver import cli
 
@@ -38,7 +37,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(*cubes: cli.inputcube, truth_attribute: str):
-    """Calculate bias terms from from the specified forecast dataset.
+    """Calculate forecast bias from the specified set of historical forecasts and truth
+    values.
 
     Args:
         cubes (list of iris.cube.Cube):
@@ -52,7 +52,8 @@ def process(*cubes: cli.inputcube, truth_attribute: str):
 
     Returns:
         iris.cube.Cube:
-            Forecast cube with bias correction applied on a per member basis.
+            Cube containing forecast bias values evaluated over the specified set
+            of historical forecasts.
     """
     from improver.calibration import split_forecasts_and_truth
     from improver.calibration.simple_bias_correction import CalculateForecastBias
@@ -60,7 +61,5 @@ def process(*cubes: cli.inputcube, truth_attribute: str):
     historical_forecast, historical_truth, _ = split_forecasts_and_truth(
         cubes, truth_attribute
     )
-
     plugin = CalculateForecastBias()
-
     return plugin(historical_forecast, historical_truth)
