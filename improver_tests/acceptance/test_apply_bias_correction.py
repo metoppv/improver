@@ -86,6 +86,9 @@ def test_multiple_bias_files(tmp_path):
 def test_lower_bound(tmp_path):
     """
     Test case where lower bound is supplied.
+
+    Note: we are using an artificially higher lower bound that would use
+    in practice to ensure process works.
     """
     kgo_dir = acc.kgo_root() / "apply-bias-correction"
     kgo_path = kgo_dir / "with_lower_bound" / "kgo.nc"
@@ -98,7 +101,7 @@ def test_lower_bound(tmp_path):
         fcst_path,
         bias_file_path,
         "--lower-bound",
-        "0",
+        "2",
         "--output",
         output_path,
     ]
