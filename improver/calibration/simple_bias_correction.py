@@ -53,7 +53,8 @@ def evaluate_additive_error(
     forecasts: Cube, truths: Cube, collapse_dim: str
 ) -> ndarray:
     """
-    Evaluate the mean additive error between the forecast and truth dataset.
+    Evaluate the mean additive error (error = forecast - truth) between the
+    forecast and truth dataset.
 
     Args:
         forecasts:
@@ -77,7 +78,8 @@ def evaluate_additive_error(
 
 def apply_additive_correction(forecast: Cube, bias: Cube) -> ndarray:
     """
-    Apply additive correction to forecast using the specified bias values.
+    Apply additive correction to forecast using the specified bias values,
+    where the bias is expected to be defined as forecast - truth.
 
     Args:
         forecast:
@@ -170,7 +172,7 @@ class CalculateForecastBias(BasePlugin):
         Evaluate forecast bias over the set of historic forecasts and associated
         truth values.
 
-        Where mulitple forecasts values are provided, forecasts must have consistent
+        Where multiple forecasts values are provided, forecasts must have consistent
         forecast period and valid-hour. The resultant value returned is the mean value
         over the set of forecast/truth pairs.
 
@@ -190,7 +192,7 @@ class CalculateForecastBias(BasePlugin):
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths
         )
-        # Ensure that input forecasts are for consitent period/valid-hour
+        # Ensure that input forecasts are for consistent period/valid-hour
         check_forecast_consistency(historic_forecasts)
         # Remove truth frt to enable cube maths
         truths.remove_coord("forecast_reference_time")

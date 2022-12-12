@@ -87,7 +87,7 @@ def test_lower_bound(tmp_path):
     """
     Test case where lower bound is supplied.
 
-    Note: we are using an artificially higher lower bound that would use
+    Note: we are using an artificially higher lower bound than would use
     in practice to ensure process works.
     """
     kgo_dir = acc.kgo_root() / "apply-bias-correction"

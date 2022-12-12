@@ -70,6 +70,7 @@ def process(
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
 
     # Check whether bias data supplied, if not then return unadjusted input cube.
+    # This behaviour is to allow spin-up of the bias-correction terms.
     if not bias_cubes:
         return forecast_cube
     else:

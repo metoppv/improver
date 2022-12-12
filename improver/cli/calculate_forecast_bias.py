@@ -43,10 +43,10 @@ def process(*cubes: cli.inputcube, truth_attribute: str):
     Args:
         cubes (list of iris.cube.Cube):
             A list of cubes containing the historical forecasts and corresponding
-            truths used for calibration. The cubes much include the same diagnostic
+            truths used for calibration. The cubes must include the same diagnostic
             name in their names. The cubes will be distinguished using the user
             specified truth attribute.
-        truth_attribite (str):
+        truth_attribute (str):
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
 
