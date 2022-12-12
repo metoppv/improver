@@ -131,7 +131,7 @@ def generate_bias_cubelist(
 
         bias_cube = set_up_variable_cube(
             data=data_slice,
-            name="wind_speed_forecast_error",
+            name="forecast_error_of_wind_speed",
             units="m/s",
             time=last_valid_time + timedelta(hours=3) - timedelta(days=i),
             frt=last_valid_time - timedelta(days=i),

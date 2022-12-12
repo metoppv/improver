@@ -183,7 +183,7 @@ def test__create_bias_cube(num_frt):
     assert "time" not in get_coord_names(result)
 
     # Check variable name is as expected
-    assert result.long_name == f"{reference_forecast_cubes.name()}_forecast_error"
+    assert result.long_name == f"forecast_error_of_{reference_forecast_cubes.name()}"
 
 
 # Test case where we have a single or multiple reference forecasts, and single or multiple
