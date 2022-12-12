@@ -33,6 +33,7 @@ from datetime import datetime, timedelta
 
 import iris
 import numpy as np
+import numpy.ma as ma
 import pytest
 from iris.cube import Cube, CubeList
 
@@ -57,11 +58,15 @@ RNG = np.random.default_rng(0)
 
 TEST_FCST_DATA = np.array(
     [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
-) + RNG.normal(0.0, 1, (6, 3, 3)).astype(np.float32)
+) + RNG.normal(0.0, 1, (4, 3, 3)).astype(np.float32)
 
 
 MEAN_BIAS_DATA = np.array(
     [[0.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [-2.0, 0.0, 1.0]], dtype=np.float32
+)
+
+MASK = np.array(
+    [[False, False, False], [True, False, False], [True, False, True]], dtype=bool
 )
 
 
@@ -81,6 +86,7 @@ def generate_bias_cubelist(
     num_frts: int,
     single_frt_with_bounds: bool = False,
     last_valid_time: datetime = VALID_TIME,
+    masked_data: bool = False,
 ):
     """Generate sample bias CubeList for testing.
 
@@ -95,6 +101,8 @@ def generate_bias_cubelist(
             The latest valid time to use in constructing the set of bias values. All
             associated valid-times (and frts) are evaluated by stepping back day-by-day
             num_frt times.
+        masked_data:
+            Flag as to whether to mask a portion of the bias data.
 
     Returns:
         CubeList containg the sample bias cubes.
@@ -116,6 +124,10 @@ def generate_bias_cubelist(
             data_slice = data + noise
         else:
             data_slice = data
+        # Apply mask to data if using masked bias dataset
+        if masked_data:
+            data_slice = ma.asarray(data_slice, dtype=data_slice.dtype)
+            data_slice.mask = MASK
 
         bias_cube = set_up_variable_cube(
             data=data_slice,
@@ -145,14 +157,29 @@ def generate_bias_cubelist(
 
 
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))
-def test_apply_additive_correction(forecast_cube, num_bias_inputs):
+@pytest.mark.parametrize("masked_bias_data", (True, False))
+@pytest.mark.parametrize("fill_masked_bias_data", (True, False))
+def test_apply_additive_correction(
+    forecast_cube, num_bias_inputs, masked_bias_data, fill_masked_bias_data
+):
     """Test the additive correction provides expected value."""
-    bias_cube = generate_bias_cubelist(num_bias_inputs, single_frt_with_bounds=True)[0]
+    bias_cube = generate_bias_cubelist(
+        num_bias_inputs, single_frt_with_bounds=True, masked_data=masked_bias_data
+    )[0]
 
     expected = TEST_FCST_DATA - MEAN_BIAS_DATA
-    result = apply_additive_correction(forecast_cube, bias_cube)
+    if fill_masked_bias_data and masked_bias_data:
+        expected = np.where(MASK, TEST_FCST_DATA, expected)
 
-    assert np.allclose(result, expected, atol=0.05)
+    result = apply_additive_correction(forecast_cube, bias_cube, fill_masked_bias_data)
+
+    if masked_bias_data and not fill_masked_bias_data:
+        assert isinstance(result, ma.masked_array)
+        assert np.all(result.mask == MASK)
+        assert np.ma.allclose(result, expected, atol=0.05)
+    else:
+        assert isinstance(result, np.ndarray)
+        assert np.allclose(result, expected, atol=0.05)
 
 
 def test__init__():
@@ -211,19 +238,46 @@ def test_get_mean_bias_fails_on_inconsistent_bounds():
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))
 @pytest.mark.parametrize("single_input_frt", (False, True))
 @pytest.mark.parametrize("lower_bound", (None, 1))
-def test_process(forecast_cube, num_bias_inputs, single_input_frt, lower_bound):
+@pytest.mark.parametrize("masked_input_data", (True, False))
+@pytest.mark.parametrize("masked_bias_data", (True, False))
+@pytest.mark.parametrize("fill_masked_bias_data", (True, False))
+def test_process(
+    forecast_cube,
+    num_bias_inputs,
+    single_input_frt,
+    lower_bound,
+    masked_input_data,
+    masked_bias_data,
+    fill_masked_bias_data,
+):
     """Test process function over range of input types, with/without lower bound."""
     input_bias_cubelist = generate_bias_cubelist(
-        num_bias_inputs, single_frt_with_bounds=single_input_frt
+        num_bias_inputs,
+        single_frt_with_bounds=single_input_frt,
+        masked_data=masked_bias_data,
     )
+    if masked_input_data:
+        forecast_cube.data = ma.asarray(
+            forecast_cube.data, dtype=forecast_cube.data.dtype
+        )
+        forecast_cube.data.mask = MASK
     result = ApplyBiasCorrection().process(
-        forecast_cube, input_bias_cubelist, lower_bound
+        forecast_cube, input_bias_cubelist, lower_bound, fill_masked_bias_data
     )
     expected = TEST_FCST_DATA - MEAN_BIAS_DATA
+    if fill_masked_bias_data and masked_bias_data:
+        expected = np.where(MASK, TEST_FCST_DATA, expected)
     if lower_bound is not None:
         expected = np.maximum(lower_bound, expected)
     # Check values are as expected (within tolerance)
-    assert np.allclose(result.data, expected, atol=0.05)
+    assert np.ma.allclose(result.data, expected, atol=0.05)
+    # Check the cube.data type is as expected based on input forecast
+    # and bias_values. Here we are checking masked values are handled as expected.
+    if (masked_bias_data and not fill_masked_bias_data) or masked_input_data:
+        assert isinstance(result.data, ma.masked_array)
+    else:
+        assert isinstance(result.data, np.ndarray)
+    # Check the dtypes match
     assert result.dtype == forecast_cube.dtype
     # Check variable metadata is consistent
     assert result.standard_name == forecast_cube.standard_name

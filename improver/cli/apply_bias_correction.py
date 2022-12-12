@@ -38,7 +38,10 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast_cube: cli.inputcube, *bias_cubes: cli.inputcube, lower_bound: float = None
+    forecast_cube: cli.inputcube,
+    *bias_cubes: cli.inputcube,
+    lower_bound: float = None,
+    fill_masked_bias_data: bool = False,
 ):
     """Apply simple bias correction to ensemble members based on the bias from the
     reference forecast dataset.
@@ -60,6 +63,9 @@ def process(
             mean value will then be evaluated over the forecast_reference_time coordinate.
         lower_bound (float):
             Specifies a lower bound below which values will be remapped to.
+        fill_masked_bias_data (bool):
+            Flag to specify whether to fill masked areas of the mean bias data with an
+            appropriate fill-value.
 
     Returns:
         iris.cube.Cube:
@@ -76,4 +82,6 @@ def process(
     else:
         bias_cubes = iris.cube.CubeList(bias_cubes)
         plugin = ApplyBiasCorrection()
-        return plugin.process(forecast_cube, bias_cubes, lower_bound)
+        return plugin.process(
+            forecast_cube, bias_cubes, lower_bound, fill_masked_bias_data
+        )

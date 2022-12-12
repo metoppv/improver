@@ -33,6 +33,7 @@
 from typing import Dict, Optional
 
 import iris
+import numpy.ma as ma
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
@@ -76,7 +77,9 @@ def evaluate_additive_error(
     return forecast_errors.data
 
 
-def apply_additive_correction(forecast: Cube, bias: Cube) -> ndarray:
+def apply_additive_correction(
+    forecast: Cube, bias: Cube, fill_masked_bias_values: bool = True
+) -> ndarray:
     """
     Apply additive correction to forecast using the specified bias values,
     where the bias is expected to be defined as forecast - truth.
@@ -90,6 +93,8 @@ def apply_additive_correction(forecast: Cube, bias: Cube) -> ndarray:
     Returns:
         An array containing the corrected forecast values.
     """
+    if fill_masked_bias_values and isinstance(bias.data, ma.masked_array):
+        bias.data = ma.MaskedArray.filled(bias.data, 0.0)
     corrected_forecast = forecast - bias
     return corrected_forecast.data
 
@@ -252,7 +257,11 @@ class ApplyBiasCorrection(BasePlugin):
             return mean_bias
 
     def process(
-        self, forecast: Cube, bias: CubeList, lower_bound: Optional[float]
+        self,
+        forecast: Cube,
+        bias: CubeList,
+        lower_bound: Optional[float],
+        fill_masked_bias_values: Optional[bool] = False,
     ) -> Cube:
         """
         Apply bias correction using the specified bias values.
@@ -277,10 +286,15 @@ class ApplyBiasCorrection(BasePlugin):
         bias = self._get_mean_bias(bias)
 
         corrected_forecast = forecast.copy()
-        corrected_forecast.data = self.correction_method(forecast, bias)
+        corrected_forecast.data = self.correction_method(
+            forecast, bias, fill_masked_bias_values
+        )
 
         if lower_bound is not None:
-            below_lower_bound = corrected_forecast.data < lower_bound
-            corrected_forecast.data[below_lower_bound] = lower_bound
+            corrected_forecast.data = ma.where(
+                (corrected_forecast.data < lower_bound),
+                lower_bound,
+                corrected_forecast.data,
+            )
 
         return corrected_forecast
