@@ -29,6 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the dry_adiabatic_temperature and dry_adiabatic_pressure methods."""
+import re
+from typing import List
+from warnings import WarningMessage
+
 import numpy as np
 import pytest
 
@@ -40,6 +44,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.warnings_handler import ManageWarnings
 
 t_1 = 280.0
 p_1 = 100000.0
@@ -133,6 +138,44 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
     for r in result_t, result_q:
         assert r.shape == shape
         assert r.dtype == np.float32
+
+
+@ManageWarnings(record=True)
+def test_saturated_latent_heat_with_large_array(warning_list: List[WarningMessage]):
+    """Test the saturated_latent_heat method with a large array, thus triggering 6 iterations.
+    This demonstrates that for arrays, so long as at least one point converges, all succeed,
+    and a warning is issued."""
+    shape = 150
+
+    # These values converge in six iterations
+    t, p, q = 220, 30000, 5.6e-4
+
+    t = np.full(shape, t, dtype=np.float32)
+    q = np.full(shape, q, dtype=np.float32)
+    p = np.full(shape, p, dtype=np.float32)
+    expected_t = np.full(shape, 221.2935, dtype=np.float32)
+    expected_q = np.full(shape, 6.48412e-5, dtype=np.float32)
+
+    # These values require more than six iterations to fully converge, so the result does
+    # not match the equivalent values in test_saturated_latent_heat()
+    t[0] = 220
+    p[0] = 10000
+    q[0] = 2.7e-2
+    expected_t[0] = 253.4863
+    expected_q[0] = 1.41813e-2
+
+    result_t, result_q = adjust_for_latent_heat(t, q, p)
+
+    assert np.isclose(result_t, expected_t).all()
+    assert np.isclose(result_q, expected_q).all()
+    for r in result_t, result_q:
+        assert r.shape[0] == shape
+        assert r.dtype == np.float32
+
+    assert len(warning_list) == 1
+    assert re.match(
+        "some failed to converge after 6 iterations", str(warning_list[0].message)
+    )
 
 
 @pytest.mark.parametrize("shape", ((1,), (2, 2)))
