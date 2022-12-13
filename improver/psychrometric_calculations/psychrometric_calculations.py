@@ -257,6 +257,15 @@ def adjust_for_latent_heat(
 
     Subsaturated values will be returned unaltered.
 
+    This method uses the scipy newton solver with a limit of 6 iterations.
+    The deepest convection needs more iterations to converge. This is only important
+    if we reach the position that all points in an array fail to converge at the same
+    pressure level, because the solver raises an exception (although docs say it shouldn't).
+    I haven't seen this be true except when the array contains only one point, but increasing
+    the maximum number of iterations for small arrays is a very small price to pay for
+    stability.
+
+
     .. See the documentation for a more detailed discussion of the maths.
     .. include:: extended_documentation/psychrometric_calculations/
        psychrometric_calculations/adjust_for_latent_heat.rst
@@ -286,7 +295,8 @@ def adjust_for_latent_heat(
         humidity_in.copy(),
         args=(temperature_in, humidity_in, pressure),
         tol=1e-6,
-        maxiter=6,
+        maxiter=6 if humidity_in.size > 100 else 10,
+        disp=True,
     ).astype(np.float32)
     temperature = temperature_in + _latent_heat_release(
         humidity_in, humidity, temperature_in
