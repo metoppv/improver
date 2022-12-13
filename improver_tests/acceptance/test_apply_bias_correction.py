@@ -48,7 +48,10 @@ def test_single_bias_file(tmp_path):
     kgo_path = kgo_dir / "single_bias_file" / "kgo.nc"
     fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     bias_file_path = (
-        kgo_dir / "single_bias_file" / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+        kgo_dir
+        / "single_bias_file"
+        / "bias_data"
+        / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     )
     output_path = tmp_path / "output.nc"
     args = [
@@ -69,7 +72,7 @@ def test_multiple_bias_files(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-bias-correction"
     kgo_path = kgo_dir / "multiple_bias_files" / "kgo.nc"
     fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
-    bias_file_paths = (kgo_dir / "multiple_bias_files").glob(
+    bias_file_paths = (kgo_dir / "multiple_bias_files" / "bias_data").glob(
         "202208*T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     )
     output_path = tmp_path / "output.nc"
@@ -94,7 +97,10 @@ def test_lower_bound(tmp_path):
     kgo_path = kgo_dir / "with_lower_bound" / "kgo.nc"
     fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     bias_file_path = (
-        kgo_dir / "single_bias_file" / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+        kgo_dir
+        / "single_bias_file"
+        / "bias_data"
+        / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     )
     output_path = tmp_path / "output.nc"
     args = [
@@ -102,6 +108,51 @@ def test_lower_bound(tmp_path):
         bias_file_path,
         "--lower-bound",
         "2",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_with_masked_bias_data(tmp_path):
+    """
+    Test case where bias data contains masked values. Default is for mask to pass
+    through to the bias-corrected forecast output.
+    """
+    kgo_dir = acc.kgo_root() / "apply-bias-correction" / "masked_bias_data"
+    kgo_path = kgo_dir / "retain_mask" / "kgo.nc"
+    fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    bias_file_path = (
+        kgo_dir / "bias_data" / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    )
+    output_path = tmp_path / "output.nc"
+    args = [
+        fcst_path,
+        bias_file_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_fill_masked_bias_data(tmp_path):
+    """
+    Test case where bias data contains masked values, and masked bias data values
+    are filled using appropriate fill value.
+    """
+    kgo_dir = acc.kgo_root() / "apply-bias-correction" / "masked_bias_data"
+    kgo_path = kgo_dir / "fill_masked_values" / "kgo.nc"
+    fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    bias_file_path = (
+        kgo_dir / "bias_data" / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    )
+    output_path = tmp_path / "output.nc"
+    args = [
+        fcst_path,
+        bias_file_path,
+        "--fill-masked-bias-data",
         "--output",
         output_path,
     ]
