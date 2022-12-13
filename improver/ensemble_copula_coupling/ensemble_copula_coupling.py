@@ -170,7 +170,9 @@ class ResamplePercentiles(BasePlugin):
 
     """
 
-    def __init__(self, ecc_bounds_warning: bool = False) -> None:
+    def __init__(
+        self, ecc_bounds_warning: bool = False, skip_ecc_bounds: bool = False
+    ) -> None:
         """
         Initialise the class.
 
@@ -179,8 +181,15 @@ class ResamplePercentiles(BasePlugin):
                 If true and ECC bounds are exceeded by the percentile values,
                 a warning will be generated rather than an exception.
                 Default value is FALSE.
+            skip_ecc_bounds:
+                If true, the usage of the ECC bounds is skipped. This has the
+                effect that percentiles outside of the range given by the input
+                percentiles will be computed by nearest neighbour interpolation from
+                the nearest available percentile, rather than using linear interpolation
+                between the nearest available percentile and the ECC bound.
         """
         self.ecc_bounds_warning = ecc_bounds_warning
+        self.skip_ecc_bounds = skip_ecc_bounds
 
     def _add_bounds_to_percentiles_and_forecast_at_percentiles(
         self,
@@ -264,7 +273,6 @@ class ResamplePercentiles(BasePlugin):
         self,
         forecast_at_percentiles: Cube,
         desired_percentiles: ndarray,
-        bounds_pairing: Tuple[int, int],
         percentile_coord_name: str,
     ) -> Cube:
         """
@@ -278,9 +286,6 @@ class ResamplePercentiles(BasePlugin):
                 Cube containing a percentile coordinate.
             desired_percentiles:
                 Array of the desired percentiles.
-            bounds_pairing:
-                Lower and upper bound to be used as the ends of the
-                cumulative distribution function.
             percentile_coord_name:
                 Name of required percentile coordinate.
 
@@ -303,12 +308,17 @@ class ResamplePercentiles(BasePlugin):
             forecast_at_percentiles, coord=percentile_coord_name
         )
 
-        (
-            original_percentiles,
-            forecast_at_reshaped_percentiles,
-        ) = self._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
-        )
+        if not self.skip_ecc_bounds:
+            cube_units = forecast_at_percentiles.units
+            bounds_pairing = get_bounds_of_distribution(
+                forecast_at_percentiles.name(), cube_units
+            )
+            (
+                original_percentiles,
+                forecast_at_reshaped_percentiles,
+            ) = self._add_bounds_to_percentiles_and_forecast_at_percentiles(
+                original_percentiles, forecast_at_reshaped_percentiles, bounds_pairing
+            )
 
         forecast_at_interpolated_percentiles = interpolate_multiple_rows_same_x(
             np.array(desired_percentiles, dtype=np.float64),
@@ -399,16 +409,8 @@ class ResamplePercentiles(BasePlugin):
                 no_of_percentiles, sampling=sampling
             )
 
-        cube_units = forecast_at_percentiles.units
-        bounds_pairing = get_bounds_of_distribution(
-            forecast_at_percentiles.name(), cube_units
-        )
-
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles,
-            percentiles,
-            bounds_pairing,
-            percentile_coord.name(),
+            forecast_at_percentiles, percentiles, percentile_coord.name(),
         )
         return forecast_at_percentiles
 
