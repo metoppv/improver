@@ -140,8 +140,7 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
         assert r.dtype == np.float32
 
 
-@ManageWarnings(record=True)
-def test_saturated_latent_heat_with_large_array(warning_list: List[WarningMessage]):
+def test_saturated_latent_heat_with_large_array():
     """Test the saturated_latent_heat method with a large array, thus triggering 6 iterations.
     This demonstrates that for arrays, so long as at least one point converges, all succeed,
     and a warning is issued."""
@@ -164,18 +163,16 @@ def test_saturated_latent_heat_with_large_array(warning_list: List[WarningMessag
     expected_t[0] = 253.4863
     expected_q[0] = 1.41813e-2
 
-    result_t, result_q = adjust_for_latent_heat(t, q, p)
+    with pytest.warns(
+        RuntimeWarning, match="some failed to converge after 6 iterations"
+    ):
+        result_t, result_q = adjust_for_latent_heat(t, q, p)
 
     assert np.isclose(result_t, expected_t).all()
     assert np.isclose(result_q, expected_q).all()
     for r in result_t, result_q:
         assert r.shape[0] == shape
         assert r.dtype == np.float32
-
-    assert len(warning_list) == 1
-    assert re.match(
-        "some failed to converge after 6 iterations", str(warning_list[0].message)
-    )
 
 
 @pytest.mark.parametrize("shape", ((1,), (2, 2)))
