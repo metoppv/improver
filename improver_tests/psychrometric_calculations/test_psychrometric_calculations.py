@@ -29,10 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the dry_adiabatic_temperature and dry_adiabatic_pressure methods."""
-import re
-from typing import List
-from warnings import WarningMessage
-
 import numpy as np
 import pytest
 
@@ -44,7 +40,6 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 t_1 = 280.0
 p_1 = 100000.0
