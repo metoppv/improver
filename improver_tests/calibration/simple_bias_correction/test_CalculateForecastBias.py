@@ -33,7 +33,7 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
-from iris.cube import CubeList
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver.calibration.simple_bias_correction import (
@@ -55,7 +55,7 @@ VALID_TIME = datetime(2022, 12, 6, 3, 0)
 
 def generate_dataset(
     num_frts: int = 1, truth_dataset: bool = False, data: ndarray = None
-):
+) -> Cube:
     """Generate sample input datasets.
 
     Args:
@@ -131,14 +131,14 @@ def test_evaluate_additive_error(num_frt):
 @pytest.mark.parametrize("num_frt", (1, 4))
 def test__define_metadata(num_frt):
     """Test the resultant metadata is as expected."""
-    reference_forecast_cubes = generate_dataset(num_frt)
+    reference_forecast_cube = generate_dataset(num_frt)
 
     expected = ATTRIBUTES.copy()
     expected["title"] = "Forecast bias data"
     # Don't expect this attribute to be carried over to forecast bias data.
     del expected["model_configuration"]
 
-    actual = CalculateForecastBias()._define_metadata(reference_forecast_cubes)
+    actual = CalculateForecastBias()._define_metadata(reference_forecast_cube)
 
     assert actual == expected
 
@@ -147,11 +147,11 @@ def test__define_metadata(num_frt):
 @pytest.mark.parametrize("num_frt", (1, 4))
 def test__create_bias_cube(num_frt):
     """Test that the bias cube has the expected structure."""
-    reference_forecast_cubes = generate_dataset(num_frt)
-    result = CalculateForecastBias()._create_bias_cube(reference_forecast_cubes)
+    reference_forecast_cube = generate_dataset(num_frt)
+    result = CalculateForecastBias()._create_bias_cube(reference_forecast_cube)
 
     # Check all but the time dim coords are consistent
-    expected_dim_coords = set(get_dim_coord_names(reference_forecast_cubes))
+    expected_dim_coords = set(get_dim_coord_names(reference_forecast_cube))
     actual_dim_coords = set(get_dim_coord_names(result))
     if num_frt > 1:
         assert expected_dim_coords - actual_dim_coords == set(["time"])
@@ -159,31 +159,31 @@ def test__create_bias_cube(num_frt):
         assert actual_dim_coords == expected_dim_coords
 
     # dtypes are consistent
-    assert reference_forecast_cubes.dtype == result.dtype
+    assert reference_forecast_cube.dtype == result.dtype
     # Check that frt coord has expected bounds and values (dependent on whether
     # single or multiple historic forecasts are present).
     if num_frt > 1:
         assert (
             result.coord("forecast_reference_time").points
-            == reference_forecast_cubes.coord("forecast_reference_time").points[-1]
+            == reference_forecast_cube.coord("forecast_reference_time").points[-1]
         )
         assert np.all(
             result.coord("forecast_reference_time").bounds
             == [
-                reference_forecast_cubes.coord("forecast_reference_time").points[0],
-                reference_forecast_cubes.coord("forecast_reference_time").points[-1],
+                reference_forecast_cube.coord("forecast_reference_time").points[0],
+                reference_forecast_cube.coord("forecast_reference_time").points[-1],
             ]
         )
     else:
-        assert result.coord(
+        assert result.coord("forecast_reference_time") == reference_forecast_cube.coord(
             "forecast_reference_time"
-        ) == reference_forecast_cubes.coord("forecast_reference_time")
+        )
 
     # Check that time coord has been removed
     assert "time" not in get_coord_names(result)
 
     # Check variable name is as expected
-    assert result.long_name == f"forecast_error_of_{reference_forecast_cubes.name()}"
+    assert result.long_name == f"forecast_error_of_{reference_forecast_cube.name()}"
 
 
 # Test case where we have a single or multiple reference forecasts, and single or multiple
@@ -193,9 +193,10 @@ def test__create_bias_cube(num_frt):
 def test_process(num_fcst_frt, num_truth_frt):
     """Test process function over a variations in number of historical forecasts and
     truth values passed in."""
-    reference_forecast_cubes = generate_dataset(num_fcst_frt)
-    truth_cubes = generate_dataset(num_truth_frt, truth_dataset=True)
-    result = CalculateForecastBias().process(reference_forecast_cubes, truth_cubes)
+    reference_forecast_cube = generate_dataset(num_fcst_frt)
+    truth_cube = generate_dataset(num_truth_frt, truth_dataset=True)
+
+    result = CalculateForecastBias().process(reference_forecast_cube, truth_cube)
     # Check that the values used in calculate mean bias are expected based on
     # alignment of forecast/truth values. For this we will consider the bounds
     # on the forecast_reference_time_coordinate.
@@ -203,19 +204,19 @@ def test_process(num_fcst_frt, num_truth_frt):
         expected_bounds = None
     elif num_truth_frt != num_fcst_frt:
         expected_bounds = [
-            reference_forecast_cubes.coord("forecast_reference_time").points[
+            reference_forecast_cube.coord("forecast_reference_time").points[
                 num_fcst_frt - num_truth_frt
             ],
-            reference_forecast_cubes.coord("forecast_reference_time").points[-1],
+            reference_forecast_cube.coord("forecast_reference_time").points[-1],
         ]
     else:
         expected_bounds = [
-            reference_forecast_cubes.coord("forecast_reference_time").points[0],
-            reference_forecast_cubes.coord("forecast_reference_time").points[-1],
+            reference_forecast_cube.coord("forecast_reference_time").points[0],
+            reference_forecast_cube.coord("forecast_reference_time").points[-1],
         ]
     assert np.all(result.coord("forecast_reference_time").bounds == expected_bounds)
     # Check that dtypes match for input/output
-    assert result.dtype == reference_forecast_cubes.dtype
+    assert result.dtype == reference_forecast_cube.dtype
     # Check that results are near zero
     # Note: case of single truth value and multiple forecasts will have larger deviation
     # from expected value, so here we use a larger tolerance.

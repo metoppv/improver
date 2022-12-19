@@ -142,16 +142,12 @@ def generate_bias_cubelist(
 
     # Collapse down frt coord if using mean bias value defined in single cube.
     if single_frt_with_bounds and num_frts > 1:
-        bias_cubes = bias_cubes.merge_cube()
-        frt_coord = create_unified_frt_coord(
-            bias_cubes.coord("forecast_reference_time")
-        )
-        bias_cubes = collapsed(
-            bias_cubes, "forecast_reference_time", iris.analysis.MEAN
-        )
-        bias_cubes.data = bias_cubes.data.astype(bias_cubes.dtype)
-        bias_cubes.replace_coord(frt_coord)
-        bias_cubes = CubeList([bias_cubes])
+        bias_cube = bias_cubes.merge_cube()
+        frt_coord = create_unified_frt_coord(bias_cube.coord("forecast_reference_time"))
+        bias_cube = collapsed(bias_cube, "forecast_reference_time", iris.analysis.MEAN)
+        bias_cube.data = bias_cube.data.astype(bias_cubes[0].dtype)
+        bias_cube.replace_coord(frt_coord)
+        bias_cubes = CubeList([bias_cube])
 
     return bias_cubes
 
@@ -205,25 +201,15 @@ def test_get_mean_bias(single_input_frt):
     assert result.dtype == input_cubelist[0].dtype
 
 
-def test_get_mean_bias_fails_on_inconsistent_bounds():
+@pytest.mark.parametrize("single_input_frt", (True, False))
+def test_get_mean_bias_fails_on_inconsistent_bounds(single_input_frt):
     """Test that get_mean_bias fails when passing in multiple bias values defined
     over a range of forecast_reference_times."""
     # Set up cube inputs defined over multiple frt values.
     input_cubelist = CubeList()
-    input_cubelist.extend(generate_bias_cubelist(2, single_frt_with_bounds=True))
     input_cubelist.extend(
-        generate_bias_cubelist(
-            2,
-            single_frt_with_bounds=True,
-            last_valid_time=VALID_TIME - timedelta(days=2),
-        )
+        generate_bias_cubelist(2, single_frt_with_bounds=single_input_frt)
     )
-    with pytest.raises(ValueError):
-        ApplyBiasCorrection()._get_mean_bias(input_cubelist)
-    # Set up cube inputs with mixed definition: one over single frt, the other over
-    # multiple frt values.
-    input_cubelist = CubeList()
-    input_cubelist.extend(generate_bias_cubelist(2, single_frt_with_bounds=False))
     input_cubelist.extend(
         generate_bias_cubelist(
             2,

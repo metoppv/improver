@@ -254,7 +254,9 @@ class ApplyBiasCorrection(BasePlugin):
                 if bias_cube.coord("forecast_reference_time").bounds is not None:
                     raise ValueError(
                         "Collapsing multiple bias values to a mean value is unsupported for "
-                        "bias values defined over multiple reference forecast values."
+                        "bias values defined over multiple reference forecast values. Bias cube"
+                        f"for frt: {bias_cube.coord('forecast_reference_time').points} has bounds"
+                        f"{bias_cube.coord('forecast_reference_time').bounds}, expected {None}."
                     )
             bias_values = bias_values.merge_cube()
             mean_bias = collapsed(
