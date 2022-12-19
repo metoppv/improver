@@ -40,6 +40,15 @@ def process(*cubes: cli.inputcube, truth_attribute: str):
     """Calculate forecast bias from the specified set of historical forecasts and truth
     values.
 
+    The bias values are evaluated point-by-point and the associated bias cube
+    will retain the same spatial dimensions as the input cubes. By using a
+    point-by-point approach, the bias-correction enables a form of statistical
+    downscaling where coherent biases exist between a coarse forecast dataset and
+    finer truth dataset.
+
+    Where multiple forecasts values are provided, the value returned is the mean value
+    over the set of forecast/truth pairs.
+
     Args:
         cubes (list of iris.cube.Cube):
             A list of cubes containing the historical forecasts and corresponding

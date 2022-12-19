@@ -177,6 +177,12 @@ class CalculateForecastBias(BasePlugin):
         Evaluate forecast bias over the set of historic forecasts and associated
         truth values.
 
+        The bias here is evaluated point-by-point and the associated bias cube
+        will retain the same spatial dimensions as the input cubes. By using a
+        point-by-point approach, the bias-correction enables a form of statistical
+        downscaling where coherent biases exist between a coarse forecast dataset and
+        finer truth dataset.
+
         Where multiple forecasts values are provided, forecasts must have consistent
         forecast period and valid-hour. The resultant value returned is the mean value
         over the set of forecast/truth pairs.
