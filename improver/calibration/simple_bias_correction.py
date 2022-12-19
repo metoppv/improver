@@ -272,6 +272,10 @@ class ApplyBiasCorrection(BasePlugin):
         """
         Apply bias correction using the specified bias values.
 
+        Where the bias data is defined point-by-point, the bias-correction will also
+        be applied in this way enabling a form of statistical downscaling where coherent
+        biases exist between a coarse forecast dataset and finer truth dataset.
+
         Where a lower bound is specified, all values that fall below this
         lower bound (after bias correction) will be remapped to this value
         to ensure physically realistic values.

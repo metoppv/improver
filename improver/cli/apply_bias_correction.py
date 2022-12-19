@@ -46,6 +46,10 @@ def process(
     """Apply simple bias correction to ensemble members based on the bias from the
     reference forecast dataset.
 
+    Where the bias data is evaluated point-by-point, the bias-correction will also
+    be applied in this way enabling a form of statistical downscaling where coherent
+    biases exist between a coarse forecast dataset and finer truth dataset.
+
     The bias cube can either be passed in as a series of bias values for individual
     forecasts (from which the mean value is evaluated), or as a single bias value
     evaluated over a series of reference forecasts.
