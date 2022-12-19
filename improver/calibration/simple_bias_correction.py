@@ -268,7 +268,8 @@ class ApplyBiasCorrection(BasePlugin):
         self,
         forecast: Cube,
         bias: CubeList,
-        lower_bound: Optional[float],
+        lower_bound: Optional[float] = None,
+        upper_bound: Optional[float] = None,
         fill_masked_bias_values: Optional[bool] = False,
     ) -> Cube:
         """
@@ -282,6 +283,10 @@ class ApplyBiasCorrection(BasePlugin):
         lower bound (after bias correction) will be remapped to this value
         to ensure physically realistic values.
 
+        If fill_masked_bias_values is True, the masked areas in bias data will be
+        filled using an appropriate fill value to leave the forecast data unchanged
+        in the masked areas.
+
         Args:
             forecast:
                 The cube to which bias correction is to be applied.
@@ -291,6 +296,12 @@ class ApplyBiasCorrection(BasePlugin):
             lower_bound:
                 A lower bound below which all values will be remapped to
                 after the bias correction step.
+            upper_bound:
+                An upper bound above which all values will be remapped to
+                after the bias correction step.
+            fill_masked_bias_values:
+                Flag to specifiy whether masked areas in the bias data
+                should be filled to an appropriate fill value.
 
         Returns:
             Bias corrected forecast cube.
@@ -302,11 +313,9 @@ class ApplyBiasCorrection(BasePlugin):
             forecast, bias, fill_masked_bias_values
         )
 
-        if lower_bound is not None:
-            corrected_forecast.data = ma.where(
-                (corrected_forecast.data < lower_bound),
-                lower_bound,
-                corrected_forecast.data,
+        if (lower_bound is not None) or (upper_bound is not None):
+            corrected_forecast.data = ma.clip(
+                a=corrected_forecast.data, a_min=lower_bound, a_max=upper_bound,
             )
 
         return corrected_forecast

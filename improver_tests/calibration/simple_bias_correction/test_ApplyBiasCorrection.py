@@ -224,6 +224,7 @@ def test_get_mean_bias_fails_on_inconsistent_bounds(single_input_frt):
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))
 @pytest.mark.parametrize("single_input_frt", (False, True))
 @pytest.mark.parametrize("lower_bound", (None, 1))
+@pytest.mark.parametrize("upper_bound", (None, 5))
 @pytest.mark.parametrize("masked_input_data", (True, False))
 @pytest.mark.parametrize("masked_bias_data", (True, False))
 @pytest.mark.parametrize("fill_masked_bias_data", (True, False))
@@ -232,6 +233,7 @@ def test_process(
     num_bias_inputs,
     single_input_frt,
     lower_bound,
+    upper_bound,
     masked_input_data,
     masked_bias_data,
     fill_masked_bias_data,
@@ -248,13 +250,19 @@ def test_process(
         )
         forecast_cube.data.mask = MASK
     result = ApplyBiasCorrection().process(
-        forecast_cube, input_bias_cubelist, lower_bound, fill_masked_bias_data
+        forecast_cube,
+        input_bias_cubelist,
+        lower_bound=lower_bound,
+        fill_masked_bias_values=fill_masked_bias_data,
     )
     expected = TEST_FCST_DATA - MEAN_BIAS_DATA
     if fill_masked_bias_data and masked_bias_data:
         expected = np.where(MASK, TEST_FCST_DATA, expected)
     if lower_bound is not None:
         expected = np.maximum(lower_bound, expected)
+    if upper_bound is not None:
+        expected = np.minimum(upper_bound, expected)
+
     # Check values are as expected (within tolerance)
     assert np.ma.allclose(result.data, expected, atol=0.05)
     # Check the cube.data type is as expected based on input forecast
