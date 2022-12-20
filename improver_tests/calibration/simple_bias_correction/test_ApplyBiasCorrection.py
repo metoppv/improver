@@ -133,8 +133,8 @@ def generate_bias_cubelist(
             data=data_slice,
             name="forecast_error_of_wind_speed",
             units="m/s",
-            time=last_valid_time + timedelta(hours=3) - timedelta(days=i),
-            frt=last_valid_time - timedelta(days=i),
+            time=last_valid_time - timedelta(days=i),
+            frt=last_valid_time - timedelta(days=i) - timedelta(hours=3),
             attributes=attributes,
         )
         bias_cube.remove_coord("time")
@@ -219,6 +219,65 @@ def test_get_mean_bias_fails_on_inconsistent_bounds(single_input_frt):
     )
     with pytest.raises(ValueError):
         ApplyBiasCorrection()._get_mean_bias(input_cubelist)
+
+
+@pytest.mark.parametrize("num_bias_inputs", (1, 5))
+def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
+    """Test the check to see whether inputs have consistent forecast_refernce_time
+    valid-hour and consistent forecast_period."""
+    # Case 1: The bias data defined for forecast_reference_time valid-hour offset
+    # by 3-hours from forecast
+    bias_cubes = generate_bias_cubelist(
+        num_bias_inputs,
+        last_valid_time=VALID_TIME + timedelta(hours=3),
+        single_frt_with_bounds=True,
+    )
+    with pytest.raises(ValueError, match="valid-hour differ"):
+        ApplyBiasCorrection()._check_forecast_bias_consistent(
+            forecast_cube, bias_cubes,
+        )
+    # Case 2: The bias data defined with a mix of forecast_reference_time valid-hours
+    bias_cubes = generate_bias_cubelist(
+        num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=False
+    )
+    bias_cubes.extend(
+        generate_bias_cubelist(
+            num_bias_inputs,
+            last_valid_time=VALID_TIME - timedelta(hours=12),
+            single_frt_with_bounds=False,
+        )
+    )
+    with pytest.raises(ValueError, match="Multiple forecast_reference_time valid-hour"):
+        ApplyBiasCorrection()._check_forecast_bias_consistent(
+            forecast_cube, bias_cubes,
+        )
+    # Case 3: The bias data defined for different forecast_period relative to forecast
+    bias_cubes = generate_bias_cubelist(
+        num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=True
+    )
+    for i, cube in enumerate(bias_cubes):
+        bias_cubes[i].coord("forecast_period").points = cube.coord(
+            "forecast_period"
+        ).points + (3 * 3600)
+    with pytest.raises(ValueError, match="Forecast period differ"):
+        ApplyBiasCorrection()._check_forecast_bias_consistent(
+            forecast_cube, bias_cubes,
+        )
+    # Case 4: The bias data defined with a mix of forecast-period values
+    bias_cubes = generate_bias_cubelist(
+        num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=False
+    )
+    bias_cube_w_different_fp = generate_bias_cubelist(
+        1, last_valid_time=VALID_TIME - timedelta(days=6), single_frt_with_bounds=False
+    )[0]
+    bias_cube_w_different_fp.coord(
+        "forecast_period"
+    ).points = bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    bias_cubes.append(bias_cube_w_different_fp)
+    with pytest.raises(ValueError, match="Multiple forecast period"):
+        ApplyBiasCorrection()._check_forecast_bias_consistent(
+            forecast_cube, bias_cubes,
+        )
 
 
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))

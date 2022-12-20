@@ -42,6 +42,7 @@ from improver.calibration.utilities import (
     check_forecast_consistency,
     create_unified_frt_coord,
     filter_non_matching_cubes,
+    get_frt_hours,
 )
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -259,10 +260,57 @@ class ApplyBiasCorrection(BasePlugin):
                         f"{bias_cube.coord('forecast_reference_time').bounds}, expected {None}."
                     )
             bias_values = bias_values.merge_cube()
+            frt_coord = create_unified_frt_coord(
+                bias_values.coord("forecast_reference_time")
+            )
             mean_bias = collapsed(
                 bias_values, "forecast_reference_time", iris.analysis.MEAN
             )
+            mean_bias.replace_coord(frt_coord)
             return mean_bias
+
+    def _check_forecast_bias_consistent(
+        self, forecast: Cube, bias_data: CubeList
+    ) -> None:
+        """Check that forecast and bias values are defined over the same
+        valid-hour and forecast-period.
+
+        Args:
+            forecast:
+                Cube containing forecast data to be bias-corrected.
+            bias:
+                CubeList containing bias data to use in bias-correction.
+        """
+        bias_frt_hours = []
+        for cube in bias_data:
+            bias_frt_hours.extend(get_frt_hours(cube.coord("forecast_reference_time")))
+        bias_frt_hours = set(bias_frt_hours)
+        fcst_frt_hours = set(get_frt_hours(forecast.coord("forecast_reference_time")))
+        combined_frt_hours = fcst_frt_hours | bias_frt_hours
+        if len(bias_frt_hours) != 1:
+            raise ValueError(
+                "Multiple forecast_reference_time valid-hour values detected across bias datasets."
+            )
+        elif len(combined_frt_hours) != 1:
+            raise ValueError(
+                "forecast_reference_time valid-hour differ between forecast and bias datasets."
+            )
+
+        bias_period = []
+        for cube in bias_data:
+            bias_period.extend(cube.coord("forecast_period").points)
+        bias_period = set(bias_period)
+        fcst_period = set(forecast.coord("forecast_period").points)
+        combined_period_values = fcst_period | bias_period
+        if len(bias_period) != 1:
+            raise ValueError(
+                "Multiple forecast period values detected across bias datasets."
+            )
+        elif len(combined_period_values) != 1:
+            print(combined_period_values)
+            raise ValueError(
+                "Forecast period differ between forecast and bias datasets."
+            )
 
     def process(
         self,
@@ -306,6 +354,7 @@ class ApplyBiasCorrection(BasePlugin):
         Returns:
             Bias corrected forecast cube.
         """
+        self._check_forecast_bias_consistent(forecast, bias)
         bias = self._get_mean_bias(bias)
 
         corrected_forecast = forecast.copy()
