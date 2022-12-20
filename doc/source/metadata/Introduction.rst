@@ -25,7 +25,7 @@ Looking at an example
 The easiest way to explain the IMPROVER metadata from a user perspective
 is to dive straight in and look at an actual example of the metadata.
 For this purpose, we will consider
-gridded probabilities for a 1-hour precipitation_accumulation 
+gridded probabilities for a 12-hour maximum temperature 
 exceeding a range of thresholds
 on an extended UK domain generated from Met Office model data. 
 
@@ -39,8 +39,8 @@ provides a fuller view
 (although iris can be used to fully explore the metadata).
 
 Note that to aid readability, in both cases
-``probability_of_lwe_thickness_of_precipitation_amount_above_threshold`` 
-has been shortened to ``prob_precip``
+``probability_of_air_temperature_above_threshold`` 
+has been shortened to ``prob_temp12m``
 and for the ncdump output trailing semicolons have also been removed
 and the text for the global attribute
 ``mosg__model_run`` has line breaks inserted.
@@ -49,20 +49,22 @@ and the text for the global attribute
 Full ncdump of netCDF file metadata
 ***********************************
 
-Using the command ``ncdump -h filename`` will yield the following output
-for our sample file.
+Using the command ``ncdump -v threshold filename`` 
+will yield the following output for our sample file.
 
-.. literalinclude:: rainrate_probs_ncdump.txt
-    :lines: -73, 79
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :linenos:
+    :tab-width: 4
 
-Full iris listing cube metadata
-*******************************
+Full iris listing of cube metadata
+**********************************
 
 Using the python command ``print(cube)`` will yield the following output
 for our sample file.
 
-.. literalinclude:: rainrate_probs_irisprint.txt
+.. literalinclude:: temp12max_prob_irisprint.txt
     :linenos:
+    :tab-width: 4
 
 Global attributes
 -----------------
@@ -70,9 +72,10 @@ Global attributes
 These provide the general information about the file contents
 (although they actually appear at the end of the ncdump output).
 
-.. literalinclude:: rainrate_probs_ncdump.txt
-    :lines: 62-73
-    :emphasize-lines: 2, 10-12
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
+    :lines: 66-79
+    :emphasize-lines: 2, 12-14
 
 The four highlighted attributes are part of the `CF Metadata Conventions`_:
 
@@ -99,7 +102,7 @@ The other two attributes are specific to IMPROVER,
 originally used in separate Met Office process to 'standardise'
 the model output, which is why they are prefixed by ``mosg__``. 
 This is intended to indicates a MOSG (Met Office standard grid)
-namespace to show that they are seperate from the 
+namespace to show that they are separate from the 
 `CF Metadata Conventions`_ attributes.
 
 mosg__model_configuration
@@ -107,11 +110,14 @@ mosg__model_configuration
    denoting which sources have contributed to the blend.
    The naming is fairly arbitary, but at the Met Office
    we have chosen to indicate the models in a coded form:
-   * ``nc`` = (extrapolation-based) nowcast
-   * ``uk`` = high-resolution UK domain model
+
    * ``gl`` = global model
+   * ``uk`` = high-resolution UK domain model
+   * ``nc`` = (extrapolation-based) nowcast
+
    with a secondary component indicating whether the 
    source is deterministic (``det``) or an ensemble (``ens``).
+   
    For example, ``uk_ens`` indicates our UK ensemble model,
    MOGREPS-UK.
 
@@ -134,7 +140,8 @@ of the dimensions for the variable arrays.
 In this example, three of these are the dimensions of coordinate variables
 and the last is a more general dimension. 
 
-.. literalinclude:: rainrate_probs_ncdump.txt
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
     :lines: 2-6
 
 projection_y_coordinate
@@ -160,11 +167,12 @@ However, slightly confusingly, when the dimension appears in the iris cube metad
 (see file snippet below),
 the actual dimension name
 (which is stored in the iris cube as ``var_name=”threshold”``) 
-in the first and third lineslines is replaced by the standard name 
-(``lwe_thickness_of_precipitation_amount```) of the coordinate variable associated
+in the first and third lineslines is replaced by the ``standard_name`` 
+(``air_temperature``) of the coordinate variable associated
 with this dimension (also ``threshold``). 
 
-.. literalinclude:: rainrate_probs_irisprint.txt
+.. literalinclude:: temp12max_prob_irisprint.txt
+    :tab-width: 4
     :lines: 1-5
     :emphasize-lines: 1, 3
 
@@ -181,15 +189,16 @@ Variables
 Main probability variable
 *************************
 
-In this example, the main variable is ``prob_precip`` 
+In this example, the main variable is ``prob_temp12m`` 
 (in the real file it would be,
-``probability_of_lwe_thickness_of_precipitation_amount_above_threshold``).
-This represents the probability of the 1-hour precipitation
-accumulation exceeding a set of thresholds.
+``probability_of_air_temperature_above_threshold``).
+This represents the probability of the 12-hour maximum temperature
+exceeding a set of thresholds.
 It has 3 dimensions and 5 attributes that describe the meteorological quantity
 and its relationship to other variables in the metadata.
 
-.. literalinclude:: rainrate_probs_ncdump.txt
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
     :lines: 8-14
 
 The variable attributes are:
@@ -204,7 +213,7 @@ least_significant_digit
 long_name
     A descriptive name that is not governed by CF.
     If a `CF Standard Name`_ exists for the quantity, 
-    it will be present and the long_name will usually be omitted
+    it will be present and the ``long_name`` will usually be omitted
     (one of these two should always be present). 
 
 units
@@ -214,13 +223,11 @@ units
 cell_methods
     Used to describe the statistical processing applied to the quantity
     that usually changes the interpretation of the data.
-    The example here is a slightly strange one, as although
-    ``time: sum`` indicates a summing (or accumulation), this in
-    actually already captured in the ``standard_name`` or ``long_name``. 
-    The ``comment: of lwe_thickness_of_precipitation_amount`` in brackets
-    is to clarity that it the summing (or accumulation)
+    ``time: maximum`` indicates the maximum over ther period of the time bounds.
+    The ``comment: of air_temperature`` in brackets
+    is to clarity that it the maximum
     is not of the probability, but of the underlying quantity,
-    the preciputation accumulation, in this exmaple.
+    the temperature, in this exmaple.
     Cell methods are covered in more detail in the User Guide
 
 .. add link to User Guide
@@ -243,7 +250,8 @@ Three that appear as dimensions on the variable
 and 5 scalar coordinates listed in the coordinates attribute
 (both highlighted in the code snippet below)
 
-.. literalinclude:: rainrate_probs_ncdump.txt
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
     :lines: 8-14
     :emphasize-lines: 1, 7
 
@@ -265,7 +273,7 @@ In summary these are:
     There more discussion on this in the sections below.
 
 Probability threshold coordinate variable
-*****************************************
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 As the main variable in this example is a probability of exceeding a threshold, 
 a further dimensional coordinate variable is required to allow the data 
@@ -273,14 +281,10 @@ to be fully interpreted.
 This holds the set of thresholds for the probabilities,
 which in this case are a set of 1-hour precipition accumulation values.
 Both, these are shown in the code snippets below
-(to display the thresholds use ``ncdump -v threshold filename``).
 
-
-.. literalinclude:: rainrate_probs_ncdump.txt
-    :lines: 24-27
-
-.. literalinclude:: rainrate_probs_ncdump.txt
-    :lines: 75-78
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
+    :lines: 24-27, 80-90
 
 The variable attributes are:
 
@@ -292,10 +296,7 @@ standard_name
     from the governed list of names, but may instead be a ``long_name``
     if there is no suitable ``standard_name``.
     This represents the quantity for which the probabilities are specified,
-    in this example, ``lwe_thickness_of_precipitation_amount`` or 
-    precipitation accumulation
-    ("lwe" = liquid water equivalent, as this caters for both accumulated
-    liquid and ice phase water).
+    in this example, ``air_temperature``.
 
 ssp__relative_to_threshold
     This attributes is specific to IMPROVER,
@@ -311,12 +312,408 @@ ssp__relative_to_threshold
     * ``less_than`` 
     * ``less_than_or_equal_to`` 
 
+Time coordinate variables
+^^^^^^^^^^^^^^^^^^^^^^^^^
+
+At present, most parameters have 2 time coordinate variables, 
+``time`` and ``blend_time``, 
+with a further variable providing the bounds of the time step for parameters 
+where this information is required.
+
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
+    :lines: 40-43, 59-64
+
+time
+    The time at which the parameter value is valid.
+    As IMPROVER may blend data with different reference times 
+    (used at the Met Office to generate a continually updating dataset,
+    with a single value for each time),
+    this is really the only piece of time information that matters
+    for most use cases. 
+
+blend_time
+    Has been added to indicate when the data was processed (blended)
+    to generate this forecast, and can be used to indicate how 'fresh'
+    the data is. 
+    (For the Met Office continually updating dataset, 
+    the ``blend_time`` will not be the same for all validity times,
+    as forecasts in the near future are updated more frequently.)
+    Strictly, as ``blend_time`` is not part of the `CF Metadata Conventions`_
+    it should arguable include a 'namespace element' such as ``mosg__``
+    but it doesn't.
+
+.. previously, this included text the text below,
+    but is this still true?
+    There is one special case where blend_time is not set at present:
+    wind direction – more information on this is given later. 
+
+time_bnds
+    Describes the start and end points of the time step
+    (for the maximum temperature example here,
+    it would represent a 12-hour period). 
+    In IMPROVER (as is standard practice for meteorological parameters),
+    the time is at the end of the time step defined by these bounds. 
+
+
+There are two further time coordinate variables which a have been **deprecated**
+and will be removed in the future:
+
+forecast_reference_time
+    This is also a `CF Standard Name`, and used to represent
+    the nominal data time or start time of a model forecast run.
+    However, as IMPROVER generates a blend from multiple sources
+    with different start times, there is no unique data time,
+    so the use of ``blend_time`` is more appropriate.
+
+forecast_period
+    This usually represent the interval between the ``forecast_reference_time``
+    and the validity time (``time``), but as stated above,
+    there is no unique ``forecast_reference_time``, and forecasts valid at
+    different times may have a different ``blend_time``, so at brackets
+    ``forecast_period`` is unhelpful, at worst it is confusing.
+
+The time coordinate varaibles share a common set of attributes:
+
+standard_name / long_name
+    A descriptive name, either from the `CF Standard Name`_ list 
+    (e.g. ``time``) or  
+    a non-standard ``long_name`` (e.g. ``blend_time``)
+
+units
+    Units of measure for the quantity.
+    As these are usually in seconds relative to midnight on 1st January 1970,
+    so usually some formatting is required to be human-readable. 
+
+calendar
+    Indicates that a Gregorian (standard) calendar is used. 
+
+bounds
+    Just a pointer to the variable defining the start and end of the time period,
+    if it is present. 
+
+
+Horizontal coordinate variables
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Two horizontal coordinate variables, 
+here projection_y_coordinate and projection_x_coordinate
+(but would be latitude and longitude for an equi-rectangular 
+projection grid, such as the Met Offuce global domain),
+provide the coordinates of the grid points at the centre of the grid cell,
+with teo further variables defining the cell bounds.
+
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
+    :lines: 28-39
+
+The horizontal coordinates variables share a common set of attributes:
+
+standard_name
+    A descriptive name, either from the `CF Standard Name`_ list.
+
+units
+    The units of measure for the quantity, these will always be SI units. 
+
+axis
+    Indicates whether the coordinate should be regarded as an “X” or “Y” 
+    Cartesian coordinate.  
+
+bounds
+    Just a pointer to the variable defining the edges of the grid cells 
+
+Vertical coordinate variable 
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+Some parameters also have a vertical scalar coordinate, height
+(in the exmaple here, it is ``1.5 m`` representing screen level): 
+
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
+    :lines: 55-58
+
+It's attributes are:
+
+standard_name
+    A descriptive name, either from the `CF Standard Name`_ list.
+
+units
+    The units of measure for the quantity, these will always be SI units.  
+
+positive
+    Indicates the direction in which values of the vertical coordinate increase. 
+
+
+Grid mapping variable
+*********************
+
+This describes the grid map projection.
+The example here is for the Lambert Azimuthal Equal Area (LAEA) grid 
+used by the Met Office for the UK domain,
+but a Latitude-Longitude (strictly, Equirectangular) projection
+is usually used for the global domain.
+The set of attributes will vary depending on map projection,
+so to get the exact meanings, it is best to look at 
+“Appendix F: Grid Mappings” in the `CF Metadata Conventions`_
+
+.. literalinclude:: temp12max_prob_ncdump.txt
+    :tab-width: 4
+    :lines: 15-23
+
+Other forms of IMPROVER data
+----------------------------
+
+Percentiles
+***********
+The example explored so far in the document describes the metadata
+for probabilities of exceeding a threshold, 
+but IMPROVER can also generate forecasts as a set of percentiles, 
+for which the metadata will differ slightly. 
+These difference are described below, but the full ncdump listing
+is shown in an appendix.
+
+Dimensions
+^^^^^^^^^^
+
+The ``threshold`` dimension is replaced by ``percentile`` dimension
+
+.. literalinclude:: temp12max_perc_ncdump.txt
+    :tab-width: 4
+    :lines: 2-6
+    :emphasize-lines: 2
+ 
+percentile
+    The dimension for the coordinate describing the percentile values. 
+
+Main percentile variable 
+^^^^^^^^^^^^^^^^^^^^^^^^
+
+In the example here, the main variable is a 12 hour maxiumum temperature,
+but representing the nth percentile of the temperature forecast probability distribution
+at each point. 
+
+.. literalinclude:: temp12max_perc_ncdump.txt
+    :tab-width: 4
+    :lines: 8-14
+
+The variable attributes are the same as the probability exmaple
+previously described in detail, except: 
+
+standard_name
+    Can be used rather than a ``long_name``, as ``air_temperature``
+    exists as a descriptive name in the `CF Standard Name`_ list. 
+
+cell_methods
+    Used to describe statistical processing applied to the quantity
+    no longer require the additional non-standardized part, 
+    ``(comment: of air_temperature)``, 
+    as they now refer to the main variable that is a maximum over over 12 hours. 
+
+Percentile coordinate variable
+^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
+
+As the main variable provides the air temperature at a set of percentiles,
+a further dimensional coordinate variable is required to allow the data to be 
+fully interpreted. This holds the set of percentile values. 
+
+.. literalinclude:: temp12max_perc_ncdump.txt
+    :tab-width: 4
+    :lines: 24-26, 79-82
+
+The variable attributes are:
+
+long_name
+   ``percentile`` which is used all IMPROVER percentile variables, 
+   is not in the `CF Standard Name`_ list.
+
+units
+    The units here are a percentage. 
+
+
+Spot data 
+*********
+
+Broadly, the spot data parallels the form of the gridded data, 
+both probabilities and percentiles are produced,
+but there are some notable differences because of the nature of data.
+These difference are described below, but the full ncdump listing
+is shown in an appendix.
+
+Global attributes 
+^^^^^^^^^^^^^^^^^
+
+Only the title is different for the spot data. 
+
+.. literalinclude:: temp12max_spotperc_ncdump.txt
+    :tab-width: 4
+    :lines: 60-73
+    :emphasize-lines: 13
+
+Dimensions
+^^^^^^^^^^
+
+The dimensions for the horizontal coordinate variables have been replaced by
+a dimension for an index coordinate for the sites, 
+and a dimension for the WMO identifier string length has been added. 
+
+.. literalinclude:: temp12max_spotperc_ncdump.txt
+    :tab-width: 4
+    :lines: 24-27
+
+spot_index
+    The dimension for the index for the set of sites. 
+
+string5 / string8
+    Just constants used to dimension the character length of the string variable
+    holding WMO identifier and Met Office identifiers, respectively.
+
+.. how tied to the code are these identifiers, as they may not be appropiate
+    for other users?
+
+
+Variables
+^^^^^^^^^
+
+The majority of variables are the same for both gridded data and spot data.
+Only the differences will be discussed here.
+The variable attributes are common to the gridded data, so these will not be discussed. 
+
+.. literalinclude:: temp12max_spotperc_ncdump.txt
+    :tab-width: 4
+    :lines: 18-23, 43-50, 57-58
+
+spot_index
+    An arbitrary integer index for the sites. 
+
+altitude
+    Height of site above sea level. 
+
+latitude, longitude
+    Site positions are only provided in latitude and longitude,
+    regardless of the projection used for the corresponding grid.
+    These can be considered as relative the WGS84 or the World Geodetic System 1984 datum,
+    although this is not explicit in the metadata. 
+
+wmo_id
+    For WMO sites, this is the numerical WMO identifier stored as a string; 
+    for other sites this is a set to ``NaN`` (at present, the formatting of this is not ideal, but will be changed to ensure that the numbers are right-justified and padded with zeros in the next release). 
+
+Special parameters
+------------------
+
+Weather code
+************
+
+At present, a single weather code is offered,
+which is derived from the full set of probabilistic data. 
+For this reason, some of the metadata are slightly different. 
+These difference are described below, but the full ncdump listing
+is shown in an appendix.
+
+As this is deterministic, there is no dimension and coordinate variable for 
+``threshold`` or ``percentile``. 
+
+There are two new coordinate variables.
+
+.. literalinclude:: wx_code_ncdump.txt
+    :tab-width: 4
+    :lines: 11-24
+
+weather_code
+    Is the integer code used to represent the weather type in the main variable data. 
+
+weather_code_meaning
+    Provides corresponding short descriptions of each weather type in the weather_code list. 
+
+Wind direction
+**************
+
+At present, probabilities and percentiles are not offered for wind direction, 
+just a single set of deterministic values, which are a mean across realizations
+(ensemble members) from a single model. 
+For this reason, some of the metadata are slightly different 
+from the nearest equivalent percentiles. 
+These difference are described below, but the full ncdump listing
+is shown in an appendix.
+
+.. note::
+
+    In future, we expect to at least be able to generate 
+    percentiles of wind direction.
+
+
+The global attribute ``mosg__model_configuration`` is always a single model 
+(for the Met Office ``uk_ens`` or ``gl_ens`` 
+
+For gridded data only, the ``title`` only identifies the single model used
+(for the Met Office, this would be either
+``MOGREPS-UK Model Forecast on UK 2 km Standard Grid`` or 
+``MOGREPS-G Model Forecast on UK 2 km Standard Grid``),
+rather than referring to the IMPROVER Blend
+(although the spot data is still labelled as IMPROVER,
+as a site extraction has taken place). 
+
+As this is mean, there is no dimension and coordinate variable for 
+``threshold`` or ``percentile``. 
+
+The main variable has a ``cell_methods`` attribute, set to
+``realization: mean``.
+
+At present, there is no ``blend_time`` coordinate variable, 
+so, st present, an idea of the time at which the data was generated 
+can be obtained from the ``forecast_reference_time``
+
 
 References
 ----------
 
 `CF Metadata Conventions`_
 
+`CF Standard Name`_
+
+
+Appendices
+----------
+
+Full ncdump of netCDF file metadata for gridded percentiles
+***********************************************************
+
+Using the command ``ncdump -v percentile filename`` 
+will yield the following output for our sample file.
+
+.. literalinclude:: temp12max_perc_ncdump.txt
+    :linenos:
+    :tab-width: 4
+
+Full ncdump of netCDF file metadata for spot percentiles
+********************************************************
+
+Using the command ``ncdump -v percentile filename`` 
+will yield the following output for our sample file.
+
+.. literalinclude:: temp12max_spotperc_ncdump.txt
+    :linenos:
+    :tab-width: 4
+
+Full ncdump of netCDF file metadata for spot weather codes
+**********************************************************
+
+Using the command ``ncdump -h filename`` 
+will yield the following output for our sample file.
+
+.. literalinclude:: wx_code_ncdump.txt
+    :linenos:
+    :tab-width: 4
+
+Full ncdump of netCDF file metadata for wind direction
+******************************************************
+
+Using the command ``ncdump -h filename`` 
+will yield the following output for our sample file.
+
+.. literalinclude:: windir_mean_ncdump.txt
+    :linenos:
+    :tab-width: 4
 
 .. -----------------------------------------------------------------------------------
 .. Links
