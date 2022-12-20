@@ -33,13 +33,16 @@ from datetime import datetime, timedelta
 
 import numpy as np
 import pytest
+from iris import Constraint
 from iris.cube import Cube, CubeList
+from iris.util import new_axis
 from numpy import ndarray
 
 from improver.calibration.simple_bias_correction import (
     CalculateForecastBias,
     evaluate_additive_error,
 )
+from improver.cli import generate_percentiles, threshold
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
 
@@ -222,3 +225,70 @@ def test_process(num_fcst_frt, num_truth_frt):
     # from expected value, so here we use a larger tolerance.
     expected_tol = 0.2 if (num_truth_frt == 1 and num_fcst_frt > 1) else 0.05
     assert np.allclose(result.data, 0.0, atol=expected_tol)
+
+
+@pytest.mark.parametrize("num_fcst_frt", (1, 5))
+@pytest.mark.parametrize("single_value_as_dim_coord", (True, False))
+def test_ensure_single_valued_forecast(num_fcst_frt, single_value_as_dim_coord):
+    """Test the check to ensure that forecasts are single-valued realisable
+    forecasts."""
+    # Test the case where inputs have an associated ensemble dimension with
+    # length > 1.
+    data = np.ones(shape=(4, 3, 3), dtype=np.float32)
+    # Test realization data
+    realization_cube = generate_dataset(num_frts=num_fcst_frt, data=data)
+    with pytest.raises(ValueError, match="Multiple realization values"):
+        CalculateForecastBias()._ensure_single_valued_forecast(realization_cube)
+    # Test percentile data
+    percentile_cube = generate_percentiles.process(
+        realization_cube, coordinates="realization", percentiles=[25, 50, 75]
+    )
+    with pytest.raises(ValueError, match="Multiple percentile values"):
+        CalculateForecastBias()._ensure_single_valued_forecast(percentile_cube)
+    # Test threshold data; here we test case of thresholds as scalar coord (single-valued)
+    # which should also raise exception as probability data is not supported.
+    for threshold_set in ([273], [273, 275]):
+        threshold_cube = threshold.process(
+            realization_cube,
+            threshold_values=threshold_set,
+            threshold_units="K",
+            comparison_operator="ge",
+            collapse_coord="realization",
+        )
+        with pytest.raises(ValueError, match="provided as probability data"):
+            CalculateForecastBias()._ensure_single_valued_forecast(threshold_cube)
+
+    # Test the case where inputs have an associated ensemble coord of length 1.
+    # Test realization data.
+    expected_realization = realization_cube.extract(
+        constraint=Constraint(realization=0)
+    )
+    single_realization_cube = (
+        new_axis(expected_realization, "realization")
+        if single_value_as_dim_coord
+        else expected_realization
+    )
+    result = CalculateForecastBias()._ensure_single_valued_forecast(
+        single_realization_cube
+    )
+    assert result == expected_realization
+    expected_percentile = generate_percentiles.process(
+        realization_cube, coordinates="realization", percentiles=[50]
+    )
+    # Test percentile data.
+    single_percentile_cube = (
+        new_axis(expected_percentile, "percentile")
+        if single_value_as_dim_coord
+        else expected_percentile
+    )
+    result = CalculateForecastBias()._ensure_single_valued_forecast(
+        single_percentile_cube
+    )
+    assert result == expected_percentile
+
+    # Test the case where the input data does not have an associated ensemble coord.
+    cube_without_ens_coord = generate_dataset(num_frts=num_fcst_frt)
+    result = CalculateForecastBias()._ensure_single_valued_forecast(
+        cube_without_ens_coord
+    )
+    assert result == cube_without_ens_coord

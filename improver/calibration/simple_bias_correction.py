@@ -44,11 +44,16 @@ from improver.calibration.utilities import (
     filter_non_matching_cubes,
     get_frt_hours,
 )
+from improver.metadata.probabilistic import is_probability
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.cube_manipulation import collapsed, get_dim_coord_names
+from improver.utilities.cube_manipulation import (
+    clip_cube_data,
+    collapsed,
+    get_dim_coord_names,
+)
 
 
 def evaluate_additive_error(
@@ -111,6 +116,41 @@ class CalculateForecastBias(BasePlugin):
         Initialise class for calculating forecast bias.
         """
         self.error_method = evaluate_additive_error
+
+    def _ensure_single_valued_forecast(self, forecasts: Cube) -> Cube:
+        """
+        Check to see if an ensemble based dimension (realization, percentile, threshold)
+        is present. If threshold dim present, or realization/percentile dimensions have
+        multiple values a ValueError will be raised. Otherwise the percentile/realization
+        dim coord is demoted to an aux coord.
+
+        Args:
+            forecast:
+                Cube containing historical forecast values used in bias correction.
+
+        Returns:
+            Cube with unit realization/percentile dim coords demoted to aux coordinate.
+        """
+        forecast_dim_coords = get_dim_coord_names(forecasts)
+        if is_probability(forecasts):
+            raise ValueError(
+                "Forecasts provided as probability data. Historical forecasts must be single"
+                "valued realisable forecast (realization, percentile or ensemble mean)."
+            )
+        elif "percentile" in forecast_dim_coords:
+            if forecasts.coord("percentile").points.size > 1:
+                raise ValueError(
+                    "Multiple percentile values detected. Expect historical forecasts"
+                    "to be single valued forecasts."
+                )
+        elif "realization" in forecast_dim_coords:
+            if forecasts.coord("realization").points.size > 1:
+                raise ValueError(
+                    "Multiple realization values detected. Expect historical forecasts"
+                    "to be single valued forecasts."
+                )
+        forecasts = iris.util.squeeze(forecasts)
+        return forecasts
 
     def _define_metadata(self, forecasts: Cube) -> Dict[str, str]:
         """
@@ -178,6 +218,10 @@ class CalculateForecastBias(BasePlugin):
         Evaluate forecast bias over the set of historic forecasts and associated
         truth values.
 
+        The historical forecasts are expected to be representative single-valued forecasts
+        (eg. control or ensemble mean forecast). If a non-unit ensemble based dimension
+        (realization, threshold or percentile) is present then a ValueError will be raised.
+
         The bias here is evaluated point-by-point and the associated bias cube
         will retain the same spatial dimensions as the input cubes. By using a
         point-by-point approach, the bias-correction enables a form of statistical
@@ -200,6 +244,8 @@ class CalculateForecastBias(BasePlugin):
             A cube containing the forecast bias values evaluated over the set of historic
             forecasts and truth values.
         """
+        self._ensure_single_valued_forecast(historic_forecasts)
+
         # Ensure that valid times match over forecasts/truth
         historic_forecasts, truths = filter_non_matching_cubes(
             historic_forecasts, truths
@@ -363,8 +409,8 @@ class ApplyBiasCorrection(BasePlugin):
         )
 
         if (lower_bound is not None) or (upper_bound is not None):
-            corrected_forecast.data = ma.clip(
-                a=corrected_forecast.data, a_min=lower_bound, a_max=upper_bound,
+            corrected_forecast = clip_cube_data(
+                corrected_forecast, lower_bound, upper_bound
             )
 
         return corrected_forecast

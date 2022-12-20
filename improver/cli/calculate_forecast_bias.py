@@ -40,6 +40,9 @@ def process(*cubes: cli.inputcube, truth_attribute: str):
     """Calculate forecast bias from the specified set of historical forecasts and truth
     values.
 
+    The historical forecasts are expected to be representative single-valued forecasts
+    (eg. control or ensemble mean forecast).
+
     The bias values are evaluated point-by-point and the associated bias cube
     will retain the same spatial dimensions as the input cubes. By using a
     point-by-point approach, the bias-correction enables a form of statistical
