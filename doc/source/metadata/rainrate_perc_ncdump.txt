@@ -1,17 +1,17 @@
-netcdf \20221216T1300Z-B20221216T1200Z-precipitation_accumulation-PT01H {
+netcdf PERC-20221219T1300Z-B20221219T1200Z-precipitation_accumulation-PT01H {
 dimensions:
-    threshold = 27
+    percentile = 13
     projection_y_coordinate = 970
     projection_x_coordinate = 1042
     bnds = 2
 variables:
-    float prob_precip(threshold, projection_y_coordinate, projection_x_coordinate)
-        prob_precip:least_significant_digit = 3LL
-        prob_precip:long_name = "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
-        prob_precip:units = "1"
-        prob_precip:cell_methods = "time: sum (comment: of lwe_thickness_of_precipitation_amount)"
-        prob_precip:grid_mapping = "lambert_azimuthal_equal_area"
-        prob_precip:coordinates = "blend_time forecast_period forecast_reference_time time"
+    float precip(percentile, projection_y_coordinate, projection_x_coordinate)
+        lwe_thickness_of_precipitation_amount:least_significant_digit = 6LL
+        lwe_thickness_of_precipitation_amount:standard_name = "lwe_thickness_of_precipitation_amount"
+        lwe_thickness_of_precipitation_amount:units = "m"
+        lwe_thickness_of_precipitation_amount:cell_methods = "time: sum"
+        lwe_thickness_of_precipitation_amount:grid_mapping = "lambert_azimuthal_equal_area"
+        lwe_thickness_of_precipitation_amount:coordinates = "blend_time forecast_period forecast_reference_time time"
     int lambert_azimuthal_equal_area
         lambert_azimuthal_equal_area:grid_mapping_name = "lambert_azimuthal_equal_area"
         lambert_azimuthal_equal_area:longitude_of_prime_meridian = 0.
@@ -21,10 +21,9 @@ variables:
         lambert_azimuthal_equal_area:latitude_of_projection_origin = 54.9
         lambert_azimuthal_equal_area:false_easting = 0.
         lambert_azimuthal_equal_area:false_northing = 0.
-    float threshold(threshold)
-        threshold:units = "m"
-        threshold:standard_name = "lwe_thickness_of_precipitation_amount"
-        threshold:spp__relative_to_threshold = "greater_than"
+    float percentile(percentile)
+        percentile:units = "%"
+        percentile:long_name = "percentile"
     float projection_y_coordinate(projection_y_coordinate)
         projection_y_coordinate:axis = "Y"
         projection_y_coordinate:bounds = "projection_y_coordinate_bnds"
@@ -57,23 +56,23 @@ variables:
         time:units = "seconds since 1970-01-01 00:00:00"
         time:standard_name = "time"
         time:calendar = "gregorian"
-    int64 time_bnds(bnds) ;
+    int64 time_bnds(bnds)
 
 // global attributes:
         :institution = "Met Office"
         :mosg__model_configuration = "nc_det uk_det uk_ens"
-        :mosg__model_run = "nc_det:20221216T1145Z:0.800\nuk_det:20221216T0700Z:0.013\n
-                            uk_det:20221216T0800Z:0.013\nuk_det:20221216T0900Z:0.013\n
-                            uk_det:20221216T1000Z:0.013\nuk_ens:20221216T0400Z:0.025\n
-                            uk_ens:20221216T0500Z:0.025\nuk_ens:20221216T0600Z:0.025\n
-                            uk_ens:20221216T0700Z:0.025\nuk_ens:20221216T0800Z:0.025\n
-                            uk_ens:20221216T0900Z:0.025"
+        :mosg__model_run = "nc_det:20221219T1145Z:0.800\n
+                            uk_det:20221219T0700Z:0.013\n
+                            uk_det:20221219T0800Z:0.013\n
+                            uk_det:20221219T0900Z:0.013\n
+                            uk_det:20221219T1000Z:0.013\n
+                            uk_ens:20221219T0400Z:0.025\n
+                            uk_ens:20221219T0500Z:0.025\n
+                            uk_ens:20221219T0600Z:0.025\n
+                            uk_ens:20221219T0700Z:0.025\n
+                            uk_ens:20221219T0800Z:0.025\n
+                            uk_ens:20221219T0900Z:0.025"
         :source = "IMPROVER"
         :title = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid"
         :Conventions = "CF-1.7"
-
-data:
-    threshold = 0, 3e-05, 9e-05, 0.0001, 0.00025, 0.0003, 0.0005, 0.001, 0.002, 
-                0.003, 0.004, 0.008, 0.012, 0.016, 0.02, 0.025, 0.03, 0.04, 0.05,
-                0.075, 0.1, 0.125, 0.15, 0.2, 0.25, 0.3, 0.4
 }

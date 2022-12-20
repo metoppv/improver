@@ -1,0 +1,20 @@
+prob_precip / (1) (lwe_thickness_of_precipitation_amount: 27; projection_y_coordinate: 970; projection_x_coordinate: 1042)
+    Dimension coordinates:
+        lwe_thickness_of_precipitation_amount    x                            -                             -
+        projection_y_coordinate                  -                            x                             -
+        projection_x_coordinate                  -                            -                             x
+    Scalar coordinates:
+        blend_time                               2022-12-16 12:00:00
+        forecast_period                          3600 seconds, bound=(0, 3600) seconds
+        forecast_reference_time                  2022-12-16 12:00:00
+        time                                     2022-12-16 13:00:00, bound=(2022-12-16 12:00:00, 2022-12-16 13:00:00)
+    Cell methods:
+        sum                                      time (of lwe_thickness_of_precipitation_amount)
+    Attributes:
+        Conventions                              'CF-1.7'
+        institution                              'Met Office'
+        least_significant_digit                  3
+        mosg__model_configuration                'nc_det uk_det uk_ens'
+        mosg__model_run                          'nc_det:20221216T1145Z:0.800\nuk_det:20221216T0700Z:0.013\nuk_det:2022...
+        source                                   'IMPROVER'
+        title                                    'IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid'
