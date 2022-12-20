@@ -1,0 +1,82 @@
+netcdf 20221220T0800Z-B20221220T0615Z-weather_symbols-PT01H {
+dimensions:
+	spot_index = 14532
+	bnds = 2
+	string8 = 8
+	string5 = 5
+variables:
+	int weather_code(spot_index)
+		weather_code:long_name = "weather_code"
+		weather_code:units = "1"
+		weather_code:weather_code = 0LL, 1LL, 2LL, 3LL, 4LL, 5LL, 6LL, 7LL, 8LL, 9LL, 10LL, 
+                                    11LL, 12LL, 13LL, 14LL, 15LL, 16LL, 17LL, 18LL, 19LL, 
+                                    20LL, 21LL, 22LL, 23LL, 24LL, 25LL, 26LL, 27LL, 28LL,
+                                    29LL, 30LL
+		weather_code:weather_code_meaning = "Clear_Night Sunny_Day Partly_Cloudy_Night 
+                                             Partly_Cloudy_Day Dust Mist Fog Cloudy Overcast
+                                             Light_Shower_Night Light_Shower_Day Drizzle
+                                             Light_Rain Heavy_Shower_Night Heavy_Shower_Day
+                                             Heavy_Rain Sleet_Shower_Night Sleet_Shower_Day
+                                             Sleet Hail_Shower_Night Hail_Shower_Day Hail
+                                             Light_Snow_Shower_Night Light_Snow_Shower_Day
+                                             Light_Snow Heavy_Snow_Shower_Night
+                                             Heavy_Snow_Shower_Day Heavy_Snow
+                                             Thunder_Shower_Night Thunder_Shower_Day Thunder"
+		weather_code:coordinates = "altitude blend_time forecast_period forecast_reference_time latitude longitude met_office_site_id time wmo_id"
+	int spot_index(spot_index)
+		spot_index:units = "1"
+		spot_index:long_name = "spot_index"
+	float altitude(spot_index)
+		altitude:units = "m"
+		altitude:standard_name = "altitude"
+	int64 blend_time
+		blend_time:units = "seconds since 1970-01-01 00:00:00"
+		blend_time:long_name = "blend_time"
+		blend_time:calendar = "gregorian"
+	int forecast_period
+		forecast_period:bounds = "forecast_period_bnds"
+		forecast_period:units = "seconds"
+		forecast_period:standard_name = "forecast_period"
+		forecast_period:deprecation_message = "forecast_period will be removed in future and should not be used"
+	int forecast_period_bnds(bnds)
+	int64 forecast_reference_time
+		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00"
+		forecast_reference_time:standard_name = "forecast_reference_time"
+		forecast_reference_time:calendar = "gregorian"
+		forecast_reference_time:deprecation_message = "forecast_reference_time will be removed in future and should not be used"
+	float latitude(spot_index)
+		latitude:units = "degrees_north"
+		latitude:standard_name = "latitude"
+	float longitude(spot_index)
+		longitude:units = "degrees_east"
+		longitude:standard_name = "longitude"
+	char met_office_site_id(spot_index, string8)
+		met_office_site_id:long_name = "met_office_site_id"
+	int64 time
+		time:bounds = "time_bnds"
+		time:units = "seconds since 1970-01-01 00:00:00"
+		time:standard_name = "time"
+		time:calendar = "gregorian"
+	int64 time_bnds(bnds)
+	char wmo_id(spot_index, string5)
+		wmo_id:long_name = "wmo_id"
+
+// global attributes:
+		:institution = "Met Office"
+		:mosg__model_configuration = "nc_det uk_det uk_ens"
+		:mosg__model_run = "nc_det:20221220T0600Z:\n
+                            uk_det:20221220T0100Z:\n
+                            uk_det:20221220T0200Z:\n
+                            uk_det:20221220T0300Z:\n
+                            uk_det:20221220T0400Z:\n
+                            uk_ens:20221219T2100Z:\n
+                            uk_ens:20221219T2200Z:\n
+                            uk_ens:20221219T2300Z:\n
+                            uk_ens:20221220T0000Z:\n
+                            uk_ens:20221220T0100Z:\n
+                            uk_ens:20221220T0200Z:\n
+                            uk_ens:20221220T0300Z:"
+		:source = "IMPROVER"
+		:title = "IMPROVER Post-Processed Multi-Model Blend UK Spot Values"
+		:Conventions = "CF-1.7"
+}
