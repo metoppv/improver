@@ -31,6 +31,7 @@
 """Reliability calibration plugins."""
 
 import operator
+import pdb
 import warnings
 from typing import Dict, List, Optional, Tuple, Union
 
@@ -993,6 +994,7 @@ class ManipulateReliabilityTable(BasePlugin):
                 forecast_count,
                 probability_bin_coord,
             )
+            print(probability_bin_coord)
             rel_table_slice = self._update_reliability_table(
                 rel_table_slice,
                 observation_count,
@@ -1271,7 +1273,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         return np.clip(interpolated, 0, 1)
 
-    def _get_calibrated_forecast(
+    def _apply_calibration(
         self, forecast: Cube, reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
@@ -1327,7 +1329,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         return calibrated_forecast
 
-    def _point_by_point_calibration(
+    def _apply_point_by_point_calibration(
         self, forecast: Cube, reliability_table: CubeList,
     ) -> Cube:
         """
@@ -1353,20 +1355,19 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # create list of dimensions other than time dimension
         # and threshold dimension
         dim_names = get_dim_coord_names(forecast)
-        dim_associated_coords = []
+        dim_associated_coords = {}
 
         # create lists with first entry a dimension name and second
         # entry a list of auxiliary coordinates associated with that
         # dimension. Collect these lists together into a list.
         for dim_name in dim_names:
-            dim = forecast.coord_dims(dim_name)
-            template_dim = [x for x in dim]
+            template_dim = [x for x in forecast.coord_dims(dim_name)]
             associated_coords = [
                 c
                 for d in template_dim
                 for c in forecast.coords(dimensions=d, dim_coords=False)
             ]
-            dim_associated_coords.append([dim_name, associated_coords])
+            dim_associated_coords[dim_name] = associated_coords
 
         # slice over the spatial dimension/s of the forecast cube
         # and apply reliability calibration separately to each slice
@@ -1383,25 +1384,23 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 iris.Constraint(coord_values={y_name: y_point, x_name: x_point})
             )
 
-            calibrated_cube = self._get_calibrated_forecast(
+            calibrated_cube = self._apply_calibration(
                 forecast=forecast_point, reliability_table=reliability_table_point
             )
             calibrated_cubes.append(calibrated_cube)
 
         # remove auxiliary coordinates from calibrated cubes to ensure
         # merge promotes desired dimension coordinate
-        for associated_coord_list in dim_associated_coords:
-            for coord in associated_coord_list[1]:
+        for dim_coord in dim_associated_coords.keys():
+            for coord in dim_associated_coords[dim_coord]:
                 for cube in calibrated_cubes:
                     cube.remove_coord(coord.name())
 
         calibrated_forecast = calibrated_cubes.merge_cube()
         # add auxiliary coordinates back to the calibrated cube
-        for associated_coord_list in dim_associated_coords:
-            for coord in associated_coord_list[1]:
-                dim = [
-                    x for x in calibrated_forecast.coord_dims(associated_coord_list[0])
-                ]
+        for dim_coord in dim_associated_coords.keys():
+            for coord in dim_associated_coords[dim_coord]:
+                dim = [x for x in calibrated_forecast.coord_dims(dim_coord)]
                 calibrated_forecast.add_aux_coord(coord, dim)
 
         # ensure that calibrated forecast dimensions are in the same
@@ -1439,12 +1438,12 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self.threshold_coord = find_threshold_coordinate(forecast)
 
         if point_by_point:
-            calibrated_forecast = self._point_by_point_calibration(
+            calibrated_forecast = self._apply_point_by_point_calibration(
                 forecast=forecast, reliability_table=reliability_table
             )
 
         else:
-            calibrated_forecast = self._get_calibrated_forecast(
+            calibrated_forecast = self._apply_calibration(
                 forecast=forecast, reliability_table=reliability_table,
             )
 

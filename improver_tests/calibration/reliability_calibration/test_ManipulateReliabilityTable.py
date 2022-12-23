@@ -535,11 +535,14 @@ def test_process_no_change_point(create_rel_tables_point):
     assert len(result) == 18
     expected = rel_table.data[create_rel_tables_point.indices0]
     assert all([np.array_equal(cube.data, expected) for cube in result[:9]])
+    expected = rel_table.data[create_rel_tables_point.indices2]
+    assert all([np.array_equal(cube.data, expected) for cube in result[9:]])
 
     coords_exclude = ["latitude", "longitude", "spot_index", "wmo_id"]
     coords_table = [c for c in rel_table[0].coords() if c.name() not in coords_exclude]
     # Ensure coords are in the same order
-    coords_result = [result[0].coords(c.name())[0] for c in coords_table]
+    # coords_result = [result[0].coords(c.name())[0] for c in coords_table]
+    coords_result = [result[0].coord(c.name()) for c in coords_table]
     assert coords_table == coords_result
 
 
@@ -573,3 +576,5 @@ def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
     # Check the unchanged data remains unchanged
     expected = rel_table.data[create_rel_tables_point.indices1]
     assert all([np.array_equal(cube.data, expected) for cube in result[1:9]])
+    expected = rel_table.data[create_rel_tables_point.indices2]
+    assert all([np.array_equal(cube.data, expected) for cube in result[9:]])
