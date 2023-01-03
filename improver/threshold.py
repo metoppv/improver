@@ -43,7 +43,7 @@ from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import collapse_realizations, enforce_coordinate_ordering
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
 
@@ -303,70 +303,103 @@ class BasicThreshold(PostProcessingPlugin):
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
         """
-        if np.isnan(input_cube.data).any():
-            raise ValueError("Error: NaN detected in input cube data")
 
         if self.fill_masked is not None:
             input_cube.data = np.ma.filled(input_cube.data, self.fill_masked)
 
         self.threshold_coord_name = input_cube.name()
+        collapsing_realizations = False
+        if collapse_realizations in self.each_threshold_func:
+            collapsing_realizations = True
 
-        thresholded_cubes = iris.cube.CubeList()
-        for threshold, bounds in zip(self.thresholds, self.fuzzy_bounds):
-            cube = input_cube.copy()
-            if self.threshold_units is not None:
-                cube.convert_units(self.threshold_units)
-            # if upper and lower bounds are equal, set a deterministic 0/1
-            # probability based on exceedance of the threshold
-            if bounds[0] == bounds[1]:
-                truth_value = self.comparison_operator.function(cube.data, threshold)
-            # otherwise, scale exceedance probabilities linearly between 0/1
-            # at the min/max fuzzy bounds and 0.5 at the threshold value
-            else:
-                truth_value = np.where(
-                    cube.data < threshold,
-                    rescale(
-                        cube.data,
-                        data_range=(bounds[0], threshold),
-                        scale_range=(0.0, 0.5),
-                        clip=True,
-                    ),
-                    rescale(
-                        cube.data,
-                        data_range=(threshold, bounds[1]),
-                        scale_range=(0.5, 1.0),
-                        clip=True,
-                    ),
-                )
-                # if requirement is for probabilities less_than or
-                # less_than_or_equal_to the threshold (rather than
-                # greater_than or greater_than_or_equal_to), invert
-                # the exceedance probability
-                if "less_than" in self.comparison_operator.spp_string:
-                    truth_value = 1.0 - truth_value
+        if collapsing_realizations:
+            input_slices = list(input_cube.slices_over("realization"))
+        else:
+            input_slices = [input_cube]
 
-            truth_value = truth_value.astype(FLOAT_DTYPE)
+        n_thresholds = len(self.thresholds)
+
+        template = input_slices[0].copy(data=np.zeros_like(input_slices[0].data, dtype=(FLOAT_DTYPE)))
+        thresholded_cube = iris.cube.CubeList()
+        for threshold in self.thresholds:
+            thresholded = template.copy()
+            self._add_threshold_coord(thresholded, threshold)
+            thresholded_cube.append(thresholded)
+        thresholded_cube = thresholded_cube.merge_cube()
+        ##### Fixing here
+        # if not thresholded_cube.coords()
+        thresholded_cube = iris.util.new_axis(thresholded_cube, self.threshold_coord_name)
+
+        self._update_metadata(thresholded_cube)
+
+        for cube in input_slices:
+
+            if np.isnan(cube.data).any():
+                raise ValueError("Error: NaN detected in input cube data")
 
             if np.ma.is_masked(cube.data):
-                # update unmasked points only
-                cube.data[~input_cube.data.mask] = truth_value[~input_cube.data.mask]
+                mask = cube.data.mask
+                unmasked = ~mask
             else:
-                cube.data = truth_value
+                mask = None
+                unmasked = np.ones_like(cube.data, dtype=bool)
 
-            self._add_threshold_coord(cube, threshold)
-            cube.coord(var_name="threshold").convert_units(input_cube.units)
-            self._update_metadata(cube)
+            for index, (threshold, bounds) in enumerate(zip(self.thresholds, self.fuzzy_bounds)):
+                if self.threshold_units is not None:
+                    cube.convert_units(self.threshold_units)
+                # if upper and lower bounds are equal, set a deterministic 0/1
+                # probability based on exceedance of the threshold
+                if bounds[0] == bounds[1]:
+                    truth_value = self.comparison_operator.function(cube.data, threshold)
+                # otherwise, scale exceedance probabilities linearly between 0/1
+                # at the min/max fuzzy bounds and 0.5 at the threshold value
+                else:
+                    truth_value = np.where(
+                        cube.data < threshold,
+                        rescale(
+                            cube.data,
+                            data_range=(bounds[0], threshold),
+                            scale_range=(0.0, 0.5),
+                            clip=True,
+                        ),
+                        rescale(
+                            cube.data,
+                            data_range=(threshold, bounds[1]),
+                            scale_range=(0.5, 1.0),
+                            clip=True,
+                        ),
+                    )
+                    # if requirement is for probabilities less_than or
+                    # less_than_or_equal_to the threshold (rather than
+                    # greater_than or greater_than_or_equal_to), invert
+                    # the exceedance probability
+                    if "less_than" in self.comparison_operator.spp_string:
+                        truth_value = 1.0 - truth_value
 
-            for func in self.each_threshold_func:
-                cube = func(cube)
+                truth_value = truth_value.astype(FLOAT_DTYPE)
+                print(thresholded_cube)
+                print(thresholded_cube.shape)
+                print(truth_value.shape)
+                print(unmasked.shape)
+                thresholded_cube.data[index][unmasked] += truth_value[unmasked] / n_thresholds
 
-            thresholded_cubes.append(cube)
+        thresholded_cube.coord(self.threshold_coord_name).convert_units(input_cube.units)
 
-        (cube,) = thresholded_cubes.merge()
+        if self.each_threshold_func:
+            modified_cubes = iris.cube.CubeList()
+            for cube in thresholded_cube.slices_over(self.threshold_coord_name):
+                for func in self.each_threshold_func:
+                    cube = func(cube)
+                    modified_cubes.append(cube)
+            (cube,) = modified_cubes.merge()
+        else:
+            cube = thresholded_cube
+
         # Re-cast to 32bit now that any unit conversion has already taken place.
         cube.coord(var_name="threshold").points = cube.coord(
             var_name="threshold"
         ).points.astype(FLOAT_DTYPE)
+        cube = iris.util.squeeze(cube)
 
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
         return cube
