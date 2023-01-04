@@ -5,7 +5,6 @@
 [![Codacy Badge](https://api.codacy.com/project/badge/Grade/f7dcb46e8e1b4110b3d194dba03fe526)](https://www.codacy.com/app/metoppv_tech/improver?utm_source=github.com&amp;utm_medium=referral&amp;utm_content=metoppv/improver&amp;utm_campaign=Badge_Grade)
 [![Codacy Badge](https://api.codacy.com/project/badge/Coverage/f7dcb46e8e1b4110b3d194dba03fe526)](https://www.codacy.com/app/metoppv_tech/improver?utm_source=github.com&utm_medium=referral&utm_content=metoppv/improver&utm_campaign=Badge_Coverage)
 [![codecov](https://codecov.io/gh/metoppv/improver/branch/master/graph/badge.svg)](https://codecov.io/gh/metoppv/improver)
-[![BCH compliance](https://bettercodehub.com/edge/badge/metoppv/improver?branch=master)](https://bettercodehub.com/results/metoppv/improver)
 [![Documentation Status](https://readthedocs.org/projects/improver/badge/?version=latest)](http://improver.readthedocs.io/en/latest/?badge=latest)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
 [![DOI](https://zenodo.org/badge/85334761.svg)](https://zenodo.org/badge/latestdoi/85334761)
