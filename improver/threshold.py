@@ -36,6 +36,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -167,6 +168,7 @@ class BasicThreshold(PostProcessingPlugin):
             )
             self._check_fuzzy_bounds()
 
+        self.original_units = None
         self.comparison_operator_dict = comparison_operator_dict()
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
@@ -303,32 +305,36 @@ class BasicThreshold(PostProcessingPlugin):
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
         """
-
         if self.fill_masked is not None:
             input_cube.data = np.ma.filled(input_cube.data, self.fill_masked)
 
+        self.original_units = input_cube.units
         self.threshold_coord_name = input_cube.name()
-        collapsing_realizations = False
-        if collapse_realizations in self.each_threshold_func:
-            collapsing_realizations = True
 
-        if collapsing_realizations:
+        if collapse_realizations in self.each_threshold_func:
             input_slices = list(input_cube.slices_over("realization"))
+            self.each_threshold_func.remove(collapse_realizations)
+            realization_collapse = True
         else:
             input_slices = [input_cube]
+            realization_collapse = False
 
-        n_thresholds = len(self.thresholds)
+        template = input_slices[0].copy(data=np.zeros(input_slices[0].shape, dtype=(FLOAT_DTYPE)))
+        if self.threshold_units is not None:
+            template.convert_units(self.threshold_units)
 
-        template = input_slices[0].copy(data=np.zeros_like(input_slices[0].data, dtype=(FLOAT_DTYPE)))
         thresholded_cube = iris.cube.CubeList()
         for threshold in self.thresholds:
             thresholded = template.copy()
             self._add_threshold_coord(thresholded, threshold)
             thresholded_cube.append(thresholded)
         thresholded_cube = thresholded_cube.merge_cube()
-        ##### Fixing here
-        # if not thresholded_cube.coords()
-        thresholded_cube = iris.util.new_axis(thresholded_cube, self.threshold_coord_name)
+
+        contribution_total = np.zeros(next(thresholded_cube.slices_over(self.threshold_coord_name)).shape, dtype=int)
+
+        # Promote the threshold coordinate to be dimensional if it is not already.
+        if not thresholded_cube.coord_dims(self.threshold_coord_name):
+            thresholded_cube = iris.util.new_axis(thresholded_cube, self.threshold_coord_name)
 
         self._update_metadata(thresholded_cube)
 
@@ -342,7 +348,9 @@ class BasicThreshold(PostProcessingPlugin):
                 unmasked = ~mask
             else:
                 mask = None
-                unmasked = np.ones_like(cube.data, dtype=bool)
+                unmasked = np.ones(cube.shape, dtype=bool)
+
+            contribution_total += unmasked
 
             for index, (threshold, bounds) in enumerate(zip(self.thresholds, self.fuzzy_bounds)):
                 if self.threshold_units is not None:
@@ -377,13 +385,15 @@ class BasicThreshold(PostProcessingPlugin):
                         truth_value = 1.0 - truth_value
 
                 truth_value = truth_value.astype(FLOAT_DTYPE)
-                print(thresholded_cube)
-                print(thresholded_cube.shape)
-                print(truth_value.shape)
-                print(unmasked.shape)
-                thresholded_cube.data[index][unmasked] += truth_value[unmasked] / n_thresholds
+                thresholded_cube.data[index][unmasked] += truth_value[unmasked]
 
-        thresholded_cube.coord(self.threshold_coord_name).convert_units(input_cube.units)
+        valid = contribution_total.astype(bool)
+        thresholded_cube.data[..., valid] = thresholded_cube.data[..., valid] / contribution_total[valid]
+        if (contribution_total == 0).any():
+            thresholded_cube.data = np.ma.masked_array(thresholded_cube.data, mask=np.broadcast_to(~valid, thresholded_cube.shape))
+
+        thresholded_cube.coord(self.threshold_coord_name).convert_units(self.original_units)
+        thresholded_cube = iris.util.squeeze(thresholded_cube)
 
         if self.each_threshold_func:
             modified_cubes = iris.cube.CubeList()
@@ -395,11 +405,16 @@ class BasicThreshold(PostProcessingPlugin):
         else:
             cube = thresholded_cube
 
+        if realization_collapse:
+            try:
+                cube.remove_coord("realization")
+            except CoordinateNotFoundError:
+                pass
+
         # Re-cast to 32bit now that any unit conversion has already taken place.
         cube.coord(var_name="threshold").points = cube.coord(
             var_name="threshold"
         ).points.astype(FLOAT_DTYPE)
-        cube = iris.util.squeeze(cube)
 
         enforce_coordinate_ordering(cube, ["realization", "percentile"])
         return cube
