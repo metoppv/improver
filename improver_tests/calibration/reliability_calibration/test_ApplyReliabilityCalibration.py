@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the ApplyReliabilityCalibration plugin."""
 
+import datetime
 import unittest
 
 import iris
@@ -43,7 +44,11 @@ from improver.calibration.reliability_calibration import (
 from improver.calibration.reliability_calibration import (
     ConstructReliabilityCalibrationTables as CalPlugin,
 )
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
+    set_up_probability_cube,
+)
 from improver.utilities.warnings_handler import ManageWarnings
 
 
@@ -66,6 +71,40 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
         self.forecast_thresholds = iris.cube.CubeList()
         for forecast_slice in self.forecast.slices_over("air_temperature"):
             self.forecast_thresholds.append(forecast_slice)
+
+        # create spot data forecast cube
+        altitude = np.array([10, 20, 30])
+        latitude = np.linspace(58.0, 59, 3)
+        longitude = np.linspace(-0.25, 0.25, 3)
+        wmo_id = ["03001", "03002", "03003"]
+        i = -1
+        forecast_spot_cubes = iris.cube.CubeList()
+        for threshold in thresholds:
+            i = i + 1
+            threshold_coord = [
+                self.forecast.coord("air_temperature").copy(
+                    points=np.array(threshold, dtype="float32")
+                )
+            ]
+            time_coords = construct_scalar_time_coords(
+                datetime.datetime(2017, 11, 1, 4, 0),
+                None,
+                datetime.datetime(2017, 11, 1, 0, 0),
+            )
+            time_coords = [t[0] for t in time_coords]
+            forecast_spot_cubes.append(
+                build_spotdata_cube(
+                    forecast_probabilities[i, :, 0],
+                    "probability_of_air_temperature_above_threshold",
+                    "1",
+                    altitude,
+                    latitude,
+                    longitude,
+                    wmo_id,
+                    scalar_coords=time_coords + threshold_coord,
+                )
+            )
+        self.forecast_spot_cube = forecast_spot_cubes.merge_cube()
 
         reliability_cube_format = CalPlugin()._create_reliability_table_cube(
             self.forecast[0], self.forecast.coord(var_name="threshold")
@@ -474,14 +513,15 @@ class Test_process(Test_ReliabilityCalibrate):
         the forecast and reliability table have been altered so that point_by_point
         functionality can be tested."""
 
-        y_name = self.forecast.coord(axis="y").name()
-        x_name = self.forecast.coord(axis="x").name()
+        test_forecast = self.forecast.copy()
+        y_name = test_forecast.coord(axis="y").name()
+        x_name = test_forecast.coord(axis="x").name()
 
         test_coord = iris.coords.AuxCoord(
-            points=np.arange(len(self.forecast.coord(x_name).points)),
+            points=np.arange(len(test_forecast.coord(x_name).points)),
             long_name="test_coord",
         )
-        self.forecast.add_aux_coord(test_coord, data_dims=1)
+        test_forecast.add_aux_coord(test_coord, data_dims=1)
 
         # create reliability table in same format as that output from
         # ManipulateReliabilityTable when point_by_point=True
@@ -490,7 +530,7 @@ class Test_process(Test_ReliabilityCalibrate):
         for threshold_cube in reliability_table:
             threshold_cube.remove_coord(y_name)
             threshold_cube.remove_coord(x_name)
-            for forecast_point in self.forecast.slices_over([y_name, x_name]):
+            for forecast_point in test_forecast.slices_over([y_name, x_name]):
                 reliability_cube_spatial = threshold_cube.copy()
                 reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
                 reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
@@ -502,7 +542,7 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
         result = self.plugin.process(
-            self.forecast, reliability_cube_list, point_by_point=True,
+            test_forecast, reliability_cube_list, point_by_point=True,
         )
 
         # check that data is as expected
@@ -510,7 +550,66 @@ class Test_process(Test_ReliabilityCalibrate):
         assert_allclose(result[1].data, expected_1)
 
         # check that coordinates match
-        coords_table = [c.name() for c in self.forecast.coords()]
+        coords_table = [c.name() for c in test_forecast.coords()]
+        coords_result = [c.name() for c in result.coords()]
+        assert coords_table == coords_result
+
+        self.assertFalse(warning_list)
+
+    def test_calibrating_spot(self, warning_list=None):
+        """Test application of reliability table to spot forecasts."""
+
+        expected_0 = [0.25, 0.4375, 0.625]
+        expected_1 = [0.25, 0.4, 0.55]
+
+        result = self.plugin.process(
+            self.forecast_spot_cube, self.reliability_cube, point_by_point=False,
+        )
+
+        # check that data is as expected
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
+
+        # check that coordinates match
+        coords_table = [c.name() for c in self.forecast_spot_cube.coords()]
+        coords_result = [c.name() for c in result.coords()]
+        assert coords_table == coords_result
+
+        self.assertFalse(warning_list)
+
+    def test_calibrating_spot_point_by_point(self, warning_list=None):
+        """Test application of reliability table to spot forecasts using
+        point_by_point functionality."""
+
+        y_name = self.forecast_spot_cube.coord(axis="y").name()
+        x_name = self.forecast_spot_cube.coord(axis="x").name()
+
+        # create reliability table in same format as that output from
+        # ManipulateReliabilityTable when point_by_point=True
+        reliability_table = self.reliability_cubelist.copy()
+        reliability_cube_list = iris.cube.CubeList()
+        for threshold_cube in reliability_table:
+            threshold_cube.remove_coord(y_name)
+            threshold_cube.remove_coord(x_name)
+            for forecast_point in self.forecast_spot_cube.slices_over([y_name, x_name]):
+                reliability_cube_spatial = threshold_cube.copy()
+                reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
+                reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
+                reliability_cube_list.append(reliability_cube_spatial)
+
+        expected_0 = [0.25, 0.4375, 0.625]
+        expected_1 = [0.25, 0.4, 0.55]
+
+        result = self.plugin.process(
+            self.forecast_spot_cube, reliability_cube_list, point_by_point=True,
+        )
+
+        # check that data is as expected
+        assert_allclose(result[0].data, expected_0)
+        assert_allclose(result[1].data, expected_1)
+
+        # check that coordinates match
+        coords_table = [c.name() for c in self.forecast_spot_cube.coords()]
         coords_result = [c.name() for c in result.coords()]
         assert coords_table == coords_result
 

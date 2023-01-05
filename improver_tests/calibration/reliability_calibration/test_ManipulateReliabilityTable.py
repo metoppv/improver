@@ -541,7 +541,6 @@ def test_process_no_change_point(create_rel_tables_point):
     coords_exclude = ["latitude", "longitude", "spot_index", "wmo_id"]
     coords_table = [c for c in rel_table[0].coords() if c.name() not in coords_exclude]
     # Ensure coords are in the same order
-    # coords_result = [result[0].coords(c.name())[0] for c in coords_table]
     coords_result = [result[0].coord(c.name()) for c in coords_table]
     assert coords_table == coords_result
 
