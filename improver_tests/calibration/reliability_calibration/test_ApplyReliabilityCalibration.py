@@ -60,15 +60,15 @@ def create_point_by_point_reliability_table(
     Duplicate the input reliability table for each spatial point in the input forecast
 
     Args:
-            forecast:
-                The forecast to be calibrated.
-            reliability_table:
-                The reliability table to duplicate
+        forecast:
+            The forecast to be calibrated.
+        reliability_table:
+            The reliability table to duplicate
 
     Returns:
-            CubeList with each cube a copy of the input reliability table with spatial
-            coordinates added corresponding to one of the spatial points in the input
-            cube
+        CubeList with each cube a copy of the input reliability table with spatial
+        coordinates added corresponding to one of the spatial points in the input
+        cube
     """
     y_name = forecast.coord(axis="y").name()
     x_name = forecast.coord(axis="x").name()
