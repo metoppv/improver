@@ -993,7 +993,6 @@ class ManipulateReliabilityTable(BasePlugin):
                 forecast_count,
                 probability_bin_coord,
             )
-            print(probability_bin_coord)
             rel_table_slice = self._update_reliability_table(
                 rel_table_slice,
                 observation_count,

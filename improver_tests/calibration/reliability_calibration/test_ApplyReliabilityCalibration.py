@@ -36,6 +36,7 @@ import unittest
 import iris
 import numpy as np
 from cf_units import Unit
+from iris.cube import Cube, CubeList
 from numpy.testing import assert_allclose, assert_array_equal
 
 from improver.calibration.reliability_calibration import (
@@ -50,6 +51,41 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
 )
 from improver.utilities.warnings_handler import ManageWarnings
+
+
+def create_point_by_point_reliability_table(
+    forecast: Cube, reliability_table: Cube
+) -> CubeList:
+    """
+    Duplicate the input reliability table for each spatial point in the input forecast
+
+    Args:
+            forecast:
+                The forecast to be calibrated.
+            reliability_table:
+                The reliability table to duplicate
+
+    Returns:
+            CubeList with each cube a copy of the input reliability table with spatial
+            coordinates added corresponding to one of the spatial points in the input
+            cube
+    """
+    y_name = forecast.coord(axis="y").name()
+    x_name = forecast.coord(axis="x").name()
+
+    # create reliability table in same format as that output from
+    # ManipulateReliabilityTable when point_by_point=True
+    reliability_cube_list = iris.cube.CubeList()
+    for threshold_cube in reliability_table:
+        threshold_cube.remove_coord(y_name)
+        threshold_cube.remove_coord(x_name)
+        for forecast_point in forecast.slices_over([y_name, x_name]):
+            reliability_cube_spatial = threshold_cube.copy()
+            reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
+            reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
+            reliability_cube_list.append(reliability_cube_spatial)
+
+    return reliability_cube_list
 
 
 class Test_ReliabilityCalibrate(unittest.TestCase):
@@ -508,33 +544,24 @@ class Test_process(Test_ReliabilityCalibrate):
         assert_allclose(result[1].data, expected_1)
         self.assertFalse(warning_list)
 
-    def test_calibrating_point_by_point(self, warning_list=None):
+    def test_calibrating_point_by_point(self):
         """Test application of reliability table to the forecast. In this case
         the forecast and reliability table have been altered so that point_by_point
         functionality can be tested."""
 
+        # add additional auxiliary coordinate to test specific handling of auxiliary
+        # coordinates implemented as part of point_by_point functionality
         test_forecast = self.forecast.copy()
-        y_name = test_forecast.coord(axis="y").name()
         x_name = test_forecast.coord(axis="x").name()
-
         test_coord = iris.coords.AuxCoord(
             points=np.arange(len(test_forecast.coord(x_name).points)),
             long_name="test_coord",
         )
         test_forecast.add_aux_coord(test_coord, data_dims=1)
 
-        # create reliability table in same format as that output from
-        # ManipulateReliabilityTable when point_by_point=True
-        reliability_table = self.reliability_cubelist.copy()
-        reliability_cube_list = iris.cube.CubeList()
-        for threshold_cube in reliability_table:
-            threshold_cube.remove_coord(y_name)
-            threshold_cube.remove_coord(x_name)
-            for forecast_point in test_forecast.slices_over([y_name, x_name]):
-                reliability_cube_spatial = threshold_cube.copy()
-                reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
-                reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
-                reliability_cube_list.append(reliability_cube_spatial)
+        reliability_cube_list = create_point_by_point_reliability_table(
+            test_forecast, self.reliability_cubelist
+        )
 
         expected_0 = np.array(
             [[0.25, 0.3125, 0.375], [0.4375, 0.5, 0.5625], [0.625, 0.6875, 0.75]]
@@ -554,9 +581,7 @@ class Test_process(Test_ReliabilityCalibrate):
         coords_result = [c.name() for c in result.coords()]
         assert coords_table == coords_result
 
-        self.assertFalse(warning_list)
-
-    def test_calibrating_spot(self, warning_list=None):
+    def test_calibrating_spot(self):
         """Test application of reliability table to spot forecasts."""
 
         expected_0 = [0.25, 0.4375, 0.625]
@@ -575,27 +600,13 @@ class Test_process(Test_ReliabilityCalibrate):
         coords_result = [c.name() for c in result.coords()]
         assert coords_table == coords_result
 
-        self.assertFalse(warning_list)
-
-    def test_calibrating_spot_point_by_point(self, warning_list=None):
+    def test_calibrating_spot_point_by_point(self):
         """Test application of reliability table to spot forecasts using
         point_by_point functionality."""
 
-        y_name = self.forecast_spot_cube.coord(axis="y").name()
-        x_name = self.forecast_spot_cube.coord(axis="x").name()
-
-        # create reliability table in same format as that output from
-        # ManipulateReliabilityTable when point_by_point=True
-        reliability_table = self.reliability_cubelist.copy()
-        reliability_cube_list = iris.cube.CubeList()
-        for threshold_cube in reliability_table:
-            threshold_cube.remove_coord(y_name)
-            threshold_cube.remove_coord(x_name)
-            for forecast_point in self.forecast_spot_cube.slices_over([y_name, x_name]):
-                reliability_cube_spatial = threshold_cube.copy()
-                reliability_cube_spatial.add_aux_coord(forecast_point.coord(y_name))
-                reliability_cube_spatial.add_aux_coord(forecast_point.coord(x_name))
-                reliability_cube_list.append(reliability_cube_spatial)
+        reliability_cube_list = create_point_by_point_reliability_table(
+            self.forecast_spot_cube, self.reliability_cubelist
+        )
 
         expected_0 = [0.25, 0.4375, 0.625]
         expected_1 = [0.25, 0.4, 0.55]
@@ -612,8 +623,6 @@ class Test_process(Test_ReliabilityCalibrate):
         coords_table = [c.name() for c in self.forecast_spot_cube.coords()]
         coords_result = [c.name() for c in result.coords()]
         assert coords_table == coords_result
-
-        self.assertFalse(warning_list)
 
 
 if __name__ == "__main__":
