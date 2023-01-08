@@ -223,7 +223,7 @@ def test_get_mean_bias_fails_on_inconsistent_bounds(single_input_frt):
 
 @pytest.mark.parametrize("num_bias_inputs", (1, 5))
 def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
-    """Test the check to see whether inputs have consistent forecast_refernce_time
+    """Test the check to see whether inputs have consistent forecast_reference_time
     valid-hour and consistent forecast_period."""
     # Case 1: The bias data defined for forecast_reference_time valid-hour offset
     # by 3-hours from forecast

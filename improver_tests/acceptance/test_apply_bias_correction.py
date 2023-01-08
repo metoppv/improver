@@ -86,15 +86,15 @@ def test_multiple_bias_files(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_lower_bound(tmp_path):
+def test_bounds(tmp_path):
     """
-    Test case where lower bound is supplied.
+    Test case where lower and upper bounds are supplied.
 
     Note: we are using an artificially higher lower bound and lower higher bound
     than would use in practice to ensure process works.
     """
     kgo_dir = acc.kgo_root() / "apply-bias-correction"
-    kgo_path = kgo_dir / "with_lower_bound" / "kgo.nc"
+    kgo_path = kgo_dir / "with_bounds" / "kgo.nc"
     fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     bias_file_path = (
         kgo_dir
