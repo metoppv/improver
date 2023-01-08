@@ -394,7 +394,7 @@ class ApplyBiasCorrection(BasePlugin):
                 An upper bound above which all values will be remapped to
                 after the bias correction step.
             fill_masked_bias_values:
-                Flag to specifiy whether masked areas in the bias data
+                Flag to specify whether masked areas in the bias data
                 should be filled to an appropriate fill value.
 
         Returns:
