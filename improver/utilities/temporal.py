@@ -46,6 +46,7 @@ from numpy import int64
 
 from improver.metadata.constants.time_types import TIME_COORDS
 
+
 def cycletime_to_datetime(
     cycletime: str, cycletime_format: str = "%Y%m%dT%H%MZ"
 ) -> datetime:
