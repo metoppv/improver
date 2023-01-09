@@ -359,16 +359,6 @@ d2eee2303c30296ec4abf292a01ecb89bfcc4da9f5c4b5b86c10261e19fabff8  ./lightning-fr
 b99d11406c811e78d690d42e0f46a92280e588a8b0101e8bf2c8fa36f3262860  ./manipulate-reliability-table/basic/kgo_precip.nc
 a709db26d352457bf4f1bddf5dbade499fe89d455669e567af8965eccbebe9c4  ./manipulate-reliability-table/basic/reliability_table_cloud.nc
 5bb4bb6ac2ce9ab29277275b26964a7f3633ee4c7cfa4aa4f48769e091379188  ./manipulate-reliability-table/basic/reliability_table_precip.nc
-1bd0ff3e22df9eac3b9fa28c85fec449efca1ea50f68b81e5c0f2a017b7adfba  ./map-to-timezones/global/input_20201202T1800Z.nc
-94425bb81c0b8e93aa07b827b608c435c3b39be8e2d518da1cf08cbb51d55322  ./map-to-timezones/global/input_20201203T0600Z.nc
-ff4804a570c5b07048fb40e91910ee510b1ebddbb2bc31634154758ca82de7cc  ./map-to-timezones/global/kgo.nc
-a882f0797ac575185b950a982b6e1084f66867aab70c13d9aa8c8a24186b6113  ./map-to-timezones/global/timezone_mask.nc
-0f0d47dda3014c804f50f36dec97a09dfda21521a22745f5ad7cfd10653fcb33  ./map-to-timezones/uk/input_20201202T2300Z.nc
-cced29f107253f8a377d562e60c5a41fbf2104ec4bb07dc450aa4912a2680acb  ./map-to-timezones/uk/input_20201203T0000Z.nc
-22d72cf034e6e4a9d7a72c6093c3f5111d01b0a8bfea529b96d67f863f258a88  ./map-to-timezones/uk/input_20201203T0100Z.nc
-f7eec028502a0c233149362f0f839f5856d31c7ff1469b35b7a9ebb56f85a2a8  ./map-to-timezones/uk/input_20201203T0200Z.nc
-8b8e7cc56fbad621683fdc4d2c198e62c7eeb3d462ffdccf7eda2c8b6621ac22  ./map-to-timezones/uk/kgo.nc
-0829e33a7e1508bc646f38744369c977f2c89e34645d5f75a8afffae1f446f9d  ./map-to-timezones/uk/timezone_mask.nc
 a8b1b554438308b4e48b8b5647c7a660c32755108b17088d5eb8249f90e923d0  ./max-in-time-window/input_PT0029H00M.nc
 ecc913d410d71ac52e8dd0f745c44a88ec0f9773a1f7c62859195bb5b21e7c2a  ./max-in-time-window/input_PT0032H00M.nc
 ce5238bdcfb1dfff9d4ceadc1bb693ce583660757f392fe78801d62b80c89077  ./max-in-time-window/kgo.nc
