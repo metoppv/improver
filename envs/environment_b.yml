@@ -1,7 +1,7 @@
 # This environment is a representative example for usage of IMPROVER
 # It does not include dependencies for the following IMPROVER CLIs:
-# estimate-emos-coefficients, generate-timezone-mask-ancillary,
-# nowcast-accumulate, nowcast-extrapolate and nowcast-optical-flow-from-winds
+# estimate-emos-coefficients, nowcast-accumulate, nowcast-extrapolate
+# and nowcast-optical-flow-from-winds
 # See doc/source/Dependencies.rst for more information
 name: improver_b
 channels:
