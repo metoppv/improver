@@ -117,6 +117,8 @@ def test_saturated_humidity(shape, t, p, expected):
         (289, 100000, 1.2828e-2, 290.291, 1.23013e-2),
         (294, 90000, 2.7e-2, 299.811, 2.46185e-2),
         (292.6, 85000, 2.2e-2, 295.943, 2.06319e-2),
+        (220, 10000, 2.7e-2, 259.6123, 1.18363e-2),
+        # Last item is so extreme that doesn't converge in 6 iterations
     ),
 )
 def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
@@ -130,6 +132,41 @@ def test_saturated_latent_heat(shape, t, p, q, expected_t, expected_q):
     assert np.isclose(result_q, expected_q).all()
     for r in result_t, result_q:
         assert r.shape == shape
+        assert r.dtype == np.float32
+
+
+def test_saturated_latent_heat_with_large_array():
+    """Test the saturated_latent_heat method with a large array, thus triggering 6 iterations.
+    This demonstrates that for arrays, so long as at least one point converges, all succeed,
+    and a warning is issued."""
+    shape = 150
+
+    # These values converge in six iterations
+    t, p, q = 220, 30000, 5.6e-4
+
+    t = np.full(shape, t, dtype=np.float32)
+    q = np.full(shape, q, dtype=np.float32)
+    p = np.full(shape, p, dtype=np.float32)
+    expected_t = np.full(shape, 221.2935, dtype=np.float32)
+    expected_q = np.full(shape, 6.48412e-5, dtype=np.float32)
+
+    # These values require more than six iterations to fully converge, so the result does
+    # not match the equivalent values in test_saturated_latent_heat()
+    t[0] = 220
+    p[0] = 10000
+    q[0] = 2.7e-2
+    expected_t[0] = 253.4863
+    expected_q[0] = 1.41813e-2
+
+    with pytest.warns(
+        RuntimeWarning, match="some failed to converge after 6 iterations"
+    ):
+        result_t, result_q = adjust_for_latent_heat(t, q, p)
+
+    assert np.isclose(result_t, expected_t).all()
+    assert np.isclose(result_q, expected_q).all()
+    for r in result_t, result_q:
+        assert r.shape[0] == shape
         assert r.dtype == np.float32
 
 

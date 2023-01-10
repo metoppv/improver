@@ -113,6 +113,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
             args=(self.pressure.data, self.temperature.data, self.humidity.data),
             tol=100,
             maxiter=20,
+            disp=False,
         ).astype(np.float32)
         ccl_temperature = dry_adiabatic_temperature(
             self.temperature.data, self.pressure.data, ccl_pressure
