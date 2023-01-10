@@ -525,6 +525,7 @@ def test_percentile_from_threshold_with_realizations(tmp_path):
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
+
 def test_multi_time_input(tmp_path):
     """Test extracting from a cube with a time and threshold coordinate. Note
     that utilities.load.load_cube reverses the order of the leading dimensions

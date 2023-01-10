@@ -39,15 +39,11 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
-from improver.synthetic_data.set_up_test_cubes import (
-    _create_time_point,
-    set_up_variable_cube,
-)
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -109,15 +105,7 @@ class Test_SpotExtraction(IrisTest):
 
         # Create as int64 values
         location_points = np.array([location for location in locations])
-        bounds = np.array(
-            [
-                [
-                    location -1,
-                    location,
-                ]
-                for location in locations
-            ]
-        )
+        bounds = np.array([[location - 1, location] for location in locations])
 
         # Broadcast the times to a 2-dimensional grid that matches the diagnostic
         # data grid
@@ -293,11 +281,10 @@ class Test_get_aux_coords(Test_SpotExtraction):
         expected_scalar = [
             coord
             for coord in self.diagnostic_cube_2d_time.aux_coords
-            if coord.name()
-            in ["time","forecast_reference_time", "forecast_period"]
+            if coord.name() in ["time", "forecast_reference_time", "forecast_period"]
         ]
         expected_nonscalar = [self.expected_spot_time_coord]
-        
+
         x_indices, y_indices = self.coordinate_cube.data
 
         scalar, nonscalar = plugin.get_aux_coords(
@@ -318,7 +305,7 @@ class Test_get_aux_coords(Test_SpotExtraction):
         self.diagnostic_cube_2d_time.add_aux_coord(additional_2d_crd, data_dims=(0, 1))
         additional_expected = self.expected_spot_time_coord.copy()
         additional_expected.rename("kittens")
-        expected_nonscalar = [additional_expected,self.expected_spot_time_coord]
+        expected_nonscalar = [additional_expected, self.expected_spot_time_coord]
         x_indices, y_indices = self.coordinate_cube.data
 
         _, nonscalar = plugin.get_aux_coords(

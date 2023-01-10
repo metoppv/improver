@@ -32,13 +32,11 @@
 
 from datetime import datetime
 
-import cf_units
 import iris
 import numpy as np
 import pytest
 
 from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
@@ -287,6 +285,7 @@ def blended_spot_median_spot_fixture(spot_template):
     cube.add_aux_coord(time)
     cube.add_aux_coord(blend_time)
     return cube
+
 
 @pytest.fixture(name="wind_direction_cube")
 def wind_direction_fixture():
