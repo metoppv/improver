@@ -69,7 +69,7 @@ def process(
         lower_bound (float):
             Specifies a lower bound below which values will be remapped to.
         upper_bound (float):
-            Specifies a upper bound above which values will be remapped to.
+            Specifies an upper bound above which values will be remapped to.
         fill_masked_bias_data (bool):
             Flag to specify whether to fill masked areas of the mean bias data with an
             appropriate fill-value.
