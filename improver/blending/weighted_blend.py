@@ -468,16 +468,6 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         timeblending flag should be true and this function will not raise an
         exception.
 
-        In cases where local-time-zone products are being blended, the time
-        coordinate will be two dimensional. Each point in the two dimensional
-        coordinate must match in order that the cubes to be blended can be
-        combined into a single cube. As such an Iris error will have been
-        raised earlier in the processing if this is not the case. Here we
-        ensure that the "time_in_local_timezone" coordinate matches between
-        cubes. This describes the time the diagnostic is valid in local time
-        which should match between input cubes or else they are describing
-        fundamentally different things.
-
         Args:
             cube:
                 The cube upon which the compatibility of the time coords is
@@ -490,10 +480,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         if self.timeblending:
             return
 
-        try:
-            time_points = cube.coord("time_in_local_timezone").points
-        except CoordinateNotFoundError:
-            time_points = cube.coord("time").points
+        time_points = cube.coord("time").points
 
         if len(set(time_points)) > 1:
             msg = (

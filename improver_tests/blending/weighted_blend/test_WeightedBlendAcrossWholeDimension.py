@@ -260,28 +260,6 @@ class Test_check_compatible_time_points(Test_weighted_blend):
         plugin = WeightedBlendAcrossWholeDimension(self.coord, timeblending=True)
         plugin.check_compatible_time_points(self.cube)
 
-    def test_local_timezone_coordinate(self):
-        """Test that if a time_in_local_timezone coordinate is present the
-        check is conducted using it instead of the time coordinate. In these
-        cases the time coordinate itself will be two dimensional and will have been
-        implicitly checked when the cubes for blending were combined into a single
-        cube. Cubes with multi-dimensional time coordinates can only be merged into
-        a single cube by iris if the time coordinate on each input cube is
-        identical."""
-        yxshape = next(self.cube.slices(["latitude", "longitude"])).shape
-        yxdims = [*self.cube.coord_dims("latitude"), *self.cube.coord_dims("longitude")]
-
-        time_coord = self.cube.coord("time")
-        time_points = np.full(yxshape, time_coord.points[0])
-        new_time_coord = iris.coords.AuxCoord(time_points, "time")
-
-        self.cube.remove_coord("time")
-        time_coord.rename("time_in_local_timezone")
-        self.cube.add_aux_coord(new_time_coord, data_dims=yxdims)
-        self.cube.add_aux_coord(time_coord)
-        plugin = WeightedBlendAcrossWholeDimension(self.coord)
-        plugin.check_compatible_time_points(self.cube)
-
 
 class Test_shape_weights(Test_weighted_blend):
 
