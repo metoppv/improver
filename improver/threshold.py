@@ -47,6 +47,7 @@ from improver.metadata.probabilistic import (
 from improver.utilities.cube_manipulation import collapse_realizations, enforce_coordinate_ordering
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
+from improver.utilities.spatial import OccurrenceWithinVicinity
 
 
 class BasicThreshold(PostProcessingPlugin):
@@ -319,14 +320,20 @@ class BasicThreshold(PostProcessingPlugin):
             input_slices = [input_cube]
             realization_collapse = False
 
+        if OccurrenceWithinVicinity in self.each_threshold_func:
+            vicinity_process = True
+        else:
+            vicinity_process = False
+
         template = input_slices[0].copy(data=np.zeros(input_slices[0].shape, dtype=(FLOAT_DTYPE)))
         if self.threshold_units is not None:
-            template.convert_units(self.threshold_units)
+            template.units = self.threshold_units
 
         thresholded_cube = iris.cube.CubeList()
         for threshold in self.thresholds:
             thresholded = template.copy()
             self._add_threshold_coord(thresholded, threshold)
+            thresholded.units = 1
             thresholded_cube.append(thresholded)
         thresholded_cube = thresholded_cube.merge_cube()
 
@@ -394,6 +401,8 @@ class BasicThreshold(PostProcessingPlugin):
 
         thresholded_cube.coord(self.threshold_coord_name).convert_units(self.original_units)
         thresholded_cube = iris.util.squeeze(thresholded_cube)
+
+        print(self.each_threshold_func)
 
         if self.each_threshold_func:
             modified_cubes = iris.cube.CubeList()
