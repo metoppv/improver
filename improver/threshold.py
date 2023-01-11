@@ -63,14 +63,13 @@ class BasicThreshold(PostProcessingPlugin):
 
     def __init__(
         self,
-        thresholds: Union[float, List[float]],
+        threshold_values: Optional[Union[float, List[float]]] = None,
+        threshold_config: Optional[dict] = None,
         fuzzy_factor: Optional[float] = None,
-        fuzzy_bounds: Optional[
-            Union[Tuple[float, float], List[Tuple[float, float]]]
-        ] = None,
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
-        each_threshold_func: Union[Callable, List[Callable]] = (),
+        collapse_realizations: bool = False,
+        vicinity: List[float]= None,
         fill_masked: Optional[float] = None,
     ) -> None:
         """
@@ -103,9 +102,20 @@ class BasicThreshold(PostProcessingPlugin):
                 7.5     |   1.0
 
         Args:
-            thresholds:
-                Values at which to evaluate the input data using the specified
-                comparison operator.
+            threshold_values:
+                Threshold value or values about which to calculate the truth
+                values; e.g. 270,300. Will not be used if threshold_config is
+                provided.
+            threshold_config (dict):
+                Threshold configuration containing threshold values and
+                (optionally) fuzzy bounds. Best used in combination with
+                'threshold_units' It should contain a dictionary of strings that
+                can be interpreted as floats with the structure:
+                "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
+                e.g: {"280.0": [278.0, 282.0], "290.0": [288.0, 292.0]},
+                or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
+                Repeated thresholds with different bounds are ignored; only the
+                last duplicate will be used.
             fuzzy_factor:
                 Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
@@ -124,18 +134,25 @@ class BasicThreshold(PostProcessingPlugin):
                 evaluate 'data < threshold'. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            each_threshold_func:
-                Callable or sequence of callables to apply after thresholding.
-                Eg vicinity processing or collapse over ensemble realizations.
+            collapse_realizations:
+                If True, if the input cube has a realization coordinate, this
+                will be collapsed to calculate an ensemble average. Default is
+                False.
             fill_masked:
                 If provided all masked points in cube will be replaced with the
                 provided value.
+            vicinity:
+                A list of vicinity radii to use to calculate maximum in vicinity
+                thresholded values. This must be done prior to realization
+                collapse.
 
         Raises:
             ValueError: If using a fuzzy factor with a threshold of 0.0.
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set.
         """
+        thresholds, fuzzy_bounds = self._set_thresholds(threshold_values, threshold_config)
+
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
         self.threshold_units = (
             None if threshold_units is None else Unit(threshold_units)
@@ -173,10 +190,37 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_dict = comparison_operator_dict()
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
+        self.collapse_realizations = collapse_realizations
 
-        if callable(each_threshold_func):
-            each_threshold_func = (each_threshold_func,)
-        self.each_threshold_func = each_threshold_func
+        self.vicinity = None
+        if vicinity is not None:
+            self.vicinity = [float(x) for x in vicinity]
+
+
+    @staticmethod
+    def _set_thresholds(threshold_values, threshold_config):
+        # fuzzy_bounds: Optional[
+        #     Union[Tuple[float, float], List[Tuple[float, float]]]
+        # ] = None,
+        if threshold_config:
+            thresholds = []
+            fuzzy_bounds = []
+            for key in threshold_config.keys():
+                # Ensure thresholds are float64 to avoid rounding errors during
+                # possible unit conversion.
+                thresholds.append(float(key))
+                # If the first threshold has no bounds, fuzzy_bounds is
+                # set to None and subsequent bounds checks are skipped
+                if threshold_config[key] == "None":
+                    fuzzy_bounds = None
+                    continue
+                fuzzy_bounds.append(tuple(threshold_config[key]))
+        else:
+            # Ensure thresholds are float64 to avoid rounding errors during possible
+            # unit conversion.
+            thresholds = [float(x) for x in threshold_values]
+            fuzzy_bounds = None
+        return thresholds, fuzzy_bounds
 
         self.fill_masked = fill_masked
 
@@ -331,7 +375,7 @@ class BasicThreshold(PostProcessingPlugin):
         self._update_metadata(thresholded_cube)
         return thresholded_cube
 
-    def process(self, input_cube: Cube) -> Cube:
+    def process(self, input_cube: Cube, landmask: Cube = None) -> Cube:
         """Convert each point to a truth value based on provided threshold
         values. The truth value may or may not be fuzzy depending upon if
         fuzzy_bounds are supplied.  If the plugin has a "threshold_units"
@@ -341,6 +385,9 @@ class BasicThreshold(PostProcessingPlugin):
         Args:
             input_cube:
                 Cube to threshold. The code is dimension-agnostic.
+            landmask:
+                Cube containing a landmask. Used with vicinity processing
+                only.
 
         Returns:
             Cube after a threshold has been applied. The data within this
@@ -366,18 +413,13 @@ class BasicThreshold(PostProcessingPlugin):
         self.original_units = input_cube.units
         self.threshold_coord_name = input_cube.name()
 
-        if collapse_realizations in self.each_threshold_func:
+        if self.collapse_realizations:
             input_slices = list(input_cube.slices_over("realization"))
-            self.each_threshold_func.remove(collapse_realizations)
-            realization_collapse = True
         else:
             input_slices = [input_cube]
-            realization_collapse = False
 
-        if OccurrenceWithinVicinity in self.each_threshold_func:
-            vicinity_process = True
-        else:
-            vicinity_process = False
+        if self.vicinity is not None:
+            vicinity_function = OccurrenceWithinVicinity(radii=self.vicinity, land_mask_cube=landmask)
 
         # Create an empty threshold cube and a zeroed array for storing
         # contributions (i.e. number of unmasked realization values
@@ -423,29 +465,19 @@ class BasicThreshold(PostProcessingPlugin):
         # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
-        if self.each_threshold_func:
-            modified_cubes = iris.cube.CubeList()
-            for cube in thresholded_cube.slices_over(self.threshold_coord_name):
-                for func in self.each_threshold_func:
-                    cube = func(cube)
-                    modified_cubes.append(cube)
-            (cube,) = modified_cubes.merge()
-        else:
-            cube = thresholded_cube
-
-        if realization_collapse:
+        if self.collapse_realizations:
             try:
-                cube.remove_coord("realization")
+                thresholded_cube.remove_coord("realization")
             except CoordinateNotFoundError:
                 pass
 
         # Re-cast to 32bit now that any unit conversion has already taken place.
-        cube.coord(var_name="threshold").points = cube.coord(
+        thresholded_cube.coord(var_name="threshold").points = thresholded_cube.coord(
             var_name="threshold"
         ).points.astype(FLOAT_DTYPE)
 
-        enforce_coordinate_ordering(cube, ["realization", "percentile"])
-        return cube
+        enforce_coordinate_ordering(thresholded_cube, ["realization", "percentile"])
+        return thresholded_cube
 
 
 class LatitudeDependentThreshold(BasicThreshold):
