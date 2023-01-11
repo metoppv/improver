@@ -277,6 +277,60 @@ class BasicThreshold(PostProcessingPlugin):
         )
         cube.units = Unit(1)
 
+    def _calculate_truth_value(self, cube, threshold, bounds):
+        if self.threshold_units is not None:
+            cube.convert_units(self.threshold_units)
+        # if upper and lower bounds are equal, set a deterministic 0/1
+        # probability based on exceedance of the threshold
+        if bounds[0] == bounds[1]:
+            truth_value = self.comparison_operator.function(cube.data, threshold)
+        # otherwise, scale exceedance probabilities linearly between 0/1
+        # at the min/max fuzzy bounds and 0.5 at the threshold value
+        else:
+            truth_value = np.where(
+                cube.data < threshold,
+                rescale(
+                    cube.data,
+                    data_range=(bounds[0], threshold),
+                    scale_range=(0.0, 0.5),
+                    clip=True,
+                ),
+                rescale(
+                    cube.data,
+                    data_range=(threshold, bounds[1]),
+                    scale_range=(0.5, 1.0),
+                    clip=True,
+                ),
+            )
+            # if requirement is for probabilities less_than or
+            # less_than_or_equal_to the threshold (rather than
+            # greater_than or greater_than_or_equal_to), invert
+            # the exceedance probability
+            if "less_than" in self.comparison_operator.spp_string:
+                truth_value = 1.0 - truth_value
+
+        return truth_value.astype(FLOAT_DTYPE)
+
+    def _create_threshold_cube(self, cube):
+        template = cube.copy(data=np.zeros(cube.shape, dtype=(FLOAT_DTYPE)))
+        if self.threshold_units is not None:
+            template.units = self.threshold_units
+
+        thresholded_cube = iris.cube.CubeList()
+        for threshold in self.thresholds:
+            thresholded = template.copy()
+            self._add_threshold_coord(thresholded, threshold)
+            thresholded.units = 1
+            thresholded_cube.append(thresholded)
+        thresholded_cube = thresholded_cube.merge_cube()
+
+        # Promote the threshold coordinate to be dimensional if it is not already.
+        if not thresholded_cube.coord_dims(self.threshold_coord_name):
+            thresholded_cube = iris.util.new_axis(thresholded_cube, self.threshold_coord_name)
+        # Ensure the threshold cube has suitable metadata for a probabilistic output.
+        self._update_metadata(thresholded_cube)
+        return thresholded_cube
+
     def process(self, input_cube: Cube) -> Cube:
         """Convert each point to a truth value based on provided threshold
         values. The truth value may or may not be fuzzy depending upon if
@@ -325,28 +379,16 @@ class BasicThreshold(PostProcessingPlugin):
         else:
             vicinity_process = False
 
-        template = input_slices[0].copy(data=np.zeros(input_slices[0].shape, dtype=(FLOAT_DTYPE)))
-        if self.threshold_units is not None:
-            template.units = self.threshold_units
-
-        thresholded_cube = iris.cube.CubeList()
-        for threshold in self.thresholds:
-            thresholded = template.copy()
-            self._add_threshold_coord(thresholded, threshold)
-            thresholded.units = 1
-            thresholded_cube.append(thresholded)
-        thresholded_cube = thresholded_cube.merge_cube()
-
+        # Create an empty threshold cube and a zeroed array for storing
+        # contributions (i.e. number of unmasked realization values
+        # contributing to calculation).
+        thresholded_cube = self._create_threshold_cube(input_slices[0])
         contribution_total = np.zeros(next(thresholded_cube.slices_over(self.threshold_coord_name)).shape, dtype=int)
-
-        # Promote the threshold coordinate to be dimensional if it is not already.
-        if not thresholded_cube.coord_dims(self.threshold_coord_name):
-            thresholded_cube = iris.util.new_axis(thresholded_cube, self.threshold_coord_name)
-
-        self._update_metadata(thresholded_cube)
 
         for cube in input_slices:
 
+            # Tests performed on each slice rather than whole cube to avoid
+            # realising all of the data.
             if np.isnan(cube.data).any():
                 raise ValueError("Error: NaN detected in input cube data")
 
@@ -357,52 +399,29 @@ class BasicThreshold(PostProcessingPlugin):
                 mask = None
                 unmasked = np.ones(cube.shape, dtype=bool)
 
+            # All unmasked points contibute 1 to the numerator for calculating
+            # a realization collapsed truth value. Note that if input_slices
+            # above includes the realization coordinate (i.e. we are not collapsing
+            # that coordinate) then contribution_total will include this extra
+            # dimension and our denominator will be 1 at all unmasked points.
             contribution_total += unmasked
 
             for index, (threshold, bounds) in enumerate(zip(self.thresholds, self.fuzzy_bounds)):
-                if self.threshold_units is not None:
-                    cube.convert_units(self.threshold_units)
-                # if upper and lower bounds are equal, set a deterministic 0/1
-                # probability based on exceedance of the threshold
-                if bounds[0] == bounds[1]:
-                    truth_value = self.comparison_operator.function(cube.data, threshold)
-                # otherwise, scale exceedance probabilities linearly between 0/1
-                # at the min/max fuzzy bounds and 0.5 at the threshold value
-                else:
-                    truth_value = np.where(
-                        cube.data < threshold,
-                        rescale(
-                            cube.data,
-                            data_range=(bounds[0], threshold),
-                            scale_range=(0.0, 0.5),
-                            clip=True,
-                        ),
-                        rescale(
-                            cube.data,
-                            data_range=(threshold, bounds[1]),
-                            scale_range=(0.5, 1.0),
-                            clip=True,
-                        ),
-                    )
-                    # if requirement is for probabilities less_than or
-                    # less_than_or_equal_to the threshold (rather than
-                    # greater_than or greater_than_or_equal_to), invert
-                    # the exceedance probability
-                    if "less_than" in self.comparison_operator.spp_string:
-                        truth_value = 1.0 - truth_value
-
-                truth_value = truth_value.astype(FLOAT_DTYPE)
+                truth_value = self._calculate_truth_value(cube, threshold, bounds)
                 thresholded_cube.data[index][unmasked] += truth_value[unmasked]
 
+        # Any x-y position for which there are no valid contributions must be
+        # a masked point in every realization, so we can use this array to
+        # modify only unmasked points and reapply a mask to the final result.
         valid = contribution_total.astype(bool)
         thresholded_cube.data[..., valid] = thresholded_cube.data[..., valid] / contribution_total[valid]
         if (contribution_total == 0).any():
             thresholded_cube.data = np.ma.masked_array(thresholded_cube.data, mask=np.broadcast_to(~valid, thresholded_cube.shape))
 
+        # Revert threshold coordinate units to those of the input cube.
         thresholded_cube.coord(self.threshold_coord_name).convert_units(self.original_units)
+        # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
-
-        print(self.each_threshold_func)
 
         if self.each_threshold_func:
             modified_cubes = iris.cube.CubeList()
