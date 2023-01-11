@@ -91,7 +91,6 @@ SPECIAL_CASES = ["weather_code", "wind_from_direction"] + INTERMEDIATES + ANCILL
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
 UNBLENDED_TIME_COORDS = ["time", "forecast_period", "forecast_reference_time"]
 BLENDED_TIME_COORDS = ["time", "blend_time"]
-LOCAL_TIME_COORDS = ["time"]
 
 # Compliant, required and forbidden cell methods
 NONCOMP_CMS = [

@@ -116,13 +116,13 @@ class Test_SpotExtraction(IrisTest):
             location_points, long_name="location", bounds=bounds, units="degrees"
         )
 
-        diagnostic_cube_2d_time = diagnostic_cube_yx.copy()
-        diagnostic_cube_2d_time.add_aux_coord(self.location_aux_coord, data_dims=(0, 1))
+        diagnostic_cube_2d_aux = diagnostic_cube_yx.copy()
+        diagnostic_cube_2d_aux.add_aux_coord(self.location_aux_coord, data_dims=(0, 1))
 
         expected_indices = [[0, 0], [0, 0], [2, 2], [2, 2]]
         points = [self.location_aux_coord.points[y, x] for y, x in expected_indices]
         bounds = [self.location_aux_coord.bounds[y, x] for y, x in expected_indices]
-        self.expected_spot_time_coord = self.location_aux_coord.copy(
+        self.expected_spot_aux_coord = self.location_aux_coord.copy(
             points=points, bounds=bounds
         )
 
@@ -169,7 +169,7 @@ class Test_SpotExtraction(IrisTest):
 
         self.diagnostic_cube_xy = diagnostic_cube_xy
         self.diagnostic_cube_yx = diagnostic_cube_yx
-        self.diagnostic_cube_2d_time = diagnostic_cube_2d_time
+        self.diagnostic_cube_2d_aux = diagnostic_cube_2d_aux
         self.neighbours = neighbours
         self.neighbour_cube = neighbour_cube
         self.coordinate_cube = coordinate_cube
@@ -280,17 +280,16 @@ class Test_get_aux_coords(Test_SpotExtraction):
 
         expected_scalar = [
             coord
-            for coord in self.diagnostic_cube_2d_time.aux_coords
+            for coord in self.diagnostic_cube_2d_aux.aux_coords
             if coord.name() in ["time", "forecast_reference_time", "forecast_period"]
         ]
-        expected_nonscalar = [self.expected_spot_time_coord]
+        expected_nonscalar = [self.expected_spot_aux_coord]
 
         x_indices, y_indices = self.coordinate_cube.data
 
         scalar, nonscalar = plugin.get_aux_coords(
-            self.diagnostic_cube_2d_time, x_indices, y_indices
+            self.diagnostic_cube_2d_aux, x_indices, y_indices
         )
-        print(nonscalar)
         self.assertArrayEqual(scalar, expected_scalar)
         self.assertArrayEqual(nonscalar, expected_nonscalar)
 
@@ -302,14 +301,14 @@ class Test_get_aux_coords(Test_SpotExtraction):
 
         additional_2d_crd = self.location_aux_coord.copy()
         additional_2d_crd.rename("kittens")
-        self.diagnostic_cube_2d_time.add_aux_coord(additional_2d_crd, data_dims=(0, 1))
-        additional_expected = self.expected_spot_time_coord.copy()
+        self.diagnostic_cube_2d_aux.add_aux_coord(additional_2d_crd, data_dims=(0, 1))
+        additional_expected = self.expected_spot_aux_coord.copy()
         additional_expected.rename("kittens")
-        expected_nonscalar = [additional_expected, self.expected_spot_time_coord]
+        expected_nonscalar = [additional_expected, self.expected_spot_aux_coord]
         x_indices, y_indices = self.coordinate_cube.data
 
         _, nonscalar = plugin.get_aux_coords(
-            self.diagnostic_cube_2d_time, x_indices, y_indices
+            self.diagnostic_cube_2d_aux, x_indices, y_indices
         )
         self.assertArrayEqual(nonscalar, expected_nonscalar)
 
@@ -323,11 +322,11 @@ class Test_get_coordinate_data(Test_SpotExtraction):
         coordinate. In this case the coordinate has bounds."""
         plugin = SpotExtraction()
 
-        expected_points = self.expected_spot_time_coord.points
-        expected_bounds = self.expected_spot_time_coord.bounds
+        expected_points = self.expected_spot_aux_coord.points
+        expected_bounds = self.expected_spot_aux_coord.bounds
         x_indices, y_indices = self.coordinate_cube.data
         points, bounds = plugin.get_coordinate_data(
-            self.diagnostic_cube_2d_time, x_indices, y_indices, coordinate="location"
+            self.diagnostic_cube_2d_aux, x_indices, y_indices, coordinate="location"
         )
         self.assertArrayEqual(points, expected_points)
         self.assertArrayEqual(bounds, expected_bounds)
@@ -337,13 +336,13 @@ class Test_get_coordinate_data(Test_SpotExtraction):
         coordinate. In this case the coordinate has no bounds."""
         plugin = SpotExtraction()
 
-        expected_points = self.expected_spot_time_coord.points
+        expected_points = self.expected_spot_aux_coord.points
         expected_bounds = None
         x_indices, y_indices = self.coordinate_cube.data
 
-        self.diagnostic_cube_2d_time.coord("location").bounds = None
+        self.diagnostic_cube_2d_aux.coord("location").bounds = None
         points, bounds = plugin.get_coordinate_data(
-            self.diagnostic_cube_2d_time, x_indices, y_indices, coordinate="location"
+            self.diagnostic_cube_2d_aux, x_indices, y_indices, coordinate="location"
         )
         self.assertArrayEqual(points, expected_points)
         self.assertArrayEqual(bounds, expected_bounds)
@@ -359,11 +358,11 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
         spot_values = np.array([0, 0, 12, 12])
         result = plugin.build_diagnostic_cube(
             self.neighbour_cube,
-            self.diagnostic_cube_2d_time,
+            self.diagnostic_cube_2d_aux,
             spot_values,
             unique_site_id=self.unique_site_id,
             unique_site_id_key=self.unique_site_id_key,
-            auxiliary_coords=[self.expected_spot_time_coord],
+            auxiliary_coords=[self.expected_spot_aux_coord],
         )
         self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
         self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
@@ -373,7 +372,7 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
             result.coord(self.unique_site_id_key).points, self.unique_site_id
         )
         self.assertArrayEqual(
-            result.coord("location").points, self.expected_spot_time_coord.points
+            result.coord("location").points, self.expected_spot_aux_coord.points
         )
         self.assertArrayEqual(result.data, spot_values)
 
@@ -477,13 +476,12 @@ class Test_process(Test_SpotExtraction):
         retained as 1D coordinates associated with the spot-index on the
         spotdata cube."""
         plugin = SpotExtraction()
-        print(self.diagnostic_cube_2d_time)
         result = plugin.process(
             self.neighbour_cube,
-            self.diagnostic_cube_2d_time,
+            self.diagnostic_cube_2d_aux,
             new_title="IMPROVER Spot Forecast",
         )
-        self.assertEqual(result.coord("location"), self.expected_spot_time_coord)
+        self.assertEqual(result.coord("location"), self.expected_spot_aux_coord)
 
     def test_removal_of_internal_metadata(self):
         """Test that internal metadata used to identify the unique id coordinate
