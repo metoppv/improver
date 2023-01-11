@@ -107,7 +107,7 @@ class Test_SpotExtraction(IrisTest):
         location_points = np.array([location for location in locations])
         bounds = np.array([[location - 1, location] for location in locations])
 
-        # Broadcast the times to a 2-dimensional grid that matches the diagnostic
+        # Broadcast the locations to a 2-dimensional grid that matches the diagnostic
         # data grid
         location_points = np.broadcast_to(location_points, (5, 5))
         bounds = np.broadcast_to(bounds, (5, 5, 2))
