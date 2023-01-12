@@ -1091,7 +1091,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     Oceanogr. 66.
     """
 
-    def __init__(self, point_by_point: bool=False) -> None:
+    def __init__(self, point_by_point: bool = False) -> None:
         """
         Initialise class for applying reliability calibration.
         Args:
@@ -1413,9 +1413,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return calibrated_forecast
 
     def process(
-        self,
-        forecast: Cube,
-        reliability_table: Union[Cube, CubeList],
+        self, forecast: Cube, reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
         Apply reliability calibration to a forecast. The reliability table

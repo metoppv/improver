@@ -588,9 +588,7 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_0 = [0.25, 0.4375, 0.625]
         expected_1 = [0.25, 0.4, 0.55]
 
-        result = self.plugin.process(
-            self.forecast_spot_cube, self.reliability_cube
-        )
+        result = self.plugin.process(self.forecast_spot_cube, self.reliability_cube)
 
         # check that data is as expected
         assert_allclose(result[0].data, expected_0)
