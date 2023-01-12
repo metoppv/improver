@@ -1094,7 +1094,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     def __init__(self, point_by_point: bool = False) -> None:
         """
         Initialise class for applying reliability calibration.
-        
+
         Args:
             point_by_point:
                 Whether to calibrate each point in the input cube independently.
