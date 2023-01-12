@@ -72,5 +72,5 @@ def process(
 
     if reliability_table is None:
         return forecast
-    plugin = ApplyReliabilityCalibration()
-    return plugin(forecast, reliability_table, point_by_point)
+    plugin = ApplyReliabilityCalibration(point_by_point=point_by_point)
+    return plugin(forecast, reliability_table)

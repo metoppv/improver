@@ -85,7 +85,7 @@ def test_calibration_point_by_point(tmp_path):
     Test point by point calibration of a forecast using a reliability
     calibration table.
     """
-    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/basic"
+    kgo_dir = acc.kgo_root() / "apply-reliability-calibration/point_by_point"
     kgo_path = kgo_dir / "kgo_point_by_point.nc"
     forecast_path = kgo_dir / "forecast_point_by_point.nc"
     table_path = kgo_dir / "cubelist_table_point_by_point.nc"

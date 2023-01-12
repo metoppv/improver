@@ -69,7 +69,7 @@ def test_manipulate_point_by_point(tmp_path):
     """
     Test manipulation of a reliability table using point_by_point functionality
     """
-    kgo_dir = acc.kgo_root() / "manipulate-reliability-table/basic"
+    kgo_dir = acc.kgo_root() / "manipulate-reliability-table/point_by_point"
     kgo_path = kgo_dir / "kgo_point_by_point.nc"
     table_path = kgo_dir / "reliability_table_point_by_point.nc"
     output_path = tmp_path / "output.nc"

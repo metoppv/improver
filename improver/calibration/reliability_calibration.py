@@ -1091,12 +1091,20 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
     Oceanogr. 66.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, point_by_point: bool=False) -> None:
         """
         Initialise class for applying reliability calibration.
+        Args:
+            point_by_point:
+                Whether to calibrate each point in the input cube independently.
+                Utilising this option requires that each spatial point in the
+                forecast cube has a corresponding spatial point in the
+                reliability table. Please note this option is memory intensive and is
+                unsuitable for gridded input.
 
         """
         self.threshold_coord = None
+        self.point_by_point = point_by_point
 
     @staticmethod
     def _extract_matching_reliability_table(
@@ -1350,19 +1358,16 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         y_name = forecast.coord(axis="y").name()
         x_name = forecast.coord(axis="x").name()
 
-        # create list of dimensions other than time dimension
-        # and threshold dimension
+        # create list of dimensions
         dim_names = get_dim_coord_names(forecast)
         dim_associated_coords = {}
 
-        # create lists with first entry a dimension name and second
-        # entry a list of auxiliary coordinates associated with that
-        # dimension. Collect these lists together into a list.
-        for dim_name in dim_names:
-            template_dim = [x for x in forecast.coord_dims(dim_name)]
+        # create dictionary with dimension name as keys, containing auxiliary
+        # coordinates associated with that dimension.
+        for dim_index, dim_name in enumerate(dim_names):
             associated_coords = [
                 c
-                for d in template_dim
+                for d in [dim_index]
                 for c in forecast.coords(dimensions=d, dim_coords=False)
             ]
             dim_associated_coords[dim_name] = associated_coords
@@ -1377,7 +1382,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
             # create reliability table containing only those cubes
             # relating to the currently considered spatial point
-
             reliability_table_point = reliability_table.extract(
                 iris.Constraint(coord_values={y_name: y_point, x_name: x_point})
             )
@@ -1385,14 +1389,15 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             calibrated_cube = self._apply_calibration(
                 forecast=forecast_point, reliability_table=reliability_table_point
             )
+            # remove auxiliary coordinates to ensure cubes can be merged into initial
+            # format later
+            for coords in dim_associated_coords.values():
+                for coord in coords:
+                    calibrated_cube.remove_coord(coord.name())
             calibrated_cubes.append(calibrated_cube)
 
         # remove auxiliary coordinates from calibrated cubes to ensure
         # merge promotes desired dimension coordinate
-        for dim_coord in dim_associated_coords.keys():
-            for coord in dim_associated_coords[dim_coord]:
-                for cube in calibrated_cubes:
-                    cube.remove_coord(coord.name())
 
         calibrated_forecast = calibrated_cubes.merge_cube()
         # add auxiliary coordinates back to the calibrated cube
@@ -1411,7 +1416,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         self,
         forecast: Cube,
         reliability_table: Union[Cube, CubeList],
-        point_by_point: bool = False,
     ) -> Cube:
         """
         Apply reliability calibration to a forecast. The reliability table
@@ -1422,12 +1426,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                 The forecast to be calibrated.
             reliability_table:
                 The reliability table to use for applying calibration.
-            point_by_point:
-                Whether to calibrate each point in the input cube independently.
-                Utilising this option requires that each spatial point in the
-                forecast cube has a corresponding spatial point in the
-                reliability table. Please note this option is memory intensive and is
-                unsuitable for gridded input.
 
         Returns:
             The forecast cube following calibration.
@@ -1435,7 +1433,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         self.threshold_coord = find_threshold_coordinate(forecast)
 
-        if point_by_point:
+        if self.point_by_point:
             calibrated_forecast = self._apply_point_by_point_calibration(
                 forecast=forecast, reliability_table=reliability_table
             )

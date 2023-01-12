@@ -181,6 +181,7 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
 
         self.threshold = self.forecast.coord(var_name="threshold")
         self.plugin = Plugin()
+        self.plugin_point_by_point = Plugin(point_by_point=True)
         self.plugin.threshold_coord = self.threshold
 
 
@@ -568,8 +569,8 @@ class Test_process(Test_ReliabilityCalibrate):
         )
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
-        result = self.plugin.process(
-            test_forecast, reliability_cube_list, point_by_point=True,
+        result = self.plugin_point_by_point.process(
+            test_forecast, reliability_cube_list
         )
 
         # check that data is as expected
@@ -588,7 +589,7 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_1 = [0.25, 0.4, 0.55]
 
         result = self.plugin.process(
-            self.forecast_spot_cube, self.reliability_cube, point_by_point=False,
+            self.forecast_spot_cube, self.reliability_cube
         )
 
         # check that data is as expected
@@ -611,8 +612,8 @@ class Test_process(Test_ReliabilityCalibrate):
         expected_0 = [0.25, 0.4375, 0.625]
         expected_1 = [0.25, 0.4, 0.55]
 
-        result = self.plugin.process(
-            self.forecast_spot_cube, reliability_cube_list, point_by_point=True,
+        result = self.plugin_point_by_point.process(
+            self.forecast_spot_cube, reliability_cube_list
         )
 
         # check that data is as expected
