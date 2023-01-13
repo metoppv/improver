@@ -133,6 +133,8 @@ JIT compiler for numerical Python code, used for better computational performanc
 
 https://numba.readthedocs.io/en/stable/
 
+Optionally used by CLIs: ``generate-realizations``, ``generate-percentiles``, ``spot-extract``, ``apply-emos-coefficients``
+
 PySTEPS
 ~~~~~~~~~~~~~~~~~~
 Probabilistic nowcasting of radar precipitation fields, used for nowcasting.
