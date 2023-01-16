@@ -19,11 +19,10 @@ jobs:
     - name: conda env update
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda config --set allow_conda_downgrades true # workaround for actions/runner-images#6910
-        conda install conda=4.12.0 -y # workaround for actions/runner-images#6910
-        conda install -c conda-forge mamba
+        conda install -n base conda-libmamba-solver
+        conda config --set solver libmamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -70,11 +69,10 @@ jobs:
     - name: conda env update
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda config --set allow_conda_downgrades true # workaround for actions/runner-images#6910
-        conda install conda=4.12.0 -y # workaround for actions/runner-images#6910
-        conda install -c conda-forge mamba
+        conda install -n base conda-libmamba-solver
+        conda config --set solver libmamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -103,11 +101,10 @@ jobs:
     - name: conda env update
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda config --set allow_conda_downgrades true # workaround for actions/runner-images#6910
-        conda install conda=4.12.0 -y # workaround for actions/runner-images#6910
-        conda install -c conda-forge mamba
+        conda install -n base conda-libmamba-solver
+        conda config --set solver libmamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
