@@ -1367,9 +1367,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         # coordinates associated with that dimension.
         for dim_index, dim_name in enumerate(dim_names):
             associated_coords = [
-                c
-                for d in [dim_index]
-                for c in forecast.coords(dimensions=d, dim_coords=False)
+                c for c in forecast.coords(dimensions=dim_index, dim_coords=False)
             ]
             dim_associated_coords[dim_name] = associated_coords
 
