@@ -10,8 +10,9 @@ dependencies:
   - iris=3.0
   - cf_units
   - python-stratify
-  - sphinx
+  - sphinx=5.3.0
   - sphinx-autodoc-typehints
+  - sphinx_rtd_theme
   - pip
   - pip:
     - clize

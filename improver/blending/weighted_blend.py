@@ -44,7 +44,7 @@ from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
-from improver.blending.utilities import find_blend_dim_coord, set_record_run_attr
+from improver.blending.utilities import find_blend_dim_coord, store_record_run_as_coord
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
 from improver.utilities.cube_manipulation import (
@@ -207,7 +207,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
         )
 
         if self.record_run_attr is not None and self.model_id_attr is not None:
-            set_record_run_attr(cubelist, self.record_run_attr, self.model_id_attr)
+            store_record_run_as_coord(
+                cubelist, self.record_run_attr, self.model_id_attr
+            )
 
         if "model" in self.blend_coord:
             cubelist = [self._remove_blend_time(cube) for cube in cubelist]
@@ -466,16 +468,6 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         timeblending flag should be true and this function will not raise an
         exception.
 
-        In cases where local-time-zone products are being blended, the time
-        coordinate will be two dimensional. Each point in the two dimensional
-        coordinate must match in order that the cubes to be blended can be
-        combined into a single cube. As such an Iris error will have been
-        raised earlier in the processing if this is not the case. Here we
-        ensure that the "time_in_local_timezone" coordinate matches between
-        cubes. This describes the time the diagnostic is valid in local time
-        which should match between input cubes or else they are describing
-        fundamentally different things.
-
         Args:
             cube:
                 The cube upon which the compatibility of the time coords is
@@ -488,10 +480,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         if self.timeblending:
             return
 
-        try:
-            time_points = cube.coord("time_in_local_timezone").points
-        except CoordinateNotFoundError:
-            time_points = cube.coord("time").points
+        time_points = cube.coord("time").points
 
         if len(set(time_points)) > 1:
             msg = (

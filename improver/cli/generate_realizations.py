@@ -41,7 +41,8 @@ def process(
     *,
     realizations_count: int = None,
     random_seed: int = None,
-    ignore_ecc_bounds=False,
+    ignore_ecc_bounds_exceedance: bool = False,
+    skip_ecc_bounds: bool = False,
 ):
     """Converts an incoming cube into one containing realizations.
 
@@ -61,10 +62,17 @@ def process(
             This value is for testing purposes only, to ensure reproduceable outputs.
             It should not be used in real time operations as it may introduce a bias
             into the reordered forecasts.
-        ignore_ecc_bounds (bool):
+        ignore_ecc_bounds_exceedance (bool):
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
+        skip_ecc_bounds (bool):
+            If True, ECC bounds are not included when percentiles are resampled
+            as an intermediate step prior to creating realizations. This has the
+            effect that percentiles outside of the range given by the input
+            percentiles will be computed by nearest neighbour interpolation from
+            the nearest available percentile, rather than using linear interpolation
+            between the nearest available percentile and the ECC bound.
 
     Returns:
         iris.cube.Cube:
@@ -93,12 +101,13 @@ def process(
             raise ValueError(msg)
 
     if cube.coords("percentile"):
-        percentiles = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
-            cube, no_of_percentiles=realizations_count
-        )
+        percentiles = ResamplePercentiles(
+            ecc_bounds_warning=ignore_ecc_bounds_exceedance,
+            skip_ecc_bounds=skip_ecc_bounds,
+        )(cube, no_of_percentiles=realizations_count)
     else:
         percentiles = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds
+            ecc_bounds_warning=ignore_ecc_bounds_exceedance
         )(cube, no_of_percentiles=realizations_count)
 
     if raw_cube:

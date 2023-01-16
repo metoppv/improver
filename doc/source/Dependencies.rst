@@ -133,7 +133,7 @@ JIT compiler for numerical Python code, used for better computational performanc
 
 https://numba.readthedocs.io/en/stable/
 
-Required for CLIs: ``generate-timezone-mask-ancillary``
+Optionally used by CLIs: ``generate-realizations``, ``generate-percentiles``, ``spot-extract``, ``apply-emos-coefficients``
 
 PySTEPS
 ~~~~~~~~~~~~~~~~~~
@@ -149,17 +149,6 @@ pytz
 Timezone database for Python.
 
 https://pythonhosted.org/pytz/
-
-Required for CLIs: ``generate-timezone-mask-ancillary``
-
-timezonefinder
-~~~~~~~~~~~~~~~~~~
-Lookup of timezone using geographic coordinates, used to generate timezone
-grids.
-
-https://timezonefinder.readthedocs.io/en/stable/
-
-Required for CLIs: ``generate-timezone-mask-ancillary``
 
 LightGBM
 ~~~~~~~~~~~~~~~~~~

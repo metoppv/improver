@@ -29,46 +29,49 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to map multiple forecast times into a local time grid"""
+"""CLI to calculate the bias values from the specified set of reference forecasts."""
+
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    local_time: str, *cubes: cli.inputcube,
-):
-    """Calculates timezone-offset data for the specified UTC output times
+def process(*cubes: cli.inputcube, truth_attribute: str):
+    """Calculate forecast bias from the specified set of historical forecasts and truth
+    values.
+
+    The historical forecasts are expected to be representative single-valued forecasts
+    (eg. control or ensemble mean forecast).
+
+    The bias values are evaluated point-by-point and the associated bias cube
+    will retain the same spatial dimensions as the input cubes. By using a
+    point-by-point approach, the bias-correction enables a form of statistical
+    downscaling where coherent biases exist between a coarse forecast dataset and
+    finer truth dataset.
+
+    Where multiple forecasts values are provided, the value returned is the mean value
+    over the set of forecast/truth pairs.
 
     Args:
-        local_time (str):
-            The "local" time of the output cube as %Y%m%dT%H%M. This will form a
-            scalar "time_in_local_timezone" coord on the output cube, while the "time"
-            coord will be auxillary to the spatial coords and will show the UTC time
-            that matches the local_time at each point.  This can also be provided in
-            the form of a filepath where the 'local_time' is denoted in this format
-            at the beginning of the basename.
         cubes (list of iris.cube.Cube):
-            Source data to be remapped onto time-zones. Must contain an exact 1-to-1
-            mapping of times to time-zones. Multiple input files will be merged into one
-            cube.
-            Assumes the final argument is a timezone_cube, which is a cube describing
-            the UTC offset for the local time at each grid location.
-            Must have the same spatial coords as input_cube.
-            Use generate-timezone-mask-ancillary to create this.
+            A list of cubes containing the historical forecasts and corresponding
+            truths used for calibration. The cubes must include the same diagnostic
+            name in their names. The cubes will be distinguished using the user
+            specified truth attribute.
+        truth_attribute (str):
+            An attribute and its value in the format of "attribute=value",
+            which must be present on truth cubes.
 
     Returns:
         iris.cube.Cube:
-            Processed cube.
+            Cube containing forecast bias values evaluated over the specified set
+            of historical forecasts.
     """
-    import os
-    from datetime import datetime
+    from improver.calibration import split_forecasts_and_truth
+    from improver.calibration.simple_bias_correction import CalculateForecastBias
 
-    from improver.utilities.temporal import TimezoneExtraction
-
-    timezone_cube = cubes[-1]
-    cubes = cubes[:-1]
-
-    local_time = os.path.basename(local_time)[:13]
-    local_datetime = datetime.strptime(local_time, "%Y%m%dT%H%M")
-    return TimezoneExtraction()(cubes, timezone_cube, local_datetime)
+    historical_forecast, historical_truth, _ = split_forecasts_and_truth(
+        cubes, truth_attribute
+    )
+    plugin = CalculateForecastBias()
+    return plugin(historical_forecast, historical_truth)

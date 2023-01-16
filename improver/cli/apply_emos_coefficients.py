@@ -44,7 +44,7 @@ def process(
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
-    ignore_ecc_bounds=False,
+    ignore_ecc_bounds_exceedance=False,
     tolerate_time_mismatch=False,
     predictor="mean",
     land_sea_mask_name: str = None,
@@ -64,7 +64,6 @@ def process(
             A list of cubes containing:
             - A Cube containing the forecast to be calibrated. The input format
             could be either realizations, probabilities or percentiles.
-            - A cubelist containing the coefficients used for calibration or None.
             - A cubelist containing the coefficients used for calibration or None.
             If none then the input, or probability template if provided,
             is returned unchanged.
@@ -107,7 +106,7 @@ def process(
             ensemble, or for splitting tied values within the raw ensemble,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-        ignore_ecc_bounds (bool):
+        ignore_ecc_bounds_exceedance (bool):
             If True, where the percentiles exceed the ECC bounds range,
             raises a warning rather than an exception. This occurs when the
             current forecasts is in the form of probabilities and is
@@ -161,9 +160,11 @@ def process(
             # Ensure that a consistent set of percentiles are returned,
             # regardless of whether EMOS is successfully applied.
             percentiles = [np.float32(p) for p in percentiles]
-            forecast = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
-                forecast, percentiles=percentiles
-            )
+            forecast = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            )(forecast, percentiles=percentiles)
+        elif prob_template:
+            forecast = prob_template
         forecast = add_warning_comment(forecast)
         return forecast
 
@@ -177,15 +178,16 @@ def process(
                 "forecast."
             )
             warnings.warn(msg)
+            prob_template = add_warning_comment(prob_template)
             return prob_template
 
         if percentiles:
             # Ensure that a consistent set of percentiles are returned,
             # regardless of whether EMOS is successfully applied.
             percentiles = [np.float32(p) for p in percentiles]
-            forecast = ResamplePercentiles(ecc_bounds_warning=ignore_ecc_bounds)(
-                forecast, percentiles=percentiles
-            )
+            forecast = ResamplePercentiles(
+                ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            )(forecast, percentiles=percentiles)
 
         msg = (
             "There are no coefficients provided for calibration. The "
@@ -204,11 +206,10 @@ def process(
         land_sea_mask=land_sea_mask,
         prob_template=prob_template,
         realizations_count=realizations_count,
-        ignore_ecc_bounds=ignore_ecc_bounds,
+        ignore_ecc_bounds=ignore_ecc_bounds_exceedance,
         tolerate_time_mismatch=tolerate_time_mismatch,
         predictor=predictor,
         randomise=randomise,
         random_seed=random_seed,
     )
-
     return result

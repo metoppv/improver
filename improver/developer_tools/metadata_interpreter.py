@@ -69,7 +69,6 @@ ANCILLARIES = [
     "topography_mask",
     "silhouette_roughness",
     "standard_deviation_of_height_in_grid_cell",
-    "timezone_mask",
     "smoothing_coefficient_x",
     "smoothing_coefficient_y",
     "linke_turbidity",
@@ -92,7 +91,6 @@ SPECIAL_CASES = ["weather_code", "wind_from_direction"] + INTERMEDIATES + ANCILL
 SPOT_COORDS = ["spot_index", "latitude", "longitude", "altitude", "wmo_id"]
 UNBLENDED_TIME_COORDS = ["time", "forecast_period", "forecast_reference_time"]
 BLENDED_TIME_COORDS = ["time", "blend_time"]
-LOCAL_TIME_COORDS = ["time", "time_in_local_timezone"]
 
 # Compliant, required and forbidden cell methods
 NONCOMP_CMS = [
@@ -548,13 +546,6 @@ class MOMetadataInterpreter:
         if self.field_type == self.ANCIL:
             # there is no definitive standard for time coordinates on static ancillaries
             pass
-        elif cube.coords("time_in_local_timezone"):
-            # For data on local timezones, the time coordinate will match the horizontal
-            # dimensions and there will be no forecast period.
-            expected_coords = set(LOCAL_TIME_COORDS + UNBLENDED_TIME_COORDS)
-            expected_coords.discard("forecast_period")
-            self._check_coords_present(coords, expected_coords)
-            self._check_coords_are_horizontal(cube, ["time"])
         elif self.blended:
             self._check_coords_present(coords, BLENDED_TIME_COORDS)
         else:

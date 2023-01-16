@@ -28,56 +28,29 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the generate-timezone-mask-ancillary CLI."""
+"""Tests for the calculate-forecast-bias CLI."""
 
 import pytest
 
 from . import acceptance as acc
 
-pytest.importorskip("timezonefinder")
-pytest.importorskip("numba")
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
-GRIDS = ["uk", "global"]
-TIMES = ["20210615T1200Z", "20211215T1200Z"]
 
-
-@pytest.mark.parametrize("time", TIMES)
-@pytest.mark.parametrize("grid", GRIDS)
-def test_ignoring_dst(tmp_path, time, grid):
-    """Test masks generated ignoring daylight savings time. The time of year
-    should have no impact on the result, which is demonstrated here by use of a
-    common kgo for both summer and winter. The kgo is checked excluding the
-    validity time as this is necessarily different between summer and winter,
-    whilst everything else remains unchanged."""
-
-    kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
-    kgo_path = kgo_dir / "ignore_dst_kgo.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [input_path, "--time", f"{time}", "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path, exclude_vars=["time"])
-
-
-@pytest.mark.parametrize("time", TIMES)
-@pytest.mark.parametrize("grid", GRIDS)
-def test_with_dst(tmp_path, time, grid):
-    """Test masks generated including daylight savings time. In this case the
-    time of year chosen will give different results."""
-
-    kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
-    kgo_path = kgo_dir / f"{time}_with_dst_kgo.nc"
-    input_path = kgo_dir / "input.nc"
+def test_single_frt(tmp_path):
+    """
+    Test case where single historical forecast value provided.
+    """
+    kgo_dir = acc.kgo_root() / "calculate-forecast-bias"
+    kgo_path = kgo_dir / "single_frt" / "kgo.nc"
+    inputs_path = (kgo_dir / "inputs").glob("20220811T0300Z-PT00*.nc")
     output_path = tmp_path / "output.nc"
     args = [
-        input_path,
-        "--time",
-        f"{time}",
-        "--include-dst",
+        *inputs_path,
+        "--truth-attribute",
+        "mosg__model_configuration=msas_det",
         "--output",
         output_path,
     ]
@@ -85,21 +58,18 @@ def test_with_dst(tmp_path, time, grid):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize("grid", GRIDS)
-def test_grouping(tmp_path, grid):
-    """Test masks generated with grouping produce the expected output."""
-
-    kgo_dir = acc.kgo_root() / f"generate-timezone-mask-ancillary/{grid}/"
-    kgo_path = kgo_dir / "grouped_kgo.nc"
-    input_path = kgo_dir / "input.nc"
-    groups = kgo_dir / "group_config.json"
+def test_multiple_frt(tmp_path):
+    """
+    Test case where multiple historical forecast values provided.
+    """
+    kgo_dir = acc.kgo_root() / "calculate-forecast-bias"
+    kgo_path = kgo_dir / "multiple_frt" / "kgo.nc"
+    inputs_path = (kgo_dir / "inputs").glob("202208*T0300Z-PT00*.nc")
     output_path = tmp_path / "output.nc"
     args = [
-        input_path,
-        "--time",
-        "20210615T1200Z",
-        "--groupings",
-        groups,
+        *inputs_path,
+        "--truth-attribute",
+        "mosg__model_configuration=msas_det",
         "--output",
         output_path,
     ]
