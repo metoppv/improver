@@ -1395,9 +1395,6 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
                     calibrated_cube.remove_coord(coord.name())
             calibrated_cubes.append(calibrated_cube)
 
-        # remove auxiliary coordinates from calibrated cubes to ensure
-        # merge promotes desired dimension coordinate
-
         calibrated_forecast = calibrated_cubes.merge_cube()
         # add auxiliary coordinates back to the calibrated cube
         for dim_coord in dim_associated_coords.keys():
