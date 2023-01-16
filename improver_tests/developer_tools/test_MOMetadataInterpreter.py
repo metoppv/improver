@@ -189,20 +189,6 @@ def test_spot_median(blended_spot_median_cube, interpreter):
     assert not interpreter.warnings
 
 
-def test_spot_timezone(blended_spot_timezone_cube, interpreter):
-    """Test interpretation of spot on timezones"""
-    interpreter.run(blended_spot_timezone_cube)
-    assert interpreter.prod_type == "spot"
-    assert interpreter.field_type == "percentiles"
-    assert interpreter.diagnostic == "air_temperature"
-    assert interpreter.relative_to_threshold is None
-    assert not interpreter.methods
-    assert interpreter.post_processed
-    assert interpreter.model == "MOGREPS-G"
-    assert not interpreter.blended
-    assert not interpreter.warnings
-
-
 def test_wind_direction(wind_direction_cube, interpreter):
     """Test interpretation of wind direction field with mean over realizations
     cell method"""
@@ -443,24 +429,6 @@ def test_error_time_coord_units(probability_above_cube, interpreter):
     probability_above_cube.coord("forecast_period").convert_units("hours")
     with pytest.raises(ValueError, match="does not have required units"):
         interpreter.run(probability_above_cube)
-
-
-def test_error_timezone_has_scalar_time(blended_spot_timezone_cube, interpreter):
-    """Test error raised if a timezones cube has a scalar time coord"""
-    cube = blended_spot_timezone_cube.copy()
-    time_coord = cube.coord("time").copy()
-    cube.remove_coord("time")
-    cube.add_aux_coord(
-        AuxCoord(
-            time_coord.points[0],
-            standard_name=time_coord.standard_name,
-            units=time_coord.units,
-        )
-    )
-    with pytest.raises(
-        ValueError, match="Coordinate time does not span all horizontal coordinates"
-    ):
-        interpreter.run(cube)
 
 
 # Test the interpreter can return multiple errors.

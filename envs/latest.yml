@@ -27,7 +27,6 @@ dependencies:
   - lightgbm
   - numba
   - pysteps
-  - timezonefinder
   - treelite
   # Development
   - astroid

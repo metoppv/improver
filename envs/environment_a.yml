@@ -24,7 +24,6 @@ dependencies:
   - numba=0.53.1
   - pysteps=1.4.1
   - python-stratify=0.1.1
-  - timezonefinder=4.1.0
   # Development
   - astroid
   - bandit

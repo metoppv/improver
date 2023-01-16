@@ -39,15 +39,11 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.spot_extraction import SpotExtraction
-from improver.synthetic_data.set_up_test_cubes import (
-    _create_time_point,
-    set_up_variable_cube,
-)
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -105,36 +101,28 @@ class Test_SpotExtraction(IrisTest):
             anchor_start=False,
         )
 
-        times = np.array([time + timedelta(hours=i) for i in range(-3, 2)])
+        locations = np.array([0 + i for i in range(-3, 2)])
 
         # Create as int64 values
-        time_points = np.array([_create_time_point(time) for time in times])
-        bounds = np.array(
-            [
-                [
-                    _create_time_point(time - timedelta(hours=1)),
-                    _create_time_point(time),
-                ]
-                for time in times
-            ]
-        )
-        # Broadcast the times to a 2-dimensional grid that matches the diagnostic
+        location_points = np.array([location for location in locations])
+        bounds = np.array([[location - 1, location] for location in locations])
+
+        # Broadcast the locations to a 2-dimensional grid that matches the diagnostic
         # data grid
-        time_points = np.broadcast_to(time_points, (5, 5))
+        location_points = np.broadcast_to(location_points, (5, 5))
         bounds = np.broadcast_to(bounds, (5, 5, 2))
-        # Create a 2-dimensional auxiliary time coordinate
-        self.time_aux_coord = iris.coords.AuxCoord(
-            time_points, "time", bounds=bounds, units=TIME_COORDS["time"].units
+        # Create a 2-dimensional auxiliary coordinate
+        self.location_aux_coord = iris.coords.AuxCoord(
+            location_points, long_name="location", bounds=bounds, units="degrees"
         )
 
-        diagnostic_cube_2d_time = diagnostic_cube_yx.copy()
-        diagnostic_cube_2d_time.coord("time").rename("time_in_local_timezone")
-        diagnostic_cube_2d_time.add_aux_coord(self.time_aux_coord, data_dims=(0, 1))
+        diagnostic_cube_2d_aux = diagnostic_cube_yx.copy()
+        diagnostic_cube_2d_aux.add_aux_coord(self.location_aux_coord, data_dims=(0, 1))
 
         expected_indices = [[0, 0], [0, 0], [2, 2], [2, 2]]
-        points = [self.time_aux_coord.points[y, x] for y, x in expected_indices]
-        bounds = [self.time_aux_coord.bounds[y, x] for y, x in expected_indices]
-        self.expected_spot_time_coord = self.time_aux_coord.copy(
+        points = [self.location_aux_coord.points[y, x] for y, x in expected_indices]
+        bounds = [self.location_aux_coord.bounds[y, x] for y, x in expected_indices]
+        self.expected_spot_aux_coord = self.location_aux_coord.copy(
             points=points, bounds=bounds
         )
 
@@ -181,7 +169,7 @@ class Test_SpotExtraction(IrisTest):
 
         self.diagnostic_cube_xy = diagnostic_cube_xy
         self.diagnostic_cube_yx = diagnostic_cube_yx
-        self.diagnostic_cube_2d_time = diagnostic_cube_2d_time
+        self.diagnostic_cube_2d_aux = diagnostic_cube_2d_aux
         self.neighbours = neighbours
         self.neighbour_cube = neighbour_cube
         self.coordinate_cube = coordinate_cube
@@ -292,15 +280,15 @@ class Test_get_aux_coords(Test_SpotExtraction):
 
         expected_scalar = [
             coord
-            for coord in self.diagnostic_cube_2d_time.aux_coords
-            if coord.name()
-            in ["time_in_local_timezone", "forecast_reference_time", "forecast_period"]
+            for coord in self.diagnostic_cube_2d_aux.aux_coords
+            if coord.name() in ["time", "forecast_reference_time", "forecast_period"]
         ]
-        expected_nonscalar = [self.expected_spot_time_coord]
+        expected_nonscalar = [self.expected_spot_aux_coord]
+
         x_indices, y_indices = self.coordinate_cube.data
 
         scalar, nonscalar = plugin.get_aux_coords(
-            self.diagnostic_cube_2d_time, x_indices, y_indices
+            self.diagnostic_cube_2d_aux, x_indices, y_indices
         )
         self.assertArrayEqual(scalar, expected_scalar)
         self.assertArrayEqual(nonscalar, expected_nonscalar)
@@ -311,16 +299,16 @@ class Test_get_aux_coords(Test_SpotExtraction):
         of the 2D non-scalar input coordinates at spot sites."""
         plugin = SpotExtraction()
 
-        additional_2d_crd = self.time_aux_coord.copy()
+        additional_2d_crd = self.location_aux_coord.copy()
         additional_2d_crd.rename("kittens")
-        self.diagnostic_cube_2d_time.add_aux_coord(additional_2d_crd, data_dims=(0, 1))
-        additional_expected = self.expected_spot_time_coord.copy()
+        self.diagnostic_cube_2d_aux.add_aux_coord(additional_2d_crd, data_dims=(0, 1))
+        additional_expected = self.expected_spot_aux_coord.copy()
         additional_expected.rename("kittens")
-        expected_nonscalar = [additional_expected, self.expected_spot_time_coord]
+        expected_nonscalar = [additional_expected, self.expected_spot_aux_coord]
         x_indices, y_indices = self.coordinate_cube.data
 
         _, nonscalar = plugin.get_aux_coords(
-            self.diagnostic_cube_2d_time, x_indices, y_indices
+            self.diagnostic_cube_2d_aux, x_indices, y_indices
         )
         self.assertArrayEqual(nonscalar, expected_nonscalar)
 
@@ -334,12 +322,11 @@ class Test_get_coordinate_data(Test_SpotExtraction):
         coordinate. In this case the coordinate has bounds."""
         plugin = SpotExtraction()
 
-        expected_points = self.expected_spot_time_coord.points
-        expected_bounds = self.expected_spot_time_coord.bounds
+        expected_points = self.expected_spot_aux_coord.points
+        expected_bounds = self.expected_spot_aux_coord.bounds
         x_indices, y_indices = self.coordinate_cube.data
-
         points, bounds = plugin.get_coordinate_data(
-            self.diagnostic_cube_2d_time, x_indices, y_indices, coordinate="time"
+            self.diagnostic_cube_2d_aux, x_indices, y_indices, coordinate="location"
         )
         self.assertArrayEqual(points, expected_points)
         self.assertArrayEqual(bounds, expected_bounds)
@@ -349,13 +336,13 @@ class Test_get_coordinate_data(Test_SpotExtraction):
         coordinate. In this case the coordinate has no bounds."""
         plugin = SpotExtraction()
 
-        expected_points = self.expected_spot_time_coord.points
+        expected_points = self.expected_spot_aux_coord.points
         expected_bounds = None
         x_indices, y_indices = self.coordinate_cube.data
 
-        self.diagnostic_cube_2d_time.coord("time").bounds = None
+        self.diagnostic_cube_2d_aux.coord("location").bounds = None
         points, bounds = plugin.get_coordinate_data(
-            self.diagnostic_cube_2d_time, x_indices, y_indices, coordinate="time"
+            self.diagnostic_cube_2d_aux, x_indices, y_indices, coordinate="location"
         )
         self.assertArrayEqual(points, expected_points)
         self.assertArrayEqual(bounds, expected_bounds)
@@ -371,11 +358,11 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
         spot_values = np.array([0, 0, 12, 12])
         result = plugin.build_diagnostic_cube(
             self.neighbour_cube,
-            self.diagnostic_cube_2d_time,
+            self.diagnostic_cube_2d_aux,
             spot_values,
             unique_site_id=self.unique_site_id,
             unique_site_id_key=self.unique_site_id_key,
-            auxiliary_coords=[self.expected_spot_time_coord],
+            auxiliary_coords=[self.expected_spot_aux_coord],
         )
         self.assertArrayEqual(result.coord("latitude").points, self.latitudes)
         self.assertArrayEqual(result.coord("longitude").points, self.longitudes)
@@ -385,7 +372,7 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
             result.coord(self.unique_site_id_key).points, self.unique_site_id
         )
         self.assertArrayEqual(
-            result.coord("time").points, self.expected_spot_time_coord.points
+            result.coord("location").points, self.expected_spot_aux_coord.points
         )
         self.assertArrayEqual(result.data, spot_values)
 
@@ -491,10 +478,10 @@ class Test_process(Test_SpotExtraction):
         plugin = SpotExtraction()
         result = plugin.process(
             self.neighbour_cube,
-            self.diagnostic_cube_2d_time,
+            self.diagnostic_cube_2d_aux,
             new_title="IMPROVER Spot Forecast",
         )
-        self.assertEqual(result.coord("time"), self.expected_spot_time_coord)
+        self.assertEqual(result.coord("location"), self.expected_spot_aux_coord)
 
     def test_removal_of_internal_metadata(self):
         """Test that internal metadata used to identify the unique id coordinate
