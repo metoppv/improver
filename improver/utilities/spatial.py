@@ -449,23 +449,23 @@ def maximum_within_vicinity(grid: ndarray, grid_point_radius: int, fill_value: f
     return processed_grid
 
 
-def add_vicinity_metadata(cube: Cube, radius: Union[float, int], native_grid_point_radius: bool = False) -> None:
-    """
-    Add a coordinate to the cube that records the vicinity radius that
-    has been applied to the data.
-
-    Args:
-        cube:
-            Vicinity processed cube.
-        radius:
-            The radius as a physical distance or number of grid points, the
-            value of which is recorded in the coordinate.
-    """
+def rename_vicinity_cube(cube):
     if is_probability(cube):
         cube.rename(in_vicinity_name_format(cube.name()))
     else:
         cube.rename(f"{cube.name()}_in_vicinity")
 
+
+def create_vicinity_coord(radius: Union[float, int], native_grid_point_radius: bool = False) -> None:
+    """
+    Add a coordinate to the cube that records the vicinity radius that
+    has been applied to the data.
+
+    Args:
+        radius:
+            The radius as a physical distance or number of grid points, the
+            value of which is recorded in the coordinate.
+    """
     if native_grid_point_radius:
         point = np.array(radius, dtype=np.float32)
         units = "1"
@@ -617,13 +617,14 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             result_cube = check_cube_coordinates(cube, result_cube)
 
             # Add a coordinate recording the vicinity radius applied to the data.
-            vic_coord = add_vicinity_metadata(result_cube, radius, self.native_grid_point_radius)
+            vic_coord = create_vicinity_coord(radius, self.native_grid_point_radius)
             result_cube.add_aux_coord(vic_coord)
             radii_cubes.append(result_cube)
 
         # Merge cubes produced for each vicinity radius.
         result_cube = radii_cubes.merge_cube()
-
+        # Set cube name to reflect vicinity processing.
+        rename_vicinity_cube(result_cube)
         # Enforce order of leading dimensions on the output to match the input.
         enforce_coordinate_ordering(result_cube, leading_dimensions)
 
