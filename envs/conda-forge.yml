@@ -20,7 +20,7 @@ dependencies:
   - numpy<1.21
   - scipy<1.7
   - sigtools
-  - sphinx
+  - sphinx=5.3.0
   # Additional libraries to run tests, not included in improver-feedstock
   - bandit
   - filelock
