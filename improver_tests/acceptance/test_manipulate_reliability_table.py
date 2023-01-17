@@ -63,3 +63,16 @@ def test_manipulate_minimum_forecast_count(tmp_path):
     args = [table_path, "--minimum-forecast-count", "300", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_manipulate_point_by_point(tmp_path):
+    """
+    Test manipulation of a reliability table using point_by_point functionality
+    """
+    kgo_dir = acc.kgo_root() / "manipulate-reliability-table/point_by_point"
+    kgo_path = kgo_dir / "kgo_point_by_point.nc"
+    table_path = kgo_dir / "reliability_table_point_by_point.nc"
+    output_path = tmp_path / "output.nc"
+    args = [table_path, "--point-by-point", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

@@ -532,14 +532,16 @@ def test_process_no_change_point(create_rel_tables_point):
     rel_table = create_rel_tables_point.table
     result = Plugin(point_by_point=True).process(rel_table.copy())
 
-    assert all(len(result_list) == 9 for result_list in result)
+    assert len(result) == 18
     expected = rel_table.data[create_rel_tables_point.indices0]
-    assert all([np.array_equal(cube.data, expected) for cube in result[0]])
+    assert all([np.array_equal(cube.data, expected) for cube in result[:9]])
+    expected = rel_table.data[create_rel_tables_point.indices2]
+    assert all([np.array_equal(cube.data, expected) for cube in result[9:]])
 
     coords_exclude = ["latitude", "longitude", "spot_index", "wmo_id"]
     coords_table = [c for c in rel_table[0].coords() if c.name() not in coords_exclude]
     # Ensure coords are in the same order
-    coords_result = [result[0][0].coords(c.name())[0] for c in coords_table]
+    coords_result = [result[0].coord(c.name()) for c in coords_table]
     assert coords_table == coords_result
 
 
@@ -563,13 +565,15 @@ def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
     )
 
     result = Plugin(point_by_point=True).process(rel_table.copy())
-    assert_array_equal(result[0][0].data, expected_data)
+    assert_array_equal(result[0].data, expected_data)
     assert_allclose(
-        result[0][0].coord("probability_bin").points, expected_bin_coord_points
+        result[0].coord("probability_bin").points, expected_bin_coord_points
     )
     assert_allclose(
-        result[0][0].coord("probability_bin").bounds, expected_bin_coord_bounds
+        result[0].coord("probability_bin").bounds, expected_bin_coord_bounds
     )
     # Check the unchanged data remains unchanged
     expected = rel_table.data[create_rel_tables_point.indices1]
-    assert all([np.array_equal(cube.data, expected) for cube in result[0][1:]])
+    assert all([np.array_equal(cube.data, expected) for cube in result[1:9]])
+    expected = rel_table.data[create_rel_tables_point.indices2]
+    assert all([np.array_equal(cube.data, expected) for cube in result[9:]])
