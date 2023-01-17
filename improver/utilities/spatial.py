@@ -421,6 +421,12 @@ def maximum_within_vicinity(grid: ndarray, grid_point_radius: int, fill_value: f
         they're equally likely to have occurred anywhere within the
         vicinity defined using the specified radius.
     """
+    if grid.ndim != 2:
+        raise ValueError(
+            "maximum_within_vicinity is expected to operate on a 2D "
+            "array. Data with additional dimensions will silently be "
+            "processed and may result in unexpected results."
+        )
     # Convert the grid_point_radius into a number of points along an edge
     # length, including the central point, e.g. grid_point_radius = 1,
     # points along the edge = 3
