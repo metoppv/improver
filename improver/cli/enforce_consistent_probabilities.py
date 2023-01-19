@@ -31,10 +31,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to enforce consistent probabilities between two forecasts."""
 
-from iris.cube import CubeList
-
 from improver import cli
-from improver.utilities.flatten import flatten
 
 
 @cli.clizefy
@@ -63,9 +60,12 @@ def process(*cubes: cli.inputcubelist, ref_name: str = None):
             lowered probabilities to be less than or equal to the
             reference forecast
     """
+    from iris.cube import CubeList
+
     from improver.calibration.reliability_calibration import (
         EnforceConsistentProbabilities,
     )
+    from improver.utilities.flatten import flatten
 
     cubes = flatten(cubes)
 

@@ -1444,6 +1444,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         return calibrated_forecast
 
+
 class EnforceConsistentProbabilities(PostProcessingPlugin):
     """Reduces the probabilities of a forecast to make it consistent
     with another provided forecast.
