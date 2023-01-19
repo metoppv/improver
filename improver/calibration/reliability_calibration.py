@@ -49,11 +49,13 @@ from improver.calibration.utilities import (
     create_unified_frt_coord,
     filter_non_matching_cubes,
 )
+from improver.cube_combiner import Combine
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
+from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_manipulation import MergeCubes, collapsed
 
 
@@ -1324,3 +1326,54 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
             warnings.warn(msg)
 
         return calibrated_forecast
+
+
+class EnforceConsistentProbabilities(PostProcessingPlugin):
+    """Reduces the probabilities of a forecast to make it consistent
+    with another provided forecast.
+    """
+
+    def __init__(self):
+        """
+        Initialise class for enforcing probabilities between two forecasts.
+        """
+
+    def process(self, forecast_cube: Cube, ref_forecast: Cube) -> Cube:
+        """
+        Lowers the probabilities of the forecast_cube to make it consistent with
+        the reference forecast. This is done by lowering the probabilities of the forecast cube,
+        to be equal to the reference forecast if they are higher than the reference forecast.
+        If the probability is already less than or equal to the reference forecast then the
+        probability is not altered.
+
+        Args:
+            forecast_cube:
+                A forecast cube of probabilities
+            ref_forecast:
+                A cube of probabilities that is used as an upper limit for
+                the forecast_cube probabilities. It must have the same dimensions
+                as the forecast_cube.
+
+        Returns:
+            A forecast cube of probabilities that has identical metadata to forecast_cube but
+            with reduced probabilities to make it consistent with ref_forecast
+        """
+
+        assert_spatial_coords_match([forecast_cube, ref_forecast])
+
+        # puts ref_forecast's data into a cube with the same metadata as forecast_cube so they
+        # can be combined
+        ref_forecast_metadata = forecast_cube.copy(data=ref_forecast.data)
+
+        diff = Combine(operation="-")([ref_forecast_metadata, forecast_cube])
+        diff.data = np.clip(diff.data, None, 0)
+
+        new_forecast = Combine(operation="+")([forecast_cube, diff])
+
+        if np.amin(diff.data) < -0.3:
+            warnings.warn(
+                f"Inconsistency between forecast {forecast_cube.name} and {ref_forecast.name}"
+                "is greater than 0.3"
+            )
+
+        return new_forecast
