@@ -14,8 +14,7 @@ jobs:
     if: "github.repository == 'metoppv/improver'"
     runs-on: ubuntu-latest
     steps:
-        # Using actions/stale@v5
-      - uses: actions/stale@3cc123766321e9f15a6676375c154ccffb12a358
+      - uses: actions/stale@v7
         with:
           repo-token: ${{ secrets.GITHUB_TOKEN }}
 
