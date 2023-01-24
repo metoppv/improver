@@ -385,3 +385,32 @@ def test_no_realization_coordinate(
         "time",
     ]
     assert result.shape == (3, 2)
+
+
+@pytest.mark.parametrize("missing_value", (np.nan, True, np.inf))
+def test_include_missing_data(
+    missing_value,
+    temperature_on_pressure_levels,
+    ccl_pressure,
+    ccl_temperature,
+    wet_bulb_freezing,
+    orography,
+):
+    """Test plugin if near-surface pressure levels contain missing values"""
+
+    if missing_value is True:
+        temperature_on_pressure_levels.data = np.ma.MaskedArray(temperature_on_pressure_levels.data, mask=False)
+        temperature_on_pressure_levels.data.mask[0, 0, 0, 0] = missing_value
+    else:
+        temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
+        temperature_on_pressure_levels.data[0, 0, 0, 0] = missing_value
+    result = HailSize()(
+        ccl_temperature,
+        ccl_pressure,
+        temperature_on_pressure_levels,
+        wet_bulb_freezing,
+        orography,
+    )
+    np.testing.assert_array_almost_equal(result.data, 0.1)
+    metadata_check(result)
+    cube_shape_check(result)
