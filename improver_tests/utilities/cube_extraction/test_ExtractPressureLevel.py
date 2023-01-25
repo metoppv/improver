@@ -151,11 +151,15 @@ def test_basic(
         temperature_on_pressure_levels.data = np.ma.MaskedArray(
             temperature_on_pressure_levels.data, mask=False
         )
-        temperature_on_pressure_levels.data.mask[0, special_value_index, 0, 0] = special_value
+        temperature_on_pressure_levels.data.mask[
+            0, special_value_index, 0, 0
+        ] = special_value
     else:
         temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
         if isinstance(special_value, float):
-            temperature_on_pressure_levels.data[0, special_value_index, 0, 0] = special_value
+            temperature_on_pressure_levels.data[
+                0, special_value_index, 0, 0
+            ] = special_value
         else:
             if special_value_index < 0:
                 temperature_on_pressure_levels.data[0, -2:, 0, 0] = special_value
