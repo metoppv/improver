@@ -353,26 +353,88 @@ class ExtractPressureLevel(BasePlugin):
         )
         return pressure_array
 
-    @staticmethod
-    def fill_invalid(cube: Cube):
+    def fill_invalid(self, cube: Cube):
         """Populate any invalid values with the maximum non-infinite value in that column
         on the assumption that missing values fall below the model's surface.
         (The maximum is actually inflated by 0.1 to allow the interpolator to work)."""
+        if not (
+            np.logical_or(np.isnan(cube.data), np.isinf(cube.data)).any()
+            or np.ma.is_masked(cube.data)
+        ):
+            return
+        data = np.ma.masked_invalid(cube.data)
         (pressure_axis,) = cube.coord_dims("pressure")
-        cube_shape = np.array(cube.shape)
-        max_shape = cube_shape.copy()
-        max_shape[pressure_axis] = 1
-        max_values = (
-            np.nanmax(
-                np.where(np.isinf(cube.data), -np.inf, cube.data), axis=pressure_axis
-            ).reshape(max_shape)
-            + 0.1
+        pressure_points = cube.coord("pressure").points
+        one_p_column = self._one_column_slice(cube)
+        # Find the median increment to use as an offset for filling missing values
+        v_increment = np.nanmedian(np.diff(cube.data[one_p_column].squeeze()))
+        self._one_way_fill(
+            data, pressure_axis, pressure_points, v_increment, reverse=True
         )
-        cube.data = np.where(
-            np.logical_or(np.isnan(cube.data), np.isinf(cube.data)),
-            max_values,
-            cube.data,
+        cube.data = data
+        if not (
+            np.logical_or(np.isnan(cube.data), np.isinf(cube.data)).any()
+            or np.ma.is_masked(cube.data)
+        ):
+            # We've filled everything in. No need to try again.
+            return
+        self._one_way_fill(
+            data, pressure_axis, pressure_points, v_increment, reverse=False
         )
+        cube.data = data
+
+    def _one_way_fill(
+        self,
+        data: np.ma.MaskedArray,
+        pressure_axis: int,
+        pressure_points: np.ndarray,
+        v_increment: np.ndarray,
+        reverse: bool = False,
+    ):
+        """
+        Scans through the pressure axis forwards or backwards, filling any missing data with the
+        value plus (or minus in reverse) the specified increment.
+        """
+        last_p_slice = [slice(None) for _ in range(data.ndim)]
+        if reverse:
+            local_increment = -v_increment
+            first = len(pressure_points) - 2
+            last = -1
+            step = -1
+            last_p_slice[pressure_axis] = slice(
+                len(pressure_points) - 1, len(pressure_points)
+            )
+        else:
+            local_increment = v_increment
+            first = 1
+            last = len(pressure_points)
+            step = 1
+        last_p_slice[pressure_axis] = slice(0, 1)
+        for p in range(first, last, step):
+            p_slice = [slice(None) for _ in range(data.ndim)]
+            p_slice[pressure_axis] = slice(p, p + 1)
+            data[p_slice] = np.where(
+                np.logical_or(
+                    data.mask[p_slice],
+                    np.logical_or(np.isnan(data[p_slice]), np.isinf(data[p_slice])),
+                ),
+                data[last_p_slice] + local_increment,
+                data[p_slice],
+            )
+            last_p_slice = p_slice
+
+    @staticmethod
+    def _one_column_slice(cube: Cube) -> List[slice]:
+        """Create a slice object that will yield a single column from near the spatial centre
+        of the cube. Other leading dimensions will use the zeroth point."""
+        (pressure_axis,) = cube.coord_dims("pressure")
+        x_point = cube.shape[-1] // 2
+        y_point = cube.shape[-2] // 2
+        used_point = min(x_point, y_point)
+        one_column = [slice(0, 1) for _ in range(cube.ndim)]
+        one_column[pressure_axis] = slice(None)
+        one_column[-2:] = [slice(used_point, used_point + 1)] * 2
+        return one_column
 
     def fill_in_bounds(
         self, result_array: np.ma.MaskedArray, source_cube: Cube
@@ -386,9 +448,8 @@ class ExtractPressureLevel(BasePlugin):
         min_pressure = pressure_coord.points.min()
         (pressure_axis,) = source_cube.coord_dims("pressure")
         max_pressure_index = np.argmax(pressure_coord.points)
-        # Define a slice of the zeroth pressure column when pressure_axis is dynamic
-        one_p_column = [slice(0, 1) for _ in range(source_cube.ndim)]
-        one_p_column[pressure_axis] = slice(None)
+        # Define a slice of one pressure column
+        one_p_column = self._one_column_slice(source_cube)
         # Define increasing_v_order if at least half of the differences in the
         # zeroth pressure column are positive
         increasing_v_order = (

@@ -103,7 +103,7 @@ def cube_shape_check_without_realizations(pressure_slice_cube):
 
 
 @pytest.mark.parametrize("reverse_pressure", (False, True))
-@pytest.mark.parametrize("special_value", (np.nan, True, np.inf))
+@pytest.mark.parametrize("special_value", (np.nan, True, np.inf, (np.nan, np.nan)))
 @pytest.mark.parametrize("with_realization", (True, False))
 @pytest.mark.parametrize(
     "temperature,expected_p_index",
@@ -129,11 +129,14 @@ def test_basic(
     Tests behaviour with different special values in the temperature data.
     Tests behaviour with and without a realization coordinate.
     Also checks the metadata of the output cube"""
+    special_value_index = 0
     if reverse_pressure:
-        # Flip the pressure coordinate for this test
+        # Flip the pressure coordinate for this test. We also swap which end the
+        # special value goes, so we can test _one_way_fill in both modes.
         temperature_on_pressure_levels.coord(
             "pressure"
         ).points = temperature_on_pressure_levels.coord("pressure").points[::-1]
+        special_value_index = -1
     expected = np.interp(
         expected_p_index,
         range(len(temperature_on_pressure_levels.coord("pressure").points)),
@@ -148,10 +151,16 @@ def test_basic(
         temperature_on_pressure_levels.data = np.ma.MaskedArray(
             temperature_on_pressure_levels.data, mask=False
         )
-        temperature_on_pressure_levels.data.mask[0, 0, 0, 0] = special_value
+        temperature_on_pressure_levels.data.mask[0, special_value_index, 0, 0] = special_value
     else:
         temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
-        temperature_on_pressure_levels.data[0, 0, 0, 0] = special_value
+        if isinstance(special_value, float):
+            temperature_on_pressure_levels.data[0, special_value_index, 0, 0] = special_value
+        else:
+            if special_value_index < 0:
+                temperature_on_pressure_levels.data[0, -2:, 0, 0] = special_value
+            else:
+                temperature_on_pressure_levels.data[0, 0:2, 0, 0] = special_value
 
     if not with_realization:
         temperature_on_pressure_levels = temperature_on_pressure_levels[0]
