@@ -107,5 +107,5 @@ def test_difference_too_large(hybrid_cloud, total_cloud):
 
     hybrid_cloud.data = np.full_like(hybrid_cloud.data, 0.9)
 
-    with pytest.warns():
+    with pytest.warns(UserWarning, match="Inconsistency between forecast"):
         EnforceConsistentProbabilities()(hybrid_cloud, total_cloud)

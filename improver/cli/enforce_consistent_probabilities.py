@@ -48,7 +48,7 @@ def process(*cubes: cli.inputcubelist, ref_name: str = None):
                     Cube of probabilities
                 ref_forecast (iris.cube.Cube)
                     Cube of probabilities used as the upper cap for
-                    forecast_cube probabilities. It be the same shape as
+                    forecast_cube probabilities. It must be the same shape as
                     forecast_cube but have a different name.
 
         ref_name (str):

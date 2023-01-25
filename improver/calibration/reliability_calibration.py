@@ -1450,10 +1450,11 @@ class EnforceConsistentProbabilities(PostProcessingPlugin):
     with another provided forecast.
     """
 
-    def __init__(self):
+    def __init__(self) -> None:
         """
         Initialise class for enforcing probabilities between two forecasts.
         """
+        self.diff_for_warning = 0.3
 
     def process(self, forecast_cube: Cube, ref_forecast: Cube) -> Cube:
         """
@@ -1483,14 +1484,19 @@ class EnforceConsistentProbabilities(PostProcessingPlugin):
         ref_forecast_metadata = forecast_cube.copy(data=ref_forecast.data)
 
         diff = Combine(operation="-")([ref_forecast_metadata, forecast_cube])
+
+        # clip the positive values such that only negative values or zeroes remain.
+        # These differences will be added to the forecast_cube probabilities.
         diff.data = np.clip(diff.data, None, 0)
 
         new_forecast = Combine(operation="+")([forecast_cube, diff])
 
-        if np.amin(diff.data) < -0.3:
+        largest_change = abs(np.amin(diff.data))
+        if largest_change > self.diff_for_warning:
             warnings.warn(
                 f"Inconsistency between forecast {forecast_cube.name} and {ref_forecast.name}"
-                "is greater than 0.3"
+                f"is greater than {self.diff_for_warning}. Maximum absolute difference reported"
+                f"was {largest_change}"
             )
 
         return new_forecast
