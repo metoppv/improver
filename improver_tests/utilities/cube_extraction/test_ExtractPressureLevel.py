@@ -102,35 +102,56 @@ def cube_shape_check_without_realizations(pressure_slice_cube):
     assert pressure_slice_cube.shape == (3, 2)
 
 
-@pytest.mark.parametrize("missing_value", (np.nan, True, np.inf))
+@pytest.mark.parametrize("reverse_pressure", (False, True))
+@pytest.mark.parametrize("special_value", (np.nan, True, np.inf))
 @pytest.mark.parametrize("with_realization", (True, False))
 @pytest.mark.parametrize(
-    "temperature,expected",
+    "temperature,expected_p_index",
     (
-        (280, 80000),  # Exactly matches a pressure value
-        (277, 75000),  # Half way between pressure values
-        (301, 100000),  # Temperature above max snaps to max
-        (244, 30000),  # Temperature below min snaps to min
+        (280, 2),  # Exactly matches a pressure value
+        (277, 2.5),  # Half way between pressure values
+        (301, 0),  # Temperature above max snaps to pressure at max
+        (244, 7),  # Temperature below min snaps to pressure at min
     ),
 )
 def test_basic(
-    temperature, temperature_on_pressure_levels, expected, with_realization, missing_value,
+    temperature,
+    temperature_on_pressure_levels,
+    expected_p_index,
+    with_realization,
+    special_value,
+    reverse_pressure,
 ):
     """Tests the ExtractPressureLevel plugin with values for temperature and
     temperature on pressure levels to check for expected result.
+    Tests behaviour when temperature and/or pressure increase or decrease along
+    the pressure axis.
+    Tests behaviour with different special values in the temperature data.
+    Tests behaviour with and without a realization coordinate.
     Also checks the metadata of the output cube"""
+    if reverse_pressure:
+        # Flip the pressure coordinate for this test
+        temperature_on_pressure_levels.coord(
+            "pressure"
+        ).points = temperature_on_pressure_levels.coord("pressure").points[::-1]
+    expected = np.interp(
+        expected_p_index,
+        range(len(temperature_on_pressure_levels.coord("pressure").points)),
+        temperature_on_pressure_levels.coord("pressure").points,
+    )
     expected_data = np.full_like(
         temperature_on_pressure_levels.data[:, 0, ...], expected
     )
 
-    if missing_value is True:
+    if special_value is True:
         # This is a proxy for setting a mask=True entry
-        temperature_on_pressure_levels.data = np.ma.MaskedArray(temperature_on_pressure_levels.data,
-                                                                mask=False)
-        temperature_on_pressure_levels.data.mask[0, 0, 0, 0] = missing_value
+        temperature_on_pressure_levels.data = np.ma.MaskedArray(
+            temperature_on_pressure_levels.data, mask=False
+        )
+        temperature_on_pressure_levels.data.mask[0, 0, 0, 0] = special_value
     else:
         temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
-        temperature_on_pressure_levels.data[0, 0, 0, 0] = missing_value
+        temperature_on_pressure_levels.data[0, 0, 0, 0] = special_value
 
     if not with_realization:
         temperature_on_pressure_levels = temperature_on_pressure_levels[0]

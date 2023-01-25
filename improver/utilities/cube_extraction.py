@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to parse a list of constraints and extract matching subcube """
 
+import operator
 from ast import literal_eval
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -354,14 +355,63 @@ class ExtractPressureLevel(BasePlugin):
 
     @staticmethod
     def fill_invalid(cube: Cube):
-        """Populate any invalid values with the maximum in that column on the assumption
-        that missing values fall below the model's surface."""
+        """Populate any invalid values with the maximum non-infinite value in that column
+        on the assumption that missing values fall below the model's surface.
+        (The maximum is actually inflated by 0.1 to allow the interpolator to work)."""
         (pressure_axis,) = cube.coord_dims("pressure")
         cube_shape = np.array(cube.shape)
         max_shape = cube_shape.copy()
         max_shape[pressure_axis] = 1
-        max_values = np.nanmax(cube.data, axis=pressure_axis).reshape(max_shape)
-        cube.data = np.where(np.isnan(cube.data), max_values, cube.data)
+        max_values = (
+            np.nanmax(
+                np.where(np.isinf(cube.data), -np.inf, cube.data), axis=pressure_axis
+            ).reshape(max_shape)
+            + 0.1
+        )
+        cube.data = np.where(
+            np.logical_or(np.isnan(cube.data), np.isinf(cube.data)),
+            max_values,
+            cube.data,
+        )
+
+    def fill_in_bounds(
+        self, result_array: np.ma.MaskedArray, source_cube: Cube
+    ) -> np.ndarray:
+        """Populate any invalid values with the maximum or minimum pressure for that column.
+        Maximum pressure is chosen if the maximum data value in the column is lower than
+        the value of self.value_of_pressure_level"""
+        pressure_coord = source_cube.coord("pressure")
+        increasing_p_order = np.all(np.diff(pressure_coord.points) > 0)
+        max_pressure = pressure_coord.points.max()
+        min_pressure = pressure_coord.points.min()
+        (pressure_axis,) = source_cube.coord_dims("pressure")
+        max_pressure_index = np.argmax(pressure_coord.points)
+        # Define a slice of the zeroth pressure column when pressure_axis is dynamic
+        one_p_column = [slice(0, 1) for _ in range(source_cube.ndim)]
+        one_p_column[pressure_axis] = slice(None)
+        # Define increasing_v_order if at least half of the differences in the
+        # zeroth pressure column are positive
+        increasing_v_order = (
+            np.diff(source_cube.data[one_p_column].squeeze()) > 0
+        ).sum() > len(pressure_coord.points) / 2
+        # Now we can compare the values at the maximum pressure with the requested value
+        # Using an appropriate operator based on whether value and pressure are increasing
+        comparator = (
+            operator.lt if increasing_v_order == increasing_p_order else operator.gt
+        )
+        values_at_max_pressure = source_cube.data.take(
+            axis=pressure_axis, indices=max_pressure_index
+        )
+        result_array = np.ma.where(
+            np.logical_and(
+                comparator(values_at_max_pressure, self.value_of_pressure_level),
+                result_array.mask,
+            ),
+            max_pressure,
+            result_array,
+        )
+        result_array = np.where(result_array.mask, min_pressure, result_array)
+        return result_array
 
     def _make_pressure_cube(
         self, result_data: np.array, variable_on_pressure_levels: Cube
@@ -420,6 +470,7 @@ class ExtractPressureLevel(BasePlugin):
             else:
                 result_data = interp_data
         result_data = np.ma.masked_invalid(result_data)
+        result_data = self.fill_in_bounds(result_data, variable_on_pressure_levels)
 
         pressure_cube = self._make_pressure_cube(
             result_data, variable_on_pressure_levels
