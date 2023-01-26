@@ -103,7 +103,9 @@ def cube_shape_check_without_realizations(pressure_slice_cube):
 
 
 @pytest.mark.parametrize("reverse_pressure", (False, True))
-@pytest.mark.parametrize("special_value", (np.nan, True, np.inf, (np.nan, np.nan)))
+@pytest.mark.parametrize(
+    "special_value", (None, np.nan, True, np.inf, (np.nan, np.nan))
+)
 @pytest.mark.parametrize("with_realization", (True, False))
 @pytest.mark.parametrize(
     "temperature,expected_p_index",
@@ -154,6 +156,8 @@ def test_basic(
         temperature_on_pressure_levels.data.mask[
             0, special_value_index, 0, 0
         ] = special_value
+    elif special_value is None:
+        pass
     else:
         temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
         if isinstance(special_value, float):

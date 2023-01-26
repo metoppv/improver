@@ -354,9 +354,9 @@ class ExtractPressureLevel(BasePlugin):
         return pressure_array
 
     def fill_invalid(self, cube: Cube):
-        """Populate any invalid values with the maximum non-infinite value in that column
-        on the assumption that missing values fall below the model's surface.
-        (The maximum is actually inflated by 0.1 to allow the interpolator to work)."""
+        """Populate any invalid values with the neighbouring value in that column plus the median
+        difference. This results in columns that do not have repeated values, which confuses
+        the stratify.interpolate method."""
         if not (
             np.logical_or(np.isnan(cube.data), np.isinf(cube.data)).any()
             or np.ma.is_masked(cube.data)
@@ -383,8 +383,8 @@ class ExtractPressureLevel(BasePlugin):
         )
         cube.data = data
 
+    @staticmethod
     def _one_way_fill(
-        self,
         data: np.ma.MaskedArray,
         pressure_axis: int,
         pressure_points: np.ndarray,
@@ -393,7 +393,9 @@ class ExtractPressureLevel(BasePlugin):
     ):
         """
         Scans through the pressure axis forwards or backwards, filling any missing data with the
-        value plus (or minus in reverse) the specified increment.
+        previous value plus (or minus in reverse) the specified increment. Running this in both
+        directions will therefore populate all columns so long as there is at least one valid
+        data point to start with.
         """
         last_p_slice = [slice(None) for _ in range(data.ndim)]
         if reverse:
@@ -409,7 +411,8 @@ class ExtractPressureLevel(BasePlugin):
             first = 1
             last = len(pressure_points)
             step = 1
-        last_p_slice[pressure_axis] = slice(0, 1)
+            last_p_slice[pressure_axis] = slice(0, 1)
+
         for p in range(first, last, step):
             p_slice = [slice(None) for _ in range(data.ndim)]
             p_slice[pressure_axis] = slice(p, p + 1)
@@ -425,15 +428,16 @@ class ExtractPressureLevel(BasePlugin):
 
     @staticmethod
     def _one_column_slice(cube: Cube) -> List[slice]:
-        """Create a slice object that will yield a single column from near the spatial centre
-        of the cube. Other leading dimensions will use the zeroth point."""
+        """Create a slice object that will yield a single column along the pressure coordinate
+        from the spatial centre of the cube. Other leading dimensions will use the zeroth
+        point."""
         (pressure_axis,) = cube.coord_dims("pressure")
         x_point = cube.shape[-1] // 2
         y_point = cube.shape[-2] // 2
-        used_point = min(x_point, y_point)
         one_column = [slice(0, 1) for _ in range(cube.ndim)]
         one_column[pressure_axis] = slice(None)
-        one_column[-2:] = [slice(used_point, used_point + 1)] * 2
+        one_column[-2] = slice(y_point, y_point + 1)
+        one_column[-1] = slice(x_point, x_point + 1)
         return one_column
 
     def fill_in_bounds(
