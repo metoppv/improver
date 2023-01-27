@@ -473,6 +473,8 @@ class ExtractPressureLevel(BasePlugin):
         """Extracts the pressure level where the environment
         variable first intersects self.value_of_pressure_level starting at a pressure value
         near the surface and ascending in altitude from there.
+        Where the pressure surface falls outside the available data, the maximum or minimum
+        pressure will be returned, even if the source data has no value at that point.
 
         Args:
             variable_on_pressure_levels:
