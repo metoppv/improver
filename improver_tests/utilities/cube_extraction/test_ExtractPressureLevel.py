@@ -102,6 +102,7 @@ def cube_shape_check_without_realizations(pressure_slice_cube):
     assert pressure_slice_cube.shape == (3, 2)
 
 
+@pytest.mark.parametrize("least_significant_digit", (0, None))
 @pytest.mark.parametrize("reverse_pressure", (False, True))
 @pytest.mark.parametrize(
     "special_value", (None, np.nan, True, np.inf, (np.nan, np.nan))
@@ -123,6 +124,7 @@ def test_basic(
     with_realization,
     special_value,
     reverse_pressure,
+    least_significant_digit,
 ):
     """Tests the ExtractPressureLevel plugin with values for temperature and
     temperature on pressure levels to check for expected result.
@@ -175,6 +177,12 @@ def test_basic(
     if not with_realization:
         temperature_on_pressure_levels = temperature_on_pressure_levels[0]
         expected_data = expected_data[0]
+
+    if least_significant_digit:
+        temperature_on_pressure_levels.attributes[
+            "least_significant_digit"
+        ] = least_significant_digit
+
     result = ExtractPressureLevel(
         value_of_pressure_level=temperature, positive_correlation=positive_correlation
     )(temperature_on_pressure_levels)
@@ -185,3 +193,46 @@ def test_basic(
         cube_shape_check_with_realizations(result)
     else:
         cube_shape_check_without_realizations(result)
+
+
+@pytest.mark.parametrize(
+    "index, expected",
+    (
+        (0, 30000),
+        (1, 30000),
+        (2, 80000),
+        (3, 100000),
+        (4, 100000),
+        (5, 100000),
+        (6, 100000),
+    ),
+)
+@pytest.mark.parametrize("special_value", (np.nan, True, np.inf))
+def test_only_one_point(
+    temperature_on_pressure_levels, index, expected, special_value,
+):
+    """Tests the ExtractPressureLevel plugin with the unusual case that only one layer has
+    a valid value.
+    """
+    temperature_on_pressure_levels = temperature_on_pressure_levels[0]
+
+    if special_value is True:
+        # This is a proxy for setting a mask=True entry
+        temperature_on_pressure_levels.data = np.ma.MaskedArray(
+            temperature_on_pressure_levels.data, mask=False
+        )
+        temperature_on_pressure_levels.data.mask[:index, 0, 0] = special_value
+        temperature_on_pressure_levels.data.mask[index + 1 :, 0, 0] = special_value
+    else:
+        temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
+        temperature_on_pressure_levels.data[:index, 0, 0] = special_value
+        temperature_on_pressure_levels.data[index + 1 :, 0, 0] = special_value
+
+    expected_data = np.full_like(temperature_on_pressure_levels.data[0, ...], 80000)
+    expected_data[0, 0] = expected
+
+    result = ExtractPressureLevel(
+        value_of_pressure_level=280, positive_correlation=True
+    )(temperature_on_pressure_levels)
+    assert not np.ma.is_masked(result.data)
+    np.testing.assert_array_almost_equal(result.data, expected_data)

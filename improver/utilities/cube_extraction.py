@@ -368,10 +368,11 @@ class ExtractPressureLevel(BasePlugin):
         data = np.ma.masked_invalid(cube.data)
         (pressure_axis,) = cube.coord_dims("pressure")
         pressure_points = cube.coord("pressure").points
-        one_p_column = self._one_column_slice(cube)
-        # Find the one-hundreth of the median increment to use as an offset for filling
-        # missing values. We don't really care so long as it is non-zero and has the same sign.
-        v_increment = np.nanmedian(np.diff(cube.data[one_p_column].squeeze()))
+        # Find the least significant increment to use as an offset for filling missing values.
+        # We don't really care so long as it is non-zero and has the same sign.
+        increasing_p_order = np.all(np.diff(cube.coord("pressure").points) > 0)
+        sign = 1 if self.positive_correlation == increasing_p_order else -1
+        v_increment = sign * 10 ** (-cube.attributes.get("least_significant_digit", 2))
         self._one_way_fill(
             data, pressure_axis, pressure_points, v_increment, reverse=True
         )
@@ -420,29 +421,10 @@ class ExtractPressureLevel(BasePlugin):
         for p in range(first, last, step):
             p_slice = [slice(None) for _ in range(data.ndim)]
             p_slice[pressure_axis] = slice(p, p + 1)
-            data[p_slice] = np.where(
-                np.logical_or(
-                    data.mask[p_slice],
-                    np.logical_or(np.isnan(data[p_slice]), np.isinf(data[p_slice])),
-                ),
-                data[last_p_slice] + local_increment,
-                data[p_slice],
+            data[p_slice] = np.ma.where(
+                data.mask[p_slice], data[last_p_slice] + local_increment, data[p_slice],
             )
             last_p_slice = p_slice
-
-    @staticmethod
-    def _one_column_slice(cube: Cube) -> List[slice]:
-        """Create a slice object that will yield a single column along the pressure coordinate
-        from the spatial centre of the cube. Other leading dimensions will use the zeroth
-        point."""
-        (pressure_axis,) = cube.coord_dims("pressure")
-        x_point = cube.shape[-1] // 2
-        y_point = cube.shape[-2] // 2
-        one_column = [slice(0, 1) for _ in range(cube.ndim)]
-        one_column[pressure_axis] = slice(None)
-        one_column[-2] = slice(y_point, y_point + 1)
-        one_column[-1] = slice(x_point, x_point + 1)
-        return one_column
 
     def fill_in_bounds(
         self, result_array: np.ma.MaskedArray, source_cube: Cube
