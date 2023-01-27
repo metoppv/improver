@@ -132,6 +132,7 @@ def test_basic(
     Tests behaviour with and without a realization coordinate.
     Also checks the metadata of the output cube"""
     special_value_index = 0
+    positive_correlation = True
     if reverse_pressure:
         # Flip the pressure coordinate for this test. We also swap which end the
         # special value goes, so we can test _one_way_fill in both modes.
@@ -139,6 +140,7 @@ def test_basic(
             "pressure"
         ).points = temperature_on_pressure_levels.coord("pressure").points[::-1]
         special_value_index = -1
+        positive_correlation = False
     expected = np.interp(
         expected_p_index,
         range(len(temperature_on_pressure_levels.coord("pressure").points)),
@@ -173,9 +175,9 @@ def test_basic(
     if not with_realization:
         temperature_on_pressure_levels = temperature_on_pressure_levels[0]
         expected_data = expected_data[0]
-    result = ExtractPressureLevel(value_of_pressure_level=temperature)(
-        temperature_on_pressure_levels
-    )
+    result = ExtractPressureLevel(
+        value_of_pressure_level=temperature, positive_correlation=positive_correlation
+    )(temperature_on_pressure_levels)
     assert not np.ma.is_masked(result.data)
     np.testing.assert_array_almost_equal(result.data, expected_data)
     metadata_check(result, temperature, temperature_on_pressure_levels.units)

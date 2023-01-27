@@ -318,14 +318,17 @@ class ExtractPressureLevel(BasePlugin):
     """
 
     def __init__(
-        self, value_of_pressure_level: Optional[float] = None,
+        self, positive_correlation: bool, value_of_pressure_level: float,
     ):
         """Sets up Class
             Args:
+                positive_correlation:
+                    Set to True when the variable generally increases as pressure increases
                 value_of_pressure_level:
                     The value of the input cube for which the pressure level is required
         """
 
+        self.positive_correlation = positive_correlation
         self.value_of_pressure_level = value_of_pressure_level
 
     @staticmethod
@@ -366,7 +369,8 @@ class ExtractPressureLevel(BasePlugin):
         (pressure_axis,) = cube.coord_dims("pressure")
         pressure_points = cube.coord("pressure").points
         one_p_column = self._one_column_slice(cube)
-        # Find the median increment to use as an offset for filling missing values
+        # Find the one-hundreth of the median increment to use as an offset for filling
+        # missing values. We don't really care so long as it is non-zero and has the same sign.
         v_increment = np.nanmedian(np.diff(cube.data[one_p_column].squeeze()))
         self._one_way_fill(
             data, pressure_axis, pressure_points, v_increment, reverse=True
@@ -447,23 +451,13 @@ class ExtractPressureLevel(BasePlugin):
         Maximum pressure is chosen if the maximum data value in the column is lower than
         the value of self.value_of_pressure_level"""
         pressure_coord = source_cube.coord("pressure")
-        increasing_p_order = np.all(np.diff(pressure_coord.points) > 0)
         max_pressure = pressure_coord.points.max()
         min_pressure = pressure_coord.points.min()
         (pressure_axis,) = source_cube.coord_dims("pressure")
         max_pressure_index = np.argmax(pressure_coord.points)
-        # Define a slice of one pressure column
-        one_p_column = self._one_column_slice(source_cube)
-        # Define increasing_v_order if at least half of the differences in the
-        # zeroth pressure column are positive
-        increasing_v_order = (
-            np.diff(source_cube.data[one_p_column].squeeze()) > 0
-        ).sum() > len(pressure_coord.points) / 2
         # Now we can compare the values at the maximum pressure with the requested value
         # Using an appropriate operator based on whether value and pressure are increasing
-        comparator = (
-            operator.lt if increasing_v_order == increasing_p_order else operator.gt
-        )
+        comparator = operator.lt if self.positive_correlation else operator.gt
         values_at_max_pressure = source_cube.data.take(
             axis=pressure_axis, indices=max_pressure_index
         )

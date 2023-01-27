@@ -525,7 +525,9 @@ class HailSize(BasePlugin):
             wet_bulb_zero_height_asl,
             orography,
         )
-        extract_pressure = ExtractPressureLevel(value_of_pressure_level=268.15)
+        extract_pressure = ExtractPressureLevel(
+            value_of_pressure_level=268.15, positive_correlation=True
+        )
         pressure_at_268 = extract_pressure(temperature_on_pressure)
 
         temperature_at_268 = next(temperature_on_pressure.slices_over(["pressure"]))
