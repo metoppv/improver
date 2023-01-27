@@ -1455,6 +1455,7 @@ class EnforceConsistentProbabilities(PostProcessingPlugin):
     def __init__(self, diff_for_warning: float = None) -> None:
         """
         Initialise class for enforcing probabilities between two forecasts.
+        
         Args:
             diff_for_warning:
                 A float between 0 and 1. If assigned, the plugin will raise a warning
