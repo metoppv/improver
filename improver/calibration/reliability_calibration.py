@@ -55,7 +55,6 @@ from improver.metadata.probabilistic import (
     probability_is_above_or_below,
 )
 from improver.metadata.utilities import generate_mandatory_attributes
-from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
@@ -1447,14 +1446,21 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
 class EnforceConsistentProbabilities(PostProcessingPlugin):
     """Reduces the probabilities of a forecast to make it consistent
-    with another provided forecast.
+    with another provided reference forecast, such that at any grid square the
+    probability of the forecast is less than the reference forecast. As an example, to
+    reduce the probability of a low cloud forecast to be less than the probability of the
+    reference forecast of total cloud.
     """
 
-    def __init__(self) -> None:
+    def __init__(self, diff_for_warning: float = None) -> None:
         """
         Initialise class for enforcing probabilities between two forecasts.
+        Args:
+            diff_for_warning:
+                A float between 0 and 1. If assigned, the plugin will raise a warning
+                if the forecast probabilities are decreased by more than this value.
         """
-        self.diff_for_warning = 0.3
+        self.diff_for_warning = diff_for_warning
 
     def process(self, forecast_cube: Cube, ref_forecast: Cube) -> Cube:
         """
@@ -1477,13 +1483,15 @@ class EnforceConsistentProbabilities(PostProcessingPlugin):
             with reduced probabilities to make it consistent with ref_forecast
         """
 
-        assert_spatial_coords_match([forecast_cube, ref_forecast])
+        # re-name ref_forecast's threshold coordinate to ensure the coordinate names match for
+        # the combine plugin
+        forecast_threshold = find_threshold_coordinate(forecast_cube)
+        ref_forecast_threshold = find_threshold_coordinate(ref_forecast)
 
-        # puts ref_forecast's data into a cube with the same metadata as forecast_cube so they
-        # can be combined
-        ref_forecast_metadata = forecast_cube.copy(data=ref_forecast.data)
+        ref_forecast_threshold.standard_name = forecast_threshold.standard_name
+        ref_forecast_threshold.long_name = forecast_threshold.long_name
 
-        diff = Combine(operation="-")([ref_forecast_metadata, forecast_cube])
+        diff = Combine(operation="-")([ref_forecast, forecast_cube])
 
         # clip the positive values such that only negative values or zeroes remain.
         # These differences will be added to the forecast_cube probabilities.
@@ -1492,7 +1500,7 @@ class EnforceConsistentProbabilities(PostProcessingPlugin):
         new_forecast = Combine(operation="+")([forecast_cube, diff])
 
         largest_change = abs(np.amin(diff.data))
-        if largest_change > self.diff_for_warning:
+        if self.diff_for_warning and largest_change > self.diff_for_warning:
             warnings.warn(
                 f"Inconsistency between forecast {forecast_cube.name} and {ref_forecast.name}"
                 f"is greater than {self.diff_for_warning}. Maximum absolute difference reported"

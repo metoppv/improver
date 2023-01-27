@@ -36,7 +36,9 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcubelist, ref_name: str = None):
+def process(
+    *cubes: cli.inputcubelist, ref_name: str = None, diff_for_warning: float = None
+):
     """Module to enforce consistent probabilities between two forecast
     cubes by lowering the probabilities in the forecast cube to be less than or
     equal to the reference forecast.
@@ -53,6 +55,9 @@ def process(*cubes: cli.inputcubelist, ref_name: str = None):
 
         ref_name (str):
             Name of ref_forecast cube
+        diff_for_warning (float):
+            A float between 0 and 1. If assigned, the plugin will raise a warning
+            if the forecast probabilities are decreased by more than this value.
 
     Returns:
         iris.cube.Cube:
@@ -79,6 +84,6 @@ def process(*cubes: cli.inputcubelist, ref_name: str = None):
 
     forecast_cube = cubes[0]
 
-    plugin = EnforceConsistentProbabilities()
+    plugin = EnforceConsistentProbabilities(diff_for_warning=diff_for_warning)
 
     return plugin(forecast_cube, ref_forecast)
