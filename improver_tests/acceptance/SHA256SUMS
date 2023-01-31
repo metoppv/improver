@@ -170,6 +170,9 @@ b946c7687cb9ed02a12a934429a31306004ad45214cf4b451468b077018c0911  ./convection-r
 d3efbc6014743793fafed512a8017a7b75e4f0ffa7fd202cd4f1b4a1086b2583  ./create-grid-with-halo/basic/kgo.nc
 575151096829ed458ab13702129efc88f48a8ec459f9b3f39e11e4f5b2e296b2  ./create-grid-with-halo/basic/source_grid.nc
 bf7e42be7897606682c3ecdaeb27bf3d3b6ab13a9a88b46c88ae6e92801c6245  ./create-grid-with-halo/halo_size/kgo.nc
+5474c4c2309dcc0991355007f20869eb6d1d234d721bdf37542cddb0570d7217  ./enforce-consistent-probabilities/hybrid_total_cloud.nc
+7e435c2db5e792b71bb5170140fbe1e37cc03d96bd88f73ce7196f9469ba3e13  ./enforce-consistent-probabilities/kgo.nc
+764833f16f1ed5939ba82130fa73961fdecacceebcf2b4cdb2970cb670e2ee3e  ./enforce-consistent-probabilities/total_cloud.nc
 9b48f3eabeed93a90654a5e6a2f06fcb7297cdba40f650551d99a5e310cf27dd  ./estimate-emos-coefficients-from-table/altitude.nc
 93e0c05333bc93ca252027ee5e2da12ee93fac5bbff4bab00b9c334ad83141e2  ./estimate-emos-coefficients-from-table/forecast_table/_common_metadata
 037e1cfc55c703a30cdbc1dee78da47020a598683247dc29a8ef88e65b53dfb1  ./estimate-emos-coefficients-from-table/forecast_table/_metadata
