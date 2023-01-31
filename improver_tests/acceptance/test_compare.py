@@ -42,8 +42,8 @@ run_cli = acc.run_cli(CLI, verbose=False)
 def test_same(capsys):
     """Compare identical files, should not produce any output"""
     kgo_dir = acc.kgo_root()
-    input_file = kgo_dir / "apply-lapse-rate/highres_orog.nc"
-    matching_file = kgo_dir / "wind_downscaling/basic/highres_orog.nc"
+    input_file = kgo_dir / "wind_downscaling/basic/highres_orog.nc"
+    matching_file = kgo_dir / "wind_downscaling/veg/highres_orog.nc"
     args = [input_file, matching_file]
     run_cli(args)
     captured = capsys.readouterr()

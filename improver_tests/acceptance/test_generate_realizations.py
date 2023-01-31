@@ -41,7 +41,6 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.slow
 def test_percentiles(tmp_path):
     """Test basic percentile to realization conversion"""
     kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_rebadging"
@@ -55,7 +54,6 @@ def test_percentiles(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_percentiles_reordering(tmp_path):
     """Test percentile to realization conversion with reordering"""
     kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_reordering"
@@ -77,7 +75,6 @@ def test_percentiles_reordering(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "bounds_option, kgo",
     (
@@ -105,7 +102,6 @@ def test_extreme_percentiles(tmp_path, bounds_option, kgo):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_probabilities(tmp_path):
     """Test basic probabilities to realization conversion"""
     kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_12_realizations"
@@ -117,7 +113,6 @@ def test_probabilities(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 def test_probabilities_reordering(tmp_path):
     """Test probabilities to realization conversion with reordering"""
     kgo_dir = acc.kgo_root() / "generate-realizations/probabilities_reordering"
@@ -141,7 +136,6 @@ def test_realizations(tmp_path):
     acc.compare(output_path, input_path)
 
 
-@pytest.mark.slow
 def test_ecc_bounds_warning(tmp_path):
     """
     Test use of ECC to convert one set of percentiles to another set of
