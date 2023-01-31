@@ -75,7 +75,6 @@ def test_percentiles_reordering(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.slow
 @pytest.mark.parametrize(
     "bounds_option, kgo",
     (
