@@ -1501,7 +1501,7 @@ class EnforceConsistentProbabilities(PostProcessingPlugin):
         new_forecast = Combine(operation="+")([forecast_cube, diff])
 
         largest_change = abs(np.amin(diff.data))
-        if self.diff_for_warning and largest_change > self.diff_for_warning:
+        if self.diff_for_warning is not None and largest_change > self.diff_for_warning:
             warnings.warn(
                 f"Inconsistency between forecast {forecast_cube.name} and {ref_forecast.name}"
                 f"is greater than {self.diff_for_warning}. Maximum absolute difference reported"
