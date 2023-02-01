@@ -34,6 +34,7 @@ from typing import Callable, List, Optional, Tuple, Union
 
 import iris
 import numpy as np
+import netCDF4
 from cf_units import Unit
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -379,7 +380,7 @@ class BasicThreshold(PostProcessingPlugin):
                 thresholded_copy = thresholded_cube.copy()
                 thresholded_copy.add_aux_coord(vicinity_coord[i])
                 vicinity_expanded.append(thresholded_copy)
-                print(thresholded_copy.coord("radius_of_vicinity"))
+                # print(thresholded_copy.coord("radius_of_vicinity"))
             del(thresholded_copy)
             thresholded_cube = vicinity_expanded.merge_cube()
             if not thresholded_cube.coords("radius_of_vicinity", dim_coords=True):
@@ -442,6 +443,7 @@ class BasicThreshold(PostProcessingPlugin):
         # contributions (i.e. number of unmasked realization values
         # contributing to calculation).
         thresholded_cube = self._create_threshold_cube(input_slices[0])
+        print("MAX INIT", thresholded_cube.data.max())
         contribution_total = np.zeros(next(thresholded_cube.slices_over(self.threshold_coord_name)).shape, dtype=int)
 
         for cube in input_slices:
@@ -457,6 +459,8 @@ class BasicThreshold(PostProcessingPlugin):
             else:
                 mask = None
                 unmasked = np.ones(cube.shape, dtype=bool)
+
+            fill_value = netCDF4.default_fillvals.get(cube.dtype.str[1:], np.inf)
 
             # All unmasked points contibute 1 to the numerator for calculating
             # a realization collapsed truth value. Note that if input_slices
@@ -475,7 +479,7 @@ class BasicThreshold(PostProcessingPlugin):
                                 slice_max = maximum_within_vicinity(
                                     truth_value[yxindex + (slice(None), slice(None))],
                                     vicinity,
-                                    -np.inf,
+                                    fill_value,
                                     landmask
                                 )
                                 maxes[yxindex] = slice_max
@@ -483,12 +487,14 @@ class BasicThreshold(PostProcessingPlugin):
                             maxes = maximum_within_vicinity(
                                 truth_value,
                                 vicinity,
-                                -np.inf,
+                                fill_value,
                                 landmask
                             )
                         thresholded_cube.data[ivic][index][unmasked] += maxes[unmasked]
                 else:
                     thresholded_cube.data[index][unmasked] += truth_value[unmasked]
+
+        enforce_coordinate_ordering(thresholded_cube, self.threshold_coord_name)
 
         print("contribution shape", contribution_total.shape)
 
@@ -496,13 +502,16 @@ class BasicThreshold(PostProcessingPlugin):
         # a masked point in every realization, so we can use this array to
         # modify only unmasked points and reapply a mask to the final result.
         valid = contribution_total.astype(bool)
-        vb = np.broadcast_to(valid, thresholded_cube.shape)
-        ct = np.broadcast_to(contribution_total, thresholded_cube.shape)
-        # print("ct", ct.shape, ct.min(), ct.max())
-        # print("vb", vb.shape, vb.min(), vb.max())
-        print("Data in", thresholded_cube)
-        thresholded_cube.data[vb] = thresholded_cube.data[vb] / ct[vb]
-        print("normalise", thresholded_cube)
+        print(thresholded_cube)
+        print("valid shape", valid.shape)
+        print("cube shape", thresholded_cube.shape)
+        # vb = np.broadcast_to(valid, thresholded_cube.shape)
+        # ct = np.broadcast_to(contribution_total, thresholded_cube.shape)
+        # thresholded_cube.data[vb] = thresholded_cube.data[vb] / ct[vb]
+
+        print("MAX PRE", thresholded_cube.data.max())
+        thresholded_cube.data[..., valid] = thresholded_cube.data[..., valid] / contribution_total[valid]
+        print("MAX POST", thresholded_cube.data.max())
         if (contribution_total == 0).any():
             thresholded_cube.data = np.ma.masked_array(thresholded_cube.data, mask=np.broadcast_to(~valid, thresholded_cube.shape))
 
