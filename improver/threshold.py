@@ -33,8 +33,8 @@
 from typing import Callable, List, Optional, Tuple, Union
 
 import iris
-import numpy as np
 import netCDF4
+import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -45,10 +45,18 @@ from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
-from improver.utilities.cube_manipulation import collapse_realizations, enforce_coordinate_ordering
+from improver.utilities.cube_manipulation import (
+    collapse_realizations,
+    enforce_coordinate_ordering,
+)
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
-from improver.utilities.spatial import maximum_within_vicinity, create_vicinity_coord, rename_vicinity_cube, distance_to_number_of_grid_cells
+from improver.utilities.spatial import (
+    create_vicinity_coord,
+    distance_to_number_of_grid_cells,
+    maximum_within_vicinity,
+    rename_vicinity_cube,
+)
 
 
 class BasicThreshold(PostProcessingPlugin):
@@ -152,7 +160,9 @@ class BasicThreshold(PostProcessingPlugin):
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set.
         """
-        thresholds, fuzzy_bounds = self._set_thresholds(threshold_values, threshold_config)
+        thresholds, fuzzy_bounds = self._set_thresholds(
+            threshold_values, threshold_config
+        )
 
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
         self.threshold_units = (
@@ -371,7 +381,9 @@ class BasicThreshold(PostProcessingPlugin):
 
         # Promote the threshold coordinate to be dimensional if it is not already.
         if not thresholded_cube.coord_dims(self.threshold_coord_name):
-            thresholded_cube = iris.util.new_axis(thresholded_cube, self.threshold_coord_name)
+            thresholded_cube = iris.util.new_axis(
+                thresholded_cube, self.threshold_coord_name
+            )
 
         if self.vicinity is not None:
             vicinity_coord = create_vicinity_coord(self.vicinity, False)
@@ -380,11 +392,12 @@ class BasicThreshold(PostProcessingPlugin):
                 thresholded_copy = thresholded_cube.copy()
                 thresholded_copy.add_aux_coord(vicinity_coord[i])
                 vicinity_expanded.append(thresholded_copy)
-                # print(thresholded_copy.coord("radius_of_vicinity"))
-            del(thresholded_copy)
+            del thresholded_copy
             thresholded_cube = vicinity_expanded.merge_cube()
             if not thresholded_cube.coords("radius_of_vicinity", dim_coords=True):
-                thresholded_cube = iris.util.new_axis(thresholded_cube, vicinity_coord.name())
+                thresholded_cube = iris.util.new_axis(
+                    thresholded_cube, vicinity_coord.name()
+                )
 
         # Ensure the threshold cube has suitable metadata for a probabilistic output.
         self._update_metadata(thresholded_cube)
@@ -431,7 +444,8 @@ class BasicThreshold(PostProcessingPlugin):
             landmask = np.where(landmask.data >= 0.5, True, False)
         if self.vicinity is not None:
             grid_point_radii = [
-                distance_to_number_of_grid_cells(input_cube, radius) for radius in self.vicinity
+                distance_to_number_of_grid_cells(input_cube, radius)
+                for radius in self.vicinity
             ]
 
         if self.collapse_realizations:
@@ -443,8 +457,10 @@ class BasicThreshold(PostProcessingPlugin):
         # contributions (i.e. number of unmasked realization values
         # contributing to calculation).
         thresholded_cube = self._create_threshold_cube(input_slices[0])
-        print("MAX INIT", thresholded_cube.data.max())
-        contribution_total = np.zeros(next(thresholded_cube.slices_over(self.threshold_coord_name)).shape, dtype=int)
+        contribution_total = np.zeros(
+            next(thresholded_cube.slices_over(self.threshold_coord_name)).shape,
+            dtype=int,
+        )
 
         for cube in input_slices:
 
@@ -469,7 +485,9 @@ class BasicThreshold(PostProcessingPlugin):
             # dimension and our denominator will be 1 at all unmasked points.
             contribution_total += unmasked
 
-            for index, (threshold, bounds) in enumerate(zip(self.thresholds, self.fuzzy_bounds)):
+            for index, (threshold, bounds) in enumerate(
+                zip(self.thresholds, self.fuzzy_bounds)
+            ):
                 truth_value = self._calculate_truth_value(cube, threshold, bounds)
                 if self.vicinity is not None:
                     for ivic, vicinity in enumerate(grid_point_radii):
@@ -480,15 +498,12 @@ class BasicThreshold(PostProcessingPlugin):
                                     truth_value[yxindex + (slice(None), slice(None))],
                                     vicinity,
                                     fill_value,
-                                    landmask
+                                    landmask,
                                 )
                                 maxes[yxindex] = slice_max
                         else:
                             maxes = maximum_within_vicinity(
-                                truth_value,
-                                vicinity,
-                                fill_value,
-                                landmask
+                                truth_value, vicinity, fill_value, landmask
                             )
                         thresholded_cube.data[ivic][index][unmasked] += maxes[unmasked]
                 else:
@@ -496,27 +511,23 @@ class BasicThreshold(PostProcessingPlugin):
 
         enforce_coordinate_ordering(thresholded_cube, self.threshold_coord_name)
 
-        print("contribution shape", contribution_total.shape)
-
         # Any x-y position for which there are no valid contributions must be
         # a masked point in every realization, so we can use this array to
         # modify only unmasked points and reapply a mask to the final result.
         valid = contribution_total.astype(bool)
-        print(thresholded_cube)
-        print("valid shape", valid.shape)
-        print("cube shape", thresholded_cube.shape)
-        # vb = np.broadcast_to(valid, thresholded_cube.shape)
-        # ct = np.broadcast_to(contribution_total, thresholded_cube.shape)
-        # thresholded_cube.data[vb] = thresholded_cube.data[vb] / ct[vb]
-
-        print("MAX PRE", thresholded_cube.data.max())
-        thresholded_cube.data[..., valid] = thresholded_cube.data[..., valid] / contribution_total[valid]
-        print("MAX POST", thresholded_cube.data.max())
+        thresholded_cube.data[..., valid] = (
+            thresholded_cube.data[..., valid] / contribution_total[valid]
+        )
         if (contribution_total == 0).any():
-            thresholded_cube.data = np.ma.masked_array(thresholded_cube.data, mask=np.broadcast_to(~valid, thresholded_cube.shape))
+            thresholded_cube.data = np.ma.masked_array(
+                thresholded_cube.data,
+                mask=np.broadcast_to(~valid, thresholded_cube.shape),
+            )
 
         # Revert threshold coordinate units to those of the input cube.
-        thresholded_cube.coord(self.threshold_coord_name).convert_units(self.original_units)
+        thresholded_cube.coord(self.threshold_coord_name).convert_units(
+            self.original_units
+        )
         # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
@@ -534,7 +545,15 @@ class BasicThreshold(PostProcessingPlugin):
         if self.vicinity is not None:
             rename_vicinity_cube(thresholded_cube)
 
-        enforce_coordinate_ordering(thresholded_cube, ["realization", "percentile", self.threshold_coord_name, "radius_of_vicinity"])
+        enforce_coordinate_ordering(
+            thresholded_cube,
+            [
+                "realization",
+                "percentile",
+                self.threshold_coord_name,
+                "radius_of_vicinity",
+            ],
+        )
 
         return thresholded_cube
 

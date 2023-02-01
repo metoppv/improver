@@ -393,7 +393,9 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         return tuple(gradients)
 
 
-def maximum_within_vicinity(grid: ndarray, grid_point_radius: int, fill_value: float, landmask: ndarray = None) -> ndarray:
+def maximum_within_vicinity(
+    grid: ndarray, grid_point_radius: int, fill_value: float, landmask: ndarray = None
+) -> ndarray:
     """
     Find grid points where a phenomenon occurs within a defined radius.
     The occurrences within this vicinity are maximised, such that all
@@ -456,7 +458,9 @@ def rename_vicinity_cube(cube):
         cube.rename(f"{cube.name()}_in_vicinity")
 
 
-def create_vicinity_coord(radius: Union[float, int], native_grid_point_radius: bool = False) -> None:
+def create_vicinity_coord(
+    radius: Union[float, int], native_grid_point_radius: bool = False
+) -> None:
     """
     Add a coordinate to the cube that records the vicinity radius that
     has been applied to the data.
@@ -608,7 +612,9 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             max_cubes = CubeList([])
             for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
                 result = cube_slice.copy(
-                    data=maximum_within_vicinity(cube_slice.data, grid_point_radius, fill_value, self.land_mask)
+                    data=maximum_within_vicinity(
+                        cube_slice.data, grid_point_radius, fill_value, self.land_mask
+                    )
                 )
                 max_cubes.append(result)
             result_cube = max_cubes.merge_cube()
