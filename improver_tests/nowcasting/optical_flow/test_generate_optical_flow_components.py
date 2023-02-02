@@ -39,7 +39,6 @@ from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import generate_optical_flow_components
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_generate_optical_flow_components(IrisTest):
@@ -79,12 +78,6 @@ class Test_generate_optical_flow_components(IrisTest):
 
         self.expected_time = self.third_cube.coord("time").points[0]
 
-    @ManageWarnings(
-        ignored_messages=[
-            "No non-zero data in input fields",
-            "Collapsing a non-contiguous coordinate",
-        ]
-    )
     def test_basic(self):
         """Test output is a tuple of cubes"""
         cubelist = [self.first_cube, self.second_cube, self.third_cube]
@@ -95,12 +88,6 @@ class Test_generate_optical_flow_components(IrisTest):
             self.assertIsInstance(cube, iris.cube.Cube)
             self.assertAlmostEqual(cube.coord("time").points[0], self.expected_time)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "No non-zero data in input fields",
-            "Collapsing a non-contiguous coordinate",
-        ]
-    )
     def test_time_ordering(self):
         """Test output timestamps are insensitive to input cube order"""
         cubelist = [self.second_cube, self.third_cube, self.first_cube]
@@ -110,12 +97,6 @@ class Test_generate_optical_flow_components(IrisTest):
         for cube in result:
             self.assertAlmostEqual(cube.coord("time").points[0], self.expected_time)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "No non-zero data in input fields",
-            "Collapsing a non-contiguous coordinate",
-        ]
-    )
     def test_fewer_inputs(self):
         """Test routine can produce output from a shorter list of inputs"""
         result = generate_optical_flow_components(

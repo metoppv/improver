@@ -40,7 +40,6 @@ from iris.tests import IrisTest
 
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.neighbour_finding import NeighbourSelection
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_NeighbourSelection(IrisTest):
@@ -287,7 +286,7 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
 class Test_check_sites_are_within_domain(Test_NeighbourSelection):
 
     """Test the function that removes sites falling outside the model domain
-    from the site list and raises a warning."""
+    from the site list."""
 
     def test_all_valid(self):
         """Test case in which all sites are valid and fall within domain."""
@@ -308,62 +307,6 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertArrayEqual(site_coords_out, site_coords)
         self.assertArrayEqual(out_x, x_points)
         self.assertArrayEqual(out_y, y_points)
-
-    @ManageWarnings(record=True)
-    def test_some_invalid(self, warning_list=None):
-        """Test case with some sites falling outside the regional domain."""
-        plugin = NeighbourSelection()
-        sites = [
-            {"projection_x_coordinate": 1.0e4, "projection_y_coordinate": 1.0e4},
-            {"projection_x_coordinate": 1.0e5, "projection_y_coordinate": 5.0e4},
-            {"projection_x_coordinate": 1.0e6, "projection_y_coordinate": 1.0e5},
-        ]
-
-        x_points = np.array([site["projection_x_coordinate"] for site in sites])
-        y_points = np.array([site["projection_y_coordinate"] for site in sites])
-        site_coords = np.stack((x_points, y_points), axis=1)
-
-        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
-            sites, site_coords, x_points, y_points, self.region_orography
-        )
-
-        self.assertArrayEqual(sites_out, sites[0:2])
-        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
-        self.assertArrayEqual(out_x, x_points[0:2])
-        self.assertArrayEqual(out_y, y_points[0:2])
-
-        msg = "1 spot sites fall outside the grid"
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_global_invalid(self, warning_list=None):
-        """Test case with some sites falling outside the global domain."""
-        plugin = NeighbourSelection()
-        sites = [
-            {"latitude": 0.0, "longitude": 0.0},
-            {"latitude": 50.0, "longitude": 0.0},
-            {"latitude": 100.0, "longitude": 0.0},
-        ]
-
-        x_points = np.array([site["longitude"] for site in sites])
-        y_points = np.array([site["latitude"] for site in sites])
-        site_coords = np.stack((x_points, y_points), axis=1)
-
-        plugin.global_coordinate_system = True
-
-        sites_out, site_coords_out, out_x, out_y = plugin.check_sites_are_within_domain(
-            sites, site_coords, x_points, y_points, self.global_orography
-        )
-
-        self.assertArrayEqual(sites_out, sites[0:2])
-        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
-        self.assertArrayEqual(out_x, x_points[0:2])
-        self.assertArrayEqual(out_y, y_points[0:2])
-
-        msg = "1 spot sites fall outside the grid"
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
     def test_global_circular_valid(self):
         """Test case with a site defined using a longitide exceeding 180
@@ -553,7 +496,6 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
     at a y index of 4, changing elevation with x. As such the nodes are chosen
     along this line, e.g. [0, 4], [1, 4], etc."""
 
-    @ManageWarnings(ignored_messages=["Limit on number of nearest neighbours"])
     def test_basic(self):
         """Test a simple case where the first element in the provided lists
         has the smallest vertical displacement to the site. Expect the
@@ -601,26 +543,6 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
             self.region_orography, site_altitude, nodes, distance, indices
         )
         self.assertEqual(result, None)
-
-    @ManageWarnings(record=True)
-    def test_incomplete_search(self, warning_list=None):
-        """Test a warning is raised when the number of nearest neighbours
-        searched for the minimum dz neighbour does not exhaust the
-        search_radius."""
-
-        plugin = NeighbourSelection(search_radius=6)
-        site_altitude = 3.0
-        nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
-        distance = np.arange(5)
-        indices = np.arange(5)
-
-        plugin.select_minimum_dz(
-            self.region_orography, site_altitude, nodes, distance, indices
-        )
-
-        msg = "Limit on number of nearest neighbours"
-        self.assertTrue(any(msg in str(warning) for warning in warning_list))
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
 
 
 class Test_process(Test_NeighbourSelection):

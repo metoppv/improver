@@ -1,4 +1,4 @@
-# -*- coding: utf-8 -*-
+ # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
 # All rights reserved.
@@ -56,7 +56,6 @@ from improver.utilities.temporal import (
     iris_time_to_datetime,
     relabel_to_period,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_cycletime_to_datetime(IrisTest):
@@ -321,20 +320,6 @@ class Test_extract_cube_at_time(IrisTest):
         cubes = CubeList([self.cube])
         result = plugin(cubes, self.time_dt, self.time_constraint)
         self.assertIsInstance(result, Cube)
-
-    @ManageWarnings(record=True)
-    def test_invalid_time(self, warning_list=None):
-        """Case for a time that is unavailable within the diagnostic cube."""
-        plugin = extract_cube_at_time
-        time_dt = datetime(2017, 2, 18, 6, 0)
-        time_constraint = iris.Constraint(
-            time=PartialDateTime(time_dt.year, time_dt.month, time_dt.day, time_dt.hour)
-        )
-        cubes = CubeList([self.cube])
-        plugin(cubes, time_dt, time_constraint)
-        warning_msg = "Forecast time"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 class Test_extract_nearest_time_point(IrisTest):

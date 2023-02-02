@@ -44,7 +44,6 @@ from improver.calibration.ensemble_calibration import (
     ContinuousRankedProbabilityScoreMinimisers as Plugin,
 )
 from improver.calibration.utilities import convert_cube_data_to_2d
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
@@ -76,10 +75,6 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
 
     """Create a class for setting up cubes for testing."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],
-        warning_types=[UserWarning],
-    )
     def setUp(self):
         """Set up expected inputs."""
         super().setUp()
@@ -155,7 +150,6 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         super().setUp()
         self.precision = 4
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value with the
@@ -173,7 +167,6 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.3006, places=self.precision)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy float value with the ensemble
@@ -191,13 +184,6 @@ class Test_calculate_normal_crps(SetupNormalInputs):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.3006, places=self.precision)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "invalid value encountered in",
-        ],
-        warning_types=[UserWarning, RuntimeWarning],
-    )
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value
@@ -327,14 +313,6 @@ class Test_process_normal_distribution(
             dtype=np.float32,
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected
@@ -352,15 +330,6 @@ class Test_process_normal_distribution(
         self.assertEqual(result.dtype, np.float32)
         self.assertEMOSCoefficientsAlmostEqual(result, self.expected_mean_coefficients)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-            "invalid value encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
-    )
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected
@@ -380,7 +349,6 @@ class Test_process_normal_distribution(
             result, self.expected_realizations_coefficients
         )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_mean_predictor_keyerror(self):
         """
         Test that the minimisation has resulted in a KeyError, if the
@@ -399,14 +367,6 @@ class Test_process_normal_distribution(
                 distribution,
             )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -431,15 +391,6 @@ class Test_process_normal_distribution(
         )
         self.assertEMOSCoefficientsAlmostEqual(result, self.expected_mean_coefficients)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-            "invalid value encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
-    )
     def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -466,14 +417,6 @@ class Test_process_normal_distribution(
             result, self.expected_realizations_coefficients
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_mean_predictor_point_by_point(self):
         """
         Test that the expected coefficients are generated when the ensemble
@@ -496,14 +439,6 @@ class Test_process_normal_distribution(
             result, self.expected_mean_coefficients_point_by_point
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_mean_predictor_point_by_point_sites(self):
         """
         Test that the expected coefficients are generated when the ensemble
@@ -526,15 +461,6 @@ class Test_process_normal_distribution(
             result, self.expected_mean_coefficients_point_by_point_sites
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-            "invalid value encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
-    )
     def test_realizations_predictor_point_by_point(self):
         """
         Test that the expected coefficients are generated when the ensemble
@@ -559,74 +485,6 @@ class Test_process_normal_distribution(
             result, self.expected_realizations_coefficients_point_by_point, decimal=2
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
-    @ManageWarnings(
-        record=True, ignored_messages=["Collapsing a non-contiguous coordinate."]
-    )
-    def test_catch_warnings(self, warning_list=None):
-        """
-        Test that a warning is generated if the minimisation
-        does not result in a convergence. The ensemble mean is the predictor.
-        """
-        predictor = "mean"
-        distribution = "norm"
-
-        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=10)
-        plugin.process(
-            self.initial_guess_for_mean,
-            self.forecast_predictor_mean,
-            self.truth,
-            self.forecast_variance,
-            distribution,
-        )
-        warning_msg = "Minimisation did not result in convergence after"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-
-    @ManageWarnings(
-        record=True, ignored_messages=["Collapsing a non-contiguous coordinate."]
-    )
-    def test_catch_warnings_percentage_change(self, warning_list=None):
-        """
-        Test that two warnings are generated if the minimisation
-        does not result in a convergence. The first warning reports a that
-        the minimisation did not result in convergence, whilst the second
-        warning reports that the percentage change in the final iteration was
-        greater than the tolerated value. The ensemble mean is the predictor.
-        """
-        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
-        predictor = "mean"
-        distribution = "norm"
-
-        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=5)
-        plugin.process(
-            initial_guess,
-            self.forecast_predictor_mean,
-            self.truth,
-            self.forecast_variance,
-            distribution,
-        )
-        warning_msg_min = "Minimisation did not result in convergence after"
-        warning_msg_iter = "The final iteration resulted in a percentage "
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg_min in str(item) for item in warning_list))
-        self.assertTrue(any(warning_msg_iter in str(item) for item in warning_list))
-
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_point_by_point_with_nans(self):
         """
         Test that the expected coefficients are generated when the ensemble
@@ -653,14 +511,6 @@ class Test_process_normal_distribution(
             result, self.expected_mean_coefficients_point_by_point
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_mean_predictor_sites_additional_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected
@@ -680,14 +530,6 @@ class Test_process_normal_distribution(
             result, self.expected_mean_coefficients_additional_predictor
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_mean_predictor_point_by_point_sites_additional_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected
@@ -714,10 +556,6 @@ class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
 
     """Create a class for setting up cubes for testing."""
 
-    @ManageWarnings(
-        ignored_messages=["Collapsing a non-contiguous coordinate."],
-        warning_types=[UserWarning],
-    )
     def setUp(self):
         """Set up expected inputs."""
         super().setUp()
@@ -787,7 +625,6 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         super().setUp()
         self.precision = 4
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy float value. The ensemble mean
@@ -805,7 +642,6 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.2150, self.precision)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy float value. The ensemble
@@ -823,13 +659,6 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
         self.assertIsInstance(result, np.float64)
         self.assertAlmostEqual(result, 0.2150, self.precision)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "invalid value encountered in",
-        ],
-        warning_types=[UserWarning, RuntimeWarning],
-    )
     def test_basic_mean_predictor_bad_value(self):
         """
         Test that the plugin returns a numpy float64 value
@@ -875,15 +704,6 @@ class Test_process_truncated_normal_distribution(
             [0.0014, 0.9084, 0.0279, -0.0021, 0.8591], dtype=np.float32
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "The final iteration resulted in",
-            "invalid value encountered in",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
-    )
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns a numpy array. The ensemble mean
@@ -901,15 +721,6 @@ class Test_process_truncated_normal_distribution(
         self.assertIsInstance(result, np.ndarray)
         self.assertEMOSCoefficientsAlmostEqual(result, self.expected_mean_coefficients)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "invalid value encountered in",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
-    )
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected
@@ -929,7 +740,6 @@ class Test_process_truncated_normal_distribution(
             result, self.expected_realizations_coefficients
         )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_mean_predictor_keyerror(self):
         """
         Test that an exception is raised when the distribution requested is
@@ -948,22 +758,6 @@ class Test_process_truncated_normal_distribution(
                 distribution,
             )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "The final iteration resulted in",
-            "invalid value encountered in",
-            "divide by zero encountered in",
-        ],
-        warning_types=[
-            UserWarning,
-            UserWarning,
-            UserWarning,
-            RuntimeWarning,
-            RuntimeWarning,
-        ],
-    )
     def test_mean_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -988,15 +782,6 @@ class Test_process_truncated_normal_distribution(
         )
         self.assertEMOSCoefficientsAlmostEqual(result, self.expected_mean_coefficients)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "invalid value encountered in",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning, RuntimeWarning],
-    )
     def test_realizations_predictor_max_iterations(self):
         """
         Test that the plugin returns a list of coefficients
@@ -1023,67 +808,6 @@ class Test_process_truncated_normal_distribution(
             result, self.expected_realizations_coefficients
         )
 
-    @ManageWarnings(
-        record=True, ignored_messages=["Collapsing a non-contiguous coordinate."]
-    )
-    def test_catch_warnings(self, warning_list=None):
-        """
-        Test that a warning is generated if the minimisation
-        does not result in a convergence. The ensemble mean is the predictor.
-        """
-        predictor = "mean"
-        distribution = "truncnorm"
-
-        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=10)
-        plugin.process(
-            self.initial_guess_for_mean,
-            self.forecast_predictor_mean,
-            self.truth,
-            self.forecast_variance,
-            distribution,
-        )
-        warning_msg = "Minimisation did not result in convergence after"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-
-    @ManageWarnings(
-        record=True, ignored_messages=["Collapsing a non-contiguous coordinate."]
-    )
-    def test_catch_warnings_percentage_change(self, warning_list=None):
-        """
-        Test that two warnings are generated if the minimisation
-        does not result in a convergence. The first warning reports a that
-        the minimisation did not result in convergence, whilst the second
-        warning reports that the percentage change in the final iteration was
-        greater than the tolerated value.
-        The ensemble mean is the predictor.
-        """
-        initial_guess = np.array([0, 1, 5000, 1], dtype=np.float64)
-        predictor = "mean"
-        distribution = "truncnorm"
-
-        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=5)
-        plugin.process(
-            initial_guess,
-            self.forecast_predictor_mean,
-            self.truth,
-            self.forecast_variance,
-            distribution,
-        )
-        warning_msg_min = "Minimisation did not result in convergence after"
-        warning_msg_iter = "The final iteration resulted in a percentage "
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg_min in str(item) for item in warning_list))
-        self.assertTrue(any(warning_msg_iter in str(item) for item in warning_list))
-
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "Minimisation did not result in convergence",
-            "divide by zero encountered in",
-        ],
-        warning_types=[UserWarning, UserWarning, RuntimeWarning],
-    )
     def test_mean_predictor_additional_predictor(self):
         """
         Test that the plugin returns a numpy array with the expected

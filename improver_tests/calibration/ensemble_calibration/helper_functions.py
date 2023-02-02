@@ -44,7 +44,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
 WARNING_TYPES = [UserWarning]
@@ -92,7 +91,6 @@ class SetupCubes(IrisTest):
 
     """Set up cubes for testing."""
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up temperature and wind speed cubes for testing."""
         super().setUp()

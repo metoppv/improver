@@ -51,23 +51,9 @@ from improver.calibration.ensemble_calibration import (
 from improver.metadata.utilities import generate_mandatory_attributes
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
-IGNORED_MESSAGES = [
-    "Collapsing a non-contiguous coordinate",  # Originating from Iris
-    "Minimisation did not result in convergence",  # From calibration code
-    "The final iteration resulted in",  # From calibration code
-    "Invalid value encountered in",  # From calculating percentage change in
-    # calibration code
-]
-WARNING_TYPES = [
-    UserWarning,
-    UserWarning,
-    UserWarning,
-    RuntimeWarning,
-]
 
 
 class SetupExpectedCoefficients(IrisTest):
@@ -241,7 +227,6 @@ class Test__init__(SetupCubes):
         self.distribution = "norm"
         self.desired_units = "degreesC"
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coeff_names(self):
         """Test that the plugin instance defines the expected
         coefficient names."""
@@ -261,7 +246,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
 
     """Test the create_coefficients_cubelist method."""
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up the plugin and cubes for testing."""
         super().setUp()
@@ -308,7 +292,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         self.attributes["distribution"] = self.distribution
         self.attributes["title"] = "Ensemble Model Output Statistics coefficients"
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_mean(self):
         """Test that the expected coefficient cube is returned when the
         ensemble mean is used as the predictor."""
@@ -339,7 +322,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coordinates_from_mean_period_diagnostic(self):
         """Test that the time coordinates are as expected when the historic
         forecasts are time-bounded diagnostics, e.g. maximum in hour."""
@@ -361,7 +343,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
                 cube.coord("forecast_period"), self.expected_fp,
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_exception_for_multi_valued_forecast_period(self):
         """Test that an exception is raised if the forecast_period is multi-
         valued. This is simply to demonstrate that only single valued
@@ -396,7 +377,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         for cube in result:
             self.assertDictEqual(cube.attributes, self.attributes)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_from_realizations(self):
         """Test that the expected coefficient cube is returned when the
         ensemble realizations are used as the predictor."""
@@ -417,7 +397,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
             self.historic_forecast.coord("realization").points,
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_point_by_point_sites(self):
         """Test that the expected coefficient cube, with the expected coefficients
         and metadata, is returned when the ensemble mean is used as the predictor
@@ -461,7 +440,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
 
         self.assertEqual([cube.name() for cube in result], self.expected_coeff_names)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_additional_predictor(self):
         """Test that the expected coefficient cube, with the expected coefficients
         and metadata, is returned when the ensemble mean is used as the predictor
@@ -497,7 +475,6 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
             expected_predictor_name_coord,
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_too_few_coefficients(self):
         """Test that an exception is raised if the number of coefficients
         provided for creating the coefficients cube is not equal to the
@@ -545,7 +522,6 @@ class Test_compute_initial_guess(IrisTest):
 
     """Test the compute_initial_guess method."""
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """
         Use temperature cube to test with. Also set up versions with a masked
@@ -665,7 +641,6 @@ class Test_compute_initial_guess(IrisTest):
             [0.333333, 0.0, 0.333333, 0.666667, 0.0, 1.0], dtype=np.float32
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic_mean_predictor(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -687,7 +662,6 @@ class Test_compute_initial_guess(IrisTest):
             result, self.expected_mean_pred_default_initial_guess
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic_realizations_predictor(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -714,7 +688,6 @@ class Test_compute_initial_guess(IrisTest):
             result, self.expected_realizations_pred_default_initial_guess
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_mean_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -738,7 +711,6 @@ class Test_compute_initial_guess(IrisTest):
             self.expected_mean_pred_compute_initial_guess, result
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_realizations_predictor_estimate_coefficients(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -767,7 +739,6 @@ class Test_compute_initial_guess(IrisTest):
             self.expected_realizations_pred_compute_initial_guess, result
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_mean_predictor_estimate_coefficients_masked_halo(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -794,7 +765,6 @@ class Test_compute_initial_guess(IrisTest):
             self.expected_mean_pred_compute_initial_guess, result
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_realizations_predictor_estimate_coefficients_masked_halo(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -825,7 +795,6 @@ class Test_compute_initial_guess(IrisTest):
             self.expected_realizations_pred_compute_initial_guess, result
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_mean_predictor_multiple_forecast_predictors_default(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -844,7 +813,6 @@ class Test_compute_initial_guess(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, self.expected_multiple_predictors_default)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_mean_predictor_multiple_forecast_predictors_nondefault(self):
         """
         Test that the plugin returns the expected values for the initial guess
@@ -869,7 +837,6 @@ class Test_compute_initial_guess(IrisTest):
 class Test_mask_cube(SetupCubes):
     """Test the mask_cube method"""
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up additional cube for land-sea mask."""
         super().setUp()
@@ -881,7 +848,6 @@ class Test_mask_cube(SetupCubes):
         # Copy a few slices of the temperature truth cube to test on.
         self.cube3D = self.temperature_truth_cube[0:2, ...].copy()
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
         """Test that a simple cube is masked in the correct way."""
         expected_result = np.array(
@@ -906,7 +872,6 @@ class Test_mask_cube(SetupCubes):
             np.ma.getmask(expected_result), np.ma.getmask(self.cube3D.data)
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic_2D_input_cube(self):
         """Test that a simple 2D cube is masked in the correct way."""
         cube2D = self.cube3D[0].copy()
@@ -925,7 +890,6 @@ class Test_mask_cube(SetupCubes):
             np.ma.getmask(expected_result), np.ma.getmask(cube2D.data)
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_fail_mismatched_arrays(self):
         """Test that an error is raised when input have incompatible shapes."""
         cube_mismatched = self.cube3D[..., 0].copy()
@@ -933,7 +897,6 @@ class Test_mask_cube(SetupCubes):
         with self.assertRaisesRegex(IndexError, msg):
             self.plugin.mask_cube(cube_mismatched, self.mask_cube)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_fail_transposed_input(self):
         """Test that an error is raised when the input cube is transposed"""
         self.cube3D.transpose((2, 0, 1))
@@ -948,7 +911,6 @@ class Test_process(
 
     """Test the process method"""
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def setUp(self):
         """Set up multiple cubes for testing."""
         pytest.importorskip("statsmodels")
@@ -970,7 +932,6 @@ class Test_process(
         )
         self.plugin = partial(Plugin, tolerance=0.0001)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_basic(self):
         """Ensure that the optimised_coefficients are returned as a cube,
         with the expected number of coefficients."""
@@ -981,7 +942,6 @@ class Test_process(
         self.assertIsInstance(result, iris.cube.CubeList)
         self.assertEqual(len(result), len(self.coeff_names))
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_norm_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1000,7 +960,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_norm_distribution_landsea_mask(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1023,7 +982,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_norm_distribution_mismatching_inputs(self):
         """Test that the values for the optimised coefficients match the
         expected values, and the coefficient names also match
@@ -1045,7 +1003,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_norm_distribution_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1068,7 +1025,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_norm_distribution_nan_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1093,7 +1049,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_norm_distribution_max_iterations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1113,7 +1068,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncnorm_distribution(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1139,7 +1093,6 @@ class Test_process(
                 np.array([0, np.inf], dtype=np.float32),
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficient_values_for_truncnorm_distribution_mask(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1164,7 +1117,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_truncnorm_default_initial_guess(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1189,7 +1141,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_norm_realizations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1210,7 +1161,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_coefficients_truncnorm_realizations(self):
         """Ensure that the values for the optimised_coefficients match the
         expected values, and the coefficient names also match
@@ -1231,7 +1181,6 @@ class Test_process(
             [cube.name() for cube in result], self.expected_coeff_names
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point(self):
         """Test computing coefficients independently for each grid point (initial guess
         and minimising) returns the expected coefficients and associated metadata."""
@@ -1257,7 +1206,6 @@ class Test_process(
             beta_cube.coord("predictor_name").points, ["air_temperature"]
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_with_nans(self):
         """Test computing coefficients independently for each grid point (initial guess
         and minimising) returns the expected coefficients and associated metadata,
@@ -1282,7 +1230,6 @@ class Test_process(
                 [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_sites(self):
         """Test computing coefficients independently for each site location
         (initial guess and minimising) returns the expected coefficients and
@@ -1299,7 +1246,6 @@ class Test_process(
                 [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_sites_realizations(self):
         """Test computing coefficients independently for each site location
         (initial guess and minimising) using realizations as the predictor
@@ -1325,7 +1271,6 @@ class Test_process(
                 expected_dim_coords[cube.name()],
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_landsea_mask(self):
         """Test that an exception is raised if a land-sea mask is provided
         with the point_by_point argument."""
@@ -1338,7 +1283,6 @@ class Test_process(
                 landsea_mask=self.landsea_cube,
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_default_initial_guess(self):
         """Test computing coefficients independently for each grid point
         (minimisation only) returns the expected coefficients and associated metadata."""
@@ -1360,7 +1304,6 @@ class Test_process(
                 [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_point_by_point_default_initial_guess_realizations(self):
         """Test computing coefficients independently for each grid point
         (minimisation only) returns the expected coefficients and associated metadata
@@ -1391,7 +1334,6 @@ class Test_process(
                 expected_dim_coords[cube.name()],
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_sites_additional_static_predictor(self):
         """Ensure that the coefficients and coefficient names are as expected
         when using an additional static predictor."""
@@ -1415,7 +1357,6 @@ class Test_process(
             beta_cube.coord("predictor_name").points, ["air_temperature", "altitude"]
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_sites_point_by_point_with_additional_static_predictor(self):
         """Ensure that the coefficients and coefficient names are as expected
         when using an additional static predictor."""
@@ -1449,7 +1390,6 @@ class Test_process(
             beta_cube.coord("predictor_name").points, ["air_temperature", "altitude"]
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_additional_dynamic_predictor(self):
         """Raise an error if the additional predictor provided is not static."""
         plugin = self.plugin(self.distribution)
@@ -1461,7 +1401,6 @@ class Test_process(
                 CubeList([self.historic_wind_speed_forecast_cube]),
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_additional_static_predictor_realizations(self):
         """Raise an error if an additional static predictor is provided with
         the realizations predictor."""
@@ -1474,7 +1413,6 @@ class Test_process(
                 CubeList([self.spot_altitude_cube]),
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_truth_unit_conversion(self):
         """Ensure the expected optimised coefficients are generated,
         even if the input truth cube has different units."""
@@ -1490,7 +1428,6 @@ class Test_process(
             np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_historic_forecast_unit_conversion(self):
         """Ensure the expected optimised coefficients are generated,
         even if the input historic forecast cube has different units."""
@@ -1506,7 +1443,6 @@ class Test_process(
             np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
         )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_non_matching_units(self):
         """Test that an exception is raised if the historic forecasts and truth
         have non matching units."""
@@ -1520,7 +1456,6 @@ class Test_process(
                 self.historic_temperature_forecast_cube, self.temperature_truth_cube
             )
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_missing_cube(self):
         """Test that an exception is raised if either of the  historic
         forecasts or truth were missing."""

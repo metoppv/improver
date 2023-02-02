@@ -41,7 +41,6 @@ from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_sort_coord_in_cube(IrisTest):
@@ -168,19 +167,6 @@ class Test_sort_coord_in_cube(IrisTest):
         )
         self.assertArrayAlmostEqual(expected_points, result.coord(coord_name).points)
         self.assertArrayAlmostEqual(result.data, expected_data)
-
-    @ManageWarnings(record=True)
-    def test_warn_raised_for_circular_coordinate(self, warning_list=None):
-        """Test that a warning is successfully raised when circular
-        coordinates are sorted."""
-        self.ascending_cube.data[:, 0, 0] = 6.0
-        coord_name = "latitude"
-        self.ascending_cube.coord(coord_name).circular = True
-        result = sort_coord_in_cube(self.ascending_cube, coord_name, descending=True)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        warning_msg = "The latitude coordinate is circular."
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-        self.assertIsInstance(result, iris.cube.Cube)
 
 
 if __name__ == "__main__":

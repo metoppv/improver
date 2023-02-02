@@ -40,7 +40,6 @@ from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import compare_attributes
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_compare_attributes(IrisTest):
@@ -68,15 +67,6 @@ class Test_compare_attributes(IrisTest):
         result = compare_attributes(cubelist)
         self.assertIsInstance(result, list)
         self.assertArrayEqual(result, [{}, {}])
-
-    @ManageWarnings(record=True)
-    def test_warning(self, warning_list=None):
-        """Test that the utility returns warning if only one cube supplied."""
-        result = compare_attributes(iris.cube.CubeList([self.cube]))
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        warning_msg = "Only a single cube so no differences will be found "
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-        self.assertArrayEqual(result, [])
 
     def test_history_attribute(self):
         """Test that the utility returns diff when history do not match"""

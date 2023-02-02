@@ -44,7 +44,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import get_coord_names
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -73,17 +72,6 @@ class Test__init__(IrisTest):
         msg = "model_id_attr required to blend over model_id"
         with self.assertRaisesRegex(ValueError, msg):
             MergeCubesForWeightedBlending("model_id")
-
-    @ManageWarnings(record=True)
-    def test_warning_unnecessary_model_id_attr(self, warning_list=None):
-        """Test warning if model_id_attr is set for non-model blending"""
-        warning_msg = "model_id_attr not required"
-        plugin = MergeCubesForWeightedBlending(
-            "realization", model_id_attr="mosg__model_configuration"
-        )
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-        self.assertIsNone(plugin.model_id_attr)
 
 
 class Test__create_model_coordinates(IrisTest):

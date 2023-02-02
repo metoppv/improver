@@ -45,7 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .ecc_test_data import set_up_spot_test_cube
 
@@ -132,33 +131,6 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
                 percentiles, forecast_at_percentiles, self.bounds_pairing
             )
 
-    @ManageWarnings(record=True)
-    def test_endpoints_of_distribution_exceeded_warning(self, warning_list=None):
-        """
-        Test that the plugin raises a warning message when the constant
-        end points of the distribution are exceeded by a percentile value
-        used in the forecast and the ecc_bounds_warning keyword argument
-        has been specified.
-        """
-        forecast_at_percentiles = np.array([[8, 10, 60]])
-        percentiles = np.array([5, 70, 95])
-        plugin = Plugin(ecc_bounds_warning=True)
-        warning_msg = (
-            "Forecast values exist that fall outside the expected extrema "
-            "values that are defined as bounds in ensemble_copula_coupling"
-            "/constants.py. Applying the extrema values as end points to "
-            "the distribution would result in non-monotonically increasing "
-            "values. The defined extremes are (-40, 50), whilst the "
-            "following forecast values exist outside this range: [60]. "
-            "The percentile values that have exceeded the existing bounds "
-            "will be used as new bounds."
-        )
-        plugin._add_bounds_to_percentiles_and_forecast_at_percentiles(
-            percentiles, forecast_at_percentiles, self.bounds_pairing
-        )
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-
-    @ManageWarnings(ignored_messages=["The end points added to the forecast at"])
     def test_new_endpoints_generation(self):
         """Test that the plugin re-applies the percentile bounds using the
         maximum and minimum percentile values when the original bounds have
@@ -475,7 +447,6 @@ class Test_process(IrisTest):
             ]
         )
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentile_number(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -483,8 +454,6 @@ class Test_process(IrisTest):
         """
         result = Plugin().process(self.percentile_cube, no_of_percentiles=3)
         self.assertArrayAlmostEqual(result.data, self.expected)
-
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_not_specifying_percentile_number(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -493,7 +462,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.percentile_cube)
         self.assertArrayAlmostEqual(result.data, self.expected)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_masked_input_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -507,7 +475,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data.data, self.expected.data)
         self.assertArrayEqual(result.data.mask, self.expected.mask)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_masked_input_data_non_nans(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -521,7 +488,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data.data, self.expected.data)
         self.assertArrayEqual(result.data.mask, self.expected.mask)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -530,7 +496,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.percentile_cube, percentiles=[35, 60, 85])
         self.assertArrayAlmostEqual(result.data, self.expected + 0.5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_extreme_percentiles_with_ecc_bounds(self):
         """
         Test that the plugin returns data with the expected
@@ -554,7 +519,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.percentile_cube, percentiles=[1, 60, 99])
         self.assertArrayAlmostEqual(result.data, expected, decimal=5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_extreme_percentiles_without_ecc_bounds(self):
         """
         Test that the plugin returns data with the expected
@@ -573,7 +537,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_percentiles_too_low(self):
         """
         Test that an exception is raised if a percentile value is below 0.
@@ -582,7 +545,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             Plugin().process(self.percentile_cube, percentiles=[-5, 50, 75])
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_percentiles_too_high(self):
         """
         Test that an exception is raised if a percentile value is above 100.

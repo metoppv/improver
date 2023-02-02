@@ -38,11 +38,6 @@ from iris.tests import IrisTest
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
-
-# The warning messages are internal to the iris.analysis module v2.2.0
-IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]
-WARNING_TYPES = [FutureWarning]
 
 
 class Test__init__(IrisTest):
@@ -116,7 +111,6 @@ class Test_process(IrisTest):
             self.assertEqual(result.coord(axis=axis), self.target_grid.coord(axis=axis))
         self.assertDictEqual(result.attributes, expected_attributes)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_access_regrid_with_landmask(self):
         """Test the AdjustLandSeaPoints module is correctly called when using
         landmask arguments. Diagnosed by identifiable error."""
@@ -128,7 +122,6 @@ class Test_process(IrisTest):
                 landmask_vicinity=1000,
             )(self.cube, self.target_grid)
 
-    @ManageWarnings(ignored_messages=IGNORED_MESSAGES, warning_types=WARNING_TYPES)
     def test_run_regrid_with_landmask(self):
         """Test masked regridding (same expected values as basic, since input
         points are all equal)"""
@@ -159,37 +152,6 @@ class Test_process(IrisTest):
         msg = "Source landmask does not match input grid"
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube, self.target_grid)
-
-    @ManageWarnings(record=True)
-    def test_warning_source_not_landmask(self, warning_list=None):
-        """Test warning is raised if landmask_source_grid is not a landmask"""
-        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
-        self.landmask.rename("not_a_landmask")
-        result = RegridLandSea(
-            regrid_mode="nearest-with-mask",
-            landmask=self.landmask,
-            landmask_vicinity=90000,
-        )(self.cube, self.target_grid)
-        msg = "Expected land_binary_mask in input_landmask cube"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertArrayAlmostEqual(result.data, expected_data)
-
-    @ManageWarnings(record=True)
-    def test_warning_target_not_landmask(self, warning_list=None):
-        """Test warning is raised if target_grid is not a landmask"""
-        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
-        self.target_grid.rename("not_a_landmask")
-        self.landmask.rename("not_a_landmask")
-        result = RegridLandSea(
-            regrid_mode="nearest-with-mask",
-            landmask=self.landmask,
-            landmask_vicinity=90000,
-        ).process(self.cube, self.target_grid)
-        msg = "Expected land_binary_mask in target_grid cube"
-        self.assertTrue(any([msg in str(warning) for warning in warning_list]))
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""

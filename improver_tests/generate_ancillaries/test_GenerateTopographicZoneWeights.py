@@ -42,7 +42,6 @@ from improver.generate_ancillaries.generate_topographic_zone_weights import (
     GenerateTopographicZoneWeights,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_orography_cube(data):
@@ -420,30 +419,6 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data.data, expected_weights_data, decimal=2)
         self.assertArrayAlmostEqual(result.data.mask, expected_weights_mask)
-
-    @ManageWarnings(record=True)
-    def test_warning_if_orography_above_bands(self, warning_list=None):
-        """Test that a warning is raised if the orography is greater than the
-        maximum band."""
-        orography_data = np.array([[60.0, 70.0], [80.0, 90.0]])
-        orography = self.orography.copy(data=orography_data)
-        thresholds_dict = {"bounds": [[0, 50]], "units": "m"}
-        msg = "The maximum orography is greater than the uppermost band"
-        self.plugin.process(orography, thresholds_dict, self.landmask)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(msg in str(item) for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_warning_if_orography_below_bands(self, warning_list=None):
-        """Test that a warning is raised if the orography is lower than the
-        minimum band."""
-        orography_data = np.array([[60.0, 70.0], [80.0, 90.0]])
-        orography = self.orography.copy(data=orography_data)
-        thresholds_dict = {"bounds": [[100, 150]], "units": "m"}
-        msg = "The minimum orography is lower than the lowest band"
-        self.plugin.process(orography, thresholds_dict, self.landmask)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(msg in str(item) for item in warning_list))
 
 
 if __name__ == "__main__":

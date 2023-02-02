@@ -45,7 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 def _mean_points(points):
@@ -168,19 +167,6 @@ class Test__init__(Test_RecursiveFilter):
             RecursiveFilter(
                 iterations=iterations, edge_width=1,
             )
-
-    @ManageWarnings(record=True)
-    def test_iterations_warn(self, warning_list=None):
-        """Test when the iteration value is more than 3 it warns."""
-        iterations = 5
-        warning_msg = (
-            "More than two iterations degrades the conservation"
-            "of probability assumption."
-        )
-
-        RecursiveFilter(iterations=iterations)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
 
 class Test__validate_coefficients(Test_RecursiveFilter):

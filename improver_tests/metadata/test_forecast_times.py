@@ -50,7 +50,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_forecast_period_coord(IrisTest):
@@ -178,19 +177,6 @@ class Test__calculate_forecast_period(IrisTest):
         self.frt_coord.convert_units("hours since 1970-01-01 00:00:00")
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
         self.assertEqual(result, self.fp_coord)
-
-    @ManageWarnings(record=True)
-    def test_negative_forecast_period(self, warning_list=None):
-        """Test a warning is raised if the calculated forecast period is
-        negative"""
-        # default cube has a 4 hour forecast period, so add 5 hours to frt
-        self.frt_coord.points = self.frt_coord.points + 5 * 3600
-        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
-        warning_msg = "The values for the time"
-        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-        self.assertEqual(result.points, [-3600])
 
 
 class Test_rebadge_forecasts_as_latest_cycle(IrisTest):

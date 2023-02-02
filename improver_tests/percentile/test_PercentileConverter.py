@@ -41,7 +41,6 @@ from iris.tests import IrisTest
 from improver.percentile import PercentileConverter
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_names
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_process(IrisTest):
@@ -67,7 +66,6 @@ class Test_process(IrisTest):
             [0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]
         )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_valid_single_coord_string(self):
         """Test that the plugin handles a valid collapse_coord passed in
         as a string."""
@@ -93,7 +91,6 @@ class Test_process(IrisTest):
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 11))
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_valid_single_coord_string_for_time(self):
         """Test that the plugin handles time being the collapse_coord that is
         passed in as a string."""
@@ -129,7 +126,6 @@ class Test_process(IrisTest):
         # Check resulting data shape.
         self.assertEqual(result.data.shape, (15, 3, 11, 11))
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_valid_multi_coord_string_list(self):
         """Test that the plugin handles a valid list of collapse_coords passed
         in as a list of strings."""
@@ -182,7 +178,6 @@ class Test_process(IrisTest):
         self.assertIn("percentile", result_coords)
         self.assertNotIn("percentile", get_dim_coord_names(result))
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_use_with_masked_data(self):
         """Test that the plugin handles masked data, this requiring the option
         fast_percentile_method=False."""
