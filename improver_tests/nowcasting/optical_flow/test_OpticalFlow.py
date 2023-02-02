@@ -540,7 +540,6 @@ class Test_calculate_displacement_vectors(IrisTest):
         self.assertAlmostEqual(np.mean(vmat), np.float32(0.124607998))
 
 
-
 class Test_process_dimensionless(IrisTest):
     """Test the process_dimensionless method"""
 

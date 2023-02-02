@@ -454,6 +454,7 @@ class Test_process(IrisTest):
         """
         result = Plugin().process(self.percentile_cube, no_of_percentiles=3)
         self.assertArrayAlmostEqual(result.data, self.expected)
+
     def test_check_data_not_specifying_percentile_number(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected

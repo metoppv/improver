@@ -1,4 +1,4 @@
- # -*- coding: utf-8 -*-
+# -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
 # All rights reserved.
@@ -110,7 +110,7 @@ class Test_datetime_to_cycletime(IrisTest):
 class Test_cycletime_to_number(IrisTest):
 
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
-      into a numeric time value."""
+    into a numeric time value."""
 
     def test_basic(self):
         """Test that a number is returned of the expected value."""
@@ -148,7 +148,7 @@ class Test_cycletime_to_number(IrisTest):
 
 
 class Test_iris_time_to_datetime(IrisTest):
-    """ Test iris_time_to_datetime """
+    """Test iris_time_to_datetime"""
 
     def setUp(self):
         """Set up an input cube"""
@@ -159,7 +159,7 @@ class Test_iris_time_to_datetime(IrisTest):
         )
 
     def test_basic(self):
-        """Test iris_time_to_datetime returns list of datetime """
+        """Test iris_time_to_datetime returns list of datetime"""
         result = iris_time_to_datetime(self.cube.coord("time"))
         self.assertIsInstance(result, list)
         for item in result:
@@ -314,7 +314,7 @@ class Test_extract_cube_at_time(IrisTest):
 
     def test_valid_time_for_coord_with_bounds(self):
         """Case for a time that is available within the diagnostic cube.
-           Test it still works for coordinates with bounds."""
+        Test it still works for coordinates with bounds."""
         plugin = extract_cube_at_time
         self.cube.coord("time").guess_bounds()
         cubes = CubeList([self.cube])
@@ -445,7 +445,8 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [2 * 3600, 3 * 3600], TIME_COORDS["forecast_period"].dtype,
+            [2 * 3600, 3 * 3600],
+            TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube, 1)
         self.assertIsInstance(result, Cube)
@@ -465,7 +466,8 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype,
+            [0, 3 * 3600],
+            dtype=TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube_with_bounds, 3)
         self.assertEqual(result.coord("time"), expected_time)
