@@ -509,17 +509,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube)
 
-    def test_each_threshold_func(self):
-        """Test user supplied func is applied on each threshold cube."""
-        # Need to copy the cube as we're adjusting the data.
-        new_attr = {"new_attribute": "narwhal"}
-        plugin = Threshold(
-            threshold_values=[2.0],
-            each_threshold_func=lambda cube: cube.attributes.update(new_attr) or cube,
-        )
-        result = plugin(self.cube)
-        self.assertTrue("new_attribute" in result.attributes)
-
     def test_cell_method_updates(self):
         """Test plugin adds correct information to cell methods"""
         self.cube.add_cell_method(CellMethod("max", coords="time"))

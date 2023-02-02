@@ -463,7 +463,6 @@ class BasicThreshold(PostProcessingPlugin):
         )
 
         for cube in input_slices:
-
             # Tests performed on each slice rather than whole cube to avoid
             # realising all of the data.
             if np.isnan(cube.data).any():
@@ -515,9 +514,17 @@ class BasicThreshold(PostProcessingPlugin):
         # a masked point in every realization, so we can use this array to
         # modify only unmasked points and reapply a mask to the final result.
         valid = contribution_total.astype(bool)
-        thresholded_cube.data[..., valid] = (
-            thresholded_cube.data[..., valid] / contribution_total[valid]
-        )
+
+        # Slice over the array to avoid ballooning the memory required for the
+        # denominators through broadcasting.
+        for i, dslice in enumerate(thresholded_cube.data):
+            result = np.divide(dslice[valid], contribution_total[valid])
+            thresholded_cube.data[i, valid] = result
+            # np.divide(dslice[valid], contribution_total[valid], out=thresholded_cube.data[i, valid])
+
+        # thresholded_cube.data[..., valid] = (
+        #     thresholded_cube.data[..., valid] / contribution_total[valid]
+        # )
         if (contribution_total == 0).any():
             thresholded_cube.data = np.ma.masked_array(
                 thresholded_cube.data,
