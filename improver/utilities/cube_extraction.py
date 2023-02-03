@@ -358,8 +358,8 @@ class ExtractPressureLevel(BasePlugin):
 
     def fill_invalid(self, cube: Cube):
         """Populate any invalid values with the neighbouring value in that column plus the median
-        difference. This results in columns that do not have repeated values, which confuses
-        the stratify.interpolate method."""
+        difference. This results in columns that do not have repeated values as repeated values
+        confuses the stratify.interpolate method."""
         if not (
             np.logical_or(np.isnan(cube.data), np.isinf(cube.data)).any()
             or np.ma.is_masked(cube.data)
