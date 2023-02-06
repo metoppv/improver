@@ -35,6 +35,7 @@ from datetime import timedelta
 
 import iris
 import numpy as np
+import pytest
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -167,6 +168,16 @@ class Test__init__(Test_RecursiveFilter):
             RecursiveFilter(
                 iterations=iterations, edge_width=1,
             )
+
+    def test_iterations_warn(self):
+        """Test when the iteration value is more than 3 it warns."""
+        iterations = 5
+        warning_msg = (
+            "More than two iterations degrades the conservation"
+            "of probability assumption."
+        )
+        with pytest.warns(UserWarning, match=warning_msg):
+            RecursiveFilter(iterations=iterations)
 
 
 class Test__validate_coefficients(Test_RecursiveFilter):

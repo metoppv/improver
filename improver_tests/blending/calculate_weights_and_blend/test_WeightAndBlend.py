@@ -35,6 +35,7 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
@@ -366,6 +367,18 @@ class Test_process(IrisTest):
             [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
         )
         self.assertIsInstance(result, iris.cube.Cube)
+
+    def test_masked_blending_warning(self):
+        """Test a warning is raised if blending masked data with non-spatial
+        weights."""
+        ukv_cube = self.ukv_cube.copy(
+            data=np.ma.masked_where(self.ukv_cube.data < 0.5, self.ukv_cube.data)
+        )
+        message = "Blending masked data without spatial weights"
+        with pytest.warns(UserWarning, match=message):
+            self.plugin_cycle.process(
+                [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+            )
 
     def test_cycle_blend_linear(self):
         """Test plugin produces correct cycle blended output with equal

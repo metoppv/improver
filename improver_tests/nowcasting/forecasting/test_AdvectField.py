@@ -35,6 +35,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
@@ -373,6 +374,22 @@ class Test_process(IrisTest):
         self.assertIsInstance(result.data, np.ma.MaskedArray)
         self.assertArrayAlmostEqual(
             result.data[~result.data.mask], expected_output[~result.data.mask]
+        )
+
+    def test_unmasked_nans(self):
+        """Test an array with unmasked nans raises a warning"""
+        data_with_nan = self.cube.data
+        data_with_nan[2, 1] = np.nan
+        cube = self.cube.copy(data_with_nan)
+        expected_data = np.full((4, 3), np.nan, dtype=np.float32)
+        expected_data[2, 1:] = np.array([2.0, 3.0])
+        warning_msg = "contains unmasked NaNs"
+
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = self.plugin.process(cube, self.timestep)
+
+        self.assertArrayAlmostEqual(
+            result.data[~result.data.mask], expected_data[~result.data.mask]
         )
 
     def test_time_step(self):

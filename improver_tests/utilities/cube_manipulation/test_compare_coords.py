@@ -36,6 +36,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import AuxCoord, DimCoord
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -64,6 +65,16 @@ class Test_compare_coords(unittest.TestCase):
         result = compare_coords(cubelist)
         self.assertIsInstance(result, list)
         self.assertEqual(result, [{}, {}])
+
+    def test_catch_warning(self):
+        """Test warning is raised if the input is cubelist of length 1."""
+        cube = self.cube.copy()
+        warning_msg = "Only a single cube so no differences will be found "
+
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = compare_coords(iris.cube.CubeList([cube]))
+
+        self.assertEqual(result, [])
 
     def test_first_cube_has_extra_dimension_coordinates(self):
         """Test for comparing coordinate between cubes, where the first

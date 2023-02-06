@@ -35,6 +35,7 @@ import unittest
 import cartopy.crs as ccrs
 import iris
 import numpy as np
+import pytest
 import scipy
 from iris.tests import IrisTest
 
@@ -308,6 +309,66 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         self.assertArrayEqual(out_x, x_points)
         self.assertArrayEqual(out_y, y_points)
 
+    def test_some_invalid(self):
+        """Test case with some sites falling outside the regional domain."""
+        plugin = NeighbourSelection()
+        sites = [
+            {"projection_x_coordinate": 1.0e4, "projection_y_coordinate": 1.0e4},
+            {"projection_x_coordinate": 1.0e5, "projection_y_coordinate": 5.0e4},
+            {"projection_x_coordinate": 1.0e6, "projection_y_coordinate": 1.0e5},
+        ]
+
+        x_points = np.array([site["projection_x_coordinate"] for site in sites])
+        y_points = np.array([site["projection_y_coordinate"] for site in sites])
+        site_coords = np.stack((x_points, y_points), axis=1)
+        msg = "1 spot sites fall outside the grid"
+
+        with pytest.warns(UserWarning, match=msg):
+            (
+                sites_out,
+                site_coords_out,
+                out_x,
+                out_y,
+            ) = plugin.check_sites_are_within_domain(
+                sites, site_coords, x_points, y_points, self.region_orography
+            )
+
+        self.assertArrayEqual(sites_out, sites[0:2])
+        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
+        self.assertArrayEqual(out_x, x_points[0:2])
+        self.assertArrayEqual(out_y, y_points[0:2])
+
+    def test_global_invalid(self):
+        """Test case with some sites falling outside the global domain."""
+        plugin = NeighbourSelection()
+        sites = [
+            {"latitude": 0.0, "longitude": 0.0},
+            {"latitude": 50.0, "longitude": 0.0},
+            {"latitude": 100.0, "longitude": 0.0},
+        ]
+
+        x_points = np.array([site["longitude"] for site in sites])
+        y_points = np.array([site["latitude"] for site in sites])
+        site_coords = np.stack((x_points, y_points), axis=1)
+        msg = "1 spot sites fall outside the grid"
+
+        plugin.global_coordinate_system = True
+
+        with pytest.warns(UserWarning, match=msg):
+            (
+                sites_out,
+                site_coords_out,
+                out_x,
+                out_y,
+            ) = plugin.check_sites_are_within_domain(
+                sites, site_coords, x_points, y_points, self.global_orography
+            )
+
+        self.assertArrayEqual(sites_out, sites[0:2])
+        self.assertArrayEqual(site_coords_out[0:2], site_coords[0:2])
+        self.assertArrayEqual(out_x, x_points[0:2])
+        self.assertArrayEqual(out_y, y_points[0:2])
+
     def test_global_circular_valid(self):
         """Test case with a site defined using a longitide exceeding 180
         degrees (e.g. with longitudes that run 0 to 360) is still included
@@ -543,6 +604,23 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
             self.region_orography, site_altitude, nodes, distance, indices
         )
         self.assertEqual(result, None)
+
+    def test_incomplete_search(self):
+        """Test a warning is raised when the number of nearest neighbours
+        searched for the minimum dz neighbour does not exhaust the
+        search_radius."""
+
+        plugin = NeighbourSelection(search_radius=6)
+        site_altitude = 3.0
+        nodes = np.array([[0, 4], [1, 4], [2, 4], [3, 4], [4, 4]])
+        distance = np.arange(5)
+        indices = np.arange(5)
+        msg = "Limit on number of nearest neighbours"
+
+        with pytest.warns(UserWarning, match=msg):
+            plugin.select_minimum_dz(
+                self.region_orography, site_altitude, nodes, distance, indices
+            )
 
 
 class Test_process(Test_NeighbourSelection):

@@ -35,6 +35,7 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -72,6 +73,15 @@ class Test__init__(IrisTest):
         msg = "model_id_attr required to blend over model_id"
         with self.assertRaisesRegex(ValueError, msg):
             MergeCubesForWeightedBlending("model_id")
+
+    def test_warning_unnecessary_model_id_attr(self):
+        """Test warning if model_id_attr is set for non-model blending"""
+        warning_msg = "model_id_attr not required"
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin = MergeCubesForWeightedBlending(
+                "realization", model_id_attr="mosg__model_configuration"
+            )
+        self.assertIsNone(plugin.model_id_attr)
 
 
 class Test__create_model_coordinates(IrisTest):

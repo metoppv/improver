@@ -36,6 +36,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
@@ -167,6 +168,21 @@ class Test_sort_coord_in_cube(IrisTest):
         )
         self.assertArrayAlmostEqual(expected_points, result.coord(coord_name).points)
         self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_warn_raised_for_circular_coordinate(self):
+        """Test that a warning is successfully raised when circular
+        coordinates are sorted."""
+        self.ascending_cube.data[:, 0, 0] = 6.0
+        coord_name = "latitude"
+        self.ascending_cube.coord(coord_name).circular = True
+        warning_msg = "The latitude coordinate is circular."
+
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = sort_coord_in_cube(
+                self.ascending_cube, coord_name, descending=True
+            )
+
+        self.assertIsInstance(result, iris.cube.Cube)
 
 
 if __name__ == "__main__":

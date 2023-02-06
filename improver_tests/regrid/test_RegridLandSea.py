@@ -33,6 +33,7 @@
 import unittest
 
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -152,6 +153,35 @@ class Test_process(IrisTest):
         msg = "Source landmask does not match input grid"
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube, self.target_grid)
+
+    def test_warning_source_not_landmask(self):
+        """Test warning is raised if landmask_source_grid is not a landmask"""
+        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
+        self.landmask.rename("not_a_landmask")
+        msg = "Expected land_binary_mask in input_landmask cube"
+        with pytest.warns(UserWarning, match=msg):
+            result = RegridLandSea(
+                regrid_mode="nearest-with-mask",
+                landmask=self.landmask,
+                landmask_vicinity=90000,
+            )(self.cube, self.target_grid)
+
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_warning_target_not_landmask(self):
+        """Test warning is raised if target_grid is not a landmask"""
+        expected_data = 282 * np.ones((12, 12), dtype=np.float32)
+        self.target_grid.rename("not_a_landmask")
+        self.landmask.rename("not_a_landmask")
+        msg = "Expected land_binary_mask in target_grid cube"
+        with pytest.warns(UserWarning, match=msg):
+            result = RegridLandSea(
+                regrid_mode="nearest-with-mask",
+                landmask=self.landmask,
+                landmask_vicinity=90000,
+            ).process(self.cube, self.target_grid)
+
+        self.assertArrayAlmostEqual(result.data, expected_data)
 
     def test_attribute_changes_with_regridding(self):
         """Test attributes inherited on regridding"""

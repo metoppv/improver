@@ -37,6 +37,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.cube import CubeList
 from iris.tests import IrisTest
 
@@ -485,6 +486,56 @@ class Test_process_normal_distribution(
             result, self.expected_realizations_coefficients_point_by_point, decimal=2
         )
 
+    def test_catch_warnings(self):
+        """
+        Test that a warning is generated if the minimisation
+        does not result in a convergence. The ensemble mean is the predictor.
+        """
+        predictor = "mean"
+        distribution = "norm"
+        warning_msg = "Minimisation did not result in convergence after"
+
+        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=10)
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin.process(
+                self.initial_guess_for_mean,
+                self.forecast_predictor_mean,
+                self.truth,
+                self.forecast_variance,
+                distribution,
+            )
+
+    def test_catch_warnings_percentage_change(self):
+        """
+        Test that two warnings are generated if the minimisation
+        does not result in a convergence. The first warning reports a that
+        the minimisation did not result in convergence, whilst the second
+        warning reports that the percentage change in the final iteration was
+        greater than the tolerated value. The ensemble mean is the predictor.
+        """
+        initial_guess = np.array([5000, 1, 0, 1], dtype=np.float64)
+        predictor = "mean"
+        distribution = "norm"
+
+        warning_msg_min = "Minimisation did not result in convergence after"
+        warning_msg_iter = "The final iteration resulted in a percentage "
+
+        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=5)
+        with pytest.warns(UserWarning) as warning_list:
+            plugin.process(
+                initial_guess,
+                self.forecast_predictor_mean,
+                self.truth,
+                self.forecast_variance,
+                distribution,
+            )
+        self.assertTrue(
+            any(warning_msg_min in str(item.message) for item in warning_list)
+        )
+        self.assertTrue(
+            any(warning_msg_iter in str(item.message) for item in warning_list)
+        )
+
     def test_point_by_point_with_nans(self):
         """
         Test that the expected coefficients are generated when the ensemble
@@ -806,6 +857,57 @@ class Test_process_truncated_normal_distribution(
         )
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_realizations_coefficients
+        )
+
+    def test_catch_warnings(self):
+        """
+        Test that a warning is generated if the minimisation
+        does not result in a convergence. The ensemble mean is the predictor.
+        """
+        predictor = "mean"
+        distribution = "truncnorm"
+        warning_msg = "Minimisation did not result in convergence after"
+
+        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=10)
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin.process(
+                self.initial_guess_for_mean,
+                self.forecast_predictor_mean,
+                self.truth,
+                self.forecast_variance,
+                distribution,
+            )
+
+    def test_catch_warnings_percentage_change(self):
+        """
+        Test that two warnings are generated if the minimisation
+        does not result in a convergence. The first warning reports a that
+        the minimisation did not result in convergence, whilst the second
+        warning reports that the percentage change in the final iteration was
+        greater than the tolerated value.
+        The ensemble mean is the predictor.
+        """
+        initial_guess = np.array([0, 1, 5000, 1], dtype=np.float64)
+        predictor = "mean"
+        distribution = "truncnorm"
+
+        warning_msg_min = "Minimisation did not result in convergence after"
+        warning_msg_iter = "The final iteration resulted in a percentage "
+
+        plugin = Plugin(predictor, tolerance=self.tolerance, max_iterations=5)
+        with pytest.warns(UserWarning) as warning_list:
+            plugin.process(
+                initial_guess,
+                self.forecast_predictor_mean,
+                self.truth,
+                self.forecast_variance,
+                distribution,
+            )
+        self.assertTrue(
+            any(warning_msg_min in str(item.message) for item in warning_list)
+        )
+        self.assertTrue(
+            any(warning_msg_iter in str(item.message) for item in warning_list)
         )
 
     def test_mean_predictor_additional_predictor(self):

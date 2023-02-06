@@ -36,6 +36,7 @@ from datetime import datetime
 import cftime
 import iris
 import numpy as np
+import pytest
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
@@ -321,6 +322,19 @@ class Test_extract_cube_at_time(IrisTest):
         result = plugin(cubes, self.time_dt, self.time_constraint)
         self.assertIsInstance(result, Cube)
 
+    def test_invalid_time(self):
+        """Case for a time that is unavailable within the diagnostic cube."""
+        plugin = extract_cube_at_time
+        time_dt = datetime(2017, 2, 18, 6, 0)
+        time_constraint = iris.Constraint(
+            time=PartialDateTime(time_dt.year, time_dt.month, time_dt.day, time_dt.hour)
+        )
+        cubes = CubeList([self.cube])
+        warning_msg = "Forecast time"
+
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin(cubes, time_dt, time_constraint)
+
 
 class Test_extract_nearest_time_point(IrisTest):
 
@@ -445,8 +459,7 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [2 * 3600, 3 * 3600],
-            TIME_COORDS["forecast_period"].dtype,
+            [2 * 3600, 3 * 3600], TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube, 1)
         self.assertIsInstance(result, Cube)
@@ -466,8 +479,7 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [0, 3 * 3600],
-            dtype=TIME_COORDS["forecast_period"].dtype,
+            [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube_with_bounds, 3)
         self.assertEqual(result.coord("time"), expected_time)

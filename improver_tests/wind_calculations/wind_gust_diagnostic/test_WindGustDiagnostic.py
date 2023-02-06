@@ -34,6 +34,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
+import pytest
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -160,6 +161,17 @@ class Test_extract_percentile_data(IrisTest):
             plugin.extract_percentile_data(
                 self.wg_perc, self.wg_perc, "wind_speed_of_gust"
             )
+
+    def test_warning_if_standard_names_do_not_match(self):
+        """Test it raises a warning if standard names do not match."""
+        plugin = WindGustDiagnostic(self.wg_perc, self.ws_perc)
+        warning_msg = "Warning mismatching name for data expecting"
+        with pytest.warns(UserWarning, match=warning_msg):
+            result, perc_coord = plugin.extract_percentile_data(
+                self.cube_wg, self.wg_perc, "wind_speed"
+            )
+        self.assertIsInstance(result, Cube)
+        self.assertIsInstance(perc_coord, iris.coords.Coord)
 
     def test_fails_if_req_percentile_not_in_cube(self):
         """Test it raises a Value Error if req_perc not in cube."""

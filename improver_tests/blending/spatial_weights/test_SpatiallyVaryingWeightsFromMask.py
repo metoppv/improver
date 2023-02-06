@@ -36,6 +36,7 @@ import unittest
 from datetime import datetime
 
 import numpy as np
+import pytest
 from iris.coords import AuxCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
@@ -222,6 +223,26 @@ class Test_process(IrisTest):
         self.plugin_no_fuzzy = SpatiallyVaryingWeightsFromMask(
             "forecast_reference_time", fuzzy_length=1
         )
+
+    def test_none_masked(self):
+        """Test when we have no masked data in the input cube."""
+        self.cube_to_collapse.data = np.ones(self.cube_to_collapse.data.shape)
+        self.cube_to_collapse.data = np.ma.masked_equal(self.cube_to_collapse.data, 0)
+        expected_data = np.array(
+            [
+                [[0.2, 0.2, 0.2], [0.2, 0.2, 0.2]],
+                [[0.5, 0.5, 0.5], [0.5, 0.5, 0.5]],
+                [[0.3, 0.3, 0.3], [0.3, 0.3, 0.3]],
+            ],
+            dtype=np.float32,
+        )
+        message = "Expected masked input"
+        with pytest.warns(UserWarning, match=message):
+            result = self.plugin.process(
+                self.cube_to_collapse, self.one_dimensional_weights_cube,
+            )
+        self.assertArrayEqual(result.data, expected_data)
+        self.assertEqual(result.dtype, np.float32)
 
     def test_all_masked(self):
         """Test when we have all masked data in the input cube."""

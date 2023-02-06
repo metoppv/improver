@@ -37,6 +37,7 @@ from datetime import datetime
 
 import cf_units as unit
 import numpy as np
+import pytest
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -121,6 +122,29 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, self.bounds_pairing
+            )
+
+    def test_endpoints_of_distribution_exceeded_warning(self):
+        """
+        Test that the plugin raises a warning message when the constant
+        end points of the distribution are exceeded by a threshold value
+        used in the forecast and the ecc_bounds_warning keyword argument
+        has been specified.
+        """
+        probabilities_for_cdf = np.array([[0.05, 0.7, 0.95]])
+        threshold_points = np.array([8, 10, 60])
+        plugin = Plugin(ecc_bounds_warning=True)
+        warning_msg = (
+            "The calculated threshold values \\[-40   8  10  60  50\\] are "
+            "not in ascending order as required for the cumulative distribution "
+            "function \\(CDF\\). This is due to the threshold values exceeding "
+            "the range given by the ECC bounds \\(-40, 50\\). The threshold "
+            "points that have exceeded the existing bounds will be used as "
+            "new bounds."
+        )
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin._add_bounds_to_thresholds_and_probabilities(
                 threshold_points, probabilities_for_cdf, self.bounds_pairing
             )
 
@@ -298,6 +322,24 @@ class Test__probabilities_to_percentiles(IrisTest):
             cube, percentiles, self.bounds_pairing
         )
         self.assertArrayAlmostEqual(result.data, expected, decimal=5)
+
+    def test_probabilities_not_monotonically_increasing(self):
+        """
+        Test that the plugin raises a Warning when the probabilities
+        of the Cumulative Distribution Function are not monotonically
+        increasing.
+        """
+        data = np.array([0.05, 0.7, 0.95])
+        data = data[:, np.newaxis, np.newaxis]
+        cube = set_up_probability_cube(
+            data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
+        )
+
+        warning_msg = "The probability values used to construct the"
+        with pytest.warns(UserWarning, match=warning_msg):
+            Plugin()._probabilities_to_percentiles(
+                cube, self.percentiles, self.bounds_pairing
+            )
 
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
