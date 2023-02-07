@@ -179,7 +179,7 @@ class Test__calculate_forecast_period(IrisTest):
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
         self.assertEqual(result, self.fp_coord)
 
-    def test_negative_forecast_period(self, warning_list=None):
+    def test_negative_forecast_period(self):
         """Test a warning is raised if the calculated forecast period is
         negative"""
         # default cube has a 4 hour forecast period, so add 5 hours to frt

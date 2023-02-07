@@ -45,9 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
-IGNORED_MESSAGES = ["Collapsing a non-contiguous coordinate"]
-WARNING_TYPES = [UserWarning]
-
 
 class EnsembleCalibrationAssertions(IrisTest):
 

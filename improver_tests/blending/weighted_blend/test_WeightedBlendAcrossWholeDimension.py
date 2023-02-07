@@ -58,8 +58,6 @@ from .test_PercentileBlendingAggregator import (
     PERCENTILE_DATA,
 )
 
-COORD_COLLAPSE_WARNING = "Collapsing a non-contiguous coordinate"
-
 
 def percentile_cube(frt_points, time, frt):
     """Create a percentile cube for testing."""

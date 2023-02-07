@@ -920,7 +920,7 @@ class Test_process(IrisTest):
         self.cube2.rename("snowfall_rate")
         warning_msg = "Input data are of non-precipitation type"
         with pytest.warns(UserWarning, match=warning_msg):
-            _, _ = self.plugin.process(self.cube1, self.cube2, boxsize=3)
+            self.plugin.process(self.cube1, self.cube2, boxsize=3)
 
 
 if __name__ == "__main__":

@@ -46,10 +46,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
-# The warning messages are internal to the iris.analysis module v2.2.0
-IGNORED_MESSAGES = ["Using a non-tuple sequence for multidimensional indexing"]
-WARNING_TYPES = [FutureWarning]
-
 
 class Test__init__(IrisTest):
     """Tests for the initiation of the AdjustLandSeaPoints class."""
