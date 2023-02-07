@@ -34,7 +34,7 @@ There are two common views of the metadata:
 * How the ncdump utility would display the netCDF file metadata 
 * How iris would display the cube
 
-We will mainly focus on the file view as here as the default output
+We will mainly focus on the file view here as the default output
 provides a fuller view
 (although iris can be used to fully explore the metadata).
 
