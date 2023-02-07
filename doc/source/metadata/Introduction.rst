@@ -419,7 +419,7 @@ Vertical coordinate variable
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
 
 Some parameters also have a vertical scalar coordinate, height
-(in the exmaple here, it is ``1.5 m`` representing screen level): 
+(in the example here, it is ``1.5 m`` representing screen level): 
 
 .. literalinclude:: temp12max_prob_ncdump.txt
     :tab-width: 4
