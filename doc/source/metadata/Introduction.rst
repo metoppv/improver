@@ -23,7 +23,7 @@ Looking at an example
 ---------------------
 
 The easiest way to explain the IMPROVER metadata from a user perspective
-is to dive straight in and look at an actual example of the metadata.
+is to dive straight in and look at an actual example.
 For this purpose, we will consider
 gridded probabilities for a 12-hour maximum temperature 
 exceeding a range of thresholds
