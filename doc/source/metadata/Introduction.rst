@@ -90,7 +90,7 @@ source
     Method of production of the original data.
     For the model data feeding into this
     in this example, this will be “Met Office Unified Model”, 
-    but as IMPROVER applies significant processing of multiple inputs,
+    but as IMPROVER applies significant processing to multiple inputs,
     the output of IMPROVER can be considered as original data. 
 
 title
