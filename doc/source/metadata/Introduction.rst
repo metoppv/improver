@@ -165,7 +165,7 @@ However, slightly confusingly, when the dimension appears in the iris cube metad
 (see file snippet below),
 the actual dimension name
 (which is stored in the iris cube as ``var_name=”threshold”``) 
-in the first and third lineslines is replaced by the ``standard_name`` 
+in the first and third lines is replaced by the ``standard_name`` 
 (``air_temperature``) of the coordinate variable associated
 with this dimension (also ``threshold``). 
 
