@@ -659,8 +659,8 @@ As this is mean, there is no dimension and coordinate variable for
 The main variable has a ``cell_methods`` attribute, set to
 ``realization: mean``.
 
-At present, there is no ``blend_time`` coordinate variable, 
-so, st present, an idea of the time at which the data was generated 
+At present there is no ``blend_time`` coordinate variable.
+For now an idea of the time at which the data was generated 
 can be obtained from the ``forecast_reference_time``
 
 
