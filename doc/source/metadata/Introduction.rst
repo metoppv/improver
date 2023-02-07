@@ -399,7 +399,7 @@ here projection_y_coordinate and projection_x_coordinate
 (but would be latitude and longitude for an equi-rectangular 
 projection grid, such as the Met Offuce global domain),
 provide the coordinates of the grid points at the centre of the grid cell,
-with teo further variables defining the cell bounds.
+with two further variables defining the cell bounds.
 
 .. literalinclude:: temp12max_prob_ncdump.txt
     :tab-width: 4
