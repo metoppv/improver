@@ -221,18 +221,18 @@ units
 cell_methods
     Used to describe the statistical processing applied to the quantity
     that usually changes the interpretation of the data.
-    ``time: maximum`` indicates the maximum over ther period of the time bounds.
+    ``time: maximum`` indicates the maximum over the period of the time bounds.
     The ``comment: of air_temperature`` in brackets
-    is to clarity that it the maximum
+    is to clarify that the maximum
     is not of the probability, but of the underlying quantity,
-    the temperature, in this exmaple.
+    which is the temperature in this example.
     Cell methods are covered in more detail in the User Guide
 
 .. add link to User Guide
 
 grid_mapping
     Although in this case, the name of the projection used,
-    this is actually only a label pointing to separate grid mapping variable,
+    this is actually only a label pointing to a separate grid mapping variable,
     which more fully describes the map projection. 
 
 coordinates
@@ -313,7 +313,7 @@ ssp__relative_to_threshold
 Time coordinate variables
 ^^^^^^^^^^^^^^^^^^^^^^^^^
 
-At present, most parameters have 2 time coordinate variables, 
+At present, most parameters have two time coordinate variables, 
 ``time`` and ``blend_time``, 
 with a further variable providing the bounds of the time step for parameters 
 where this information is required.
@@ -324,11 +324,6 @@ where this information is required.
 
 time
     The time at which the parameter value is valid.
-    As IMPROVER may blend data with different reference times 
-    (used at the Met Office to generate a continually updating dataset,
-    with a single value for each time),
-    this is really the only piece of time information that matters
-    for most use cases. 
 
 blend_time
     Has been added to indicate when the data was processed (blended)
@@ -336,7 +331,7 @@ blend_time
     the data is. 
     (For the Met Office continually updating dataset, 
     the ``blend_time`` will not be the same for all validity times,
-    as forecasts in the near future are updated more frequently.)
+    as forecasts in the near future are updated more frequently).
     Strictly, as ``blend_time`` is not part of the `CF Metadata Conventions`_
     it should arguable include a 'namespace element' such as ``mosg__``
     but it doesn't.
@@ -371,7 +366,7 @@ forecast_period
     different times may have a different ``blend_time``, so at brackets
     ``forecast_period`` is unhelpful, at worst it is confusing.
 
-The time coordinate varaibles share a common set of attributes:
+The time coordinate variables share a common set of attributes:
 
 standard_name / long_name
     A descriptive name, either from the `CF Standard Name`_ list 
@@ -494,7 +489,7 @@ at each point.
     :tab-width: 4
     :lines: 8-14
 
-The variable attributes are the same as the probability exmaple
+The variable attributes are the same as the probability example
 previously described in detail, except: 
 
 standard_name
@@ -503,9 +498,9 @@ standard_name
 
 cell_methods
     Used to describe statistical processing applied to the quantity
-    no longer require the additional non-standardized part, 
+    no longer requires the additional non-standardized part, 
     ``(comment: of air_temperature)``, 
-    as they now refer to the main variable that is a maximum over over 12 hours. 
+    as they now refer to the main variable that is a maximum temperature over 12 hours. 
 
 Percentile coordinate variable
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -516,13 +511,13 @@ fully interpreted. This holds the set of percentile values.
 
 .. literalinclude:: temp12max_perc_ncdump.txt
     :tab-width: 4
-    :lines: 24-26, 79-82
+    :lines: 24-26, 79-81
 
 The variable attributes are:
 
 long_name
-   ``percentile`` which is used all IMPROVER percentile variables, 
-   is not in the `CF Standard Name`_ list.
+   ``percentile`` which is used for all IMPROVER percentile variables. 
+   It is not in the `CF Standard Name`_ list.
 
 units
     The units here are a percentage. 
@@ -556,14 +551,14 @@ and a dimension for the WMO identifier string length has been added.
 
 .. literalinclude:: temp12max_spotperc_ncdump.txt
     :tab-width: 4
-    :lines: 24-27
+    :lines: 2-7
 
 spot_index
     The dimension for the index for the set of sites. 
 
 string5 / string8
     Just constants used to dimension the character length of the string variable
-    holding WMO identifier and Met Office identifiers, respectively.
+    holding zero padded WMO identifier and Met Office identifiers, respectively.
 
 .. how tied to the code are these identifiers, as they may not be appropiate
     for other users?
