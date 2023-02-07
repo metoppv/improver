@@ -643,7 +643,7 @@ is shown in an appendix.
 
 
 The global attribute ``mosg__model_configuration`` is always a single model 
-(for the Met Office ``uk_ens`` or ``gl_ens`` 
+(for the Met Office ``uk_ens`` or ``gl_ens``)
 
 For gridded data only, the ``title`` only identifies the single model used
 (for the Met Office, this would be either
