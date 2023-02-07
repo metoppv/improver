@@ -143,10 +143,10 @@ and the last is a more general dimension.
     :lines: 2-6
 
 projection_y_coordinate
-    Number of points in the horizontal x-direction
+    Number of points in the horizontal y-direction
 
 projection_x_coordinate
-    Number of points in the horizontal y-direction. 
+    Number of points in the horizontal x-direction. 
 
 threshold
     Number of probability thresholds for the probabilities. 
