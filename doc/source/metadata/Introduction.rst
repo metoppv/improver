@@ -177,7 +177,7 @@ with this dimension (also ``threshold``).
 Another dimension that will also be seen is:
 
 percentile
-    Number of percentile levels in the files holding precentile values
+    Number of percentiles in files holding percentile values
     rather then probabilities
 
 
