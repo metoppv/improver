@@ -124,9 +124,7 @@ mosg__model_configuration
 mosg__model_run
    This attribute extends the information provided by
    ``mosg__model_configuration``, to detail the contribution 
-   blend of specific model runs(or cycles). 
-   More recently, this has been extended to include the weight
-   given to this contribution in the blend.
+   of specific model runs (also known as cycles) to the blend. 
    This is represented as a list of space-separated composite entries
    of the form:
 
