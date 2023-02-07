@@ -12,7 +12,7 @@ Metadata is data that describes other data.
 In IMPROVER this takes the form of attributes either within a netCDF file
 or within an in-memory Iris cube. 
 
-The principles applied to the metadata witin IMPROVER are: 
+The principles applied to the metadata within IMPROVER are: 
 
  * Conformance to the CF Metadata Conventions, building on this where necessary
  * Clear purpose, with just enough metadata to describe the data sufficiently
