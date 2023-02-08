@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to parse a list of constraints and extract matching subcube """
 
+import operator
 from ast import literal_eval
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -317,14 +318,17 @@ class ExtractPressureLevel(BasePlugin):
     """
 
     def __init__(
-        self, value_of_pressure_level: Optional[float] = None,
+        self, positive_correlation: bool, value_of_pressure_level: float,
     ):
         """Sets up Class
             Args:
+                positive_correlation:
+                    Set to True when the variable generally increases as pressure increases
                 value_of_pressure_level:
                     The value of the input cube for which the pressure level is required
         """
 
+        self.positive_correlation = positive_correlation
         self.value_of_pressure_level = value_of_pressure_level
 
     @staticmethod
@@ -352,16 +356,122 @@ class ExtractPressureLevel(BasePlugin):
         )
         return pressure_array
 
-    @staticmethod
-    def fill_invalid(cube: Cube):
-        """Populate any invalid values with the maximum in that column on the assumption
-        that missing values fall below the model's surface."""
+    def fill_invalid(self, cube: Cube):
+        """Populate any invalid values in the source data with the neighbouring value in that
+        column plus a small difference (determined by the least_significant_digit attribute,
+        or 10^-2). This results in columns that do not have repeated values as repeated values
+        confuse the stratify.interpolate method.
+
+        Args:
+            cube:
+                Cube of variable on pressure levels (3D) (modified in-place).
+"""
+        if np.isfinite(cube.data).all() and not np.ma.is_masked(cube.data):
+            return
+        data = np.ma.masked_invalid(cube.data)
         (pressure_axis,) = cube.coord_dims("pressure")
-        cube_shape = np.array(cube.shape)
-        max_shape = cube_shape.copy()
-        max_shape[pressure_axis] = 1
-        max_values = np.nanmax(cube.data, axis=pressure_axis).reshape(max_shape)
-        cube.data = np.where(np.isnan(cube.data), max_values, cube.data)
+        pressure_points = cube.coord("pressure").points
+        # Find the least significant increment to use as an offset for filling missing values.
+        # We don't really care so long as it is non-zero and has the same sign.
+        increasing_p_order = np.all(np.diff(cube.coord("pressure").points) > 0)
+        sign = 1 if self.positive_correlation == increasing_p_order else -1
+        v_increment = sign * 10 ** (-cube.attributes.get("least_significant_digit", 2))
+        self._one_way_fill(
+            data, pressure_axis, pressure_points, v_increment, reverse=True
+        )
+        cube.data = data
+        if np.isfinite(cube.data).all() and not np.ma.is_masked(cube.data):
+            # We've filled everything in. No need to try again.
+            return
+        self._one_way_fill(
+            data, pressure_axis, pressure_points, v_increment, reverse=False
+        )
+        cube.data = data
+
+    @staticmethod
+    def _one_way_fill(
+        data: np.ma.MaskedArray,
+        pressure_axis: int,
+        pressure_points: np.ndarray,
+        v_increment: np.ndarray,
+        reverse: bool = False,
+    ):
+        """
+        Scans through the pressure axis forwards or backwards, filling any missing data with the
+        previous value plus (or minus in reverse) the specified increment. Running this in both
+        directions will therefore populate all columns so long as there is at least one valid
+        data point to start with.
+        """
+        last_p_slice = [slice(None)] * data.ndim
+        if reverse:
+            local_increment = -v_increment
+            first = len(pressure_points) - 2
+            last = -1
+            step = -1
+            last_p_slice[pressure_axis] = slice(
+                len(pressure_points) - 1, len(pressure_points)
+            )
+        else:
+            local_increment = v_increment
+            first = 1
+            last = len(pressure_points)
+            step = 1
+            last_p_slice[pressure_axis] = slice(0, 1)
+
+        for p in range(first, last, step):
+            p_slice = [slice(None)] * data.ndim
+            p_slice[pressure_axis] = slice(p, p + 1)
+            data[p_slice] = np.ma.where(
+                data.mask[p_slice], data[last_p_slice] + local_increment, data[p_slice],
+            )
+            last_p_slice = p_slice
+
+    def fill_in_bounds(
+        self, pressure_of_variable: np.ma.MaskedArray, source_cube: Cube
+    ) -> np.ndarray:
+        """Update any undefined pressure_of_variable values with the maximum or minimum
+        pressure for that column. This occurs when the requested variable value falls above
+        or below the entire pressure column.
+        Maximum pressure is chosen if the maximum data value in the column is lower than
+        the value of self.value_of_pressure_level.
+
+        Args:
+            pressure_of_variable:
+                2D array of the pressure at the required variable value, masked True
+                where this method needs to fill it in. (modified in-place)
+            source_cube:
+                Cube of variable on pressure levels (3D) which shows where the lowest
+                and highest valid values are.
+        Returns:
+            Updated pressure_of_variable array
+        """
+        if not np.ma.is_masked(pressure_of_variable):
+            return pressure_of_variable.data
+        pressure_coord = source_cube.coord("pressure")
+        max_pressure = pressure_coord.points.max()
+        min_pressure = pressure_coord.points.min()
+        (pressure_axis,) = source_cube.coord_dims("pressure")
+        max_pressure_index = np.argmax(pressure_coord.points)
+        # The values at the maximum pressure will be compared with the requested variable value
+        # using an appropriate operator based on whether value and pressure are increasing.
+        comparator = operator.lt if self.positive_correlation else operator.gt
+        values_at_max_pressure = source_cube.data.take(
+            axis=pressure_axis, indices=max_pressure_index
+        )
+        # First, fill in missing values at the maximum end of the pressure coordinate:
+        pressure_of_variable = np.ma.where(
+            np.logical_and(
+                comparator(values_at_max_pressure, self.value_of_pressure_level),
+                pressure_of_variable.mask,
+            ),
+            max_pressure,
+            pressure_of_variable,
+        )
+        # Now fill in remaining missing values which should be at the minimum end:
+        pressure_of_variable = np.where(
+            pressure_of_variable.mask, min_pressure, pressure_of_variable,
+        )
+        return pressure_of_variable
 
     def _make_pressure_cube(
         self, result_data: np.array, variable_on_pressure_levels: Cube
@@ -382,6 +492,8 @@ class ExtractPressureLevel(BasePlugin):
         """Extracts the pressure level where the environment
         variable first intersects self.value_of_pressure_level starting at a pressure value
         near the surface and ascending in altitude from there.
+        Where the pressure surface falls outside the available data, the maximum or minimum
+        pressure will be returned, even if the source data has no value at that point.
 
         Args:
             variable_on_pressure_levels:
@@ -420,6 +532,7 @@ class ExtractPressureLevel(BasePlugin):
             else:
                 result_data = interp_data
         result_data = np.ma.masked_invalid(result_data)
+        result_data = self.fill_in_bounds(result_data, variable_on_pressure_levels)
 
         pressure_cube = self._make_pressure_cube(
             result_data, variable_on_pressure_levels
