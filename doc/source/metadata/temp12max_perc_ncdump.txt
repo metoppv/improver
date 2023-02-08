@@ -1,4 +1,4 @@
-netcdf PERC-20221222T1800Z-B20221220T0615Z-temperature_at_screen_level_max-PT12H {
+netcdf 20221222T1800Z-B20221220T0615Z-temperature_at_screen_level_max-PT12H {
 dimensions:
 	percentile = 13 ;
 	projection_y_coordinate = 970 ;
@@ -65,18 +65,11 @@ variables:
 // global attributes:
 		:institution = "Met Office" ;
 		:mosg__model_configuration = "gl_ens uk_ens" ;
-		:mosg__model_run = "gl_ens:20221219T1200Z:0.006\n
-                            gl_ens:20221219T1800Z:0.006\n
-                            uk_ens:20221219T2200Z:0.165\n
-                            uk_ens:20221219T2300Z:0.165\n
-                            uk_ens:20221220T0000Z:0.165\n
-                            uk_ens:20221220T0100Z:0.165\n
-                            uk_ens:20221220T0200Z:0.165\n
-                            uk_ens:20221220T0300Z:0.165" ;
+		:mosg__model_run = "gl_ens:20221219T1200Z:0.006\ngl_ens:20221219T1800Z:0.006\nuk_ens:20221219T2200Z:0.165\nuk_ens:20221219T2300Z:0.165\nuk_ens:20221220T0000Z:0.165\nuk_ens:20221220T0100Z:0.165\nuk_ens:20221220T0200Z:0.165\nuk_ens:20221220T0300Z:0.165" ;
 		:source = "IMPROVER" ;
 		:title = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid" ;
 		:Conventions = "CF-1.7" ;
 
 data:
-    percentile = 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95 ;
+ percentile = 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95 ;
 }

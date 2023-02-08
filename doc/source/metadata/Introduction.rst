@@ -74,8 +74,8 @@ These provide the general information about the file contents
 
 .. literalinclude:: temp12max_prob_ncdump.txt
     :tab-width: 4
-    :lines: 66-79
-    :emphasize-lines: 2, 12-14
+    :lines: 66-72
+    :emphasize-lines: 2, 5-7
 
 The four highlighted attributes are part of the `CF Metadata Conventions`_:
 
@@ -99,8 +99,7 @@ title
     and no significant post-processing has been applied. 
 
 The other two attributes are specific to IMPROVER,
-originally used in separate Met Office process to 'standardise'
-the model output, which is why they are prefixed by ``mosg__``. 
+which is why they are prefixed by ``mosg__``. 
 This is intended to indicates a MOSG (Met Office standard grid)
 namespace to show that they are separate from the 
 `CF Metadata Conventions`_ attributes.
@@ -130,6 +129,12 @@ mosg__model_run
 
    ``model identifier:cycle time in format yyyymmddTHHMMZ:weight\n``
 
+Although Met Office examples are provided above, these are configurable.
+For example, the ``mosg__model_configuration`` attribute is named
+in the CLI calls by specifying the ``model_id_attr`` argument.
+Likewise the ``mosg__model_run attribute`` is set
+using the ``record_run_attr`` argument.
+
 Dimensions
 ----------
 
@@ -143,10 +148,10 @@ and the last is a more general dimension.
     :lines: 2-6
 
 projection_y_coordinate
-    Number of points in the horizontal x-direction
+    Number of points in the horizontal y-direction
 
 projection_x_coordinate
-    Number of points in the horizontal y-direction. 
+    Number of points in the horizontal x-direction. 
 
 threshold
     Number of probability thresholds for the probabilities. 
@@ -187,10 +192,9 @@ Variables
 Main probability variable
 *************************
 
-In this example, the main variable is ``prob_temp12m`` 
-(in the real file it would be,
-``probability_of_air_temperature_above_threshold``).
-This represents the probability of the 12-hour maximum temperature
+In this example, the main variable is
+``probability_of_air_temperature_above_threshold``,
+which represents the probability of the 12-hour maximum temperature
 exceeding a set of thresholds.
 It has 3 dimensions and 5 attributes that describe the meteorological quantity
 and its relationship to other variables in the metadata.
@@ -217,6 +221,8 @@ long_name
 units
     the units of measurement for the quantity.
     These will always be SI units. 
+    In this example the unit is 1 as the variable is 
+    a probability rather than a temperature.
 
 cell_methods
     Used to describe the statistical processing applied to the quantity
@@ -258,11 +264,12 @@ In summary these are:
 * threshold 
 * projection_y_coordinate 
 * projection_x_coordinate 
-* height 
-* time 
-* blend_time 
+* blend_time
 * forecast_period 
 * forecast_reference_time 
+* height 
+* time 
+
 
 .. warning::
 
@@ -277,12 +284,12 @@ As the main variable in this example is a probability of exceeding a threshold,
 a further dimensional coordinate variable is required to allow the data 
 to be fully interpreted.
 This holds the set of thresholds for the probabilities,
-which in this case are a set of 1-hour precipition accumulation values.
+which in this case are a set of 12-hour maxiumum temperature values.
 Both, these are shown in the code snippets below
 
 .. literalinclude:: temp12max_prob_ncdump.txt
     :tab-width: 4
-    :lines: 24-27, 80-90
+    :lines: 24-27, 73-83
 
 The variable attributes are:
 
@@ -363,7 +370,7 @@ forecast_period
     This usually represent the interval between the ``forecast_reference_time``
     and the validity time (``time``), but as stated above,
     there is no unique ``forecast_reference_time``, and forecasts valid at
-    different times may have a different ``blend_time``, so at brackets
+    different times may have a different ``blend_time``, so at best
     ``forecast_period`` is unhelpful, at worst it is confusing.
 
 The time coordinate variables share a common set of attributes:
@@ -392,7 +399,7 @@ Horizontal coordinate variables
 Two horizontal coordinate variables, 
 here projection_y_coordinate and projection_x_coordinate
 (but would be latitude and longitude for an equi-rectangular 
-projection grid, such as the Met Offuce global domain),
+projection grid, such as the Met Office global domain),
 provide the coordinates of the grid points at the centre of the grid cell,
 with two further variables defining the cell bounds.
 
@@ -403,10 +410,11 @@ with two further variables defining the cell bounds.
 The horizontal coordinates variables share a common set of attributes:
 
 standard_name
-    A descriptive name, either from the `CF Standard Name`_ list.
+    A descriptive name from the `CF Standard Name`_ list.
 
 units
-    The units of measure for the quantity, these will always be SI units. 
+    The units of measure for the quantity, these will always be SI units,
+    with the exception that degrees are used in preference to radians
 
 axis
     Indicates whether the coordinate should be regarded as an “X” or “Y” 
@@ -434,7 +442,9 @@ units
     The units of measure for the quantity, these will always be SI units.  
 
 positive
-    Indicates the direction in which values of the vertical coordinate increase. 
+    Indicates the direction in which values of the vertical coordinate increase,
+    i.e. where the vertical coordinate is pressure,
+    the ``positive`` attribute is ``down``
 
 
 Grid mapping variable
@@ -511,7 +521,7 @@ fully interpreted. This holds the set of percentile values.
 
 .. literalinclude:: temp12max_perc_ncdump.txt
     :tab-width: 4
-    :lines: 24-26, 79-81
+    :lines: 24-26, 72-74
 
 The variable attributes are:
 
@@ -539,8 +549,8 @@ Only the title is different for the spot data.
 
 .. literalinclude:: temp12max_spotperc_ncdump.txt
     :tab-width: 4
-    :lines: 60-73
-    :emphasize-lines: 13
+    :lines: 60-66
+    :emphasize-lines: 6
 
 Dimensions
 ^^^^^^^^^^
@@ -584,12 +594,20 @@ altitude
 latitude, longitude
     Site positions are only provided in latitude and longitude,
     regardless of the projection used for the corresponding grid.
-    These can be considered as relative the WGS84 or the World Geodetic System 1984 datum,
+    These can be considered as relative the WGS84
+    or the World Geodetic System 1984 datum,
     although this is not explicit in the metadata. 
 
+met_office_site_id
+    This is an 8-character string, zero-padded ID number
+    used by the Met Office to label all sites.
+    The name is user configurable, such that it can be changed
+    for different institutions / indices.
+
 wmo_id
-    For WMO sites, this is the numerical WMO identifier stored as a string; 
-    for other sites this is a set to ``NaN`` (at present, the formatting of this is not ideal, but will be changed to ensure that the numbers are right-justified and padded with zeros in the next release). 
+    For WMO sites, this is a 5-character string, zero-padded ID number. 
+    The non-WMO sites are set to the string "None" as iris cannot save NaN.
+
 
 Special parameters
 ------------------
@@ -610,7 +628,7 @@ There are two new coordinate variables.
 
 .. literalinclude:: wx_code_ncdump.txt
     :tab-width: 4
-    :lines: 11-24
+    :lines: 11-12
 
 weather_code
     Is the integer code used to represent the weather type in the main variable data. 
@@ -640,8 +658,8 @@ The global attribute ``mosg__model_configuration`` is always a single model
 
 For gridded data only, the ``title`` only identifies the single model used
 (for the Met Office, this would be either
-``MOGREPS-UK Model Forecast on UK 2 km Standard Grid`` or 
-``MOGREPS-G Model Forecast on UK 2 km Standard Grid``),
+``Post-processed MOGREPS-UK Model Forecast on UK 2 km Standard Grid`` or 
+``Post-processed MOGREPS-G Model Forecast on UK 2 km Standard Grid``),
 rather than referring to the IMPROVER Blend
 (although the spot data is still labelled as IMPROVER,
 as a site extraction has taken place). 

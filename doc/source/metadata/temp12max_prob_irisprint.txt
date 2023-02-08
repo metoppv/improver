@@ -1,4 +1,4 @@
-prob_temp12m / (1) (air_temperature: 79; projection_y_coordinate: 970; projection_x_coordinate: 1042)
+probability_of_air_temperature_above_threshold / (1) (air_temperature: 79; projection_y_coordinate: 970; projection_x_coordinate: 1042)
     Dimension coordinates:
         air_temperature             x                            -                             -
         projection_y_coordinate     -                            x                             -

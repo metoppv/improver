@@ -1,77 +1,71 @@
 netcdf 20221222T1800Z-B20221220T0615Z-temperature_at_screen_level_max-PT12H {
 dimensions:
-	percentile = 19
-	spot_index = 14532
-	bnds = 2
-	string8 = 8
-	string5 = 5
+	percentile = 19 ;
+	spot_index = 14532 ;
+	bnds = 2 ;
+	string8 = 8 ;
+	string5 = 5 ;
 variables:
-	float air_temperature(percentile, spot_index)
-		air_temperature:least_significant_digit = 2LL
-		air_temperature:standard_name = "air_temperature"
-		air_temperature:units = "K"
-		air_temperature:cell_methods = "time: maximum"
-		air_temperature:coordinates = "altitude blend_time forecast_period forecast_reference_time height latitude longitude met_office_site_id time wmo_id"
-	float percentile(percentile)
-		percentile:units = "%"
-		percentile:long_name = "percentile"
-	int spot_index(spot_index)
-		spot_index:units = "1"
-		spot_index:long_name = "spot_index"
-	float altitude(spot_index)
-		altitude:units = "m"
-		altitude:standard_name = "altitude"
-	int64 blend_time
-		blend_time:units = "seconds since 1970-01-01 00:00:00"
-		blend_time:long_name = "blend_time"
-		blend_time:calendar = "gregorian"
-	int forecast_period
-		forecast_period:bounds = "forecast_period_bnds"
-		forecast_period:units = "seconds"
-		forecast_period:standard_name = "forecast_period"
-		forecast_period:deprecation_message = "forecast_period will be removed in future and should not be used"
-	int forecast_period_bnds(bnds)
-	int64 forecast_reference_time
-		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00"
-		forecast_reference_time:standard_name = "forecast_reference_time"
-		forecast_reference_time:calendar = "gregorian"
-		forecast_reference_time:deprecation_message = "forecast_reference_time will be removed in future and should not be used"
-	float height
-		height:units = "m"
-		height:standard_name = "height"
-		height:positive = "up"
-	float latitude(spot_index)
-		latitude:units = "degrees_north"
-		latitude:standard_name = "latitude"
-	float longitude(spot_index)
-		longitude:units = "degrees_east"
-		longitude:standard_name = "longitude"
-	char met_office_site_id(spot_index, string8)
-		met_office_site_id:long_name = "met_office_site_id"
-	int64 time
-		time:bounds = "time_bnds"
-		time:units = "seconds since 1970-01-01 00:00:00"
-		time:standard_name = "time"
-		time:calendar = "gregorian"
-	int64 time_bnds(bnds)
-	char wmo_id(spot_index, string5)
-		wmo_id:long_name = "wmo_id"
+	float air_temperature(percentile, spot_index) ;
+		air_temperature:least_significant_digit = 2LL ;
+		air_temperature:standard_name = "air_temperature" ;
+		air_temperature:units = "K" ;
+		air_temperature:cell_methods = "time: maximum" ;
+		air_temperature:coordinates = "altitude blend_time forecast_period forecast_reference_time height latitude longitude met_office_site_id time wmo_id" ;
+	float percentile(percentile) ;
+		percentile:units = "%" ;
+		percentile:long_name = "percentile" ;
+	int spot_index(spot_index) ;
+		spot_index:units = "1" ;
+		spot_index:long_name = "spot_index" ;
+	float altitude(spot_index) ;
+		altitude:units = "m" ;
+		altitude:standard_name = "altitude" ;
+	int64 blend_time ;
+		blend_time:units = "seconds since 1970-01-01 00:00:00" ;
+		blend_time:long_name = "blend_time" ;
+		blend_time:calendar = "gregorian" ;
+	int forecast_period ;
+		forecast_period:bounds = "forecast_period_bnds" ;
+		forecast_period:units = "seconds" ;
+		forecast_period:standard_name = "forecast_period" ;
+		forecast_period:deprecation_message = "forecast_period will be removed in future and should not be used" ;
+	int forecast_period_bnds(bnds) ;
+	int64 forecast_reference_time ;
+		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00" ;
+		forecast_reference_time:standard_name = "forecast_reference_time" ;
+		forecast_reference_time:calendar = "gregorian" ;
+		forecast_reference_time:deprecation_message = "forecast_reference_time will be removed in future and should not be used" ;
+	float height ;
+		height:units = "m" ;
+		height:standard_name = "height" ;
+		height:positive = "up" ;
+	float latitude(spot_index) ;
+		latitude:units = "degrees_north" ;
+		latitude:standard_name = "latitude" ;
+	float longitude(spot_index) ;
+		longitude:units = "degrees_east" ;
+		longitude:standard_name = "longitude" ;
+	char met_office_site_id(spot_index, string8) ;
+		met_office_site_id:long_name = "met_office_site_id" ;
+	int64 time ;
+		time:bounds = "time_bnds" ;
+		time:units = "seconds since 1970-01-01 00:00:00" ;
+		time:standard_name = "time" ;
+		time:calendar = "gregorian" ;
+	int64 time_bnds(bnds) ;
+	char wmo_id(spot_index, string5) ;
+		wmo_id:long_name = "wmo_id" ;
 
 // global attributes:
-		:institution = "Met Office"
-		:mosg__model_configuration = "gl_ens uk_ens"
-		:mosg__model_run = "gl_ens:20221219T1200Z:0.006\n
-                            gl_ens:20221219T1800Z:0.006\n
-                            uk_ens:20221219T2200Z:0.165\n
-                            uk_ens:20221219T2300Z:0.165\n
-                            uk_ens:20221220T0000Z:0.165\n
-                            uk_ens:20221220T0100Z:0.165\n
-                            uk_ens:20221220T0200Z:0.165\n
-                            uk_ens:20221220T0300Z:0.165"
-		:source = "IMPROVER"
-		:title = "IMPROVER Post-Processed Multi-Model Blend UK Spot Values"
-		:Conventions = "CF-1.7"
+		:institution = "Met Office" ;
+		:mosg__model_configuration = "gl_ens uk_ens" ;
+		:mosg__model_run = "gl_ens:20221219T1200Z:0.006\ngl_ens:20221219T1800Z:0.006\nuk_ens:20221219T2200Z:0.165\nuk_ens:20221219T2300Z:0.165\nuk_ens:20221220T0000Z:0.165\nuk_ens:20221220T0100Z:0.165\nuk_ens:20221220T0200Z:0.165\nuk_ens:20221220T0300Z:0.165" ;
+		:source = "IMPROVER" ;
+		:title = "IMPROVER Post-Processed Multi-Model Blend UK Spot Values" ;
+		:Conventions = "CF-1.7" ;
 
 data:
-    percentile = 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80, 85, 90, 95
+ percentile = 5, 10, 15, 20, 25, 30, 35, 40, 45, 50, 55, 60, 65, 70, 75, 80,
+	85, 90, 95 ;
 }

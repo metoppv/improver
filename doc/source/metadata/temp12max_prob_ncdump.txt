@@ -1,91 +1,84 @@
 netcdf 20221222T1200Z-B20221220T0015Z-temperature_at_screen_level_max-PT12H {
 dimensions:
-    threshold = 79
-    projection_y_coordinate = 970
-    projection_x_coordinate = 1042
-    bnds = 2
+    threshold = 79 ;
+    projection_y_coordinate = 970 ;
+    projection_x_coordinate = 1042 ;
+    bnds = 2 ;
 variables:
-    float prob_temp12m(threshold, projection_y_coordinate, projection_x_coordinate)
-        prob_temp12m:least_significant_digit = 3LL
-        prob_temp12m:long_name = "probability_of_air_temperature_above_threshold"
-        prob_temp12m:units = "1"
-        prob_temp12m:cell_methods = "time: maximum (comment: of air_temperature)"
-        prob_temp12m:grid_mapping = "lambert_azimuthal_equal_area"
-        prob_temp12m:coordinates = "blend_time forecast_period forecast_reference_time height time"
-    int lambert_azimuthal_equal_area
-        lambert_azimuthal_equal_area:grid_mapping_name = "lambert_azimuthal_equal_area"
-        lambert_azimuthal_equal_area:longitude_of_prime_meridian = 0.
-        lambert_azimuthal_equal_area:semi_major_axis = 6378137.
-        lambert_azimuthal_equal_area:semi_minor_axis = 6356752.31414036
-        lambert_azimuthal_equal_area:longitude_of_projection_origin = -2.5
-        lambert_azimuthal_equal_area:latitude_of_projection_origin = 54.9
-        lambert_azimuthal_equal_area:false_easting = 0.
-        lambert_azimuthal_equal_area:false_northing = 0.
-    float threshold(threshold)
-        threshold:units = "K"
-        threshold:standard_name = "air_temperature"
-        threshold:spp__relative_to_threshold = "greater_than_or_equal_to"
-    float projection_y_coordinate(projection_y_coordinate)
-        projection_y_coordinate:axis = "Y"
-        projection_y_coordinate:bounds = "projection_y_coordinate_bnds"
-        projection_y_coordinate:units = "m"
-        projection_y_coordinate:standard_name = "projection_y_coordinate"
-    float projection_y_coordinate_bnds(projection_y_coordinate, bnds)
-    float projection_x_coordinate(projection_x_coordinate)
-        projection_x_coordinate:axis = "X"
-        projection_x_coordinate:bounds = "projection_x_coordinate_bnds"
-        projection_x_coordinate:units = "m"
-        projection_x_coordinate:standard_name = "projection_x_coordinate"
-    float projection_x_coordinate_bnds(projection_x_coordinate, bnds)
-    int64 blend_time
-        blend_time:units = "seconds since 1970-01-01 00:00:00"
-        blend_time:long_name = "blend_time"
-        blend_time:calendar = "gregorian"
-    int forecast_period
-        forecast_period:bounds = "forecast_period_bnds"
-		forecast_period:units = "seconds"
-		forecast_period:standard_name = "forecast_period"
-		forecast_period:deprecation_message = "forecast_period will be removed in future and should not be used"
-	int forecast_period_bnds(bnds)
-	int64 forecast_reference_time
-		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00"
-		forecast_reference_time:standard_name = "forecast_reference_time"
-		forecast_reference_time:calendar = "gregorian"
-		forecast_reference_time:deprecation_message = "forecast_reference_time will be removed in future and should not be used"
-	float height
-		height:units = "m"
-		height:standard_name = "height"
-		height:positive = "up"
-	int64 time
-		time:bounds = "time_bnds"
-		time:units = "seconds since 1970-01-01 00:00:00"
-		time:standard_name = "time"
-		time:calendar = "gregorian"
-	int64 time_bnds(bnds)
+    float probability_of_air_temperature_above_threshold(threshold, projection_y_coordinate, projection_x_coordinate) ;
+        probability_of_air_temperature_above_threshold:least_significant_digit = 3LL ;
+        probability_of_air_temperature_above_threshold:long_name = "probability_of_air_temperature_above_threshold" ;
+        probability_of_air_temperature_above_threshold:units = "1" ;
+        probability_of_air_temperature_above_threshold:cell_methods = "time: maximum (comment: of air_temperature)" ;
+        probability_of_air_temperature_above_threshold:grid_mapping = "lambert_azimuthal_equal_area"
+        probability_of_air_temperature_above_threshold:coordinates = "blend_time forecast_period forecast_reference_time height time" ;
+    int lambert_azimuthal_equal_area ;
+        lambert_azimuthal_equal_area:grid_mapping_name = "lambert_azimuthal_equal_area" ;
+        lambert_azimuthal_equal_area:longitude_of_prime_meridian = 0. ;
+        lambert_azimuthal_equal_area:semi_major_axis = 6378137. ;
+        lambert_azimuthal_equal_area:semi_minor_axis = 6356752.31414036 ;
+        lambert_azimuthal_equal_area:longitude_of_projection_origin = -2.5 ;
+        lambert_azimuthal_equal_area:latitude_of_projection_origin = 54.9 ;
+        lambert_azimuthal_equal_area:false_easting = 0. ;
+        lambert_azimuthal_equal_area:false_northing = 0. ;
+    float threshold(threshold) ;
+        threshold:units = "K" ;
+        threshold:standard_name = "air_temperature" ;
+        threshold:spp__relative_to_threshold = "greater_than_or_equal_to" ;
+    float projection_y_coordinate(projection_y_coordinate) ;
+        projection_y_coordinate:axis = "Y" ;
+        projection_y_coordinate:bounds = "projection_y_coordinate_bnds" ;
+        projection_y_coordinate:units = "m" ;
+        projection_y_coordinate:standard_name = "projection_y_coordinate" ;
+    float projection_y_coordinate_bnds(projection_y_coordinate, bnds) ;
+    float projection_x_coordinate(projection_x_coordinate) ;
+        projection_x_coordinate:axis = "X" ;
+        projection_x_coordinate:bounds = "projection_x_coordinate_bnds" ;
+        projection_x_coordinate:units = "m" ;
+        projection_x_coordinate:standard_name = "projection_x_coordinate" ;
+    float projection_x_coordinate_bnds(projection_x_coordinate, bnds) ;
+    int64 blend_time ;
+        blend_time:units = "seconds since 1970-01-01 00:00:00" ;
+        blend_time:long_name = "blend_time" ;
+        blend_time:calendar = "gregorian" ;
+    int forecast_period ;
+        forecast_period:bounds = "forecast_period_bnds" ;
+		forecast_period:units = "seconds" ;
+		forecast_period:standard_name = "forecast_period" ;
+		forecast_period:deprecation_message = "forecast_period will be removed in future and should not be used" ;
+	int forecast_period_bnds(bnds) ;
+	int64 forecast_reference_time ;
+		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00" ;
+		forecast_reference_time:standard_name = "forecast_reference_time" ;
+		forecast_reference_time:calendar = "gregorian" ;
+		forecast_reference_time:deprecation_message = "forecast_reference_time will be removed in future and should not be used" ;
+	float height ;
+		height:units = "m" ;
+		height:standard_name = "height" ;
+		height:positive = "up" ;
+	int64 time ;
+		time:bounds = "time_bnds" ;
+		time:units = "seconds since 1970-01-01 00:00:00" ;
+		time:standard_name = "time" ;
+		time:calendar = "gregorian" ;
+	int64 time_bnds(bnds) ;
 
 // global attributes:
-		:institution = "Met Office"
-		:mosg__model_configuration = "gl_ens uk_ens"
-		:mosg__model_run = "gl_ens:20221219T0600Z:0.006\n
-                            gl_ens:20221219T1200Z:0.006\n
-                            uk_ens:20221219T1600Z:0.165\n
-                            uk_ens:20221219T1700Z:0.165\n
-                            uk_ens:20221219T1800Z:0.165\n
-                            uk_ens:20221219T1900Z:0.165\n
-                            uk_ens:20221219T2000Z:0.165\n
-                            uk_ens:20221219T2100Z:0.165"
-		:source = "IMPROVER"
-		:title = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid"
-		:Conventions = "CF-1.7"
+		:institution = "Met Office" ;
+		:mosg__model_configuration = "gl_ens uk_ens" ;
+		:mosg__model_run = "gl_ens:20221219T0600Z:0.006\ngl_ens:20221219T1200Z:0.006\nuk_ens:20221219T1600Z:0.165\nuk_ens:20221219T1700Z:0.165\nuk_ens:20221219T1800Z:0.165\nuk_ens:20221219T1900Z:0.165\nuk_ens:20221219T2000Z:0.165\nuk_ens:20221219T2100Z:0.165" ;
+		:source = "IMPROVER" ;
+		:title = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid" ;
+		:Conventions = "CF-1.7" ;
 
 data:
-    threshold = 213.15, 218.15, 223.15, 228.15, 233.15, 238.15, 243.15, 248.15, 
-        253.15, 254.15, 255.15, 256.15, 257.15, 258.15, 259.15, 260.15, 261.15, 
-        262.15, 263.15, 264.15, 265.15, 266.15, 267.15, 268.15, 269.15, 270.15, 
-        271.15, 272.15, 273.15, 274.15, 275.15, 276.15, 277.15, 278.15, 279.15, 
-        280.15, 281.15, 282.15, 283.15, 284.15, 285.15, 286.15, 287.15, 288.15, 
-        289.15, 290.15, 291.15, 292.15, 293.15, 294.15, 295.15, 296.15, 297.15, 
-        298.15, 299.15, 300.15, 301.15, 302.15, 303.15, 304.15, 305.15, 306.15, 
-        307.15, 308.15, 309.15, 310.15, 311.15, 312.15, 313.15, 314.15, 315.15, 
-        316.15, 317.15, 318.15, 319.15, 320.15, 321.15, 322.15, 323.15
+ threshold = 213.15, 218.15, 223.15, 228.15, 233.15, 238.15, 243.15, 248.15, 
+    253.15, 254.15, 255.15, 256.15, 257.15, 258.15, 259.15, 260.15, 261.15, 
+    262.15, 263.15, 264.15, 265.15, 266.15, 267.15, 268.15, 269.15, 270.15, 
+    271.15, 272.15, 273.15, 274.15, 275.15, 276.15, 277.15, 278.15, 279.15, 
+    280.15, 281.15, 282.15, 283.15, 284.15, 285.15, 286.15, 287.15, 288.15, 
+    289.15, 290.15, 291.15, 292.15, 293.15, 294.15, 295.15, 296.15, 297.15, 
+    298.15, 299.15, 300.15, 301.15, 302.15, 303.15, 304.15, 305.15, 306.15, 
+    307.15, 308.15, 309.15, 310.15, 311.15, 312.15, 313.15, 314.15, 315.15, 
+    316.15, 317.15, 318.15, 319.15, 320.15, 321.15, 322.15, 323.15 ;
 }
