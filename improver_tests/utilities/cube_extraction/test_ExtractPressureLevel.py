@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the ExtractPressureLevel plugin"""
+from collections.abc import Iterable
 
 import numpy as np
 import pytest
@@ -164,15 +165,16 @@ def test_basic(
         pass
     else:
         temperature_on_pressure_levels.data = temperature_on_pressure_levels.data.copy()
-        if isinstance(special_value, float):
-            temperature_on_pressure_levels.data[
-                0, special_value_index, 0, 0
-            ] = special_value
-        else:
+        if isinstance(special_value, Iterable):
+            # This catches the test case where two consecutive special values are to be used
             if special_value_index < 0:
                 temperature_on_pressure_levels.data[0, -2:, 0, 0] = special_value
             else:
                 temperature_on_pressure_levels.data[0, 0:2, 0, 0] = special_value
+        else:
+            temperature_on_pressure_levels.data[
+                0, special_value_index, 0, 0
+            ] = special_value
 
     if not with_realization:
         temperature_on_pressure_levels = temperature_on_pressure_levels[0]
