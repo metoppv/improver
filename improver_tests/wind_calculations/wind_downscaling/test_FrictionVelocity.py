@@ -36,7 +36,6 @@ import numpy as np
 from iris.tests import IrisTest
 
 from improver.constants import RMDI
-from improver.utilities.warnings_handler import ManageWarnings
 from improver.wind_calculations.wind_downscaling import FrictionVelocity
 
 
@@ -103,10 +102,6 @@ class Test_process(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in divide"],
-        warning_types=[RuntimeWarning],
-    )
     def test_handles_zero_values(self):
         """Function calculates log(href/z_0) - test that the function accepts
            zero values in h_ref and z_0 and returns np.nan without crashing."""

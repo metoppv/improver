@@ -40,7 +40,6 @@ from iris.tests import IrisTest
 
 from improver.nowcasting.accumulation import Accumulation
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class rate_cube_set_up(IrisTest):
@@ -469,9 +468,6 @@ class Test_process(rate_cube_set_up):
         self.assertEqual(result[0].units, "mm")
         self.assertArrayAlmostEqual(result[0].data, expected.data)
 
-    @ManageWarnings(
-        ignored_messages=["The provided cubes result in a"], warning_types=[UserWarning]
-    )
     def test_does_not_use_incomplete_period_data(self):
         """Test function returns only 2 accumulation periods when a 4 minute
         aggregation period is used with 10 minutes of input data. The trailing
@@ -597,9 +593,6 @@ class Test_process(rate_cube_set_up):
         self.assertArrayAlmostEqual(result[0].data.mask, expected_mask_t0)
         self.assertEqual(len(result), 1)
 
-    @ManageWarnings(
-        ignored_messages=["The provided cubes result in a"], warning_types=[UserWarning]
-    )
     def test_returns_total_accumulation_if_no_period_specified(self):
         """Test function returns a list containing a single accumulation cube
         that is the accumulation over the whole period specified by the rates

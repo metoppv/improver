@@ -42,7 +42,6 @@ from improver.constants import DALR
 from improver.lapse_rate import LapseRate
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__repr__(IrisTest):
@@ -150,10 +149,6 @@ class Test_process(IrisTest):
         self.land_sea_mask.rename("land_binary_mask")
         self.land_sea_mask.units = cf_units.Unit("1")
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_basic(self):
         """Test that the plugin returns expected data type. """
         result = LapseRate(nbhood_radius=1).process(
@@ -254,10 +249,6 @@ class Test_process(IrisTest):
                 self.temperature, self.temperature, self.land_sea_mask
             )
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_correct_lapse_rate_units(self):
         """Test that the plugin returns the correct unit type"""
         result = LapseRate().process(
@@ -265,10 +256,6 @@ class Test_process(IrisTest):
         )
         self.assertEqual(result.units, "K m-1")
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_correct_lapse_rate_units_with_arguments(self):
         """Test that the plugin returns the correct unit type when non-default
         arguments specified"""
@@ -280,10 +267,6 @@ class Test_process(IrisTest):
         ).process(self.temperature, self.orography, self.land_sea_mask)
         self.assertEqual(result.units, "K m-1")
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_return_single_precision(self):
         """Test that the function returns cube of float32."""
         result = LapseRate(nbhood_radius=1).process(
@@ -291,10 +274,6 @@ class Test_process(IrisTest):
         )
         self.assertEqual(result.dtype, np.float32)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_constant_orog(self):
         """Test that the function returns expected DALR values where the
            orography fields are constant values.
@@ -340,10 +319,6 @@ class Test_process(IrisTest):
                 self.temperature, self.orography, self.land_sea_mask
             )
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_lapse_rate_limits(self):
         """Test that the function limits the lapse rate to +DALR and -3*DALR.
            Where DALR = Dry Adiabatic Lapse Rate.
@@ -374,10 +349,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_specified_max_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
         maximum lapse rate."""
@@ -408,10 +379,6 @@ class Test_process(IrisTest):
 
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_specified_min_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
         minimum lapse rate."""
@@ -443,10 +410,6 @@ class Test_process(IrisTest):
 
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_specified_max_and_min_lapse_rate(self):
         """Test that the function correctly applies a specified, non default
         maximum and minimum lapse rate."""
@@ -478,10 +441,6 @@ class Test_process(IrisTest):
 
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_handles_nan_value(self):
         """Test that the function handles a NaN temperature value by replacing
            it with DALR.
@@ -515,10 +474,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_landsea_mask(self):
         """Test that the function returns DALR values wherever a land/sea
            mask is true. Mask is True for land-points and False for Sea.
@@ -551,10 +506,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_mask_max_height_diff(self):
         """Test that the function removes neighbours where their height
         difference from the centre point is greater than the default
@@ -586,10 +537,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_mask_max_height_diff_arg(self):
         """ Test that the function removes or leaves neighbours where their
         height difference from the centre point is greater than a
@@ -621,10 +568,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_decr_temp_incr_orog(self):
         """ Test code where temperature is decreasing with height. This is the
             expected scenario for lapse rate.
@@ -655,10 +598,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_out)
 
-    @ManageWarnings(
-        ignored_messages=["invalid value encountered in greater_equal"],
-        warning_types=[RuntimeWarning],
-    )
     def test_decr_temp_decr_orog(self):
         """ Test code where the temperature increases with height."""
         expected_out = np.array(

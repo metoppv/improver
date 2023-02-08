@@ -35,6 +35,7 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
@@ -44,7 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 MODEL_WEIGHTS = {
     "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
@@ -239,7 +239,6 @@ class Test__calculate_blending_weights(IrisTest):
 class Test__update_spatial_weights(IrisTest):
     """Test the _update_spatial_weights method"""
 
-    @ManageWarnings(ignored_messages=["Deleting unmatched attribute"])
     def setUp(self):
         """Set up cube and plugin"""
         cubelist, self.cycletime = set_up_masked_cubes()
@@ -257,7 +256,6 @@ class Test__update_spatial_weights(IrisTest):
         )
         self.initial_weights = self.plugin._calculate_blending_weights(self.cube)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_basic(self):
         """Test function returns a cube of the expected shape"""
         expected_dims = [
@@ -273,7 +271,6 @@ class Test__update_spatial_weights(IrisTest):
         self.assertSequenceEqual(result_dims, expected_dims)
         self.assertSequenceEqual(result.shape, expected_shape)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_values(self):
         """Test weights are fuzzified as expected"""
         expected_data = np.array(
@@ -364,7 +361,6 @@ class Test_process(IrisTest):
             wts_dict=MODEL_WEIGHTS,
         )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_basic(self):
         """Test output is a cube"""
         result = self.plugin_cycle.process(
@@ -372,20 +368,18 @@ class Test_process(IrisTest):
         )
         self.assertIsInstance(result, iris.cube.Cube)
 
-    @ManageWarnings(record=True)
-    def test_masked_blending_warning(self, warning_list=None):
+    def test_masked_blending_warning(self):
         """Test a warning is raised if blending masked data with non-spatial
         weights."""
         ukv_cube = self.ukv_cube.copy(
             data=np.ma.masked_where(self.ukv_cube.data < 0.5, self.ukv_cube.data)
         )
-        self.plugin_cycle.process(
-            [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
-        )
         message = "Blending masked data without spatial weights"
-        self.assertTrue(any(message in str(item) for item in warning_list))
+        with pytest.warns(UserWarning, match=message):
+            self.plugin_cycle.process(
+                [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+            )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_cycle_blend_linear(self):
         """Test plugin produces correct cycle blended output with equal
         linear weightings"""
@@ -414,7 +408,6 @@ class Test_process(IrisTest):
         for coord in ["forecast_reference_time", "forecast_period"]:
             self.assertIn("deprecation_message", result.coord(coord).attributes)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate"])
     def test_model_blend(self):
         """Test plugin produces correct output for UKV-ENUKX model blend
         with 50-50 weightings defined by dictionary. Check weights are
@@ -443,12 +436,6 @@ class Test_process(IrisTest):
                 "will be removed", result.coord(coord).attributes["deprecation_message"]
             )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate",
-            "Deleting unmatched attribute",
-        ]
-    )
     def test_attributes_dict(self):
         """Test output attributes can be updated through argument"""
         attribute_changes = {
@@ -469,12 +456,6 @@ class Test_process(IrisTest):
         )
         self.assertDictEqual(result.attributes, expected_attributes)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate",
-            "Deleting unmatched attribute",
-        ]
-    )
     def test_blend_three_models(self):
         """Test plugin produces correct output for 3-model blend when all
         models have (equal) non-zero weights. Each model in WEIGHTS_DICT has
@@ -697,12 +678,6 @@ class Test_process_spatial_weights(IrisTest):
             wts_dict=MODEL_WEIGHTS,
         )
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate",
-            "Deleting unmatched attribute",
-        ]
-    )
     def test_default(self):
         """Test plugin returns a cube with expected values where default fuzzy
         length is less than grid length (no smoothing)"""
@@ -724,12 +699,6 @@ class Test_process_spatial_weights(IrisTest):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected_data)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate",
-            "Deleting unmatched attribute",
-        ]
-    )
     def test_fuzzy_length(self):
         """Test values where fuzzy length is equal to 2 grid lengths"""
         # proportion of radar data is reduced at edge of valid region; still

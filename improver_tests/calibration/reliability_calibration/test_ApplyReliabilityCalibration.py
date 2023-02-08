@@ -32,9 +32,11 @@
 
 import datetime
 import unittest
+import warnings
 
 import iris
 import numpy as np
+import pytest
 from cf_units import Unit
 from iris.cube import Cube, CubeList
 from numpy.testing import assert_allclose, assert_array_equal
@@ -50,7 +52,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     construct_scalar_time_coords,
     set_up_probability_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 def create_point_by_point_reliability_table(
@@ -234,21 +235,19 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
 
     """Test the _ensure_monotonicity_across_thresholds method."""
 
-    @ManageWarnings(record=True)
-    def test_monotonic_case(self, warning_list=None):
+    def test_monotonic_case(self):
         """Test that a probability cube in which the data is already
         ordered monotonically is unchanged by this method. Additionally, no
         warnings or exceptions should be raised."""
 
         expected = self.forecast.copy()
-
-        self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
-        self.assertFalse(warning_list)
 
-    @ManageWarnings(record=True)
-    def test_single_disordered_element(self, warning_list=None):
+    def test_single_disordered_element(self):
         """Test that if the values are disordered at a single position in the
         array, this position is sorted across the thresholds, whilst the rest
         of the array remains unchanged."""
@@ -257,32 +256,28 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
         switch_val = self.forecast.data[0, 1, 1]
         self.forecast.data[0, 1, 1] = self.forecast.data[1, 1, 1]
         self.forecast.data[1, 1, 1] = switch_val
+        warning_msg = "Exceedance probabilities are not decreasing"
 
-        self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
+        with pytest.warns(UserWarning, match=warning_msg):
+            self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
-        warning_msg = "Exceedance probabilities are not decreasing"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
-    @ManageWarnings(record=True)
-    def test_monotonic_in_wrong_direction(self, warning_list=None):
+    def test_monotonic_in_wrong_direction(self):
         """Test that the data is reordered and a warning raised if the
         probabilities in the cube are non-monotonic in the sense defined by
         the relative_to_threshold attribute."""
 
         expected = self.forecast.copy(data=self.forecast.data[::-1])
-
         self.forecast.coord(self.threshold).attributes[
             "spp__relative_to_threshold"
         ] = "below"
+        warning_msg = "Below threshold probabilities are not increasing"
 
-        self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
+        with pytest.warns(UserWarning, match=warning_msg):
+            self.plugin._ensure_monotonicity_across_thresholds(self.forecast)
 
         assert_array_equal(self.forecast.data, expected.data)
-        warning_msg = "Below threshold probabilities are not increasing"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
     def test_exception_without_relative_to_threshold(self):
         """Test that an exception is raised if the probability cube's
@@ -432,8 +427,7 @@ class Test_process(Test_ReliabilityCalibrate):
 
     """Test the process method."""
 
-    @ManageWarnings(record=True)
-    def test_calibrating_forecast_with_reliability_table_cube(self, warning_list=None):
+    def test_calibrating_forecast_with_reliability_table_cube(self):
         """Test application of the reliability table cube to the forecast. The
         input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
@@ -443,16 +437,14 @@ class Test_process(Test_ReliabilityCalibrate):
         )
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
-        result = self.plugin.process(self.forecast, self.reliability_cube)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = self.plugin.process(self.forecast, self.reliability_cube)
 
         assert_allclose(result[0].data, expected_0)
         assert_allclose(result[1].data, expected_1)
-        self.assertFalse(warning_list)
 
-    @ManageWarnings(record=True)
-    def test_calibrating_forecast_with_reliability_table_cubelist(
-        self, warning_list=None
-    ):
+    def test_calibrating_forecast_with_reliability_table_cubelist(self):
         """Test application of a reliability table cubelist to the forecast.
         The input probabilities and table values have been chosen such that no
         warnings should be raised by this operation."""
@@ -467,14 +459,14 @@ class Test_process(Test_ReliabilityCalibrate):
         self.reliability_cubelist = iris.cube.CubeList(
             [self.reliability_cubelist[1], self.reliability_cubelist[0]]
         )
-        result = self.plugin.process(self.forecast, self.reliability_cubelist)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = self.plugin.process(self.forecast, self.reliability_cubelist)
 
         assert_allclose(result[0].data, expected_0)
         assert_allclose(result[1].data, expected_1)
-        self.assertFalse(warning_list)
 
-    @ManageWarnings(record=True)
-    def test_one_threshold_uncalibrated(self, warning_list=None):
+    def test_one_threshold_uncalibrated(self):
         """Test application of the reliability table to the forecast. In this
         case the reliability table has been altered for the first threshold
         (275K) such that it cannot be used. We expect the first threshold to
@@ -504,21 +496,18 @@ class Test_process(Test_ReliabilityCalibrate):
         reliability_cubelist = iris.cube.CubeList(
             [reliability_cube_0, self.reliability_cubelist[1]]
         )
-        result = self.plugin.process(self.forecast, reliability_cubelist)
+        warning_msg = (
+            "The following thresholds were not calibrated due to "
+            "insufficient forecast counts in reliability table "
+            "bins: \\[275.0\\]"
+        )
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = self.plugin.process(self.forecast, reliability_cubelist)
 
         assert_allclose(result[0].data, expected_0)
         assert_allclose(result[1].data, expected_1)
 
-        warning_msg = (
-            "The following thresholds were not calibrated due to "
-            "insufficient forecast counts in reliability table "
-            "bins: [275.0]"
-        )
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
-
-    @ManageWarnings(record=True)
-    def test_calibrating_without_single_value_bins(self, warning_list=None):
+    def test_calibrating_without_single_value_bins(self):
         """Test application of the reliability table to the forecast. In this
         case the single_value_bins have been removed, requiring that that the
         results for some of the points are calculated using extrapolation. The
@@ -539,11 +528,12 @@ class Test_process(Test_ReliabilityCalibrate):
         )
         expected_1 = np.array([[0.25, 0.3, 0.35], [0.4, 0.45, 0.5], [0.55, 0.6, 0.65]])
 
-        result = self.plugin.process(self.forecast, reliability_cube)
+        with warnings.catch_warnings():
+            warnings.simplefilter("error")
+            result = self.plugin.process(self.forecast, reliability_cube)
 
         assert_allclose(result[0].data, expected_0)
         assert_allclose(result[1].data, expected_1)
-        self.assertFalse(warning_list)
 
     def test_calibrating_point_by_point(self):
         """Test application of reliability table to the forecast. In this case

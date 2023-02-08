@@ -43,7 +43,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
     ConvertLocationAndScaleParametersToPercentiles as Plugin,
 )
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
@@ -100,7 +99,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         self.percentiles = [10, 50, 90]
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
@@ -118,7 +116,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
         np.testing.assert_allclose(result.data, self.data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_masked_location_parameter(self):
         """
         Test that the plugin returns the correctly masked data when
@@ -138,7 +135,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_masked_scale_parameter(self):
         """
         Test that the plugin returns the correctly masked data when
@@ -158,7 +154,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_both_masked(self):
         """
         Test that the plugin returns the correctly masked data when
@@ -182,7 +177,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_simple_data_truncnorm_distribution(self):
         """
         Test that the plugin returns an iris.cube.Cube matching the expected
@@ -246,7 +240,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_simple_data(self):
         """
         Test that the plugin returns the expected values for the generated
@@ -293,13 +286,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "invalid value encountered",
-            "Collapsing a non-contiguous coordinate.",
-        ],
-        warning_types=[RuntimeWarning, UserWarning],
-    )
     def test_if_identical_data(self):
         """
         Test that the plugin returns the expected values, if every
@@ -335,13 +321,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "invalid value encountered",
-            "Collapsing a non-contiguous coordinate.",
-        ],
-        warning_types=[RuntimeWarning, UserWarning],
-    )
     def test_if_nearly_identical_data(self):
         """
         Test that the plugin returns the expected values, if every
@@ -381,7 +360,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         np.testing.assert_allclose(result.data, expected_data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_many_percentiles(self):
         """
         Test that the plugin returns an iris.cube.Cube if many percentiles
@@ -396,7 +374,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         )
         self.assertIsInstance(result, Cube)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_negative_percentiles(self):
         """
         Test that the plugin returns the expected values for the
@@ -412,7 +389,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
                 percentiles,
             )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_spot_forecasts_check_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube matching the expected
@@ -431,7 +407,6 @@ class Test__location_and_scale_parameters_to_percentiles(IrisTest):
         self.assertIsInstance(result, Cube)
         np.testing.assert_allclose(result.data, data, rtol=1.0e-4)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_scalar_realisation_percentile(self):
         """
         Test that the plugin returns the expected values when providing a cube
@@ -458,12 +433,6 @@ class Test_process(IrisTest):
         self.forecast_stddev = self.cube.collapsed("realization", iris.analysis.STD_DEV)
         self.no_of_percentiles = len(self.cube.coord("realization").points)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Only a single cube so no differences",
-            "Collapsing a non-contiguous coordinate.",
-        ]
-    )
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube."""
         result = Plugin().process(
@@ -474,12 +443,6 @@ class Test_process(IrisTest):
         )
         self.assertIsInstance(result, Cube)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Only a single cube so no differences",
-            "Collapsing a non-contiguous coordinate.",
-        ]
-    )
     def test_number_of_percentiles(self):
         """
         Test that the plugin returns a cube with the expected number of
@@ -515,12 +478,6 @@ class Test_process(IrisTest):
         self.assertEqual(len(result.coord("percentile").points), self.no_of_percentiles)
         self.assertArrayAlmostEqual(expected, result.data, decimal=4)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Only a single cube so no differences",
-            "Collapsing a non-contiguous coordinate.",
-        ]
-    )
     def test_list_of_percentiles(self):
         """
         Test that the plugin returns a cube with the expected percentiles
@@ -558,12 +515,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(percentiles, result.coord("percentile").points)
         self.assertArrayAlmostEqual(expected, result.data, decimal=4)
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Only a single cube so no differences",
-            "Collapsing a non-contiguous coordinate.",
-        ]
-    )
     def test_multiple_keyword_arguments_error(self):
         """
         Test that the plugin raises an error when both the no_of_percentiles

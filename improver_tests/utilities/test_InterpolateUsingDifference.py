@@ -33,6 +33,7 @@
 import unittest
 
 import numpy as np
+import pytest
 from numpy.testing import assert_array_equal
 
 from improver.synthetic_data.set_up_test_cubes import (
@@ -40,7 +41,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.interpolation import InterpolateUsingDifference
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_Setup(unittest.TestCase):
@@ -277,8 +277,7 @@ class Test_process(Test_Setup):
         self.assertEqual(result.coords(), self.sleet_rain.coords())
         self.assertEqual(result.metadata, self.sleet_rain.metadata)
 
-    @ManageWarnings(record=True)
-    def test_unmasked_input_cube(self, warning_list=None):
+    def test_unmasked_input_cube(self):
         """Test a warning is raised if the input cube is not masked and that
         the input cube is returned unchanged."""
 
@@ -286,11 +285,12 @@ class Test_process(Test_Setup):
         expected = self.sleet_rain.copy()
         warning_msg = "Input cube unmasked, no data to fill in, returning"
 
-        result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet
+            )
 
         self.assertEqual(result, expected)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
 
     def test_convert_units(self):
         """Test that a reference cube and limit cube with different but

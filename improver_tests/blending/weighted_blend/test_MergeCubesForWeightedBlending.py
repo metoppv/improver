@@ -35,6 +35,7 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
+import pytest
 from iris.tests import IrisTest
 
 from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
@@ -44,7 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import get_coord_names
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__init__(IrisTest):
@@ -74,15 +74,13 @@ class Test__init__(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             MergeCubesForWeightedBlending("model_id")
 
-    @ManageWarnings(record=True)
-    def test_warning_unnecessary_model_id_attr(self, warning_list=None):
+    def test_warning_unnecessary_model_id_attr(self):
         """Test warning if model_id_attr is set for non-model blending"""
         warning_msg = "model_id_attr not required"
-        plugin = MergeCubesForWeightedBlending(
-            "realization", model_id_attr="mosg__model_configuration"
-        )
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin = MergeCubesForWeightedBlending(
+                "realization", model_id_attr="mosg__model_configuration"
+            )
         self.assertIsNone(plugin.model_id_attr)
 
 

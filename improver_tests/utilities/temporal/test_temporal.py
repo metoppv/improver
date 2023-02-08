@@ -36,6 +36,7 @@ from datetime import datetime
 import cftime
 import iris
 import numpy as np
+import pytest
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
@@ -56,7 +57,6 @@ from improver.utilities.temporal import (
     iris_time_to_datetime,
     relabel_to_period,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_cycletime_to_datetime(IrisTest):
@@ -111,7 +111,7 @@ class Test_datetime_to_cycletime(IrisTest):
 class Test_cycletime_to_number(IrisTest):
 
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
-      into a numeric time value."""
+    into a numeric time value."""
 
     def test_basic(self):
         """Test that a number is returned of the expected value."""
@@ -149,7 +149,7 @@ class Test_cycletime_to_number(IrisTest):
 
 
 class Test_iris_time_to_datetime(IrisTest):
-    """ Test iris_time_to_datetime """
+    """Test iris_time_to_datetime"""
 
     def setUp(self):
         """Set up an input cube"""
@@ -160,7 +160,7 @@ class Test_iris_time_to_datetime(IrisTest):
         )
 
     def test_basic(self):
-        """Test iris_time_to_datetime returns list of datetime """
+        """Test iris_time_to_datetime returns list of datetime"""
         result = iris_time_to_datetime(self.cube.coord("time"))
         self.assertIsInstance(result, list)
         for item in result:
@@ -315,15 +315,14 @@ class Test_extract_cube_at_time(IrisTest):
 
     def test_valid_time_for_coord_with_bounds(self):
         """Case for a time that is available within the diagnostic cube.
-           Test it still works for coordinates with bounds."""
+        Test it still works for coordinates with bounds."""
         plugin = extract_cube_at_time
         self.cube.coord("time").guess_bounds()
         cubes = CubeList([self.cube])
         result = plugin(cubes, self.time_dt, self.time_constraint)
         self.assertIsInstance(result, Cube)
 
-    @ManageWarnings(record=True)
-    def test_invalid_time(self, warning_list=None):
+    def test_invalid_time(self):
         """Case for a time that is unavailable within the diagnostic cube."""
         plugin = extract_cube_at_time
         time_dt = datetime(2017, 2, 18, 6, 0)
@@ -331,10 +330,10 @@ class Test_extract_cube_at_time(IrisTest):
             time=PartialDateTime(time_dt.year, time_dt.month, time_dt.day, time_dt.hour)
         )
         cubes = CubeList([self.cube])
-        plugin(cubes, time_dt, time_constraint)
         warning_msg = "Forecast time"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin(cubes, time_dt, time_constraint)
 
 
 class Test_extract_nearest_time_point(IrisTest):

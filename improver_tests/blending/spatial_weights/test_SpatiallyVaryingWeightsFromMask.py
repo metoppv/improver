@@ -36,6 +36,7 @@ import unittest
 from datetime import datetime
 
 import numpy as np
+import pytest
 from iris.coords import AuxCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
@@ -44,7 +45,6 @@ from iris.util import squeeze
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test__repr__(IrisTest):
@@ -224,8 +224,7 @@ class Test_process(IrisTest):
             "forecast_reference_time", fuzzy_length=1
         )
 
-    @ManageWarnings(record=True)
-    def test_none_masked(self, warning_list=None):
+    def test_none_masked(self):
         """Test when we have no masked data in the input cube."""
         self.cube_to_collapse.data = np.ones(self.cube_to_collapse.data.shape)
         self.cube_to_collapse.data = np.ma.masked_equal(self.cube_to_collapse.data, 0)
@@ -238,14 +237,13 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
         message = "Expected masked input"
-        result = self.plugin.process(
-            self.cube_to_collapse, self.one_dimensional_weights_cube,
-        )
-        self.assertTrue(any(message in str(item) for item in warning_list))
+        with pytest.warns(UserWarning, match=message):
+            result = self.plugin.process(
+                self.cube_to_collapse, self.one_dimensional_weights_cube,
+            )
         self.assertArrayEqual(result.data, expected_data)
         self.assertEqual(result.dtype, np.float32)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_all_masked(self):
         """Test when we have all masked data in the input cube."""
         self.cube_to_collapse.data = np.ones(self.cube_to_collapse.data.shape)
@@ -257,7 +255,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(expected_data, result.data)
         self.assertTrue(result.metadata, self.cube_to_collapse.data)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_no_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights."""
@@ -276,7 +273,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_no_fuzziness_no_one_dimensional_weights_transpose(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights and
@@ -297,7 +293,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_no_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have no fuzziness in the spatial
         weights and an adjustment from the one_dimensional weights."""
@@ -315,7 +310,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_fuzziness_no_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
         weights and no adjustment from the one_dimensional weights."""
@@ -334,7 +328,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_result)
         self.assertEqual(result.metadata, self.cube_to_collapse.metadata)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_fuzziness_with_one_dimensional_weights(self):
         """Test a simple case where we have some fuzziness in the spatial
         weights and with adjustment from the one_dimensional weights."""

@@ -35,13 +35,13 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import DimCoord
 from iris.exceptions import InvalidCubeError
 from iris.tests import IrisTest
 
 from improver.nowcasting.forecasting import AdvectField
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_xy_velocity_cube(name, coord_points_y=None, units="m s-1"):
@@ -376,18 +376,18 @@ class Test_process(IrisTest):
             result.data[~result.data.mask], expected_output[~result.data.mask]
         )
 
-    @ManageWarnings(record=True)
-    def test_unmasked_nans(self, warning_list=None):
+    def test_unmasked_nans(self):
         """Test an array with unmasked nans raises a warning"""
         data_with_nan = self.cube.data
         data_with_nan[2, 1] = np.nan
         cube = self.cube.copy(data_with_nan)
         expected_data = np.full((4, 3), np.nan, dtype=np.float32)
         expected_data[2, 1:] = np.array([2.0, 3.0])
-        result = self.plugin.process(cube, self.timestep)
         warning_msg = "contains unmasked NaNs"
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = self.plugin.process(cube, self.timestep)
+
         self.assertArrayAlmostEqual(
             result.data[~result.data.mask], expected_data[~result.data.mask]
         )
