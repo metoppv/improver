@@ -38,14 +38,6 @@ We will mainly focus on the file view here as the default output
 provides a fuller view
 (although iris can be used to fully explore the metadata).
 
-Note that to aid readability, in both cases
-``probability_of_air_temperature_above_threshold`` 
-has been shortened to ``prob_temp12m``
-and for the ncdump output trailing semicolons have also been removed
-and the text for the global attribute
-``mosg__model_run`` has line breaks inserted.
-
-
 Full ncdump of netCDF file metadata
 ***********************************
 
@@ -284,7 +276,7 @@ As the main variable in this example is a probability of exceeding a threshold,
 a further dimensional coordinate variable is required to allow the data 
 to be fully interpreted.
 This holds the set of thresholds for the probabilities,
-which in this case are a set of 12-hour maxiumum temperature values.
+which in this case are a set of 12-hour maximum temperature values.
 Both, these are shown in the code snippets below
 
 .. literalinclude:: temp12max_prob_ncdump.txt
@@ -340,7 +332,7 @@ blend_time
     the ``blend_time`` will not be the same for all validity times,
     as forecasts in the near future are updated more frequently).
     Strictly, as ``blend_time`` is not part of the `CF Metadata Conventions`_
-    it should arguable include a 'namespace element' such as ``mosg__``
+    it should arguably include a 'namespace element' such as ``mosg__``
     but it doesn't.
 
 .. previously, this included text the text below,
@@ -398,7 +390,7 @@ Horizontal coordinate variables
 
 Two horizontal coordinate variables, 
 here projection_y_coordinate and projection_x_coordinate
-(but would be latitude and longitude for an equi-rectangular 
+(but would be latitude and longitude for an equirectangular 
 projection grid, such as the Met Office global domain),
 provide the coordinates of the grid points at the centre of the grid cell,
 with two further variables defining the cell bounds.
@@ -451,9 +443,9 @@ Grid mapping variable
 *********************
 
 This describes the grid map projection.
-The example here is for the Lambert Azimuthal Equal Area (LAEA) grid 
+The example here is for the Lambert azimuthal equal area (LAEA) grid 
 used by the Met Office for the UK domain,
-but a Latitude-Longitude (strictly, Equirectangular) projection
+but a Latitude-Longitude (strictly, equirectangular) projection
 is usually used for the global domain.
 The set of attributes will vary depending on map projection,
 so to get the exact meanings, it is best to look at 
@@ -491,13 +483,13 @@ percentile
 Main percentile variable 
 ^^^^^^^^^^^^^^^^^^^^^^^^
 
-In the example here, the main variable is a 12 hour maxiumum temperature,
-but representing the nth percentile of the temperature forecast probability distribution
+In the example here, the main variable is a 12 hour maximum temperature,
+but representing the Nth percentile of the temperature forecast probability distribution
 at each point. 
 
 .. literalinclude:: temp12max_perc_ncdump.txt
     :tab-width: 4
-    :lines: 8-14
+    :lines: 8-14s
 
 The variable attributes are the same as the probability example
 previously described in detail, except: 
@@ -538,7 +530,7 @@ Spot data
 
 Broadly, the spot data parallels the form of the gridded data, 
 both probabilities and percentiles are produced,
-but there are some notable differences because of the nature of data.
+but there are some notable differences because of the nature of the data.
 These difference are described below, but the full ncdump listing
 is shown in an appendix.
 
@@ -569,10 +561,6 @@ spot_index
 string5 / string8
     Just constants used to dimension the character length of the string variable
     holding zero padded WMO identifier and Met Office identifiers, respectively.
-
-.. how tied to the code are these identifiers, as they may not be appropiate
-    for other users?
-
 
 Variables
 ^^^^^^^^^
@@ -664,7 +652,7 @@ rather than referring to the IMPROVER Blend
 (although the spot data is still labelled as IMPROVER,
 as a site extraction has taken place). 
 
-As this is mean, there is no dimension and coordinate variable for 
+As this is a mean, there is no dimension and coordinate variable for 
 ``threshold`` or ``percentile``. 
 
 The main variable has a ``cell_methods`` attribute, set to
