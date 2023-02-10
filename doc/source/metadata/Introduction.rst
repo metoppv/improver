@@ -489,7 +489,7 @@ at each point.
 
 .. literalinclude:: temp12max_perc_ncdump.txt
     :tab-width: 4
-    :lines: 8-14s
+    :lines: 8-14
 
 The variable attributes are the same as the probability example
 previously described in detail, except: 
