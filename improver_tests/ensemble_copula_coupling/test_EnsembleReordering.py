@@ -47,7 +47,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
@@ -498,7 +497,6 @@ class Test_process(IrisTest):
             np.array([25, 50, 75], dtype=np.float32),
         )
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_basic(self):
         """
         Test that the plugin returns an iris.cube.Cube, the cube has a
@@ -514,7 +512,6 @@ class Test_process(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_basic_masked_input_data(self):
         """
         Test that the plugin returns an iris.cube.Cube, the cube has a
@@ -539,7 +536,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertArrayEqual(result.data.mask, expected_data.mask)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_basic_masked_input_data_not_nans(self):
         """
         Test that the plugin returns an iris.cube.Cube, the cube has a
@@ -564,7 +560,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_data)
         self.assertArrayEqual(result.data.mask, expected_data.mask)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_1d_cube_random_ordering(self):
         """
         Test that the plugin returns the correct cube data for a
@@ -589,7 +584,6 @@ class Test_process(IrisTest):
         matches = [np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_1d_cube_recycling_raw_ensemble_realizations(self):
         """
         Test that the plugin returns the correct cube data for a

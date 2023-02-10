@@ -45,7 +45,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 def set_up_cubes_for_process_tests():
@@ -153,7 +152,6 @@ class Test_process(IrisTest):
         self.central_cube, self.cube = set_up_cubes_for_process_tests()
         self.forecast_period = self.central_cube.coord("forecast_period").points[0]
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_triangle_width_1(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 1. This is equivalent to no blending."""
@@ -168,7 +166,6 @@ class Test_process(IrisTest):
         self.assertEqual(self.central_cube.coord("time"), result.coord("time"))
         self.assertArrayEqual(self.central_cube.data, result.data)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic_triangle_width_2(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 2 and there is some blending."""
@@ -184,7 +181,6 @@ class Test_process(IrisTest):
         self.assertEqual(self.central_cube.coord("time"), result.coord("time"))
         self.assertArrayAlmostEqual(expected_data, result.data)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_central_point_not_in_allowed_range(self):
         """Test that an exception is generated when the central cube is not
            within the allowed range."""
@@ -197,7 +193,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_alternative_parameter_units(self):
         """Test that the plugin produces sensible results when the width
            of the triangle is 7200 seconds. """
@@ -214,7 +209,6 @@ class Test_process(IrisTest):
         self.assertEqual(self.central_cube.coord("time"), result.coord("time"))
         self.assertArrayAlmostEqual(expected_data, result.data)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_input_cube_no_change(self):
         """Test that the plugin does not change the original input cube."""
 
@@ -231,7 +225,6 @@ class Test_process(IrisTest):
         # Test that the input cube is unchanged by the function.
         self.assertEqual(cube, original_cube)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_extra_dimension(self):
         """Test that the plugin retains the single height point from the input
            cube."""
@@ -260,7 +253,6 @@ class Test_process(IrisTest):
         self.assertArrayEqual(expected_cube.data, result.data)
         self.assertEqual(expected_cube, result)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_works_two_thresh(self):
         """Test that the plugin works with a cube that contains multiple
            thresholds."""

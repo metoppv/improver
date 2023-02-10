@@ -49,7 +49,6 @@ from improver.calibration.ensemble_calibration import (
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 from .test_EstimateCoefficientsForEnsembleCalibration import SetupExpectedCoefficients
@@ -59,13 +58,6 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
     """Set up coefficients cubes for testing."""
 
-    @ManageWarnings(
-        ignored_messages=[
-            "Collapsing a non-contiguous coordinate.",
-            "invalid escape sequence",
-        ],
-        warning_types=[UserWarning, DeprecationWarning],
-    )
     def setUp(self):
         """Set up coefficients cubes for when either the ensemble mean or the
         ensemble realizations have been used as the predictor. The coefficients
@@ -326,7 +318,6 @@ class Test__calculate_location_parameter_from_mean(
         self.plugin.current_forecast = self.current_temperature_forecast_cube
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test that the expected values for the location parameter are
         calculated when using the ensemble mean. These expected values are
@@ -340,7 +331,6 @@ class Test__calculate_location_parameter_from_mean(
             location_parameter, self.expected_loc_param_realizations, decimal=0,
         )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_missing_additional_predictor(self):
         """Test that an error is raised if an additional predictor is expected
         based on the contents of the coefficients cube."""
@@ -356,7 +346,6 @@ class Test__calculate_location_parameter_from_realizations(
 
     """Test the _calculate_location_parameter_from_realizations method."""
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def setUp(self):
         """Set-up coefficients and plugin for testing."""
         super().setUp()
@@ -364,7 +353,6 @@ class Test__calculate_location_parameter_from_realizations(
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test that the expected values for the location parameter are
         calculated when using the ensemble realizations. These expected values
@@ -394,7 +382,6 @@ class Test__calculate_scale_parameter(
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test the scale parameter is calculated correctly."""
         self.plugin.coefficients_cubelist = self.coeffs_from_mean
@@ -414,7 +401,6 @@ class Test__create_output_cubes(SetupCoefficientsCubes, EnsembleCalibrationAsser
         self.plugin = Plugin()
         self.plugin.current_forecast = self.current_temperature_forecast_cube
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_basic(self):
         """Test that the cubes created containing the location and scale
         parameter are formatted as expected."""
@@ -437,7 +423,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         super().setUp()
         self.plugin = Plugin()
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_diagnostic_match(self):
         """Test that an error is raised if the diagnostic_standard_name does
         not match when comparing a forecast cube and coefficients cubelist."""
@@ -447,7 +432,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
                 self.current_wind_speed_forecast_cube, self.coeffs_from_mean
             )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_time_match(self):
         """Test that an error is raised if the time coordinates do
         not match when comparing a forecast cube and coefficients cubelist."""
@@ -457,7 +441,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
                 self.current_temperature_forecast_cube, self.coeffs_from_mean_timeshift
             )
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_time_match_tolerate(self):
         """Test that no error is raised when using a coefficients file with
         a mismatching forecast_period coordinate, if the
@@ -475,7 +458,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_variable_setting(self):
         """Test that the cubes passed into the plugin are allocated to
         plugin variables appropriately."""
@@ -488,7 +470,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(self.coeffs_from_mean, self.plugin.coefficients_cubelist)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end(self):
         """An example end-to-end calculation. This repeats the test elements
         above but all grouped together."""
@@ -504,7 +485,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_point_by_point(self):
         """An example end-to-end calculation when a separate set of
         coefficients are computed for each grid point. This repeats the test
@@ -521,7 +501,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_point_by_point_sites_realizations(self):
         """An example end-to-end calculation when a separate set of
         coefficients are computed for each site using the realizations as the
@@ -540,7 +519,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_with_additional_predictor(self):
         """Test that the expected calibrated forecast is generated, if an
         additional predictor is provided."""
@@ -558,7 +536,6 @@ class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
         )
         self.assertEqual(calibrated_forecast_predictor.dtype, np.float32)
 
-    @ManageWarnings(ignored_messages=["Collapsing a non-contiguous coordinate."])
     def test_end_to_end_with_mask(self):
         """An example end-to-end calculation, but making sure that the
         areas that are masked within the landsea mask, are masked at the

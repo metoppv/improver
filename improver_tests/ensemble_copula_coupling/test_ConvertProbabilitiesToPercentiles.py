@@ -37,6 +37,7 @@ from datetime import datetime
 
 import cf_units as unit
 import numpy as np
+import pytest
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
@@ -50,7 +51,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .ecc_test_data import (
     ECC_TEMPERATURE_PROBABILITIES,
@@ -125,8 +125,7 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
                 threshold_points, probabilities_for_cdf, self.bounds_pairing
             )
 
-    @ManageWarnings(record=True)
-    def test_endpoints_of_distribution_exceeded_warning(self, warning_list=None):
+    def test_endpoints_of_distribution_exceeded_warning(self):
         """
         Test that the plugin raises a warning message when the constant
         end points of the distribution are exceeded by a threshold value
@@ -137,19 +136,18 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
         threshold_points = np.array([8, 10, 60])
         plugin = Plugin(ecc_bounds_warning=True)
         warning_msg = (
-            "The calculated threshold values [-40   8  10  60  50] are "
+            "The calculated threshold values \\[-40   8  10  60  50\\] are "
             "not in ascending order as required for the cumulative distribution "
-            "function (CDF). This is due to the threshold values exceeding "
-            "the range given by the ECC bounds (-40, 50). The threshold "
+            "function \\(CDF\\). This is due to the threshold values exceeding "
+            "the range given by the ECC bounds \\(-40, 50\\). The threshold "
             "points that have exceeded the existing bounds will be used as "
             "new bounds."
         )
-        plugin._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, self.bounds_pairing
-        )
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+        with pytest.warns(UserWarning, match=warning_msg):
+            plugin._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, self.bounds_pairing
+            )
 
-    @ManageWarnings(ignored_messages=["The calculated threshold values"])
     def test_new_endpoints_generation(self):
         """Test that the plugin re-applies the threshold bounds using the
         maximum and minimum threshold points values when the original bounds
@@ -325,8 +323,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected, decimal=5)
 
-    @ManageWarnings(record=True)
-    def test_probabilities_not_monotonically_increasing(self, warning_list=None):
+    def test_probabilities_not_monotonically_increasing(self):
         """
         Test that the plugin raises a Warning when the probabilities
         of the Cumulative Distribution Function are not monotonically
@@ -339,10 +336,10 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
 
         warning_msg = "The probability values used to construct the"
-        Plugin()._probabilities_to_percentiles(
-            cube, self.percentiles, self.bounds_pairing
-        )
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+        with pytest.warns(UserWarning, match=warning_msg):
+            Plugin()._probabilities_to_percentiles(
+                cube, self.percentiles, self.bounds_pairing
+            )
 
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
@@ -527,7 +524,6 @@ class Test_process(IrisTest):
             dtype=np.float32,
         )
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_no_of_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -539,7 +535,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.cube, no_of_percentiles=3)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_single_percentile(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -550,7 +545,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.cube, percentiles=[25])
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_single_percentile_not_as_list(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -560,7 +554,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.cube, percentiles=25)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -572,7 +565,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.cube, percentiles=[25, 50, 75])
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_not_specifying_percentiles(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -584,7 +576,6 @@ class Test_process(IrisTest):
         result = Plugin().process(self.cube)
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_masked_input_data(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected
@@ -602,7 +593,6 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data.data, expected_data.data, decimal=5)
         self.assertArrayEqual(result.data.mask, expected_data.mask)
 
-    @ManageWarnings(ignored_messages=["Only a single cube so no differences"])
     def test_check_data_masked_input_data_non_nans(self):
         """
         Test that the plugin returns an Iris.cube.Cube with the expected

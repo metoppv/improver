@@ -35,6 +35,7 @@ from datetime import datetime, timedelta
 
 import iris
 import numpy as np
+import pytest
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
@@ -50,7 +51,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.utilities.warnings_handler import ManageWarnings
 
 
 class Test_forecast_period_coord(IrisTest):
@@ -179,17 +179,14 @@ class Test__calculate_forecast_period(IrisTest):
         result = _calculate_forecast_period(self.time_coord, self.frt_coord)
         self.assertEqual(result, self.fp_coord)
 
-    @ManageWarnings(record=True)
-    def test_negative_forecast_period(self, warning_list=None):
+    def test_negative_forecast_period(self):
         """Test a warning is raised if the calculated forecast period is
         negative"""
         # default cube has a 4 hour forecast period, so add 5 hours to frt
         self.frt_coord.points = self.frt_coord.points + 5 * 3600
-        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
         warning_msg = "The values for the time"
-        result = _calculate_forecast_period(self.time_coord, self.frt_coord)
-        self.assertTrue(any(item.category == UserWarning for item in warning_list))
-        self.assertTrue(any(warning_msg in str(item) for item in warning_list))
+        with pytest.warns(UserWarning, match=warning_msg):
+            result = _calculate_forecast_period(self.time_coord, self.frt_coord)
         self.assertEqual(result.points, [-3600])
 
 

@@ -40,7 +40,6 @@ from iris.tests import IrisTest
 
 from improver.nowcasting.optical_flow import generate_advection_velocities_from_winds
 from improver.synthetic_data.set_up_test_cubes import add_coordinate
-from improver.utilities.warnings_handler import ManageWarnings
 
 from . import set_up_test_cube
 
@@ -91,7 +90,6 @@ class Test_generate_advection_velocities_from_winds(IrisTest):
             time_points.append(datetime(2018, 2, 20, 3 + i))
         self.orogenh = add_coordinate(orogenh, time_points, "time", is_datetime=True)
 
-    @ManageWarnings(ignored_messages=["No non-zero data in input fields"])
     def test_basic(self):
         """Test function returns a cubelist with the expected components"""
         result = generate_advection_velocities_from_winds(
@@ -101,7 +99,6 @@ class Test_generate_advection_velocities_from_winds(IrisTest):
         self.assertEqual(result[0].name(), "precipitation_advection_x_velocity")
         self.assertEqual(result[1].name(), "precipitation_advection_y_velocity")
 
-    @ManageWarnings(ignored_messages=["No non-zero data in input fields"])
     def test_time(self):
         """Test output time coordinates are as expected"""
         current_time = self.cubes[1].coord("time").points[0]
@@ -112,7 +109,6 @@ class Test_generate_advection_velocities_from_winds(IrisTest):
             self.assertIsInstance(cube, iris.cube.Cube)
             self.assertEqual(cube.coord("time").points[0], current_time)
 
-    @ManageWarnings(ignored_messages=["No non-zero data in input fields"])
     def test_input_sort(self):
         """Test output time coordinates are correct if the inputs are in the wrong
         order"""

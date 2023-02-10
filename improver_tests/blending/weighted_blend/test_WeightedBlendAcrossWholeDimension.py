@@ -50,7 +50,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-from improver.utilities.warnings_handler import ManageWarnings
 
 from .test_PercentileBlendingAggregator import (
     BLENDED_PERCENTILE_DATA,
@@ -58,8 +57,6 @@ from .test_PercentileBlendingAggregator import (
     BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS,
     PERCENTILE_DATA,
 )
-
-COORD_COLLAPSE_WARNING = "Collapsing a non-contiguous coordinate"
 
 
 def percentile_cube(frt_points, time, frt):
@@ -416,7 +413,6 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
     """Test the percentile_weighted_mean function."""
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_weights(self):
         """Test function when a data cube and a weights cube are provided."""
         result = self.plugin.percentile_weighted_mean(
@@ -425,7 +421,6 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, BLENDED_PERCENTILE_DATA)
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
         are provided. This tests spatially varying weights, where each x-y
@@ -439,7 +434,6 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
             result.data, BLENDED_PERCENTILE_DATA_SPATIAL_WEIGHTS
         )
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_without_weights(self):
         """Test function when a data cube is provided, but no weights cube
         which should result in equal weightings."""
@@ -452,7 +446,6 @@ class Test_weighted_mean(Test_weighted_blend):
 
     """Test the weighted_mean function."""
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_weights(self):
         """Test function when a data cube and a weights cube are provided."""
         result = self.plugin.weighted_mean(self.cube, self.weights1d)
@@ -461,7 +454,6 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_with_spatially_varying_weights(self):
         """Test function when a data cube and a multi dimensional weights cube
         are provided. This tests spatially varying weights, where each x-y
@@ -473,7 +465,6 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_without_weights(self):
         """Test function when a data cube is provided, but no weights cube
         which should result in equal weightings."""
@@ -483,7 +474,6 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_collapse_dims_with_weights(self):
         """Test function matches when the blend coordinate is first or second."""
         # Create a new axis.
@@ -501,7 +491,6 @@ class Test_process(Test_weighted_blend):
 
     """Test the process method."""
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube with appropriate metadata"""
         expected_dim_coords = [
@@ -522,7 +511,6 @@ class Test_process(Test_weighted_blend):
         self.assertSequenceEqual(dim_coords, expected_dim_coords)
         self.assertSetEqual(aux_coords, expected_scalar_coords)
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_perc(self):
         """Test that the plugin returns a percentile cube"""
         self.perc_cube.attributes = self.cube.attributes
@@ -565,7 +553,6 @@ class Test_process(Test_weighted_blend):
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube, weights)
 
-    @ManageWarnings(ignored_messages=[COORD_COLLAPSE_WARNING])
     def test_threshold_cube_with_weights_weighted_mean(self):
         """Test weighted_mean method works collapsing a cube with a threshold
         dimension when the blending is over a different coordinate. Note that
