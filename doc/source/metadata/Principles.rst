@@ -120,6 +120,72 @@ metadata in the future.
     (such as the details of the model which generated the data). 
 
 
+Practical considerations
+------------------------
+
+IMPROVER code is ususally implemented in a series of processing chains,
+so it useful to consider the metadata in this context. 
+From a processing perspctive, a useful way of dividing the metadata 
+into three different types is:
+
+1. Low-level, specific to a particular plug-in (Open Source)
+2. Centralised, appropriate to all users (Open Source)
+3. Organisation-specific metadata (Bespoke)
+
+Metadata is set, updated or removed at three stages in the process:
+
+1. Start - standardise CLI / amend_metadata plug-in
+2. Plug-ins - reflecting changes made to the data and enforce wider standards
+3. End - set metadata in the files that will be shared
+
+.. note::
+
+    amend_metadata makes use of JSON dictionaries to flexibly update metadata
+    (delete, set)
+
+The general approach proposed is to be conservative with metadata;
+get rid of everything that is not needed.
+In particular, processing stage 1, will remove or transform most organisation-specific metadata,
+to ensure that the metadata does not become out of date.
+for example, only 6 global attributes are expected
+(being either retained or set at the start).
+
+* Conventions
+* institution
+* source
+* title
+* mosg__model_configuration
+* mosg__model_run
+
+.. add note to Reference section
+
+Organisation-specific metadata may be added in at the end of the processing chain.
+
+Low-level metadata is will usually only be transitory,
+required for certain processing steps, but out exposed in the final output.
+
+Centralised metadata is key to the use of the final output,
+providing the required information to understand and exploit the data.
+This will be continually updated and, at times, added to,
+as the data are tranformed in the processing steps.
+Some of the most significant of these changes are:
+
+* Thresholding to generate probabilities:
+
+  * variable name - prefixed with ``probability_of _``
+  * standard_name or long_name 'top and tail' with
+    ``probability_of_`` and 
+    ``_above_threshold`` or ``_below_threshold``, respectively
+  * units - set ``1``
+
+* Blend grid (multi-model):
+
+  * source - change to be ``IMPROVER``
+  * title - change to describe the blend appropriately
+  * mosg__model_configuration - set to list of model identifiers
+  * mosg__model_run - set to list of model runs and weights
+
+
 References
 ----------
 
