@@ -24,6 +24,7 @@
 
    metadata/Introduction
    metadata/Principles
+   metadata/Probabilities
 
 .. toctree::
    :caption: The Code
