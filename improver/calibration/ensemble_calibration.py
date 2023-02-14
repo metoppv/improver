@@ -1398,7 +1398,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
     uncalibrated input forecast and EMOS coefficients.
     """
 
-    def __init__(self, predictor: str = "mean", ignore_diagnostic_match: bool = False) -> None:
+    def __init__(self, predictor: str = "mean", predictor_name: str = None) -> None:
         """
         Create a plugin that uses the coefficients created using EMOS from
         historical forecasts and corresponding truths and applies these
@@ -1411,13 +1411,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
-            ignore_diagnostic_match:
-                Disables the check that the diagnostic name used to construct
-                the coefficients matches the diagnostic name the coefficients
-                will be applied to.
+            predictor_name:
+                Specify the predictor name associated with the supplied emos
+                coefficients if it differs from the name on the input_cubes.
         """
         self.predictor = check_predictor(predictor)
-        self.ignore_diagnostic_match = ignore_diagnostic_match
+        self.predictor_name = predictor_name
 
         self.coefficients_cubelist = None
         self.current_forecast = None
@@ -1436,13 +1435,15 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             ValueError: If the forecast diagnostic and coefficients cube
                 diagnostic does not match.
         """
+        if not self.predictor_name:
+            self.predictor_name = self.current_forecast.name()
         for cube in self.coefficients_cubelist:
             diag = cube.attributes["diagnostic_standard_name"]
-            if self.current_forecast.name() != diag:
+            if self.predictor_name != diag:
                 msg = (
-                    f"The forecast diagnostic ({self.current_forecast.name()}) "
+                    f"The forecast diagnostic ({self.predictor_name}) "
                     "does not match the diagnostic used to construct the "
-                    f"coefficients ({diag}). You can suppress this with --ignore-diagnostic-match"
+                    f"coefficients ({diag}). You can overcome this with --predictor-name={diag}"
                 )
                 raise ValueError(msg)
 
@@ -1520,7 +1521,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # raw ensemble mean. In this case, b = beta.
         location_parameter = np.zeros(forecast_predictors[0].shape)
         for fp in forecast_predictors:
-            constr = iris.Constraint(predictor_name=fp.name())
+            constr = iris.Constraint(predictor_name=self.predictor_name)
             location_parameter += beta_cube.extract(constr).data * fp.data
         location_parameter += self.coefficients_cubelist.extract_cube(
             "emos_coefficient_alpha"
@@ -1691,8 +1692,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
-        if not self.ignore_diagnostic_match:
-            self._diagnostic_match()
+        self._diagnostic_match()
         if not tolerate_time_mismatch:
             # Check validity time and forecast period matches.
             for cube in coefficients_cubelist:
@@ -1964,7 +1964,7 @@ class ApplyEMOS(PostProcessingPlugin):
         land_sea_mask: Optional[Cube] = None,
         prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
-        ignore_diagnostic_match: bool = False,
+        predictor_name: str = None,
         ignore_ecc_bounds: bool = True,
         tolerate_time_mismatch: bool = False,
         predictor: str = "mean",
@@ -1993,10 +1993,9 @@ class ApplyEMOS(PostProcessingPlugin):
             realizations_count:
                 Number of realizations to use when generating the intermediate
                 calibrated forecast from probability or percentile inputs
-            ignore_diagnostic_match:
-                If True, disables the check that the diagnostic name used to construct
-                the coefficients matches the diagnostic name the coefficients
-                will be applied to.
+            predictor_name:
+                Specify the predictor name associated with the supplied emos
+                coefficients if it differs from the name on the input_cubes.
             ignore_ecc_bounds:
                 If True, allow percentiles from probabilities to exceed the ECC
                 bounds range.  If input is not probabilities, this is ignored.
@@ -2040,8 +2039,7 @@ class ApplyEMOS(PostProcessingPlugin):
             )
 
         calibration_plugin = CalibratedForecastDistributionParameters(
-            predictor=predictor,
-            ignore_diagnostic_match=ignore_diagnostic_match,
+            predictor=predictor, predictor_name=predictor_name,
         )
         location_parameter, scale_parameter = calibration_plugin(
             forecast_as_realizations,
