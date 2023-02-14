@@ -44,6 +44,7 @@ def process(
     realizations_count: int = None,
     randomise=False,
     random_seed: int = None,
+    ignore_diagnostic_match: bool=False,
     ignore_ecc_bounds_exceedance=False,
     tolerate_time_mismatch=False,
     predictor="mean",
@@ -106,7 +107,11 @@ def process(
             ensemble, or for splitting tied values within the raw ensemble,
             so that the values from the input percentiles can be ordered to
             match the raw ensemble.
-        ignore_ecc_bounds_exceedance (bool):
+        ignore_diagnostic_match (bool):
+            If True, disables the check that the diagnostic name used to construct
+            the coefficients matches the diagnostic name the coefficients
+            will be applied to.
+         ignore_ecc_bounds_exceedance (bool):
             If True, where the percentiles exceed the ECC bounds range,
             raises a warning rather than an exception. This occurs when the
             current forecasts is in the form of probabilities and is
@@ -206,6 +211,7 @@ def process(
         land_sea_mask=land_sea_mask,
         prob_template=prob_template,
         realizations_count=realizations_count,
+        ignore_diagnostic_match=ignore_diagnostic_match,
         ignore_ecc_bounds=ignore_ecc_bounds_exceedance,
         tolerate_time_mismatch=tolerate_time_mismatch,
         predictor=predictor,

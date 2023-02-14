@@ -1398,7 +1398,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
     uncalibrated input forecast and EMOS coefficients.
     """
 
-    def __init__(self, predictor: str = "mean") -> None:
+    def __init__(self, predictor: str = "mean", ignore_diagnostic_match: bool = False) -> None:
         """
         Create a plugin that uses the coefficients created using EMOS from
         historical forecasts and corresponding truths and applies these
@@ -1411,8 +1411,13 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 the location parameter when estimating the EMOS coefficients.
                 Currently the ensemble mean ("mean") and the ensemble
                 realizations ("realizations") are supported as the predictors.
+            ignore_diagnostic_match:
+                Disables the check that the diagnostic name used to construct
+                the coefficients matches the diagnostic name the coefficients
+                will be applied to.
         """
         self.predictor = check_predictor(predictor)
+        self.ignore_diagnostic_match = ignore_diagnostic_match
 
         self.coefficients_cubelist = None
         self.current_forecast = None
@@ -1437,7 +1442,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 msg = (
                     f"The forecast diagnostic ({self.current_forecast.name()}) "
                     "does not match the diagnostic used to construct the "
-                    f"coefficients ({diag})"
+                    f"coefficients ({diag}). You can suppress this with --ignore-diagnostic-match"
                 )
                 raise ValueError(msg)
 
@@ -1686,7 +1691,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         self.coefficients_cubelist = coefficients_cubelist
 
         # Check coefficients_cube and forecast cube are compatible.
-        self._diagnostic_match()
+        if not self.ignore_diagnostic_match:
+            self._diagnostic_match()
         if not tolerate_time_mismatch:
             # Check validity time and forecast period matches.
             for cube in coefficients_cubelist:
@@ -1958,6 +1964,7 @@ class ApplyEMOS(PostProcessingPlugin):
         land_sea_mask: Optional[Cube] = None,
         prob_template: Optional[Cube] = None,
         realizations_count: Optional[int] = None,
+        ignore_diagnostic_match: bool = False,
         ignore_ecc_bounds: bool = True,
         tolerate_time_mismatch: bool = False,
         predictor: str = "mean",
@@ -1986,6 +1993,10 @@ class ApplyEMOS(PostProcessingPlugin):
             realizations_count:
                 Number of realizations to use when generating the intermediate
                 calibrated forecast from probability or percentile inputs
+            ignore_diagnostic_match:
+                If True, disables the check that the diagnostic name used to construct
+                the coefficients matches the diagnostic name the coefficients
+                will be applied to.
             ignore_ecc_bounds:
                 If True, allow percentiles from probabilities to exceed the ECC
                 bounds range.  If input is not probabilities, this is ignored.
@@ -2029,7 +2040,8 @@ class ApplyEMOS(PostProcessingPlugin):
             )
 
         calibration_plugin = CalibratedForecastDistributionParameters(
-            predictor=predictor
+            predictor=predictor,
+            ignore_diagnostic_match=ignore_diagnostic_match,
         )
         location_parameter, scale_parameter = calibration_plugin(
             forecast_as_realizations,
