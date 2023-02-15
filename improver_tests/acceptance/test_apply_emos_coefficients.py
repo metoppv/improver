@@ -376,6 +376,32 @@ def test_percentile_sites_additional_predictor(tmp_path):
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
 
+def test_percentile_sites_additional_predictor_and_different_name(tmp_path):
+    """Test using percentile site forecasts with a static additional predictor when the
+    forecasts are feels-like temperature and the coefficients represent air temperature."""
+    kgo_dir = acc.kgo_root() / "apply-emos-coefficients/sites/additional_predictor"
+    kgo_path = kgo_dir / "percentile_feels_like_temperature_kgo.nc"
+    input_path = kgo_dir / ".." / "percentile_input_feels_like_temperature.nc"
+    emos_est_path = kgo_dir / "coefficients.nc"
+    additional_predictor_path = kgo_dir / "altitude.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        emos_est_path,
+        additional_predictor_path,
+        "--realizations-count",
+        "19",
+        "--random-seed",
+        "0",
+        "--predictor-name",
+        "air_temperature",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
+
+
 def test_percentile_sites_period_diagnostic(tmp_path):
     """Test using percentile site forecasts where the diagnostic supplied
     represents a period e.g. daytime max temperature."""
