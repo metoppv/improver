@@ -282,6 +282,23 @@ class Test_process(IrisTest):
         self.assertIn("probability_of", result.name())
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+    def test_predictor_name(self):
+        """Test effect of "neutral" emos coefficients in percentile space
+        with a different name on the predictor"""
+        cube = self.percentiles.copy()
+        cube.rename("feels_like_temperature")
+        result = ApplyEMOS()(
+            cube,
+            self.coefficients,
+            realizations_count=3,
+            predictor_name="air_temperature",
+        )
+        self.assertIn("percentile", get_dim_coord_names(result))
+        self.assertArrayAlmostEqual(result.data, self.null_percentiles_expected)
+        self.assertAlmostEqual(
+            np.mean(result.data), self.null_percentiles_expected_mean
+        )
+
     def test_bias(self):
         """Test emos coefficients that correct a bias"""
         # update the "alpha" value
@@ -344,6 +361,36 @@ class Test_process(IrisTest):
             coefficients,
             additional_fields=CubeList([altitude]),
             realizations_count=3,
+        )
+        self.assertArrayAlmostEqual(result.data, expected_data)
+
+    def test_additional_predictor_different_name(self):
+        """Test providing an additional predictor when the forecast cube has a different name."""
+        altitude = set_up_variable_cube(
+            np.ones((3, 3), dtype=np.float32), name="surface_altitude", units="m"
+        )
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
+            altitude.remove_coord(coord)
+        coefficients = build_coefficients_cubelist(
+            self.realizations,
+            [0, [0.9, 0.1], 0, 1],
+            CubeList([self.realizations, altitude]),
+        )
+        expected_data = np.array(
+            [
+                np.full((3, 3), 9.325102),
+                np.full((3, 3), 9.46),
+                np.full((3, 3), 9.594898),
+            ]
+        )
+        cube = self.percentiles.copy()
+        cube.rename("feels_like_temperature")
+        result = ApplyEMOS()(
+            cube,
+            coefficients,
+            additional_fields=CubeList([altitude]),
+            realizations_count=3,
+            predictor_name="air_temperature",
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 

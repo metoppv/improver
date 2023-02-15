@@ -1417,6 +1417,7 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         """
         self.predictor = check_predictor(predictor)
         self.predictor_name = predictor_name
+        self.predictor_name_lookup = {}
 
         self.coefficients_cubelist = None
         self.current_forecast = None
@@ -1435,13 +1436,18 @@ class CalibratedForecastDistributionParameters(BasePlugin):
             ValueError: If the forecast diagnostic and coefficients cube
                 diagnostic does not match.
         """
-        if not self.predictor_name:
-            self.predictor_name = self.current_forecast.name()
+        if self.predictor_name:
+            self.predictor_name_lookup[
+                self.current_forecast.name()
+            ] = self.predictor_name
         for cube in self.coefficients_cubelist:
             diag = cube.attributes["diagnostic_standard_name"]
-            if self.predictor_name != diag:
+            if (
+                diag not in self.predictor_name_lookup.values()
+                and diag != self.current_forecast.name()
+            ):
                 msg = (
-                    f"The forecast diagnostic ({self.predictor_name}) "
+                    f"The forecast diagnostic ({self.predictor_name_lookup.get(diag, self.current_forecast.name())}) "
                     "does not match the diagnostic used to construct the "
                     f"coefficients ({diag}). You can overcome this with --predictor-name={diag}"
                 )
@@ -1521,7 +1527,9 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         # raw ensemble mean. In this case, b = beta.
         location_parameter = np.zeros(forecast_predictors[0].shape)
         for fp in forecast_predictors:
-            constr = iris.Constraint(predictor_name=self.predictor_name)
+            constr = iris.Constraint(
+                predictor_name=self.predictor_name_lookup.get(fp.name(), fp.name())
+            )
             location_parameter += beta_cube.extract(constr).data * fp.data
         location_parameter += self.coefficients_cubelist.extract_cube(
             "emos_coefficient_alpha"
