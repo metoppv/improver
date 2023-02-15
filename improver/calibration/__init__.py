@@ -44,27 +44,35 @@ from improver.utilities.cube_manipulation import MergeCubes
 
 
 def split_forecasts_and_truth(
-    cubes: List[Cube], truth_attribute: str
-) -> Tuple[Cube, Cube, Optional[Cube]]:
+    cubes: List[Cube], truth_attribute: str, land_sea_mask_name: str = None,
+) -> Tuple[Cube, Cube, Optional[Cube], Optional[List[Cube]]]:
     """
     A common utility for splitting the various inputs cubes required for
-    calibration CLIs. These are generally the forecast cubes, historic truths,
-    and in some instances a land-sea mask is also required.
+    calibration CLIs. These are generally the forecast cubes, historic truths. In some
+    instances a land-sea mask and/or cubes containing static additional predictors
+    can be used.
 
     Args:
         cubes:
             A list of input cubes which will be split into relevant groups.
             These include the historical forecasts, in the format supported by
-            the calibration CLIs, and the truth cubes.
+            the calibration CLIs, and the truth cubes. Can optionally also contain a
+            land-sea mask cube and cubes containing additional predictors.
         truth_attribute:
             An attribute and its value in the format of "attribute=value",
             which must be present on truth cubes.
+        land_sea_mask_name (str):
+            Name of the land-sea mask cube. This must be provided if a
+            land-sea mask is provided within the list of input cubes, in
+            order to identify the land-sea mask.
 
     Returns:
         - A cube containing all the historic forecasts.
         - A cube containing all the truth data.
         - If found within the input cubes list a land-sea mask will be
           returned, else None is returned.
+        - If found within the input cubes list a list of cubes of static additional
+          predictors will be returned, else None is returned.
 
     Raises:
         ValueError:
@@ -75,30 +83,36 @@ def split_forecasts_and_truth(
             Missing truth or historical forecast in input cubes.
     """
     grouped_cubes = {}
+    land_sea_mask = []
+    static_additional_predictors = []
     for cube in cubes:
-        try:
-            cube_name = get_diagnostic_cube_name_from_probability_name(cube.name())
-        except ValueError:
-            cube_name = cube.name()
-        grouped_cubes.setdefault(cube_name, []).append(cube)
+        if land_sea_mask_name and cube.name() == land_sea_mask_name:
+            land_sea_mask.append(cube)
+        elif "time" not in [c.name() for c in cube.coords()]:
+            static_additional_predictors.append(cube)
+        else:
+            try:
+                cube_name = get_diagnostic_cube_name_from_probability_name(cube.name())
+            except ValueError:
+                cube_name = cube.name()
+            grouped_cubes.setdefault(cube_name, []).append(cube)
+    if len(land_sea_mask) == 0:
+        land_sea_mask = None
+    elif len(land_sea_mask) != 1:
+        raise IOError("Expected at most one cube for land-sea mask.")
+    else:
+        land_sea_mask = land_sea_mask[0]
+    if len(static_additional_predictors) == 0:
+        static_additional_predictors = None
     if len(grouped_cubes) == 1:
         # Only one group - all forecast/truth cubes
-        land_sea_mask = None
         diag_name = list(grouped_cubes.keys())[0]
-    elif len(grouped_cubes) == 2:
-        # Two groups - the one with exactly one cube matching a name should
-        # be the land_sea_mask, since we require more than 2 cubes in
-        # the forecast/truth group
-        grouped_cubes = OrderedDict(
-            sorted(grouped_cubes.items(), key=lambda kv: len(kv[1]))
-        )
-        # landsea name should be the key with the lowest number of cubes (1)
-        landsea_name, diag_name = list(grouped_cubes.keys())
-        land_sea_mask = grouped_cubes[landsea_name][0]
-        if len(grouped_cubes[landsea_name]) != 1:
-            raise IOError("Expected one cube for land-sea mask.")
     else:
-        raise ValueError("Must have cubes with 1 or 2 distinct names.")
+        diag_names = list(grouped_cubes.keys())
+        raise ValueError(
+            f"Only forecasts for one diagnostic can be input. The following diagnostics"
+            f" were found: {diag_names}"
+        )
 
     # split non-land_sea_mask cubes on forecast vs truth
     truth_key, truth_value = truth_attribute.split("=")
@@ -117,7 +131,7 @@ def split_forecasts_and_truth(
     truth = MergeCubes()(grouped_cubes["truth"])
     forecast = MergeCubes()(grouped_cubes["historical forecast"])
 
-    return forecast, truth, land_sea_mask
+    return forecast, truth, land_sea_mask, static_additional_predictors
 
 
 def split_forecasts_and_coeffs(

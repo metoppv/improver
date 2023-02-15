@@ -223,6 +223,8 @@ def test_land_points_only(tmp_path):
         "norm",
         "--truth-attribute",
         "mosg__model_configuration=uk_det",
+        "--land-sea-mask-name",
+        "land_binary_mask",
         "--tolerance",
         EST_EMOS_TOL,
         "--output",
@@ -233,6 +235,32 @@ def test_land_points_only(tmp_path):
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
 
+@pytest.mark.slow
+def test_using_additional_predictors(tmp_path):
+    """Test including additional predictors"""
+    kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
+    kgo_path = kgo_dir / "normal/add_pred_kgo.nc"
+    add_pred_path = kgo_dir / "landmask.nc"
+    history_path = kgo_dir / "normal/history/*.nc"
+    truth_path = kgo_dir / "normal/truth/*.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        history_path,
+        truth_path,
+        add_pred_path,
+        "--distribution",
+        "norm",
+        "--truth-attribute",
+        "mosg__model_configuration=uk_det",
+        "--tolerance",
+        EST_EMOS_TOL,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(
+        output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
+    )
 
 @pytest.mark.slow
 def test_normal_point_by_point_sites(tmp_path):

@@ -46,6 +46,7 @@ def process(
     use_default_initial_guess=False,
     units=None,
     predictor="mean",
+    land_sea_mask_name: str = None,
     tolerance: float = 0.02,
     max_iterations: int = 1000,
 ):
@@ -94,6 +95,11 @@ def process(
             location parameter when estimating the EMOS coefficients.
             Currently the ensemble mean ("mean") and the ensemble realizations
             ("realizations") are supported as options.
+        land_sea_mask_name (str):
+            Name of the land-sea mask cube. This must be provided if a
+            land-sea mask is provided within the list of input cubes, in
+            order to identify the land-sea mask. Providing the land-sea mask
+            ensures that only land points will be calibrated.
         tolerance (float):
             The tolerance for the Continuous Ranked Probability Score (CRPS)
             calculated by the minimisation. Once multiple iterations result in
@@ -119,7 +125,9 @@ def process(
         EstimateCoefficientsForEnsembleCalibration,
     )
 
-    forecast, truth, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute)
+    forecast, truth, land_sea_mask, additional_predictors = split_forecasts_and_truth(
+        cubes, truth_attribute, land_sea_mask_name
+    )
 
     plugin = EstimateCoefficientsForEnsembleCalibration(
         distribution,
@@ -130,4 +138,9 @@ def process(
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast, truth, landsea_mask=land_sea_mask)
+    return plugin(
+        forecast,
+        truth,
+        additional_fields=additional_predictors,
+        landsea_mask=land_sea_mask
+    )
