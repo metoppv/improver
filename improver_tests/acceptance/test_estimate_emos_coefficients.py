@@ -235,6 +235,7 @@ def test_land_points_only(tmp_path):
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
 
+
 @pytest.mark.slow
 def test_using_additional_predictors(tmp_path):
     """Test including additional predictors"""
@@ -261,6 +262,7 @@ def test_using_additional_predictors(tmp_path):
     acc.compare(
         output_path, kgo_path, atol=COMPARE_EMOS_TOLERANCE, rtol=COMPARE_EMOS_TOLERANCE
     )
+
 
 @pytest.mark.slow
 def test_normal_point_by_point_sites(tmp_path):

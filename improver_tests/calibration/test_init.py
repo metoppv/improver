@@ -108,9 +108,9 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         additional_predictor_1 = realization_forecast_1.copy(
             data=np.ones((4, 4), dtype=np.float32)
         )
-        for coord in ['time', 'forecast_reference_time', 'forecast_period']:
+        for coord in ["time", "forecast_reference_time", "forecast_period"]:
             additional_predictor_1.remove_coord(coord)
-        additional_predictor_1.rename('kitten_present')
+        additional_predictor_1.rename("kitten_present")
 
         self.additional_predictor = additional_predictor_1
 
@@ -121,10 +121,12 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         """Test that when multiple probability forecast cubes and truth cubes
         are provided, the groups are created as expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
             self.probability_forecasts + self.probability_truths, self.truth_attribute
         )
 
@@ -142,13 +144,15 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         a single land-sea mask are provided, the groups are created as
         expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
             self.probability_forecasts + self.probability_truths + [self.landsea_mask],
             self.truth_attribute,
-            self.landsea_mask.name()
+            self.landsea_mask.name(),
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -167,12 +171,15 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         additional predictors are provided, the groups are created as
         expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
-            self.probability_forecasts + self.probability_truths +
-            [self.additional_predictor],
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
+            self.probability_forecasts
+            + self.probability_truths
+            + [self.additional_predictor],
             self.truth_attribute,
         )
 
@@ -193,14 +200,18 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         land-sea mask, and additional predictors are provided, the groups are created as
         expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
-            self.probability_forecasts + self.probability_truths +
-            [self.additional_predictor] + [self.landsea_mask],
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
+            self.probability_forecasts
+            + self.probability_truths
+            + [self.additional_predictor]
+            + [self.landsea_mask],
             self.truth_attribute,
-            self.landsea_mask.name()
+            self.landsea_mask.name(),
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -221,10 +232,12 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         """Test that when multiple forecast cubes and truth cubes are provided,
         the groups are created as expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
             self.realization_forecasts + self.realization_truths, self.truth_attribute
         )
 
@@ -242,13 +255,15 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         a single land-sea mask are provided, the groups are created as
         expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
             self.realization_forecasts + self.realization_truths + [self.landsea_mask],
             self.truth_attribute,
-            self.landsea_mask.name()
+            self.landsea_mask.name(),
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -267,12 +282,15 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         additional predictors are provided, the groups are created as
         expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
-            self.realization_forecasts + self.realization_truths +
-            [self.additional_predictor],
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
+            self.realization_forecasts
+            + self.realization_truths
+            + [self.additional_predictor],
             self.truth_attribute,
         )
 
@@ -293,14 +311,18 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         land-sea mask, and additional predictors are provided, the groups are created as
         expected."""
 
-        (forecast,
-         truth,
-         land_sea_mask,
-         additional_predictors) = split_forecasts_and_truth(
-            self.realization_forecasts + self.realization_truths +
-            [self.additional_predictor] + [self.landsea_mask],
+        (
+            forecast,
+            truth,
+            land_sea_mask,
+            additional_predictors,
+        ) = split_forecasts_and_truth(
+            self.realization_forecasts
+            + self.realization_truths
+            + [self.additional_predictor]
+            + [self.landsea_mask],
             self.truth_attribute,
-            self.landsea_mask.name()
+            self.landsea_mask.name(),
         )
 
         self.assertIsInstance(forecast, iris.cube.Cube)
@@ -328,7 +350,7 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 + self.realization_truths
                 + [self.landsea_mask, self.landsea_mask],
                 self.truth_attribute,
-                self.landsea_mask.name()
+                self.landsea_mask.name(),
             )
 
     def test_exception_for_unintended_cube_combination(self):
@@ -344,7 +366,7 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 + self.realization_truths
                 + [self.landsea_mask],
                 self.truth_attribute,
-                self.landsea_mask.name()
+                self.landsea_mask.name(),
             )
 
     def test_exception_for_missing_truth_inputs(self):
@@ -359,7 +381,7 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 + self.realization_truths
                 + [self.landsea_mask],
                 self.truth_attribute,
-                self.landsea_mask.name()
+                self.landsea_mask.name(),
             )
 
     def test_exception_for_missing_forecast_inputs(self):
@@ -374,7 +396,7 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
                 + self.realization_truths
                 + [self.landsea_mask],
                 self.truth_attribute,
-                self.landsea_mask.name()
+                self.landsea_mask.name(),
             )
 
 

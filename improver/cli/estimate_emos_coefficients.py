@@ -142,5 +142,5 @@ def process(
         forecast,
         truth,
         additional_fields=additional_predictors,
-        landsea_mask=land_sea_mask
+        landsea_mask=land_sea_mask,
     )
