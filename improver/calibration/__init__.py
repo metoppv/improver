@@ -32,7 +32,6 @@
 and coefficient inputs.
 """
 
-from collections import OrderedDict
 from typing import Dict, List, Optional, Tuple
 
 from iris.cube import Cube, CubeList
