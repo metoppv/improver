@@ -1447,7 +1447,8 @@ class CalibratedForecastDistributionParameters(BasePlugin):
                 and diag != self.current_forecast.name()
             ):
                 msg = (
-                    f"The forecast diagnostic ({self.predictor_name_lookup.get(diag, self.current_forecast.name())}) "
+                    "The forecast diagnostic "
+                    f"({self.predictor_name_lookup.get(diag, self.current_forecast.name())}) "
                     "does not match the diagnostic used to construct the "
                     f"coefficients ({diag}). You can overcome this with --predictor-name={diag}"
                 )
