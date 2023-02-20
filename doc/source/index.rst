@@ -27,6 +27,7 @@
    metadata/Probabilities
    metadata/Statistics
    metadata/Reference
+   metadata/Working-with-Metadata
 
 .. toctree::
    :caption: The Code
