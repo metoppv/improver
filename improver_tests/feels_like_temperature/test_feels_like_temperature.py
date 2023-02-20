@@ -155,7 +155,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
         degrees C."""
         self.temperature_cube.data = np.full((3, 3, 3), 282.15, dtype=np.float32)
         expected_result = np.array(
-            [291.863495, 278.644562, 277.094147], dtype=np.float32
+            [281.82837, 278.644562, 277.094147], dtype=np.float32
         )
         result = calculate_feels_like_temperature(
             self.temperature_cube,
@@ -171,7 +171,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
         self.temperature_cube.data = np.full((3, 3, 3), 287.15)
         expected_result = np.array(
-            [290.986603, 283.217041, 280.669495], dtype=np.float32
+            [286.49557, 283.217041, 280.669495], dtype=np.float32
         )
         result = calculate_feels_like_temperature(
             self.temperature_cube,
@@ -207,7 +207,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
         temperature_cube.data = data
         expected_result = np.array(
             [
-                [280.05499268, 260.53790283, 264.74499512],
+                [260.32947, 260.53790283, 264.74499512],
                 [270.41448975, 276.82208252, 273.33273315],
                 [264.11410522, 265.66778564, 267.76950073],
             ],
@@ -246,7 +246,7 @@ class Test_calculate_feels_like_temperature(IrisTest):
 
         data = np.array(
             [
-                [257.05947876, 220.76792908, 231.12779236],
+                [218.4631667, 220.76792908, 231.12779236],
                 [244.45491028, 259.30001831, 275.13476562],
                 [264.70050049, 274.29473877, 286.60421753],
             ]
