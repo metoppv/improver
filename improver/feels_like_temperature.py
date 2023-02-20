@@ -96,7 +96,7 @@ def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
     assumption being that lower wind speeds are usually not measured or
     reported accurately anyway.
     """
-    eqn_component = (wind_speed) ** 0.16
+    eqn_component = np.clip(wind_speed, 4.824, None) ** 0.16
     wind_chill = (
         13.12
         + 0.6215 * temperature
