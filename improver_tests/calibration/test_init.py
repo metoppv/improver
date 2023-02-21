@@ -52,21 +52,16 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver_tests import ImproverTest
 
 
-class Test_split_forecasts_and_truth(unittest.TestCase):
+def create_input_cubes(forecast_type):
+    """Create cubes for testing the split_forecasts_and_truth method.
+    Forecast data is all set to 1, and truth data to 0, allowing for a
+    simple check that the cubes have been separated as expected."""
 
-    """Test the split_forecasts_and_truth method."""
+    thresholds = [283, 288]
+    truth_attributes = {"mosg__model_configuration": "uk_det"}
 
-    def setUp(self):
-        """Create cubes for testing the split_forecasts_and_truth method.
-        Forecast data is all set to 1, and truth data to 0, allowing for a
-        simple check that the cubes have been separated as expected."""
-
-        thresholds = [283, 288]
+    if forecast_type == "probability":
         probability_data = np.ones((2, 4, 4), dtype=np.float32)
-        realization_data = np.ones((4, 4), dtype=np.float32)
-
-        self.truth_attribute = "mosg__model_configuration=uk_det"
-        truth_attributes = {"mosg__model_configuration": "uk_det"}
 
         probability_forecast_1 = set_up_probability_cube(probability_data, thresholds)
         probability_forecast_2 = set_up_probability_cube(
@@ -75,7 +70,7 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
             time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0),
         )
-        self.probability_forecasts = [probability_forecast_1, probability_forecast_2]
+        forecasts = [probability_forecast_1, probability_forecast_2]
 
         probability_truth_1 = probability_forecast_1.copy(
             data=np.zeros((2, 4, 4), dtype=np.float32)
@@ -85,15 +80,17 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         )
         probability_truth_1.attributes.update(truth_attributes)
         probability_truth_2.attributes.update(truth_attributes)
-        self.probability_truths = [probability_truth_1, probability_truth_2]
+        truths = [probability_truth_1, probability_truth_2]
 
+    else:
+        realization_data = np.ones((4, 4), dtype=np.float32)
         realization_forecast_1 = set_up_variable_cube(realization_data)
         realization_forecast_2 = set_up_variable_cube(
             realization_data,
             time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0),
         )
-        self.realization_forecasts = [realization_forecast_1, realization_forecast_2]
+        forecasts = [realization_forecast_1, realization_forecast_2]
 
         realization_truth_1 = realization_forecast_1.copy(
             data=np.zeros((4, 4), dtype=np.float32)
@@ -103,241 +100,45 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
         )
         realization_truth_1.attributes.update(truth_attributes)
         realization_truth_2.attributes.update(truth_attributes)
-        self.realization_truths = [realization_truth_1, realization_truth_2]
+        truths = [realization_truth_1, realization_truth_2]
 
-        additional_predictor_1 = realization_forecast_1.copy(
-            data=np.ones((4, 4), dtype=np.float32)
+    additional_predictor = set_up_variable_cube(data=np.ones((4, 4), dtype=np.float32))
+    for coord in ["time", "forecast_reference_time", "forecast_period"]:
+        additional_predictor.remove_coord(coord)
+    additional_predictor.rename("kitten_present")
+
+    landsea_mask = additional_predictor.copy(data=np.zeros((4, 4), dtype=np.float32))
+    landsea_mask.rename("land_binary_mask")
+    return forecasts, truths, [landsea_mask], [additional_predictor]
+
+
+class Test_split_forecasts_and_truth(unittest.TestCase):
+
+    """Test the split_forecasts_and_truth method."""
+
+    def setUp(self):
+        """Create cubes for testing the split_forecasts_and_truth method.
+        Forecast data is all set to 1, and truth data to 0, allowing for a
+        simple check that the cubes have been separated as expected."""
+
+        (probability_forecasts, probability_truths, _, _) = create_input_cubes(
+            "probability"
         )
-        for coord in ["time", "forecast_reference_time", "forecast_period"]:
-            additional_predictor_1.remove_coord(coord)
-        additional_predictor_1.rename("kitten_present")
+        (
+            realization_forecasts,
+            realization_truths,
+            additional_predictor,
+            land_sea_mask,
+        ) = create_input_cubes("probability")
 
-        self.additional_predictor = additional_predictor_1
-
-        self.landsea_mask = realization_truth_1.copy()
+        self.truth_attribute = "mosg__model_configuration=uk_det"
+        self.probability_forecasts = probability_forecasts
+        self.probability_truths = probability_truths
+        self.realization_forecasts = realization_forecasts
+        self.realization_truths = realization_truths
+        self.additional_predictor = additional_predictor
+        self.landsea_mask = land_sea_mask[0]
         self.landsea_mask.rename("land_binary_mask")
-
-    def test_probability_data(self):
-        """Test that when multiple probability forecast cubes and truth cubes
-        are provided, the groups are created as expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.probability_forecasts + self.probability_truths, self.truth_attribute
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsNone(land_sea_mask, None)
-        self.assertIsNone(additional_predictors, None)
-        self.assertSequenceEqual((2, 2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-
-    def test_probability_data_with_land_sea_mask(self):
-        """Test that when multiple probability forecast cubes, truth cubes, and
-        a single land-sea mask are provided, the groups are created as
-        expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.probability_forecasts + self.probability_truths + [self.landsea_mask],
-            self.truth_attribute,
-            self.landsea_mask.name(),
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsInstance(land_sea_mask, iris.cube.Cube)
-        self.assertIsNone(additional_predictors, None)
-        self.assertEqual("land_binary_mask", land_sea_mask.name())
-        self.assertSequenceEqual((2, 2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-        self.assertSequenceEqual((4, 4), land_sea_mask.shape)
-
-    def test_probability_data_with_additional_predictors(self):
-        """Test that when multiple probability forecast cubes, truth cubes, and
-        additional predictors are provided, the groups are created as
-        expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.probability_forecasts
-            + self.probability_truths
-            + [self.additional_predictor],
-            self.truth_attribute,
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsNone(land_sea_mask, None)
-        self.assertIsInstance(additional_predictors[0], iris.cube.Cube)
-        self.assertEqual("kitten_present", additional_predictors[0].name())
-        self.assertSequenceEqual((2, 2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-        self.assertTrue(np.all(additional_predictors[0].data))
-        self.assertSequenceEqual((4, 4), additional_predictors[0].shape)
-
-    def test_probability_data_with_land_sea_mask_and_additional_predictors(self):
-        """Test that when multiple probability forecast cubes, truth cubes, a single
-        land-sea mask, and additional predictors are provided, the groups are created as
-        expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.probability_forecasts
-            + self.probability_truths
-            + [self.additional_predictor]
-            + [self.landsea_mask],
-            self.truth_attribute,
-            self.landsea_mask.name(),
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsInstance(land_sea_mask, iris.cube.Cube)
-        self.assertIsInstance(additional_predictors[0], iris.cube.Cube)
-        self.assertEqual("land_binary_mask", land_sea_mask.name())
-        self.assertEqual("kitten_present", additional_predictors[0].name())
-        self.assertSequenceEqual((2, 2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-        self.assertTrue(np.all(additional_predictors[0].data))
-        self.assertSequenceEqual((4, 4), land_sea_mask.shape)
-        self.assertSequenceEqual((4, 4), additional_predictors[0].shape)
-
-    def test_realization_data(self):
-        """Test that when multiple forecast cubes and truth cubes are provided,
-        the groups are created as expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.realization_forecasts + self.realization_truths, self.truth_attribute
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsNone(land_sea_mask, None)
-        self.assertIsNone(additional_predictors, None)
-        self.assertSequenceEqual((2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-
-    def test_realization_data_with_land_sea_mask(self):
-        """Test that when multiple forecast cubes, truth cubes, and
-        a single land-sea mask are provided, the groups are created as
-        expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.realization_forecasts + self.realization_truths + [self.landsea_mask],
-            self.truth_attribute,
-            self.landsea_mask.name(),
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsInstance(land_sea_mask, iris.cube.Cube)
-        self.assertIsNone(additional_predictors, None)
-        self.assertEqual("land_binary_mask", land_sea_mask.name())
-        self.assertSequenceEqual((2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-        self.assertSequenceEqual((4, 4), land_sea_mask.shape)
-
-    def test_realization_data_with_additional_predictors(self):
-        """Test that when multiple probability forecast cubes, truth cubes, and
-        additional predictors are provided, the groups are created as
-        expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.realization_forecasts
-            + self.realization_truths
-            + [self.additional_predictor],
-            self.truth_attribute,
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsNone(land_sea_mask, None)
-        self.assertIsInstance(additional_predictors[0], iris.cube.Cube)
-        self.assertEqual("kitten_present", additional_predictors[0].name())
-        self.assertSequenceEqual((2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-        self.assertTrue(np.all(additional_predictors[0].data))
-        self.assertSequenceEqual((4, 4), additional_predictors[0].shape)
-
-    def test_realization_data_with_land_sea_mask_and_additional_predictors(self):
-        """Test that when multiple probability forecast cubes, truth cubes, a single
-        land-sea mask, and additional predictors are provided, the groups are created as
-        expected."""
-
-        (
-            forecast,
-            truth,
-            land_sea_mask,
-            additional_predictors,
-        ) = split_forecasts_and_truth(
-            self.realization_forecasts
-            + self.realization_truths
-            + [self.additional_predictor]
-            + [self.landsea_mask],
-            self.truth_attribute,
-            self.landsea_mask.name(),
-        )
-
-        self.assertIsInstance(forecast, iris.cube.Cube)
-        self.assertIsInstance(truth, iris.cube.Cube)
-        self.assertIsInstance(land_sea_mask, iris.cube.Cube)
-        self.assertIsInstance(additional_predictors[0], iris.cube.Cube)
-        self.assertEqual("land_binary_mask", land_sea_mask.name())
-        self.assertEqual("kitten_present", additional_predictors[0].name())
-        self.assertSequenceEqual((2, 4, 4), forecast.shape)
-        self.assertSequenceEqual((2, 4, 4), truth.shape)
-        self.assertTrue(np.all(forecast.data))
-        self.assertFalse(np.any(truth.data))
-        self.assertTrue(np.all(additional_predictors[0].data))
-        self.assertSequenceEqual((4, 4), land_sea_mask.shape)
-        self.assertSequenceEqual((4, 4), additional_predictors[0].shape)
 
     def test_exception_for_multiple_land_sea_masks(self):
         """Test that when multiple land-sea masks are provided an exception is
@@ -703,6 +504,72 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
                 ),
                 self.land_sea_mask_name,
             )
+
+
+@pytest.mark.parametrize("probability_forecasts", (True, False))
+@pytest.mark.parametrize("include_land_sea_mask", (True, False))
+@pytest.mark.parametrize("include_additional_predictor", (True, False))
+def test_split_forecasts_truth(
+    probability_forecasts, include_land_sea_mask, include_additional_predictor
+):
+    """Test that when multiple probability forecast cubes and truth cubes
+    are provided, the groups are created as expected. Additionally, test that groups
+    are created as expected when forecasts are either probabilities or realizations,
+    when a landsea mask is or is not provided, and when static additional predictors
+    are or are not provided. """
+
+    truth_attribute = "mosg__model_configuration=uk_det"
+    if probability_forecasts:
+        forecast_type = "probability"
+    else:
+        forecast_type = "realization"
+    (
+        input_forecast,
+        input_truth,
+        input_land_sea_mask,
+        input_static_predictor,
+    ) = create_input_cubes(forecast_type)
+    land_sea_mask_name = input_land_sea_mask[0].name()
+
+    if not include_land_sea_mask:
+        input_land_sea_mask = []
+    if not include_additional_predictor:
+        input_static_predictor = []
+
+    (
+        forecast,
+        truth,
+        land_sea_mask,
+        additional_predictors,
+    ) = split_forecasts_and_truth(
+        input_forecast + input_truth + input_land_sea_mask + input_static_predictor,
+        truth_attribute,
+        land_sea_mask_name,
+    )
+
+    assert isinstance(forecast, iris.cube.Cube)
+    assert isinstance(truth, iris.cube.Cube)
+    assert np.all(forecast.data)
+    assert not np.any(truth.data)
+    if forecast_type == "probability":
+        assert (2, 2, 4, 4) == forecast.shape
+        assert (2, 2, 4, 4) == truth.shape
+    else:
+        assert (2, 4, 4) == forecast.shape
+        assert (2, 4, 4) == truth.shape
+    if include_land_sea_mask:
+        assert isinstance(land_sea_mask, iris.cube.Cube)
+        assert "land_binary_mask" == land_sea_mask.name()
+        assert (4, 4) == land_sea_mask.shape
+    else:
+        assert land_sea_mask is None
+    if include_additional_predictor:
+        assert isinstance(additional_predictors[0], iris.cube.Cube)
+        assert "kitten_present" == additional_predictors[0].name()
+        assert np.all(additional_predictors[0].data)
+        assert (4, 4) == additional_predictors[0].shape
+    else:
+        assert additional_predictors is None
 
 
 @pytest.mark.parametrize(

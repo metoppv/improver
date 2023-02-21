@@ -88,9 +88,7 @@ def process(
         ConstructReliabilityCalibrationTables,
     )
 
-    (forecast, truth, land_sea_mask, additional_predictors) = split_forecasts_and_truth(
-        cubes, truth_attribute
-    )
+    (forecast, truth, _, _) = split_forecasts_and_truth(cubes, truth_attribute)
 
     return ConstructReliabilityCalibrationTables(
         n_probability_bins=n_probability_bins,

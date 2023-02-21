@@ -47,8 +47,8 @@ def split_forecasts_and_truth(
 ) -> Tuple[Cube, Cube, Optional[Cube], Optional[List[Cube]]]:
     """
     A common utility for splitting the various inputs cubes required for
-    calibration CLIs. These are generally the forecast cubes, historic truths. In some
-    instances a land-sea mask and/or cubes containing static additional predictors
+    calibration CLIs. These are generally the forecast cubes and historic truths. In
+    some instances a land-sea mask and/or cubes containing static additional predictors
     can be used.
 
     Args:
@@ -56,21 +56,23 @@ def split_forecasts_and_truth(
             A list of input cubes which will be split into relevant groups.
             These include the historical forecasts, in the format supported by
             the calibration CLIs, and the truth cubes. Can optionally also contain a
-            land-sea mask cube and cubes containing additional predictors.
+            land-sea mask cube and cubes containing static additional predictors. Cubes
+            containing static additional predictors will be identified by the absence of
+            a time coordinate.
         truth_attribute:
-            An attribute and its value in the format of "attribute=value",
-            which must be present on truth cubes.
+            An attribute and its value in the format of "attribute=value", which must be
+            present on truth cubes.
         land_sea_mask_name (str):
-            Name of the land-sea mask cube. This must be provided if a
-            land-sea mask is provided within the list of input cubes, in
-            order to identify the land-sea mask.
+            Name of the land-sea mask cube. This must be provided if a land-sea mask is
+            provided within the list of input cubes, in order to identify the land-sea
+            mask.
 
     Returns:
         - A cube containing all the historic forecasts.
         - A cube containing all the truth data.
-        - If found within the input cubes list a land-sea mask will be
-          returned, else None is returned.
-        - If found within the input cubes list a list of cubes of static additional
+        - If found within the input cubes list, a land-sea mask will be returned, else
+            None is returned.
+        - If found within the input cubes list, a list of cubes of static additional
           predictors will be returned, else None is returned.
 
     Raises:
@@ -98,7 +100,11 @@ def split_forecasts_and_truth(
     if len(land_sea_mask) == 0:
         land_sea_mask = None
     elif len(land_sea_mask) != 1:
-        raise IOError("Expected at most one cube for land-sea mask.")
+        msg = (
+            "Expected at most one cube for land-sea mask. The number of land-sea "
+            "masks provided was {len(land_sea_mask)}."
+        )
+        raise IOError(msg)
     else:
         land_sea_mask = land_sea_mask[0]
     if len(static_additional_predictors) == 0:
