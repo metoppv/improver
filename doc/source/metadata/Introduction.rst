@@ -381,8 +381,8 @@ calendar
     Indicates that a Gregorian (standard) calendar is used. 
 
 bounds
-    Just a pointer to the variable defining the start and end of the time period,
-    if it is present. 
+    Pointer to the variable defining the start and end of the time period,
+    if present. 
 
 
 Horizontal coordinate variables
@@ -413,7 +413,7 @@ axis
     Cartesian coordinate.  
 
 bounds
-    Just a pointer to the variable defining the edges of the grid cells 
+    Pointer to the variable defining the edges of the grid cells 
 
 Vertical coordinate variable 
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -499,10 +499,10 @@ standard_name
     exists as a descriptive name in the `CF Standard Name`_ list. 
 
 cell_methods
-    Used to describe statistical processing applied to the quantity
-    no longer requires the additional non-standardized part, 
-    ``(comment: of air_temperature)``, 
-    as they now refer to the main variable that is a maximum temperature over 12 hours. 
+    Used to describe statistical post-processing applied to the quantity.
+    Cell methods no longer require the additional non-standardized part, 
+    ``(comment: of air_temperature)``, as they now refer to the main variable
+    that is a maximum temperature over 12 hours. 
 
 Percentile coordinate variable
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^
@@ -559,7 +559,7 @@ spot_index
     The dimension for the index for the set of sites. 
 
 string5 / string8
-    Just constants used to dimension the character length of the string variable
+    Constants used to dimension the character length of the string variable
     holding zero padded WMO identifier and Met Office identifiers, respectively.
 
 Variables
