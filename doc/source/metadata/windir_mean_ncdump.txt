@@ -1,0 +1,58 @@
+netcdf 20221228T0000Z-B20221220T0615Z-wind_direction_at_10m {
+dimensions:
+	projection_y_coordinate = 970 ;
+	projection_x_coordinate = 1042 ;
+	bnds = 2 ;
+variables:
+	float wind_from_direction(projection_y_coordinate, projection_x_coordinate) ;
+		wind_from_direction:standard_name = "wind_from_direction" ;
+		wind_from_direction:long_name = "wind_direction_adjusted_by_model_surface_scheme" ;
+		wind_from_direction:units = "degrees" ;
+		wind_from_direction:cell_methods = "realization: mean" ;
+		wind_from_direction:grid_mapping = "lambert_azimuthal_equal_area" ;
+		wind_from_direction:coordinates = "forecast_period forecast_reference_time height time" ;
+	int lambert_azimuthal_equal_area ;
+		lambert_azimuthal_equal_area:grid_mapping_name = "lambert_azimuthal_equal_area" ;
+		lambert_azimuthal_equal_area:longitude_of_prime_meridian = 0. ;
+		lambert_azimuthal_equal_area:semi_major_axis = 6378137. ;
+		lambert_azimuthal_equal_area:semi_minor_axis = 6356752.31414036 ;
+		lambert_azimuthal_equal_area:longitude_of_projection_origin = -2.5 ;
+		lambert_azimuthal_equal_area:latitude_of_projection_origin = 54.9 ;
+		lambert_azimuthal_equal_area:false_easting = 0. ;
+		lambert_azimuthal_equal_area:false_northing = 0. ;
+	float projection_y_coordinate(projection_y_coordinate) ;
+		projection_y_coordinate:axis = "Y" ;
+		projection_y_coordinate:bounds = "projection_y_coordinate_bnds" ;
+		projection_y_coordinate:units = "m" ;
+		projection_y_coordinate:standard_name = "projection_y_coordinate" ;
+	float projection_y_coordinate_bnds(projection_y_coordinate, bnds) ;
+	float projection_x_coordinate(projection_x_coordinate) ;
+		projection_x_coordinate:axis = "X" ;
+		projection_x_coordinate:bounds = "projection_x_coordinate_bnds" ;
+		projection_x_coordinate:units = "m" ;
+		projection_x_coordinate:standard_name = "projection_x_coordinate" ;
+	float projection_x_coordinate_bnds(projection_x_coordinate, bnds) ;
+	int forecast_period ;
+		forecast_period:units = "seconds" ;
+		forecast_period:standard_name = "forecast_period" ;
+	int64 forecast_reference_time ;
+		forecast_reference_time:units = "seconds since 1970-01-01 00:00:00" ;
+		forecast_reference_time:standard_name = "forecast_reference_time" ;
+		forecast_reference_time:calendar = "gregorian" ;
+	float height ;
+		height:units = "m" ;
+		height:standard_name = "height" ;
+		height:positive = "up" ;
+	int64 time ;
+		time:units = "seconds since 1970-01-01 00:00:00" ;
+		time:standard_name = "time" ;
+		time:calendar = "gregorian" ;
+
+// global attributes:
+		:history = "2022-12-20T05:59:03Z: StaGE Decoupler" ;
+		:institution = "Met Office" ;
+		:mosg__model_configuration = "gl_ens" ;
+		:source = "Met Office Unified Model" ;
+		:title = "Post-Processed MOGREPS-G Forecast on UK 2 km Standard Grid" ;
+		:Conventions = "CF-1.7" ;
+}

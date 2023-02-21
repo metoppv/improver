@@ -1,0 +1,21 @@
+probability_of_air_temperature_above_threshold / (1) (air_temperature: 79; projection_y_coordinate: 970; projection_x_coordinate: 1042)
+    Dimension coordinates:
+        air_temperature             x                            -                             -
+        projection_y_coordinate     -                            x                             -
+        projection_x_coordinate     -                            -                             x
+    Scalar coordinates:
+        blend_time                  2022-12-20 00:15:00
+        forecast_period             215100 seconds, bound=(171900, 215100) seconds
+        forecast_reference_time     2022-12-20 00:15:00
+        height                      1.5 m
+        time                        2022-12-22 12:00:00, bound=(2022-12-22 00:00:00, 2022-12-22 12:00:00)
+    Cell methods:
+        maximum                     time (of air_temperature)
+    Attributes:
+        Conventions                 'CF-1.7'
+        institution                 'Met Office'
+        least_significant_digit     3
+        mosg__model_configuration   'gl_ens uk_ens'
+        mosg__model_run             'gl_ens:20221219T0600Z:0.006\ngl_ens:20221219T1200Z:0.006\nuk_ens:2022...
+        source                      'IMPROVER'
+        title                       'IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid'

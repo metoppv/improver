@@ -19,6 +19,12 @@
    Ticket-Creation-and-Definition-of-Ready
 
 .. toctree::
+   :caption: Metadata Guide
+   :maxdepth: 1
+
+   metadata/Introduction
+
+.. toctree::
    :caption: The Code
    :maxdepth: 2
 
