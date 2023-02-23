@@ -83,7 +83,12 @@ def _calculate_wind_chill(temperature: ndarray, wind_speed: ndarray) -> ndarray:
     used as the minimum wind speed in their wind chill computer model, because
     even where wind speed is zero, a person would still experience wind chill
     from the act of walking (the model assumes that the person is walking into
-    the wind). The model introduces a compensation factor where it assumes that
+    the wind). Furthermore, the equation is not valid for very low wind speeds
+    and will return wind chill values higher than the air temperature if this
+    lower wind speed limit is not imposed. Even with this limit, the calculated
+    wind chill will be higher than the air temperature when the temperature is
+    above about 11.5C and the wind is 4.8 kph.
+    The model introduces a compensation factor where it assumes that
     the wind speed at 1.5 m (face level) is 2/3 that measured at 10 m. It also
     takes into account the thermal resistance of the skin on the human cheek
     with the assumption that the face is the most exposed area of skin
