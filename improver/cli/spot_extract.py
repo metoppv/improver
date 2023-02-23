@@ -71,7 +71,7 @@ def process(
             which they have been extracted.
         fixed_lapse_rate (float):
             If provided, use this fixed value as a lapse-rate for adjusting
-            the forecast values if apply_lapse_rate_collection is True. This
+            the forecast values if apply_lapse_rate_correction is True. This
             can be used instead of providing a lapse rate cube.
         land_constraint (bool):
             Use to select the nearest-with-land-constraint neighbour-selection
@@ -207,7 +207,7 @@ def process(
             result = plugin(result, neighbour_cube)
         elif not suppress_warnings:
             warnings.warn(
-                "A lapse rate cube  or fixed lapse rate was not provided, but the "
+                "A lapse rate cube or fixed lapse rate was not provided, but the "
                 "option to apply the lapse rate correction was enabled. No lapse rate "
                 "correction could be applied."
             )

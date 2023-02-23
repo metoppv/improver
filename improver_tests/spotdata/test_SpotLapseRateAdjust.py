@@ -313,9 +313,10 @@ class Test_process(Test_SpotLapseRateAdjust):
             self.assertArrayEqual(slice, expected)
 
     def test_using_fixed_lapse_rates(self):
-        """Test that the data is as expected when using fixed lapse rates."""
+        """Test that the data is as expected when using fixed lapse rates.
+        This includes a lapse rate of 0, which leaves the data unchanged."""
 
-        for lr in [0.5 * DALR, DALR]:
+        for lr in [0, 0.5 * DALR, DALR]:
             expected = np.array([280 + (2 * lr), 270, 280 - lr]).astype(np.float32)
             plugin = SpotLapseRateAdjust(fixed_lapse_rate=lr)
             result = plugin(self.spot_temperature_nearest, self.neighbour_cube)

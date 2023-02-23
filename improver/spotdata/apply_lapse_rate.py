@@ -70,6 +70,11 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
 
                 The method available in a neighbour cube will depend on the
                 options that were specified when it was created.
+
+            fixed_lapse_rate:
+                A float value that is the lapse rate to apply to all sites.
+                This can be used instead of providing a gridded lapse rate
+                cube.
         """
         self.neighbour_selection_method = neighbour_selection_method
         self.fixed_lapse_rate = fixed_lapse_rate
@@ -221,7 +226,9 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
 
         # Apply lapse rate adjustment to the temperature at each site.
         if use_fixed_lr:
-            lapse_rate_values = np.full(spot_data_cube.shape, self.fixed_lapse_rate)
+            lapse_rate_values = np.full(
+                spot_data_cube.shape, self.fixed_lapse_rate, dtype=np.float32
+            )
         else:
             lapse_rate_values = iris.util.broadcast_to_shape(
                 spot_lapse_rate.data, spot_data_cube.shape, [-1]
