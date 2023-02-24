@@ -117,6 +117,29 @@ def test_lapse_adjusting_multiple_percentile_input(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_fixed_lapse_rate_adjusting(tmp_path):
+    """Test adjusting multiple percentiles from multiple percentile input
+    using a fixed lapse rate."""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    diag_path = kgo_dir / "inputs/enukx_temperature_percentiles.nc"
+    kgo_path = kgo_dir / "outputs/fixed_lapse_rate_adjusted_multiple_percentile_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        diag_path,
+        neighbour_path,
+        "--output",
+        output_path,
+        "--apply-lapse-rate-correction",
+        "--fixed-lapse-rate",
+        "-6E-3",
+        "--new-title",
+        UK_SPOT_TITLE,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_global_extract_on_uk_grid(tmp_path):
     """Test attempting to extract global sites from a UK-only grid"""
     kgo_dir = acc.kgo_root() / "spot-extract"
@@ -499,7 +522,8 @@ def test_no_lapse_rate_data(tmp_path):
         "--new-title",
         UK_SPOT_TITLE,
     ]
-    with pytest.warns(UserWarning, match=".*lapse rate.*"):
+    msg = "A lapse rate cube or fixed lapse rate was not provided"
+    with pytest.warns(UserWarning, match=msg):
         run_cli(args)
 
 

@@ -312,6 +312,16 @@ class Test_process(Test_SpotLapseRateAdjust):
         for slice in result.data:
             self.assertArrayEqual(slice, expected)
 
+    def test_using_fixed_lapse_rates(self):
+        """Test that the data is as expected when using fixed lapse rates.
+        This includes a lapse rate of 0, which leaves the data unchanged."""
+
+        for lr in [0, 0.5 * DALR, DALR]:
+            expected = np.array([280 + (2 * lr), 270, 280 - lr]).astype(np.float32)
+            plugin = SpotLapseRateAdjust(fixed_lapse_rate=lr)
+            result = plugin(self.spot_temperature_nearest, self.neighbour_cube)
+            self.assertArrayEqual(result.data, expected)
+
     def test_diagnostic_name(self):
         """Test that appropriate error is raised when the input cube has a
         diagnostic name that is not air temperature or feels like temperature."""
@@ -379,6 +389,34 @@ class Test_process(Test_SpotLapseRateAdjust):
             plugin(
                 self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
             )
+
+    def test_two_lapse_rate_sources(self):
+        """Test that an appropriate error is raised when both a gridded and
+        fixed lapse rate are provided."""
+
+        plugin = SpotLapseRateAdjust(fixed_lapse_rate=-6e-3)
+        msg = (
+            "Both a lapse rate cube and a fixed lapse rate have been provided. "
+            "Provide only one source of lapse rate information."
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(
+                self.spot_temperature_nearest, self.neighbour_cube, self.lapse_rate_cube
+            )
+
+    def test_no_lapse_rate_sources(self):
+        """Test that an appropriate error is raised when no lapse rate source
+        is provided."""
+
+        plugin = SpotLapseRateAdjust()
+        msg = (
+            "No lapse rate cube has been provided, and no fixed lapse rate "
+            "has been set. Provide one or other."
+        )
+
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(self.spot_temperature_nearest, self.neighbour_cube)
 
 
 if __name__ == "__main__":
