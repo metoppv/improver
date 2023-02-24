@@ -74,7 +74,9 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
             fixed_lapse_rate:
                 A float value that is the lapse rate to apply to all sites.
                 This can be used instead of providing a gridded lapse rate
-                cube.
+                cube. Value is given in Kelvin / metre of temperature change
+                with ascent. For example a dry adiabatic lapse rate would be
+                given as -0.0098.
         """
         self.neighbour_selection_method = neighbour_selection_method
         self.fixed_lapse_rate = fixed_lapse_rate

@@ -38,7 +38,7 @@ from improver import cli
 @cli.with_output
 def process(
     *cubes: cli.inputcube,
-    apply_lapse_rate_correction=False,
+    apply_lapse_rate_correction: bool = False,
     fixed_lapse_rate: float = None,
     land_constraint: bool = False,
     similar_altitude: bool = False,
@@ -72,7 +72,9 @@ def process(
         fixed_lapse_rate (float):
             If provided, use this fixed value as a lapse-rate for adjusting
             the forecast values if apply_lapse_rate_correction is True. This
-            can be used instead of providing a lapse rate cube.
+            can be used instead of providing a lapse rate cube. Value is
+            given in Kelvin / metre of temperature change with ascent. For
+            example a dry adiabatic lapse rate would be given as -0.0098.
         land_constraint (bool):
             Use to select the nearest-with-land-constraint neighbour-selection
             method from the neighbour_cube. This means that the grid points

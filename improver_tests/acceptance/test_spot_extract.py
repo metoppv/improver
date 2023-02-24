@@ -522,7 +522,7 @@ def test_no_lapse_rate_data(tmp_path):
         "--new-title",
         UK_SPOT_TITLE,
     ]
-    msg = "A lapse rate cube  or fixed lapse rate was not provided"
+    msg = "A lapse rate cube or fixed lapse rate was not provided"
     with pytest.warns(UserWarning, match=msg):
         run_cli(args)
 

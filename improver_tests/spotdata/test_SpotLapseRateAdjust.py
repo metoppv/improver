@@ -392,7 +392,7 @@ class Test_process(Test_SpotLapseRateAdjust):
 
     def test_two_lapse_rate_sources(self):
         """Test that an appropriate error is raised when both a gridded and
-        fixed lape rate are provided."""
+        fixed lapse rate are provided."""
 
         plugin = SpotLapseRateAdjust(fixed_lapse_rate=-6e-3)
         msg = (
