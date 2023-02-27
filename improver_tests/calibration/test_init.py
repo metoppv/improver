@@ -37,7 +37,7 @@ from typing import List, Tuple
 import iris
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import CubeList
 
 from improver.calibration import (
     add_warning_comment,
