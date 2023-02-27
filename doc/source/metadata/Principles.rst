@@ -49,16 +49,16 @@ which can complicate its main purpose.
 Clear purpose
 -------------
 
-Metadata should not be present, if it does not have a purpose
-(e.g. it should be included just because it might be useful in future), as,
-if no one is using it, it is unlikely to be properly maintained.
+Metadata should only be present, if it has a purpose. It should not
+be included just because it might be useful in future, as if no one is
+using it, it is unlikely to be properly maintained.
 
 There should be just enough metadata to describe the data sufficiently.
 
 Nothing misleading or unnecessarily restrictive
 -----------------------------------------------
 
-Metadata that misleading, or simply wrong, should not be present.
+Metadata that is misleading, or simply wrong, should not be present.
 
 Also, metadata that restricts wider use should be avoided, if possible.
 
@@ -73,13 +73,13 @@ and the post-processing applied
 (the 'where' metadata described in the earlier note).
 
 One approach to help support this that has been partially adopted within
-IMPROVER is the use of such as name-spacing for new (non-CF) attributes.
+IMPROVER is the use of name-spacing for new (non-CF) attributes.
 This has two purposes:
 
  * It clearly separates the attribute from CF standard attributes,
    identifying it as belonging to a separate metadata convention.
- * It provides the potential this to be 'resolved' to a definition
-   held in an external registry in the future
+ * It provides the potential for this attribute to be 'resolved' to a
+   definition held in an external registry in the future
 
 Namespacing is implemented using a double underscore to maintain CF conformance
 whilst clearly identifying the namespace part of the attribute name.
@@ -105,7 +105,7 @@ the level of their contribution.
  
 At present, IMPROVER does not provide explicit references to external metadata.
 Earlier, in the development process,the use of NetCDF Linked Data was explored
-(see note below), but the method of implementation a the time created issues
+(see note below), but the method of implementation at the time created issues
 that outweighed the benefits.
 The intent is to revisit ways of referencing external metadata in the future.
 
@@ -128,7 +128,7 @@ Practical considerations
 
 IMPROVER code is usually implemented in a series of processing chains,
 so it makes sense to consider the metadata in this context. 
-From a post-processing perspective, a helpful to divide the metadata 
+From a post-processing perspective, it is helpful to divide the metadata 
 into three different types:
 
 1. Low-level, specific to a particular plug-in (Open Source)
@@ -147,7 +147,7 @@ Metadata is set, updated or removed at three stages in a post-processing chain:
     (delete, set)
 
 The general approach proposed is to be conservative with metadata;
-remove attributed on the source data that do not serve a purpose for the
+remove attributes on the source data that do not serve a purpose for the
 post-processed data.
 In particular, processing stage 1, will remove or transform most
 organisation-specific metadata, to ensure that the metadata does
@@ -167,7 +167,7 @@ For this reason, only 6 global attributes are expected
 Organisation-specific metadata may be added in at the end of the processing chain.
 
 Low-level metadata will usually only be transitory,
-required for certain processing steps, but out exposed in the final output.
+required for certain processing steps, but not exposed in the final output.
 
 Centralised metadata is key to the use of the final output,
 providing the required information to understand and exploit the data.
