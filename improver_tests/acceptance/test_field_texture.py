@@ -61,7 +61,7 @@ def test_args(tmp_path):
 
     kgo_dir = acc.kgo_root() / "field-texture/args"
     kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
+    input_path = kgo_dir / "../basic/input.nc"
     output_path = tmp_path / "output.nc"
 
     args = [
