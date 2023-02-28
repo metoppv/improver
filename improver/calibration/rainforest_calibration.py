@@ -39,7 +39,7 @@
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Optional, Tuple
+from typing import Callable, Optional, Tuple
 
 import cf_units as unit
 import numpy as np
@@ -61,6 +61,10 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
+import os
+import datetime as dt
+from improver.utilities.save import save_netcdf
+from improver.calibration.utilities import inv_log_transform
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
@@ -75,12 +79,14 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     to lightGBM if requirements are missing.
     """
 
-    def __new__(cls, model_config_dict: dict, threads: int = 1):
+    def __new__(cls, model_config_dict: dict, transform: Callable, threads: int = 1):
         """Initialise class object based on package and model file availability.
 
         Args:
             model_config_dict:
                 Dictionary containing Rainforests model configuration variables.
+            transform:
+                Transform to apply before returning output.
             threads:
                 Number of threads to use during prediction with tree-model objects.
 
@@ -139,7 +145,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     "Path to lightgbm model missing for one or more error thresholds "
                     "in model_config_dict."
                 )
-
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def process(self) -> None:
@@ -166,13 +171,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def __init__(self, model_config_dict: dict, threads: int = 1):
+    def __init__(self, model_config_dict: dict, transform: Callable, threads: int = 1):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. LightGBM Boosters are used for tree model predictors.
 
         Args:
             model_config_dict:
                 Dictionary containing Rainforests model configuration variables.
+            transform:
+                Transform to apply before returning output.
             threads:
                 Number of threads to use during prediction with tree-model objects.
 
@@ -213,6 +220,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             Booster(model_file=str(file)).reset_parameter({"num_threads": threads})
             for file in lightgbm_model_filenames
         ]
+        self.transform = transform
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
@@ -434,19 +442,20 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
-            if threshold >= 0:
-                # In this case, for all values of forecast we have
-                # forecast + threshold >= forecast >= lower_bound_in_fcst_units
-                prediction = model.predict(input_dataset)
-            else:
-                # In this case, we have error > threshold if and only if
-                # observations > forecast + threshold, which has probability 1
-                # if forecast + threshold < lower_bound_in_fcst_units
-                prediction = np.ones(input_data.shape[0], dtype=np.float32)
-                forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
-                if np.any(forecast_bool):
-                    input_subset = self.model_input_converter(input_data[forecast_bool])
-                    prediction[forecast_bool] = model.predict(input_subset)
+            prediction = model.predict(input_dataset)
+            # if threshold >= 0:
+            #     # In this case, for all values of forecast we have
+            #     # forecast + threshold >= forecast >= lower_bound_in_fcst_units
+            #     prediction = model.predict(input_dataset)
+            # else:
+            #     # In this case, we have error > threshold if and only if
+            #     # observations > forecast + threshold, which has probability 1
+            #     # if forecast + threshold < lower_bound_in_fcst_units
+            #     prediction = np.ones(input_data.shape[0], dtype=np.float32)
+            #     forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
+            #     if np.any(forecast_bool):
+            #         input_subset = self.model_input_converter(input_data[forecast_bool])
+            #         prediction[forecast_bool] = model.predict(input_subset)
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
             )
@@ -565,7 +574,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # RAINFALL SPECIFIC IMPLEMENTATION:
         # As described above, we need to address value outside of expected bounds.
         # In the case of rainfall, we map all negative values to 0.
-        forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
+        #forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
         # Return cube containing forecast subensembles
         return create_new_diagnostic_cube(
             name=forecast_cube.name(),
@@ -685,6 +694,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         feature_cubes: CubeList,
         error_percentiles_count: int = DEFAULT_ERROR_PERCENTILES_COUNT,
         output_realizations_count: int = DEFAULT_OUTPUT_REALIZATIONS_COUNT,
+        transform: Callable = None,
     ) -> Cube:
         """Apply rainforests calibration to forecast cube.
 
@@ -726,6 +736,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 The number of ensemble realizations that will be extracted from the
                 super-ensemble. If realizations_count is None, all realizations will
                 be returned.
+            transform:
+                Transformation to apply to output
 
         Returns:
             The calibrated forecast cube.
@@ -763,6 +775,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             forecast_subensembles, output_realizations_count
         )
 
+        # Apply transform on output
+        if self.transform:
+            calibrated_output.data = self.transform(calibrated_output.data)
+
         return calibrated_output
 
 
@@ -770,7 +786,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     """Class to calibrate input forecast given via RainForests approach using treelite
     compiled tree models"""
 
-    def __new__(cls, model_config_dict: dict, threads: int = 1):
+    def __new__(cls, model_config_dict: dict, transform: Callable, threads: int = 1):
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
         # is available.
@@ -787,13 +803,15 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def __init__(self, model_config_dict: dict, threads: int = 1):
+    def __init__(self, model_config_dict: dict, transform: Callable, threads: int = 1):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. Treelite Predictors are used for tree model predictors.
 
         Args:
             model_config_dict:
                 Dictionary containing Rainforests model configuration variables.
+            transform:
+                Transform to apply before returning output.
             threads:
                 Number of threads to use during prediction with tree-model objects.
 
@@ -834,6 +852,8 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             Predictor(libpath=str(file), verbose=False, nthread=threads)
             for file in treelite_model_filenames
         ]
+        self.transform = transform
+
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
