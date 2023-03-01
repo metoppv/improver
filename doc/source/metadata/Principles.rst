@@ -16,17 +16,17 @@ Conformance to the CF Metadata Conventions
 
 As far as possible the use of metadata within IMPROVER should conform to the
 `CF Metadata Conventions`_ (CF),
-but recognising the need to extend this in some areas.
+whilst recognising the need to extend this in some areas.
 
 However, whilst CF does a good job with 'where' and 'what' metadata
 (see note below), it does not really cover 'who' metadata.
 Therefore, it is helpful to keep CF (and direct extensions to this)
-focussed on these aspects and not try to stretch it to cover 'who'.
+focused on these aspects and not try to stretch it to cover 'who'.
 
 An example is CF cell methods, which are intended to cover 'what'
 (i.e. to ensure that data can be correctly interpreted) 
 but can unwittingly be extended into 'who'
-(e.g. to try to describe the post-processing that have been applied), 
+(e.g. to try to describe the post-processing that has been applied), 
 which can complicate its main purpose. 
 
 .. note::
@@ -83,7 +83,7 @@ This has two purposes:
 
 Namespacing is implemented using a double underscore to maintain CF conformance
 whilst clearly identifying the namespace part of the attribute name.
-For example, the "ssp" is used as statistical post-processing namespace,
+For example, "ssp" is used to denote the statistical post-processing namespace,
 with the attributes in this namespace prefixed by ``spp__``.
 At present this is only used for a single attribute ``ssp__relative_to_threshold``,
 which takes one of the four values:
@@ -94,8 +94,8 @@ which takes one of the four values:
     * ``less_than_or_equal_to`` 
 
 The other namespace used is "mosg", which is used to indicate
-a Met Office standard grid attribute,
-which despite the name can, and should, generally be used.
+a Met Office standard grid attribute.
+Despite the name this can, and generally should, be used.
 At present this is used for two attributes:
 ``mosg__model_configuration``, which identifies the 
 sources that have contributed to the blend, and
