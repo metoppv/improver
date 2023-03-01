@@ -68,11 +68,14 @@ def test_nearest_land(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
+    search_radius = "500000" if model == "global" else "10000"
     args = [
         orography_path,
         landmask_path,
         sites_path,
         "--land-constraint",
+        "--search-radius",
+        search_radius,
         "--output",
         output_path,
     ]
@@ -90,13 +93,14 @@ def test_nearest_minimum_dz(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
+    search_radius = "500000" if model == "global" else "50000"
     args = [
         orography_path,
         landmask_path,
         sites_path,
         "--similar-altitude",
         "--search-radius",
-        "50000",
+        search_radius,
         "--output",
         output_path,
     ]
@@ -114,6 +118,7 @@ def test_nearest_land_minimum_dz(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
+    search_radius = "500000" if model == "global" else "50000"
     args = [
         orography_path,
         landmask_path,
@@ -121,7 +126,7 @@ def test_nearest_land_minimum_dz(tmp_path, domain, model):
         "--land-constraint",
         "--similar-altitude",
         "--search-radius",
-        "50000",
+        search_radius,
         "--output",
         output_path,
     ]
@@ -141,11 +146,14 @@ def test_all_methods(tmp_path, domain, model):
     orography_path = kgo_dir / f"inputs/{model}_orography.nc"
     landmask_path = kgo_dir / f"inputs/{model}_landmask.nc"
     output_path = tmp_path / "output.nc"
+    search_radius = "500000" if model == "global" else "10000"
     args = [
         orography_path,
         landmask_path,
         sites_path,
         "--all-methods",
+        "--search-radius",
+        search_radius,
         "--output",
         output_path,
     ]
@@ -182,6 +190,8 @@ def test_alternative_coordinate_system(tmp_path):
         "projection_x_coordinate",
         "--site-y-coordinate",
         "projection_y_coordinate",
+        "--search-radius",
+        "500000",
         "--output",
         output_path,
     ]
