@@ -23,6 +23,7 @@
    :maxdepth: 1
 
    metadata/Introduction
+   metadata/Principles
 
 .. toctree::
    :caption: The Code
