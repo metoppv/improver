@@ -10,9 +10,10 @@ Context
 -------
 
 As IMPROVER is inherently probabalistic,
-it seemed appropriate to have a section specifically to focussed this area.
-This also looks at the use of `CF Metadata Conventions`_ cell methods
-which are also heavily used within IMPROVER.
+it seems appropriate to have a section specifically focussed
+on the represntation of probabalistic information in the metadata.
+This section also looks at the use of the `CF Metadata Conventions`_ 
+cell methods which are also heavily used within IMPROVER.
 
 
 Representation of probabilistic information
@@ -37,7 +38,7 @@ Ensemble members
 
 This is the simplest form, as it is a natural extension to deterministic data,
 incorporating a number of realizations (or versions of the forecast). 
-As such its representation can be accommodated through the inclusion
+As such, its representation can be accommodated through the inclusion
 of an additional coordinate variable. 
 
 For ensemble member data, the following must be present:
@@ -70,7 +71,7 @@ which runs every hour to generate a 3-member ensemble:
 Percentiles
 ***********
 
-This is probably the second simplest form,
+This is probably the second most strightforward form,
 as again it still represents actual sets of values of the diagnostic,
 but instead of a set of realizations (consistent over time),
 the set of percentile values represent the values at a set of probability levels.
@@ -114,12 +115,13 @@ the set of probability thresholds.
 
 For probability data, the following must be present:
 
-* Dimension “threshold”
-* Coordinate variable “threshold”, with:
+* Dimension ``threshold``
+* Coordinate variable ``threshold``, with:
 
-  * Units appropriate to the original diagnostic (``V``, see below) 
-  * Standard_name or long_name (as appropriate) set to that of the original diagnostic
-    (``V`` in the section below) 
+  * Units appropriate to the original diagnostic
+    (indicated vy ``V`` in the following text) 
+  * Standard_name or long_name (as appropriate) set to that of 
+    the original diagnostic (``V`` in this text) 
 
 * Main variable, with:
 
@@ -129,7 +131,7 @@ For probability data, the following must be present:
     * ``probability_of_V_above_threshold``
     * ``probability_of_V_below_threshold``
 
-    where ``V”`` was the standard or long name of the original variable
+    where ``V`` is the standard or long name of the original variable
 
 * A new non-CF attribute ``spp__relative_to_threshold`` 
     which is used to indicate the nature of the threshold inequality,
@@ -166,39 +168,42 @@ Cell methods
 Background
 **********
 
-`CF Metadata Conventions`_ provides the attribute cell_methods,
-which can be used to describe the characteristic of a field that is represented
-by cell values, where a simple statistical method has been apply to a variable.
+`CF Metadata Conventions`_ provide the attribute ``cell_methods``
+which can be used to describe the application of simple statistical
+processing to a variable
+(e.g. a maximum of the temperature over a period of time).
 This is represented as a string attribute comprising
 a list of blank-separated words of the form ``name: method``. 
-Each ``name: method`` pair indicates that for an axis identified by name,
-the cell values representing the field have been determined
-or derived by the specified method.
+Each ``name: method`` pair indicates that for an axis identified by ``name``,
+the values representing the variable have been determined
+or derived by the specified ``method``.
 
 name
     Can be a dimension of the variable, a scalar coordinate variable,
-    a valid `CF Standard Name`_, or the word "area". 
+    a valid `CF Standard Name`_, or the word ``area``. 
 
 method
     Should be selected from a list:
-    point,
-    maximum,
-    maximum_absolute_value,
-    median,
-    mid_range,
-    minimum,
-    minimum_absolute_value,
-    mean, mean_absolute_value,
-    mean_of_upper_decile,
-    mode, 
-    range,
-    root_mean_square,
-    standard_derivation,
-    sum, sum_of_squares,
-    variance.  
+    ``point``,
+    ``maximum``,
+    ``maximum_absolute_value``,
+    ``median``,
+    ``mid_range``,
+    ``minimum``,
+    ``minimum_absolute_value``,
+    ``mean, mean_absolute_value``,
+    ``mean_of_upper_decile``,
+    ``mode``,
+    ``range``,
+    ``root_mean_square``,
+    ``standard_derivation``,
+    ``sum, sum_of_squares``,
+    ``variance``.
 
 If any method other than ``point`` is specified for a given axis,
 then bounds should also be provided for that axis.
+(``point`` is essentially no statistical processing applied on that axis,
+and is unusally omitted, but could be included if it improver clarity.)
 For example, a one-dimensional array of maximum air temperatures,
 could be represented as:
 
@@ -250,61 +255,62 @@ For example:
         
     air_temperature: cell_methods = "time: mean (time-weighted)" ;
  
-Cell methods can be used to describe the characteristic of a field
-that is represented by cell values,
-where a simple statistical method has been apply to a variable.
-However, this leads to an issue,
-in that there is a decision to be taken over whether a statistical process
-that has been applied is significant for, or of relevance to, the end user,
-which is likely to depend on who that user is. 
-Two extreme examples of how the cell methods might be presented for the same diagnostic,
-in this case a maximum temperature in a period:
+Cell methods can be used to describe any simple statistical method
+that has been apply to a variable.
+However, this leads to the question over over whether a statistical process
+that has been applied is significant for, or of relevance to, the end user?
+This is likely to depend on exactly who that user is
+and what they need to know about the data.
+Two extreme examples of how the cell methods might be presented
+for the same varaible (in this case a maximum temperature in a period)
+are shown below:
 
-1. Simple version, just describing the diagnostic;
-   note that without the cell_methods,
-   this is a different diagnostic, an instantaneous temperature:
+1. Simple version, just describing the information required to correctly
+   interpret the variable; note that without the ``cell_methods``,
+   this would be a different variable, an instantaneous temperature:
 
 .. code-block:: python
 
-    air_temperature:cell_methods = "time: mean (time-weighted)"
+    air_temperature:cell_methods = "time: mean"
 
 2. Complex version, including a whole chain of processes that have been applied
-   to the diagnostic:
+   to the variable:
 
 .. code-block:: python
 
     air_temperature:cell_methods = "time: maximum realization: mean area: mean (neighbourhood: square topographic) forecast_reference_time: mean (time-weighted) area: mean (recursive-filter) model: mean (model-weighted)" ;
 
-The issue with the complex version is that the ``“time: maximum”`` 
-is required by any user to correctly interpret and use the diagnostic,
-whereas the other processing steps tell you more about how it was generated
-than how should be interpreted, and, to some extent,
-are acting as a substitute for provenance metadata,
-and these can obscure the essential statistical information,
-making it harder to understand what the diagnostic actually represents.
-
-.. add cross-reference to the Principles section to cover
-   different types of metadata
+The issue with the complex version is that only the ``time: maximum`` 
+is required by any user to correctly interpret and use the variable.
+The other processing steps tell you more about how it was generated
+and are really acting as a substitute for provenance metadata.
+This can obscure the essential statistical information,
+making it harder to understand what the varaible actually represents.
 
 Use of cell methods in IMPROVER
 *******************************
 
-IMPROVER should only use cell methods to represent the 'what' metadata of the variable,
+IMPROVER should only use cell methods to represent the **what** metadata
+of the variable,
 i.e. information that is required to correctly interpret the variable.
+See the section on :ref:`principles-CF-conformance-label` 
+in :ref:`principles-label`.
 
 The use of the ``interval`` within the extra information in cell methods
-is not helpful within IMPROVER, as it can be confusing, and so should be omitted
+is unhelpful and potentially confusing within IMPROVER
+and should be omitted.
 
 Examples of valid uses of cell methods would be:
 
-* Maximum, minimum and mean value over time, 
-  using a cell methods statement of the form (note that there is no ``interval``):
+* Maximum, minimum and mean values over time, 
+  using a cell methods statement of the form
+  (note that there is no ``interval``):
 
 .. code-block:: python
 
     air_temperature:cell_methods = "time: maximum" ;
 
-* Value within a vicinity, with cell methods using a maximum or minimum, 
+* Value within a vicinity, with cell methods using a maximum or minimum,
   and taking the form:
 
 .. code-block:: python
