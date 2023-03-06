@@ -513,7 +513,7 @@ def test_percentile_from_threshold_with_realizations(tmp_path):
     need collapsing first"""
     kgo_dir = acc.kgo_root() / "spot-extract"
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
-    diag_path = kgo_dir / "inputs/enukx_preciprate_realizations_thresholds.nc"
+    diag_path = kgo_dir / "inputs/enukx_precipacc_realizations_thresholds.nc"
     kgo_path = kgo_dir / "outputs/with_realization_collapse.nc"
     output_path = tmp_path / "output.nc"
     args = [
