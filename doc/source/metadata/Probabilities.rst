@@ -271,7 +271,7 @@ are shown below:
 
 .. code-block:: python
 
-    air_temperature:cell_methods = "time: mean"
+    air_temperature:cell_methods = "time: maximum"
 
 2. Complex version, including a whole chain of processes that have been applied
    to the variable:
@@ -300,25 +300,33 @@ The use of the ``interval`` within the extra information in cell methods
 is unhelpful and potentially confusing within IMPROVER
 and should be omitted.
 
-Examples of valid uses of cell methods would be:
+There are two main ways in which cell methods is used
+within IMPROVER at present:
 
-* Maximum, minimum and mean values over time, 
-  using a cell methods statement of the form
-  (note that there is no ``interval``):
-
-.. code-block:: python
-
-    air_temperature:cell_methods = "time: maximum" ;
-
-* Value within a vicinity, with cell methods using a maximum or minimum,
-  and taking the form:
+1. Maximum, minimum and sum methods applied to time for percentile values,
+   using a cell methods statement of the form below:
 
 .. code-block:: python
 
-    air_temperature:cell_methods = "area: maximum(vicinity: radius=50km)" ;
+	float air_temperature(percentile) ;
+		air_temperature:standard_name = "air_temperature" ;
+		air_temperature:units = "K" ;
+        air_temperature:cell_methods = "time: maximum" ;
 
-.. need to check the example above is correct - better, replace with actual code
-   and add further examples of IMPROVER-specific usage
+2. Maximum, minimum and sum methods applied to time for probability values,
+   using a cell methods statement of the form below;
+   note that for the probablitie valuee, there is a non-standard comment
+   to highlight that the statistical processing is over the base variable
+   rather than the probability.
+
+.. code-block:: python
+
+    float probability_of_air_temperature_above_threshold(threshold) ;
+        probability_of_air_temperature_above_threshold:long_name = "probability_of_air_temperature_above_threshold" ;
+        probability_of_air_temperature_above_threshold:units = "1" ;
+        probability_of_air_temperature_above_threshold:cell_methods = "time: maximum (comment: of air_temperature)" ;
+
+
 
 
 References
