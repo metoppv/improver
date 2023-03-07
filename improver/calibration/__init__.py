@@ -56,9 +56,10 @@ def split_forecasts_and_truth(
             A list of input cubes which will be split into relevant groups.
             These include the historical forecasts, in the format supported by
             the calibration CLIs, and the truth cubes. Can optionally also contain a
-            land-sea mask cube and cubes containing static additional predictors. Cubes
-            containing static additional predictors will be identified by the absence of
-            a time coordinate.
+            land-sea mask cube and cubes containing static additional predictors. The
+            land-sea mask cube must have a unique name, which must be specified in the
+            land_sea_mask_name input. Cubes containing static additional predictors will
+            be identified by the absence of a time coordinate.
         truth_attribute:
             An attribute and its value in the format of "attribute=value", which must be
             present on truth cubes.
@@ -101,8 +102,8 @@ def split_forecasts_and_truth(
         land_sea_mask = None
     elif len(land_sea_mask) != 1:
         msg = (
-            "Expected at most one cube for land-sea mask. The number of land-sea "
-            "masks provided was {len(land_sea_mask)}."
+            f"Expected at most one cube for land-sea mask. The number of land-sea "
+            f"masks provided was {len(land_sea_mask)}."
         )
         raise IOError(msg)
     else:

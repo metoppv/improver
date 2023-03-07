@@ -367,46 +367,30 @@ def create_input_cubes(forecast_type: str) -> Tuple[List, List, List, List]:
     truth_attributes = {"mosg__model_configuration": "uk_det"}
 
     if forecast_type == "probability":
-        probability_data = np.ones((2, 4, 4), dtype=np.float32)
-
-        probability_forecast_1 = set_up_probability_cube(probability_data, thresholds)
-        probability_forecast_2 = set_up_probability_cube(
-            probability_data,
+        shape = (2, 4, 4)
+        data = np.ones(shape, dtype=np.float32)
+        forecast_1 = set_up_probability_cube(data, thresholds)
+        forecast_2 = set_up_probability_cube(
+            data,
             thresholds,
             time=datetime(2017, 11, 11, 4, 0),
             frt=datetime(2017, 11, 11, 0, 0),
         )
-        forecasts = [probability_forecast_1, probability_forecast_2]
-
-        probability_truth_1 = probability_forecast_1.copy(
-            data=np.zeros((2, 4, 4), dtype=np.float32)
-        )
-        probability_truth_2 = probability_forecast_2.copy(
-            data=np.zeros((2, 4, 4), dtype=np.float32)
-        )
-        probability_truth_1.attributes.update(truth_attributes)
-        probability_truth_2.attributes.update(truth_attributes)
-        truths = [probability_truth_1, probability_truth_2]
-
     else:
-        realization_data = np.ones((4, 4), dtype=np.float32)
-        realization_forecast_1 = set_up_variable_cube(realization_data)
-        realization_forecast_2 = set_up_variable_cube(
-            realization_data,
-            time=datetime(2017, 11, 11, 4, 0),
-            frt=datetime(2017, 11, 11, 0, 0),
+        shape = (4, 4)
+        data = np.ones(shape, dtype=np.float32)
+        forecast_1 = set_up_variable_cube(data)
+        forecast_2 = set_up_variable_cube(
+            data, time=datetime(2017, 11, 11, 4, 0), frt=datetime(2017, 11, 11, 0, 0),
         )
-        forecasts = [realization_forecast_1, realization_forecast_2]
 
-        realization_truth_1 = realization_forecast_1.copy(
-            data=np.zeros((4, 4), dtype=np.float32)
-        )
-        realization_truth_2 = realization_forecast_2.copy(
-            data=np.zeros((4, 4), dtype=np.float32)
-        )
-        realization_truth_1.attributes.update(truth_attributes)
-        realization_truth_2.attributes.update(truth_attributes)
-        truths = [realization_truth_1, realization_truth_2]
+    forecasts = [forecast_1, forecast_2]
+
+    truth_1 = forecast_1.copy(data=np.zeros(shape, dtype=np.float32))
+    truth_2 = forecast_2.copy(data=np.zeros(shape, dtype=np.float32))
+    truth_1.attributes.update(truth_attributes)
+    truth_2.attributes.update(truth_attributes)
+    truths = [truth_1, truth_2]
 
     additional_predictor_1 = set_up_variable_cube(
         data=np.ones((4, 4), dtype=np.float32)
@@ -432,11 +416,11 @@ def cubes_for_exceptions() -> Tuple[List, List, List, str]:
     return realization_forecasts, realization_truths, land_sea_mask, truth_attribute
 
 
-@pytest.mark.parametrize("probability_forecasts", (True, False))
+@pytest.mark.parametrize("forecast_type", ("probability", "realization"))
 @pytest.mark.parametrize("include_land_sea_mask", (True, False))
 @pytest.mark.parametrize("n_additional_predictors", (0, 1, 2))
 def test_split_forecasts_truth(
-    probability_forecasts, include_land_sea_mask, n_additional_predictors
+    forecast_type, include_land_sea_mask, n_additional_predictors
 ):
     """Test that when multiple probability forecast cubes and truth cubes
     are provided, the groups are created as expected. Additionally, test that groups
@@ -445,10 +429,6 @@ def test_split_forecasts_truth(
     are or are not provided. """
 
     truth_attribute = "mosg__model_configuration=uk_det"
-    if probability_forecasts:
-        forecast_type = "probability"
-    else:
-        forecast_type = "realization"
     (
         input_forecast,
         input_truth,
