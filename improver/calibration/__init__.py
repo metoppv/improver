@@ -102,7 +102,7 @@ def split_forecasts_and_truth(
         land_sea_mask = None
     elif len(land_sea_mask) != 1:
         msg = (
-            f"Expected at most one cube for land-sea mask. The number of land-sea "
+            "Expected at most one cube for land-sea mask. The number of land-sea "
             f"masks provided was {len(land_sea_mask)}."
         )
         raise IOError(msg)
@@ -116,7 +116,7 @@ def split_forecasts_and_truth(
     else:
         diag_names = list(grouped_cubes.keys())
         raise ValueError(
-            f"Only forecasts for one diagnostic can be input. The following diagnostics"
+            "Only forecasts for one diagnostic can be input. The following diagnostics"
             f" were found: {diag_names}"
         )
 
