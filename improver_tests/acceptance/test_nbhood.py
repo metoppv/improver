@@ -185,7 +185,7 @@ def test_halo_radius(tmp_path):
         "--neighbourhood-shape",
         "square",
         "--radii",
-        "20000",
+        "100000",
         "--halo-radius=162000",
         "--output",
         output_path,
