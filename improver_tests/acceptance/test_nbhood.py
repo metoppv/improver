@@ -45,7 +45,7 @@ def test_basic_circular(tmp_path):
     """Test basic circular neighbourhooding"""
     kgo_dir = acc.kgo_root() / "nbhood/basic"
     kgo_path = kgo_dir / "kgo_circular.nc"
-    input_path = kgo_dir / "input_circular.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
@@ -67,7 +67,7 @@ def test_basic_square(tmp_path):
     """Test basic square neighbourhooding"""
     kgo_dir = acc.kgo_root() / "nbhood/basic"
     kgo_path = kgo_dir / "kgo_square.nc"
-    input_path = kgo_dir / "input_square.nc"
+    input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
