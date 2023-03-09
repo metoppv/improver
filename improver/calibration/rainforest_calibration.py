@@ -65,6 +65,7 @@ import os
 import datetime as dt
 from improver.utilities.save import save_netcdf
 from improver.calibration.utilities import inv_log_transform
+import iris
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
@@ -442,20 +443,20 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
-            prediction = model.predict(input_dataset)
-            # if threshold >= 0:
-            #     # In this case, for all values of forecast we have
-            #     # forecast + threshold >= forecast >= lower_bound_in_fcst_units
-            #     prediction = model.predict(input_dataset)
-            # else:
-            #     # In this case, we have error > threshold if and only if
-            #     # observations > forecast + threshold, which has probability 1
-            #     # if forecast + threshold < lower_bound_in_fcst_units
-            #     prediction = np.ones(input_data.shape[0], dtype=np.float32)
-            #     forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
-            #     if np.any(forecast_bool):
-            #         input_subset = self.model_input_converter(input_data[forecast_bool])
-            #         prediction[forecast_bool] = model.predict(input_subset)
+            #prediction = model.predict(input_dataset)
+            if threshold >= 0:
+                # In this case, for all values of forecast we have
+                # forecast + threshold >= forecast >= lower_bound_in_fcst_units
+                prediction = model.predict(input_dataset)
+            else:
+                # In this case, we have error > threshold if and only if
+                # observations > forecast + threshold, which has probability 1
+                # if forecast + threshold < lower_bound_in_fcst_units
+                prediction = np.ones(input_data.shape[0], dtype=np.float32)
+                forecast_bool = forecast_data + threshold >= lower_bound_in_fcst_units
+                if np.any(forecast_bool):
+                    input_subset = self.model_input_converter(input_data[forecast_bool])
+                    prediction[forecast_bool] = model.predict(input_subset)
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
             )
@@ -481,6 +482,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 If an unsupported model object is passed. Expects lightgbm Booster, or
                 treelite_runtime Predictor (if treelite dependency is available).
         """
+
+
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
         input_dataset = self._prepare_features_array(feature_cubes)

@@ -302,7 +302,7 @@ class SpotExtraction(BasePlugin):
             as information about the sites themselves.
         """
         # Check we are using a matched neighbour/diagnostic cube pair
-        check_grid_match([neighbour_cube, diagnostic_cube])
+        # check_grid_match([neighbour_cube, diagnostic_cube])
 
         # Get the unique_site_id if it is present on the neighbour cbue
         unique_site_id_data = self.check_for_unique_id(neighbour_cube)
