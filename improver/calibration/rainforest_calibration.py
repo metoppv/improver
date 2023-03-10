@@ -39,7 +39,7 @@
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable, Optional, Tuple
+from typing import Callable, Optional, Tuple, List
 
 import cf_units as unit
 import numpy as np
@@ -65,7 +65,9 @@ import os
 import datetime as dt
 from improver.utilities.save import save_netcdf
 from improver.calibration.utilities import inv_log_transform
+from improver.ensemble_copula_coupling.utilities import interpolate_pointwise
 import iris
+from improver.cli import blend_cycles_and_realizations
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
@@ -443,7 +445,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
-            #prediction = model.predict(input_dataset)
+            # prediction = model.predict(input_dataset)
             if threshold >= 0:
                 # In this case, for all values of forecast we have
                 # forecast + threshold >= forecast >= lower_bound_in_fcst_units
@@ -482,7 +484,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 If an unsupported model object is passed. Expects lightgbm Booster, or
                 treelite_runtime Predictor (if treelite dependency is available).
         """
-
 
         error_probability_cube = self._prepare_error_probability_cube(forecast_cube)
 
@@ -577,7 +578,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # RAINFALL SPECIFIC IMPLEMENTATION:
         # As described above, we need to address value outside of expected bounds.
         # In the case of rainfall, we map all negative values to 0.
-        #forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
+        # forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
         # Return cube containing forecast subensembles
         return create_new_diagnostic_cube(
             name=forecast_cube.name(),
@@ -692,12 +693,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return reduced_ensemble
 
     def process(
-        self,
-        forecast_cube: Cube,
-        feature_cubes: CubeList,
-        error_percentiles_count: int = DEFAULT_ERROR_PERCENTILES_COUNT,
-        output_realizations_count: int = DEFAULT_OUTPUT_REALIZATIONS_COUNT,
-        transform: Callable = None,
+        self, forecast_cube: Cube, feature_cubes: CubeList, output_thresholds: List,
     ) -> Cube:
         """Apply rainforests calibration to forecast cube.
 
@@ -739,9 +735,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 The number of ensemble realizations that will be extracted from the
                 super-ensemble. If realizations_count is None, all realizations will
                 be returned.
-            transform:
-                Transformation to apply to output
-
         Returns:
             The calibrated forecast cube.
 
@@ -763,26 +756,59 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             aligned_forecast, aligned_features
         )
 
-        # Extract error percentiles from error CDF.
-        error_percentiles = self._extract_error_percentiles(
-            error_CDF, error_percentiles_count
+        # Add error to forecast
+        thresholds = (
+            error_CDF.coord(
+                "forecast_error_of_lwe_thickness_of_precipitation_amount"
+            ).points[:, np.newaxis, np.newaxis]
+            + aligned_forecast.data
         )
-
-        # Apply error to forecast cube.
-        forecast_subensembles = self._apply_error_to_forecast(
-            aligned_forecast, error_percentiles
-        )
-
-        # Combine sub-ensembles into a single consolidated ensemble.
-        calibrated_output = self._combine_subensembles(
-            forecast_subensembles, output_realizations_count
-        )
-
-        # Apply transform on output
         if self.transform:
-            calibrated_output.data = self.transform(calibrated_output.data)
+            thresholds = self.transform(thresholds)
+        probabilities = error_CDF.data
 
-        return calibrated_output
+        # interpolate to output thresholds
+        negative_threshold = thresholds < 0
+        thresholds = np.where(negative_threshold, 0, thresholds)
+        probabilities = np.where(negative_threshold, 1, probabilities)
+        output_thresholds = np.sort(output_thresholds).astype(np.float32)
+        output_array = np.empty((len(output_thresholds),) + thresholds.shape[1:])
+        interpolate_pointwise(
+            thresholds, probabilities, output_thresholds, output_array
+        )
+        aux_coords_and_dims = [
+            (coord.copy(), error_CDF.coord_dims(coord))
+            for coord in getattr(error_CDF, "aux_coords")
+        ]
+        threshold_dim = iris.coords.DimCoord(
+            output_thresholds,
+            standard_name="lwe_thickness_of_precipitation_amount",
+            units=aligned_forecast.units,
+            var_name="threshold",
+            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
+        )
+        dim_coords_and_dims = [(threshold_dim, 0)] + [
+            (coord.copy(), error_CDF.coord_dims(coord))
+            for coord in getattr(error_CDF, "dim_coords")[1:]
+        ]
+        probability_cube = iris.cube.Cube(
+            output_array.astype(np.float32),
+            long_name="probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
+            units=1,
+            attributes=forecast_cube.attributes,
+            dim_coords_and_dims=dim_coords_and_dims,
+            aux_coords_and_dims=aux_coords_and_dims,
+        )
+
+        # blend accross realizations
+        cycle_time = dt.datetime.utcfromtimestamp(
+            probability_cube.coord("forecast_reference_time").points[0]
+        ).strftime("%Y%m%dT%H%MZ")
+        output_cube = blend_cycles_and_realizations.process(
+            probability_cube, cycletime=cycle_time
+        )
+
+        return output_cube
 
 
 class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
@@ -856,7 +882,6 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             for file in treelite_model_filenames
         ]
         self.transform = transform
-
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.

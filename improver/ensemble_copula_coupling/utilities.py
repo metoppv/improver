@@ -42,9 +42,50 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 from numpy import ndarray
+from numba import njit, prange
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
+
+
+def interpolate_pointwise(thresholds, probabilities, output_thresholds, output_array):
+    """
+    Given arrays of thresholds and probabilities of exceedance, interpolate pointwise 
+    to get probabilities at output threhsolds.
+    Args:
+        thresholds: array with dimensions (threshold, realization, *spatial_dims)
+        probabilities: array with dimensions (threhsold, realization, *spatial_dims)
+        output_threhsolds: 1-d array
+        output_array: array with dimensions (len(output_thresholds), realization, *spatial_dims), 
+            will be modified in-place
+    """
+    # TODO: check thresholds and probabilties have same shape apart from 0th dim
+    # TODO: check thresholds has either 3 or 4 dimensions
+    # TODO: check dims of output array
+
+    if len(thresholds.shape) == 3:
+        interpolate_pointwise_site(thresholds, probabilities, output_thresholds, output_array)
+    else:
+        interpolate_pointwise_grid(thresholds, probabilities, output_thresholds, output_array)
+
+
+@njit(parallel=True)
+def interpolate_pointwise_site(thresholds, probabilities, output_thresholds, output_array):
+    for i in prange(thresholds.shape[1]):
+        for j in range(thresholds.shape[2]):
+            curr_thresholds = thresholds[:, i, j]
+            curr_probs = probabilities[:, i, j]
+            output_array[:, i, j] = np.interp(output_thresholds, curr_thresholds, curr_probs)
+
+
+@njit(parallel=True)
+def interpolate_pointwise_grid(thresholds, probabilities, output_thresholds, output_array):
+    for i in prange(thresholds.shape[1]):
+        for j in range(thresholds.shape[2]):
+            for k in range(thresholds.shape[3]):
+                curr_thresholds = thresholds[:, i, j, k]
+                curr_probs = probabilities[:, i, j, k]
+                output_array[:, i, j, k] = np.interp(output_thresholds, curr_thresholds, curr_probs)
 
 def concatenate_2d_array_with_2d_array_endpoints(
     array_2d: ndarray, low_endpoint: float, high_endpoint: float,

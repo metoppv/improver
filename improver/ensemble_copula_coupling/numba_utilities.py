@@ -43,6 +43,7 @@ if "OMP_NUM_THREADS" in os.environ:
     set_num_threads(int(os.environ["OMP_NUM_THREADS"]))
 
 
+
 @njit(parallel=True)
 def fast_interp_same_x(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndarray:
     """For each row i of fp, do the equivalent of np.interp(x, xp, fp[i, :]).
