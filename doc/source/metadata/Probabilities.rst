@@ -1,7 +1,7 @@
 .. _prob-section:
 
-Probabilistic Information
-=========================
+Probability Distribution
+========================
 
 .. contents:: Contents
     :depth: 3
@@ -9,34 +9,30 @@ Probabilistic Information
 Context
 -------
 
-As IMPROVER is inherently probabalistic,
-it seems appropriate to have a section specifically focussed
-on the represntation of probabalistic information in the metadata.
-This section also looks at the use of the `CF Metadata Conventions`_ 
-cell methods which are also heavily used within IMPROVER.
+As IMPROVER is inherently probabilistic,
+it seems appropriate to have a section specifically focused
+on the representation of probabality distributions in the metadata.
+This included some extensions to the `CF Metadata Conventions`_ 
+which provide limited support in this area.
 
+Probabality distributions can be represented in one of three different ways: 
 
-Representation of probabilistic information
--------------------------------------------
-
-Background
-**********
-
-Probabilistic information can be represented in three different ways: 
-
-* Ensemble members (realizations or scenarios) 
-* Probabilities of being above, below or between a set of thresholds 
-* Percentile values, representing the value of the diagnostics 
-  at a set of probability levels 
+* Ensemble members - a set of realizations (or scenarios) each holding
+  a possible value of the diagnostic of interest;
+* Probabilities of the value of the diagnostic being above, below or between
+  a set of thresholds;
+* Percentile values, representing thresholds of the distribution of the
+  diagnostic below which the value will occur with fixed relative frequency.
 
 These all have different strengths and weaknesses in different situations,
 which will not be discussed here, but they also have different metadata, 
 which will be described here. 
 
 Ensemble members
-****************
+----------------
 
-This is the simplest form, as it is a natural extension to deterministic data,
+This is the simplest form of representing forecast uncertainty,
+as it is a natural extension to deterministic forecasts,
 incorporating a number of realizations (or versions of the forecast). 
 As such, its representation can be accommodated through the inclusion
 of an additional coordinate variable. 
@@ -69,12 +65,14 @@ which runs every hour to generate a 3-member ensemble:
 
 
 Percentiles
-***********
+-----------
 
 This is probably the second most strightforward form,
-as again it still represents actual sets of values of the diagnostic,
-but instead of a set of realizations (consistent over time),
-the set of percentile values represent the values at a set of probability levels.
+as again it still represents actual sets of values of the diagnostic.
+Instead of a set of realizations (consistent over time),
+the set of percentile values represent the values of a set of thresholds
+below which the value of the diagnostic will occur with 
+fixed relative frequency.
 This can again be incorporated by adding a coordinate variable.  
 
 For percentile data, the following must be present:
@@ -105,13 +103,14 @@ An example would be a set of percentile values for temperature:
 
 
 Probabilities
-*************
+-------------
 
 This is a more interesting form,
-as the diagnostics values are transformed into a set of probabilities,
+as the diagnostics values are transformed into a set of probabilities
+of being above, below, or between a set of thresholds,
 so the metadata is more substantially changed.
 This can be catered for with a new coordinate variable to represent
-the set of probability thresholds.
+the set of thresholds.
 
 For probability data, the following must be present:
 
@@ -160,173 +159,6 @@ exceeding a set of 79 thresholds:
 
     data:
      threshold = 213.15, 218.15, 223.15, 228.15, 233.15, 238.15, 243.15, ....
-
-
-Cell methods
-------------
-
-Background
-**********
-
-`CF Metadata Conventions`_ provide the attribute ``cell_methods``
-which can be used to describe the application of simple statistical
-processing to a variable
-(e.g. a maximum of the temperature over a period of time).
-This is represented as a string attribute comprising
-a list of blank-separated words of the form ``name: method``. 
-Each ``name: method`` pair indicates that for an axis identified by ``name``,
-the values representing the variable have been determined
-or derived by the specified ``method``.
-
-name
-    Can be a dimension of the variable, a scalar coordinate variable,
-    a valid `CF Standard Name`_, or the word ``area``. 
-
-method
-    Should be selected from a list:
-    ``point``,
-    ``maximum``,
-    ``maximum_absolute_value``,
-    ``median``,
-    ``mid_range``,
-    ``minimum``,
-    ``minimum_absolute_value``,
-    ``mean, mean_absolute_value``,
-    ``mean_of_upper_decile``,
-    ``mode``,
-    ``range``,
-    ``root_mean_square``,
-    ``standard_derivation``,
-    ``sum, sum_of_squares``,
-    ``variance``.
-
-If any method other than ``point`` is specified for a given axis,
-then bounds should also be provided for that axis.
-(``point`` is essentially no statistical processing applied on that axis,
-and is unusally omitted, but could be included if it improver clarity.)
-For example, a one-dimensional array of maximum air temperatures,
-could be represented as:
-
-.. code-block:: python
-
-    variables: 
-        float air_temperature(time) ;
-            air_temperature:cell_methods = "time: maximum" ;
-        int64 time ;
-            time:bounds = "time_bnds" ;
-            time:units = "seconds since 1970-01-01 00:00:00" ;
-            time:standard_name = "time" ;
-            time:calendar = "gregorian" ;
-	int64 time_bnds(bnds) ;
-
-The ``time_bnds`` values define the periods over which 
-the statistical processing has been calculated. 
-If more than one cell method is to be indicated,
-they should be arranged in the order they were applied.
-The left-most operation is assumed to have been applied first. 
-
-It is possible to indicate more precisely how the cell method was applied
-by including extra information in parentheses after the method.
-This information includes standardized and non-standardized parts.
-The only standardized option is ``interval``,
-used to provide the typical interval between the original data values
-to which the method was applied,
-in the situation where the present data values are statistically representative 
-of original data values which had a finer spacing.
-
-.. warning::
-
-    It is important to understand that the following example, 
-    does not (necessarily) represent a 1-hour maximum temperature,
-    as the period over which the maximum is derived is included in the bounds
-    (not shown), but rather that the temperature data used to calculate
-    the maximum was provided in 1-hour steps.
-
-        .. code-block:: python
-
-            air_temperature: cell_methods = "time: maximum (interval: 1 hour)" ;
-
-The non-standardised part is included in the same way,
-unless there is also a standardised part,
-in which case it is preceded by a ``comment:`` statement.
-For example:
-
-.. code-block:: python
-        
-    air_temperature: cell_methods = "time: mean (time-weighted)" ;
- 
-Cell methods can be used to describe any simple statistical method
-that has been apply to a variable.
-However, this leads to the question over over whether a statistical process
-that has been applied is significant for, or of relevance to, the end user?
-This is likely to depend on exactly who that user is
-and what they need to know about the data.
-Two extreme examples of how the cell methods might be presented
-for the same varaible (in this case a maximum temperature in a period)
-are shown below:
-
-1. Simple version, just describing the information required to correctly
-   interpret the variable; note that without the ``cell_methods``,
-   this would be a different variable, an instantaneous temperature:
-
-.. code-block:: python
-
-    air_temperature:cell_methods = "time: maximum"
-
-2. Complex version, including a whole chain of processes that have been applied
-   to the variable:
-
-.. code-block:: python
-
-    air_temperature:cell_methods = "time: maximum realization: mean area: mean (neighbourhood: square topographic) forecast_reference_time: mean (time-weighted) area: mean (recursive-filter) model: mean (model-weighted)" ;
-
-The issue with the complex version is that only the ``time: maximum`` 
-is required by any user to correctly interpret and use the variable.
-The other processing steps tell you more about how it was generated
-and are really acting as a substitute for provenance metadata.
-This can obscure the essential statistical information,
-making it harder to understand what the varaible actually represents.
-
-Use of cell methods in IMPROVER
-*******************************
-
-IMPROVER should only use cell methods to represent the **what** metadata
-of the variable,
-i.e. information that is required to correctly interpret the variable.
-See the section on :ref:`principles-CF-conformance-label` 
-in :ref:`principles-label`.
-
-The use of the ``interval`` within the extra information in cell methods
-is unhelpful and potentially confusing within IMPROVER
-and should be omitted.
-
-There are two main ways in which cell methods is used
-within IMPROVER at present:
-
-1. Maximum, minimum and sum methods applied to time for percentile values,
-   using a cell methods statement of the form below:
-
-.. code-block:: python
-
-	float air_temperature(percentile) ;
-		air_temperature:standard_name = "air_temperature" ;
-		air_temperature:units = "K" ;
-        air_temperature:cell_methods = "time: maximum" ;
-
-2. Maximum, minimum and sum methods applied to time for probability values,
-   using a cell methods statement of the form below;
-   note that for the probablitie valuee, there is a non-standard comment
-   to highlight that the statistical processing is over the base variable
-   rather than the probability.
-
-.. code-block:: python
-
-    float probability_of_air_temperature_above_threshold(threshold) ;
-        probability_of_air_temperature_above_threshold:long_name = "probability_of_air_temperature_above_threshold" ;
-        probability_of_air_temperature_above_threshold:units = "1" ;
-        probability_of_air_temperature_above_threshold:cell_methods = "time: maximum (comment: of air_temperature)" ;
-
-
 
 
 References
