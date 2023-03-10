@@ -763,14 +763,32 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             ).points[:, np.newaxis, np.newaxis]
             + aligned_forecast.data
         )
+        
+        # add bounds
+        bounds_data = BOUNDS_FOR_ECDF["forecast_error_of_lwe_thickness_of_precipitation_amount"]
+        bounds_unit = unit.Unit(bounds_data[1])
+        lower_bound, upper_bound = bounds_data[0]
+        lower_bound_in_fcst_units = bounds_unit.convert(
+            lower_bound, forecast_cube.units
+        )
+        upper_bound_in_fcst_units = bounds_unit.convert(
+            upper_bound, forecast_cube.units
+        )
+        thresholds = np.concatenate([aligned_forecast.data[np.newaxis, :, :] + lower_bound_in_fcst_units, 
+        thresholds, aligned_forecast.data[np.newaxis, :, :] + upper_bound_in_fcst_units], axis=0)
+        probabilities = error_CDF.data
+        probabilities = np.concatenate([np.ones((1, ) + probabilities.shape[1:]), probabilities, np.zeros((1, ) + probabilities.shape[1:])], axis=0)
+
+        # transform
         if self.transform:
             thresholds = self.transform(thresholds)
-        probabilities = error_CDF.data
-
-        # interpolate to output thresholds
+        
+        # set probability to 1 for negative thresholds
         negative_threshold = thresholds < 0
         thresholds = np.where(negative_threshold, 0, thresholds)
         probabilities = np.where(negative_threshold, 1, probabilities)
+
+        # interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
         output_array = np.empty((len(output_thresholds),) + thresholds.shape[1:])
         interpolate_pointwise(
@@ -785,7 +803,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             standard_name="lwe_thickness_of_precipitation_amount",
             units=aligned_forecast.units,
             var_name="threshold",
-            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
+            attributes={"spp__relative_to_threshold": "greater_than"},
         )
         dim_coords_and_dims = [(threshold_dim, 0)] + [
             (coord.copy(), error_CDF.coord_dims(coord))
