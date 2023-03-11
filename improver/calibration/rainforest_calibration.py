@@ -500,7 +500,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Enforcing monotonicity
-        error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
+        # error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
 
         return error_probability_cube
 
@@ -804,10 +804,16 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             axis=0,
         )
 
+
+        # make decreasing 
+        probabilities = self._make_decreasing(probabilities)       
+
         # set probability to 1 for negative thresholds
         negative_threshold = thresholds < 0
         thresholds = np.where(negative_threshold, 0, thresholds)
         probabilities = np.where(negative_threshold, 1, probabilities)
+
+
 
         # interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
