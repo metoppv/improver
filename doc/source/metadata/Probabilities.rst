@@ -11,7 +11,7 @@ Context
 
 As IMPROVER is inherently probabilistic,
 it seems appropriate to have a section specifically focused
-on the representation of probabality distributions in the metadata.
+on the representation of probability distributions in the metadata.
 This included some extensions to the `CF Metadata Conventions`_ 
 which provide limited support in this area.
 
@@ -69,8 +69,9 @@ Percentiles
 
 This is probably the second most strightforward form,
 as again it still represents actual sets of values of the diagnostic.
-Instead of a set of realizations (consistent over time),
-the set of percentile values represent the values of a set of thresholds
+Instead of realizations
+(separate scenarios, each self-consistent over time),
+the set of percentiles represent the values of a set of thresholds
 below which the value of the diagnostic will occur with 
 fixed relative frequency.
 This can again be incorporated by adding a coordinate variable.  

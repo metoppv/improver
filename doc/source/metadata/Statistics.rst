@@ -9,8 +9,8 @@ Statistical Processsing
 Context
 -------
 
-As IMPROVER both processes forecast data that has been
-statistically process end supports a range of statistical processing steps.
+IMPROVER both processes forecast data that has been
+statistically process and supports a range of statistical processing steps.
 As a result, it makes significant use of the `CF Metadata Conventions`_ 
 cell methods.
 
@@ -96,19 +96,19 @@ of original data values which had a finer spacing.
 
             air_temperature: cell_methods = "time: maximum (interval: 1 hour)" ;
 
-The non-standardised part is included in the same way
-(unless there is also a standardised part), for example:
+The non-standardized part is included in the same way
+(unless there is also a standardized part), for example:
 
 .. code-block:: python
         
     air_temperature: cell_methods = "time: mean (time-weighted)" ;
  
-If both standardised and non-standardised parts are present,
-the latter must be proceeded by ``comment:`` keyword;
+If both standardized and non-standardized parts are present,
+the latter must be preceded by the ``comment:`` keyword;
 for an example of this, see the `CF Metadata Conventions`_.
 
 Cell methods can be used to describe any simple statistical method
-that has been apply to a variable.
+that has been applied to a variable.
 However, this leads to the question of whether a statistical process
 that has been applied is significant for, or of relevance to, the end user?
 This is likely to depend on exactly who that user is
@@ -150,7 +150,7 @@ in :ref:`principles-label`.
 
 The use of the ``interval`` within the extra information in cell methods
 is unhelpful and potentially confusing within IMPROVER
-and should be omitted.s
+and should be omitted.
 
 There are two main ways in which cell methods are used
 within IMPROVER at present:
