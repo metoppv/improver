@@ -10,7 +10,7 @@ Context
 -------
 
 IMPROVER both processes forecast data that has been
-statistically process and supports a range of statistical processing steps.
+statistically processed and supports a range of statistical processing steps.
 As a result, it makes significant use of the `CF Metadata Conventions`_ 
 cell methods.
 

@@ -15,7 +15,7 @@ on the representation of probability distributions in the metadata.
 This included some extensions to the `CF Metadata Conventions`_ 
 which provide limited support in this area.
 
-Probabality distributions can be represented in one of three different ways: 
+Probability distributions can be represented in one of three different ways: 
 
 * Ensemble members - a set of realizations (or scenarios) each holding
   a possible value of the diagnostic of interest;
