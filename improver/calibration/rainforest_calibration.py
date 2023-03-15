@@ -500,7 +500,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Enforcing monotonicity
-        # error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
+        error_probability_cube.data = self._make_decreasing(error_probability_cube.data)
 
         return error_probability_cube
 
@@ -578,7 +578,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # RAINFALL SPECIFIC IMPLEMENTATION:
         # As described above, we need to address value outside of expected bounds.
         # In the case of rainfall, we map all negative values to 0.
-        # forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
+        forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
         # Return cube containing forecast subensembles
         return create_new_diagnostic_cube(
             name=forecast_cube.name(),
@@ -777,7 +777,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # )
         # thresholds = np.concatenate([aligned_forecast.data[np.newaxis, :, :] + lower_bound_in_fcst_units,
         # thresholds, aligned_forecast.data[np.newaxis, :, :] + upper_bound_in_fcst_units], axis=0)
-
         # probabilities = np.concatenate([np.ones((1, ) + probabilities.shape[1:]), probabilities, np.zeros((1, ) + probabilities.shape[1:])], axis=0)
 
         # transform
@@ -804,16 +803,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             axis=0,
         )
 
-
-        # make decreasing 
-        probabilities = self._make_decreasing(probabilities)       
-
-        # set probability to 1 for negative thresholds
-        negative_threshold = thresholds < 0
+         # set probability to 1 for negative thresholds
+        negative_threshold = thresholds <= 0
         thresholds = np.where(negative_threshold, 0, thresholds)
-        probabilities = np.where(negative_threshold, 1, probabilities)
-
-
+        probabilities = np.where(negative_threshold, 1, probabilities)   
 
         # interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
@@ -821,6 +814,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         interpolate_pointwise(
             thresholds, probabilities, output_thresholds, output_array
         )
+
+        # set probability to 1 for thresholds <= 0
+        # output_thresholds_exp = output_thresholds
+        # for i in range(len(output_array.shape) - 1):
+        #     output_thresholds_exp = np.expand_dims(output_thresholds_exp, -1)
+        # negative_threshold = output_thresholds_exp <= 0
+        # output_array = np.where(negative_threshold, 1, output_array)
+
+        # make output cube
         aux_coords_and_dims = [
             (coord.copy(), error_CDF.coord_dims(coord))
             for coord in getattr(error_CDF, "aux_coords")
@@ -830,7 +832,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             standard_name="lwe_thickness_of_precipitation_amount",
             units=aligned_forecast.units,
             var_name="threshold",
-            attributes={"spp__relative_to_threshold": "greater_than"},
+            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
         dim_coords_and_dims = [(threshold_dim, 0)] + [
             (coord.copy(), error_CDF.coord_dims(coord))
