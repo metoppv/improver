@@ -52,6 +52,51 @@ from improver.utilities.cube_manipulation import (
 )
 
 
+def compute_lapse_rate_adjustment(lapse_rate, orog_diff, max_orog_diff_inversion=50):
+    """Compute the lapse rate adjustment i.e. the lapse rate multiplied by the
+    relevant orographic difference. Points with a positive lapse rate (i.e. where
+    temperature increases as altitude increases) that therefore have an inverted
+    temperature profile are capped, so that the positive lapse rate is assumed to be
+    appropriate for a fixed vertical displacement between the source and destination
+    orographies. If the the vertical displacement is greater than the limit specified,
+    further vertical ascent is assumed to follow the dry adiabatic lapse rate.
+
+    References:
+        Sheridan, P., S. Vosper, and S. Smith, 2018: A Physically Based Algorithm for
+        Downscaling Temperature in Complex Terrain. J. Appl. Meteor. Climatol.,
+        57, 1907–1929, https://doi.org/10.1175/JAMC-D-17-0140.1.
+
+    Args:
+        lapse_rate_cube: Cube containing lapse rate.
+        orog_diff: Cube containing the difference in orography
+            (destination orography minus source orography).
+        max_orog_diff_inversion: Maximum vertical displacement in metres allowed that
+            corresponds to a temperature inversion. Sheridan et al. use 70 m.
+            Defaults to 50.
+
+    Returns:
+        The vertical lapse rate adjustment to be applied to correct a
+        temperature forecast.
+    """
+
+    orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
+    orig_orog_diff = orog_diff.copy()
+
+    # Constrain the orographic difference, if there is a positive lapse rate.
+    condition1 = np.logical_and(lapse_rate > 0, orog_diff > max_orog_diff_inversion)
+    orog_diff[condition1] = max_orog_diff_inversion
+    vertical_adjustment = np.multiply(orog_diff, lapse_rate)
+
+    # Compute an additional lapse rate adjustment for points with a positive lapse rate
+    # and an orographic difference greater than the maximum allowed for a temperature
+    # inversion.
+    orig_orog_diff[condition1] = np.clip(
+        orig_orog_diff[condition1] - max_orog_diff_inversion, 0, None
+    )
+    vertical_adjustment[condition1] += np.multiply(orig_orog_diff[condition1], DALR)
+    return vertical_adjustment
+
+
 class ApplyGriddedLapseRate(PostProcessingPlugin):
     """Class to apply a lapse rate adjustment to a temperature data forecast"""
 
@@ -139,7 +184,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         ):
             newcube = t_slice.copy()
             newcube.convert_units("K")
-            newcube.data += np.multiply(orog_diff.data, lr_slice.data)
+            newcube.data += compute_lapse_rate_adjustment(lr_slice.data, orog_diff.data)
             adjusted_temperature.append(newcube)
 
         return iris.cube.CubeList(adjusted_temperature).merge_cube()

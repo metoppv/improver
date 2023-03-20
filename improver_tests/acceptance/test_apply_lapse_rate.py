@@ -57,7 +57,7 @@ def test_basic(tmp_path):
 
 
 def test_realizations(tmp_path):
-    """Test lapse rate adjustment for a deterministic cube"""
+    """Test lapse rate adjustment for a cube with realizations"""
     kgo_dir = acc.kgo_root() / "apply-lapse-rate/realizations"
     kgo_path = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
