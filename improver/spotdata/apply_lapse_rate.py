@@ -93,6 +93,22 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
     ):
         """
         Checks cubes for compatibility, raising Exceptions as appropriate.
+
+        Raises:
+            ValueError:
+                If the spot_data_cube are probabilities.
+            ValueError:
+                If the lapse rate cube was provided but the diagnostic being
+                processed is not air temperature or feels-like temperature.
+            ValueError:
+                If neither or both a lapse rate cube and a fixed lapse rate
+                are provided.
+            ValueError:
+                If the lapse rate cube provided does not have the name
+                "air_temperature_lapse_rate"
+            ValueError:
+                If the lapse rate cube does not contain a single valued height
+                coordinate or the heights do not match the spot_data_cube.
         """
         if is_probability(spot_data_cube):
             msg = (
@@ -230,17 +246,6 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
             A copy of the input spot_data_cube with the data modified by
             the lapse rates to give a better representation of the site's
             temperatures.
-
-        Raises:
-            ValueError:
-                If the lapse rate cube was provided but the diagnostic being
-                processed is not air temperature.
-            ValueError:
-                If the lapse rate cube provided does not have the name
-                "air_temperature_lapse_rate"
-            ValueError:
-                If the lapse rate cube does not contain a single valued height
-                coordinate.
         """
         self._check_inputs(gridded_lapse_rate_cube, neighbour_cube, spot_data_cube)
 
