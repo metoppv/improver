@@ -22,7 +22,8 @@ jobs:
         conda install -n base conda-libmamba-solver
         conda config --set solver libmamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        conda config --show-sources
+        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }} --solver=libmamba
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -72,7 +73,8 @@ jobs:
         conda install -n base conda-libmamba-solver
         conda config --set solver libmamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        conda config --show-sources
+        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }} --solver=libmamba
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -104,7 +106,8 @@ jobs:
         conda install -n base conda-libmamba-solver
         conda config --set solver libmamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        conda config --show-sources
+        conda env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }} --solver=libmamba
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
