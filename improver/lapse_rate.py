@@ -39,7 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.constants import DALR
+from improver.constants import DALR, ELR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -71,29 +71,42 @@ def compute_lapse_rate_adjustment(lapse_rate, orog_diff, max_orog_diff_inversion
         orog_diff: Cube containing the difference in orography
             (destination orography minus source orography).
         max_orog_diff_inversion: Maximum vertical displacement in metres allowed that
-            corresponds to a temperature inversion. Sheridan et al. use 70 m.
-            Defaults to 50.
+            corresponds to a temperature inversion. Defaults to 50.
+            Sheridan et al. use 70 m. As lapse rate adjustment could be performed
+            both for gridded data and for site data in sequence, the adjustments
+            could accumulate. To limit the possible cumulative effect from multiple
+            lapse rate corrections, a default lower than 70m has been chosen.
 
     Returns:
         The vertical lapse rate adjustment to be applied to correct a
         temperature forecast.
     """
-
     orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
     orig_orog_diff = orog_diff.copy()
 
-    # Constrain the orographic difference, if there is a positive lapse rate.
+    # Constrain the orographic difference, if there is a positive lapse rate, and
+    # the orographic difference is either greater than the max allowed orographic
+    # difference (e.g. an unresolved hilltop) or less than the negative of the max
+    # allowed orographic difference (e.g. an unresolved valley).
     condition1 = np.logical_and(lapse_rate > 0, orog_diff > max_orog_diff_inversion)
+    condition2 = np.logical_and(lapse_rate > 0, orog_diff < -max_orog_diff_inversion)
     orog_diff[condition1] = max_orog_diff_inversion
+    orog_diff[condition2] = -max_orog_diff_inversion
     vertical_adjustment = np.multiply(orog_diff, lapse_rate)
 
     # Compute an additional lapse rate adjustment for points with a positive lapse rate
-    # and an orographic difference greater than the maximum allowed for a temperature
-    # inversion.
+    # and an absolute orographic difference greater than the maximum allowed for a
+    # temperature inversion.
     orig_orog_diff[condition1] = np.clip(
         orig_orog_diff[condition1] - max_orog_diff_inversion, 0, None
     )
-    vertical_adjustment[condition1] += np.multiply(orig_orog_diff[condition1], DALR)
+    orig_orog_diff[condition2] = np.clip(
+        orig_orog_diff[condition2] + max_orog_diff_inversion, None, 0
+    )
+
+    # Assume the Environmental Lapse Rate (also known as Standard Adiabatic Lapse Rate).
+    vertical_adjustment[condition1] += np.multiply(orig_orog_diff[condition1], ELR)
+    vertical_adjustment[condition2] += np.multiply(orig_orog_diff[condition2], ELR)
     return vertical_adjustment
 
 

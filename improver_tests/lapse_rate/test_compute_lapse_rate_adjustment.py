@@ -35,7 +35,7 @@ import unittest
 import numpy as np
 import pytest
 
-from improver.constants import DALR
+from improver.constants import ELR
 from improver.lapse_rate import compute_lapse_rate_adjustment
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -59,7 +59,10 @@ def set_up_cubes(lapse_rate):
         dtype=np.float32,
     )
     orog_diff_cube = set_up_variable_cube(
-        orog_diff, units="m", spatial_grid="equalarea"
+        orog_diff,
+        name="surface_altitude_difference",
+        units="m",
+        spatial_grid="equalarea",
     )
     lapse_rate_cube = set_up_variable_cube(
         np.full((4, 4), lapse_rate, dtype=np.float32),
@@ -70,8 +73,8 @@ def set_up_cubes(lapse_rate):
     return orog_diff_cube, lapse_rate_cube
 
 
-@pytest.mark.parametrize("max_orog_diff_inversion", (50, 70))
-@pytest.mark.parametrize("lapse_rate", (DALR, 0, -DALR,))
+@pytest.mark.parametrize("max_orog_diff_inversion", (50, 70,))
+@pytest.mark.parametrize("lapse_rate", (-ELR, 0, ELR))
 def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_inversion):
     """Test the computation of the lapse rate adjustment."""
     orog_diff_cube, lapse_rate_cube = set_up_cubes(lapse_rate)
@@ -83,10 +86,12 @@ def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_inversion):
 
     expected_data = lapse_rate_cube.data * orog_diff_cube.data
     if lapse_rate > 0 and max_orog_diff_inversion == 50:
-        expected_data[1, 0] = -0.98
-        expected_data[3, 3] = 0.392
+        expected_data[1, 0] = -0.65
+        expected_data[1, 1] = 0.65
+        expected_data[3, 3] = 0.26
     elif lapse_rate > 0 and max_orog_diff_inversion == 70:
-        expected_data[1, 0] = -0.588
+        expected_data[1, 0] = -0.39
+        expected_data[1, 1] = 0.39
 
     assert isinstance(result, np.ndarray)
     np.testing.assert_allclose(result, expected_data, rtol=1e-5, atol=1e-5)
