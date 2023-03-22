@@ -1,7 +1,7 @@
 .. _stat-section:
 
-Statistical Processsing
-=======================
+Statistical Processing
+======================
 
 .. contents:: Contents
     :depth: 3
@@ -49,11 +49,23 @@ method
     ``sum, sum_of_squares``,
     ``variance``.
 
-If any method other than ``point`` is specified for a given axis,
-then bounds should also be provided for that axis. The ``point`` method 
-is unique in that it essentially means that no statistical processing 
-has been applied on that axis and is usually omitted,
-though could be included if it improved clarity.
+The default interpretation for variables which do not have a ``cell_methods``
+attribute depends on whether the quantity being described is extensive
+(depends on the size of the cell along the axis of interest)
+or intensive (no dependence on the size of the cell along the axis of interest).
+The `CF Metadata Conventions`_ document uses precipitation as an example.
+Precipitation rate is intensive; it would be described by
+``cell_methods = "time: point"`` and requires no time bounds.
+Precipitation accumulation is extensive; it would be described by
+``cell_methods = "time: sum"`` and does required time bounds.
+In principle, the ``cell_methods`` could be omitted in both cases, 
+but the inclusion of ``cell_methods = "time: sum"`` in the accumulation case
+is good practice, as this flags up the need to refer to the time bounds
+to fully interpret the quantity.
+The ``point`` method is somewhat unique as it means that
+no statistical processing has been applied to the underlying quantity
+(along the axis of interest) and it is usual to omit this.
+
 As an example of the use of cell methods, consider a one-dimensional array
 of maximum air temperatures, which could be represented as:
 

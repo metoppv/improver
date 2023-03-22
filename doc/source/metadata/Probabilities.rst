@@ -21,7 +21,7 @@ Probability distributions can be represented in one of three different ways:
   a possible value of the diagnostic of interest;
 * Probabilities of the value of the diagnostic being above, below or between
   a set of thresholds;
-* Percentile values, representing thresholds of the distribution of the
+* Percentile values representing thresholds of the distribution of the
   diagnostic below which the value will occur with fixed relative frequency.
 
 These all have different strengths and weaknesses in different situations,
@@ -100,7 +100,7 @@ An example would be a set of percentile values for temperature:
 		    percentile:long_name = "percentile" ;
 
     data:
-     percentile = 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95 ;0 ;
+     percentile = 5, 10, 15, 20, 30, 40, 50, 60, 70, 80, 85, 90, 95 ;
 
 
 Probabilities
@@ -119,9 +119,9 @@ For probability data, the following must be present:
 * Coordinate variable ``threshold``, with:
 
   * Units appropriate to the original diagnostic
-    (indicated vy ``V`` in the following text) 
+    (indicated by ``V`` in the following text) 
   * Standard_name or long_name (as appropriate) set to that of 
-    the original diagnostic (``V`` in this text) 
+    the original diagnostic (``V``) 
 
 * Main variable, with:
 
@@ -142,7 +142,7 @@ For probability data, the following must be present:
     * ``less_than`` 
     * ``less_than_or_equal_to``
 
-An example would be a set of set of probabilities of temperature
+An example would be a set of probabilities of temperature
 exceeding a set of 79 thresholds:
 
 .. code-block:: python
