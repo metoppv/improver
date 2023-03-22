@@ -39,7 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.constants import DALR, ELR
+from improver.constants import DALR, SALR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -59,7 +59,15 @@ def compute_lapse_rate_adjustment(lapse_rate, orog_diff, max_orog_diff_inversion
     temperature profile are capped, so that the positive lapse rate is assumed to be
     appropriate for a fixed vertical displacement between the source and destination
     orographies. If the the vertical displacement is greater than the limit specified,
-    further vertical ascent is assumed to follow the dry adiabatic lapse rate.
+    further vertical ascent is assumed to follow the standard atmosphere lapse rate.
+
+    For the specific case of a deep unresolved valley with a positive lapse rate at
+    the altitude of the source orography, the atmosphere can be imagined to be
+    compartmentalised into two regions. Firstly, a cold pool section that extends below
+    the altitude of the source orography by the value given by the max orography
+    difference specified (70 m in Sheridan et al., 2018) and secondly, a standard
+    atmosphere section for the remaining orographic difference. The total lapse rate
+    adjustment is the sum of the contributions from these two vertical sections.
 
     References:
         Sheridan, P., S. Vosper, and S. Smith, 2018: A Physically Based Algorithm for
@@ -104,9 +112,9 @@ def compute_lapse_rate_adjustment(lapse_rate, orog_diff, max_orog_diff_inversion
         orig_orog_diff[condition2] + max_orog_diff_inversion, None, 0
     )
 
-    # Assume the Environmental Lapse Rate (also known as Standard Adiabatic Lapse Rate).
-    vertical_adjustment[condition1] += np.multiply(orig_orog_diff[condition1], ELR)
-    vertical_adjustment[condition2] += np.multiply(orig_orog_diff[condition2], ELR)
+    # Assume the Standard Atmosphere Lapse Rate.
+    vertical_adjustment[condition1] += np.multiply(orig_orog_diff[condition1], SALR)
+    vertical_adjustment[condition2] += np.multiply(orig_orog_diff[condition2], SALR)
     return vertical_adjustment
 
 
