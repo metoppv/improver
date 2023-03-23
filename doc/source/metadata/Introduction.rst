@@ -224,9 +224,7 @@ cell_methods
     is to clarify that the maximum
     is not of the probability, but of the underlying quantity,
     which is the temperature in this example.
-    Cell methods are covered in more detail in the User Guide
-
-.. add link to User Guide
+    Cell methods are covered in more detail in the :ref:`prob-section`
 
 grid_mapping
     Although in this case, the name of the projection used,

@@ -1,3 +1,5 @@
+.. _principles-label:
+
 Principles
 ==========
 
@@ -10,6 +12,7 @@ Overview
 The principles applied to the metadata within IMPROVER have been listed
 in the Introduction, but are discussed in more detail in this section.
 
+.. _principles-CF-conformance-label:
 
 Conformance to the CF Metadata Conventions
 ------------------------------------------
