@@ -57,7 +57,7 @@ The `CF Metadata Conventions`_ document uses precipitation as an example.
 Precipitation rate is intensive; it would be described by
 ``cell_methods = "time: point"`` and requires no time bounds.
 Precipitation accumulation is extensive; it would be described by
-``cell_methods = "time: sum"`` and does required time bounds.
+``cell_methods = "time: sum"`` and does require time bounds.
 In principle, the ``cell_methods`` could be omitted in both cases, 
 but the inclusion of ``cell_methods = "time: sum"`` in the accumulation case
 is good practice, as this flags up the need to refer to the time bounds

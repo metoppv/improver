@@ -12,7 +12,7 @@ Context
 As IMPROVER is inherently probabilistic,
 it seems appropriate to have a section specifically focused
 on the representation of probability distributions in the metadata.
-This included some extensions to the `CF Metadata Conventions`_ 
+This includes some extensions to the `CF Metadata Conventions`_ 
 which provide limited support in this area.
 
 Probability distributions can be represented in one of three different ways: 
@@ -67,7 +67,7 @@ which runs every hour to generate a 3-member ensemble:
 Percentiles
 -----------
 
-This is probably the second most strightforward form,
+This is probably the second most straightforward form,
 as again it still represents actual sets of values of the diagnostic.
 Instead of realizations
 (separate scenarios, each self-consistent over time),
