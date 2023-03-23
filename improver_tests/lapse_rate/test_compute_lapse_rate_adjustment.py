@@ -35,7 +35,7 @@ import unittest
 import numpy as np
 import pytest
 
-from improver.constants import SALR
+from improver.constants import ELR
 from improver.lapse_rate import compute_lapse_rate_adjustment
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
@@ -74,7 +74,7 @@ def set_up_cubes(lapse_rate):
 
 
 @pytest.mark.parametrize("max_orog_diff_inversion", (50, 70,))
-@pytest.mark.parametrize("lapse_rate", (-SALR, 0, SALR))
+@pytest.mark.parametrize("lapse_rate", (-ELR, 0, ELR))
 def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_inversion):
     """Test the computation of the lapse rate adjustment."""
     orog_diff_cube, lapse_rate_cube = set_up_cubes(lapse_rate)

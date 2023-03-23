@@ -84,5 +84,6 @@ EARTH_REPSILON = 0.62198
 #: Dry Adiabatic Lapse Rate (DALR; K m-1)
 DALR = -0.0098
 
-#: Standard Atmosphere Lapse Rate (SALR; K m-1)
-SALR = -0.0065
+#: Environmental Lapse Rate (ELR; K m-1)
+#: Also known as Standard Atmosphere Lapse Rate
+ELR = -0.0065
