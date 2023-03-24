@@ -52,7 +52,9 @@ from improver.utilities.cube_manipulation import (
 )
 
 
-def compute_lapse_rate_adjustment(lapse_rate, orog_diff, max_orog_diff_inversion=50):
+def compute_lapse_rate_adjustment(
+    lapse_rate: np.ndarray, orog_diff: np.ndarray, max_orog_diff_inversion: float = 50
+):
     """Compute the lapse rate adjustment i.e. the lapse rate multiplied by the
     relevant orographic difference. Points with a positive lapse rate (i.e. where
     temperature increases as altitude increases) that therefore have an inverted
@@ -76,8 +78,8 @@ def compute_lapse_rate_adjustment(lapse_rate, orog_diff, max_orog_diff_inversion
         57, 1907–1929, https://doi.org/10.1175/JAMC-D-17-0140.1.
 
     Args:
-        lapse_rate_cube: Cube containing lapse rate.
-        orog_diff: Cube containing the difference in orography
+        lapse_rate: Array containing lapse rate.
+        orog_diff: Array containing the difference in orography
             (destination orography minus source orography).
         max_orog_diff_inversion: Maximum vertical displacement in metres allowed that
             corresponds to a temperature inversion. Defaults to 50.
