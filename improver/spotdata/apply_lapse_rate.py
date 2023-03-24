@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 
 """Apply temperature lapse rate adjustments to a spot data cube."""
+from typing import Optional
 
 import iris
 import numpy as np
@@ -89,7 +90,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         )
 
     def _check_inputs(
-        self, gridded_lapse_rate_cube: Cube, neighbour_cube: Cube, spot_data_cube: Cube
+        self, spot_data_cube: Cube, neighbour_cube: Cube, gridded_lapse_rate_cube: Cube
     ):
         """
         Checks cubes for compatibility, raising Exceptions as appropriate.
@@ -213,7 +214,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         self,
         spot_data_cube: Cube,
         neighbour_cube: Cube,
-        gridded_lapse_rate_cube: Cube = None,
+        gridded_lapse_rate_cube: Optional[Cube] = None,
     ) -> Cube:
         """
         Extract lapse rates from the appropriate grid points and apply them to
@@ -247,7 +248,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
             the lapse rates to give a better representation of the site's
             temperatures.
         """
-        self._check_inputs(gridded_lapse_rate_cube, neighbour_cube, spot_data_cube)
+        self._check_inputs(spot_data_cube, neighbour_cube, gridded_lapse_rate_cube)
 
         # Apply lapse rate adjustment to the temperature at each site.
         if self.use_fixed_lr:
