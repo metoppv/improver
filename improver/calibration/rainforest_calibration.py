@@ -61,13 +61,10 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
-import os
 import datetime as dt
-from improver.utilities.save import save_netcdf
-from improver.calibration.utilities import inv_log_transform
 from improver.ensemble_copula_coupling.utilities import interpolate_pointwise
 import iris
-from improver.cli import blend_cycles_and_realizations, weighted_blending
+from improver.cli import blend_cycles_and_realizations
 
 # Passed to choose_set_of_percentiles to set of evenly spaced percentiles
 DEFAULT_ERROR_PERCENTILES_COUNT = 19
@@ -765,20 +762,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         thresholds = error_values + np.expand_dims(aligned_forecast.data, axis=0)
         probabilities = error_CDF.data
 
-        # add bounds
-        # bounds_data = BOUNDS_FOR_ECDF["forecast_error_of_lwe_thickness_of_precipitation_amount"]
-        # bounds_unit = unit.Unit(bounds_data[1])
-        # lower_bound, upper_bound = bounds_data[0]
-        # lower_bound_in_fcst_units = bounds_unit.convert(
-        #     lower_bound, forecast_cube.units
-        # )
-        # upper_bound_in_fcst_units = bounds_unit.convert(
-        #     upper_bound, forecast_cube.units
-        # )
-        # thresholds = np.concatenate([aligned_forecast.data[np.newaxis, :, :] + lower_bound_in_fcst_units,
-        # thresholds, aligned_forecast.data[np.newaxis, :, :] + upper_bound_in_fcst_units], axis=0)
-        # probabilities = np.concatenate([np.ones((1, ) + probabilities.shape[1:]), probabilities, np.zeros((1, ) + probabilities.shape[1:])], axis=0)
-
         # transform
         if self.transform:
             thresholds = self.transform(thresholds)
@@ -808,26 +791,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         thresholds = np.where(negative_threshold, 0, thresholds)
         probabilities = np.where(negative_threshold, 1, probabilities)
 
-        # add zero threshold
-        # thresholds = np.concatenate([np.zeros_like(thresholds[[0]]), thresholds], axis=0)
-        # probabilities = np.concatenate([np.ones_like(probabilities[[0]]), probabilities])
-        # sort_ind = np.argsort(thresholds, axis=0)
-        # thresholds = np.take_along_axis(thresholds, sort_ind, axis=0)
-        # probabilities = np.take_along_axis(probabilities, sort_ind, axis=0)
-
         # interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
         output_array = np.empty((len(output_thresholds),) + thresholds.shape[1:])
         interpolate_pointwise(
             thresholds, probabilities, output_thresholds, output_array
         )
-
-        # set probability to 1 for thresholds <= 0
-        # output_thresholds_exp = output_thresholds
-        # for i in range(len(output_array.shape) - 1):
-        #     output_thresholds_exp = np.expand_dims(output_thresholds_exp, -1)
-        # negative_threshold = output_thresholds_exp <= 0
-        # output_array = np.where(negative_threshold, 1, output_array)
 
         # make output cube
         aux_coords_and_dims = [
@@ -854,13 +823,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             aux_coords_and_dims=aux_coords_and_dims,
         )
 
-        # blend accross realizations
-        # num_realizations = len(aligned_forecast.coord("realization").points)
-        # control_weight = 0.25
-        # other_weight = ((1 - control_weight) / (num_realizations - 1))
-        # control_weight *= num_realizations
-        # other_weight *= num_realizations
-        # probability_cube.data = np.concatenate([probability_cube.data[:, [0], :]* control_weight, probability_cube.data[:, 1:, :] * other_weight], axis=1)
         
         cycle_time = dt.datetime.utcfromtimestamp(
             probability_cube.coord("forecast_reference_time").points[0]
@@ -869,33 +831,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             probability_cube, cycletime=cycle_time
         )
 
-        # control_weight = 0.5
-        # num_realizations = len(aligned_forecast.coord("realization").points)
-        # other_weight = (1 - control_weight) / (num_realizations - 1)
-        # weight_dict = {
-        #         0: {
-        #             "forecast_period": [0, 24],
-        #             "weights": [control_weight, control_weight],
-        #             "units": "hours",
-        #         }
-        #     }
-        # weight_dict.update({
-        #         i: {
-        #             "forecast_period": [0, 24],
-        #             "weights": [other_weight, other_weight],
-        #             "units": "hours",
-        #         } for i in range(1, num_realizations)
-		# })
-        # output_cube = weighted_blending.process(
-        #     probability_cube, 
-        #     coordinate="realization", 
-        #     weighting_method="dict",
-        #     weighting_coord="forecast_period",
-        #     weighting_config=weight_dict,
-        #     cycletime=cycle_time
-        # )
-        # output_cube.data = np.maximum(0, output_cube.data)
-        # output_cube.data = np.minimum(1, output_cube.data)
         return output_cube
 
 

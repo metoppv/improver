@@ -481,11 +481,3 @@ def check_data_sufficiency(
                 f"historic forecasts and truth pairs: {proportion_of_nans}."
             )
             raise ValueError(msg)
-
-
-def log_transform(data: ndarray, shift: float) -> ndarray:
-    return np.log(data + shift)
-
-
-def inv_log_transform(data: ndarray, shift: float) -> ndarray:
-    return np.exp(data) - shift
