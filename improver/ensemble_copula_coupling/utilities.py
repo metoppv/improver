@@ -34,6 +34,7 @@ plugins.
 
 """
 import warnings
+from itertools import product
 from typing import List, Optional, Union
 
 import cf_units as unit
@@ -42,50 +43,9 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 from numpy import ndarray
-from numba import njit, prange
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
-
-
-def interpolate_pointwise(thresholds, probabilities, output_thresholds, output_array):
-    """
-    Given arrays of thresholds and probabilities of exceedance, interpolate pointwise 
-    to get probabilities at output threhsolds.
-    Args:
-        thresholds: array with dimensions (threshold, realization, *spatial_dims)
-        probabilities: array with dimensions (threhsold, realization, *spatial_dims)
-        output_threhsolds: 1-d array
-        output_array: array with dimensions (len(output_thresholds), realization, *spatial_dims), 
-            will be modified in-place
-    """
-    # TODO: check thresholds and probabilties have same shape apart from 0th dim
-    # TODO: check thresholds has either 3 or 4 dimensions
-    # TODO: check dims of output array
-
-    if len(thresholds.shape) == 3:
-        interpolate_pointwise_site(thresholds, probabilities, output_thresholds, output_array)
-    else:
-        interpolate_pointwise_grid(thresholds, probabilities, output_thresholds, output_array)
-
-
-@njit(parallel=True)
-def interpolate_pointwise_site(thresholds, probabilities, output_thresholds, output_array):
-    for i in prange(thresholds.shape[1]):
-        for j in range(thresholds.shape[2]):
-            curr_thresholds = thresholds[:, i, j]
-            curr_probs = probabilities[:, i, j]
-            output_array[:, i, j] = np.interp(output_thresholds, curr_thresholds, curr_probs)
-
-
-@njit(parallel=True)
-def interpolate_pointwise_grid(thresholds, probabilities, output_thresholds, output_array):
-    for i in prange(thresholds.shape[1]):
-        for j in range(thresholds.shape[2]):
-            for k in range(thresholds.shape[3]):
-                curr_thresholds = thresholds[:, i, j, k]
-                curr_probs = probabilities[:, i, j, k]
-                output_array[:, i, j, k] = np.interp(output_thresholds, curr_thresholds, curr_probs)
 
 def concatenate_2d_array_with_2d_array_endpoints(
     array_2d: ndarray, low_endpoint: float, high_endpoint: float,
@@ -416,3 +376,60 @@ def interpolate_multiple_rows_same_y(*args):
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
         return slow_interp_same_y(*args)
+
+
+def slow_interpolate_pointwise(x, xp, fp):
+    """
+    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions 
+    at values given by x.
+
+    Args:
+        x: 1-d array, points at which to evaluate interpolation function
+        xp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+        fp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+    
+    Returns:
+        array with dimensions (len(x), ) + xp.shape[1:]
+    """
+
+    if xp.shape != fp.shape:
+        raise ValueError("xp and fp must have the same shape")
+    if len(xp.shape) < 2:
+        raise ValueError("xp and fp must have at least 2 dimensions")
+    result = np.empty((len(x),) + xp.shape[1])
+    for coords in product(xp.shape[1:]):
+        coord_slice = (slice(None),) + coords
+        result[coord_slice] = np.interp(x, xp[coord_slice], fp[coord_slice])
+    return result
+
+
+def interpolate_pointwise(*args):
+    """
+    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions
+    at values given by x. Specifically, if xp and fp have dimensions d0, ..., dn,
+    then the output has dimensions len(x), d1, ..., dn, and the value of coordinate
+    (i_0, ..., i_n) is equal to np.interp(x, xp[:, i_1, ..., i_n], fp[:, i_1, ..., i_n]).
+
+    Calls a fast numba implementation where numba is available (see
+    `improver.ensemble_copula_coupling.numba_utilities.fast_interpolate_pointwise`) and calls
+    a native python implementation otherwise (see :func:`slow_interpolate_pointwise`).
+
+    Args:
+        x: 1-d array, points at which to evaluate interpolation function
+        xp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+        fp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+
+    Returns:
+        array with dimensions (len(x), ) + xp.shape[1:]
+    """
+    try:
+        import numba  # noqa: F401
+
+        from improver.ensemble_copula_coupling.numba_utilities import (
+            fast_interpolate_pointwise,
+        )
+
+        return fast_interpolate_pointwise(*args)
+    except ImportError:
+        warnings.warn("Module numba unavailable. interpolate_pointwise will be slower.")
+        return slow_interpolate_pointwise(*args)

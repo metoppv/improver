@@ -67,14 +67,12 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     to lightGBM if requirements are missing.
     """
 
-    def __new__(cls, model_config_dict: dict, transform: Callable, threads: int = 1):
+    def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Initialise class object based on package and model file availability.
 
         Args:
             model_config_dict:
                 Dictionary containing Rainforests model configuration variables.
-            transform:
-                Transform to apply before returning output.
             threads:
                 Number of threads to use during prediction with tree-model objects.
 
@@ -159,15 +157,13 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def __init__(self, model_config_dict: dict, transform: Callable, threads: int = 1):
+    def __init__(self, model_config_dict: dict, threads: int = 1):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. LightGBM Boosters are used for tree model predictors.
 
         Args:
             model_config_dict:
                 Dictionary containing Rainforests model configuration variables.
-            transform:
-                Transform to apply before returning output.
             threads:
                 Number of threads to use during prediction with tree-model objects.
 
@@ -208,7 +204,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             Booster(model_file=str(file)).reset_parameter({"num_threads": threads})
             for file in lightgbm_model_filenames
         ]
-        self.transform = transform
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
@@ -543,16 +538,18 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         # Interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
-        output_array = np.empty((len(output_thresholds),) + thresholds.shape[1:])
-        interpolate_pointwise(
-            thresholds, probabilities, output_thresholds, output_array
+        output_array = interpolate_pointwise(
+            output_thresholds, thresholds, probabilities
         )
 
         # Make output cube
-        aux_coords_and_dims = [
-            (coord.copy(), forecast.coord_dims(coord))
-            for coord in getattr(forecast, "aux_coords")
-        ]
+        aux_coords_and_dims = []
+        for coord in getattr(forecast, "aux_coords"):
+            coord_dims = forecast.coord_dims(coord)
+            if len(coord_dims) == 0:
+                aux_coords_and_dims.append((coord.copy(), []))
+            else:
+                (coord.copy(), forecast.coord_dims(coord)[0] + 1)
         forecast_variable = forecast.name()
         threshold_dim = iris.coords.DimCoord(
             output_thresholds,
@@ -562,7 +559,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
         dim_coords_and_dims = [(threshold_dim, 0)] + [
-            (coord.copy(), forecast.coord_dims(coord) + 1)
+            (coord.copy(), forecast.coord_dims(coord)[0] + 1)
             for coord in forecast.coords(dim_coords=True)
         ]
         probability_cube = iris.cube.Cube(
@@ -659,7 +656,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     """Class to calibrate input forecast given via RainForests approach using treelite
     compiled tree models"""
 
-    def __new__(cls, model_config_dict: dict, transform: Callable, threads: int = 1):
+    def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
         # is available.
@@ -676,15 +673,13 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def __init__(self, model_config_dict: dict, transform: Callable, threads: int = 1):
+    def __init__(self, model_config_dict: dict, threads: int = 1):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. Treelite Predictors are used for tree model predictors.
 
         Args:
             model_config_dict:
                 Dictionary containing Rainforests model configuration variables.
-            transform:
-                Transform to apply before returning output.
             threads:
                 Number of threads to use during prediction with tree-model objects.
 
@@ -725,7 +720,6 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             Predictor(libpath=str(file), verbose=False, nthread=threads)
             for file in treelite_model_filenames
         ]
-        self.transform = transform
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
