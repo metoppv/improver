@@ -168,5 +168,5 @@ def fast_interpolate_pointwise(x, xp, fp):
     fp_reshaped = np.reshape(fp, new_shape)
     for i in prange(xp_reshaped.shape[1]):
         result[:, i] = np.interp(x, xp_reshaped[:, i], fp_reshaped[:, i])
-    reshaped_result = np.reshape(result, (len(x),) + xp.shape[1:])
+    reshaped_result = np.reshape(result, (len(x),) + tuple(xp.shape[1:]))
     return reshaped_result
