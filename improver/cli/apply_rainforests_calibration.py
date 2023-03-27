@@ -39,7 +39,7 @@ def process(
     forecast: cli.inputcube,
     *features: cli.inputcube,
     model_config: cli.inputjson,
-    output_thresholds:  cli.comma_separated_list_of_float,
+    output_thresholds: cli.comma_separated_list_of_float,
     threads: int = 1,
 ):
     """
@@ -81,7 +81,5 @@ def process(
     from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
     return ApplyRainForestsCalibration(model_config, threads).process(
-        forecast,
-        CubeList(features),
-        output_thresholds=output_thresholds,
+        forecast, CubeList(features), output_thresholds=output_thresholds,
     )

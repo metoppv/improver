@@ -398,7 +398,7 @@ def slow_interpolate_pointwise(x, xp, fp):
         raise ValueError("xp and fp must have at least 2 dimensions")
     result = np.empty((len(x),) + tuple(xp.shape[1:]))
     for coords in product(*[range(i) for i in xp.shape[1:]]):
-        coord_slice = (slice(None), ) + coords
+        coord_slice = (slice(None),) + coords
         result[coord_slice] = np.interp(x, xp[coord_slice], fp[coord_slice])
     return result
 
