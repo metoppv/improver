@@ -36,7 +36,6 @@
 
 """
 
-import datetime as dt
 from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
@@ -488,12 +487,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self, error_CDF: Cube, forecast: Cube, output_thresholds: List[float]
     ) -> Cube:
         """
-        Add the error CDF to the NWP forecast and extract probabilities at output thresholds 
+        Add the error CDF to the NWP forecast and extract probabilities at output thresholds
         for all realizations.
 
         Args:
             error_CDF:
-                Cube containing the CDF of probabilities for each enemble member at error 
+                Cube containing the CDF of probabilities for each enemble member at error
                 threhsolds.
             forecast:
                 Cube containing NWP ensemble forecast.
@@ -518,7 +517,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # Add bounds
         epsilon = 0.0001
         thresholds = np.concatenate(
-            [thresholds[[0]] - epsilon, thresholds, thresholds[[-1]] + epsilon,],
+            [thresholds[[0]] - epsilon, thresholds, thresholds[[-1]] + epsilon],
             axis=0,
         )
         probabilities = error_CDF.data

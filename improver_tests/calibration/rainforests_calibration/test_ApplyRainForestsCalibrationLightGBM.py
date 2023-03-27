@@ -32,7 +32,6 @@
 import numpy as np
 import pytest
 from iris import Constraint
-from iris.util import new_axis
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,

@@ -380,14 +380,14 @@ def interpolate_multiple_rows_same_y(*args):
 
 def slow_interpolate_pointwise(x, xp, fp):
     """
-    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions 
+    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions
     at values given by x.
 
     Args:
         x: 1-d array, points at which to evaluate interpolation function
         xp: array with at least 2 dimensions. First dimension is the interpolation dimension.
         fp: array with at least 2 dimensions. First dimension is the interpolation dimension.
-    
+
     Returns:
         array with dimensions (len(x), ) + xp.shape[1:]
     """

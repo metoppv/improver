@@ -41,7 +41,6 @@ from improver.calibration.rainforest_calibration import (
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
-    set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
