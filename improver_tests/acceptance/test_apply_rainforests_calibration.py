@@ -54,14 +54,14 @@ def create_model_config():
     with open(relative_path_model_config_file, "r") as model_config_json:
         relative_path_model_config_dict = json.load(model_config_json)
 
-    absoluate_path_model_config_dict = {}
+    absolute_path_model_config_dict = {}
     for threshold, relative_path in relative_path_model_config_dict.items():
         absolute_path = relative_path["lightgbm_model"].replace(
             "./", str(acc.kgo_root()) + "/"
         )
-        absoluate_path_model_config_dict[threshold] = {"lightgbm_model": absolute_path}
+        absolute_path_model_config_dict[threshold] = {"lightgbm_model": absolute_path}
 
-    return absoluate_path_model_config_dict
+    return absolute_path_model_config_dict
 
 
 def test_basic(tmp_path, create_model_config):
@@ -83,62 +83,8 @@ def test_basic(tmp_path, create_model_config):
         *feature_paths,
         "--model-config",
         model_config,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_output_realizations_count(tmp_path, create_model_config):
-    """
-    Test case where non-default number of output realizations is specified.
-    """
-    rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
-    kgo_path = rainforests_dir / "output_realizations_count" / "kgo.nc"
-    forecast_path = (
-        rainforests_dir
-        / "features"
-        / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
-    )
-    feature_paths = (rainforests_dir / "features").glob("20200802T0000Z-PT00*-PT24H.nc")
-    model_config = create_model_config
-    output_path = tmp_path / "output.nc"
-    args = [
-        forecast_path,
-        *feature_paths,
-        "--model-config",
-        model_config,
-        "--output-realizations-count",
-        "25",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_error_percentiles_count(tmp_path, create_model_config):
-    """
-    Test case where non-default number of error percentiles is specified.
-    """
-    rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
-    kgo_path = rainforests_dir / "error_percentiles_count" / "kgo.nc"
-    forecast_path = (
-        rainforests_dir
-        / "features"
-        / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
-    )
-    feature_paths = (rainforests_dir / "features").glob("20200802T0000Z-PT00*-PT24H.nc")
-    model_config = create_model_config
-    output_path = tmp_path / "output.nc"
-    args = [
-        forecast_path,
-        *feature_paths,
-        "--model-config",
-        model_config,
-        "--error-percentiles-count",
-        "10",
+        "--output-thresholds",
+        "0.0,0.0005,0.001",
         "--output",
         output_path,
     ]

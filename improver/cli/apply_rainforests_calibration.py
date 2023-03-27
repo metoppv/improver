@@ -39,8 +39,7 @@ def process(
     forecast: cli.inputcube,
     *features: cli.inputcube,
     model_config: cli.inputjson,
-    error_percentiles_count: int = 19,
-    output_realizations_count: int = 100,
+    output_thresholds:  cli.comma_separated_list_of_float,
     threads: int = 1,
 ):
     """
@@ -68,15 +67,8 @@ def process(
             be broadcast along the realization dimension.
         model_config (dict):
             Dictionary containing RainForests model configuration data.
-        error_percentiles_count (int):
-            The number of error percentiles to apply to each ensemble realization.
-            The resulting super-ensemble will be of size = forecast.realization.size *
-            error_percentiles_count.
-        output_realizations_count (int):
-            The number of realizations to output for the calibrated ensemble.
-            These realizations are sampled by taking equispaced percentiles
-            from the super-ensemble. If None is supplied, then all realizations
-            from the super-ensemble will be returned.
+        output_thresholds (list):
+            List of thresholds at which to evaluate output probabilties.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
 
@@ -91,6 +83,5 @@ def process(
     return ApplyRainForestsCalibration(model_config, threads).process(
         forecast,
         CubeList(features),
-        error_percentiles_count=error_percentiles_count,
-        output_realizations_count=output_realizations_count,
+        output_thresholds=output_thresholds,
     )
