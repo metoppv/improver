@@ -36,39 +36,27 @@
 
 """
 
-import warnings
+import datetime as dt
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable, Optional, Tuple, List
+from typing import Callable, List, Tuple
 
 import cf_units as unit
+import iris
 import numpy as np
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
-from iris.util import new_axis
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
-from improver.cli import generate_percentiles
+from improver.cli import blend_cycles_and_realizations
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    ConvertProbabilitiesToPercentiles,
-    RebadgePercentilesAsRealizations,
-)
-from improver.ensemble_copula_coupling.utilities import choose_set_of_percentiles
+from improver.ensemble_copula_coupling.utilities import interpolate_pointwise
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
-import datetime as dt
-from improver.ensemble_copula_coupling.utilities import interpolate_pointwise
-import iris
-from improver.cli import blend_cycles_and_realizations
-
-# Passed to choose_set_of_percentiles to set of evenly spaced percentiles
-DEFAULT_ERROR_PERCENTILES_COUNT = 19
-DEFAULT_OUTPUT_REALIZATIONS_COUNT = 100
 
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
@@ -501,193 +489,91 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         return error_probability_cube
 
-    def _extract_error_percentiles(
-        self, error_probability_cube, error_percentiles_count
-    ):
-        """Extract error percentile values from the error exceedence probabilities.
-
-        Args:
-            error_probability_cube:
-                A cube containing error exceedence probabilities.
-            error_percentiles_count:
-                The number of error percentiles to extract. The resulting percentiles
-                will be evenly spaced over the interval (0, 100).
-
-        Returns:
-            Cube containing percentile values for the error distributions.
-        """
-        error_percentiles = choose_set_of_percentiles(
-            error_percentiles_count, sampling="quantile",
-        )
-        error_percentiles_cube = ConvertProbabilitiesToPercentiles().process(
-            error_probability_cube, percentiles=error_percentiles
-        )
-        if len(error_percentiles_cube.coord_dims("realization")) == 0:
-            error_percentiles_cube = new_axis(error_percentiles_cube, "realization")
-
-        return error_percentiles_cube
-
-    def _apply_error_to_forecast(
-        self, forecast_cube: Cube, error_percentiles_cube: Cube
+    def _get_ensemble_distributions(
+        self, error_CDF: Cube, forecast: Cube, output_thresholds: List[float]
     ) -> Cube:
-        """Apply the error distributions (as error percentiles) to the forecast cube.
-        The result is a series (sub-ensemble) of values for each forecast realization.
-
-        Note:
-
-            Within the RainForests approach we work with an additive error correction
-            as opposed to a multiplicative correction used in ECPoint. The advantage of
-            using an additive error is that we are also able to calibrate zero-values in
-            the input forecast.
-
-        Warning:
-
-            After applying the error distributions to the forecast cube, values outside
-            the expected bounds of the forecast parameter can arise. These values occur when
-            when the input forecast value is between error thresholds and there exists a
-            lower bound on the observable value (eg. 0 in the case of rainfall).
-
-            In this situation, error thresholds below the residual value (min(obs) - fcst)
-            must have a probability of exceedance of 1, whereas as error thresholds above
-            this value can take on any value between [0, 1]. In the subsequent step where
-            error percentile values are extracted, the linear interpolation in mapping from
-            probabilities to percentiles can give percentile values that lie below the
-            residual value; when these are applied to the forecast value, they result in
-            forecast values outside the expected bounds of the forecast parameter in the
-            resultant sub-ensemble.
-
-            To address this, we remap all values outside of the expected bounds to nearest
-            bound (eg. negative values are mapped to 0 in the case of rainfall).
+        """
+        Add the error CDF to the NWP forecast and extract probabilities at output thresholds 
+        for all realizations.
 
         Args:
-            forecast_cube:
-                Cube containing the forecast to be calibrated.
-            error_percentiles_cube:
-                Cube containing percentile values for the error distributions.
+            error_CDF:
+                Cube containing the CDF of probabilities for each enemble member at error 
+                threhsolds.
+            forecast:
+                Cube containing NWP ensemble forecast.
+            output_thresholds:
+                Ordered list of thresholds at which to calculate the output probabilities.
 
         Returns:
-            Cube containing the forecast sub-ensembles.
+            Cube containing probabilities at output thresholds for all realizations. Dimensions
+            are same as forecast cube with additional threshold dimension first.
         """
-        # Apply the error_percentiles to the forecast_cube (additive correction)
-        forecast_subensembles_data = (
-            forecast_cube.data[:, np.newaxis] + error_percentiles_cube.data
+
+        # Add error to forecast
+        error_values = error_CDF.coord(
+            "forecast_error_of_lwe_thickness_of_precipitation_amount"
+        ).points
+        num_forecast_dims = len(forecast.coords(dim_coords=True))
+        for i in range(num_forecast_dims):
+            error_values = np.expand_dims(error_values, axis=-1)
+        thresholds = error_values + np.expand_dims(forecast.data, axis=0)
+        probabilities = error_CDF.data
+
+        # Add bounds
+        epsilon = 0.0001
+        thresholds = np.concatenate(
+            [thresholds[[0]] - epsilon, thresholds, thresholds[[-1]] + epsilon,],
+            axis=0,
         )
-        # RAINFALL SPECIFIC IMPLEMENTATION:
-        # As described above, we need to address value outside of expected bounds.
-        # In the case of rainfall, we map all negative values to 0.
-        forecast_subensembles_data = np.maximum(0.0, forecast_subensembles_data)
-        # Return cube containing forecast subensembles
-        return create_new_diagnostic_cube(
-            name=forecast_cube.name(),
-            units=forecast_cube.units,
-            template_cube=error_percentiles_cube,
-            mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
-            optional_attributes=forecast_cube.attributes,
-            data=forecast_subensembles_data,
+        probabilities = error_CDF.data
+        probabilities = np.concatenate(
+            [
+                np.ones((1,) + probabilities.shape[1:]),
+                probabilities,
+                np.zeros((1,) + probabilities.shape[1:]),
+            ],
+            axis=0,
         )
 
-    def _stack_subensembles(self, forecast_subensembles: Cube) -> Cube:
-        """Stacking the realization and percentile dimensions in forecast_subensemble
-        into a single realization dimension. Realization and percentile are assumed to
-        be the first and second dimensions respectively.
+        # Set probability to 1 for negative thresholds
+        negative_threshold = thresholds <= 0
+        thresholds = np.where(negative_threshold, 0, thresholds)
+        probabilities = np.where(negative_threshold, 1, probabilities)
 
-        Args:
-            input_cube:
-                Cube containing the forecast_subensembles.
+        # Interpolate
+        output_thresholds = np.sort(output_thresholds).astype(np.float32)
+        output_array = np.empty((len(output_thresholds),) + thresholds.shape[1:])
+        interpolate_pointwise(
+            thresholds, probabilities, output_thresholds, output_array
+        )
 
-        Returns:
-            Cube containing single realization dimension in place of the realization
-            and percentile dimensions in forecast_subensemble.
-
-        Raises:
-            ValueError:
-                if realization and percentile are not the first and second
-                dimensions.
-        """
-        realization_percentile_dims = (
-            *forecast_subensembles.coord_dims("realization"),
-            *forecast_subensembles.coord_dims("percentile"),
+        # Make output cube
+        aux_coords_and_dims = [
+            (coord.copy(), forecast.coord_dims(coord))
+            for coord in getattr(forecast, "aux_coords")
+        ]
+        forecast_variable = forecast.name()
+        threshold_dim = iris.coords.DimCoord(
+            output_thresholds,
+            standard_name=forecast_variable,
+            units=forecast.units,
+            var_name="threshold",
+            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
-        if realization_percentile_dims != (0, 1):
-            raise ValueError("Invalid dimension coordinate ordering.")
-        realization_size = len(forecast_subensembles.coord("realization").points)
-        percentile_size = len(forecast_subensembles.coord("percentile").points)
-        new_realization_coord = DimCoord(
-            points=np.arange(realization_size * percentile_size, dtype=np.int32),
-            standard_name="realization",
-            units="1",
-        )
-        # As we are stacking the first two dimensions, we need to subtract 1 from all
-        # dimension position values.
-        dim_coords_and_dims = [(new_realization_coord, 0)]
-        dim_coords = forecast_subensembles.coords(dim_coords=True)
-        for coord in dim_coords:
-            if coord.name() not in ["realization", "percentile"]:
-                dims = tuple(
-                    d - 1 for d in forecast_subensembles.coord_dims(coord.name())
-                )
-                dim_coords_and_dims.append((coord, dims))
-        aux_coords_and_dims = []
-        aux_coords = forecast_subensembles.coords(dim_coords=False)
-        for coord in aux_coords:
-            dims = tuple(d - 1 for d in forecast_subensembles.coord_dims(coord.name()))
-            aux_coords_and_dims.append((coord, dims))
-        # Stack the first two dimensions.
-        superensemble_data = np.reshape(
-            forecast_subensembles.data, (-1,) + forecast_subensembles.data.shape[2:]
-        )
-        superensemble_cube = Cube(
-            superensemble_data,
-            standard_name=forecast_subensembles.standard_name,
-            long_name=forecast_subensembles.long_name,
-            var_name=forecast_subensembles.var_name,
-            units=forecast_subensembles.units,
+        dim_coords_and_dims = [(threshold_dim, 0)] + [
+            (coord.copy(), forecast.coord_dims(coord) + 1)
+            for coord in forecast.coords(dim_coords=True)
+        ]
+        probability_cube = iris.cube.Cube(
+            output_array.astype(np.float32),
+            long_name=f"probability_of_{forecast_variable}_above_threshold",
+            units=1,
+            attributes=forecast.attributes,
             dim_coords_and_dims=dim_coords_and_dims,
             aux_coords_and_dims=aux_coords_and_dims,
-            attributes=forecast_subensembles.attributes,
         )
-        return superensemble_cube
-
-    def _combine_subensembles(
-        self, forecast_subensembles: Cube, output_realizations_count: Optional[int]
-    ) -> Cube:
-        """Combine the forecast sub-ensembles into a single ensemble. This is done by
-        first stacking the sub-ensembles into a single super-ensemble and then resampling
-        the super-ensemble to produce a subset of output realizations.
-
-        Args:
-            forecast_subensembles:
-                Cube containing a series of forecast sub-ensembles.
-            output_realizations_count:
-                The number of ensemble realizations that will be extracted from the
-                super-ensemble. If realizations_count is None, all realizations will
-                be returned.
-
-        Returns:
-            Cube containing single realization dimension.
-        """
-        superensemble_cube = self._stack_subensembles(forecast_subensembles)
-
-        if output_realizations_count is None:
-            warnings.warn(
-                Warning(
-                    "output_realizations_count not specified. Returning all realizations from the "
-                    "full super-ensemble."
-                )
-            )
-            return superensemble_cube
-
-        output_percentiles = choose_set_of_percentiles(
-            output_realizations_count, sampling="quantile",
-        )
-        percentile_cube = generate_percentiles.process(
-            superensemble_cube,
-            coordinates="realization",
-            percentiles=output_percentiles,
-        )
-        reduced_ensemble = RebadgePercentilesAsRealizations()(percentile_cube)
-
-        return reduced_ensemble
+        return probability_cube
 
     def process(
         self, forecast_cube: Cube, feature_cubes: CubeList, output_thresholds: List,
@@ -753,82 +639,17 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             aligned_forecast, aligned_features
         )
 
-        # Add error to forecast
-        error_values = error_CDF.coord(
-                "forecast_error_of_lwe_thickness_of_precipitation_amount"
-            ).points
-        for i in range(len(aligned_forecast.data.shape)):
-            error_values = np.expand_dims(error_values, axis=-1)
-        thresholds = error_values + np.expand_dims(aligned_forecast.data, axis=0)
-        probabilities = error_CDF.data
-
-        # transform
-        if self.transform:
-            thresholds = self.transform(thresholds)
-
-        # add bounds
-        epsilon = 0.0001
-        thresholds = np.concatenate(
-            [
-                thresholds[[0]] - epsilon,
-                thresholds,
-                thresholds[[-1]] + epsilon,
-            ],
-            axis=0,
-        )
-        probabilities = error_CDF.data
-        probabilities = np.concatenate(
-            [
-                np.ones((1,) + probabilities.shape[1:]),
-                probabilities,
-                np.zeros((1,) + probabilities.shape[1:]),
-            ],
-            axis=0,
+        # Calculate probabilities at output thresholds
+        probabilities_by_realization = self._get_ensemble_distributions(
+            error_CDF, aligned_forecast, output_thresholds
         )
 
-         # set probability to 1 for negative thresholds
-        negative_threshold = thresholds <= 0
-        thresholds = np.where(negative_threshold, 0, thresholds)
-        probabilities = np.where(negative_threshold, 1, probabilities)
-
-        # interpolate
-        output_thresholds = np.sort(output_thresholds).astype(np.float32)
-        output_array = np.empty((len(output_thresholds),) + thresholds.shape[1:])
-        interpolate_pointwise(
-            thresholds, probabilities, output_thresholds, output_array
-        )
-
-        # make output cube
-        aux_coords_and_dims = [
-            (coord.copy(), error_CDF.coord_dims(coord))
-            for coord in getattr(error_CDF, "aux_coords")
-        ]
-        threshold_dim = iris.coords.DimCoord(
-            output_thresholds,
-            standard_name="lwe_thickness_of_precipitation_amount",
-            units=aligned_forecast.units,
-            var_name="threshold",
-            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
-        )
-        dim_coords_and_dims = [(threshold_dim, 0)] + [
-            (coord.copy(), error_CDF.coord_dims(coord))
-            for coord in getattr(error_CDF, "dim_coords")[1:]
-        ]
-        probability_cube = iris.cube.Cube(
-            output_array.astype(np.float32),
-            long_name="probability_of_lwe_thickness_of_precipitation_amount_above_threshold",
-            units=1,
-            attributes=forecast_cube.attributes,
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims,
-        )
-
-        
+        # Average over realizations
         cycle_time = dt.datetime.utcfromtimestamp(
-            probability_cube.coord("forecast_reference_time").points[0]
+            probabilities_by_realization.coord("forecast_reference_time").points[0]
         ).strftime("%Y%m%dT%H%MZ")
         output_cube = blend_cycles_and_realizations.process(
-            probability_cube, cycletime=cycle_time
+            probabilities_by_realization, cycletime=cycle_time
         )
 
         return output_cube
