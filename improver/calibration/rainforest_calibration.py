@@ -517,8 +517,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # Add bounds
         epsilon = 0.0001
         thresholds = np.concatenate(
-            [thresholds[[0]] - epsilon, thresholds, thresholds[[-1]] + epsilon],
-            axis=0,
+            [thresholds[[0]] - epsilon, thresholds, thresholds[[-1]] + epsilon], axis=0,
         )
         probabilities = error_CDF.data
         probabilities = np.concatenate(
