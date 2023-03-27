@@ -39,17 +39,17 @@
 import datetime as dt
 from collections import OrderedDict
 from pathlib import Path
-from typing import Callable, List, Tuple
+from typing import List, Tuple
 
 import cf_units as unit
 import iris
 import numpy as np
+from iris.analysis import MEAN
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
-from improver.cli import blend_cycles_and_realizations
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.ensemble_copula_coupling.utilities import interpolate_pointwise
 from improver.metadata.utilities import (
@@ -549,7 +549,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             if len(coord_dims) == 0:
                 aux_coords_and_dims.append((coord.copy(), []))
             else:
-                (coord.copy(), forecast.coord_dims(coord)[0] + 1)
+                aux_coords_and_dims.append(
+                    (coord.copy(), forecast.coord_dims(coord)[0] + 1)
+                )
         forecast_variable = forecast.name()
         threshold_dim = iris.coords.DimCoord(
             output_thresholds,
@@ -642,12 +644,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Average over realizations
-        cycle_time = dt.datetime.utcfromtimestamp(
-            probabilities_by_realization.coord("forecast_reference_time").points[0]
-        ).strftime("%Y%m%dT%H%MZ")
-        output_cube = blend_cycles_and_realizations.process(
-            probabilities_by_realization, cycletime=cycle_time
-        )
+        output_cube = probabilities_by_realization.collapsed("realization", MEAN)
+        output_cube.remove_coord("realization")
 
         return output_cube
 
