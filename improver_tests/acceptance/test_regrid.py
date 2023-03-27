@@ -141,6 +141,8 @@ def test_regrid_nearest_landmask(tmp_path):
         "nearest-with-mask",
         "--regridded-title",
         GLOBAL_UK_TITLE,
+        "--land-sea-mask-vicinity",
+        "100000",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -165,6 +167,8 @@ def test_regrid_check_landmask(tmp_path):
         "nearest-with-mask",
         "--regridded-title",
         GLOBAL_UK_TITLE,
+        "--land-sea-mask-vicinity",
+        "100000",
     ]
     with pytest.warns(UserWarning, match=".*land_binary_mask.*"):
         run_cli(args)
@@ -221,6 +225,8 @@ def test_regrid_nearest_landmask_multi_realization(tmp_path):
         "nearest-with-mask",
         "--regridded-title",
         MOGREPS_G_UK_TITLE,
+        "--land-sea-mask-vicinity",
+        "100000",
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
