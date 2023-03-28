@@ -73,25 +73,32 @@ def set_up_cubes(lapse_rate):
     return orog_diff_cube, lapse_rate_cube
 
 
-@pytest.mark.parametrize("max_orog_diff_inversion", (50, 70,))
+@pytest.mark.parametrize("max_orog_diff_limit", (50, 70,))
 @pytest.mark.parametrize("lapse_rate", (-ELR, 0, ELR))
-def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_inversion):
+def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_limit):
     """Test the computation of the lapse rate adjustment."""
     orog_diff_cube, lapse_rate_cube = set_up_cubes(lapse_rate)
     result = compute_lapse_rate_adjustment(
         lapse_rate_cube.data,
         orog_diff_cube.data,
-        max_orog_diff_inversion=max_orog_diff_inversion,
+        max_orog_diff_limit=max_orog_diff_limit,
     )
 
     expected_data = lapse_rate_cube.data * orog_diff_cube.data
-    if lapse_rate > 0 and max_orog_diff_inversion == 50:
+    if np.isclose(lapse_rate, -ELR) and max_orog_diff_limit == 50:
         expected_data[1, 0] = -0.65
         expected_data[1, 1] = 0.65
         expected_data[3, 3] = 0.26
-    elif lapse_rate > 0 and max_orog_diff_inversion == 70:
+    elif np.isclose(lapse_rate, -ELR) and max_orog_diff_limit == 70:
         expected_data[1, 0] = -0.39
         expected_data[1, 1] = 0.39
+    elif np.isclose(lapse_rate, 0) and max_orog_diff_limit == 50:
+        expected_data[1, 0] = -0.975
+        expected_data[1, 1] = 0.975
+        expected_data[3, 3] = -0.065
+    elif np.isclose(lapse_rate, 0) and max_orog_diff_limit == 70:
+        expected_data[1, 0] = -0.845
+        expected_data[1, 1] = 0.845
 
     assert isinstance(result, np.ndarray)
     np.testing.assert_allclose(result, expected_data, rtol=1e-5, atol=1e-5)

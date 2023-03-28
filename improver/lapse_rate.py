@@ -53,16 +53,16 @@ from improver.utilities.cube_manipulation import (
 
 
 def compute_lapse_rate_adjustment(
-    lapse_rate: np.ndarray, orog_diff: np.ndarray, max_orog_diff_inversion: float = 50
+    lapse_rate: np.ndarray, orog_diff: np.ndarray, max_orog_diff_limit: float = 50
 ):
     """Compute the lapse rate adjustment i.e. the lapse rate multiplied by the
-    relevant orographic difference. Points with a positive lapse rate (i.e. where
-    temperature increases as altitude increases) that therefore have an inverted
-    temperature profile are capped, so that the positive lapse rate is assumed to be
-    appropriate for a fixed vertical displacement between the source and destination
-    orographies. If the the vertical displacement is greater than the limit specified,
-    further vertical ascent is assumed to follow the environmental lapse rate (also
-    known as standard atmosphere lapse rate).
+    relevant orographic difference. The lapse rate is assumed to be appropriate for a
+    fixed vertical displacement between the source and destination orographies.
+    If the the vertical displacement is greater than the limit specified,
+    further vertical ascent or descent is assumed to follow the environmental
+    lapse rate (also known as standard atmosphere lapse rate). Note that this is an
+    extension of Sheridan et al., 2018, which applies this vertical displacement limit
+    for positive lapse rates only.
 
     For the specific case of a deep unresolved valley with a positive lapse rate at
     the altitude of the source orography, the atmosphere can be imagined to be
@@ -81,8 +81,10 @@ def compute_lapse_rate_adjustment(
         lapse_rate: Array containing lapse rate.
         orog_diff: Array containing the difference in orography
             (destination orography minus source orography).
-        max_orog_diff_inversion: Maximum vertical displacement in metres allowed that
-            corresponds to a temperature inversion. Defaults to 50.
+        max_orog_diff_limit: Maximum vertical displacement in metres to be corrected
+            using the lapse rate provided. Vertical displacement in excess of this
+            value will be corrected using the environmental lapse rate (also known
+            as standard atmosphere lapse rate). This defaults to 50.
             Sheridan et al. use 70 m. As lapse rate adjustment could be performed
             both for gridded data and for site data in sequence, the adjustments
             could accumulate. To limit the possible cumulative effect from multiple
@@ -95,24 +97,22 @@ def compute_lapse_rate_adjustment(
     orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
     orig_orog_diff = orog_diff.copy()
 
-    # Constrain the orographic difference, if there is a positive lapse rate, and
-    # the orographic difference is either greater than the max allowed orographic
-    # difference (e.g. an unresolved hilltop) or less than the negative of the max
-    # allowed orographic difference (e.g. an unresolved valley).
-    condition1 = np.logical_and(lapse_rate > 0, orog_diff > max_orog_diff_inversion)
-    condition2 = np.logical_and(lapse_rate > 0, orog_diff < -max_orog_diff_inversion)
-    orog_diff[condition1] = max_orog_diff_inversion
-    orog_diff[condition2] = -max_orog_diff_inversion
+    # Constraint if the orographic difference is either greater than the max allowed
+    # orographic difference (e.g. an unresolved hilltop) or less than the negative of
+    # the max allowed orographic difference (e.g. an unresolved valley).
+    condition1 = orog_diff > max_orog_diff_limit
+    condition2 = orog_diff < -max_orog_diff_limit
+    orog_diff[condition1] = max_orog_diff_limit
+    orog_diff[condition2] = -max_orog_diff_limit
     vertical_adjustment = np.multiply(orog_diff, lapse_rate)
 
-    # Compute an additional lapse rate adjustment for points with a positive lapse rate
-    # and an absolute orographic difference greater than the maximum allowed for a
-    # temperature inversion.
+    # Compute an additional lapse rate adjustment for points with an absolute
+    # orographic difference greater than the maximum allowed.
     orig_orog_diff[condition1] = np.clip(
-        orig_orog_diff[condition1] - max_orog_diff_inversion, 0, None
+        orig_orog_diff[condition1] - max_orog_diff_limit, 0, None
     )
     orig_orog_diff[condition2] = np.clip(
-        orig_orog_diff[condition2] + max_orog_diff_inversion, None, 0
+        orig_orog_diff[condition2] + max_orog_diff_limit, None, 0
     )
 
     # Assume the Environmental Lapse Rate (also known as Standard Atmosphere
