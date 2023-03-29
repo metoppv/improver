@@ -54,7 +54,7 @@ from improver.utilities.cube_manipulation import (
 
 def compute_lapse_rate_adjustment(
     lapse_rate: np.ndarray, orog_diff: np.ndarray, max_orog_diff_limit: float = 50
-):
+) -> np.ndarray:
     """Compute the lapse rate adjustment i.e. the lapse rate multiplied by the
     relevant orographic difference. The lapse rate is assumed to be appropriate for a
     fixed vertical displacement between the source and destination orographies.
@@ -78,9 +78,9 @@ def compute_lapse_rate_adjustment(
         57, 1907–1929, https://doi.org/10.1175/JAMC-D-17-0140.1.
 
     Args:
-        lapse_rate: Array containing lapse rate.
+        lapse_rate: Array containing lapse rate in units of K/m.
         orog_diff: Array containing the difference in orography
-            (destination orography minus source orography).
+            (destination orography minus source orography) in metres.
         max_orog_diff_limit: Maximum vertical displacement in metres to be corrected
             using the lapse rate provided. Vertical displacement in excess of this
             value will be corrected using the environmental lapse rate (also known
@@ -92,7 +92,7 @@ def compute_lapse_rate_adjustment(
 
     Returns:
         The vertical lapse rate adjustment to be applied to correct a
-        temperature forecast.
+        temperature forecast in units of K/m.
     """
     orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
     orig_orog_diff = orog_diff.copy()

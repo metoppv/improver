@@ -68,13 +68,21 @@ def process(
         apply_lapse_rate_correction (bool):
             Use to apply a lapse-rate correction to screen temperature data so
             that the data are a better match the altitude of the spot site for
-            which they have been extracted.
+            which they have been extracted. This lapse rate will be applied for
+            a fixed orographic difference between the site and gridpoint
+            altitude. Differences in orography in excess of this fixed limit
+            will use the Environmental Lapse Rate (also known as the Standard
+            Atmosphere Lapse Rate).
         fixed_lapse_rate (float):
             If provided, use this fixed value as a lapse-rate for adjusting
             the forecast values if apply_lapse_rate_correction is True. This
             can be used instead of providing a lapse rate cube. Value is
             given in Kelvin / metre of temperature change with ascent. For
             example a dry adiabatic lapse rate would be given as -0.0098.
+            This lapse rate will be applied for a fixed orographic difference
+            between the site and gridpoint altitude. Differences in orography
+            in excess of this fixed limit will use the Environmental Lapse
+            Rate (also known as the Standard Atmosphere Lapse Rate).
         land_constraint (bool):
             Use to select the nearest-with-land-constraint neighbour-selection
             method from the neighbour_cube. This means that the grid points
