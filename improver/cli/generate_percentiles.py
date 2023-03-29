@@ -42,16 +42,18 @@ def process(
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
     ignore_ecc_bounds_exceedance=False,
+    flat_rank_histogram_percentiles=True,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
 
     Calculate percentiled data over a given coordinate by collapsing that
     coordinate. Typically used to convert realization data into percentiled
-    data, but may calculate over any dimension coordinate. Alternatively
-    calling this with a dataset containing probabilities will convert those
-    to percentiles using the ensemble coupla coupling plugin. If no particular
-    percentiles are given at which to calculate values and no
-    'number of percentiles' to calculate are specified, the
+    data, but may calculate over any dimension coordinate. If no coordinate for
+    collapsing over is provided, the realization data will instead by rebadged
+    as percentile data. Alternatively calling this with a dataset containing
+    probabilities will convert those to percentiles using the ensemble copula
+    coupling plugin. If no particular percentiles are given at which to calculate
+    values and no 'number of percentiles' to calculate are specified, the
     following defaults will be used.
     '[0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100]'
 
@@ -63,12 +65,17 @@ def process(
             calculate percentiles; e.g. 'realization' or 'latitude,longitude'.
             This argument must be provided when collapsing a coordinate or
             coordinates to create percentiles, but is redundant when
-            converting probabilities to percentiles and may be omitted. This
+            converting probabilities to percentiles and may be omitted. Not
+            providing the coordinate(s) with realization data will cause the
+            realizations to be rebadged as percentiles instead. This
             coordinate(s) will be removed and replaced by a percentile
             coordinate.
         percentiles (list):
             Optional definition of percentiles at which to calculate data.
         ignore_ecc_bounds_exceedance (bool):
+            If True, where calculated percentiles are outside the ECC bounds
+            range, raises a warning rather than an exception.
+        flat_rank_histogram_percentiles (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
 
@@ -92,6 +99,7 @@ def process(
 
     from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
         ConvertProbabilitiesToPercentiles,
+        RebadgeRealizationsAsPercentiles,
     )
     from improver.metadata.probabilistic import is_probability
     from improver.percentile import PercentileConverter
@@ -109,14 +117,7 @@ def process(
                 "provided COORDINATES_TO_COLLAPSE variable will "
                 "not be used."
             )
-    else:
-        if not coordinates:
-            raise ValueError(
-                "To collapse a coordinate to calculate "
-                "percentiles, a coordinate or list of "
-                "coordinates must be provided."
-            )
-
+    elif coordinates:
         # Switch back to use the slow scipy method if the cube contains masked
         # data which the numpy method cannot handle.
         fast_percentile_method = True
@@ -134,4 +135,9 @@ def process(
             percentiles=percentiles,
             fast_percentile_method=fast_percentile_method,
         )(cube)
+    else:
+        result = RebadgeRealizationsAsPercentiles(
+            flat_rank_histogram_percentiles=flat_rank_histogram_percentiles
+        )(cube)
+
     return result
