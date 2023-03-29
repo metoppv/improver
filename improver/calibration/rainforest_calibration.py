@@ -541,16 +541,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         # Interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
-        try:
-            output_array = interpolate_pointwise(
-                output_thresholds, thresholds, probabilities
-            )
-        except:
-            print(thresholds.flags["C_CONTIGUOUS"])
-            print(probabilities.flags["C_CONTIGUOUS"])
-            print(thresholds.shape)
-            print(probabilities.shape)
-            exit()
+        output_array = interpolate_pointwise(
+            output_thresholds, thresholds, probabilities
+        )
 
         # Make output cube
         aux_coords_and_dims = []
