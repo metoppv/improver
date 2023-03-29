@@ -298,6 +298,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             else:
                 aligned_cubes.append(cube)
 
+        # Make data contiguous (required for numba interpolation)
+        for cube in aligned_cubes:
+            if not cube.data.flags["C_CONTIGUOUS"]:
+                cube.data = np.ascontiguousarray(cube.data, dtype=cube.data.dtype)
+
         return aligned_cubes[:-1], aligned_cubes[-1]
 
     def _prepare_error_probability_cube(self, forecast_cube):
@@ -536,9 +541,16 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         # Interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
-        output_array = interpolate_pointwise(
-            output_thresholds, thresholds, probabilities
-        )
+        try:
+            output_array = interpolate_pointwise(
+                output_thresholds, thresholds, probabilities
+            )
+        except:
+            print(thresholds.flags["C_CONTIGUOUS"])
+            print(probabilities.flags["C_CONTIGUOUS"])
+            print(thresholds.shape)
+            print(probabilities.shape)
+            exit()
 
         # Make output cube
         aux_coords_and_dims = []
