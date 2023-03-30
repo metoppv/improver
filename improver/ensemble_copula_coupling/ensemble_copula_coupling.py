@@ -110,7 +110,7 @@ class RebadgeRealizationsAsPercentiles(BasePlugin):
         Returns:
             Cube containing percentiles.
         """
-        axis, = cube.coord_dims("realization")
+        (axis,) = cube.coord_dims("realization")
         cube.data = np.sort(cube.data, axis=axis)
 
         cube.coord("realization").rename("percentile")

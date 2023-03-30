@@ -32,9 +32,8 @@
 Unit tests for the `ensemble_copula_coupling.RebadgeRealizationsAsPercentiles` class.
 
 """
-import pytest
-
 import numpy as np
+import pytest
 from iris.cube import Cube
 
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -72,4 +71,3 @@ def test_process(data, flat_rank_histogram_percentiles):
         cube.coord("percentile").points, percentiles, atol=1e-4, rtol=1e-4
     )
     np.testing.assert_allclose(result.data, expected_data)
-

@@ -116,4 +116,3 @@ def test_rebadging(tmp_path, identifier):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
