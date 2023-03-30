@@ -44,23 +44,23 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
-@pytest.mark.parametrize("flat_rank_histogram_percentiles", (True, False,))
+@pytest.mark.parametrize("optimal_crps_percentiles", (True, False,))
 @pytest.mark.parametrize(
     "data", (ECC_TEMPERATURE_REALIZATIONS, ECC_TEMPERATURE_REALIZATIONS[::-1])
 )
-def test_process(data, flat_rank_histogram_percentiles):
+def test_process(data, optimal_crps_percentiles):
     """Check that rebadging realizations as percentiles gives the desired output."""
     cube = set_up_variable_cube(data, realizations=[0, 1, 2])
 
     result = RebadgeRealizationsAsPercentiles(
-        flat_rank_histogram_percentiles=flat_rank_histogram_percentiles
+        optimal_crps_percentiles=optimal_crps_percentiles
     )(cube)
     expected_data = ECC_TEMPERATURE_REALIZATIONS
 
-    if flat_rank_histogram_percentiles:
-        percentiles = [25, 50, 75]
-    else:
+    if optimal_crps_percentiles:
         percentiles = [16.6666, 50, 83.3333]
+    else:
+        percentiles = [25, 50, 75]
 
     assert isinstance(cube, Cube)
     assert len(cube.coords("percentile")) == 1

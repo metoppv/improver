@@ -42,7 +42,7 @@ def process(
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
     ignore_ecc_bounds_exceedance=False,
-    flat_rank_histogram_percentiles=True,
+    optimal_crps_percentiles=False,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
 
@@ -75,9 +75,13 @@ def process(
         ignore_ecc_bounds_exceedance (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
-        flat_rank_histogram_percentiles (bool):
-            If True, where calculated percentiles are outside the ECC bounds
-            range, raises a warning rather than an exception.
+        optimal_crps_percentiles (bool):
+            If True, percentiles are computed following the
+            recommendation of Bröcker, 2012 for optimising the CRPS using
+            the equation: q = (i-0.5)/N, i=1,...,N, where N is the number
+            of realizations. If False, percentiles are computed as equally
+            spaced following the equation: q = i/(1+N), i=1,...,N.
+            Defaults to False.
 
     Returns:
         iris.cube.Cube:
@@ -137,7 +141,7 @@ def process(
         )(cube)
     else:
         result = RebadgeRealizationsAsPercentiles(
-            flat_rank_histogram_percentiles=flat_rank_histogram_percentiles
+            optimal_crps_percentiles=optimal_crps_percentiles
         )(cube)
 
     return result

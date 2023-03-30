@@ -101,7 +101,7 @@ def test_eccbounds(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "identifier", ("flat_rank_histogram", "non_flat_rank_histogram")
+    "identifier", ("flat_rank_histogram_percentiles", "optimal_crps_percentiles")
 )
 def test_rebadging(tmp_path, identifier):
     """Test rebadging realizations as percentiles."""
@@ -114,5 +114,8 @@ def test_rebadging(tmp_path, identifier):
         "--output",
         output_path,
     ]
+    if identifier == "optimal_crps_percentiles":
+        args += ["--optimal-crps-percentiles"]
+
     run_cli(args)
     acc.compare(output_path, kgo_path)
