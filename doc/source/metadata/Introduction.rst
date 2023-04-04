@@ -226,9 +226,6 @@ cell_methods
     which is the temperature in this example.
     Cell methods are covered in more detail in the :ref:`stat-section`
 
-Statistical Processing
-======================
-
 grid_mapping
     Although in this case, the name of the projection used,
     this is actually only a label pointing to a separate grid mapping variable,
