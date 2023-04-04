@@ -92,7 +92,7 @@ def compute_lapse_rate_adjustment(
 
     Returns:
         The vertical lapse rate adjustment to be applied to correct a
-        temperature forecast in units of K/m.
+        temperature forecast in units of K.
     """
     orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
     orig_orog_diff = orog_diff.copy()
