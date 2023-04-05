@@ -49,7 +49,7 @@ def process(
     Calculate percentiled data over a given coordinate by collapsing that
     coordinate. Typically used to convert realization data into percentiled
     data, but may calculate over any dimension coordinate. If no coordinate for
-    collapsing over is provided, the realization data will instead by rebadged
+    collapsing over is provided, the realization data will instead be rebadged
     as percentile data. Alternatively calling this with a dataset containing
     probabilities will convert those to percentiles using the ensemble copula
     coupling plugin. If no particular percentiles are given at which to calculate

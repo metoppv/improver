@@ -111,13 +111,21 @@ class RebadgeRealizationsAsPercentiles(BasePlugin):
         Returns:
             Cube containing percentiles.
         """
-        (axis,) = cube.coord_dims("realization")
-        cube.data = np.sort(cube.data, axis=axis)
+        if not cube.coords("realization"):
+            coord_names = [c.name() for c in cube.coords(dim_coords=True)]
+            msg = (
+                "No realization coordinate is present within the input. "
+                "A realization coordinate must be present, as this will be "
+                "rebadged to be a percentile coordinate. The coordinates "
+                f"present were: {coord_names}"
+            )
+            raise CoordinateNotFoundError(msg)
+
+        if cube.coords("realization", dim_coords=True):
+            (axis,) = cube.coord_dims("realization")
+            cube.data = np.sort(cube.data, axis=axis)
 
         cube.coord("realization").rename("percentile")
-        cube.coord("percentile").points = cube.coord("percentile").points.astype(
-            np.float32
-        )
         cube.coord("percentile").units = "%"
         lenp = len(cube.coord("percentile").points)
         if self.optimal_crps_percentiles:
