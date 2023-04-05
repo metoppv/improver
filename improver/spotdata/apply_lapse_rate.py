@@ -38,6 +38,7 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
+from improver.lapse_rate import compute_lapse_rate_adjustment
 from improver.metadata.probabilistic import is_probability
 from improver.spotdata.spot_extraction import SpotExtraction, check_grid_match
 
@@ -261,6 +262,9 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
         vertical_displacement = self.extract_vertical_displacements(neighbour_cube)
 
         new_temperatures = (
-            spot_data_cube.data + (lapse_rate_values * vertical_displacement.data)
+            spot_data_cube.data
+            + compute_lapse_rate_adjustment(
+                lapse_rate_values, vertical_displacement.data
+            )
         ).astype(np.float32)
         return spot_data_cube.copy(data=new_temperatures)
