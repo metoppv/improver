@@ -110,6 +110,12 @@ f274cbc5a3b076a477a152d74a6ddac09a133f87619915a8d1a40c08f5d9d85b  ./blend-adjace
 3d84f229a2b9203ac5b685036d0a42b170075dfea1789fcb8e823cb82acdefdc  ./blend-cycles-and-realizations/basic/0900Z_precip_rate.nc
 cebf5785b5d98d11ab091f6e870b69a71ee95db4390fb7d509072006abb25543  ./blend-cycles-and-realizations/basic/1000Z_precip_rate.nc
 b082744bc817a37dfef5a165e52c71d3db5037342785db94393903323adc7346  ./blend-cycles-and-realizations/basic/kgo.nc
+c163c7abc3cfca24c9509b9f461da8e6defc2af6a33f26b52dc52d066389c265  ./blend-with-vicinity-and-rename/attributes.json
+67dbf1a0e1725cd4fe77dc2c2c422fb379edd59262cc6aaa2e0f40b207db8cf9  ./blend-with-vicinity-and-rename/blending_weights.json
+a7aec5f0b80d6f7ac6f71fea1c9bf15b76b92572509b5e550e7151bfd005777b  ./blend-with-vicinity-and-rename/enukx.nc
+6c498befd962f286dedc8041ea8981007474f32995ee5dba0b6fbf6629ae47ad  ./blend-with-vicinity-and-rename/ncuk.nc
+00afa510d2b1f088f14cf75dd8aad80c2c9be3a53fb39d180e0621ea0ac4d235  ./blend-with-vicinity-and-rename/ukvx.nc
+9fee5756f45af01b54b8c608b60e7e564d5dfa447bc731a8f505fe0c84c69389  ./blend-with-vicinity-and-rename/with_nowcast/kgo.nc
 0fc03589a5a17536a16805a76208a12eabceb6a9fb0042842dbd42aa05c26acb  ./calculate-forecast-bias/inputs/20220811T0300Z-PT0000H00M-wind_speed_at_10m.nc
 a86344226370885ca6062200ddda5db1fab629d398c5af0678254c1d9960d272  ./calculate-forecast-bias/inputs/20220811T0300Z-PT0003H00M-wind_speed_at_10m.nc
 ac609404e0083db721ded42d983f3a616f8ce7ca220ef3bbfc2af9ccfd83c02f  ./calculate-forecast-bias/inputs/20220812T0300Z-PT0000H00M-wind_speed_at_10m.nc
