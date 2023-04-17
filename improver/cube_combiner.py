@@ -471,9 +471,7 @@ class CubeMultiplier(CubeCombiner):
 
         result = self._combine_cube_data(cube_list)
 
-        update_diagnostic_name(
-            cube_list[0], new_diagnostic_name, result, self.broadcast_to_threshold
-        )
+        update_diagnostic_name(cube_list[0], new_diagnostic_name, result)
 
         return result
 

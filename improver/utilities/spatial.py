@@ -709,13 +709,23 @@ def update_name_and_vicinity_coord(cube: Cube, new_name: str, vicinity_radius: f
     if new_name:
         update_diagnostic_name(cube, new_name, cube)
     if vicinity_radius:
-        if "radius_of_vicinity" in [coord.name() for coord in cube.coords()]:
+        # The cube blending will drop the radius_of_vicinity coord if the source cubes have
+        # differing points. We can use this to determine whether the vicinities matched:
+        vicinities_matched = "radius_of_vicinity" in [
+            coord.name() for coord in cube.coords()
+        ]
+        if vicinities_matched:
             cube.remove_coord("radius_of_vicinity")
-        add_vicinity_coordinate(cube, vicinity_radius)
+        add_vicinity_coordinate(
+            cube, vicinity_radius, radius_is_max=~vicinities_matched
+        )
 
 
 def add_vicinity_coordinate(
-    cube: Cube, radius: Union[float, int], native_grid_point_radius: bool = False
+    cube: Cube,
+    radius: Union[float, int],
+    native_grid_point_radius: bool = False,
+    radius_is_max: bool = False,
 ) -> None:
     """
     Add a coordinate to the cube that records the vicinity radius that
@@ -729,18 +739,26 @@ def add_vicinity_coordinate(
             value of which is recorded in the coordinate.
         native_grid_point_radius:
             True if radius is "number of grid points", else False
+        radius_is_max:
+            True if the specified radius represents a maximum value from the source data. A
+            comment is associated with the coord in this case.
     """
+    attributes = {}
+    if radius_is_max:
+        attributes["comment"] = "Maximum"
     if native_grid_point_radius:
         point = np.array(radius, dtype=np.float32)
         units = "1"
-        attributes = {
-            "comment": "Units of 1 indicate radius of vicinity is defined "
+        comment = (
+            "Units of 1 indicate radius of vicinity is defined "
             "in grid points rather than physical distance"
-        }
+        )
+        attributes["comment"] = "; ".join(
+            [n for n in [attributes.get("comment", None), comment] if n]
+        )
     else:
         point = np.array(radius, dtype=np.float32)
         units = "m"
-        attributes = {}
 
     coord = AuxCoord(
         point, units=units, long_name="radius_of_vicinity", attributes=attributes

@@ -42,6 +42,7 @@ from improver.metadata.constants.mo_attributes import (
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
+    is_probability,
 )
 
 
@@ -138,12 +139,7 @@ def update_model_id_attr_attribute(
     return {model_id_attr: " ".join(sorted(set(attr_list)))}
 
 
-def update_diagnostic_name(
-    source_cube: Cube,
-    new_diagnostic_name: str,
-    result: Cube,
-    rename_threshold_coord: bool = True,
-):
+def update_diagnostic_name(source_cube: Cube, new_diagnostic_name: str, result: Cube):
     """
     Used for renaming the threshold coordinate and modifying cell methods
     where necessary; excludes the in_vicinity component.
@@ -153,13 +149,13 @@ def update_diagnostic_name(
             result.
         new_diagnostic_name: The new diagnostic name to apply to result.
         result: The cube that needs to be modified in place.
-        rename_threshold_coord: If True (default), the threshold coord is modified to match the
-            diagnostic name.
 
     """
-    new_base_name = new_diagnostic_name.replace("_in_vicinity", "")
+    new_base_name = new_diagnostic_name.replace("_in_variable_vicinity", "")
+    new_base_name = new_base_name.replace("_in_vicinity", "")
     original_name = source_cube.name()
-    if rename_threshold_coord:
+
+    if is_probability(source_cube):
         diagnostic_name = get_diagnostic_cube_name_from_probability_name(original_name)
         # Rename the threshold coordinate to match the name of the diagnostic
         # that results from the combine operation.
