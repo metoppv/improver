@@ -50,11 +50,15 @@ SOURCE_FILES = ["ncuk.nc", "ukvx.nc", "enukx.nc"]
 SOURCE_DIR = acc.kgo_root() / "blend-with-vicinity-and-rename"
 
 
-def test_nowcast_cycle_blending(tmp_path):
+@pytest.mark.parametrize(
+    "input_files,kgo_path",
+    ((SOURCE_FILES, "with_nowcast"), (SOURCE_FILES[1:], "without_nowcast")),
+)
+def test_nowcast_cycle_blending(tmp_path, input_files, kgo_path):
     """Test blending nowcast cycles"""
-    kgo_dir = acc.kgo_root() / "blend-with-vicinity-and-rename/with_nowcast"
+    kgo_dir = acc.kgo_root() / "blend-with-vicinity-and-rename" / kgo_path
     kgo_path = kgo_dir / "kgo.nc"
-    input_files = [f"{SOURCE_DIR / f}" for f in SOURCE_FILES]
+    source_files = [f"{SOURCE_DIR / f}" for f in input_files]
     output_path = tmp_path / "output.nc"
     args = [
         "--new-name",
@@ -80,7 +84,7 @@ def test_nowcast_cycle_blending(tmp_path):
         ATTRIBUTES_PATH,
         "--least-significant-digit",
         "3",
-        *input_files,
+        *source_files,
         "--output",
         output_path,
     ]
