@@ -36,21 +36,21 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 import pytest
-from iris.coords import CellMethod, DimCoord
+from iris.coords import CellMethod
 from iris.tests import IrisTest
 
 from improver.metadata.amend import (
     amend_attributes,
     set_history_attribute,
+    update_diagnostic_name,
     update_model_id_attr_attribute,
     update_stage_v110_metadata,
-    update_diagnostic_name,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
+    set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
-    set_up_percentile_cube,
 )
 
 
@@ -258,7 +258,7 @@ def test_update_diagnostic_name(cell_method, in_vicinity, probability_data):
     input_name_suffix = ""
     if in_vicinity:
         input_name_suffix = "_in_vicinity"
-    source_name = f"lwe_thickness_of_precipitation_amount"
+    source_name = "lwe_thickness_of_precipitation_amount"
     if probability_data:
         cube = set_up_probability_cube(
             np.zeros((2, 2, 2), dtype=np.float32),

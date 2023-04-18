@@ -47,10 +47,7 @@ from scipy.ndimage.filters import maximum_filter
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.probabilistic import (
-    in_vicinity_name_format,
-    is_probability,
-)
+from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -717,7 +714,7 @@ def update_name_and_vicinity_coord(cube: Cube, new_name: str, vicinity_radius: f
         if vicinities_matched:
             cube.remove_coord("radius_of_vicinity")
         add_vicinity_coordinate(
-            cube, vicinity_radius, radius_is_max=~vicinities_matched
+            cube, vicinity_radius, radius_is_max=not vicinities_matched
         )
 
 
