@@ -75,7 +75,7 @@ def in_vicinity_name_format(cube_name: str) -> str:
         'probability_of_X_in_vicinity_above_threshold'.
     """
     regex = probability_cube_name_regex(cube_name)
-    new_cube_name = "probability_of_{diag}{vicinity}{thresh}".format(
+    new_cube_name = "probability_of_{diag}_in_vicinity{thresh}".format(
         **regex.groupdict()
     )
     return new_cube_name

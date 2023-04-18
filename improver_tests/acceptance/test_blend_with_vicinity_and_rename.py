@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """
-Tests for the weighted-blending CLI
+Tests for the blend-with-vicinity-and-rename CLI
 """
 
 import pytest
@@ -54,11 +54,12 @@ SOURCE_DIR = acc.kgo_root() / "blend-with-vicinity-and-rename"
     "input_files,kgo_path",
     ((SOURCE_FILES, "with_nowcast"), (SOURCE_FILES[1:], "without_nowcast")),
 )
-def test_nowcast_cycle_blending(tmp_path, input_files, kgo_path):
-    """Test blending nowcast cycles"""
+def test_basic(tmp_path, input_files, kgo_path):
+    """Test blend-with-vicinity-and-rename for the case where the vicinity on the
+    input cubes matches (without_nowcast) and where it doesn't (with nowcast)"""
     kgo_dir = acc.kgo_root() / "blend-with-vicinity-and-rename" / kgo_path
     kgo_path = kgo_dir / "kgo.nc"
-    source_files = [f"{SOURCE_DIR / f}" for f in input_files]
+    source_files = [SOURCE_DIR / f for f in input_files]
     output_path = tmp_path / "output.nc"
     args = [
         "--new-name",
