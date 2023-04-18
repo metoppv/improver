@@ -170,6 +170,9 @@ b946c7687cb9ed02a12a934429a31306004ad45214cf4b451468b077018c0911  ./convection-r
 d3efbc6014743793fafed512a8017a7b75e4f0ffa7fd202cd4f1b4a1086b2583  ./create-grid-with-halo/basic/kgo.nc
 fee00437131d2367dc317e5b0fff44e65e03371b8f096bf1ac0d4cc7253693c9  ./create-grid-with-halo/basic/source_grid.nc
 bf7e42be7897606682c3ecdaeb27bf3d3b6ab13a9a88b46c88ae6e92801c6245  ./create-grid-with-halo/halo_size/kgo.nc
+1de3227751ff46a7cf39a0b7bcd4156717814809c3a02153fcd35ee4adfb5668  ./enforce-consistent-percentiles/kgo.nc
+f5085e98e23fc903395372f2e0e6a2bc028f7fa44cc212d49690782cd2dd275a  ./enforce-consistent-percentiles/wind_gust.nc
+3876dcc20a45fdc6d6c775d6970903f06b1f75e6bcbdfb7436acd4d383aa816a  ./enforce-consistent-percentiles/wind_speed.nc
 5474c4c2309dcc0991355007f20869eb6d1d234d721bdf37542cddb0570d7217  ./enforce-consistent-probabilities/hybrid_total_cloud.nc
 7e435c2db5e792b71bb5170140fbe1e37cc03d96bd88f73ce7196f9469ba3e13  ./enforce-consistent-probabilities/kgo.nc
 764833f16f1ed5939ba82130fa73961fdecacceebcf2b4cdb2970cb670e2ee3e  ./enforce-consistent-probabilities/total_cloud.nc
