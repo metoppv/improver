@@ -905,12 +905,12 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         df = self.forecast_df
         condition1 = (df["time"].isin([self.time1])) & (df["wmo_id"] == self.wmo_ids[0])
         condition2 = (df["time"].isin([self.time3])) & (df["wmo_id"] == self.wmo_ids[2])
-        forecast_df = df.drop(df[condition1].index | df[condition2].index)
+        forecast_df = df.drop(df[condition1].index.union(df[condition2].index))
 
         df = self.truth_subset_df
         condition1 = (df["time"].isin([self.time1])) & (df["wmo_id"] == self.wmo_ids[0])
         condition2 = (df["time"].isin([self.time3])) & (df["wmo_id"] == self.wmo_ids[2])
-        truth_df = df.drop(df[condition1].index | df[condition2].index)
+        truth_df = df.drop(df[condition1].index.union(df[condition2].index))
 
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df,
@@ -1045,8 +1045,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_duplicate_cycle_forecasts(self):
         """Test that a forecast cube is still produced if a duplicated
         cycle of forecasts is provided."""
-        forecast_df_with_duplicates = self.forecast_df.append(
-            self.forecast_df.iloc[:9], ignore_index=True
+        forecast_df_with_duplicates = pd.concat(
+            [self.forecast_df, self.forecast_df.iloc[:9]], ignore_index=True
         )
         result = forecast_and_truth_dataframes_to_cubes(
             forecast_df_with_duplicates,
@@ -1062,8 +1062,8 @@ class Test_forecast_and_truth_dataframes_to_cubes(
     def test_duplicate_cycle_truths(self):
         """Test that a truth cube is still produced if duplicate
         truths for a given validity time are provided."""
-        truth_df_with_duplicates = self.truth_subset_df.append(
-            self.truth_subset_df.iloc[:3], ignore_index=True
+        truth_df_with_duplicates = pd.concat(
+            [self.truth_subset_df, self.truth_subset_df.iloc[:3]], ignore_index=True
         )
         result = forecast_and_truth_dataframes_to_cubes(
             self.forecast_df,
