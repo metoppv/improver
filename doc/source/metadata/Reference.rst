@@ -62,11 +62,11 @@ cell_methods
 This CF attribute can be used to describe the application of simple
 statistical processing to a variable 
 (e.g. a maximum of the temperature over a period of time).
-It is a string comprising of a list of blank-separated words of the form
-``name: method``, where
-the ``name`` can be a dimension of the variable, a scalar coordinate variable,
-a valid standard name, or the word ``area`` and
-the ``method`` should be selected from a standard list 
+It is a string comprised of a list of blank-separated words of the form
+``name: method``.
+The ``name`` can be a dimension of the variable, a scalar coordinate variable,
+a valid standard name, or the word ``area``.
+The ``method`` should be selected from a standard list 
 described in the `CF Metadata Conventions`_ 
 It is also possible to included additional information
 in the form of a ``comment``
@@ -75,7 +75,7 @@ If any method other than ``point`` is specified for a given axis,
 then bounds **must** also be provided for that axis.
 
 For example, ``time: maximum`` would indicate the maximum 
-over the period of the time described by the time bounds.
+over the period of time described by the time bounds.
 
 Cell methods are covered in more detail in the :ref:`stat-section`.
 
@@ -83,16 +83,16 @@ Conventions
 ***********
 
 This netCDF attribute specifies a space-separated
-(or, if necessary, comma-separated) 
+(or comma-separated if conventions have spaces in their titles) 
 list of metadata conventions that the file conforms to.
 Up until CF version 1.6, 
-strictly only the `CF Metadata Conventions`_ was allowed to be declared here,
+strictly only the `CF Metadata Conventions`_ were allowed to be declared here,
 but a change at 1.7 allowed multiple conventions. 
 
 This **must** be set to include the appropriate version of the CF Convention
-and **should** really include any other conventions that are used
+which **should** include any other conventions that are used
 (although, at present, there is no entry set automatically to indicate the
-extensions used to support enhancementssss used by IMPROVER).
+extensions used to support enhancements used by IMPROVER).
 
 blend_time
 **********
@@ -101,7 +101,7 @@ This is an IMPROVER-specific variable
 has been added to indicate when the data was processed (blended)
 to generate this forecast, and can be used to indicate how 'fresh'
 the data is.
-This has the ``long_name`` attribute set to ``blend_time``.
+This has the ``long_name`` attribute set to ``blend_time``,
 but otherwise takes the same form as the ``time`` variable.
 
 Ideally, this **should** be present.
@@ -112,7 +112,7 @@ coordinates
 This CF attribute lists the scalar coordinates,
 i.e. those that do not appear as dimensions of the main variable. 
 
-This **should** be included where scalar varaiables are present.
+This **should** be included where scalar variables are present.
 For IMPROVER gridded data this would typically include
 ``blend_time``, ``height`` and ``time`` 
 and for spot data
@@ -166,15 +166,15 @@ height
 This CF scalar coordinate variable is included in some
 cases to fully describe the quantity of interest.
 
-This **should** be included if there is any ambiguity in interpretation
-ofquantity of interest if it is omitted.
+This **should** be included if there is any ambiguity in the interpretation
+of quantity of interest if it is omitted.
 (e.g. an inclusion of ``height`` with a value of ``1.5 m``
 for the representatiion of screen level.) 
 
 history
 *******
 
-Ideally, the netCDF attribute it should provide a list of the applications
+Ideally, this netCDF attribute should provide a list of the applications
 that have modified the original data (i.e. an audit trail),
 with recommended practice being to add a date/time stamp
 (in the form ``YYYY-MM-DDThh:mm:ssZ``) and identify the software package.
@@ -202,7 +202,7 @@ latitude
 This coordinate variable represents one half of the positional
 information for gridded data held on a
 Latitude-Longitude (strictly, equirectangular) projection.
-This is also used for site positions, which are are only provided
+This is also used for site positions, which are only provided
 in latitude and longitude.
 It has the ``standard_name`` attribute set to ``latitude``
 and ``units`` set to ``degrees``.
@@ -226,13 +226,13 @@ least_significant_digit
 This is a variable attribute used by netCDF-writing software to
 specify the precision that is maintained when 'bit-shaving'
 is applied to provide improved file compression.
-The example value of ``3LL`` indicated that a precision of 3 decimal places
+The example value of ``3LL`` indicates that a precision of 3 decimal places
 is preserved, i.e. values precise to the nearest 0.001.
-As 'bit-having' is zeroing bits
+As 'bit-shaving' is zeroing bits
 (that are providing an unrequired level precision),
 this would actually be implemented as the power of 2 nearest 0.001.
 
-This is usually included automatically where the precision limited.
+This is usually included automatically where the precision is limited.
 
 The driver for the use of 'bit-shaving' is that although it requires
 no extension to the software to read the data (the number formats
@@ -245,7 +245,7 @@ long_name
 This netCDF-specific variable attribute provides
 a descriptive name that is not governed by CF.
 If a `CF Standard Name`_ exists for the quantity, 
-this should be used and the ``long_name`` is usually be omitted.
+this should be used and the ``long_name`` is usually omitted.
 
 A ``standard_name`` or ``long_name`` **must** be present. 
 
@@ -255,7 +255,7 @@ longitude
 This coordinate variable represents one half of the positional
 information for gridded data held on a
 Latitude-Longitude (strictly, equirectangular) projection.
-This is also used for site positions, which are are only provided
+This is also used for site positions, which are only provided
 in latitude and longitude.
 It has the ``standard_name`` attribute set to ``longitude``
 and ``units`` set to ``degrees``.
@@ -269,7 +269,7 @@ For gridded data, if any statistical processing over the coordinate
 has been applied,
 there **must** also be an associated ``longitude_bnds`` variable
 providing the bounds over which ``cell_methods`` are applied,
-although this is often included anyway to define the cell boundaries.
+although this is ofsten included anyway to define the cell boundaries.
 The ``longitude_bnds`` variable has no attributes as it is tied to the 
 main coordinate variable.
 
@@ -283,7 +283,7 @@ Within the IMPROVER code, the name is user configurable,
 such that it can be changed for different institutions / indices.
 
 Although this precise variable is not appropriate for most users
-other than the Met Office, it is **advisable** to implemented
+other than the Met Office, it is **advisable** to implement
 some form of site identification that has unique elements
 and is complete. 
 
@@ -292,7 +292,7 @@ mosg\__
 
 This is intended to indicate a MOSG (Met Office standard grid)
 namespace.
-It prefixes atributes to show that they are separate from the 
+It prefixes attributes to show that they are separate from the 
 `CF Metadata Conventions`_ attributes.
 
 mosg__model_configuration
@@ -378,7 +378,7 @@ as it is tied to the main coordinate variable.
     (the European Terrestrial Reference Frame or ETRF).
     ETRS89 is ideal for a Europe-wide consistent mapping and datasets,
     and is an EU INSPIRE directive standard.
-    In practice, it is close enough WGS84 to make no difference
+    In practice, it is close enough to WGS84 to make no difference
     for most applications of post-processed meteorological data.
 
 projection_y_coordinate
@@ -411,7 +411,7 @@ realization
 This CF coordinate variable is used for indexing ensemble members
 and has the ``standard_name`` attribute set to ``realization``.
 This is not usually seen in the metadata of IMPROVER output files,
-IMPROVER usually generated probabilities of exceedance or percentiles.
+IMPROVER usually generates probabilities of exceedance or percentiles.
 However, it will be seen in the input file metadata
 and may be seen in the output data ``cell_methods``
 where processing has been applied over realizations
@@ -423,9 +423,9 @@ source
 This CF attribute specifies the method of production of the original data.
 
 This **must** be present and **should** take the value of the original source
-of the data (typically an NWMP model)
+of the data (typically an NWP model)
 when no significant post-processing has been applied.
-However, here significant adjustment of the data has occurred
+However, where significant adjustment of the data has occurred
 or a number input sources have been blended,
 it **should** be set to ``IMPROVER``.
 Often, careful consideration of when it is appropriate to set this
@@ -436,7 +436,7 @@ unless this can be reliably supplied.
 spot_index
 **********
 
-This is an IMPROVER-specific dimension is used as an increasing integer value
+This IMPROVER-specific dimension is used as an increasing integer value
 index for sites.
 
 ssp\__
@@ -451,8 +451,8 @@ ssp__relative_to_threshold
 **************************
 
 This is an IMPROVER-specific varaible attribute
-indicates the nature of the threshold inequality for a probability
-and takes one of the four values:
+indicating the nature of the threshold inequality for a probability
+and takes one of the following four values:
 
 * ``greater_than`` 
 * ``greater_than_or_equal_to``
@@ -462,9 +462,9 @@ and takes one of the four values:
 standard_name
 *************
 
-This CF attribute provides a descriptive name,
+This CF attribute provides a descriptive name
 from the governed `CF Standard Name`_ list.
-If no `standard_name`` exists for the quantity, 
+If no ``standard_name`` exists for the quantity, 
 a ``long_name`` must be used.
 
 A ``standard_name`` or ``long_name`` **must** be present. 
@@ -513,13 +513,13 @@ that is must take.
 units
 *****
 
-This netCDF variable attribute provides the units of measurement for the quantity.
+This netCDF variable attribute provides the units of measurement for the quantity
 in a string form recognised by the Unidata's `UDUNITS package`_
 
-This **must** be present,and for IMPROVER this **must** be SI units,
+This **must** be present and for IMPROVER this **must** be SI units,
 with the exception that ``degrees`` (rather than ``radians``)
 are used for wind direction. 
-Non-dimensional quantities, such as IMPROVER probabilities
+Non-dimensional quantities, such as IMPROVER probabilities,
 have units set to ``1``.
 
 weather_code
@@ -544,7 +544,7 @@ wmo_id
 
 This IMPROVER-specific coordinate variable
 is a 5-character string, zero-padded ID number for WMO sites.
-For non-WMO sites it it set to the string ``None``.
+For non-WMO sites it is set to the string ``None``.
 It has a ``long_name`` attribute set to ``wmo_id``.
 
 This is **optional** and only relevant for WMO sites.
