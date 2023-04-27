@@ -39,7 +39,8 @@ def process(
     forecast: cli.inputcube,
     *features: cli.inputcube,
     model_config: cli.inputjson,
-    output_thresholds: cli.comma_separated_list_of_float,
+    output_thresholds: cli.comma_separated_list_of_float = None,
+    output_threshold_config: cli.inputjson = None,
     threads: int = 1,
 ):
     """
@@ -69,6 +70,10 @@ def process(
             Dictionary containing RainForests model configuration data.
         output_thresholds (list):
             List of thresholds at which to evaluate output probabilties.
+        output_threshold_config (dict):
+            Threshold configuration dictionary where the keys are strings representing
+            thresholds and the values are all None. Thresholds should be specified in
+            same units as forecast.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
 
@@ -80,6 +85,20 @@ def process(
 
     from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
+    if output_threshold_config and output_thresholds:
+        raise ValueError(
+            "--output-threshold-config and --output-thresholds are mutually exclusive "
+            "- please set one or the other, not both"
+        )
+    if (not output_threshold_config) and (not output_thresholds):
+        "one of --output-threshold-config and --output-thresholds must be specified"
+
+    if output_threshold_config:
+        thresholds = []
+        for key in output_threshold_config.keys():
+            thresholds.append(float(key))
+    else:
+        thresholds = [float(x) for x in output_thresholds]
     return ApplyRainForestsCalibration(model_config, threads).process(
         forecast, CubeList(features), output_thresholds=output_thresholds,
     )

@@ -610,16 +610,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 the exception of the realization dimension. Where the feature_cube contains a
                 realization dimension this is expected to be consistent, otherwise the cube will
                 be broadcast along the realization dimension.
-            error_percentiles_count:
-                The number of error percentiles to extract from the associated error CDFs
-                evaluated via the tree-models. These error percentiles are applied to each
-                ensemble realization to produce a series of values, which collectively form
-                the super-ensemble. The resulting super-ensemble will be of
-                size = forecast.realization.size * error_percentiles_count.
-            output_realizations_count:
-                The number of ensemble realizations that will be extracted from the
-                super-ensemble. If realizations_count is None, all realizations will
-                be returned.
+            output_thresholds (list):
+                List of thresholds at which to evaluate output probabilties.
         Returns:
             The calibrated forecast cube.
 
