@@ -74,13 +74,13 @@ def test_process(data, optimal_crps_percentiles, scalar_realization):
         optimal_crps_percentiles=optimal_crps_percentiles
     )(cube)
 
-    assert isinstance(cube, Cube)
-    assert len(cube.coords("percentile")) == 1
-    assert len(cube.coords("realization")) == 0
-    assert cube.coord("percentile").dtype == np.float32
-    assert cube.coord("percentile").units == "%"
+    assert isinstance(result, Cube)
+    assert len(result.coords("percentile")) == 1
+    assert len(result.coords("realization")) == 0
+    assert result.coord("percentile").dtype == np.float32
+    assert result.coord("percentile").units == "%"
     np.testing.assert_allclose(
-        cube.coord("percentile").points, percentiles, atol=1e-4, rtol=1e-4
+        result.coord("percentile").points, percentiles, atol=1e-4, rtol=1e-4
     )
     np.testing.assert_allclose(result.data, expected_data)
 

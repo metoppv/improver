@@ -121,22 +121,23 @@ class RebadgeRealizationsAsPercentiles(BasePlugin):
             )
             raise CoordinateNotFoundError(msg)
 
+        result = cube.copy()
         if cube.coords("realization", dim_coords=True):
             (axis,) = cube.coord_dims("realization")
-            cube.data = np.sort(cube.data, axis=axis)
+            result.data = np.sort(cube.data, axis=axis)
 
-        cube.coord("realization").rename("percentile")
-        cube.coord("percentile").units = "%"
-        lenp = len(cube.coord("percentile").points)
+        result.coord("realization").rename("percentile")
+        result.coord("percentile").units = "%"
+        lenp = len(result.coord("percentile").points)
         if self.optimal_crps_percentiles:
-            cube.coord("percentile").points = np.array(
-                [100 * (k - 0.5) / lenp for k in range(1, lenp + 1)], dtype=np.float32
+            result.coord("percentile").points = np.array(
+                [100 * (k + 0.5) / lenp for k in range(lenp)], dtype=np.float32
             )
         else:
-            cube.coord("percentile").points = np.array(
-                [100 * k / (lenp + 1) for k in range(1, lenp + 1)], dtype=np.float32
+            result.coord("percentile").points = np.array(
+                [100 * (k + 1) / (lenp + 1) for k in range(lenp)], dtype=np.float32
             )
-        return cube
+        return result
 
 
 class RebadgePercentilesAsRealizations(BasePlugin):
