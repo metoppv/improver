@@ -98,3 +98,24 @@ def test_eccbounds(tmp_path):
     with pytest.warns(UserWarning, match="The calculated threshold values"):
         run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize(
+    "identifier", ("flat_rank_histogram_percentiles", "optimal_crps_percentiles")
+)
+def test_rebadging(tmp_path, identifier):
+    """Test rebadging realizations as percentiles."""
+    kgo_dir = acc.kgo_root() / "generate-percentiles/basic"
+    kgo_path = kgo_dir / "rebadging" / f"{identifier}_kgo.nc"
+    perc_input = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+    ]
+    if identifier == "optimal_crps_percentiles":
+        args += ["--optimal-crps-percentiles"]
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
