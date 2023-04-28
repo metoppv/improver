@@ -42,8 +42,8 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.parametrize(
     "forecast_type, ref_name, additive_amount, multiplicative_amount, comparison_operator",
     (
-            ("probability", "probability_of_cloud_area_fraction_above_threshold", 0, 1, "<="),
-            ("percentile", "wind_speed_at_10m", 0, 1.1, ">="),
+            ("probability", "probability_of_cloud_area_fraction_above_threshold", "0.0", "1.0", "<="),
+            ("percentile", "wind_speed", "0.0", "1.1", ">="),
     )
 )
 def test_enforce_consistent_forecasts(
@@ -69,11 +69,11 @@ def test_enforce_consistent_forecasts(
         reference,
         "--ref-name",
         ref_name,
-        "--additive_amount",
+        "--additive-amount",
         additive_amount,
-        "--multiplicative_amount",
+        "--multiplicative-amount",
         multiplicative_amount,
-        "--comparison_operator",
+        "--comparison-operator",
         comparison_operator,
         "--output",
         output_path,
