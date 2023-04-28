@@ -35,7 +35,8 @@ import pytest
 from iris.cube import Cube
 
 from improver.synthetic_data.set_up_test_cubes import (
-    set_up_percentile_cube, set_up_probability_cube
+    set_up_percentile_cube,
+    set_up_probability_cube,
 )
 from improver.utilities.enforce_consistency import EnforceConsistentForecasts
 
@@ -53,8 +54,7 @@ def get_percentiles(value, shape):
     bounding percentiles.
     """
     return np.broadcast_to(
-        np.expand_dims([value - 10, value, value + 10], axis=(1, 2),),
-        shape,
+        np.expand_dims([value - 10, value, value + 10], axis=(1, 2),), shape,
     )
 
 
@@ -64,10 +64,7 @@ def get_percentile_forecast(value, shape, name):
     """
     data = get_percentiles(value, shape)
     forecast_cube = set_up_percentile_cube(
-        np.full(shape, data, dtype=np.float32),
-        [10, 50, 90],
-        name=name,
-        units="m s-1",
+        np.full(shape, data, dtype=np.float32), [10, 50, 90], name=name, units="m s-1",
     )
     return forecast_cube
 
@@ -107,12 +104,12 @@ def get_expected(forecast_data, bound_data, comparison_operator):
 @pytest.mark.parametrize("forecast_value", (20, 30))
 @pytest.mark.parametrize("comparison_operator", (">=", "<="))
 def test_basic(
-        forecast_type,
-        additive_amount,
-        multiplicative_amount,
-        reference_value,
-        forecast_value,
-        comparison_operator,
+    forecast_type,
+    additive_amount,
+    multiplicative_amount,
+    reference_value,
+    forecast_value,
+    comparison_operator,
 ):
     """
     Test that consistency between percentiles is enforced for a variety of
@@ -131,25 +128,19 @@ def test_basic(
         forecast_cube_name = "wind_gust_at_10m_max-PT01H"
         get_forecast = get_percentile_forecast
 
-    reference_cube = get_forecast(
-        reference_value, shape, reference_cube_name
-    )
-    forecast_cube = get_forecast(
-        forecast_value, shape, forecast_cube_name
-    )
+    reference_cube = get_forecast(reference_value, shape, reference_cube_name)
+    forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
     if forecast_type == "probability":
         forecast_cube.data[:, 1, 1] = 0.6
 
     result = EnforceConsistentForecasts(
         additive_amount=additive_amount,
         multiplicative_amount=multiplicative_amount,
-        comparison_operator=comparison_operator
+        comparison_operator=comparison_operator,
     )(forecast_cube, reference_cube)
 
     bound_data = additive_amount + (multiplicative_amount * reference_cube.copy().data)
-    expected = get_expected(
-        forecast_cube.data, bound_data, comparison_operator
-    )
+    expected = get_expected(forecast_cube.data, bound_data, comparison_operator)
 
     assert isinstance(result, Cube)
     assert result.name() == forecast_cube.name()
@@ -164,14 +155,14 @@ def test_basic(
         ("probability", 0.3, 0.9, ">=", 0.3),  # change too big
         ("percentile", 10, 50, ">=", 30),  # change too big
         ("percentile", 20, 30, "=", 30),  # incorrect comparison operator
-    )
+    ),
 )
 def test_exceptions(
-        forecast_type,
-        forecast_value,
-        reference_value,
-        comparison_operator,
-        diff_for_warning,
+    forecast_type,
+    forecast_value,
+    reference_value,
+    comparison_operator,
+    diff_for_warning,
 ):
     """
     Test that a warning is raised if the plugin changes the forecast by more than
@@ -188,18 +179,14 @@ def test_exceptions(
         forecast_cube_name = "wind_gust_at_10m_max-PT01H"
         get_forecast = get_percentile_forecast
 
-    reference_cube = get_forecast(
-        reference_value, shape, reference_cube_name
-    )
-    forecast_cube = get_forecast(
-        forecast_value, shape, forecast_cube_name
-    )
+    reference_cube = get_forecast(reference_value, shape, reference_cube_name)
+    forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
 
     if comparison_operator == "=":
         with pytest.raises(ValueError, match="comparison_operator must be either"):
-            EnforceConsistentForecasts(
-                comparison_operator=comparison_operator
-            )(forecast_cube, reference_cube)
+            EnforceConsistentForecasts(comparison_operator=comparison_operator)(
+                forecast_cube, reference_cube
+            )
     else:
         with pytest.warns(UserWarning, match="Inconsistency between forecast"):
             EnforceConsistentForecasts(diff_for_warning=diff_for_warning)(

@@ -100,6 +100,7 @@ def process(
         additive_amount=additive_amount,
         multiplicative_amount=multiplicative_amount,
         comparison_operator=comparison_operator,
-        diff_for_warning=diff_for_warning)
+        diff_for_warning=diff_for_warning,
+    )
 
     return plugin(forecast_cube, ref_forecast)

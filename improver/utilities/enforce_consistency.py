@@ -30,8 +30,9 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides utilities for enforcing consistency between forecasts."""
 import warnings
-from iris.cube import Cube
+
 import numpy as np
+from iris.cube import Cube
 
 from improver import PostProcessingPlugin
 
@@ -46,11 +47,11 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
     """
 
     def __init__(
-            self,
-            additive_amount: float = 0.0,
-            multiplicative_amount: float = 1.0,
-            comparison_operator: str = ">=",
-            diff_for_warning: float = None,
+        self,
+        additive_amount: float = 0.0,
+        multiplicative_amount: float = 1.0,
+        comparison_operator: str = ">=",
+        diff_for_warning: float = None,
     ) -> None:
         """
         Initialise class for enforcing consistency between a forecast and a linear
