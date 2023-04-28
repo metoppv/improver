@@ -95,7 +95,7 @@ def process(
             "- please set one or the other, not both"
         )
     if (not output_threshold_config) and (not output_thresholds):
-        "one of --output-threshold-config and --output-thresholds must be specified"
+        "One of --output-threshold-config and --output-thresholds must be specified"
 
     if output_threshold_config:
         thresholds = []
