@@ -49,7 +49,6 @@ from improver.calibration.utilities import (
     create_unified_frt_coord,
     filter_non_matching_cubes,
 )
-from improver.cube_combiner import Combine
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     probability_is_above_or_below,
