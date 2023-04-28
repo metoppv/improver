@@ -578,7 +578,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return probability_cube
 
     def process(
-        self, forecast_cube: Cube, feature_cubes: CubeList, output_thresholds: List,
+        self,
+        forecast_cube: Cube,
+        feature_cubes: CubeList,
+        output_thresholds: List,
+        threshold_units: str = None,
     ) -> Cube:
         """Apply rainforests calibration to forecast cube.
 
@@ -612,6 +616,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 be broadcast along the realization dimension.
             output_thresholds (list):
                 List of thresholds at which to evaluate output probabilties.
+            threshold_units (str):
+                Units in which output_thresholds are specified. If None, assumed to be the same as
+                forecast_cube.
         Returns:
             The calibrated forecast cube.
 
@@ -633,9 +640,19 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             aligned_forecast, aligned_features
         )
 
+        if threshold_units:
+            original_threshold_unit = unit.Unit(threshold_units)
+            forecast_unit = forecast_cube.units
+            output_thresholds_in_forecast_units = [
+                original_threshold_unit.convert(x, forecast_unit)
+                for x in output_thresholds
+            ]
+        else:
+            output_thresholds_in_forecast_units = output_thresholds
+
         # Calculate probabilities at output thresholds
         probabilities_by_realization = self._get_ensemble_distributions(
-            error_CDF, aligned_forecast, output_thresholds
+            error_CDF, aligned_forecast, output_thresholds_in_forecast_units
         )
 
         # Average over realizations

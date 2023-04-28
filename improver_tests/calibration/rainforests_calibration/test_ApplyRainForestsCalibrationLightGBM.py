@@ -376,6 +376,26 @@ def test_process_ensemble(
     assert result.attributes == ensemble_forecast.attributes
 
 
+def test_process_ensemble_different_threshold_unit(
+    ensemble_forecast, ensemble_features, plugin_and_dummy_models
+):
+    """Test process routine with ensemble data where unit of threshold is different from 
+    unit of forecast cube."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
+
+    output_thresholds_m = [0.0, 0.0005, 0.001]
+    result_m = plugin.process(ensemble_forecast, ensemble_features, output_thresholds_m)
+    output_thresholds_mm = [0.0, 0.5, 1.0]
+    result_mm = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds_mm, "mm"
+    )
+
+    assert result_m.coords() == result_mm.coords()
+    np.testing.assert_array_almost_equal(result_m.data, result_mm.data)
+
+
 def test_process_deterministic(
     deterministic_forecast, deterministic_features, plugin_and_dummy_models
 ):

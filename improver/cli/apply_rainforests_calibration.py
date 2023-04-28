@@ -41,6 +41,7 @@ def process(
     model_config: cli.inputjson,
     output_thresholds: cli.comma_separated_list_of_float = None,
     output_threshold_config: cli.inputjson = None,
+    threshold_units: str = None,
     threads: int = 1,
 ):
     """
@@ -72,8 +73,11 @@ def process(
             List of thresholds at which to evaluate output probabilties.
         output_threshold_config (dict):
             Threshold configuration dictionary where the keys are strings representing
-            thresholds and the values are all None. Thresholds should be specified in
-            same units as forecast.
+            thresholds and the values are all None.
+        threshold_units (str):
+            Units in which output_thresholds or output_threshold_config are specified.
+            Will be converted to the units of  forecast_cube. If None, assumed to
+            be the same as forecast_cube.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
 
@@ -100,5 +104,8 @@ def process(
     else:
         thresholds = [float(x) for x in output_thresholds]
     return ApplyRainForestsCalibration(model_config, threads).process(
-        forecast, CubeList(features), output_thresholds=output_thresholds,
+        forecast,
+        CubeList(features),
+        output_thresholds=output_thresholds,
+        threshold_units=threshold_units,
     )
