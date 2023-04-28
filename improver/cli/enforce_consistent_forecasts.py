@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to enforce consistent probabilities between two forecasts."""
+"""CLI to enforce consistency between two forecasts."""
 
 from improver import cli
 
@@ -44,9 +44,10 @@ def process(
     comparison_operator: str = ">=",
     diff_for_warning: float = None,
 ):
-    """Module to enforce consistent probabilities between two forecast
-    cubes by lowering the probabilities in the forecast cube to be less than or
-    equal to the reference forecast.
+    """
+    Module to enforce that the values in the forecast cube are not less than or not
+    greater than a linear function of the corresponding values in the
+    reference forecast.
 
     Args:
         cubes (iris.cube.CubeList or list of iris.cube.Cube):
