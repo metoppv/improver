@@ -379,7 +379,7 @@ def test_process_ensemble(
 def test_process_ensemble_different_threshold_unit(
     ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
-    """Test process routine with ensemble data where unit of threshold is different from 
+    """Test process routine with ensemble data where unit of threshold is different from
     unit of forecast cube."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
