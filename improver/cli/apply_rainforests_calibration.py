@@ -106,6 +106,6 @@ def process(
     return ApplyRainForestsCalibration(model_config, threads).process(
         forecast,
         CubeList(features),
-        output_thresholds=output_thresholds,
+        output_thresholds=thresholds,
         threshold_units=threshold_units,
     )
