@@ -601,8 +601,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         2. Interpolate the CDF to extract a series of percentiles for the error distribution.
         The error percentiles are then applied to each associated ensemble realization to
-        produce a series of realisable values; collectively these series form a calibrated
-        super-ensemble, which is then sub-sampled to provide the calibrated forecast.
+        produce an error distribution. Distributions for different ensemble members are
+        then interpolated to the same set output thresholds and averaged.
 
         Args:
             forecast_cube:
