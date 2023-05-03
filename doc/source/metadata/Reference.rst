@@ -41,6 +41,18 @@ which for IMPROVER gridded data are ``X`` and ``Y``.
 IMPROVER also has ``threshold`` and ``percentile`` 
 coordinate variables, but there are no standards for labelling these.
 
+blend_time
+**********
+
+This IMPROVER-specific variable 
+has been added to indicate when the data was processed (blended)
+to generate this forecast, and can be used to indicate how 'fresh'
+the data is.
+This has the ``long_name`` attribute set to ``blend_time``,
+but otherwise takes the same form as the ``time`` variable.
+
+Ideally, this **should** be present.
+
 bounds
 ******
 
@@ -94,28 +106,24 @@ which **should** include any other conventions that are used
 (although, at present, there is no entry set automatically to indicate the
 extensions used to support enhancements used by IMPROVER).
 
-blend_time
-**********
-
-This is an IMPROVER-specific variable 
-has been added to indicate when the data was processed (blended)
-to generate this forecast, and can be used to indicate how 'fresh'
-the data is.
-This has the ``long_name`` attribute set to ``blend_time``,
-but otherwise takes the same form as the ``time`` variable.
-
-Ideally, this **should** be present.
-
 coordinates
 ***********
 
-This CF attribute lists the scalar coordinates,
+This CF attribute lists any coordinates that do not appear as
+dimensioned coordinate variables, 
 i.e. those that do not appear as dimensions of the main variable. 
+This covers both scalar coordinate variables
+(single-valued coordinates, with no dimension)
+and auxillary coordinate variables
+(variables that contain coordinate data but are not coordinate variables,
+usually because they depend on more than one dimension).
 
-This **should** be included where scalar variables are present.
-For IMPROVER gridded data this would typically include
+This **should** be included where coordinates are present that
+do not appear as dimensioned coordinate variables.
+For IMPROVER gridded data this would typically be the
+scalar coordinate variables:
 ``blend_time``, ``height`` and ``time`` 
-and for spot data
+and for spot data the scalar coordinate variables:
 ``altitude``, ``blend_time``, ``latitude``, ``longitude``, 
 ``met_office_site_id`` and ``time wmo_id``.
 
@@ -163,8 +171,9 @@ as **must** the associated grid mapping variable.
 height
 ******
 
-This CF scalar coordinate variable is included in some
-cases to fully describe the quantity of interest.
+This CF vertical coordinate variable is included in some
+cases to fully describe the quantity of interest,
+for single-level variables appearing as a scalar coordinate variable.
 
 This **should** be included if there is any ambiguity in the interpretation
 of quantity of interest if it is omitted.
@@ -206,12 +215,12 @@ This is also used for site positions, which are only provided
 in latitude and longitude.
 It has the ``standard_name`` attribute set to ``latitude``
 and ``units`` set to ``degrees``.
-The latitude and longitude can be considered as relative the WGS84
-or the World Geodetic System 1984 datum,
-although this is not explicit in the metadata.
+Unless explicitly stated in the metadata,
+the latitude and longitude can be considered as relative the WGS84
+or the World Geodetic System 1984 datum.
 
-This **must** be provided for site data and for gridded data
-on a Latitude-Longitude projection.
+All data **must** contain either this or ``projection_y_coordinate`` variable.
+
 For gridded data, if any statistical processing over the coordinate 
 has been applied,
 there **must** also be an associated ``latitude_bnds`` variable
@@ -245,7 +254,7 @@ long_name
 This netCDF-specific variable attribute provides
 a descriptive name that is not governed by CF.
 If a `CF Standard Name`_ exists for the quantity, 
-this should be used and the ``long_name`` is usually omitted.
+this should be used and the ``long_name`` is usually omitted.s
 
 A ``standard_name`` or ``long_name`` **must** be present. 
 
@@ -259,12 +268,12 @@ This is also used for site positions, which are only provided
 in latitude and longitude.
 It has the ``standard_name`` attribute set to ``longitude``
 and ``units`` set to ``degrees``.
-The latitude and longitude can be considered as relative the WGS84
-or the World Geodetic System 1984 datum,
-although this is not explicit in the metadata.
+Unless explicitly stated in the metadata,
+the latitude and longitude can be considered as relative the WGS84
+or the World Geodetic System 1984 datum.
 
-This **must** be provided for site data and for gridded data
-on a Latitude-Longitude projection.
+All data **must** contain either this or ``projection_x_coordinate`` variable.
+
 For gridded data, if any statistical processing over the coordinate 
 has been applied,
 there **must** also be an associated ``longitude_bnds`` variable
@@ -355,9 +364,6 @@ projection for the IMPROVER UK domain.
 It has a ``standard_name`` attribute set to ``projection_x_coordinate``,
 and in the case of the LAEA projection,
 the ``units`` attribute is set to ``m``. 
-This can be considered as relative to ETRS89
-or the European Terrestrial Reference System 1989 
-although this is not explicit in the metadata.
 
 This **must** be provided for gridded data
 on a non-Latitude-Longitude projection.
@@ -371,7 +377,11 @@ as it is tied to the main coordinate variable.
 
 .. note::
     
-    European Terrestrial Reference System 1989 is a a datum
+    For Met Office data using Lambert azimuthal equal area (LAEA) projection,
+    the coordinate can be considered as relative to ETRS89
+    or the European Terrestrial Reference System 1989 
+    although this is not explicit in the metadata.
+    The European Terrestrial Reference System 1989 is a a datum
     based on WGS84, but fixed on 1-Jan-1989
     to be anchored to the Eurasian continental plate. 
     This is realised through a TRF
@@ -391,9 +401,6 @@ for the IMPROVER UK domain.
 It has a ``standard_name`` attribute set to ``projection_y_coordinate``,
 and in the case of the LAEA projection,
 the ``units`` attribute is set to ``m``. 
-This can be considered as relative to ETRS89
-or the European Terrestrial Reference System 1989 
-although this is not explicit in the metadata.
 
 This **must** be provided for gridded data
 on a non-Latitude-Longitude projection.
@@ -416,6 +423,7 @@ However, it will be seen in the input file metadata
 and may be seen in the output data ``cell_methods``
 where processing has been applied over realizations
 (e.g. ``realization: mean`` for mean wind direction).
+By convention, realization zero is the unperturbed or control member.
 
 source
 ******
@@ -482,7 +490,8 @@ threshold
 This is an IMPROVER-specific coordinate variable that holds
 the set of values of the variable of interest for which the
 probability values are generated.
-It has a ``long_name`` attribute set to ``threshold``.
+It has either a ``standard_name`` or ``long_name`` attribute set to 
+the of the variable of interest and appropriate ``units``.
 
 This **must** be present for probability variables.
 
