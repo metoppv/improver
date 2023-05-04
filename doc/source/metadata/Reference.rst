@@ -490,8 +490,10 @@ threshold
 This is an IMPROVER-specific coordinate variable that holds
 the set of values of the variable of interest for which the
 probability values are generated.
-It has either a ``standard_name`` or ``long_name`` attribute set to 
-the of the variable of interest and appropriate ``units``.
+The IMPROVER code uses ``var_name="threshold"`` to detect a threshold variable
+as a different ``standard_name`` or ``long_name`` attributes will be set for 
+different quantities to represent the variable of interest.
+The appropriate ``units`` for this will also be set.
 
 This **must** be present for probability variables.
 
