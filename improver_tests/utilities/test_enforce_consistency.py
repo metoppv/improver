@@ -87,11 +87,10 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     """
     Calculate the expected result via a different method to that used within the plugin.
     """
+    diff = bound_data - forecast_data
     if comparison_operator == ">=":
-        diff = bound_data - forecast_data
         diff = np.clip(diff, 0, None)
     else:
-        diff = bound_data - forecast_data
         diff = np.clip(diff, None, 0)
     expected = forecast_data + diff
     return expected
