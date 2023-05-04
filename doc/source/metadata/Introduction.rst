@@ -92,7 +92,7 @@ title
 
 The other two attributes are specific to IMPROVER,
 which is why they are prefixed by ``mosg__``. 
-This is intended to indicates a MOSG (Met Office standard grid)
+This is intended to indicate a MOSG (Met Office standard grid)
 namespace to show that they are separate from the 
 `CF Metadata Conventions`_ attributes.
 
@@ -116,10 +116,10 @@ mosg__model_run
    This attribute extends the information provided by
    ``mosg__model_configuration``, to detail the contribution 
    of specific model runs (also known as cycles) to the blend. 
-   This is represented as a list of space-separated composite entries
-   of the form:
+   This is represented as a list of new line (``\n``) separated
+   composite entries of the form:
 
-   ``model identifier:cycle time in format yyyymmddTHHMMZ:weight\n``
+   ``model identifier:cycle time in format yyyymmddTHHMMZ:weight``
 
 Although Met Office examples are provided above, these are configurable.
 For example, the ``mosg__model_configuration`` attribute is named
@@ -224,7 +224,7 @@ cell_methods
     is to clarify that the maximum
     is not of the probability, but of the underlying quantity,
     which is the temperature in this example.
-    Cell methods are covered in more detail in the :ref:`prob-section`
+    Cell methods are covered in more detail in the :ref:`stat-section`
 
 grid_mapping
     Although in this case, the name of the projection used,
@@ -329,9 +329,6 @@ blend_time
     (For the Met Office continually updating dataset, 
     the ``blend_time`` will not be the same for all validity times,
     as forecasts in the near future are updated more frequently).
-    Strictly, as ``blend_time`` is not part of the `CF Metadata Conventions`_
-    it should arguably include a 'namespace element' such as ``mosg__``
-    but it doesn't.
 
 .. previously, this included text the text below,
     but is this still true?
