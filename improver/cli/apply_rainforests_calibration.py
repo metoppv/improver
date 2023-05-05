@@ -105,9 +105,7 @@ def process(
         message = "Fuzzy bounds are not supported. Values of output-threshold-config \
             will be ignored."
         warnings.warn(message)
-        thresholds = []
-        for key in output_threshold_config.keys():
-            thresholds.append(float(key))
+        thresholds = [float(key) for key in output_threshold_config.keys()]
     else:
         thresholds = [float(x) for x in output_thresholds]
     return ApplyRainForestsCalibration(model_config, threads).process(
