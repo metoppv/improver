@@ -73,11 +73,13 @@ def process(
             List of thresholds at which to evaluate output probabilties.
         output_threshold_config (dict):
             Threshold configuration dictionary where the keys are strings representing
-            thresholds and the values are all None.
+            thresholds. The dictionary values are not used and can be set to None (or
+            any other value). The interface to this cli is similar to that of the
+            threshold cli, but without the fuzzy bounds option.
         threshold_units (str):
-            Units in which output_thresholds or output_threshold_config are specified.
-            Will be converted to the units of  forecast_cube. If None, assumed to
-            be the same as forecast_cube.
+            Units in which threshold_values are specified. If not provided the units are
+            assumed to be the same as those of the input cube. Specifying the units here
+            will allow a suitable conversion to match the input units of forecast_cube.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
 
