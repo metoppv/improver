@@ -49,8 +49,10 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
-from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
-from improver.ensemble_copula_coupling.utilities import interpolate_pointwise
+from improver.ensemble_copula_coupling.utilities import (
+    get_bounds_of_distribution,
+    interpolate_pointwise,
+)
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -420,12 +422,16 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_dataset = self.model_input_converter(input_data)
 
-        bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
-        bounds_unit = unit.Unit(bounds_data[1])
-        lower_bound = bounds_data[0][0]
-        lower_bound_in_fcst_units = bounds_unit.convert(
-            lower_bound, forecast_variable_unit
+        bounds_data = get_bounds_of_distribution(
+            forecast_variable, forecast_variable_unit
         )
+        lower_bound_in_fcst_units = bounds_data[0]
+        # BOUNDS_FOR_ECDF[forecast_variable]
+        # bounds_unit = unit.Unit(bounds_data[1])
+        # lower_bound = bounds_data[0][0]
+        # lower_bound_in_fcst_units = bounds_unit.convert(
+        #     lower_bound, forecast_variable_unit
+        # )
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
@@ -512,30 +518,46 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         error_values = error_CDF.coord(
             "forecast_error_of_lwe_thickness_of_precipitation_amount"
         ).points
-        num_forecast_dims = len(forecast.coords(dim_coords=True))
-        for i in range(num_forecast_dims):
-            error_values = np.expand_dims(error_values, axis=-1)
-        thresholds = error_values + np.expand_dims(forecast.data, axis=0)
+        error_values = np.expand_dims(
+            error_values, axis=tuple(range(1, forecast.ndim + 1))
+        )
+        thresholds = error_values + forecast.data[np.newaxis, :]
         probabilities = error_CDF.data
 
-        # Add bounds
-        epsilon = 0.0001
+        # Add an extra threshold below/above with one/zero probability to
+        # ensure that the PDF covers the full probability range.
+        # Thresholds are usually float32 with epsilon of ~= 1.1e-7
+        eps = np.finfo(thresholds.dtype).eps
+        # for small values (especially exactly zero), at least epsilon
+        # for larger values, the next representable float number
         thresholds = np.concatenate(
-            [thresholds[[0]] - epsilon, thresholds, thresholds[[-1]] + epsilon], axis=0,
-        )
-        probabilities = np.concatenate(
             [
-                np.ones((1,) + probabilities.shape[1:]),
-                probabilities,
-                np.zeros((1,) + probabilities.shape[1:]),
+                thresholds[[0]] - np.maximum(eps, np.abs(thresholds[[0]] * eps)),
+                thresholds,
+                thresholds[[-1]] + np.maximum(eps, np.abs(thresholds[[-1]] * eps)),
             ],
             axis=0,
         )
+        probabilities = np.concatenate(
+            [
+                np.ones((1,) + probabilities.shape[1:], np.float32),
+                probabilities,
+                np.zeros((1,) + probabilities.shape[1:], np.float32),
+            ],
+            axis=0,
+            dtype=np.float32,
+        )
 
-        # Set probability to 1 for negative thresholds
-        negative_threshold = thresholds <= 0
-        thresholds = np.where(negative_threshold, 0, thresholds)
-        probabilities = np.where(negative_threshold, 1, probabilities)
+        # get bounds
+        bounds_data = get_bounds_of_distribution(forecast.name(), forecast.units)
+        lower_bound_in_fcst_units = bounds_data[0]
+
+        # Set probability to 1 for thresholds outside bounds
+        impossible_threshold = thresholds <= lower_bound_in_fcst_units
+        thresholds = np.where(
+            impossible_threshold, lower_bound_in_fcst_units, thresholds
+        )
+        probabilities = np.where(impossible_threshold, 1, probabilities)
 
         # Interpolate
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
