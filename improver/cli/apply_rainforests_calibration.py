@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to apply rainforests calibration."""
 
+import warnings
+
 from improver import cli
 
 
@@ -100,6 +102,9 @@ def process(
         "One of --output-threshold-config and --output-thresholds must be specified"
 
     if output_threshold_config:
+        message = "Fuzzy bounds are not supported. Values of output-threshold-config \
+            will be ignored."
+        warnings.warn(message)
         thresholds = []
         for key in output_threshold_config.keys():
             thresholds.append(float(key))
