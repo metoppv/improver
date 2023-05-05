@@ -68,7 +68,7 @@ c5860ce0801d097e1705130d6e3f49b19c43fa399041bd7726b7a1257335f2fb  ./apply-night-
 3a6b4b6e2931e4b58d970c4b034247269a96c372e5a4f97a8ba62a895071fa95  ./apply-night-mask/uk_prob/invalid_input.nc
 72d294e6dd4d0b66ef71293861b4103e4be51755ca72d67da102f576f35583b5  ./apply-night-mask/uk_prob/kgo.nc
 809a446327626d007ac288b8277520730863bc596e98116bca5c4afb0d531e96  ./apply-night-mask/uk_prob/valid_input.nc
-5a647f100fd5c037d093f432c7ca3d23aac63bf48649227df1cac33b4f3178f0  ./apply-rainforests-calibration/basic/kgo.nc
+80f116afd10b56873a5bc1879a1b292e71ec4f3ed71eead06921c04acafb821b  ./apply-rainforests-calibration/basic/kgo.nc
 b4678f178e0e1df0c242c61b269b71dd9a3d7aca64663e2e81e5bfeb71fe97da  ./apply-rainforests-calibration/features/20200802T0000Z-PT0000H00M-clearsky_solar_radiation-PT24H.nc
 dce2d4a28cec494c94b154dc3a9203b46b7cef2ad54d04049663166f4b42ecf5  ./apply-rainforests-calibration/features/20200802T0000Z-PT0024H00M-cape-PT24H.nc
 98dc9dcbbbbb665beb11d7e1683c9128922487fe61683c9505946b90676e3934  ./apply-rainforests-calibration/features/20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc
