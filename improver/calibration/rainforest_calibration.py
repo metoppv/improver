@@ -508,7 +508,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             are same as forecast cube with additional threshold dimension first.
         """
 
-        # Add error to forecast
+        # Add error to forecast. The thresholds for each grid point are obtained
+        # by adding the forecast at that point to error_values; thus
+        # we get a different set of thresholds for each grid point.
         error_values = error_CDF.coord(
             "forecast_error_of_lwe_thickness_of_precipitation_amount"
         ).points
@@ -522,8 +524,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # ensure that the PDF covers the full probability range.
         # Thresholds are usually float32 with epsilon of ~= 1.1e-7
         eps = np.finfo(thresholds.dtype).eps
-        # for small values (especially exactly zero), at least epsilon
-        # for larger values, the next representable float number
+        # For small values (especially exactly zero), at least epsilon;
+        # for larger values, the next representable float number.
         thresholds = np.concatenate(
             [
                 thresholds[[0]] - np.maximum(eps, np.abs(thresholds[[0]] * eps)),
@@ -553,7 +555,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
         probabilities = np.where(impossible_threshold, 1, probabilities)
 
-        # Interpolate
+        # Interpolate to a common set of output thresholds.
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
         output_array = interpolate_pointwise(
             output_thresholds, thresholds, probabilities
