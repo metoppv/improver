@@ -41,7 +41,6 @@ from pathlib import Path
 from typing import List, Tuple
 
 import cf_units as unit
-import iris
 import numpy as np
 from iris.analysis import MEAN
 from iris.coords import DimCoord
