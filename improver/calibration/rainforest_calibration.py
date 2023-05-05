@@ -426,12 +426,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             forecast_variable, forecast_variable_unit
         )
         lower_bound_in_fcst_units = bounds_data[0]
-        # BOUNDS_FOR_ECDF[forecast_variable]
-        # bounds_unit = unit.Unit(bounds_data[1])
-        # lower_bound = bounds_data[0][0]
-        # lower_bound_in_fcst_units = bounds_unit.convert(
-        #     lower_bound, forecast_variable_unit
-        # )
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
