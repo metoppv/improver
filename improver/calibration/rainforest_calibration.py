@@ -566,35 +566,24 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Make output cube
-        aux_coords_and_dims = []
-        for coord in getattr(forecast, "aux_coords"):
-            coord_dims = forecast.coord_dims(coord)
-            if len(coord_dims) == 0:
-                aux_coords_and_dims.append((coord.copy(), []))
-            else:
-                aux_coords_and_dims.append(
-                    (coord.copy(), forecast.coord_dims(coord)[0] + 1)
-                )
-        forecast_variable = forecast.name()
-        threshold_dim = iris.coords.DimCoord(
+        probability_cube = create_new_diagnostic_cube(
+            name=f"probability_of_{forecast.name()}_above_threshold",
+            units="1",
+            template_cube=forecast,
+            mandatory_attributes=generate_mandatory_attributes([forecast]),
+            optional_attributes=forecast.attributes,
+        )
+        threshold_coord = DimCoord(
             output_thresholds,
-            standard_name=forecast_variable,
-            units=forecast.units,
+            standard_name=forecast.name(),
             var_name="threshold",
+            units=forecast.units,
             attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
-        dim_coords_and_dims = [(threshold_dim, 0)] + [
-            (coord.copy(), forecast.coord_dims(coord)[0] + 1)
-            for coord in forecast.coords(dim_coords=True)
-        ]
-        probability_cube = iris.cube.Cube(
-            output_array.astype(np.float32),
-            long_name=f"probability_of_{forecast_variable}_above_threshold",
-            units=1,
-            attributes=forecast.attributes,
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims,
+        probability_cube = add_coordinate_to_cube(
+            probability_cube, new_coord=threshold_coord,
         )
+        probability_cube.data = output_array
         return probability_cube
 
     def process(
