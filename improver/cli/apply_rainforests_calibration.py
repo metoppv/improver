@@ -55,9 +55,13 @@ def process(
 
     This calibration is done in a situation dependent fashion using a series of
     decision-tree models to construct representative error distributions which are
-    then used to map each input ensemble member onto a series of realisable values.
-    These series collectively form a super-ensemble, from which realizations are
-    sampled to produce the calibrated forecast.
+    then used to map each input ensemble member onto an error distribution. The
+    error distributions are averaged in probability space, and interpolated to the
+    output thresholds.
+
+    It is assumed that the models have been trained using the `>=` comparator; i.e.
+    they predict the probability that the error is greather than or equal to the various
+    error threhsolds. The output probability cube also uses the `>=` comparator.
 
     Args:
         forecast_cube (iris.cube.Cube):
