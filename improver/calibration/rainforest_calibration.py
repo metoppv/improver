@@ -429,7 +429,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         for threshold_index, model in enumerate(self.tree_models):
             threshold = self.error_thresholds[threshold_index]
-            # prediction = model.predict(input_dataset)
             if threshold >= 0:
                 # In this case, for all values of forecast we have
                 # forecast + threshold >= forecast >= lower_bound_in_fcst_units
