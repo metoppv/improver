@@ -60,7 +60,7 @@ def process(
     output thresholds.
 
     It is assumed that the models have been trained using the `>=` comparator; i.e.
-    they predict the probability that the error is greather than or equal to the various
+    they predict the probability that the error is greater than or equal to the various
     error threhsolds. The output probability cube also uses the `>=` comparator.
 
     Args:
