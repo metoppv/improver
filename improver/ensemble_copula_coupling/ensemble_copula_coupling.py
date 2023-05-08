@@ -75,6 +75,71 @@ from improver.utilities.cube_manipulation import (
 from improver.utilities.indexing_operations import choose
 
 
+class RebadgeRealizationsAsPercentiles(BasePlugin):
+    """Class to rebadge realizations as percentiles."""
+
+    def __init__(self, optimal_crps_percentiles: Optional[bool] = False):
+        """Initialise the class.
+
+        Args:
+            optimal_crps_percentiles:
+                If True, percentiles are computed following the
+                recommendation of Bröcker, 2012 for optimising the CRPS using
+                the equation: q = (i-0.5)/N, i=1,...,N, where N is the number
+                of realizations. If False, percentiles are computed as equally
+                spaced following the equation: q = i/(1+N), i=1,...,N.
+                Defaults to False.
+
+        References:
+            Bröcker, J. (2012), Evaluating raw ensembles with the continuous
+            ranked probability score. Q.J.R. Meteorol. Soc., 138: 1611-1617.
+            https://doi.org/10.1002/qj.1891
+            Hamill, T. M., and S. J. Colucci, 1997: Verification of Eta–RSM
+            Short-Range Ensemble Forecasts. Mon. Wea. Rev., 125, 1312–1327,
+            https://doi.org/10.1175/1520-0493(1997)125<1312:VOERSR>2.0.CO;2.
+        """
+        self.optimal_crps_percentiles = optimal_crps_percentiles
+
+    def process(self, cube: Cube) -> Cube:
+        """Convert a cube of realizations into percentiles by sorting the cube along
+        the realization dimension and rebadging the realization coordinate as a
+        percentile coordinate.
+
+        Args:
+            cube:
+                Cube containing realizations.
+        Returns:
+            Cube containing percentiles.
+        """
+        if not cube.coords("realization"):
+            coord_names = [c.name() for c in cube.coords(dim_coords=True)]
+            msg = (
+                "No realization coordinate is present within the input. "
+                "A realization coordinate must be present, as this will be "
+                "rebadged to be a percentile coordinate. The coordinates "
+                f"present were: {coord_names}"
+            )
+            raise CoordinateNotFoundError(msg)
+
+        result = cube.copy()
+        if cube.coords("realization", dim_coords=True):
+            (axis,) = cube.coord_dims("realization")
+            result.data = np.sort(cube.data, axis=axis)
+
+        result.coord("realization").rename("percentile")
+        result.coord("percentile").units = "%"
+        lenp = len(result.coord("percentile").points)
+        if self.optimal_crps_percentiles:
+            result.coord("percentile").points = np.array(
+                [100 * (k + 0.5) / lenp for k in range(lenp)], dtype=np.float32
+            )
+        else:
+            result.coord("percentile").points = np.array(
+                [100 * (k + 1) / (lenp + 1) for k in range(lenp)], dtype=np.float32
+            )
+        return result
+
+
 class RebadgePercentilesAsRealizations(BasePlugin):
     """
     Class to rebadge percentiles as ensemble realizations.
