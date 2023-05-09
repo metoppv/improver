@@ -79,9 +79,9 @@ def process(
             List of thresholds at which to evaluate output probabilties.
         output_threshold_config (dict):
             Threshold configuration dictionary where the keys are strings representing
-            thresholds. The dictionary values are not used and can be set to None (or
-            any other value). The interface to this cli is similar to that of the
-            threshold cli, but without the fuzzy bounds option.
+            thresholds. The threshold config should follow the same format as that of
+            the threshold cli, however here only the threshold keys are used and the
+            threshold values are disregarded.
         threshold_units (str):
             Units in which threshold_values are specified. If not provided the units are
             assumed to be the same as those of the input cube. Specifying the units here

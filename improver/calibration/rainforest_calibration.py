@@ -427,6 +427,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         lower_bound_in_fcst_units = bounds_data[0]
 
         for threshold_index, model in enumerate(self.tree_models):
+            # it is assumed that models have been trained using the >= operator
+            # (i.e. they predict the probabilty that error >= threshold)
             threshold = self.error_thresholds[threshold_index]
             if threshold >= 0:
                 # In this case, for all values of forecast we have
@@ -495,8 +497,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         Args:
             error_CDF:
-                Cube containing the CDF of probabilities for each enemble member at error
-                threhsolds.
+                Cube containing the CDF probabilities for each realization across the error
+                thresholds.
             forecast:
                 Cube containing NWP ensemble forecast.
             output_thresholds:
@@ -547,12 +549,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         bounds_data = get_bounds_of_distribution(forecast.name(), forecast.units)
         lower_bound_in_fcst_units = bounds_data[0]
 
-        # Set probability to 1 for thresholds outside bounds
-        impossible_threshold = thresholds <= lower_bound_in_fcst_units
+        # Set probability to 1 for thresholds <= lower bound
+        threshold_below_bound = thresholds <= lower_bound_in_fcst_units
         thresholds = np.where(
-            impossible_threshold, lower_bound_in_fcst_units, thresholds
+            threshold_below_bound, lower_bound_in_fcst_units, thresholds
         )
-        probabilities = np.where(impossible_threshold, 1, probabilities)
+        probabilities = np.where(threshold_below_bound, 1, probabilities)
 
         # Interpolate to a common set of output thresholds.
         output_thresholds = np.sort(output_thresholds).astype(np.float32)
