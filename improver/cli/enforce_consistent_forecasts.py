@@ -60,10 +60,11 @@ def process(
                     forecast_cube. It must be the same shape as forecast_cube but have
                     a different name.
         ref_name (str): Name of ref_forecast cube
-        additive_amount: The amount to be added to the reference forecast prior to
-            enforcing consistency between the forecast and reference forecast. If
-            both an additive_amount and multiplicative_amount are specified then
-            addition occurs after multiplication.
+        additive_amount: The amount to be added to the reference forecast (in the units
+            of the reference forecast) prior to enforcing consistency between the
+            forecast and reference forecast. If both an additive_amount and
+            multiplicative_amount are specified then addition occurs after
+            multiplication.
         multiplicative_amount: The amount to multiply the reference forecast by
             prior to enforcing consistency between the forecast and reference
             forecast. If both an additive_amount and multiplicative_amount are

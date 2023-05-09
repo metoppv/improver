@@ -97,7 +97,7 @@ def get_expected(forecast_data, bound_data, comparison_operator):
 
 
 @pytest.mark.parametrize("forecast_type", ("percentile", "probability"))
-@pytest.mark.parametrize("additive_amount", (-15, 0, 15))
+@pytest.mark.parametrize("additive_amount", (-12.5, 0, 12.5))
 @pytest.mark.parametrize("multiplicative_amount", (0.5, 1, 1.5))
 @pytest.mark.parametrize("reference_value", (30,))
 @pytest.mark.parametrize("forecast_value", (20, 30))
@@ -111,8 +111,8 @@ def test_basic(
     comparison_operator,
 ):
     """
-    Test that consistency between percentiles is enforced for a variety of
-    percentages, wind speeds and wind gusts.
+    Test that consistency between forecasts is enforced correctly for a variety of
+    percentile or probability forecasts.
     """
     shape = (3, 2, 2)
 
@@ -122,6 +122,7 @@ def test_basic(
         get_forecast = get_probability_forecast
         reference_value = reference_value / 100
         forecast_value = forecast_value / 100
+        additive_amount = additive_amount / 100
     else:
         reference_cube_name = "wind_speed_at_10m"
         forecast_cube_name = "wind_gust_at_10m_max-PT01H"

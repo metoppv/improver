@@ -30,6 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides utilities for enforcing consistency between forecasts."""
 import warnings
+from typing import Optional
 
 import numpy as np
 from iris.cube import Cube
@@ -51,7 +52,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         additive_amount: float = 0.0,
         multiplicative_amount: float = 1.0,
         comparison_operator: str = ">=",
-        diff_for_warning: float = None,
+        diff_for_warning: Optional[float] = None,
     ) -> None:
         """
         Initialise class for enforcing consistency between a forecast and a linear
@@ -80,8 +81,8 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
     def process(self, forecast: Cube, reference_forecast: Cube) -> Cube:
         """
-        Function to enforce that the values in forecast_cube are not less than or not
-        greater than a linear function of the corresponding values in
+        Function to enforce that the values in the forecast cube are not less than or
+        not greater than a linear function of the corresponding values in
         reference_forecast.
 
         Args:
@@ -94,6 +95,15 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             enforced to be not less than or not greater than a linear function of
             reference_forecast.
         """
+        # check forecast and reference units match
+        if forecast.units != reference_forecast.units:
+            msg = (
+                f"The units in the forecast and reference cubes do not match. The"
+                f"units of forecast were {forecast.units}, the units of "
+                f"reference_forecast were {reference_forecast.units}."
+            )
+            raise ValueError(msg)
+
         # calculate forecast_bound by applying specified linear transformation to
         # reference_forecast
         forecast_bound = reference_forecast.copy()
