@@ -35,7 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, radius: float = 10000.0):
+def process(*cubes: cli.inputcube, radius: float = None):
     """
     Converts a phase-change-level cube into the
     probability of a specific precipitation phase being found at the surface.

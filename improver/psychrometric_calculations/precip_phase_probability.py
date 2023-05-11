@@ -63,13 +63,15 @@ class PrecipPhaseProbability(BasePlugin):
     probability-of-rain is 1, else 0.
     """
 
-    def __init__(self, radius: float = 10000.0) -> None:
+    def __init__(self, radius: float = None) -> None:
         """
         Initialise plugin
 
         Args:
             radius:
-                Neighbourhood radius from which 80th percentile is found (m)
+                Neighbourhood radius from which 80th percentile is found (m).
+                If set to None percentiles are not generated, and the input
+                altitudes are used directly as the phase discriminators.
         """
         self.percentile_plugin = GeneratePercentilesFromANeighbourhood
         self.radius = radius
@@ -115,9 +117,10 @@ class PrecipPhaseProbability(BasePlugin):
             (self.falling_level_cube,) = extracted_cube
             self.param = "snow"
             self.comparator = operator.gt
-            self.get_discriminating_percentile = self.percentile_plugin(
-                self.radius, percentiles=[80.0]
-            )
+            if self.radius is not None:
+                self.get_discriminating_percentile = self.percentile_plugin(
+                    self.radius, percentiles=[80.0]
+                )
         elif cubes.extract("altitude_of_rain_falling_level"):
             extracted_cube = cubes.extract("altitude_of_rain_falling_level")
             (self.falling_level_cube,) = extracted_cube
@@ -125,9 +128,10 @@ class PrecipPhaseProbability(BasePlugin):
             self.comparator = operator.lt
             # We want rain that has come from sleet at or above the surface, so inverse of 80th
             # centile is the 20th centile.
-            self.get_discriminating_percentile = self.percentile_plugin(
-                self.radius, percentiles=[20.0]
-            )
+            if self.radius is not None:
+                self.get_discriminating_percentile = self.percentile_plugin(
+                    self.radius, percentiles=[20.0]
+                )
         else:
             extracted_cube = cubes.extract("altitude_of_rain_from_hail_falling_level")
             if not extracted_cube:
@@ -138,9 +142,10 @@ class PrecipPhaseProbability(BasePlugin):
             (self.falling_level_cube,) = extracted_cube
             self.param = "rain_from_hail"
             self.comparator = operator.lt
-            self.get_discriminating_percentile = self.percentile_plugin(
-                self.radius, percentiles=[20.0]
-            )
+            if self.radius is not None:
+                self.get_discriminating_percentile = self.percentile_plugin(
+                    self.radius, percentiles=[20.0]
+                )
         orography_name = "surface_altitude"
         extracted_cube = cubes.extract(orography_name)
         if extracted_cube:
@@ -182,9 +187,12 @@ class PrecipPhaseProbability(BasePlugin):
             rain phases.
         """
         self._extract_input_cubes(cubes)
-        processed_falling_level = iris.util.squeeze(
-            self.get_discriminating_percentile(self.falling_level_cube)
-        )
+        if self.radius is not None:
+            processed_falling_level = iris.util.squeeze(
+                self.get_discriminating_percentile(self.falling_level_cube)
+            )
+        else:
+            processed_falling_level = self.falling_level_cube
 
         result_data = np.where(
             self.comparator(self.orography_cube.data, processed_falling_level.data),
