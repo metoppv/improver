@@ -31,7 +31,7 @@
 """Module for calculating the probability of specific precipitation phases."""
 
 import operator
-from typing import List, Union
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
@@ -63,13 +63,13 @@ class PrecipPhaseProbability(BasePlugin):
     probability-of-rain is 1, else 0.
     """
 
-    def __init__(self, radius: float = None) -> None:
+    def __init__(self, radius: Optional[float] = None) -> None:
         """
         Initialise plugin
 
         Args:
             radius:
-                Neighbourhood radius from which 80th percentile is found (m).
+                Neighbourhood radius from which the 20th or 80th percentile is found (m).
                 Restrictions in the neighbourhooding code limit the use of a
                 neighbourhood to data on equal area projections.
                 If set to None percentiles are not generated, and the input
