@@ -37,6 +37,7 @@ from iris.cube import Cube
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
+    set_up_variable_cube
 )
 from improver.utilities.enforce_consistency import EnforceConsistentForecasts
 
@@ -63,8 +64,9 @@ def get_percentile_forecast(value, shape, name):
     Create a percentile forecast cube.
     """
     data = get_percentiles(value, shape)
+    np.full(shape, data, dtype=np.float32)
     forecast_cube = set_up_percentile_cube(
-        np.full(shape, data, dtype=np.float32), [10, 50, 90], name=name, units="m s-1",
+        data, percentiles=[10, 50, 90], name=name, units="m s-1",
     )
     return forecast_cube
 
@@ -83,6 +85,20 @@ def get_probability_forecast(value, shape, name) -> Cube:
     return forecast_cube
 
 
+def get_realization_forecast(value, shape, name) -> Cube:
+    """
+    Create a probability forecast cube.
+    """
+    data = np.full(shape, fill_value=value, dtype=np.float32)
+    forecast_cube = set_up_variable_cube(
+        data,
+        name=name,
+        realizations=[0, 1, 2],
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return forecast_cube
+
+
 def get_expected(forecast_data, bound_data, comparison_operator):
     """
     Calculate the expected result via a different method to that used within the plugin.
@@ -96,12 +112,23 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     return expected
 
 
-@pytest.mark.parametrize("forecast_type", ("percentile", "probability"))
-@pytest.mark.parametrize("additive_amount", (-12.5, 0, 12.5))
-@pytest.mark.parametrize("multiplicative_amount", (0.5, 1, 1.5))
-@pytest.mark.parametrize("reference_value", (30,))
-@pytest.mark.parametrize("forecast_value", (20, 30))
-@pytest.mark.parametrize("comparison_operator", (">=", "<="))
+@pytest.mark.parametrize(
+    "forecast_type, additive_amount, multiplicative_amount, reference_value, "
+    "forecast_value, comparison_operator",
+    (
+            ("probability", 0, 1, 0.5, 0.4, ">="),
+            ("probability", 0, 1, 0.4, 0.5, "<="),
+            ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
+            ("probability", 0.1, 1.5, 0.4, 0.6, ">="),  # check that additive and multiplicative amounts aren't used
+            ("percentile", 0, 1.1, 50, 40, ">="),
+            ("percentile", 0, 0.9, 40, 50, "<="),
+            ("percentile", 10, 1, 50, 40, ">="),
+            ("percentile", -10, 0.8, 50, 40, ">="),  # no change required
+            ("realization", 0, 1.1, 20, 25, "<="),
+            ("realization", 5, 1.2, 20, 15, ">="),
+            ("realization", -5, 0.75, 20, 5, "<="),  # no change required
+    )
+)
 def test_basic(
     forecast_type,
     additive_amount,
@@ -122,7 +149,10 @@ def test_basic(
         get_forecast = get_probability_forecast
         reference_value = reference_value / 100
         forecast_value = forecast_value / 100
-        additive_amount = additive_amount / 100
+    elif forecast_type == "reference":
+        reference_cube_name = "temperature"
+        forecast_cube_name = "feels_like_temperature"
+        get_forecast = get_percentile_forecast
     else:
         reference_cube_name = "wind_speed_at_10m"
         forecast_cube_name = "wind_gust_at_10m_max-PT01H"
@@ -130,6 +160,7 @@ def test_basic(
 
     reference_cube = get_forecast(reference_value, shape, reference_cube_name)
     forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
+
     if forecast_type == "probability":
         forecast_cube.data[:, 1, 1] = 0.6
 
@@ -154,7 +185,7 @@ def test_basic(
     (
         ("probability", 0.3, 0.9, ">=", 0.3),  # change too big
         ("percentile", 10, 50, ">=", 30),  # change too big
-        ("percentile", 20, 30, "=", 30),  # incorrect comparison operator
+        ("percentile", 20, 30, "=", 30),  # bad comparison operator
     ),
 )
 def test_exceptions(

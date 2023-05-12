@@ -60,19 +60,19 @@ def process(
                     forecast_cube. It must be the same shape as forecast_cube but have
                     a different name.
         ref_name (str): Name of ref_forecast cube
-        additive_amount: The amount to be added to the reference forecast (in the units
-            of the reference forecast) prior to enforcing consistency between the
-            forecast and reference forecast. If both an additive_amount and
+        additive_amount (float): The amount to be added to the reference forecast (in
+            the units of the reference forecast) prior to enforcing consistency between
+            the forecast and reference forecast. If both an additive_amount and
             multiplicative_amount are specified then addition occurs after
             multiplication.
-        multiplicative_amount: The amount to multiply the reference forecast by
+        multiplicative_amount (float): The amount to multiply the reference forecast by
             prior to enforcing consistency between the forecast and reference
             forecast. If both an additive_amount and multiplicative_amount are
             specified then addition occurs after multiplication.
-        comparison_operator: Determines whether the forecast is enforced to be not
+        comparison_operator (str): Determines whether the forecast is enforced to be not
             less than or not greater than the reference forecast. Valid choices are
             ">=", for not less than, and "<=" for not greater than.
-        diff_for_warning: If assigned, the plugin will raise a warning if any
+        diff_for_warning (float): If assigned, the plugin will raise a warning if any
             absolute change in forecast value is greater than this value.
 
     Returns:

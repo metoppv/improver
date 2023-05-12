@@ -62,11 +62,13 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             additive_amount: The amount to be added to the reference forecast prior to
                 enforcing consistency between the forecast and reference forecast. If
                 both an additive_amount and multiplicative_amount are specified then
-                addition occurs after multiplication.
+                addition occurs after multiplication. This will not be applied to
+                probability forecasts.
             multiplicative_amount: The amount to multiply the reference forecast by
                 prior to enforcing consistency between the forecast and reference
                 forecast. If both an additive_amount and multiplicative_amount are
-                specified then addition occurs after multiplication.
+                specified then addition occurs after multiplication. This will not be
+                applied to probability forecasts.
             comparison_operator: Determines whether the forecast is enforced to be not
                 less than or not greater than the reference forecast. Valid choices are
                 ">=", for not less than, and "<=" for not greater than.
@@ -86,7 +88,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         reference_forecast.
 
         Args:
-            forecast: A forecast cube of probabilities or percentiles
+            forecast: A forecast cube
             reference_forecast: A reference forecast cube used to determine the bound
                 of the forecast cube.
 
