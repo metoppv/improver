@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the distance_to_number_of_grid_cells function from
  spatial.py."""
-
+from copy import copy
 from datetime import datetime as dt
 
 import cartopy.crs as ccrs
@@ -39,13 +39,16 @@ import numpy as np
 import pytest
 from iris import Constraint, coord_systems
 from iris.coord_systems import GeogCS
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord, CellMethod, DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
 from numpy.testing import assert_almost_equal
 
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 from improver.utilities.spatial import (
     calculate_grid_spacing,
     check_if_grid_is_equal_area,
@@ -54,6 +57,7 @@ from improver.utilities.spatial import (
     lat_lon_determine,
     number_of_grid_cells_to_distance,
     transform_grid_to_lat_lon,
+    update_name_and_vicinity_coord,
 )
 
 
@@ -601,3 +605,41 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         msg = "Cube passed to transform_grid_to_lat_lon does not have an x coordinate"
         with self.assertRaisesRegex(ValueError, msg):
             transform_grid_to_lat_lon(self.cube)
+
+
+@pytest.mark.parametrize("input_has_coord", (True, False))
+@pytest.mark.parametrize("vicinity_radius", (2000.0, 10000.0, 20000.0))
+def test_update_name_and_vicinity_coord(vicinity_radius, input_has_coord):
+    """Test that the vicinity_radius correctly updates the right coord.
+    The update_diagnostic_name method already has tests covering its
+    functionality."""
+    input_name_suffix = "_in_vicinity"
+    source_name = "lwe_thickness_of_precipitation_amount"
+    kwargs = {}
+    if input_has_coord:
+        kwargs["include_scalar_coords"] = [
+            DimCoord(
+                np.array([10000.0], dtype=np.float32),
+                long_name="radius_of_vicinity",
+                units="m",
+            )
+        ]
+    cube = set_up_probability_cube(
+        np.zeros((2, 2, 2), dtype=np.float32),
+        [0, 1],
+        f"{source_name}{input_name_suffix}",
+        "mm",
+        spatial_grid="equalarea",
+        **kwargs,
+    )
+    cube.add_cell_method(CellMethod("mean", "time", comments=f"of {source_name}"))
+    new_base_name = "lwe_thickness_of_precipitation_amount"
+    new_name = f"{new_base_name}_in_variable_vicinity"
+    expected_value = copy(vicinity_radius)
+    update_name_and_vicinity_coord(cube, new_name, vicinity_radius)
+    assert np.allclose(cube.coord("radius_of_vicinity").points, expected_value)
+    coord_comment = cube.coord("radius_of_vicinity").attributes.get("comment")
+    if input_has_coord:
+        assert coord_comment is None
+    else:
+        assert coord_comment == "Maximum"

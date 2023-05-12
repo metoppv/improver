@@ -31,7 +31,7 @@
 """Module containing plugins for combining cubes"""
 
 from operator import eq
-from typing import Callable, List, Tuple, Union
+from typing import Callable, List, Union
 
 import iris
 import numpy as np
@@ -40,13 +40,10 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.metadata.probabilistic import (
-    find_threshold_coordinate,
-    get_diagnostic_cube_name_from_probability_name,
-    get_threshold_coord_name_from_probability_name,
-)
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
@@ -439,56 +436,6 @@ class CubeMultiplier(CubeCombiner):
             (len(coord1.points) == 1) or (len(coord2.points) == 1)
         )
 
-    @staticmethod
-    def _update_cell_methods(
-        cell_methods: Tuple[CellMethod], original_name: str, new_diagnostic_name: str,
-    ) -> List[CellMethod]:
-        """
-        Update any cell methods that include a comment that refers to the
-        diagnostic name to refer instead to the new diagnostic name. Those cell
-        methods that do not include the diagnostic name are passed through
-        unmodified.
-
-        Args:
-            cell_methods:
-                The cell methods found on the cube that is being used as the
-                metadata template.
-            original_name:
-                The full name of the metadata template cube.
-            new_diagnostic_name:
-                The new diagnostic name to use in the modified cell methods.
-
-        Returns:
-            A list of modified cell methods to replace the originals.
-        """
-        try:
-            # strip probability and vicinity components to provide the diagnostic name
-            diagnostic_name = get_threshold_coord_name_from_probability_name(
-                original_name
-            )
-        except ValueError:
-            diagnostic_name = original_name
-
-        new_cell_methods = []
-        for cell_method in cell_methods:
-            try:
-                (cell_comment,) = cell_method.comments
-            except ValueError:
-                new_cell_methods.append(cell_method)
-            else:
-                if diagnostic_name in cell_comment:
-                    new_cell_methods.append(
-                        CellMethod(
-                            cell_method.method,
-                            coords=cell_method.coord_names,
-                            intervals=cell_method.intervals,
-                            comments=f"of {new_diagnostic_name}",
-                        )
-                    )
-                else:
-                    new_cell_methods.append(cell_method)
-        return new_cell_methods
-
     def process(
         self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str
     ) -> Cube:
@@ -524,34 +471,7 @@ class CubeMultiplier(CubeCombiner):
 
         result = self._combine_cube_data(cube_list)
 
-        # Used for renaming the threshold coordinate and modifying cell methods
-        # where necessary; excludes the in_vicinity component.
-        new_base_name = new_diagnostic_name.replace("_in_vicinity", "")
-
-        original_name = cube_list[0].name()
-
-        if self.broadcast_to_threshold:
-            diagnostic_name = get_diagnostic_cube_name_from_probability_name(
-                original_name
-            )
-            # Rename the threshold coordinate to match the name of the diagnostic
-            # that results from the combine operation.
-            result.coord(var_name="threshold").rename(new_base_name)
-            result.coord(new_base_name).var_name = "threshold"
-
-            new_diagnostic_name = original_name.replace(
-                diagnostic_name, new_diagnostic_name
-            )
-
-        # Modify cell methods that include the variable name to match the new
-        # name.
-        cell_methods = cube_list[0].cell_methods
-        if cell_methods:
-            result.cell_methods = self._update_cell_methods(
-                cell_methods, original_name, new_base_name
-            )
-
-        result.rename(new_diagnostic_name)
+        update_diagnostic_name(cube_list[0], new_diagnostic_name, result)
 
         return result
 

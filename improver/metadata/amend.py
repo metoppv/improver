@@ -30,13 +30,19 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
 from datetime import datetime, timedelta, timezone
-from typing import Any, Dict, List, Union
+from typing import Any, Dict, List, Tuple, Union
 
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
 from improver.metadata.constants.mo_attributes import (
     GRID_ID_LOOKUP,
     MOSG_GRID_DEFINITION,
+)
+from improver.metadata.probabilistic import (
+    get_diagnostic_cube_name_from_probability_name,
+    get_threshold_coord_name_from_probability_name,
+    is_probability,
 )
 
 
@@ -131,3 +137,87 @@ def update_model_id_attr_attribute(
 
     attr_list = [a for c in cubes for a in c.attributes[model_id_attr].split(" ")]
     return {model_id_attr: " ".join(sorted(set(attr_list)))}
+
+
+def update_diagnostic_name(source_cube: Cube, new_diagnostic_name: str, result: Cube):
+    """
+    Used for renaming the threshold coordinate and modifying cell methods
+    where necessary; excludes the in_vicinity component.
+
+    Args:
+        source_cube: An original cube before any processing took place. Can be the same cube as
+            result.
+        new_diagnostic_name: The new diagnostic name to apply to result.
+        result: The cube that needs to be modified in place.
+
+    """
+    new_base_name = new_diagnostic_name.replace("_in_variable_vicinity", "")
+    new_base_name = new_base_name.replace("_in_vicinity", "")
+    original_name = source_cube.name()
+
+    if is_probability(source_cube):
+        diagnostic_name = get_diagnostic_cube_name_from_probability_name(original_name)
+        # Rename the threshold coordinate to match the name of the diagnostic
+        # that results from the combine operation.
+        result.coord(var_name="threshold").rename(new_base_name)
+        result.coord(new_base_name).var_name = "threshold"
+
+        new_diagnostic_name = original_name.replace(
+            diagnostic_name, new_diagnostic_name
+        )
+    # Modify cell methods that include the variable name to match the new
+    # name.
+    cell_methods = source_cube.cell_methods
+    if cell_methods:
+        result.cell_methods = _update_cell_methods(
+            cell_methods, original_name, new_base_name
+        )
+    result.rename(new_diagnostic_name)
+
+
+def _update_cell_methods(
+    cell_methods: Tuple[CellMethod], original_name: str, new_diagnostic_name: str,
+) -> List[CellMethod]:
+    """
+    Update any cell methods that include a comment that refers to the
+    diagnostic name to refer instead to the new diagnostic name. Those cell
+    methods that do not include the diagnostic name are passed through
+    unmodified.
+
+    Args:
+        cell_methods:
+            The cell methods found on the cube that is being used as the
+            metadata template.
+        original_name:
+            The full name of the metadata template cube.
+        new_diagnostic_name:
+            The new diagnostic name to use in the modified cell methods.
+
+    Returns:
+        A list of modified cell methods to replace the originals.
+    """
+    try:
+        # strip probability and vicinity components to provide the diagnostic name
+        diagnostic_name = get_threshold_coord_name_from_probability_name(original_name)
+    except ValueError:
+        diagnostic_name = original_name
+
+    new_cell_methods = []
+    for cell_method in cell_methods:
+        try:
+            (cell_comment,) = cell_method.comments
+        except ValueError:
+            new_cell_methods.append(cell_method)
+        else:
+            if diagnostic_name in cell_comment:
+                new_cell_methods.append(
+                    CellMethod(
+                        cell_method.method,
+                        coords=cell_method.coord_names,
+                        intervals=cell_method.intervals,
+                        comments=f"of {new_diagnostic_name}",
+                    )
+                )
+            else:
+                new_cell_methods.append(cell_method)
+    return new_cell_methods
