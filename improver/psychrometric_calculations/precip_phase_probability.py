@@ -70,6 +70,8 @@ class PrecipPhaseProbability(BasePlugin):
         Args:
             radius:
                 Neighbourhood radius from which 80th percentile is found (m).
+                Restrictions in the neighbourhooding code limit the use of a
+                neighbourhood to data on equal area projections.
                 If set to None percentiles are not generated, and the input
                 altitudes are used directly as the phase discriminators.
         """

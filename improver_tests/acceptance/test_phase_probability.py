@@ -61,7 +61,7 @@ def test_phase_probabilities(tmp_path, kgo_name, input_file):
             "phase-probability/basic/" f"{input_file}.nc",
         )
     ]
-    args = [*input_paths, "--output", output_path]
+    args = [*input_paths, "--radius", "10000", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -79,5 +79,21 @@ def test_rain_large_radius(tmp_path):
         )
     ]
     args = [*input_paths, "--radius", "20000", "--output", output_path]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_non_equal_area_projection(tmp_path):
+    """Test prob(snow) calculation on a non-equal areas projection for
+    which no radius is used. Without a radius the falling level in each
+    cell is compared directly with the orography."""
+    kgo_dir = acc.kgo_root() / f"{CLI}/global"
+    kgo_path = kgo_dir / "snow_kgo.nc"
+    output_path = tmp_path / "output.nc"
+    input_paths = [
+        kgo_dir / "orography.nc",
+        kgo_dir / "snow_sleet_input.nc",
+    ]
+    args = [*input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
