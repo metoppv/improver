@@ -512,9 +512,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # Add error to forecast. The thresholds for each grid point are obtained
         # by adding the forecast at that point to error_values; thus
         # we get a different set of thresholds for each grid point.
-        error_values = error_CDF.coord(
-            "forecast_error_of_lwe_thickness_of_precipitation_amount"
-        ).points
+        error_values = error_CDF.coord(var_name="threshold").points
         error_values = np.expand_dims(
             error_values, axis=tuple(range(1, forecast.ndim + 1))
         )
