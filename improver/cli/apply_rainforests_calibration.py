@@ -103,7 +103,9 @@ def process(
             "- please set one or the other, not both"
         )
     if (not output_threshold_config) and (not output_thresholds):
-        "One of --output-threshold-config and --output-thresholds must be specified"
+        raise ValueError(
+            "One of --output-threshold-config and --output-thresholds must be specified"
+        )
 
     if output_threshold_config:
         message = "Fuzzy bounds are not supported. Values of output-threshold-config \
