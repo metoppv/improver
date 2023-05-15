@@ -76,7 +76,7 @@ def process(
         model_config (dict):
             Dictionary containing RainForests model configuration data.
         output_thresholds (list):
-            List of thresholds at which to evaluate output probabilties.
+            List of thresholds at which to evaluate output probabilities.
         output_threshold_config (dict):
             Threshold configuration dictionary where the keys are strings representing
             thresholds. The threshold config should follow the same format as that of
