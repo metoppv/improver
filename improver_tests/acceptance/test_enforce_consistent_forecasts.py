@@ -50,7 +50,7 @@ run_cli = acc.run_cli(CLI)
             "<=",
         ),
         ("percentile", "wind_speed", "0.0", "1.1", ">="),
-        ("realization", "surface_temperature", "0.0", "0.9", "<=")
+        ("realization", "surface_temperature", "0.0", "0.9", "<="),
     ),
 )
 def test_enforce_consistent_forecasts(

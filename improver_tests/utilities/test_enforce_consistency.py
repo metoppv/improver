@@ -37,7 +37,7 @@ from iris.cube import Cube
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_probability_cube,
-    set_up_variable_cube
+    set_up_variable_cube,
 )
 from improver.utilities.enforce_consistency import EnforceConsistentForecasts
 
@@ -117,17 +117,17 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     "forecast_type, additive_amount, multiplicative_amount, reference_value, "
     "forecast_value, comparison_operator",
     (
-            ("probability", 0, 1, 0.5, 0.4, ">="),
-            ("probability", 0, 1, 0.4, 0.5, "<="),
-            ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
-            ("percentile", 0, 1.1, 50, 40, ">="),
-            ("percentile", 0, 0.9, 40, 50, "<="),
-            ("percentile", 10, 1, 50, 40, ">="),
-            ("percentile", -10, 0.8, 50, 40, ">="),  # no change required
-            ("realization", 0, 1.1, 20, 25, "<="),
-            ("realization", 5, 1.2, 20, 15, ">="),
-            ("realization", -5, 0.75, 20, 5, "<="),  # no change required
-    )
+        ("probability", 0, 1, 0.5, 0.4, ">="),
+        ("probability", 0, 1, 0.4, 0.5, "<="),
+        ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
+        ("percentile", 0, 1.1, 50, 40, ">="),
+        ("percentile", 0, 0.9, 40, 50, "<="),
+        ("percentile", 10, 1, 50, 40, ">="),
+        ("percentile", -10, 0.8, 50, 40, ">="),  # no change required
+        ("realization", 0, 1.1, 20, 25, "<="),
+        ("realization", 5, 1.2, 20, 15, ">="),
+        ("realization", -5, 0.75, 20, 5, "<="),  # no change required
+    ),
 )
 def test_basic(
     forecast_type,
@@ -185,7 +185,13 @@ def test_basic(
     (
         ("percentile", 10, 50, ">=", 30),  # change too big
         ("percentile", 20, 30, "=", 30),  # bad comparison operator
-        ("probability", 0.4, 0.6, ">=", 0.5),  # check that additive and multiplicative amounts aren't used
+        (
+            "probability",
+            0.4,
+            0.6,
+            ">=",
+            0.5,
+        ),  # check that additive and multiplicative amounts aren't used
         ("realization", 15, 293.15, ">=", 30),  # mismatching units
     ),
 )
@@ -230,10 +236,8 @@ def test_exceptions(
             EnforceConsistentForecasts(
                 additive_amount=additive_amount,
                 multiplicative_amount=multiplicative_amount,
-                comparison_operator=comparison_operator
-            )(
-                forecast_cube, reference_cube
-            )
+                comparison_operator=comparison_operator,
+            )(forecast_cube, reference_cube)
     elif forecast_type == "realization":
         reference_cube.units = "K"
         with pytest.raises(ValueError, match="The units in the forecast"):
