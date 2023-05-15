@@ -661,6 +661,35 @@ class TestInterpolatePointwise(IrisTest):
             mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
         )
 
+    def test_shape_errors_slow(self):
+        """Test that an error is raised if inputs have the wrong shape."""
+        x = np.arange(1, 5)
+        xp = np.ones((2, 3))
+        fp = np.ones((3, 2))
+        msg = r"xp and fp must have the same shape"
+        with self.assertRaisesRegex(ValueError, msg):
+            slow_interpolate_pointwise(x, xp, fp)
+        xp = np.ones((2,))
+        fp = np.ones((2,))
+        msg = r"xp and fp must have at least 2 dimensions"
+        with self.assertRaisesRegex(ValueError, msg):
+            slow_interpolate_pointwise(x, xp, fp)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_shape_errors_fast(self):
+        """Test that an error is raised if inputs have the wrong shape."""
+        x = np.arange(1, 5)
+        xp = np.ones((2, 3))
+        fp = np.ones((3, 2))
+        msg = r"xp and fp must have the same shape"
+        with self.assertRaisesRegex(ValueError, msg):
+            slow_interpolate_pointwise(x, xp, fp)
+        xp = np.ones((2,))
+        fp = np.ones((2,))
+        msg = r"xp and fp must have at least 2 dimensions"
+        with self.assertRaisesRegex(ValueError, msg):
+            slow_interpolate_pointwise(x, xp, fp)
+
 
 if __name__ == "__main__":
     unittest.main()
