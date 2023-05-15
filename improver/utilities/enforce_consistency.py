@@ -62,13 +62,13 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             additive_amount: The amount to be added to the reference forecast prior to
                 enforcing consistency between the forecast and reference forecast. If
                 both an additive_amount and multiplicative_amount are specified then
-                addition occurs after multiplication. This will not be applied to
-                probability forecasts.
+                addition occurs after multiplication. This must be 0 for probability
+                forecasts.
             multiplicative_amount: The amount to multiply the reference forecast by
                 prior to enforcing consistency between the forecast and reference
                 forecast. If both an additive_amount and multiplicative_amount are
-                specified then addition occurs after multiplication. This will not be
-                applied to probability forecasts.
+                specified then addition occurs after multiplication. This must be 1
+                for probability forecasts.
             comparison_operator: Determines whether the forecast is enforced to be not
                 less than or not greater than the reference forecast. Valid choices are
                 ">=", for not less than, and "<=" for not greater than.
@@ -106,6 +106,17 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             )
             raise ValueError(msg)
 
+        # linear transformation cannot be applied to probability forecasts
+        if forecast.name().startswith("probability_of"):
+            if self.additive_amount != 0 or self.multiplicative_amount != 1:
+                msg = (
+                    "For probability data, the additive_amount must be 0 and the "
+                    "multiplicative_amount must be 1. The input additive_amount was "
+                    f"{self.additive_amount}, the input multiplicative amount was "
+                    f"{self.multiplicative_amount}."
+                )
+                raise ValueError(msg)
+
         # calculate forecast_bound by applying specified linear transformation to
         # reference_forecast
         forecast_bound = reference_forecast.copy()
@@ -122,7 +133,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             upper_bound = forecast_bound.data
         else:
             msg = (
-                f"comparison_operator must be either '>=' or '<=', not "
+                f"Comparison_operator must be either '>=' or '<=', not "
                 f"{self.comparison_operator}."
             )
             raise ValueError(msg)

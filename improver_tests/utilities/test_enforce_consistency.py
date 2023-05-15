@@ -93,6 +93,7 @@ def get_realization_forecast(value, shape, name) -> Cube:
     forecast_cube = set_up_variable_cube(
         data,
         name=name,
+        units="Celsius",
         realizations=[0, 1, 2],
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -119,7 +120,6 @@ def get_expected(forecast_data, bound_data, comparison_operator):
             ("probability", 0, 1, 0.5, 0.4, ">="),
             ("probability", 0, 1, 0.4, 0.5, "<="),
             ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
-            ("probability", 0.1, 1.5, 0.4, 0.6, ">="),  # check that additive and multiplicative amounts aren't used
             ("percentile", 0, 1.1, 50, 40, ">="),
             ("percentile", 0, 0.9, 40, 50, "<="),
             ("percentile", 10, 1, 50, 40, ">="),
@@ -150,9 +150,9 @@ def test_basic(
         reference_value = reference_value / 100
         forecast_value = forecast_value / 100
     elif forecast_type == "reference":
-        reference_cube_name = "temperature"
+        reference_cube_name = "surface_temperature"
         forecast_cube_name = "feels_like_temperature"
-        get_forecast = get_percentile_forecast
+        get_forecast = get_realization_forecast
     else:
         reference_cube_name = "wind_speed_at_10m"
         forecast_cube_name = "wind_gust_at_10m_max-PT01H"
@@ -183,9 +183,10 @@ def test_basic(
     "forecast_type, forecast_value, reference_value, comparison_operator, "
     "diff_for_warning",
     (
-        ("probability", 0.3, 0.9, ">=", 0.3),  # change too big
         ("percentile", 10, 50, ">=", 30),  # change too big
         ("percentile", 20, 30, "=", 30),  # bad comparison operator
+        ("probability", 0.4, 0.6, ">=", 0.5),  # check that additive and multiplicative amounts aren't used
+        ("realization", 15, 293.15, ">=", 30),  # mismatching units
     ),
 )
 def test_exceptions(
@@ -205,6 +206,12 @@ def test_exceptions(
         reference_cube_name = "cloud_area_fraction"
         forecast_cube_name = "low_and_medium_type_cloud_area_fraction"
         get_forecast = get_probability_forecast
+        additive_amount = 0.1
+        multiplicative_amount = 1.1
+    elif forecast_type == "realization":
+        reference_cube_name = "surface_temperature"
+        forecast_cube_name = "feels_like_temperature"
+        get_forecast = get_realization_forecast
     else:
         reference_cube_name = "wind_speed_at_10m"
         forecast_cube_name = "wind_gust_at_10m_max-PT01H"
@@ -214,7 +221,22 @@ def test_exceptions(
     forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
 
     if comparison_operator == "=":
-        with pytest.raises(ValueError, match="comparison_operator must be either"):
+        with pytest.raises(ValueError, match="Comparison_operator must be either"):
+            EnforceConsistentForecasts(comparison_operator=comparison_operator)(
+                forecast_cube, reference_cube
+            )
+    elif forecast_type == "probability":
+        with pytest.raises(ValueError, match="For probability data"):
+            EnforceConsistentForecasts(
+                additive_amount=additive_amount,
+                multiplicative_amount=multiplicative_amount,
+                comparison_operator=comparison_operator
+            )(
+                forecast_cube, reference_cube
+            )
+    elif forecast_type == "realization":
+        reference_cube.units = "K"
+        with pytest.raises(ValueError, match="The units in the forecast"):
             EnforceConsistentForecasts(comparison_operator=comparison_operator)(
                 forecast_cube, reference_cube
             )
