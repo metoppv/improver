@@ -31,7 +31,7 @@
 """Module for calculating the probability of specific precipitation phases."""
 
 import operator
-from typing import List, Optional, Union
+from typing import List, Union
 
 import iris
 import numpy as np
@@ -43,7 +43,6 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -114,29 +113,22 @@ class PrecipPhaseProbability(BasePlugin):
             )
 
         definitions = {
-            "snow": {
-                "comparator": operator.gt,
-                "percentile": 80
-            },
-            "rain": {
-                "comparator": operator.lt,
-                "percentile": 20
-            },
-            "rain_from_hail": {
-                "comparator": operator.lt,
-                "percentile": 20
-            }
+            "snow": {"comparator": operator.gt, "percentile": 80},
+            "rain": {"comparator": operator.lt, "percentile": 20},
+            "rain_from_hail": {"comparator": operator.lt, "percentile": 20},
         }
 
         for diagnostic, definition in definitions.items():
             extracted_cube = cubes.extract(f"altitude_of_{diagnostic}_falling_level")
             if extracted_cube:
-                self.falling_level_cube, = extracted_cube
+                (self.falling_level_cube,) = extracted_cube
                 self.param = diagnostic
                 self.comparator = definition["comparator"]
                 if self.falling_level_cube.coords("percentile"):
                     constraint = iris.Constraint(percentile=definition["percentile"])
-                    self.falling_level_cube = self.falling_level_cube.extract(constraint)
+                    self.falling_level_cube = self.falling_level_cube.extract(
+                        constraint
+                    )
                     if not self.falling_level_cube:
                         raise ValueError(
                             f"Cube {extracted_cube.name()} does not contain the required"
@@ -145,24 +137,30 @@ class PrecipPhaseProbability(BasePlugin):
                     self.falling_level_cube.remove_coord("percentile")
                 break
 
+        if not extracted_cube:
+            raise ValueError(
+                "Could not extract a rain, rain from hail or snow falling-level "
+                f"cube from {', '.join([cube.name() for cube in cubes])}"
+            )
+
         orography_name = "surface_altitude"
         extracted_cube = cubes.extract(orography_name)
         if extracted_cube:
             self.altitudes = extracted_cube[0].data
             altitude_units = extracted_cube[0].units
         elif cubes.extract("grid_neighbours"):
-            extracted_cube, = cubes.extract("grid_neighbours")
+            (extracted_cube,) = cubes.extract("grid_neighbours")
             self.altitudes = extracted_cube.coord("altitude").points
             altitude_units = extracted_cube.coord("altitude").units
         else:
             raise ValueError(
-                f"Could not extract {orography_name} cube from " f"{cubes}"
+                f"Could not extract {orography_name} cube from "
+                f"cube from {', '.join([cube.name() for cube in cubes])}"
             )
 
         if self.falling_level_cube.units != altitude_units:
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(altitude_units)
-
 
     def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
@@ -195,9 +193,7 @@ class PrecipPhaseProbability(BasePlugin):
         self._extract_input_cubes(cubes)
 
         result_data = np.where(
-            self.comparator(self.altitudes, self.falling_level_cube.data),
-            1,
-            0,
+            self.comparator(self.altitudes, self.falling_level_cube.data), 1, 0,
         ).astype(np.int8)
         mandatory_attributes = generate_mandatory_attributes([self.falling_level_cube])
 

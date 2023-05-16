@@ -30,224 +30,273 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for psychrometric_calculations PrecipPhaseProbability plugin."""
 
-import pytest
+import operator
 
 import iris
 import numpy as np
+import pytest
 from cf_units import Unit
+from iris.coords import DimCoord
+from iris.cube import Cube
 
-from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.psychrometric_calculations.precip_phase_probability import (
     PrecipPhaseProbability,
 )
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_percentile_cube,
+    set_up_variable_cube,
+)
+
+LOCAL_MANDATORY_ATTRIBUTES = {
+    "title": "mandatory title",
+    "source": "mandatory_source",
+    "institution": "mandatory_institution",
+}
+
+DIM_LENGTH = 3
+ALTITUDES = np.full((DIM_LENGTH, DIM_LENGTH), 75, dtype=np.float32)
+FALLING_LEVEL_DATA = np.array(
+    [np.full((DIM_LENGTH, DIM_LENGTH), 50), np.full((DIM_LENGTH, DIM_LENGTH), 100)],
+    dtype=np.float32,
+)
+FALLING_LEVEL_DATA[0, 0, 0] = 75
+FALLING_LEVEL_DATA[1, 0, 0] = 25
 
 
-def percentile_cube() -> Cube:
-    """Set up a r, y, x cube of temperature data"""
-    data = np.full((2, 2, 2), fill_value=300, dtype=np.float32)
-    temperature_cube = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES,
-    )
+def check_metadata(result, phase):
+    """
+    Checks that the meta-data of the cube "result" are as expected.
+    Args:
+        result (iris.cube.Cube):
+        phase (str):
+            Used to construct the expected diagnostic name of the form
+            probability_of_{phase}_at_surface
 
-    falling_level_data = np.array(
-        [
-            [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]],
-            [[0, -1, 0], [0, 1, 0], [0, -1, 0]],
-            [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-        ],
-        dtype=np.float32,
-    )
+    """
+    assert isinstance(result, iris.cube.Cube)
+    assert result.name() == f"probability_of_{phase}_at_surface"
+    assert result.units == Unit("1")
+    assert result.dtype == np.int8
 
-    falling_level_cube = set_up_variable_cube(
-        falling_level_data,
+
+def spot_coords():
+    n_sites = DIM_LENGTH * DIM_LENGTH
+    altitudes = ALTITUDES.flatten()
+    latitudes = np.arange(0, n_sites * 10, 10, dtype=np.float32)
+    longitudes = np.arange(0, n_sites * 20, 20, dtype=np.float32)
+    wmo_ids = np.arange(1000, (1000 * n_sites) + 1, 1000)
+    kwargs = {
+        "unique_site_id": wmo_ids,
+        "unique_site_id_key": "met_office_site_id",
+        "grid_attributes": ["x_index", "y_index", "vertical_displacement"],
+        "neighbour_methods": ["nearest"],
+    }
+    return (altitudes, latitudes, longitudes, wmo_ids), kwargs
+
+
+@pytest.fixture(params=["deterministic", "percentile"])
+def gridded_falling_level_cube(request, phase) -> Cube:
+    """Set up a (p), y, x cube of falling-level data"""
+
+    falling_level_cube = set_up_percentile_cube(
+        FALLING_LEVEL_DATA,
+        [20, 80],
         units="m",
         spatial_grid="equalarea",
-        name="altitude_of_snow_falling_level",
-        realizations=[0, 1, 2],
-        attributes=self.mandatory_attributes,
+        name=f"altitude_of_{phase}_falling_level",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
 
+    if request.param == "deterministic":
+        falling_level_cube = falling_level_cube[0]
+        falling_level_cube.remove_coord("percentile")
 
-    return temperature_cube
+    return falling_level_cube
 
 
-def deterministic_cube() -> Cube:
-    """Set up a r, y, x cube of pressure data"""
-    data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
-    pressure_cube = set_up_variable_cube(
-        data, name="air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+@pytest.fixture(params=["deterministic", "percentile"])
+def spot_falling_level_cube(request, phase) -> Cube:
+    """Set up a (p), y, x cube of falling-level data"""
+
+    falling_level_data = FALLING_LEVEL_DATA.reshape((2, DIM_LENGTH * DIM_LENGTH))
+
+    if request.param == "percentile":
+        additional_dims = [DimCoord([20, 80], long_name="percentile", units="%")]
+    else:
+        additional_dims = None
+        falling_level_data = falling_level_data[0]
+
+    args, kwargs = spot_coords()
+    kwargs.pop("neighbour_methods")
+    kwargs.pop("grid_attributes")
+
+    falling_level_cube = build_spotdata_cube(
+        falling_level_data,
+        f"altitude_of_{phase}_falling_level",
+        "m",
+        *args,
+        **kwargs,
+        additional_dims=additional_dims,
     )
-    return pressure_cube
+    falling_level_cube.attributes = LOCAL_MANDATORY_ATTRIBUTES
+    return falling_level_cube
 
 
-class Test_process(IrisTest):
+@pytest.fixture
+def gridded_altitude_cube() -> Cube:
+    """Set up a cube of gridded altitudes"""
 
-    """Test the PhaseChangeLevel processing works"""
-
-    def setUp(self):
-        """Set up orography cube (as zeros) and falling_phase_level cube with
-        multiple realizations designed to return snow, sleet and rain. The
-        middle realization gives both not-snow and not-rain because both the
-        20th percentile is <= zero and the 80th percentile is >= zero."""
-
-        # cubes for testing have a grid-length of 2000m.
-        self.plugin = PrecipPhaseProbability(radius=2100.0)
-        self.mandatory_attributes = {
-            "title": "mandatory title",
-            "source": "mandatory_source",
-            "institution": "mandatory_institution",
-        }
-
-        data = np.zeros((3, 3), dtype=np.float32)
-
-        orog_cube = set_up_variable_cube(
-            data,
-            name="surface_altitude",
-            units="m",
-            spatial_grid="equalarea",
-            attributes=self.mandatory_attributes,
-        )
-
-        falling_level_data = np.array(
-            [
-                [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]],
-                [[0, -1, 0], [0, 1, 0], [0, -1, 0]],
-                [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
-            ],
-            dtype=np.float32,
-        )
-
-        falling_level_cube = set_up_variable_cube(
-            falling_level_data,
-            units="m",
-            spatial_grid="equalarea",
-            name="altitude_of_snow_falling_level",
-            realizations=[0, 1, 2],
-            attributes=self.mandatory_attributes,
-        )
-
-        self.cubes = iris.cube.CubeList([falling_level_cube, orog_cube])
-        self.expected_template = np.zeros((3, 3, 3), dtype=np.int8)
-
-    def check_metadata(self, result, expected_name="probability_of_rain_at_surface"):
-        """
-        Checks that the meta-data of the cube "result" are as expected.
-        Args:
-            result (iris.cube.Cube):
-            expected_name (str):
-                Can be probability_of_snow_at_surface
-
-        """
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(result.units, Unit("1"))
-        self.assertTrue(result.dtype == np.int8)
-
-    def test_prob_snow(self):
-        """Test that process returns a cube with the right name, units and
-        values. In this instance the phase change is from snow to sleet."""
-        result = self.plugin.process(self.cubes)
-        expected = self.expected_template
-        expected[0] = 1
-        self.check_metadata(result, expected_name="probability_of_snow_at_surface")
-        self.assertDictEqual(result.attributes, self.mandatory_attributes)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_prob_rain(self):
-        """Test that process returns a cube with the right name, units and
-        values. In this instance the phase change is from sleet to rain."""
-        self.cubes[0].rename("altitude_of_rain_falling_level")
-        result = self.plugin.process(self.cubes)
-        expected = self.expected_template
-        expected[2] = 1
-        self.check_metadata(result, expected_name="probability_of_rain_at_surface")
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_prob_hail(self):
-        """Test that process returns a cube with the right name, units and
-        values. In this instance the phase change is from hail to rain."""
-        self.cubes[0].rename("altitude_of_rain_from_hail_falling_level")
-        result = self.plugin.process(self.cubes)
-        expected = self.expected_template
-        expected[2] = 1
-        self.check_metadata(
-            result, expected_name="probability_of_rain_from_hail_at_surface"
-        )
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_unit_conversion(self):
-        """Test that process returns the same as test_prob_rain when the
-        orography cube units are in feet."""
-        self.cubes[1].units = Unit("feet")
-        self.cubes[0].rename("altitude_of_rain_falling_level")
-        result = self.plugin.process(self.cubes)
-        expected = self.expected_template
-        expected[2] = 1
-        self.check_metadata(result)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_unit_synonyms(self):
-        """Test that process returns the same as test_prob_rain when the
-        orography cube units are "metres" (a synonym of "m")."""
-        self.cubes[1].units = Unit("metres")
-        self.cubes[0].rename("altitude_of_rain_falling_level")
-        result = self.plugin.process(self.cubes)
-        expected = self.expected_template
-        expected[2] = 1
-        self.check_metadata(result)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_prob_no_radius(self):
-        """Test that process returns a cube with the right name, units and
-        values if no neighbourhood radius is used. In this instance the
-        phase change is from snow to sleet. The expected values are constructed
-        by a simple cell-by-cell comparison between the falling level and the
-        orography."""
-        result = PrecipPhaseProbability().process(self.cubes)
-        expected = self.cubes[0].data < self.cubes[1].data
-        self.check_metadata(result, expected_name="probability_of_snow_at_surface")
-        self.assertDictEqual(result.attributes, self.mandatory_attributes)
-        self.assertArrayAlmostEqual(result.data, expected)
-
-    def test_bad_phase_cube(self):
-        """Test that process raises an exception when the input phase cube is
-        incorrectly named."""
-        self.cubes[0].rename("altitude_of_kittens")
-        msg = "Could not extract a rain, rain from hail or snow falling-level cube from"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(self.cubes)
-
-    def test_bad_orography_cube(self):
-        """Test that process raises an exception when the input orography
-        cube is incorrectly named."""
-        self.cubes[1].rename("altitude_of_kittens")
-        msg = "Could not extract surface_altitude cube from"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(self.cubes)
-
-    def test_bad_units(self):
-        """Test that process raises an exception when the input cubes cannot
-        be coerced into the same units."""
-        self.cubes[1].units = Unit("seconds")
-        msg = "Unable to convert from "
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(self.cubes)
-
-    def test_spatial_mismatch(self):
-        """Test that process raises an exception when the input cubes have
-        different spatial coordinates."""
-        self.cubes[1] = set_up_variable_cube(
-            self.cubes[1].data,
-            name="surface_altitude",
-            units="m",
-            spatial_grid="latlon",
-            attributes=self.mandatory_attributes,
-        )
-        msg = "Spatial coords mismatch between"
-        with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(self.cubes)
+    altitude_cube = set_up_variable_cube(
+        ALTITUDES,
+        name="surface_altitude",
+        units="m",
+        spatial_grid="equalarea",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return altitude_cube
 
 
-if __name__ == "__main__":
-    unittest.main()
+@pytest.fixture
+def spot_altitude_cube() -> Cube:
+    """Set up a cube of site specific altitudes"""
+
+    n_sites = DIM_LENGTH * DIM_LENGTH
+    neighbours = np.array(
+        [[np.arange(0, n_sites), np.arange(0, n_sites), np.zeros(n_sites)]],
+        dtype=np.float32,
+    )
+    args, kwargs = spot_coords()
+
+    altitude_cube = build_spotdata_cube(
+        neighbours, "grid_neighbours", 1, *args, **kwargs
+    )
+    return altitude_cube
+
+
+@pytest.mark.parametrize("altitude_units", ("m", "metres", "feet"))
+@pytest.mark.parametrize("phase", ("rain", "snow", "rain_from_hail"))
+def test_probabilities_gridded(
+    gridded_falling_level_cube, gridded_altitude_cube, phase, altitude_units
+):
+    """Test that process returns a cube with the right name, units and
+    values when working with gridded data. The altitudes are converted
+    into various units to demonstrate that the plugin's unit conversion
+    is working, returing the same result regardless. Included in these
+    tests is the use of both 'm' and 'metres' to demonstrate that the
+    use of these synonyms has no unexpected impact."""
+
+    # Construct expected values
+    if phase == "snow":
+        comparator = operator.lt
+        index = 1
+    else:
+        comparator = operator.gt
+        index = 0
+
+    expected = comparator(gridded_falling_level_cube.data, gridded_altitude_cube.data)
+    if gridded_falling_level_cube.coords("percentile"):
+        expected = expected[index]
+
+    # Modify the altitude units
+    gridded_altitude_cube.convert_units(altitude_units)
+
+    # Call plugin and check returned cube
+    cubes = iris.cube.CubeList([gridded_falling_level_cube, gridded_altitude_cube])
+    result = PrecipPhaseProbability().process(cubes)
+
+    check_metadata(result, phase)
+    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
+    assert (result.data == expected).all()
+
+
+@pytest.mark.parametrize("altitude_units", ("m", "metres", "feet"))
+@pytest.mark.parametrize("phase", ("rain", "snow", "rain_from_hail"))
+def test_probabilities_spot(
+    spot_falling_level_cube, spot_altitude_cube, phase, altitude_units
+):
+    """Test that process returns a cube with the right name, units and
+    values when working with spot data."""
+
+    # Construct expected values
+    if phase == "snow":
+        comparator = operator.lt
+        index = 1
+    else:
+        comparator = operator.gt
+        index = 0
+
+    expected = comparator(
+        spot_falling_level_cube.data, spot_altitude_cube.coord("altitude").points
+    )
+    if spot_falling_level_cube.coords("percentile"):
+        expected = expected[index]
+
+    # Modify the altitude units
+    spot_altitude_cube.coord("altitude").convert_units(altitude_units)
+
+    # Call plugin and check returned cube
+    cubes = iris.cube.CubeList([spot_falling_level_cube, spot_altitude_cube])
+    result = PrecipPhaseProbability().process(cubes)
+
+    check_metadata(result, phase)
+    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
+    assert (result.data == expected).all()
+
+
+@pytest.mark.parametrize("phase", ["kittens"])
+@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
+def test_bad_phase_cube(gridded_falling_level_cube, gridded_altitude_cube, phase):
+    """Test that process raises an exception when the input phase cube is
+    incorrectly named."""
+    msg = "Could not extract a rain, rain from hail or snow falling-level cube from"
+    cubes = iris.cube.CubeList([gridded_falling_level_cube, gridded_altitude_cube])
+
+    with pytest.raises(ValueError, match=msg):
+        PrecipPhaseProbability().process(cubes)
+
+
+@pytest.mark.parametrize("phase", ["snow"])
+@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
+def test_bad_orography_cube(gridded_falling_level_cube, gridded_altitude_cube, phase):
+    """Test that process raises an exception when the input orography
+    cube is incorrectly named."""
+    gridded_altitude_cube.rename("altitude_of_kittens")
+    cubes = iris.cube.CubeList([gridded_falling_level_cube, gridded_altitude_cube])
+
+    msg = "Could not extract surface_altitude cube from"
+    with pytest.raises(ValueError, match=msg):
+        PrecipPhaseProbability().process(cubes)
+
+
+@pytest.mark.parametrize("phase", ["rain"])
+@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
+def test_bad_units(gridded_falling_level_cube, gridded_altitude_cube, phase):
+    """Test that process raises an exception when the input cubes cannot
+    be coerced into the same units."""
+    gridded_altitude_cube.units = Unit("seconds")
+    cubes = iris.cube.CubeList([gridded_falling_level_cube, gridded_altitude_cube])
+
+    msg = "Unable to convert from "
+    with pytest.raises(ValueError, match=msg):
+        PrecipPhaseProbability().process(cubes)
+
+
+@pytest.mark.parametrize("phase", ["rain"])
+@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
+def test_spatial_mismatch(gridded_falling_level_cube, gridded_altitude_cube, phase):
+    """Test that process raises an exception when the input cubes have
+    different spatial coordinates."""
+
+    altitude_cube = set_up_variable_cube(
+        ALTITUDES,
+        name="surface_altitude",
+        units="m",
+        spatial_grid="latlon",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    cubes = iris.cube.CubeList([gridded_falling_level_cube, altitude_cube])
+
+    msg = "Spatial coords mismatch between"
+    with pytest.raises(ValueError, match=msg):
+        PrecipPhaseProbability().process(cubes)
