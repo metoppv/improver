@@ -30,12 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for psychrometric_calculations PrecipPhaseProbability plugin."""
 
-import unittest
+import pytest
 
 import iris
 import numpy as np
 from cf_units import Unit
-from iris.tests import IrisTest
 
 from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
 from improver.psychrometric_calculations.precip_phase_probability import (
@@ -44,28 +43,42 @@ from improver.psychrometric_calculations.precip_phase_probability import (
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
-class Test__init__(IrisTest):
+def percentile_cube() -> Cube:
+    """Set up a r, y, x cube of temperature data"""
+    data = np.full((2, 2, 2), fill_value=300, dtype=np.float32)
+    temperature_cube = set_up_variable_cube(
+        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
 
-    """Test the init method."""
+    falling_level_data = np.array(
+        [
+            [[-1, -1, -1], [-1, -1, -1], [-1, -1, -1]],
+            [[0, -1, 0], [0, 1, 0], [0, -1, 0]],
+            [[1, 1, 1], [1, 1, 1], [1, 1, 1]],
+        ],
+        dtype=np.float32,
+    )
 
-    def test_basic(self):
-        """Test that the __init__ method configures the plugin as expected."""
+    falling_level_cube = set_up_variable_cube(
+        falling_level_data,
+        units="m",
+        spatial_grid="equalarea",
+        name="altitude_of_snow_falling_level",
+        realizations=[0, 1, 2],
+        attributes=self.mandatory_attributes,
+    )
 
-        plugin = PrecipPhaseProbability()
-        self.assertTrue(
-            plugin.percentile_plugin is GeneratePercentilesFromANeighbourhood
-        )
-        self.assertAlmostEqual(plugin.radius, None)
 
-    def test_radius(self):
-        """Test that the __init__ method configures the plugin as expected
-        when a radius is provided."""
+    return temperature_cube
 
-        plugin = PrecipPhaseProbability(radius=10000)
-        self.assertTrue(
-            plugin.percentile_plugin is GeneratePercentilesFromANeighbourhood
-        )
-        self.assertAlmostEqual(plugin.radius, 10000.0)
+
+def deterministic_cube() -> Cube:
+    """Set up a r, y, x cube of pressure data"""
+    data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
+    pressure_cube = set_up_variable_cube(
+        data, name="air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return pressure_cube
 
 
 class Test_process(IrisTest):
