@@ -45,8 +45,8 @@ run_cli = acc.run_cli(CLI)
         (
             "probability",
             "probability_of_cloud_area_fraction_above_threshold",
-            "0.0",
-            "1.0",
+            "",
+            "",
             "<=",
         ),
         ("percentile", "wind_speed", "0.0", "1.1", ">="),
@@ -71,20 +71,32 @@ def test_enforce_consistent_forecasts(
     reference = kgo_dir / f"{forecast_type}_reference.nc"
     output_path = tmp_path / "output.nc"
 
-    args = [
-        forecast,
-        reference,
-        "--ref-name",
-        ref_name,
-        "--additive-amount",
-        additive_amount,
-        "--multiplicative-amount",
-        multiplicative_amount,
-        "--comparison-operator",
-        comparison_operator,
-        "--output",
-        output_path,
-    ]
+    if forecast_type == "probability":
+        args = [
+            forecast,
+            reference,
+            "--ref-name",
+            ref_name,
+            "--comparison-operator",
+            comparison_operator,
+            "--output",
+            output_path,
+        ]
+    else:
+        args = [
+            forecast,
+            reference,
+            "--ref-name",
+            ref_name,
+            "--additive-amount",
+            additive_amount,
+            "--multiplicative-amount",
+            multiplicative_amount,
+            "--comparison-operator",
+            comparison_operator,
+            "--output",
+            output_path,
+        ]
 
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -39,8 +39,8 @@ from improver import cli
 def process(
     *cubes: cli.inputcubelist,
     ref_name: str = None,
-    additive_amount: float = 0.0,
-    multiplicative_amount: float = 1.0,
+    additive_amount: float = None,
+    multiplicative_amount: float = None,
     comparison_operator: str = ">=",
     diff_for_warning: float = None,
 ):
@@ -54,7 +54,7 @@ def process(
             containing:
                 forecast_cube (iris.cube.Cube):
                     Cube of forecasts to be updated by using the reference forecast to
-                    create a bound on the value of the forecasts
+                    create a bound on the value of the forecasts.
                 ref_forecast (iris.cube.Cube)
                     Cube of forecasts used to create a bound for the values in
                     forecast_cube. It must be the same shape as forecast_cube but have
@@ -64,11 +64,13 @@ def process(
             the units of the reference forecast) prior to enforcing consistency between
             the forecast and reference forecast. If both an additive_amount and
             multiplicative_amount are specified then addition occurs after
-            multiplication.
+            multiplication. This option cannot be used for probability forecasts, if it
+            is then an error will be raised.
         multiplicative_amount (float): The amount to multiply the reference forecast by
             prior to enforcing consistency between the forecast and reference
             forecast. If both an additive_amount and multiplicative_amount are
-            specified then addition occurs after multiplication.
+            specified then addition occurs after multiplication. This option cannot be
+            used for probability forecasts, if it is then an error will be raised.
         comparison_operator (str): Determines whether the forecast is enforced to be not
             less than or not greater than the reference forecast. Valid choices are
             ">=", for not less than, and "<=" for not greater than.

@@ -64,7 +64,6 @@ def get_percentile_forecast(value, shape, name):
     Create a percentile forecast cube.
     """
     data = get_percentiles(value, shape)
-    np.full(shape, data, dtype=np.float32)
     forecast_cube = set_up_percentile_cube(
         data, percentiles=[10, 50, 90], name=name, units="m s-1",
     )
@@ -87,7 +86,7 @@ def get_probability_forecast(value, shape, name) -> Cube:
 
 def get_realization_forecast(value, shape, name) -> Cube:
     """
-    Create a probability forecast cube.
+    Create a realization forecast cube.
     """
     data = np.full(shape, fill_value=value, dtype=np.float32)
     forecast_cube = set_up_variable_cube(
@@ -117,9 +116,9 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     "forecast_type, additive_amount, multiplicative_amount, reference_value, "
     "forecast_value, comparison_operator",
     (
-        ("probability", 0, 1, 0.5, 0.4, ">="),
-        ("probability", 0, 1, 0.4, 0.5, "<="),
-        ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
+        ("probability", None, None, 0.5, 0.4, ">="),
+        ("probability", None, None, 0.4, 0.5, "<="),
+        ("probability", None, None, 0.4, 0.5, ">="),  # no change required
         ("percentile", 0, 1.1, 50, 40, ">="),
         ("percentile", 0, 0.9, 40, 50, "<="),
         ("percentile", 10, 1, 50, 40, ">="),
@@ -170,6 +169,10 @@ def test_basic(
         comparison_operator=comparison_operator,
     )(forecast_cube, reference_cube)
 
+    if additive_amount is None:
+        additive_amount = 0
+    if multiplicative_amount is None:
+        multiplicative_amount = 1
     bound_data = additive_amount + (multiplicative_amount * reference_cube.copy().data)
     expected = get_expected(forecast_cube.data, bound_data, comparison_operator)
 
@@ -191,7 +194,7 @@ def test_basic(
             0.6,
             ">=",
             0.5,
-        ),  # check that additive and multiplicative amounts aren't used
+        ),  # cannot specify additive and multiplicative amounts with probabilities
         ("realization", 15, 293.15, ">=", 30),  # mismatching units
     ),
 )

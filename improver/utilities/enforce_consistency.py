@@ -49,8 +49,8 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
     def __init__(
         self,
-        additive_amount: float = 0.0,
-        multiplicative_amount: float = 1.0,
+        additive_amount: float = None,
+        multiplicative_amount: float = None,
         comparison_operator: str = ">=",
         diff_for_warning: Optional[float] = None,
     ) -> None:
@@ -62,13 +62,13 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             additive_amount: The amount to be added to the reference forecast prior to
                 enforcing consistency between the forecast and reference forecast. If
                 both an additive_amount and multiplicative_amount are specified then
-                addition occurs after multiplication. This must be 0 for probability
-                forecasts.
+                addition occurs after multiplication. This option cannot be used for
+                probability forecasts, if it is then an error will be raised.
             multiplicative_amount: The amount to multiply the reference forecast by
                 prior to enforcing consistency between the forecast and reference
                 forecast. If both an additive_amount and multiplicative_amount are
-                specified then addition occurs after multiplication. This must be 1
-                for probability forecasts.
+                specified then addition occurs after multiplication. This option cannot
+                be used for probability forecasts, if it is then an error will be raised.
             comparison_operator: Determines whether the forecast is enforced to be not
                 less than or not greater than the reference forecast. Valid choices are
                 ">=", for not less than, and "<=" for not greater than.
@@ -107,15 +107,22 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             raise ValueError(msg)
 
         # linear transformation cannot be applied to probability forecasts
-        if forecast.name().startswith("probability_of"):
-            if self.additive_amount != 0 or self.multiplicative_amount != 1:
+        if self.additive_amount is not None or self.multiplicative_amount is not None:
+            if forecast.name().startswith("probability_of"):
                 msg = (
-                    "For probability data, the additive_amount must be 0 and the "
-                    "multiplicative_amount must be 1. The input additive_amount was "
+                    "For probability data, the additive_amount and multiplicative_amount"
+                    "inputs cannot be used. The input additive_amount was "
                     f"{self.additive_amount}, the input multiplicative amount was "
                     f"{self.multiplicative_amount}."
                 )
                 raise ValueError(msg)
+
+        # if additive_amount or multiplicative_amount not specified, then use identity
+        # function
+        if self.additive_amount is None:
+            self.additive_amount = 0
+        if self.multiplicative_amount is None:
+            self.multiplicative_amount = 1
 
         # calculate forecast_bound by applying specified linear transformation to
         # reference_forecast
