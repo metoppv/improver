@@ -683,12 +683,12 @@ class TestInterpolatePointwise(IrisTest):
         fp = np.ones((3, 2))
         msg = r"xp and fp must have the same shape"
         with self.assertRaisesRegex(ValueError, msg):
-            slow_interpolate_pointwise(x, xp, fp)
+            fast_interpolate_pointwise(x, xp, fp)
         xp = np.ones((2,))
         fp = np.ones((2,))
         msg = r"xp and fp must have at least 2 dimensions"
         with self.assertRaisesRegex(ValueError, msg):
-            slow_interpolate_pointwise(x, xp, fp)
+            fast_interpolate_pointwise(x, xp, fp)
 
 
 if __name__ == "__main__":
