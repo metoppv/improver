@@ -95,8 +95,8 @@ def spot_coords():
     return (altitudes, latitudes, longitudes, wmo_ids), kwargs
 
 
-@pytest.fixture(params=["deterministic", "percentile"])
-def gridded_falling_level_cube(request, phase) -> Cube:
+@pytest.fixture
+def gridded_falling_level_cube(ptype, phase) -> Cube:
     """Set up a (p), y, x cube of falling-level data"""
 
     falling_level_cube = set_up_percentile_cube(
@@ -108,20 +108,20 @@ def gridded_falling_level_cube(request, phase) -> Cube:
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
 
-    if request.param == "deterministic":
+    if ptype == "deterministic":
         falling_level_cube = falling_level_cube[0]
         falling_level_cube.remove_coord("percentile")
 
     return falling_level_cube
 
 
-@pytest.fixture(params=["deterministic", "percentile"])
-def spot_falling_level_cube(request, phase) -> Cube:
+@pytest.fixture
+def spot_falling_level_cube(ptype, phase) -> Cube:
     """Set up a (p), y, x cube of falling-level data"""
 
     falling_level_data = FALLING_LEVEL_DATA.reshape((2, DIM_LENGTH * DIM_LENGTH))
 
-    if request.param == "percentile":
+    if ptype == "percentile":
         additional_dims = [DimCoord([20, 80], long_name="percentile", units="%")]
     else:
         additional_dims = None
@@ -174,19 +174,34 @@ def spot_altitude_cube() -> Cube:
     return altitude_cube
 
 
+@pytest.fixture(params=["spot", "gridded"])
+def cube_inputs(
+    request,
+    gridded_falling_level_cube,
+    gridded_altitude_cube,
+    spot_falling_level_cube,
+    spot_altitude_cube,
+) -> tuple:
+    if request.param == "spot":
+        return spot_falling_level_cube, spot_altitude_cube
+    if request.param == "gridded":
+        return gridded_falling_level_cube, gridded_altitude_cube
+
+
+@pytest.mark.parametrize("ptype", ("deterministic", "percentile"))
 @pytest.mark.parametrize("altitude_units", ("m", "metres", "feet"))
 @pytest.mark.parametrize("phase", ("rain", "snow", "rain_from_hail"))
-def test_probabilities_gridded(
-    gridded_falling_level_cube, gridded_altitude_cube, phase, altitude_units
-):
+def test_probabilities(cube_inputs, phase, altitude_units, ptype):
     """Test that process returns a cube with the right name, units and
-    values when working with gridded data. The altitudes are converted
-    into various units to demonstrate that the plugin's unit conversion
-    is working, returing the same result regardless. Included in these
-    tests is the use of both 'm' and 'metres' to demonstrate that the
-    use of these synonyms has no unexpected impact."""
+    values when working with gridded or spot data. The altitudes are
+    converted into various units to demonstrate that the plugin's unit
+    conversion is working, returing the same result regardless. Included
+    in these tests is the use of both 'm' and 'metres' to demonstrate that
+    the use of these synonyms has no unexpected impact."""
 
-    # Construct expected values
+    falling_level_cube, altitudes = cube_inputs
+
+    # Construct expected values and then modify altitude units
     if phase == "snow":
         comparator = operator.lt
         index = 1
@@ -194,49 +209,20 @@ def test_probabilities_gridded(
         comparator = operator.gt
         index = 0
 
-    expected = comparator(gridded_falling_level_cube.data, gridded_altitude_cube.data)
-    if gridded_falling_level_cube.coords("percentile"):
-        expected = expected[index]
-
-    # Modify the altitude units
-    gridded_altitude_cube.convert_units(altitude_units)
-
-    # Call plugin and check returned cube
-    cubes = iris.cube.CubeList([gridded_falling_level_cube, gridded_altitude_cube])
-    result = PrecipPhaseProbability().process(cubes)
-
-    check_metadata(result, phase)
-    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
-    assert (result.data == expected).all()
-
-
-@pytest.mark.parametrize("altitude_units", ("m", "metres", "feet"))
-@pytest.mark.parametrize("phase", ("rain", "snow", "rain_from_hail"))
-def test_probabilities_spot(
-    spot_falling_level_cube, spot_altitude_cube, phase, altitude_units
-):
-    """Test that process returns a cube with the right name, units and
-    values when working with spot data."""
-
-    # Construct expected values
-    if phase == "snow":
-        comparator = operator.lt
-        index = 1
+    if falling_level_cube.coords("wmo_id"):
+        expected = comparator(
+            falling_level_cube.data, altitudes.coord("altitude").points
+        )
+        altitudes.coord("altitude").convert_units(altitude_units)
     else:
-        comparator = operator.gt
-        index = 0
+        expected = comparator(falling_level_cube.data, altitudes.data)
+        altitudes.convert_units(altitude_units)
 
-    expected = comparator(
-        spot_falling_level_cube.data, spot_altitude_cube.coord("altitude").points
-    )
-    if spot_falling_level_cube.coords("percentile"):
+    if ptype == "percentile":
         expected = expected[index]
 
-    # Modify the altitude units
-    spot_altitude_cube.coord("altitude").convert_units(altitude_units)
-
     # Call plugin and check returned cube
-    cubes = iris.cube.CubeList([spot_falling_level_cube, spot_altitude_cube])
+    cubes = iris.cube.CubeList([falling_level_cube, altitudes])
     result = PrecipPhaseProbability().process(cubes)
 
     check_metadata(result, phase)
@@ -245,8 +231,8 @@ def test_probabilities_spot(
 
 
 @pytest.mark.parametrize("phase", ["kittens"])
-@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
-def test_bad_phase_cube(gridded_falling_level_cube, gridded_altitude_cube, phase):
+@pytest.mark.parametrize("ptype", ["deterministic"])
+def test_bad_phase_cube(gridded_falling_level_cube, gridded_altitude_cube):
     """Test that process raises an exception when the input phase cube is
     incorrectly named."""
     msg = "Could not extract a rain, rain from hail or snow falling-level cube from"
@@ -257,8 +243,8 @@ def test_bad_phase_cube(gridded_falling_level_cube, gridded_altitude_cube, phase
 
 
 @pytest.mark.parametrize("phase", ["snow"])
-@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
-def test_bad_orography_cube(gridded_falling_level_cube, gridded_altitude_cube, phase):
+@pytest.mark.parametrize("ptype", ["deterministic"])
+def test_bad_orography_cube(gridded_falling_level_cube, gridded_altitude_cube):
     """Test that process raises an exception when the input orography
     cube is incorrectly named."""
     gridded_altitude_cube.rename("altitude_of_kittens")
@@ -270,8 +256,8 @@ def test_bad_orography_cube(gridded_falling_level_cube, gridded_altitude_cube, p
 
 
 @pytest.mark.parametrize("phase", ["rain"])
-@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
-def test_bad_units(gridded_falling_level_cube, gridded_altitude_cube, phase):
+@pytest.mark.parametrize("ptype", ["deterministic"])
+def test_bad_units(gridded_falling_level_cube, gridded_altitude_cube):
     """Test that process raises an exception when the input cubes cannot
     be coerced into the same units."""
     gridded_altitude_cube.units = Unit("seconds")
@@ -283,8 +269,8 @@ def test_bad_units(gridded_falling_level_cube, gridded_altitude_cube, phase):
 
 
 @pytest.mark.parametrize("phase", ["rain"])
-@pytest.mark.parametrize("gridded_falling_level_cube", ["deterministic"], indirect=True)
-def test_spatial_mismatch(gridded_falling_level_cube, gridded_altitude_cube, phase):
+@pytest.mark.parametrize("ptype", ["deterministic"])
+def test_spatial_mismatch(gridded_falling_level_cube):
     """Test that process raises an exception when the input cubes have
     different spatial coordinates."""
 
