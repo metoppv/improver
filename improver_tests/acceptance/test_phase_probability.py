@@ -51,7 +51,9 @@ run_cli = acc.run_cli(CLI)
     ],
 )
 def test_phase_probabilities(tmp_path, kgo_name, input_file, ptype, gtype):
-    """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain"""
+    """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain.
+    Parameterisation covers gridded and spot forecasts, and for both inputs
+    that include a percentile coordinate and those that do not."""
     kgo_dir = acc.kgo_root() / f"{CLI}/{gtype}"
     kgo_path = kgo_dir / f"{kgo_name}_{ptype}.nc"
     output_path = tmp_path / "output.nc"

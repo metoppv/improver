@@ -81,6 +81,8 @@ def check_metadata(result, phase):
 
 
 def spot_coords():
+    """Define a set of coordinates for use in creating spot forecast or
+    ancillary inputs."""
     n_sites = DIM_LENGTH * DIM_LENGTH
     altitudes = ALTITUDES.flatten()
     latitudes = np.arange(0, n_sites * 10, 10, dtype=np.float32)
@@ -97,7 +99,8 @@ def spot_coords():
 
 @pytest.fixture
 def gridded_falling_level_cube(ptype, phase) -> Cube:
-    """Set up a (p), y, x cube of falling-level data"""
+    """Set up a (percentile), y, x cube of falling-level data. If ptype is
+    deterministic the first percentile alone is returned."""
 
     falling_level_cube = set_up_percentile_cube(
         FALLING_LEVEL_DATA,
@@ -117,7 +120,8 @@ def gridded_falling_level_cube(ptype, phase) -> Cube:
 
 @pytest.fixture
 def spot_falling_level_cube(ptype, phase) -> Cube:
-    """Set up a (p), y, x cube of falling-level data"""
+    """Set up a (percentile), y, x cube of falling-level data. If ptype is
+    deterministic no percentile coordinate is created."""
 
     falling_level_data = FALLING_LEVEL_DATA.reshape((2, DIM_LENGTH * DIM_LENGTH))
 
@@ -145,7 +149,8 @@ def spot_falling_level_cube(ptype, phase) -> Cube:
 
 @pytest.fixture
 def gridded_altitude_cube() -> Cube:
-    """Set up a cube of gridded altitudes"""
+    """Set up a cube of gridded altitudes that is equivalent to a gridded
+    orography ancillary."""
 
     altitude_cube = set_up_variable_cube(
         ALTITUDES,
@@ -159,7 +164,8 @@ def gridded_altitude_cube() -> Cube:
 
 @pytest.fixture
 def spot_altitude_cube() -> Cube:
-    """Set up a cube of site specific altitudes"""
+    """Set up a cube of site specific altitudes that is equivalent to a spot
+    neighbour ancillary."""
 
     n_sites = DIM_LENGTH * DIM_LENGTH
     neighbours = np.array(
@@ -182,6 +188,8 @@ def cube_inputs(
     spot_falling_level_cube,
     spot_altitude_cube,
 ) -> tuple:
+    """Return a tuple of cubes suitable for testing either spot or
+    gridded forecasts depending upon the value of the parameter."""
     if request.param == "spot":
         return spot_falling_level_cube, spot_altitude_cube
     if request.param == "gridded":
@@ -192,18 +200,18 @@ def cube_inputs(
 @pytest.mark.parametrize("altitude_units", ("m", "metres", "feet"))
 @pytest.mark.parametrize("phase", ("rain", "snow", "rain_from_hail"))
 def test_probabilities(cube_inputs, phase, altitude_units, ptype):
-    """Test that process returns a cube with the right name, units and
-    values when working with gridded or spot data. The altitudes are
-    converted into various units to demonstrate that the plugin's unit
-    conversion is working, returing the same result regardless. Included
-    in these tests is the use of both 'm' and 'metres' to demonstrate that
-    the use of these synonyms has no unexpected impact."""
+    """Test that process returns a cube with the right name, shape, units and
+    values when working with gridded or spot data. The altitudes are converted
+    into various units to demonstrate that the plugin's unit conversion is
+    working, returing the same result regardless. Included in these tests is
+    the use of both 'm' and 'metres' to demonstrate that the use of these
+    synonyms has no unexpected impact."""
 
     falling_level_cube, altitudes = cube_inputs
 
     # Construct expected values and then modify altitude units
     if phase == "snow":
-        comparator = operator.lt
+        comparator = operator.le
         index = 1
     else:
         comparator = operator.gt
@@ -218,8 +226,10 @@ def test_probabilities(cube_inputs, phase, altitude_units, ptype):
         expected = comparator(falling_level_cube.data, altitudes.data)
         altitudes.convert_units(altitude_units)
 
+    expected_shape = falling_level_cube.shape
     if ptype == "percentile":
         expected = expected[index]
+        expected_shape = falling_level_cube[0].shape
 
     # Call plugin and check returned cube
     cubes = iris.cube.CubeList([falling_level_cube, altitudes])
@@ -228,6 +238,53 @@ def test_probabilities(cube_inputs, phase, altitude_units, ptype):
     check_metadata(result, phase)
     assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
     assert (result.data == expected).all()
+    assert result.shape == expected_shape
+
+
+@pytest.mark.parametrize("ptype", ("deterministic", "percentile"))
+@pytest.mark.parametrize("phase", ["rain"])
+def test_multi_realizations(cube_inputs, phase, ptype):
+    """Test that process returns a cube with the right name, shape, units and
+    values when working with multi-realization gridded or spot data. In this
+    case we expect the realization coordinate to be preserved. Only one phase
+    is tested here as the behaviour is the same across phases."""
+
+    falling_level_cube, altitudes = cube_inputs
+
+    # Construct a multi-realization cube
+    cubes = iris.cube.CubeList()
+    for i in [0, 1]:
+        cube = falling_level_cube.copy()
+        cube.add_aux_coord(
+            DimCoord([i], "realization", units=1)
+        )
+        cubes.append(cube)
+    falling_level_cube = cubes.merge_cube()
+
+    # Construct expected values for rain phase
+    comparator = operator.gt
+    index = 0
+
+    if falling_level_cube.coords("wmo_id"):
+        expected = comparator(
+            falling_level_cube.data, altitudes.coord("altitude").points
+        )
+    else:
+        expected = comparator(falling_level_cube.data, altitudes.data)
+
+    expected_shape = falling_level_cube.shape
+    if ptype == "percentile":
+        expected = expected[:, index]
+        expected_shape = falling_level_cube[:, 0].shape
+
+    # Call plugin and check returned cube
+    cubes = iris.cube.CubeList([falling_level_cube, altitudes])
+    result = PrecipPhaseProbability().process(cubes)
+
+    check_metadata(result, phase)
+    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
+    assert (result.data == expected).all()
+    assert result.shape == expected_shape
 
 
 @pytest.mark.parametrize("phase", ["kittens"])

@@ -113,7 +113,7 @@ class PrecipPhaseProbability(BasePlugin):
             )
 
         definitions = {
-            "snow": {"comparator": operator.gt, "percentile": 80},
+            "snow": {"comparator": operator.ge, "percentile": 80},
             "rain": {"comparator": operator.lt, "percentile": 20},
             "rain_from_hail": {"comparator": operator.lt, "percentile": 20},
         }
