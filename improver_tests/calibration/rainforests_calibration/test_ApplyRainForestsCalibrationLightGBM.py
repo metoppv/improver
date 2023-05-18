@@ -32,7 +32,6 @@
 import numpy as np
 import pytest
 from iris import Constraint
-from iris.util import new_axis
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
@@ -319,111 +318,33 @@ def test__calculate_error_probabilities(
     assert np.all(np.diff(result.data, axis=0) <= 0.0)
 
 
-def test__extract_error_percentiles(error_threshold_cube, error_percentile_cube):
-    """Test the extraction of error percentiles from error-probability cube."""
-    result = ApplyRainForestsCalibrationLightGBM(
-        model_config_dict={}
-    )._extract_error_percentiles(error_threshold_cube, 4)
-
-    assert result.long_name == error_percentile_cube.long_name
-    assert result.units == error_percentile_cube.units
-    assert result.coords() == error_percentile_cube.coords()
-    assert result.attributes == error_percentile_cube.attributes
-
-    # Test the case where error_threshold_cube has unit realization dimension
-    error_threshold_cube = error_threshold_cube.extract(Constraint(realization=0))
-    error_threshold_cube = new_axis(error_threshold_cube, "realization")
-    error_threshold_cube.transpose([1, 0, 2, 3])
-    error_percentile_cube = error_percentile_cube.extract(Constraint(realization=0))
-    error_percentile_cube = new_axis(error_percentile_cube, "realization")
-    result = ApplyRainForestsCalibrationLightGBM(
-        model_config_dict={}
-    )._extract_error_percentiles(error_threshold_cube, 4)
-
-    assert result.long_name == error_percentile_cube.long_name
-    assert result.units == error_percentile_cube.units
-    assert result.coords() == error_percentile_cube.coords()
-    assert result.attributes == error_percentile_cube.attributes
-
-
-def test__apply_error_to_forecast(ensemble_forecast, error_percentile_cube):
-    """Test the application of forecast error (percentile) values to the forecast cube."""
-    result = ApplyRainForestsCalibrationLightGBM(
-        model_config_dict={}
-    )._apply_error_to_forecast(ensemble_forecast, error_percentile_cube)
-
-    assert result.standard_name == ensemble_forecast.standard_name
-    assert result.long_name == ensemble_forecast.long_name
-    assert result.var_name == ensemble_forecast.var_name
-    assert result.units == ensemble_forecast.units
-    # Aux coords should be consistent with forecast
-    assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
-    # Dim coords should be consistent with forecast error.
-    assert result.coords(dim_coords=True) == error_percentile_cube.coords(
+def test__get_ensemble_distributions(
+    error_threshold_cube, ensemble_forecast, plugin_and_dummy_models
+):
+    """Test _get_ensemble_distributions."""
+    plugin_cls, _ = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    output_thresholds = [0.0, 0.0005, 0.001]
+    result = plugin._get_ensemble_distributions(
+        error_threshold_cube, ensemble_forecast, output_thresholds
+    )
+    # Check that probabilities are between 0 and 1
+    assert np.all(result.data >= 0.0)
+    assert np.all(result.data <= 1.0)
+    # Check that data is monotonically decreasing
+    assert np.all(np.diff(result.data, axis=0) <= 0.0)
+    # Check that threshold coordinate of output has same values as output_thresholds
+    forecast_variable = ensemble_forecast.name()
+    assert result.coord(forecast_variable).var_name == "threshold"
+    np.testing.assert_almost_equal(
+        result.coord(forecast_variable).points, output_thresholds
+    )
+    # Check that other dimensions are same as ensemble_forecast
+    assert result.coords(dim_coords=True)[1:] == ensemble_forecast.coords(
         dim_coords=True
     )
+    assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
     assert result.attributes == ensemble_forecast.attributes
-    assert np.all(result.data >= 0.0)
-
-
-def test__stack_subensembles(error_percentile_cube):
-    """Test the stacking of realization-percentile dimensions into a single
-    realization dimension."""
-    column = np.arange(20, dtype=np.float32)
-
-    error_percentile_cube.data = np.broadcast_to(
-        column.reshape(5, 4)[:, :, np.newaxis, np.newaxis], (5, 4, 10, 10)
-    )
-    expected_data = np.broadcast_to(column[:, np.newaxis, np.newaxis], (20, 10, 10))
-    result = ApplyRainForestsCalibrationLightGBM(
-        model_config_dict={}
-    )._stack_subensembles(error_percentile_cube)
-    # Result should not contain percentile coordinate
-    assert result.coords("percentile") == []
-    # Result should have realization coordinate composed on of length
-    # realization.points.size * percentile.points.size
-    assert (
-        result.coord("realization").points.size
-        == error_percentile_cube.coord("realization").points.size
-        * error_percentile_cube.coord("percentile").points.size
-    )
-    # All remaining coords should be consistent
-    assert (
-        result.coords(dim_coords=True)[1:]
-        == error_percentile_cube.coords(dim_coords=True)[2:]
-    )
-    assert result.coords(dim_coords=False) == error_percentile_cube.coords(
-        dim_coords=False
-    )
-    assert result.attributes == error_percentile_cube.attributes
-    # Check data ordered as expected.
-    np.testing.assert_equal(result.data, expected_data)
-
-    # Test the case where cubes are not in expected order.
-    error_percentile_cube.transpose([1, 0, 2, 3])
-    with pytest.raises(ValueError):
-        ApplyRainForestsCalibrationLightGBM(model_config_dict={})._stack_subensembles(
-            error_percentile_cube
-        )
-
-
-def test__combine_subensembles(error_percentile_cube):
-    """Test extraction of realization values from full superensemble."""
-    result = ApplyRainForestsCalibrationLightGBM(
-        model_config_dict={}
-    )._combine_subensembles(error_percentile_cube, output_realizations_count=None)
-
-    assert (
-        result.coord("realization").points.size
-        == error_percentile_cube.coord("realization").points.size
-        * error_percentile_cube.coord("percentile").points.size
-    )
-
-    result = ApplyRainForestsCalibrationLightGBM(
-        model_config_dict={}
-    )._combine_subensembles(error_percentile_cube, output_realizations_count=10)
-
-    assert result.coord("realization").points.size == 10
 
 
 def test_process_ensemble(
@@ -434,32 +355,45 @@ def test_process_ensemble(
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_models
 
-    for output_realization_count in (None, 10):
-        result = plugin.process(
-            ensemble_forecast,
-            ensemble_features,
-            error_percentiles_count=4,
-            output_realizations_count=output_realization_count,
-        )
+    output_thresholds = [0.0, 0.0005, 0.001]
+    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
 
-    assert result.standard_name == ensemble_forecast.standard_name
-    assert result.long_name == ensemble_forecast.long_name
-    assert result.var_name == ensemble_forecast.var_name
-    assert result.units == ensemble_forecast.units
+    forecast_variable = ensemble_forecast.name()
+    assert result.long_name == f"probability_of_{forecast_variable}_above_threshold"
 
-    # Check that all non-realization are equal
-    assert result.coords(dim_coords=True)[1:], ensemble_forecast.coords(
-        dim_coords=True
-    )[1:]
-    if output_realization_count is None:
-        assert (
-            result.coord("realization").points.size
-            == 4 * ensemble_forecast.coord("realization").points.size
-        )
-    else:
-        assert result.coord("realization").points.size == output_realization_count
+    # Check that first dimension is threshold and its values are same as output_thresholds
+    threshold_coord = result.coord(forecast_variable)
+    np.testing.assert_almost_equal(threshold_coord.points, output_thresholds)
+    threshold_dim = result.coord_dims(forecast_variable)
+    assert threshold_dim == (0,)
+
+    # Check that dimensions are same as the input forecast, apart from first dimension
+    assert (
+        result.coords(dim_coords=True)[1:]
+        == ensemble_forecast.coords(dim_coords=True)[1:]
+    )
     assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
     assert result.attributes == ensemble_forecast.attributes
+
+
+def test_process_ensemble_different_threshold_unit(
+    ensemble_forecast, ensemble_features, plugin_and_dummy_models
+):
+    """Test process routine with ensemble data where unit of threshold is different from
+    unit of forecast cube."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.error_thresholds = dummy_models
+
+    output_thresholds_m = [0.0, 0.0005, 0.001]
+    result_m = plugin.process(ensemble_forecast, ensemble_features, output_thresholds_m)
+    output_thresholds_mm = [0.0, 0.5, 1.0]
+    result_mm = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds_mm, "mm"
+    )
+
+    assert result_m.coords() == result_mm.coords()
+    np.testing.assert_array_almost_equal(result_m.data, result_mm.data)
 
 
 def test_process_deterministic(
@@ -470,27 +404,25 @@ def test_process_deterministic(
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.error_thresholds = dummy_models
 
-    for output_realization_count in (None, 10):
-        result = plugin.process(
-            deterministic_forecast,
-            deterministic_features,
-            error_percentiles_count=4,
-            output_realizations_count=output_realization_count,
-        )
+    output_thresholds = [0.0, 0.0005, 0.001]
+    result = plugin.process(
+        deterministic_forecast, deterministic_features, output_thresholds,
+    )
 
-    assert result.standard_name == deterministic_forecast.standard_name
-    assert result.long_name == deterministic_forecast.long_name
-    assert result.var_name == deterministic_forecast.var_name
-    assert result.units == deterministic_forecast.units
+    forecast_variable = deterministic_forecast.name()
+    assert result.long_name == f"probability_of_{forecast_variable}_above_threshold"
 
-    # Check that all non-realization are equal
-    assert result.coords(dim_coords=True)[1:], deterministic_forecast.coords(
-        dim_coords=True
-    )[1:]
-    if output_realization_count is None:
-        assert result.coord("realization").points.size == 4
-    else:
-        assert result.coord("realization").points.size == output_realization_count
+    # Check that first dimension is threshold and its values are same as output_thresholds
+    threshold_coord = result.coord(forecast_variable)
+    np.testing.assert_almost_equal(threshold_coord.points, output_thresholds)
+    threshold_dim = result.coord_dims(forecast_variable)
+    assert threshold_dim == (0,)
+
+    # Check that dimensions are same as the input forecast, apart from first dimension
+    assert (
+        result.coords(dim_coords=True)[1:]
+        == deterministic_forecast.coords(dim_coords=True)[1:]
+    )
     assert result.coords(dim_coords=False) == deterministic_forecast.coords(
         dim_coords=False
     )

@@ -54,9 +54,11 @@ from improver.ensemble_copula_coupling.utilities import (
     insert_lower_and_upper_endpoint_to_1d_array,
     interpolate_multiple_rows_same_x,
     interpolate_multiple_rows_same_y,
+    interpolate_pointwise,
     restore_non_percentile_dimensions,
     slow_interp_same_x,
     slow_interp_same_y,
+    slow_interpolate_pointwise,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
@@ -412,6 +414,7 @@ try:
     from improver.ensemble_copula_coupling.numba_utilities import (
         fast_interp_same_x,
         fast_interp_same_y,
+        fast_interpolate_pointwise,
     )
 except ImportError:
     numba_installed = False
@@ -591,6 +594,101 @@ class TestInterpolateMultipleRowsSameX(IrisTest):
         interp_imp.assert_called_once_with(
             mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
         )
+
+
+class TestInterpolatePointwise(IrisTest):
+
+    """Test interpolate_pointwise"""
+
+    def setUp(self):
+        """Set up arrays."""
+        np.random.seed(0)
+        self.x = np.arange(0, 0.1, 0.01)
+        self.xp = np.sort(np.random.uniform(0, 0.1, (15, 20)), axis=0)
+        self.fp = np.random.random((15, 20))
+
+    def test_slow(self):
+        """Test slow interp against known result."""
+        xp = np.array(
+            [[-4, -3, -2, -1, 0], [0, 1, 2, 3, 4]], dtype=np.float32
+        ).transpose()
+        fp = np.array(
+            [[-2, -1.5, -1, -0.5, 0], [0, 2, 4, 6, 8]], dtype=np.float32
+        ).transpose()
+        x = np.array([-1, 0.5, 2], dtype=np.float32)
+        expected = np.array([[-0.5, 0, 0], [0, 1, 4]], dtype=np.float32).transpose()
+        result = slow_interpolate_pointwise(x, xp, fp)
+        np.testing.assert_allclose(result, expected)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_fast(self):
+        """Test fast interp against known result."""
+        xp = np.array(
+            [[-4, -3, -2, -1, 0], [0, 1, 2, 3, 4]], dtype=np.float32
+        ).transpose()
+        fp = np.array(
+            [[-2, -1.5, -1, -0.5, 0], [0, 2, 4, 6, 8]], dtype=np.float32
+        ).transpose()
+        x = np.array([-1, 0.5, 2], dtype=np.float32)
+        expected = np.array([[-0.5, 0, 0], [0, 1, 4]], dtype=np.float32).transpose()
+        result = fast_interpolate_pointwise(x, xp, fp)
+        np.testing.assert_allclose(result, expected)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_slow_vs_fast(self):
+        """Test that slow and fast versions give same result."""
+        result_slow = slow_interpolate_pointwise(self.x, self.xp, self.fp)
+        result_fast = fast_interpolate_pointwise(self.x, self.xp, self.fp)
+        np.testing.assert_allclose(result_slow, result_fast)
+
+    @patch.dict("sys.modules", numba=None)
+    @patch("improver.ensemble_copula_coupling.utilities.slow_interpolate_pointwise")
+    def test_slow_interpolate_pointwise_called(self, interp_imp):
+        """Test that slow_interpolate_pointwise is called if numba is not installed."""
+        interpolate_pointwise(mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp)
+        interp_imp.assert_called_once_with(
+            mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
+        )
+
+    @skipIf(not (numba_installed), "numba not installed")
+    @patch(
+        "improver.ensemble_copula_coupling.numba_utilities.fast_interpolate_pointwise"
+    )
+    def test_fast_interpolate_pointwise_called(self, interp_imp):
+        """Test that fast_interpolate_pointwise is called if numba is installed."""
+        interpolate_pointwise(mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp)
+        interp_imp.assert_called_once_with(
+            mock.sentinel.x, mock.sentinel.xp, mock.sentinel.fp
+        )
+
+    def test_shape_errors_slow(self):
+        """Test that an error is raised if inputs have the wrong shape."""
+        x = np.arange(1, 5)
+        xp = np.ones((2, 3))
+        fp = np.ones((3, 2))
+        msg = r"xp and fp must have the same shape"
+        with self.assertRaisesRegex(ValueError, msg):
+            slow_interpolate_pointwise(x, xp, fp)
+        xp = np.ones((2,))
+        fp = np.ones((2,))
+        msg = r"xp and fp must have at least 2 dimensions"
+        with self.assertRaisesRegex(ValueError, msg):
+            slow_interpolate_pointwise(x, xp, fp)
+
+    @skipIf(not (numba_installed), "numba not installed")
+    def test_shape_errors_fast(self):
+        """Test that an error is raised if inputs have the wrong shape."""
+        x = np.arange(1, 5)
+        xp = np.ones((2, 3))
+        fp = np.ones((3, 2))
+        msg = r"xp and fp must have the same shape"
+        with self.assertRaisesRegex(ValueError, msg):
+            fast_interpolate_pointwise(x, xp, fp)
+        xp = np.ones((2,))
+        fp = np.ones((2,))
+        msg = r"xp and fp must have at least 2 dimensions"
+        with self.assertRaisesRegex(ValueError, msg):
+            fast_interpolate_pointwise(x, xp, fp)
 
 
 if __name__ == "__main__":

@@ -140,3 +140,33 @@ def fast_interp_same_y(x: np.ndarray, xp: np.ndarray, fp: np.ndarray) -> np.ndar
                         slope = (fp[ind] - intercept) / h_diff
                 result[i, j] = intercept + (curr_x - x_lower) * slope
     return result
+
+
+@njit(parallel=True)
+def fast_interpolate_pointwise(x, xp, fp):
+    """
+    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions
+    at values given by x.
+
+    Args:
+        x: 1-d array, points at which to evaluate interpolation function
+        xp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+        fp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+
+    Returns:
+        array with dimensions (len(x), ) + xp.shape[1:]
+    """
+
+    if xp.shape != fp.shape:
+        raise ValueError("xp and fp must have the same shape")
+    if len(xp.shape) < 2:
+        raise ValueError("xp and fp must have at least 2 dimensions")
+
+    new_shape = (xp.shape[0], xp.size // xp.shape[0])
+    result = np.empty((len(x), new_shape[1]), dtype=np.float32)
+    xp_reshaped = np.reshape(xp, new_shape)
+    fp_reshaped = np.reshape(fp, new_shape)
+    for i in prange(xp_reshaped.shape[1]):
+        result[:, i] = np.interp(x, xp_reshaped[:, i], fp_reshaped[:, i])
+    reshaped_result = np.reshape(result, (len(x),) + tuple(xp.shape[1:]))
+    return reshaped_result

@@ -30,6 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to apply rainforests calibration."""
 
+import warnings
+
 from improver import cli
 
 
@@ -39,8 +41,9 @@ def process(
     forecast: cli.inputcube,
     *features: cli.inputcube,
     model_config: cli.inputjson,
-    error_percentiles_count: int = 19,
-    output_realizations_count: int = 100,
+    output_thresholds: cli.comma_separated_list_of_float = None,
+    output_threshold_config: cli.inputjson = None,
+    threshold_units: str = None,
     threads: int = 1,
 ):
     """
@@ -52,9 +55,13 @@ def process(
 
     This calibration is done in a situation dependent fashion using a series of
     decision-tree models to construct representative error distributions which are
-    then used to map each input ensemble member onto a series of realisable values.
-    These series collectively form a super-ensemble, from which realizations are
-    sampled to produce the calibrated forecast.
+    then used to map each input ensemble member onto an error distribution. The
+    error distributions are averaged in probability space, and interpolated to the
+    output thresholds.
+
+    It is assumed that the models have been trained using the `>=` comparator; i.e.
+    they predict the probability that the error is greater than or equal to the various
+    error thresholds. The output probability cube also uses the `>=` comparator.
 
     Args:
         forecast_cube (iris.cube.Cube):
@@ -68,15 +75,17 @@ def process(
             be broadcast along the realization dimension.
         model_config (dict):
             Dictionary containing RainForests model configuration data.
-        error_percentiles_count (int):
-            The number of error percentiles to apply to each ensemble realization.
-            The resulting super-ensemble will be of size = forecast.realization.size *
-            error_percentiles_count.
-        output_realizations_count (int):
-            The number of realizations to output for the calibrated ensemble.
-            These realizations are sampled by taking equispaced percentiles
-            from the super-ensemble. If None is supplied, then all realizations
-            from the super-ensemble will be returned.
+        output_thresholds (list):
+            List of thresholds at which to evaluate output probabilities.
+        output_threshold_config (dict):
+            Threshold configuration dictionary where the keys are strings representing
+            thresholds. The threshold config should follow the same format as that of
+            the threshold cli, however here only the threshold keys are used and the
+            threshold values are disregarded.
+        threshold_units (str):
+            Units in which threshold_values are specified. If not provided the units are
+            assumed to be the same as those of the input cube. Specifying the units here
+            will allow a suitable conversion to match the input units of forecast_cube.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
 
@@ -88,9 +97,26 @@ def process(
 
     from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
 
+    if output_threshold_config and output_thresholds:
+        raise ValueError(
+            "--output-threshold-config and --output-thresholds are mutually exclusive "
+            "- please set one or the other, not both"
+        )
+    if (not output_threshold_config) and (not output_thresholds):
+        raise ValueError(
+            "One of --output-threshold-config and --output-thresholds must be specified"
+        )
+
+    if output_threshold_config:
+        message = "Fuzzy bounds are not supported. Values of output-threshold-config \
+            will be ignored."
+        warnings.warn(message)
+        thresholds = [float(key) for key in output_threshold_config.keys()]
+    else:
+        thresholds = [float(x) for x in output_thresholds]
     return ApplyRainForestsCalibration(model_config, threads).process(
         forecast,
         CubeList(features),
-        error_percentiles_count=error_percentiles_count,
-        output_realizations_count=output_realizations_count,
+        output_thresholds=thresholds,
+        threshold_units=threshold_units,
     )

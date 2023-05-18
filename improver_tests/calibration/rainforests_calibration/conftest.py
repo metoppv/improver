@@ -41,7 +41,6 @@ from improver.calibration.rainforest_calibration import (
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
-    set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
@@ -293,25 +292,3 @@ def error_threshold_cube(error_thresholds):
         order=[1, 0, 2, 3],
     )
     return error_threshold_cube
-
-
-@pytest.fixture
-def error_percentile_cube(error_thresholds):
-    """Create sample error-percentile cube"""
-    data = np.broadcast_to(error_thresholds[1:-1, np.newaxis, np.newaxis], (4, 10, 10))
-
-    percentile_cube = set_up_percentile_cube(
-        data.astype(np.float32),
-        percentiles=np.array([20.0, 40.0, 60.0, 80.0], dtype=np.float32),
-        name="forecast_error_of_lwe_thickness_of_precipitation_amount",
-        units="m",
-        attributes=ATTRIBUTES,
-    )
-    error_percentile_cube = add_coordinate(
-        percentile_cube,
-        coord_points=np.arange(5),
-        coord_name="realization",
-        coord_units="1",
-        order=[0, 1, 2, 3],
-    )
-    return error_percentile_cube

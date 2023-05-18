@@ -34,6 +34,7 @@ plugins.
 
 """
 import warnings
+from itertools import product
 from typing import List, Optional, Union
 
 import cf_units as unit
@@ -375,3 +376,60 @@ def interpolate_multiple_rows_same_y(*args):
             "Module numba unavailable. ConvertProbabilitiesToPercentiles will be slower."
         )
         return slow_interp_same_y(*args)
+
+
+def slow_interpolate_pointwise(x, xp, fp):
+    """
+    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions
+    at values given by x.
+
+    Args:
+        x: 1-d array, points at which to evaluate interpolation function
+        xp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+        fp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+
+    Returns:
+        array with dimensions (len(x), ) + xp.shape[1:]
+    """
+
+    if xp.shape != fp.shape:
+        raise ValueError("xp and fp must have the same shape")
+    if len(xp.shape) < 2:
+        raise ValueError("xp and fp must have at least 2 dimensions")
+    result = np.empty((len(x),) + tuple(xp.shape[1:]))
+    for coords in product(*[range(i) for i in xp.shape[1:]]):
+        coord_slice = (slice(None),) + coords
+        result[coord_slice] = np.interp(x, xp[coord_slice], fp[coord_slice])
+    return result
+
+
+def interpolate_pointwise(*args):
+    """
+    Given 2 arrays xp and fp with the same dimensions, interpolate along first dimensions
+    at values given by x. Specifically, if xp and fp have dimensions d0, ..., dn,
+    then the output has dimensions len(x), d1, ..., dn, and the value of coordinate
+    (i_0, ..., i_n) is equal to np.interp(x, xp[:, i_1, ..., i_n], fp[:, i_1, ..., i_n]).
+
+    Calls a fast numba implementation where numba is available (see
+    `improver.ensemble_copula_coupling.numba_utilities.fast_interpolate_pointwise`) and calls
+    a native python implementation otherwise (see :func:`slow_interpolate_pointwise`).
+
+    Args:
+        x: 1-d array, points at which to evaluate interpolation function
+        xp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+        fp: array with at least 2 dimensions. First dimension is the interpolation dimension.
+
+    Returns:
+        array with dimensions (len(x), ) + xp.shape[1:]
+    """
+    try:
+        import numba  # noqa: F401
+
+        from improver.ensemble_copula_coupling.numba_utilities import (
+            fast_interpolate_pointwise,
+        )
+
+        return fast_interpolate_pointwise(*args)
+    except ImportError:
+        warnings.warn("Module numba unavailable. interpolate_pointwise will be slower.")
+        return slow_interpolate_pointwise(*args)
