@@ -255,9 +255,7 @@ def test_multi_realizations(cube_inputs, phase, ptype):
     cubes = iris.cube.CubeList()
     for i in [0, 1]:
         cube = falling_level_cube.copy()
-        cube.add_aux_coord(
-            DimCoord([i], "realization", units=1)
-        )
+        cube.add_aux_coord(DimCoord([i], "realization", units=1))
         cubes.append(cube)
     falling_level_cube = cubes.merge_cube()
 

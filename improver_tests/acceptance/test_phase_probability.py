@@ -40,6 +40,7 @@ pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
+
 @pytest.mark.parametrize("gtype", ("gridded", "spot"))
 @pytest.mark.parametrize("ptype", ("deterministic", "percentiles"))
 @pytest.mark.parametrize(
