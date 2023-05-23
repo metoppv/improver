@@ -55,6 +55,16 @@ class Test__init__(IrisTest):
         self.assertTrue(
             plugin.percentile_plugin is GeneratePercentilesFromANeighbourhood
         )
+        self.assertAlmostEqual(plugin.radius, None)
+
+    def test_radius(self):
+        """Test that the __init__ method configures the plugin as expected
+        when a radius is provided."""
+
+        plugin = PrecipPhaseProbability(radius=10000)
+        self.assertTrue(
+            plugin.percentile_plugin is GeneratePercentilesFromANeighbourhood
+        )
         self.assertAlmostEqual(plugin.radius, 10000.0)
 
 
@@ -173,6 +183,18 @@ class Test_process(IrisTest):
         expected = self.expected_template
         expected[2] = 1
         self.check_metadata(result)
+        self.assertArrayAlmostEqual(result.data, expected)
+
+    def test_prob_no_radius(self):
+        """Test that process returns a cube with the right name, units and
+        values if no neighbourhood radius is used. In this instance the
+        phase change is from snow to sleet. The expected values are constructed
+        by a simple cell-by-cell comparison between the falling level and the
+        orography."""
+        result = PrecipPhaseProbability().process(self.cubes)
+        expected = self.cubes[0].data < self.cubes[1].data
+        self.check_metadata(result, expected_name="probability_of_snow_at_surface")
+        self.assertDictEqual(result.attributes, self.mandatory_attributes)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_bad_phase_cube(self):

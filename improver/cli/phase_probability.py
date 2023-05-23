@@ -35,7 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, radius: float = 10000.0):
+def process(*cubes: cli.inputcube, radius: float = None):
     """
     Converts a phase-change-level cube into the
     probability of a specific precipitation phase being found at the surface.
@@ -48,8 +48,12 @@ def process(*cubes: cli.inputcube, radius: float = 10000.0):
             either "altitude_of_snow_falling_level", "altitude_of_rain_from_hail_falling_level or
             "altitude_of_rain_falling_level". The name of the orography
             cube must be "surface_altitude".
-        radius (float):
-            Neighbourhood radius from which 80th percentile is found (m)
+        radius (float or None):
+            Neighbourhood radius from which the 20th or 80th percentile is found (m).
+            Restrictions in the neighbourhooding code limit the use of a
+            neighbourhood to data on equal area projections.
+            If set to None percentiles are not generated, and the input
+            altitudes are used directly as the phase discriminators.
 
     """
     from iris.cube import CubeList
