@@ -79,7 +79,7 @@ class PrecipPhaseProbability(BasePlugin):
         """
         Separates the input list into the required cubes for this plugin,
         detects whether snow, rain from hail or rain are required from the input
-        phase-level cube name, and is required, appropriately extracts the relevant
+        phase-level cube name, and as required, appropriately extracts the relevant
         percentile.
 
         Converts units of falling_level_cube to that of orography_cube / site
@@ -92,7 +92,7 @@ class PrecipPhaseProbability(BasePlugin):
                 can be snow->sleet, hail->rain or sleet->rain) and the altitude of the
                 orography or sites. The name of the phase-change level cube must be
                 "altitude_of_snow_falling_level", "altitude_of_rain_from_hail_falling_level" or
-                "altitude_of_rain_falling_level". If a gridded orograhy is provided it must
+                "altitude_of_rain_falling_level". If a gridded orography is provided it must
                 be named "surface_altitude". If a spot forecast ancillary is provided it
                 must be named "grid_neighbours".
 
@@ -126,15 +126,16 @@ class PrecipPhaseProbability(BasePlugin):
                 self.comparator = definition["comparator"]
                 if self.falling_level_cube.coords("percentile"):
                     constraint = iris.Constraint(percentile=definition["percentile"])
-                    self.falling_level_cube = self.falling_level_cube.extract(
-                        constraint
-                    )
-                    if not self.falling_level_cube:
+                    required_percentile = self.falling_level_cube.extract(constraint)
+                    if not required_percentile:
                         raise ValueError(
-                            f"Cube {extracted_cube.name()} does not contain the required"
-                            f" percentile {definition['percentile']}."
+                            f"Cube {self.falling_level_cube.name()} does not "
+                            "contain the required percentile "
+                            f"{definition['percentile']}."
                         )
+                    self.falling_level_cube = required_percentile
                     self.falling_level_cube.remove_coord("percentile")
+                # Once a falling-level cube has been extracted, exit this loop.
                 break
 
         if not extracted_cube:

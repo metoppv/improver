@@ -341,3 +341,26 @@ def test_spatial_mismatch(gridded_falling_level_cube):
     msg = "Spatial coords mismatch between"
     with pytest.raises(ValueError, match=msg):
         PrecipPhaseProbability().process(cubes)
+
+
+@pytest.mark.parametrize("phase", ["rain", "snow"])
+@pytest.mark.parametrize("ptype", ["percentile"])
+def test_incorrect_percentiles(
+    gridded_falling_level_cube, gridded_altitude_cube, phase
+):
+    """Test that process raises an exception when the input falling-level cube
+    does not contain the expected percentile for a given phase."""
+    if phase == "snow":
+        gridded_falling_level_cube.coord("percentile").points = np.array(
+            [20, 70], dtype=np.float32
+        )
+    elif phase == "rain":
+        gridded_falling_level_cube.coord("percentile").points = np.array(
+            [30, 80], dtype=np.float32
+        )
+
+    cubes = iris.cube.CubeList([gridded_falling_level_cube, gridded_altitude_cube])
+
+    msg = f"Cube altitude_of_{phase}_falling_level does not contain the required percentile"
+    with pytest.raises(ValueError, match=msg):
+        PrecipPhaseProbability().process(cubes)
