@@ -364,14 +364,10 @@ class ChooseWeightsLinear(BasePlugin):
             cube.slices_over(self.weighting_coord_name), weights
         ):
             sub_slice = next(cube_slice.slices_over(spatial))
-            # sub_slice = cube_slice[..., 0, 0]
             sub_slice.data = np.ones(sub_slice.data.shape) * weight
             cubelist.append(sub_slice)
 
         # re-order dimension coordinates to match input cube
-        # new_weights_cube = check_cube_coordinates(
-        #     cube[..., 0, 0], cubelist.merge_cube()
-        # )
         new_weights_cube = check_cube_coordinates(
             next(cube.slices_over(spatial)), cubelist.merge_cube()
         )
@@ -453,7 +449,7 @@ class ChooseWeightsLinear(BasePlugin):
         else:
             slice_list = [cube.coord(axis="y"), cube.coord(axis="x")]
 
-        # To handle non-orthoganal spatial coordinates, i.e. multiple coordinates
+        # To handle non-orthogonal spatial coordinates, i.e. multiple coordinates
         # that share the same dimension, as in a spot-forecast.
         unique_slice_list = []
         for dim in set([cube.coord_dims(crd) for crd in slice_list]):
