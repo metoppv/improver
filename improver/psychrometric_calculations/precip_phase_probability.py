@@ -99,6 +99,7 @@ class PrecipPhaseProbability(BasePlugin):
         Raises:
             ValueError: If cubes with the expected names cannot be extracted.
             ValueError: If cubes does not have the expected length of 2.
+            ValueError: If a percentile cube does not contain the expected percentiles.
             ValueError: If the extracted cubes do not have matching spatial
                         coordinates.
         """
