@@ -56,6 +56,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
+from improver.constants import SECONDS_IN_MINUTE, MINUTES_IN_HOUR
 
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
@@ -108,15 +109,15 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             import treelite_runtime  # noqa: F401
 
             # Check that all required files have been specified.
-            treelite_model_filenames = [
-                threshold_dict.get("treelite_model")
-                for threshold_dict in model_config_dict.values()
-            ]
-            if None in treelite_model_filenames:
-                raise ValueError(
-                    "Path to treelite model missing for one or more error thresholds "
-                    "in model_config_dict, defaulting to using lightGBM models."
-                )
+            # treelite_model_filenames = [
+            #     threshold_dict.get("treelite_model")
+            #     for threshold_dict in model_config_dict.values()
+            # ]
+            # if None in treelite_model_filenames:
+            #     raise ValueError(
+            #         "Path to treelite model missing for one or more error thresholds "
+            #         "in model_config_dict, defaulting to using lightGBM models."
+            #     )
         except (ModuleNotFoundError, ValueError):
             # Default to lightGBM.
             cls = ApplyRainForestsCalibrationLightGBM
@@ -186,23 +187,24 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
         from lightgbm import Booster
 
-        # Dictionary keys represent error thresholds, however may be strings as they
-        # are sourced from json files. In order use these in processing, and to sort
-        # them in a sensible fashion, we shall cast the key values as float32.
-        sorted_model_config_dict = OrderedDict(
-            sorted({np.float32(k): v for k, v in model_config_dict.items()}.items())
-        )
+        # Model config is a nested dictionary. Keys of outer level are lead times, and
+        # keys of inner level are thresholds. Convert these to int and float.
+        sorted_model_config_dict = OrderedDict()
+        for lead_time_key in sorted(list(model_config_dict.keys())):
+            sorted_model_config_dict[int(lead_time_key)] = OrderedDict()
+            lead_time_dict = model_config_dict[lead_time_key]
+            sorted_model_config_dict[int(lead_time_key)] = OrderedDict(
+                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
+            )
 
-        self.error_thresholds = np.array([*sorted_model_config_dict.keys()])
+        self.lead_times = np.array([*sorted_model_config_dict.keys()])
+        self.error_thresholds = np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
         self.model_input_converter = np.array
-        lightgbm_model_filenames = [
-            Path(threshold_dict.get("lightgbm_model")).expanduser()
-            for threshold_dict in sorted_model_config_dict.values()
-        ]
-        self.tree_models = [
-            Booster(model_file=str(file)).reset_parameter({"num_threads": threads})
-            for file in lightgbm_model_filenames
-        ]
+        self.tree_models = {}
+        for lead_time in self.lead_times:
+            for threshold in self.error_thresholds:
+                model_filename = Path(sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")).expanduser()
+                self.tree_models[lead_time, threshold] = Booster(model_file=str(model_filename)).reset_parameter({"num_threads": threads})
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
@@ -211,7 +213,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             features:
                 Cubelist containing feature variables.
         """
-        expected_num_features = self.tree_models[0].num_feature()
+        expected_num_features = list(self.tree_models.values())[0].num_feature()
         if expected_num_features != len(features):
             raise ValueError(
                 "Number of expected features does not match number of feature cubes."
@@ -397,6 +399,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self,
         forecast_data: ndarray,
         input_data: ndarray,
+        lead_time_hours: int,
         forecast_variable: str,
         forecast_variable_unit: str,
         output_data: ndarray,
@@ -410,6 +413,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 1-d containing data for the variable to be calibrated.
             input_data:
                 2-d array of data for the feature variables of the model
+            lead_time_hours:
+                lead time in hours
             forecast_variable:
                 name of forecast variable
             forecast_variable_unit:
@@ -427,8 +432,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             lower_bound, forecast_variable_unit
         )
 
-        for threshold_index, model in enumerate(self.tree_models):
-            threshold = self.error_thresholds[threshold_index]
+        for threshold_index, threshold in enumerate(self.error_thresholds):
+            model = self.tree_models[lead_time_hours, threshold]
             # prediction = model.predict(input_dataset)
             if threshold >= 0:
                 # In this case, for all values of forecast we have
@@ -474,10 +479,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         input_dataset = self._prepare_features_array(feature_cubes)
 
         forecast_data = forecast_cube.data.ravel()
+        lead_time_hours = forecast_cube.coord("forecast_period").points[0] / (SECONDS_IN_MINUTE * MINUTES_IN_HOUR)
 
         self._evaluate_probabilities(
             forecast_data,
             input_dataset,
+            lead_time_hours,
             forecast_cube.name(),
             forecast_cube.units,
             error_probability_cube.data,
@@ -663,15 +670,15 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         # is available.
         import treelite_runtime  # noqa: F401
 
-        treelite_model_filenames = [
-            threshold_dict.get("treelite_model")
-            for threshold_dict in model_config_dict.values()
-        ]
-        if None in treelite_model_filenames:
-            raise ValueError(
-                "Path to treelite model missing for one or more error thresholds "
-                "in model_config_dict."
-            )
+        # treelite_model_filenames = [
+        #     threshold_dict.get("treelite_model")
+        #     for threshold_dict in model_config_dict.values()
+        # ]
+        # if None in treelite_model_filenames:
+        #     raise ValueError(
+        #         "Path to treelite model missing for one or more error thresholds "
+        #         "in model_config_dict."
+        #     )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(self, model_config_dict: dict, threads: int = 1):
@@ -704,23 +711,24 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         """
         from treelite_runtime import DMatrix, Predictor
 
-        # Dictionary keys represent error thresholds, however may be strings as they
-        # are sourced from json files. In order use these in processing, and to sort
-        # them in a sensible fashion, we shall cast the key values as float32.
-        sorted_model_config_dict = OrderedDict(
-            sorted({np.float32(k): v for k, v in model_config_dict.items()}.items())
-        )
+        # Model config is a nested dictionary. Keys of outer level are lead times, and
+        # keys of inner level are thresholds. Convert these to int and float.
+        sorted_model_config_dict = OrderedDict()
+        for lead_time_key in sorted(list(model_config_dict.keys())):
+            sorted_model_config_dict[int(lead_time_key)] = OrderedDict()
+            lead_time_dict = model_config_dict[lead_time_key]
+            sorted_model_config_dict[int(lead_time_key)] = OrderedDict(
+                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
+            )
 
-        self.error_thresholds = np.array([*sorted_model_config_dict.keys()])
+        self.lead_times = np.array([*sorted_model_config_dict.keys()])
+        self.error_thresholds = np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
         self.model_input_converter = DMatrix
-        treelite_model_filenames = [
-            Path(threshold_dict.get("treelite_model")).expanduser()
-            for threshold_dict in sorted_model_config_dict.values()
-        ]
-        self.tree_models = [
-            Predictor(libpath=str(file), verbose=False, nthread=threads)
-            for file in treelite_model_filenames
-        ]
+        self.tree_models = {}
+        for lead_time in self.lead_times:
+            for threshold in self.error_thresholds:
+                model_filename = Path(sorted_model_config_dict[lead_time][threshold].get("treelite_model")).expanduser()
+                self.tree_models[lead_time, threshold] = Predictor(libpath=str(model_filename), verbose=False, nthread=threads)
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
@@ -728,7 +736,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             features:
                 Cubelist containing feature variables.
         """
-        expected_num_features = self.tree_models[0].num_feature
+        expected_num_features = list(self.tree_models.values())[0].num_feature
         if expected_num_features != len(features):
             raise ValueError(
                 "Number of expected features does not match number of feature cubes."
