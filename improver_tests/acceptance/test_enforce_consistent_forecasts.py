@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the enforce-consistent-probabilities CLI."""
+"""Tests for the enforce-consistent-forecasts CLI."""
 
 import pytest
 
@@ -39,25 +39,64 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_enforce_consistent_probabilities(tmp_path):
+@pytest.mark.parametrize(
+    "forecast_type, ref_name, additive_amount, multiplicative_amount, comparison_operator",
+    (
+        (
+            "probability",
+            "probability_of_cloud_area_fraction_above_threshold",
+            "",
+            "",
+            "<=",
+        ),
+        ("percentile", "wind_speed", "0.0", "1.1", ">="),
+        ("realization", "surface_temperature", "0.0", "0.9", "<="),
+    ),
+)
+def test_enforce_consistent_forecasts(
+    tmp_path,
+    ref_name,
+    forecast_type,
+    additive_amount,
+    multiplicative_amount,
+    comparison_operator,
+):
     """
-    Test enforcing of probabilities between inconsistent cubes.
+    Test enforcement of consistent forecasts between cubes
     """
-    kgo_dir = acc.kgo_root() / "enforce-consistent-probabilities"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_dir = acc.kgo_root() / "enforce-consistent-forecasts"
+    kgo_path = kgo_dir / f"{forecast_type}_kgo.nc"
 
-    hybrid_cloud = kgo_dir / "hybrid_total_cloud.nc"
-    total_cloud = kgo_dir / "total_cloud.nc"
+    forecast = kgo_dir / f"{forecast_type}_forecast.nc"
+    reference = kgo_dir / f"{forecast_type}_reference.nc"
     output_path = tmp_path / "output.nc"
 
-    args = [
-        hybrid_cloud,
-        total_cloud,
-        "--ref-name",
-        "probability_of_cloud_area_fraction_above_threshold",
-        "--output",
-        output_path,
-    ]
+    if forecast_type == "probability":
+        args = [
+            forecast,
+            reference,
+            "--ref-name",
+            ref_name,
+            "--comparison-operator",
+            comparison_operator,
+            "--output",
+            output_path,
+        ]
+    else:
+        args = [
+            forecast,
+            reference,
+            "--ref-name",
+            ref_name,
+            "--additive-amount",
+            additive_amount,
+            "--multiplicative-amount",
+            multiplicative_amount,
+            "--comparison-operator",
+            comparison_operator,
+            "--output",
+            output_path,
+        ]
 
     run_cli(args)
     acc.compare(output_path, kgo_path)
@@ -65,18 +104,18 @@ def test_enforce_consistent_probabilities(tmp_path):
 
 def test_too_many_cubes(tmp_path):
     """
-    Test an error is raised if too many cubes are provided.
+    Test to ensure an error is raised if too many cubes are provided.
     """
-    kgo_dir = acc.kgo_root() / "enforce-consistent-probabilities"
+    kgo_dir = acc.kgo_root() / "enforce-consistent-forecasts"
 
-    hybrid_cloud = kgo_dir / "hybrid_total_cloud.nc"
-    total_cloud = kgo_dir / "total_cloud.nc"
+    forecast = kgo_dir / "probability_forecast.nc"
+    reference = kgo_dir / "probability_reference.nc"
     output_path = tmp_path / "output.nc"
 
     args = [
-        hybrid_cloud,
-        hybrid_cloud,
-        total_cloud,
+        forecast,
+        forecast,
+        reference,
         "--ref-name",
         "probability_of_cloud_area_fraction_above_threshold",
         "--output",
