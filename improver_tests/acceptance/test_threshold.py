@@ -119,8 +119,11 @@ def test_collapse_realization(tmp_path):
         assert "Blending masked data without spatial" not in str(msg.message)
     acc.compare(output_path, kgo_path)
 
-@pytest.mark.parametrize("extra_arg,kgo",(([],"kgo.nc"),(["--fill-masked","inf"],"kgo_mask_filled.nc")))
-def test_collapse_realization_masked_data(tmp_path,extra_arg,kgo):
+
+@pytest.mark.parametrize(
+    "extra_arg,kgo", (([], "kgo.nc"), (["--fill-masked", "inf"], "kgo_mask_filled.nc"))
+)
+def test_collapse_realization_masked_data(tmp_path, extra_arg, kgo):
     """Test thresholding and collapsing realizations where the data being
     thresholded is masked."""
     kgo_dir = acc.kgo_root() / "threshold/masked_collapse"

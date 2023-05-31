@@ -164,7 +164,7 @@ def process(
         raise ValueError("Cannot collapse over non-realization coordinate")
 
     if fill_masked is not None:
-        fill_masked=float(fill_masked)
+        fill_masked = float(fill_masked)
 
     return BasicThreshold(
         thresholds,

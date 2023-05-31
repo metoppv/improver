@@ -69,7 +69,7 @@ class BasicThreshold(PostProcessingPlugin):
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
         each_threshold_func: Union[Callable, List[Callable]] = (),
-        fill_masked: Optional[float] =None
+        fill_masked: Optional[float] = None,
     ) -> None:
         """
         Set up for processing an in-or-out of threshold field, including the
@@ -175,7 +175,8 @@ class BasicThreshold(PostProcessingPlugin):
             each_threshold_func = (each_threshold_func,)
         self.each_threshold_func = each_threshold_func
 
-        self.fill_masked=fill_masked
+        self.fill_masked = fill_masked
+
     def _generate_fuzzy_bounds(
         self, fuzzy_factor_loc: float
     ) -> List[Tuple[float, float]]:
@@ -306,7 +307,7 @@ class BasicThreshold(PostProcessingPlugin):
             raise ValueError("Error: NaN detected in input cube data")
 
         if self.fill_masked is not None:
-            input_cube.data=np.ma.filled(input_cube.data,self.fill_masked)
+            input_cube.data = np.ma.filled(input_cube.data, self.fill_masked)
 
         self.threshold_coord_name = input_cube.name()
 

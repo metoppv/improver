@@ -205,7 +205,7 @@ class Test_process(IrisTest):
     def test_fill_masked(self):
         """Test plugin when masked points are replaced with fill value"""
         plugin = Threshold(0.6, fill_masked=np.inf)
-        result=plugin(self.masked_cube)
+        result = plugin(self.masked_cube)
         expected_result = np.zeros_like(self.masked_cube.data)
         expected_result[0][0] = 1.0
         self.assertArrayEqual(result.data, expected_result)
