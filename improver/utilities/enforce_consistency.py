@@ -128,7 +128,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         # check forecast and reference units match
         if forecast.units != reference_forecast.units:
             msg = (
-                f"The units in the forecast and reference cubes do not match. The"
+                "The units in the forecast and reference cubes do not match. The"
                 f"units of forecast were {forecast.units}, the units of "
                 f"reference_forecast were {reference_forecast.units}."
             )
@@ -172,21 +172,21 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
                 pass
             else:
                 msg = (
-                    f"When comparison operators are provided as a list, the list must be "
+                    "When comparison operators are provided as a list, the list must be "
                     f"either ['>=', '<='] or ['<=', '>='], not {self.comparison_operator}."
                 )
                 raise ValueError(msg)
             if np.any(lower_bound > upper_bound):
                 msg = (
-                    f"The provided reference_cube, additive_amount and "
-                    f"multiplicative_amount have created contradictory bounds. Some of"
-                    f"the values in the lower bound are greater than the upper bound."
+                    "The provided reference_cube, additive_amount and "
+                    "multiplicative_amount have created contradictory bounds. Some of"
+                    "the values in the lower bound are greater than the upper bound."
                 )
                 raise ValueError(msg)
         elif any(check_if_list):
             msg = (
-                f"If any of additive_amount, multiplicative_amount, or comparison_operator "
-                f"are input as a list, then they must all be input as a list of 2 elements. "
+                "If any of additive_amount, multiplicative_amount, or comparison_operator "
+                "are input as a list, then they must all be input as a list of 2 elements. "
             )
             raise ValueError(msg)
         else:
@@ -201,7 +201,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
                 upper_bound = bound.data
             else:
                 msg = (
-                    f"When enforcing consistency with one bound, comparison_operator "
+                    "When enforcing consistency with one bound, comparison_operator "
                     f"must be either '>=' or '<=', not {self.comparison_operator}."
                 )
                 raise ValueError(msg)

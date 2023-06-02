@@ -31,8 +31,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """CLI to enforce consistency between two forecasts."""
 
-from typing import List, Union
-
 from improver import cli
 
 
