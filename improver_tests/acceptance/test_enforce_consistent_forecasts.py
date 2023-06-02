@@ -45,14 +45,14 @@ run_cli = acc.run_cli(CLI)
         (
             "probability",
             "probability_of_cloud_area_fraction_above_threshold",
-            "",
-            "",
+            "0.0",
+            "1.0",
             "<=",
             "single_bound"
         ),
-        ("percentile", "wind_speed", 0.0, 1.1, ">=", "single_bound"),
-        ("realization", "surface_temperature", 0.0, 0.9, "<=", "single_bound"),
-        ("percentile", "wind_speed", [0.0, 0.0], [1.1, 3.0], [">=", "<="], "double_bound"),
+        ("percentile", "wind_speed", "0.0", "1.1", ">=", "single_bound"),
+        ("realization", "surface_temperature", "0.0", "0.9", "<=", "single_bound"),
+        ("percentile", "wind_speed", "0.0,0.0", "1.1,3.0", ">=,<=", "double_bound"),
     ),
 )
 def test_enforce_consistent_forecasts(

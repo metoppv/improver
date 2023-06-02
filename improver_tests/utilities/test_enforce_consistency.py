@@ -121,9 +121,9 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     "forecast_type, additive_amount, multiplicative_amount, reference_value, "
     "forecast_value, comparison_operator",
     (
-        ("probability", None, None, 0.5, 0.4, ">="),
-        ("probability", None, None, 0.4, 0.5, "<="),
-        ("probability", None, None, 0.4, 0.5, ">="),  # no change required
+        ("probability", 0, 1, 0.5, 0.4, ">="),
+        ("probability", 0, 1, 0.4, 0.5, "<="),
+        ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
         ("percentile", 0, 1.1, 50, 40, ">="),
         ("percentile", 0, 0.9, 40, 50, "<="),
         ("percentile", 10, 1, 50, 40, ">="),

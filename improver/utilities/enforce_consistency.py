@@ -49,8 +49,8 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
     def __init__(
         self,
-        additive_amount: Union[float, List[float]] = None,
-        multiplicative_amount: Union[float, List[float]] = None,
+        additive_amount: Union[float, List[float]] = 0.0,
+        multiplicative_amount: Union[float, List[float]] = 1.0,
         comparison_operator: Union[str, List[str]] = ">=",
         diff_for_warning: Optional[float] = None,
     ) -> None:
@@ -137,22 +137,15 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             raise ValueError(msg)
 
         # linear transformation cannot be applied to probability forecasts
-        if self.additive_amount is not None or self.multiplicative_amount is not None:
+        if self.additive_amount != 0.0 or self.multiplicative_amount != 1.0:
             if forecast.name().startswith("probability_of"):
                 msg = (
-                    "For probability data, the additive_amount and multiplicative_amount"
-                    "inputs cannot be used. The input additive_amount was "
+                    "For probability data, additive_amount must be 0.0 and "
+                    "multiplicative_amount must be 1.0. The input additive_amount was "
                     f"{self.additive_amount}, the input multiplicative_amount was "
                     f"{self.multiplicative_amount}."
                 )
                 raise ValueError(msg)
-
-        # if additive_amount or multiplicative_amount not specified, then use identity
-        # function
-        if self.additive_amount is None:
-            self.additive_amount = 0
-        if self.multiplicative_amount is None:
-            self.multiplicative_amount = 1
 
         # calculate forecast_bound by applying specified linear transformation to
         # reference_forecast
