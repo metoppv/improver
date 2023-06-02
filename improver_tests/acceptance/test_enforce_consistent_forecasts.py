@@ -126,3 +126,32 @@ def test_too_many_cubes(tmp_path):
     ]
     with pytest.raises(ValueError, match="Exactly two cubes"):
         run_cli(args)
+
+
+def test_bad_inputs(tmp_path):
+    """
+    Test to ensure an error is raised if additive_amount, multiplicative_amount, and
+    comparison_operator are not the same length.
+    """
+    kgo_dir = acc.kgo_root() / "enforce-consistent-forecasts"
+
+    forecast = kgo_dir / "probability_forecast.nc"
+    reference = kgo_dir / "probability_reference.nc"
+    output_path = tmp_path / "output.nc"
+
+    args = [
+        forecast,
+        reference,
+        "--ref-name",
+        "probability_of_cloud_area_fraction_above_threshold",
+        "--additive-amount",
+        "0.0,0.0",
+        "--multiplicative-amount",
+        "1.0",
+        "--comparison-operator",
+        ">=",
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError, match="Each of additive_amount"):
+        run_cli(args)
