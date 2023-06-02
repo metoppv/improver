@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides utilities for enforcing consistency between forecasts."""
+
 import warnings
 from typing import List, Optional, Union
 
@@ -92,7 +93,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         """
         Function to calculate a linear transformation of the reference forecast.
         Args:
-            cube: An iris cube
+            cube: An iris cube.
             additive_amount: The amount to be added to the cube. If both an
                 additive_amount and multiplicative_amount are specified then addition
                 occurs after multiplication.
@@ -103,6 +104,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         Returns:
             A cube with identical metadata to input cube but with transformed data.
         """
+
         output = cube.copy()
         output.data = multiplicative_amount * output.data
         output.data = additive_amount + output.data
@@ -125,6 +127,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             A forecast cube with identical metadata to forecast but the forecasts are
             enforced to be within the calculated bounds.
         """
+
         # check forecast and reference units match
         if forecast.units != reference_forecast.units:
             msg = (
