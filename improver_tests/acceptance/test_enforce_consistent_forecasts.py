@@ -40,7 +40,7 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "forecast_type, ref_name, additive_amount, multiplicative_amount, comparison_operator",
+    "forecast_type, ref_name, additive_amount, multiplicative_amount, comparison_operator, bounds",
     (
         (
             "probability",
@@ -48,9 +48,11 @@ run_cli = acc.run_cli(CLI)
             "",
             "",
             "<=",
+            "single_bound"
         ),
-        ("percentile", "wind_speed", "0.0", "1.1", ">="),
-        ("realization", "surface_temperature", "0.0", "0.9", "<="),
+        ("percentile", "wind_speed", 0.0, 1.1, ">=", "single_bound"),
+        ("realization", "surface_temperature", 0.0, 0.9, "<=", "single_bound"),
+        ("percentile", "wind_speed", [0.0, 0.0], [1.1, 3.0], [">=", "<="], "double_bound"),
     ),
 )
 def test_enforce_consistent_forecasts(
@@ -60,12 +62,13 @@ def test_enforce_consistent_forecasts(
     additive_amount,
     multiplicative_amount,
     comparison_operator,
+    bounds,
 ):
     """
     Test enforcement of consistent forecasts between cubes
     """
     kgo_dir = acc.kgo_root() / "enforce-consistent-forecasts"
-    kgo_path = kgo_dir / f"{forecast_type}_kgo.nc"
+    kgo_path = kgo_dir / f"{bounds}_{forecast_type}_kgo.nc"
 
     forecast = kgo_dir / f"{forecast_type}_forecast.nc"
     reference = kgo_dir / f"{forecast_type}_reference.nc"

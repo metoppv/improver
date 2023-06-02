@@ -39,14 +39,14 @@ from improver import cli
 def process(
     *cubes: cli.inputcubelist,
     ref_name: str = None,
-    additive_amount: float = None,
-    multiplicative_amount: float = None,
-    comparison_operator: str = ">=",
+    additive_amount=None,
+    multiplicative_amount=None,
+    comparison_operator=">=",
     diff_for_warning: float = None,
 ):
     """
-    Module to enforce that the values in the forecast cube are not less than or not
-    greater than a linear function of the corresponding values in the
+    Module to enforce that the values in the forecast cube are not less than, not
+    greater than, or between some linear function(s) of the corresponding values in the
     reference forecast.
 
     Args:
@@ -60,28 +60,33 @@ def process(
                     forecast_cube. It must be the same shape as forecast_cube but have
                     a different name.
         ref_name (str): Name of ref_forecast cube
-        additive_amount (float): The amount to be added to the reference forecast (in
-            the units of the reference forecast) prior to enforcing consistency between
-            the forecast and reference forecast. If both an additive_amount and
-            multiplicative_amount are specified then addition occurs after
-            multiplication. This option cannot be used for probability forecasts, if it
-            is then an error will be raised.
-        multiplicative_amount (float): The amount to multiply the reference forecast by
-            prior to enforcing consistency between the forecast and reference
-            forecast. If both an additive_amount and multiplicative_amount are
-            specified then addition occurs after multiplication. This option cannot be
-            used for probability forecasts, if it is then an error will be raised.
-        comparison_operator (str): Determines whether the forecast is enforced to be not
-            less than or not greater than the reference forecast. Valid choices are
-            ">=", for not less than, and "<=" for not greater than.
+        additive_amount (float or List[float]): The amount to be added to the reference
+            forecast (in the units of the reference forecast) prior to enforcing
+            consistency between the forecast and reference forecast. If both an
+            additive_amount and multiplicative_amount are specified then addition occurs
+            after multiplication. If a list is provided, then it must contain two float
+            elements; one for defining the lower bound and one the upper.This option
+            cannot be used for probability forecasts, if it is then an error will be
+            raised.
+        multiplicative_amount (float or List[float]): The amount to multiply the
+            reference forecast by prior to enforcing consistency between the forecast
+            and reference forecast. If both an additive_amount and multiplicative_amount
+            are specified then addition occurs after multiplication. If a list is
+            provided, then it must contain two float elements; one for defining the
+            lower bound and one the upper.This option cannot be used for probability
+            forecasts, if it is then an error will be raised.
+        comparison_operator (str or List[str]): Determines whether the forecast is
+            enforced to be not less than or not greater than the reference forecast.
+            Valid choices for enforcing one bound are ">=", for not less than, and "<="
+            for not greater than. Valid choices for defining two bounds are [">=", "<="]
+            or ["<=", ">="].
         diff_for_warning (float): If assigned, the plugin will raise a warning if any
             absolute change in forecast value is greater than this value.
 
     Returns:
         iris.cube.Cube:
             A forecast cube with identical metadata to forecast but the forecasts are
-            enforced to be not less than or not greater than a linear function of
-            reference_forecast.
+            enforced to adhere to the defined bounds.
     """
     from iris.cube import CubeList
 
