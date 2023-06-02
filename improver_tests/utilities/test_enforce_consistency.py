@@ -317,18 +317,38 @@ def test_single_bound_exceptions(
 @pytest.mark.parametrize(
     "forecast_type, additive_amount, multiplicative_amount, comparison_operator, msg",
     (
-        ("probability", [0, 0], [1.1, 2], [">=", "<="], "For probability data"),  # cannot specify additive and multiplicative amounts with probabilities
-        ("percentile", [0, 0], [1.1, 2], [">=", ">="], "When comparison operators are provided as a list"),  # bad comparison operator
-        ("percentile", 0, [1.1, 2], [">=", "="], "If any of additive_amount"),  # not all inputs are lists
-        ("percentile", [0, 0], [1.1, 2], ["<=", ">="], "The provided reference_cube"),  # contradictory bounds
+        (
+            "probability",
+            [0, 0],
+            [1.1, 2],
+            [">=", "<="],
+            "For probability data",
+        ),  # cannot specify additive and multiplicative amounts with probabilities
+        (
+            "percentile",
+            [0, 0],
+            [1.1, 2],
+            [">=", ">="],
+            "When comparison operators are provided as a list",
+        ),  # bad comparison operator
+        (
+            "percentile",
+            0,
+            [1.1, 2],
+            [">=", "="],
+            "If any of additive_amount",
+        ),  # not all inputs are lists
+        (
+            "percentile",
+            [0, 0],
+            [1.1, 2],
+            ["<=", ">="],
+            "The provided reference_cube",
+        ),  # contradictory bounds
     ),
 )
 def test_double_bounds_exceptions(
-    forecast_type,
-    additive_amount,
-    multiplicative_amount,
-    comparison_operator,
-    msg,
+    forecast_type, additive_amount, multiplicative_amount, comparison_operator, msg,
 ):
     """
     Test that correct errors are raised when using two bounds.
@@ -357,4 +377,3 @@ def test_double_bounds_exceptions(
             multiplicative_amount=multiplicative_amount,
             comparison_operator=comparison_operator,
         )(forecast_cube, reference_cube)
-

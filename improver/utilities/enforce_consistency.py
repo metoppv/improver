@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Provides utilities for enforcing consistency between forecasts."""
 import warnings
-from typing import Optional, List, Union
+from typing import List, Optional, Union
 
 import numpy as np
 from iris.cube import Cube
@@ -87,9 +87,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
     @staticmethod
     def calculate_bound(
-        cube: Cube,
-        additive_amount: float,
-        multiplicative_amount: float
+        cube: Cube, additive_amount: float, multiplicative_amount: float
     ) -> Cube:
         """
         Function to calculate a linear transformation of the reference forecast.
@@ -151,15 +149,22 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         # reference_forecast
         check_if_list = [
             isinstance(item, list)
-            for item in
-            [self.additive_amount, self.multiplicative_amount, self.comparison_operator]
+            for item in [
+                self.additive_amount,
+                self.multiplicative_amount,
+                self.comparison_operator,
+            ]
         ]
         if all(check_if_list):
             lower_bound = self.calculate_bound(
-                reference_forecast, self.additive_amount[0], self.multiplicative_amount[0]
+                reference_forecast,
+                self.additive_amount[0],
+                self.multiplicative_amount[0],
             ).data
             upper_bound = self.calculate_bound(
-                reference_forecast, self.additive_amount[1], self.multiplicative_amount[1]
+                reference_forecast,
+                self.additive_amount[1],
+                self.multiplicative_amount[1],
             ).data
             if self.comparison_operator == ["<=", ">="]:
                 upper_bound, lower_bound = lower_bound, upper_bound

@@ -48,7 +48,7 @@ run_cli = acc.run_cli(CLI)
             "0.0",
             "1.0",
             "<=",
-            "single_bound"
+            "single_bound",
         ),
         ("percentile", "wind_speed", "0.0", "1.1", ">=", "single_bound"),
         ("realization", "surface_temperature", "0.0", "0.9", "<=", "single_bound"),
