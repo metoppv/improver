@@ -92,6 +92,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
     ) -> Cube:
         """
         Function to calculate a linear transformation of the reference forecast.
+        
         Args:
             cube: An iris cube.
             additive_amount: The amount to be added to the cube. If both an
