@@ -120,11 +120,14 @@ def test_collapse_realization(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_collapse_realization_masked_data(tmp_path):
+@pytest.mark.parametrize(
+    "extra_arg,kgo", (([], "kgo.nc"), (["--fill-masked", "inf"], "kgo_mask_filled.nc"))
+)
+def test_collapse_realization_masked_data(tmp_path, extra_arg, kgo):
     """Test thresholding and collapsing realizations where the data being
     thresholded is masked."""
     kgo_dir = acc.kgo_root() / "threshold/masked_collapse"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / kgo
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
@@ -136,6 +139,7 @@ def test_collapse_realization_masked_data(tmp_path):
         "--collapse-coord",
         "realization",
     ]
+    args += extra_arg
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
