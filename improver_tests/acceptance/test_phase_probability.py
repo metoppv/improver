@@ -41,58 +41,31 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
+@pytest.mark.parametrize("gtype", ("equalarea", "latlon", "spot"))
+@pytest.mark.parametrize("ptype", ("deterministic", "percentiles"))
 @pytest.mark.parametrize(
     "kgo_name,input_file",
     [
-        ("snow_kgo", "snow_sleet_input"),
-        ("rain_kgo", "sleet_rain_input"),
-        ("hail_kgo", "hail_rain_input"),
+        ("snow_kgo", "snow_sleet"),
+        ("rain_kgo", "sleet_rain"),
+        ("hail_kgo", "hail_rain"),
     ],
 )
-def test_phase_probabilities(tmp_path, kgo_name, input_file):
-    """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/basic"
-    kgo_path = kgo_dir / f"{kgo_name}.nc"
+def test_phase_probabilities(tmp_path, kgo_name, input_file, ptype, gtype):
+    """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain.
+    Parameterisation covers gridded and spot forecasts, and for both inputs
+    that include a percentile coordinate and those that do not."""
+
+    # Excessive testing, only need to demonstrate latlon grid works.
+    if ptype == "percentiles" and gtype == "latlon":
+        pytest.skip("Nope")
+
+    kgo_dir = acc.kgo_root() / f"{CLI}/{gtype}"
+    kgo_path = kgo_dir / f"{kgo_name}_{ptype}.nc"
     output_path = tmp_path / "output.nc"
     input_paths = [
-        acc.kgo_root() / x
-        for x in (
-            "phase-change-level/orog.nc",
-            "phase-probability/basic/" f"{input_file}.nc",
-        )
-    ]
-    args = [*input_paths, "--radius", "10000", "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_rain_large_radius(tmp_path):
-    """Test prob(rain) calculation"""
-    kgo_dir = acc.kgo_root() / f"{CLI}/large_radius"
-    kgo_path = kgo_dir / "rain_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [
-        acc.kgo_root() / x
-        for x in (
-            "phase-change-level/orog.nc",
-            "phase-probability/basic/sleet_rain_input.nc",
-        )
-    ]
-    args = [*input_paths, "--radius", "20000", "--output", output_path]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_non_equal_area_projection(tmp_path):
-    """Test prob(snow) calculation on a non-equal areas projection for
-    which no radius is used. Without a radius the falling level in each
-    cell is compared directly with the orography."""
-    kgo_dir = acc.kgo_root() / f"{CLI}/global"
-    kgo_path = kgo_dir / "snow_kgo.nc"
-    output_path = tmp_path / "output.nc"
-    input_paths = [
-        kgo_dir / "orography.nc",
-        kgo_dir / "snow_sleet_input.nc",
+        kgo_dir / "altitudes.nc",
+        kgo_dir / f"{input_file}_{ptype}.nc",
     ]
     args = [*input_paths, "--output", output_path]
     run_cli(args)
