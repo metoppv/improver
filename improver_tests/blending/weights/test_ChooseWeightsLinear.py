@@ -116,7 +116,7 @@ def set_up_basic_model_config_spot_cube(frt=None, time_points=None):
         ]
 
     time_coords = construct_scalar_time_coords(frt, None, frt)
-    time_coords = [crd for crd, index in time_coords]
+    time_coords = [crd for crd, _ in time_coords]
 
     n_sites = 10
     data = np.linspace(0, 1, 2 * n_sites, dtype=np.float32).reshape((2, n_sites))
@@ -386,16 +386,18 @@ class Test__interpolate_to_find_weights(IrisTest):
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
-"""Test the _create_new_weights_cube function. """
+# Test the _create_new_weights_cube function.
 
 
 @pytest.fixture
 def plugin():
+    """Return an instance of the ChooseWeightsLinear plugin."""
     return ChooseWeightsLinear("forecast_period", config_dict=CONFIG_DICT_UKV)
 
 
 @pytest.fixture
 def weights():
+    """Return an array of weight values."""
     return np.array([0.0, 0.0, 0.2])
 
 
@@ -403,6 +405,8 @@ def weights():
     params=[set_up_basic_model_config_cube, set_up_basic_model_config_spot_cube]
 )
 def single_thresh_input_cube(request, plugin):
+    """Return a single threshold gridded or spot cube, this is used as a
+    template for the weights cube creation."""
     return plugin._slice_input_cubes(request.param())[0]
 
 
@@ -424,15 +428,14 @@ def test_new_weights_with_dict(single_thresh_input_cube, weights, plugin):
         "model_configuration",
     }
     result_coords = {coord.name() for coord in new_weights_cube.coords()}
-    assert set(result_coords) == set(expected_coords)
+    assert result_coords == expected_coords
 
 
 def test_new_weights_with_dict_masked_input(single_thresh_input_cube, weights, plugin):
     """Test a new weights cube is created as intended when we have a masked
     input gridded or spot forecast cube."""
     single_thresh_input_cube.data = np.ma.masked_array(
-        single_thresh_input_cube.data,
-        np.ones(single_thresh_input_cube.data.shape) * True,
+        single_thresh_input_cube.data, np.ones(single_thresh_input_cube.data.shape),
     )
     new_weights_cube = plugin._create_new_weights_cube(
         single_thresh_input_cube, weights
@@ -494,13 +497,18 @@ class Test__calculate_weights(IrisTest):
         self.assertEqual(new_weights_cube.name(), "weights")
 
 
-"""Test the _slice_input_cubes method"""
+# Test the _slice_input_cubes method
 
 
 @pytest.fixture(
     params=[set_up_basic_model_config_cube, set_up_basic_model_config_spot_cube]
 )
-def multi_model_inputs(request):
+def multi_model_inputs(request, output_type):
+    """Returns cubes with multiple model_ids to provide the basis for model
+    blending. One cube has multiple thresholds, one has a single threshold,
+    and one return is a cubelist where each model contribution is a separate
+    cube. Parameterisation is such that gridded and spot versions of the
+    various outputs are produced."""
 
     # create a cube with irrelevant threshold coordinate (dimensions:
     # model_id: 2; threshold: 2; latitude: 2; longitude: 2)
@@ -516,32 +524,35 @@ def multi_model_inputs(request):
     reference_cubelist = iris.cube.CubeList(
         [no_threshold_cube[0], no_threshold_cube[1]]
     )
+    if output_type == "threshold":
+        return threshold_cube, reference_cubelist
+    if output_type == "single_threshold":
+        return no_threshold_cube, reference_cubelist
 
-    return threshold_cube, no_threshold_cube, reference_cubelist
 
-
+@pytest.mark.parametrize(
+    "output_type", ["threshold", "single_threshold"],
+)
 def test__slice_input_slices(plugin, multi_model_inputs):
     """Test function slices out extra dimensions to leave only the spatial
     dimensions. Tested using a cube with and without a threshold coordinate."""
 
-    threshold_cube, no_threshold_cube, reference_cubelist = multi_model_inputs
+    test_cube, reference_cubelist = multi_model_inputs
+    result = plugin._slice_input_cubes(test_cube)
 
-    for cube in [threshold_cube, no_threshold_cube]:
-        result = plugin._slice_input_cubes(cube)
-
-        assert isinstance(result, iris.cube.CubeList)
-        for cube, refcube in zip(result, reference_cubelist):
-            assert (cube.data == refcube.data).all()
-            assert cube.metadata == refcube.metadata
+    assert isinstance(result, iris.cube.CubeList)
+    for cube, refcube in zip(result, reference_cubelist):
+        assert (cube.data == refcube.data).all()
+        assert cube.metadata == refcube.metadata
 
 
+@pytest.mark.parametrize("output_type", ["single_threshold"])
 def test__slice_input_single_cube(plugin, multi_model_inputs):
     """Test function populates a cubelist if given a cube with a scalar
     blending coordinate"""
 
-    _, reference_cube, _ = multi_model_inputs
-
-    single_cube = reference_cube[0]
+    test_cube, _ = multi_model_inputs
+    single_cube = test_cube[0]
     result = plugin._slice_input_cubes(single_cube)
 
     assert isinstance(result, iris.cube.CubeList)
