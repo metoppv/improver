@@ -41,7 +41,7 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize("gtype", ("gridded", "spot"))
+@pytest.mark.parametrize("gtype", ("equalarea", "latlon", "spot"))
 @pytest.mark.parametrize("ptype", ("deterministic", "percentiles"))
 @pytest.mark.parametrize(
     "kgo_name,input_file",
@@ -55,6 +55,11 @@ def test_phase_probabilities(tmp_path, kgo_name, input_file, ptype, gtype):
     """Test phase probability calculations for snow->sleet, sleet->rain and hail->rain.
     Parameterisation covers gridded and spot forecasts, and for both inputs
     that include a percentile coordinate and those that do not."""
+
+    # Excessive testing, only need to demonstrate latlon grid works.
+    if ptype == "percentiles" and gtype == "latlon":
+        pytest.skip("Nope")
+
     kgo_dir = acc.kgo_root() / f"{CLI}/{gtype}"
     kgo_path = kgo_dir / f"{kgo_name}_{ptype}.nc"
     output_path = tmp_path / "output.nc"

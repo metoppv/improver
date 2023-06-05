@@ -122,28 +122,27 @@ class PrecipPhaseProbability(BasePlugin):
         for diagnostic, definition in definitions.items():
             extracted_cube = cubes.extract(f"altitude_of_{diagnostic}_falling_level")
             if extracted_cube:
-                (self.falling_level_cube,) = extracted_cube
-                self.param = diagnostic
-                self.comparator = definition["comparator"]
-                if self.falling_level_cube.coords("percentile"):
-                    constraint = iris.Constraint(percentile=definition["percentile"])
-                    required_percentile = self.falling_level_cube.extract(constraint)
-                    if not required_percentile:
-                        raise ValueError(
-                            f"Cube {self.falling_level_cube.name()} does not "
-                            "contain the required percentile "
-                            f"{definition['percentile']}."
-                        )
-                    self.falling_level_cube = required_percentile
-                    self.falling_level_cube.remove_coord("percentile")
                 # Once a falling-level cube has been extracted, exit this loop.
                 break
-
         if not extracted_cube:
             raise ValueError(
                 "Could not extract a rain, rain from hail or snow falling-level "
                 f"cube from {', '.join([cube.name() for cube in cubes])}"
             )
+        (self.falling_level_cube,) = extracted_cube
+        self.param = diagnostic
+        self.comparator = definition["comparator"]
+        if self.falling_level_cube.coords("percentile"):
+            constraint = iris.Constraint(percentile=definition["percentile"])
+            required_percentile = self.falling_level_cube.extract(constraint)
+            if not required_percentile:
+                raise ValueError(
+                    f"Cube {self.falling_level_cube.name()} does not "
+                    "contain the required percentile "
+                    f"{definition['percentile']}."
+                )
+            self.falling_level_cube = required_percentile
+            self.falling_level_cube.remove_coord("percentile")
 
         orography_name = "surface_altitude"
         extracted_cube = cubes.extract(orography_name)

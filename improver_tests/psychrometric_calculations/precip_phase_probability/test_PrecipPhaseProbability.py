@@ -78,6 +78,7 @@ def check_metadata(result, phase):
     assert result.name() == f"probability_of_{phase}_at_surface"
     assert result.units == Unit("1")
     assert result.dtype == np.int8
+    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
 
 
 def spot_coords():
