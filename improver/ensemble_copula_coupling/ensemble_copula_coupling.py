@@ -497,7 +497,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
     """
 
-    def __init__(self, ecc_bounds_warning: bool = False) -> None:
+    def __init__(
+        self, ecc_bounds_warning: bool = False, mask_percentiles: bool = False
+    ) -> None:
         """
         Initialise the class.
 
@@ -506,8 +508,17 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 If true and ECC bounds are exceeded by the percentile values,
                 a warning will be generated rather than an exception.
                 Default value is FALSE.
+            mask_percentiles:
+                A boolean determining whether the final percentiles should
+                be masked.
+                If True then where the percentile is higher than the probability
+                of the diagnostic existing the outputted percentile will be masked.
+                The probability of being below the final threshold in
+                forecast_probabilities is used as the probability of the diagnostic
+                existing.
         """
         self.ecc_bounds_warning = ecc_bounds_warning
+        self.mask_percentiles = mask_percentiles
 
     def _add_bounds_to_thresholds_and_probabilities(
         self,
@@ -623,6 +634,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
         threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
+        threshold_name = threshold_coord.name()
 
         original_mask = None
         if np.ma.is_masked(forecast_probabilities.data):
@@ -630,9 +642,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(forecast_probabilities, threshold_coord.name())
+        enforce_coordinate_ordering(forecast_probabilities, threshold_name)
         prob_slices = convert_cube_data_to_2d(
-            forecast_probabilities, coord=threshold_coord.name()
+            forecast_probabilities, coord=threshold_name
         )
 
         # The requirement below for a monotonically changing probability
@@ -691,11 +703,26 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             len(percentiles),
         )
 
-        template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
+        if self.mask_percentiles:
+            forecast_at_percentiles = np.ma.asarray(forecast_at_percentiles)
+            coord_constraint = {threshold_name: threshold_coord.points[-1]}
+            mask_probability = forecast_probabilities.extract(
+                iris.Constraint(coord_values=coord_constraint)
+            ).data
+
+            if relation == "above":
+                mask_probability = 1 - mask_probability
+
+            for index, perc in enumerate(percentiles_as_fractions):
+                forecast_at_percentiles[index] = np.ma.masked_where(
+                    mask_probability <= perc, forecast_at_percentiles[index]
+                )
+
+        template_cube = next(forecast_probabilities.slices_over(threshold_name))
         template_cube.rename(
             get_diagnostic_cube_name_from_probability_name(template_cube.name())
         )
-        template_cube.remove_coord(threshold_coord.name())
+        template_cube.remove_coord(threshold_name)
 
         percentile_cube = create_cube_with_percentiles(
             percentiles,
@@ -703,7 +730,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             forecast_at_percentiles,
             cube_unit=threshold_unit,
         )
-
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(

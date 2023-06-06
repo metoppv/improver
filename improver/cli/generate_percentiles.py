@@ -42,6 +42,7 @@ def process(
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
     ignore_ecc_bounds_exceedance=False,
+    mask_percentiles=False,
     optimal_crps_percentiles=False,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
@@ -75,6 +76,10 @@ def process(
         ignore_ecc_bounds_exceedance (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
+        mask_percentiles (bool):
+            A boolean determining whether the final percentiles should
+            be masked. This is only implemented to work when converting
+            probability cubes to percentiles.
         optimal_crps_percentiles (bool):
             If True, percentiles are computed following the
             recommendation of Bröcker, 2012 for optimising the CRPS using
@@ -95,6 +100,8 @@ def process(
     Warns:
         Warning:
             If 'probability_of\_' is in the cube name and coordinates is used.
+        Warning:
+            If 'probability_of\_' is not in the cube name and mask_percentiles is True.
 
     """
     import warnings
@@ -111,9 +118,16 @@ def process(
     if percentiles is not None:
         percentiles = [float(p) for p in percentiles]
 
+    if mask_percentiles and not is_probability(cube):
+        warnings.warn(
+            "The option mask_percentiles is only implemented for generating percentiles from"
+            "probability cubes and so will not be used."
+        )
+
     if is_probability(cube):
         result = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            ecc_bounds_warning=ignore_ecc_bounds_exceedance,
+            mask_percentiles=mask_percentiles,
         )(cube, percentiles=percentiles)
         if coordinates:
             warnings.warn(
