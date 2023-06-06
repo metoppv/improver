@@ -259,6 +259,37 @@ def test_model(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_model_spot(tmp_path):
+    """Test multi-model blending for spot data"""
+    kgo_dir = acc.kgo_root() / "weighted_blending/model_spot"
+    kgo_path = kgo_dir / "kgo.nc"
+    engl_path = kgo_dir / "engl_input.nc"
+    enuk_path = kgo_dir / "enuk_input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--coordinate",
+        "model_configuration",
+        "--cycletime",
+        "20230523T1200Z",
+        "--ynval",
+        "1",
+        "--y0val",
+        "1",
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
+        "--attributes-config",
+        ATTRIBUTES_PATH,
+        engl_path,
+        enuk_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_fails_no_model_id(tmp_path):
     """Test multi-model blending fails if model_id_attr is not specified"""
     kgo_dir = acc.kgo_root() / "weighted_blending/model"
