@@ -66,21 +66,21 @@ Writing new functions or plugins
 The code in IMPROVER generally falls into one of the following categories:
 
 Post-processing code
-    This modifies an existing diagnostic, for example through
+    This modifies an existing parameter, for example through
     spatial post-processing
     (neighbourhood processing or recursive filtering),
     or converts between different
     representations of the probability distribution
-    (realizations / probabilities / percentiles).
-    The name of the underlying diagnostic (e.g. air_temperature) remains the same.
+    (realizations, probabilities and percentiles).
+    The name of the underlying parameter (e.g. air_temperature) remains the same.
 
-New diagnostic creation
-    This takes various inputs to create a new diagnostic,
+New parameter creation
+    This takes various inputs to create a new parameter,
     for example lapse rate or weather symbols.
-    A new diagnostic name is required.
+    A new parameter name is required.
 
 Calculation of post-processing parameters
-    For example emos coefficients or reliability tables.
+    For example EMOS coefficients or reliability tables.
     The output is generally not a data cube, but a cube of parameters
     that will be used to post-process the data at a later stage.
     Plugins to apply these parameters would be post-processing code.
@@ -103,35 +103,35 @@ General post-processing
 ***********************
 
 Post-processing, such as neighbourhood processing,
-does not change the underlying nature of the diagnostic.
+does not change the underlying nature of the parameter.
 Such plugins can therefore copy a cube and modify specific metadata
 (coordinates, attributes), but can safely inherit all other existing metadata
 as it will remain correct.  Most ``PostProcessingPlugin`` instances
 will copy cubes in this way.
 
-New diagnostics (e.g. lapse rate)
-*********************************
+New parameters
+**************
 
-When creating new diagnostics, developers **should not** 
+When creating new parameters, developers **should not** 
 copy an input cube directly,
-but should make use of the utility to create new diagnostic cubes.
+but should make use of the utility to create new parameter cubes.
 This makes use of ONLY the coordinates from a template cube,
 and adds specific attributes and cell methods as required.
 Developers should take care to:
 
-* Provide a correct template cube, ie by removing any scalar coordinates
-  that are not relevant to the new diagnostic
+* Provide a correct template cube, i.e. by removing any scalar coordinates
+  that are not relevant to the new parameter
 * Provide suitable mandatory attributes
   (``source``, ``title`` and ``institution``).
   These should usually be derived using the “generate mandatory attributes”
-  function from **all** input diagnostics.
+  function from **all** input parameters.
   (E.g. in weather symbols, all the different fields - 
   precipitation, cloud, lightning, etc - should be read into this function.)
 * **NOT** simply pass in all attributes from the template cube,
-  as these may be inappropriate to the new diagnostic
+  as these may be inappropriate to the new parameter
 * **NEVER** to copy cell methods from the template cube,
-  as these will be inappropriate to the new diagnostic
-* Consider whether this diagnostic may be needed as a level 3 blended field,
+  as these will be inappropriate to the new parameter
+* Consider whether this parameter may be needed as a level 3 blended field,
   or as input to weather symbols.
   If so, it will need an option to inherit a model ID attribute.
 
@@ -139,24 +139,24 @@ Minimal metadata
 ****************
 
 The IMPROVER metadata principles include that the metadata should be
-the **minimum** required to fully describe the diagnostic,
+the **minimum** required to fully describe the parameter,
 and that the metadata should be **correct**.
 The main setting where developers need to understand this is in
-creating new diagnostics.
+creating new parameters.
 Practical implications include:
 
 Positive selection
     Choosing a specific set of attributes to **include**,
     rather than a specific set to **exclude**.
-    This means a new diagnostic plugin does not inherit anything
-    unexpected by default, which may not be “correct” for the new diagnostic.
+    This means a new parameter plugin does not inherit anything
+    unexpected by default, which may not be “correct” for the new parameter.
 
 Clear internal responsibility
     Defining within the plugin **all** new attributes and / or cell methods 
     which are required to describe this new dataset.
 
 The **only** case for a plugin not taking full responsibility for metadata
-is if Met Office specific details - such as the name of the model ID attribute
+is if organisation-specific details - such as the name of the model ID attribute
 - need to be passed in via the command line.
 Even in these cases, the plugin should take as much responsibility as possible,
 requiring minimal information from the user to inform metadata updates.
@@ -178,13 +178,14 @@ However, there are a few limited cases where the code needs information
 to be provided via command line in order to make the correct updates:
 
 Standardisation
-    The “standardise” step at the start of each (Met Office) suite chain 
-    has been configured to remove unnecessary attributes from incoming data.
+    In the Met Office implementaiton, the “standardise” step at the start of
+    each suite chain has been configured to remove unnecessary attributes
+    from incoming data.
 
-New diagnostics
-    If a new diagnostic is to be blended,
+New parameters
+    If a new parameter is to be blended,
     the name of the model ID attribute needs to be provided via the suite app
-    so that this attribute can be included on the diagnostic file.
+    so that this attribute can be included on the parameter file.
     If this argument is omitted,
     the file will not contain source model information and will not be able
     to be blended.
@@ -206,7 +207,7 @@ However, it is worth developers considering the following specific questions:
   If so, does it need to change from a ``BasePlugin``
   to a ``PostProcessingPlugin`` or vice versa?
 * Have I changed what this plugin is doing,
-  ie from producing coefficients or generating a correction to applying them?
+  i.e. from producing coefficients or generating a correction to applying them?
   Does it now need to be a ``PostProcessingPlugin``
   where previously it was a general object?
 * Is this plugin as a whole taking the right level of responsibility

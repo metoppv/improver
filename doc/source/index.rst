@@ -26,9 +26,9 @@
    metadata/Principles
    metadata/Probabilities
    metadata/Statistics
-   metadata/Reference
    metadata/Working-with-Metadata
-
+   metadata/Reference
+  
 .. toctree::
    :caption: The Code
    :maxdepth: 2
