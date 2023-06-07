@@ -128,10 +128,16 @@ def test_too_many_cubes(tmp_path):
         run_cli(args)
 
 
-def test_bad_inputs(tmp_path):
+@pytest.mark.parametrize(
+    "additive_amount, multiplicative_amount, comparison_operator",
+    (("0.0, 0.0", "1.0", ">="), ("0.0, 0.0, 0.0", "1.0, 1.0, 1.0", ">=, >=, <="),),
+)
+def test_bad_inputs(
+    tmp_path, additive_amount, multiplicative_amount, comparison_operator
+):
     """
     Test to ensure an error is raised if additive_amount, multiplicative_amount, and
-    comparison_operator are not the same length.
+    comparison_operator are not the same length, or each have length greater than 2.
     """
     kgo_dir = acc.kgo_root() / "enforce-consistent-forecasts"
 
@@ -145,11 +151,11 @@ def test_bad_inputs(tmp_path):
         "--ref-name",
         "probability_of_cloud_area_fraction_above_threshold",
         "--additive-amount",
-        "0.0,0.0",
+        additive_amount,
         "--multiplicative-amount",
-        "1.0",
+        multiplicative_amount,
         "--comparison-operator",
-        ">=",
+        comparison_operator,
         "--output",
         output_path,
     ]

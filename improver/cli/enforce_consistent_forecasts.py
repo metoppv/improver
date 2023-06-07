@@ -93,7 +93,12 @@ def process(
     from improver.utilities.enforce_consistency import EnforceConsistentForecasts
     from improver.utilities.flatten import flatten
 
-    if len(additive_amount) == len(multiplicative_amount) == len(comparison_operator):
+    if (
+        len(additive_amount)
+        == len(multiplicative_amount)
+        == len(comparison_operator)
+        < 3
+    ):
         if len(additive_amount) == 1:
             additive_amount = additive_amount[0]
             multiplicative_amount = multiplicative_amount[0]
