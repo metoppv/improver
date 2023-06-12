@@ -82,7 +82,6 @@ class SpotHeightAdjustment(BasePlugin):
             vertical_displacement:
                 A cube containing information about the difference between spot
                 data site height and the orography grid square height.
-
         Returns:
             A cube with the same metadata and shape as spot_cube but with probabilities
             adjusted to be relative to the site altitude rather than grid square altitude.
@@ -152,7 +151,7 @@ class SpotHeightAdjustment(BasePlugin):
             spot_cube:
                 A cube of spot forecasts. If this is a cube of probabilities
                 then the units of the threshold coordinate must be convertible to
-                metres. There must also be at least 2 thresholds. If this is a cube
+                metres. There must also be mobt515_cbh_spotat least 2 thresholds. If this is a cube
                 of percentiles or realizations then the units of the cube must be
                 convertible to metres
             neighbour:
