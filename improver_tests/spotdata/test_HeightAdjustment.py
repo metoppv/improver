@@ -30,15 +30,15 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for SpotHeightAdjustment plugin"""
 
+import iris
 import numpy as np
 import pytest
-from iris.cube import Cube
 from iris.coords import DimCoord
-import iris
+from iris.cube import Cube
 
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.height_adjustment import SpotHeightAdjustment
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 @pytest.fixture()
@@ -51,7 +51,8 @@ def prob_cube() -> Cube:
     threshold_coord = DimCoord(
         points=[50, 100, 1000],
         var_name="threshold",
-        long_name="cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas",
+        long_name="cloud_base_height_assuming_only_consider_cloud_area_fraction_"
+        "greater_than_4p5_oktas",
         units="m",
     )
 
@@ -59,7 +60,8 @@ def prob_cube() -> Cube:
 
     prob_cube = build_spotdata_cube(
         data,
-        name="probability_of_cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas_below_threshold",
+        name="probability_of_cloud_base_height_assuming_only_consider_cloud_area_"
+        "fraction_greater_than_4p5_oktas_below_threshold",
         units="1",
         altitude=altitude,
         latitude=latitude,
@@ -230,7 +232,8 @@ def test_cube(cube_name, expected, neighbour_cube, request):
 
 
 def test_prob_cube_threshold_unit(prob_cube, neighbour_cube):
-    """Tests that correct units and data are returned if probability cubes threshold is converted to metres"""
+    """Tests that correct units and data are returned if probability cubes threshold is converted
+    to metres"""
     prob_cube.coord(
         "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
     ).units = "km"
@@ -253,15 +256,6 @@ def test_prob_cube_threshold_unit(prob_cube, neighbour_cube):
     np.testing.assert_almost_equal(result.data, expected)
 
 
-def test_wrong_units(realization_cube, neighbour_cube):
-    """Tests an error is raised if the units of the cube aren't convertible to metres"""
-    realization_cube.units = "K"
-    with pytest.raises(
-        ValueError, match="The provided cube cannot be converted to metres"
-    ):
-        SpotHeightAdjustment()(realization_cube, neighbour_cube)
-
-
 def test_insufficient_thresholds(prob_cube, neighbour_cube):
     """Tests an error is raised if there are insufficient thresholds"""
     cube = next(
@@ -271,12 +265,3 @@ def test_insufficient_thresholds(prob_cube, neighbour_cube):
     )
     with pytest.raises(ValueError, match="There are less than 2 thresholds"):
         SpotHeightAdjustment()(cube, neighbour_cube)
-
-
-def test_wrong_threshold_units(prob_cube, neighbour_cube):
-    """Tests an error is raised if the thresholds coordinate can't be converted to metres"""
-    prob_cube.coord(
-        "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-    ).units = "K"
-    with pytest.raises(ValueError, match="The provided cube is a probability cube but"):
-        SpotHeightAdjustment()(prob_cube, neighbour_cube)

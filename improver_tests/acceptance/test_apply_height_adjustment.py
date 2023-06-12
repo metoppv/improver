@@ -45,6 +45,11 @@ def test_basic(tmp_path, input_type):
     kgo_dir = acc.kgo_root() / "apply-height-adjustment/"
     kgo_path = kgo_dir / f"kgo_{input_type}.nc"
     output_path = tmp_path / "output.nc"
-    args = [kgo_dir / f"input_{input_type}.nc", kgo_dir / "neighbours.nc","--output",output_path,]
+    args = [
+        kgo_dir / f"input_{input_type}.nc",
+        kgo_dir / "neighbours.nc",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)

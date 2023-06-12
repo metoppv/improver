@@ -39,7 +39,8 @@ from improver import cli
 def process(
     spot_cube: cli.inputcube, neighbour: cli.inputcube,
 ):
-    """Apply height adjustment to account for the difference between site altitude and grid square orography.
+    """Apply height adjustment to account for the difference between site altitude and
+    grid square orography.
 
     Args:
         spot_cube (iris.cube.Cube):
@@ -50,8 +51,9 @@ def process(
 
     Returns:
         iris.cube.Cube:
-            A cube of spot data values with the same metadata as spot_cube but with data adjusted to be relative to
-            site height rather than orography grid square height
+            A cube of spot data values with the same metadata as spot_cube but with data
+            adjusted to be relative to site height rather than orography grid square
+            height
     """
     from improver.spotdata.height_adjustment import SpotHeightAdjustment
 

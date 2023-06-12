@@ -31,25 +31,27 @@
 
 """Apply's height adjustment for height above ground level spot forecasts."""
 
+from itertools import product
+
 import iris
 import numpy as np
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from improver import BasePlugin
-from improver.metadata.probabilistic import is_probability, find_threshold_coordinate
-from itertools import product
-from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from scipy.interpolate import LinearNDInterpolator
+
+from improver import BasePlugin
+from improver.metadata.probabilistic import find_threshold_coordinate, is_probability
 from improver.spotdata.apply_lapse_rate import extract_vertical_displacements
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class SpotHeightAdjustment(BasePlugin):
     """
     Class to adjust spot extracted "height above ground level" forecasts to account
-    for differences between site height and orography grid square height. 
+    for differences between site height and orography grid square height.
 
     For realization or percentile data the vertical displacement is added on to
-    each realizations or percentile. 
+    each realizations or percentile.
 
     For probability data the data is interpolated between thresholds for each site and
     the equivalent set of thresholds relative to the site altitude extracted. Any
@@ -88,19 +90,23 @@ class SpotHeightAdjustment(BasePlugin):
 
         coord_list = [c.name() for c in spot_cube.dim_coords]
         enforce_coordinate_ordering(
-            spot_cube, [self.threshold_coord.name, "spot_index",]
+            spot_cube, [self.threshold_coord.name, "spot_index"]
         )
 
         thresholds = self.threshold_coord.points
         spot_index = spot_cube.coord("spot_index").points
         shape = spot_cube.shape
 
-        broadcast_max = np.transpose(np.broadcast_to(
-            np.amax(spot_cube.data, axis=1), ( len(thresholds),spot_cube.shape[0])
-        ))
-        broadcast_min = np.transpose(np.broadcast_to(
-            np.amin(spot_cube.data, axis=1), ( len(thresholds),spot_cube.shape[0])
-        ))
+        broadcast_max = np.transpose(
+            np.broadcast_to(
+                np.amax(spot_cube.data, axis=1), (len(thresholds), spot_cube.shape[0])
+            )
+        )
+        broadcast_min = np.transpose(
+            np.broadcast_to(
+                np.amin(spot_cube.data, axis=1), (len(thresholds), spot_cube.shape[0])
+            )
+        )
 
         broadcast_thresholds = np.broadcast_to(
             thresholds, (vertical_displacement.shape[0], len(thresholds))
@@ -114,19 +120,19 @@ class SpotHeightAdjustment(BasePlugin):
         desired_thresholds = broadcast_thresholds + broadcast_vertical_displacement.data
 
         # creates a list of pairs of values of spot index with the thresholds that need to
-        # be calculated for the spot index 
+        # be calculated for the spot index
         coord = list(product(spot_index, thresholds))
         needed_pair = []
         for index, threshold in zip(spot_index, desired_thresholds):
             needed_pair.extend(list(product([index], threshold)))
 
-        #interpolate across the cube and request needed thresholds
+        # interpolate across the cube and request needed thresholds
         interp = LinearNDInterpolator(coord, spot_cube.data.flatten())
         spot_data = np.reshape(interp(needed_pair), shape)
 
         # Points outside the range of the original data return NAN. These points are replaced
-        # with the highest or lowest along the axis depending on the whether the vertical displacement was
-        # positive or negative
+        # with the highest or lowest along the axis depending on the whether the vertical
+        # displacement was positive or negative
         indicies = np.where(np.isnan(spot_data))
         spot_data[indicies] = np.where(
             broadcast_vertical_displacement[indicies] > 0,
@@ -159,11 +165,6 @@ class SpotHeightAdjustment(BasePlugin):
         Raises:
             ValueError:
                 If spot_cube is a probability cube and there are less than two thresholds.
-            ValueError:
-                If spot_cube is a probability cube and the threshold coordinate can't be converted into units of metres
-            ValueError:
-                If spot_cube is not a probability cube and the cube can't be converted to metres.
-
         """
         vertical_displacement = extract_vertical_displacements(
             neighbour_cube=neighbour,
@@ -182,15 +183,7 @@ class SpotHeightAdjustment(BasePlugin):
                 )
 
             self.units = self.threshold_coord.units
-            try:
-                self.threshold_coord.convert_units("m")
-            except:
-                raise ValueError(
-                    f"""The provided cube is a probability cube but the
-                                 threshold coord units is not convertible to metres.
-                                 The units of the threshold coord {self.threshold_coord.name}
-                                 were {self.units}"""
-                )
+            self.threshold_coord.convert_units("m")
 
             try:
                 cube_slices = [x for x in spot_cube.slices_over("realization")]
@@ -206,15 +199,9 @@ class SpotHeightAdjustment(BasePlugin):
 
         else:
             self.units = spot_cube.units
-            try:
-                spot_cube.convert_units("m")
-            except:
-                raise ValueError(
-                    f"""The provided cube cannot be converted to metres. The units of the cube are
-                                 {self.units}"""
-                )
+            spot_cube.convert_units("m")
 
             spot_cube.data = spot_cube.data + vertical_displacement.data
             spot_cube.convert_units(self.units)
-        spot_cube.data=spot_cube.data.astype(np.float32)
+        spot_cube.data = spot_cube.data.astype(np.float32)
         return spot_cube
