@@ -95,12 +95,12 @@ class SpotHeightAdjustment(BasePlugin):
         spot_index = spot_cube.coord("spot_index").points
         shape = spot_cube.shape
 
-        broadcast_max = np.broadcast_to(
-            np.amax(spot_cube.data, axis=0), (spot_cube.shape[0], len(thresholds))
-        )
-        broadcast_min = np.broadcast_to(
-            np.amin(spot_cube.data, axis=0), (spot_cube.shape[0], len(thresholds))
-        )
+        broadcast_max = np.transpose(np.broadcast_to(
+            np.amax(spot_cube.data, axis=1), ( len(thresholds),spot_cube.shape[0])
+        ))
+        broadcast_min = np.transpose(np.broadcast_to(
+            np.amin(spot_cube.data, axis=1), ( len(thresholds),spot_cube.shape[0])
+        ))
 
         broadcast_thresholds = np.broadcast_to(
             thresholds, (vertical_displacement.shape[0], len(thresholds))
@@ -127,13 +127,12 @@ class SpotHeightAdjustment(BasePlugin):
         # Points outside the range of the original data return NAN. These points are replaced
         # with the highest or lowest along the axis depending on the whether the vertical displacement was
         # positive or negative
-        indicies = np.where(np.isnan(spot_data.data))
+        indicies = np.where(np.isnan(spot_data))
         spot_data[indicies] = np.where(
             broadcast_vertical_displacement[indicies] > 0,
             broadcast_max[indicies],
             broadcast_min[indicies],
         )
-
         spot_cube.data = spot_data
         enforce_coordinate_ordering(spot_cube, coord_list)
         return spot_cube
