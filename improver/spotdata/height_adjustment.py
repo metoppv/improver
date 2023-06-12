@@ -86,7 +86,6 @@ class SpotHeightAdjustment(BasePlugin):
             A cube with the same metadata and shape as spot_cube but with probabilities
             adjusted to be relative to the site altitude rather than grid square altitude.
         """
-
         coord_list = [c.name() for c in spot_cube.dim_coords]
         enforce_coordinate_ordering(
             spot_cube, [self.threshold_coord.name, "spot_index"]
