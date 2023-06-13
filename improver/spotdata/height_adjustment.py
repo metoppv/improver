@@ -72,16 +72,18 @@ class SpotHeightAdjustment(BasePlugin):
         self.threshold_coord = None
         self.units = None
 
-    def adjust_prob_cube(self, spot_cube, vertical_displacement):
+    def adjust_prob_cube(self, spot_cube: Cube, vertical_displacement: Cube) -> Cube:
         """
         Adjust probability spot forecasts based on the vertical displacement of sites
         in relation to orography.
+
         Args:
             spot_cube:
                 A cube of spot probability forecasts.
             vertical_displacement:
                 A cube containing information about the difference between spot
                 data site height and the orography grid square height.
+
         Returns:
             A cube with the same metadata and shape as spot_cube but with probabilities
             adjusted to be relative to the site altitude rather than grid square altitude.
