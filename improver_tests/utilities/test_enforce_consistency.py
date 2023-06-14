@@ -302,7 +302,7 @@ def test_single_bound_exceptions(
                 comparison_operator=comparison_operator,
             )(forecast_cube, reference_cube)
     elif forecast_type == "realization":
-        reference_cube.units = "K"
+        reference_cube.units = "m/s"
         with pytest.raises(ValueError, match="The units in the forecast"):
             EnforceConsistentForecasts(comparison_operator=comparison_operator)(
                 forecast_cube, reference_cube

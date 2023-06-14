@@ -37,6 +37,7 @@ import numpy as np
 from iris.cube import Cube
 
 from improver import PostProcessingPlugin
+from improver.metadata.probabilistic import is_probability
 
 
 class EnforceConsistentForecasts(PostProcessingPlugin):
@@ -127,20 +128,30 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         Returns:
             A forecast cube with identical metadata to forecast but the forecasts are
             enforced to be within the calculated bounds.
+
+        Raises:
+            ValueError: If units of forecast and reference cubes are different and
+                cannot be converted to match.
+            ValueError: If additive_amount and multiplicative_amount are not 0.0 and 1.0,
+                respectively, when a probability forecast is input.
         """
 
         # check forecast and reference units match
-        if forecast.units != reference_forecast.units:
-            msg = (
-                "The units in the forecast and reference cubes do not match. The"
-                f"units of forecast were {forecast.units}, the units of "
-                f"reference_forecast were {reference_forecast.units}."
-            )
-            raise ValueError(msg)
+        try:
+            reference_forecast.convert_units(forecast.units)
+        except ValueError:
+            if forecast.units != reference_forecast.units:
+                msg = (
+                    "The units in the forecast and reference cubes do not match and "
+                    "cannot be converted to match. The units of forecast were "
+                    f"{forecast.units}, the units of reference_forecast were "
+                    f"{reference_forecast.units}."
+                )
+                raise ValueError(msg)
 
         # linear transformation cannot be applied to probability forecasts
         if self.additive_amount != 0.0 or self.multiplicative_amount != 1.0:
-            if forecast.name().startswith("probability_of"):
+            if is_probability(forecast):
                 msg = (
                     "For probability data, additive_amount must be 0.0 and "
                     "multiplicative_amount must be 1.0. The input additive_amount was "
