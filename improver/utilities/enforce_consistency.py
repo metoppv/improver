@@ -134,6 +134,14 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
                 cannot be converted to match.
             ValueError: If additive_amount and multiplicative_amount are not 0.0 and 1.0,
                 respectively, when a probability forecast is input.
+            ValueError: If incorrect comparison_operator is input.
+            ValueError: If contradictory bounds are generated.
+            ValueError: If any of additive_amount, multiplicative_amount, or
+                comparison_operator are lists when ther are not all lists.
+
+        Warns:
+            Warning: If difference between generated bounds and forecast is greater than
+                diff_for_warning.
         """
 
         # check forecast and reference units match

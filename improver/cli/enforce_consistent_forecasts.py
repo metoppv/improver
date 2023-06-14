@@ -87,6 +87,11 @@ def process(
         iris.cube.Cube:
             A forecast cube with identical metadata to forecast but the forecasts are
             enforced to adhere to the defined bounds.
+
+    Raises:
+        ValueError: if additive_amount, multiplicative_amount, and comparison_operator
+            are of mismatching or incorrect lengths.
+        ValueError: if incorrect number of cubes are provided.
     """
     from iris.cube import CubeList
 
