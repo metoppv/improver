@@ -37,7 +37,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    spot_cube: cli.inputcube, neighbour: cli.inputcube, neighbour_selection_method: str ="nearest"
+    spot_cube: cli.inputcube,
+    neighbour: cli.inputcube,
+    neighbour_selection_method: str = "nearest",
 ):
     """Apply height adjustment to account for the difference between site altitude and
     grid square orography.
