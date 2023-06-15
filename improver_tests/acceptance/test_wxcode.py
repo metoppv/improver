@@ -58,7 +58,13 @@ ALL_PARAMS = [
 @pytest.mark.slow
 @pytest.mark.parametrize(
     "title_option, kgo",
-    (("", "kgo"), (("--title", "Good weather for kittens"), "kgo_titled")),
+    (
+        ("", "kgo"),
+        (
+            ("--title", "IMPROVER Post-Processed Multi-Model Blend of flavours"),
+            "kgo_titled",
+        ),
+    ),
 )
 def test_basic(tmp_path, title_option, kgo):
     """Test basic wxcode processing with and without a user defined title
