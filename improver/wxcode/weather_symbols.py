@@ -104,6 +104,7 @@ class WeatherSymbols(BasePlugin):
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
+        title: Optional[str] = None,
     ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
@@ -128,6 +129,11 @@ class WeatherSymbols(BasePlugin):
                 any threshold values that are defined with an associated period in
                 the decision tree. It will only be used if the decision tree
                 provided has threshold values defined with an associated period.
+            title:
+                An optional title to assign to the title attribute of the resulting
+                weather symbol output. This will override the title generated from
+                the inputs, where this generated title is only set if all of the
+                inputs share a common title.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -140,6 +146,7 @@ class WeatherSymbols(BasePlugin):
         self.record_run_attr = record_run_attr
         self.start_node = list(wxtree.keys())[0]
         self.target_period = target_period
+        self.title = title
         self.queries = update_tree_thresholds(wxtree, target_period)
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
@@ -548,6 +555,8 @@ class WeatherSymbols(BasePlugin):
         template_cube.remove_coord(threshold_coord)
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
+        if self.title:
+            mandatory_attributes.update({"title": self.title})
         optional_attributes = weather_code_attributes()
         if self.model_id_attr:
             optional_attributes.update(
