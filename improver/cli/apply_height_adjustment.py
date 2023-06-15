@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    spot_cube: cli.inputcube, neighbour: cli.inputcube,
+    spot_cube: cli.inputcube, neighbour: cli.inputcube, neighbour_selection_method: str ="nearest"
 ):
     """Apply height adjustment to account for the difference between site altitude and
     grid square orography.
@@ -48,6 +48,11 @@ def process(
         neighbour (iris.cube.Cube):
             A cube containing information about spot-data neighbours and
             the spot site information.
+        neighbour_selection_method (str):
+            The neighbour cube may contain one or several sets of grid
+            coordinates that match a spot site. These are determined by
+            the neighbour finding method employed. This keyword is used to
+            extract the desired set of coordinates from the neighbour cube.
 
     Returns:
         iris.cube.Cube:
@@ -57,5 +62,5 @@ def process(
     """
     from improver.spotdata.height_adjustment import SpotHeightAdjustment
 
-    result = SpotHeightAdjustment()(spot_cube, neighbour)
+    result = SpotHeightAdjustment(neighbour_selection_method)(spot_cube, neighbour)
     return result
