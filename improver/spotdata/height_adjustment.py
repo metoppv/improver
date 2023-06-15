@@ -133,11 +133,11 @@ class SpotHeightAdjustment(BasePlugin):
         # Points outside the range of the original data return NAN. These points are replaced
         # with the highest or lowest along the axis depending on the whether the vertical
         # displacement was positive or negative
-        indicies = np.where(np.isnan(spot_data))
-        spot_data[indicies] = np.where(
-            broadcast_vertical_displacement[indicies] > 0,
-            broadcast_max[indicies],
-            broadcast_min[indicies],
+        indices = np.where(np.isnan(spot_data))
+        spot_data[indices] = np.where(
+            broadcast_vertical_displacement[indices] > 0,
+            broadcast_max[indices],
+            broadcast_min[indices],
         )
         spot_cube.data = spot_data
         enforce_coordinate_ordering(spot_cube, coord_list)
