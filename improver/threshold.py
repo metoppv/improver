@@ -211,9 +211,6 @@ class BasicThreshold(PostProcessingPlugin):
 
     @staticmethod
     def _set_thresholds(threshold_values, threshold_config):
-        # fuzzy_bounds: Optional[
-        #     Union[Tuple[float, float], List[Tuple[float, float]]]
-        # ] = None,
         if threshold_config:
             thresholds = []
             fuzzy_bounds = []
@@ -458,9 +455,12 @@ class BasicThreshold(PostProcessingPlugin):
         # Create an empty threshold cube and a zeroed array for storing
         # contributions (i.e. number of unmasked realization values
         # contributing to calculation).
-        thresholded_cube = self._create_threshold_cube(
-            next(input_cube.slices_over("realization"))
-        )
+        if isinstance(input_slices, list):
+            thresholded_cube = self._create_threshold_cube(input_slices[0])
+        else:
+            thresholded_cube = self._create_threshold_cube(
+                next(input_cube.slices_over("realization"))
+            )
         contribution_total = np.zeros(
             next(thresholded_cube.slices_over(self.threshold_coord_name)).shape,
             dtype=int,
