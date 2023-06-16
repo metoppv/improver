@@ -97,6 +97,7 @@ class Test_process(IrisTest):
             data,
             name="precipitation_amount",
             units="kg m^-2 s^-1",
+            spatial_grid = "equalarea",
             attributes=attributes,
             standard_grid_metadata="uk_det",
         )
@@ -107,6 +108,7 @@ class Test_process(IrisTest):
             rate_data,
             name="rainfall_rate",
             units="m s-1",
+            spatial_grid = "equalarea",
             attributes=attributes,
             standard_grid_metadata="uk_det",
         )
@@ -519,6 +521,74 @@ class Test_process(IrisTest):
         self.assertEqual(cell_method.coord_names, ("time",))
         self.assertEqual(cell_method.comments, ("of precipitation_amount",))
 
+    def test_threshold_vicinity(self):
+        """Test the thresholding with application of maximum in vicinity
+        processing."""
+        vicinity = 2000
+        self.plugin = Threshold(threshold_values=0.1, vicinity=vicinity)
+        expected_result_array = np.zeros_like(self.cube.data)
+        expected_result_array[1:4, 1:4] = 1.0
+
+        result = self.plugin(self.cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        self.assertEqual(result.coord(var_name="threshold").shape[0], 1)
+        self.assertTrue(result.coord("radius_of_vicinity"))
+        self.assertEqual(result.coord("radius_of_vicinity").points, vicinity)
+
+    def test_multi_threshold_vicinity(self):
+        """Test the thresholding with application of maximum in vicinity
+        processing with multiple thresholds."""
+        cube = self.cube.copy()
+        cube.data[2, 1] = 0.7
+        vicinity = 2000
+        self.plugin = Threshold(threshold_values=[0.1, 0.6], vicinity=vicinity)
+        threshold1, threshold2 = np.zeros((2, *self.cube.shape))
+        threshold1[1:4, 0:4] = 1.0,
+        threshold2[1:4, 0:3] = 1.0
+        expected_result_array = np.stack([threshold1, threshold2])
+
+        result = self.plugin(cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        self.assertEqual(result.coord(var_name="threshold").shape[0], 2)
+        self.assertTrue(result.coord("radius_of_vicinity"))
+        self.assertEqual(result.coord("radius_of_vicinity").points, vicinity)
+
+    def test_threshold_multi_vicinity(self):
+        """Test the thresholding with application of maximum in vicinity
+        processing with multiple vicinity radii."""
+        vicinity=[2000, 4000]
+        self.plugin = Threshold(threshold_values=0.1, vicinity=vicinity)
+        vicinity1 = np.zeros_like(self.cube.data)
+        vicinity1[1:4, 1:4] = 1.0
+        vicinity2 = np.ones_like(self.cube.data)
+        expected_result_array = np.stack([vicinity1, vicinity2])
+
+        result = self.plugin(self.cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        self.assertEqual(result.coord(var_name="threshold").shape[0], 1)
+        self.assertTrue(result.coord("radius_of_vicinity"))
+        self.assertArrayEqual(result.coord("radius_of_vicinity").points, vicinity)
+
+    def test_multi_threshold_multi_vicinity(self):
+        """Test the thresholding with application of maximum in vicinity
+        processing with multiple thresholds and multiple vicinity radii."""
+        cube = self.cube.copy()
+        cube.data[2, 1] = 0.7
+        vicinity=[2000, 4000]
+        self.plugin = Threshold(threshold_values=[0.1, 0.6], vicinity=vicinity)
+        t1v1, t1v2, t2v1, t2v2 = np.zeros((4, *self.cube.shape))
+        t1v1[1:4, 0:4] = 1.0
+        t1v2[:] = 1.0
+        t2v1[1:4, 0:3] = 1.0
+        t2v2[:, 0:4] = 1.0
+        expected_result_array = np.stack([[t1v1, t1v2], [t2v1, t2v2]])
+
+        result = self.plugin(cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+        self.assertEqual(result.coord(var_name="threshold").shape[0], 2)
+        self.assertTrue(result.coord("radius_of_vicinity"))
+        self.assertArrayEqual(result.coord("radius_of_vicinity").points, vicinity)
+
 
 class Test__init__(IrisTest):
 
@@ -567,7 +637,8 @@ class Test__init__(IrisTest):
         threshold_config = {"0.6": [0.4, 0.8]}
         msg = (
             "Invalid combination of keywords. Cannot specify "
-            "fuzzy_factor and fuzzy_bounds together"
+            "both a fuzzy_factor and use a threshold_config that "
+            "specifies bounds."
         )
         with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold_config=threshold_config, fuzzy_factor=fuzzy_factor)
