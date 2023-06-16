@@ -78,7 +78,7 @@ class BasicThreshold(PostProcessingPlugin):
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
         collapse_realizations: bool = False,
-        vicinity: List[float]= None,
+        vicinity: List[float] = None,
         fill_masked: Optional[float] = None,
     ) -> None:
         """
@@ -206,6 +206,8 @@ class BasicThreshold(PostProcessingPlugin):
         self.vicinity = None
         if vicinity is not None:
             self.vicinity = [float(x) for x in vicinity]
+
+        self.fill_masked = fill_masked
 
     @staticmethod
     def _set_thresholds(threshold_values, threshold_config):
@@ -456,7 +458,9 @@ class BasicThreshold(PostProcessingPlugin):
         # Create an empty threshold cube and a zeroed array for storing
         # contributions (i.e. number of unmasked realization values
         # contributing to calculation).
-        thresholded_cube = self._create_threshold_cube(next(input_cube.slices_over("realization")))
+        thresholded_cube = self._create_threshold_cube(
+            next(input_cube.slices_over("realization"))
+        )
         contribution_total = np.zeros(
             next(thresholded_cube.slices_over(self.threshold_coord_name)).shape,
             dtype=int,
