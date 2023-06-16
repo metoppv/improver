@@ -51,7 +51,7 @@ class Test__add_threshold_coord(IrisTest):
     def setUp(self):
         """Set up a cube and plugin for testing."""
         self.cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        self.plugin = Threshold(threshold_values=[1])
+        self.plugin = Threshold(threshold_values=1)
         self.plugin.threshold_coord_name = self.cube.name()
 
     def test_basic(self):
@@ -112,7 +112,7 @@ class Test_process(IrisTest):
         )
 
         self.fuzzy_factor = 0.5
-        self.plugin = Threshold(threshold_values=[0.1], fuzzy_factor=0.95)
+        self.plugin = Threshold(threshold_values=0.1, fuzzy_factor=0.95)
 
         self.masked_cube = self.cube.copy()
         data = np.zeros((5, 5))
@@ -140,7 +140,7 @@ class Test_process(IrisTest):
         fuzzy_factor = 5.0 / 6.0
         threshold = 12
         self.cube.data = np.arange(25).reshape((5, 5))
-        plugin = Threshold(threshold_values=[threshold], fuzzy_factor=fuzzy_factor)
+        plugin = Threshold(threshold_values=threshold, fuzzy_factor=fuzzy_factor)
         result = plugin(self.cube)
         expected = np.round(np.arange(0, 1, 1.0 / 25.0)).reshape((5, 5))
         expected[2, 1:4] = [0.25, 0.5, 0.75]
@@ -149,7 +149,7 @@ class Test_process(IrisTest):
 
     def test_metadata_changes(self):
         """Test the metadata altering functionality"""
-        plugin = Threshold(threshold_values=[0.1])
+        plugin = Threshold(threshold_values=0.1)
         result = plugin(self.cube)
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
@@ -179,7 +179,7 @@ class Test_process(IrisTest):
 
     def test_above_threshold_without_fuzzy_factor(self):
         """Test if the fixed threshold is below the value in the data."""
-        plugin = Threshold(threshold_values=[0.1])
+        plugin = Threshold(threshold_values=0.1)
         expected_result_array = np.zeros_like(self.cube.data)
         expected_result_array[2][2] = 1.0
         result = plugin(self.cube)
@@ -187,7 +187,7 @@ class Test_process(IrisTest):
 
     def test_below_threshold_without_fuzzy_factor(self):
         """Test if the fixed threshold is above the value in the data."""
-        plugin = Threshold(threshold_values=[0.6])
+        plugin = Threshold(threshold_values=0.6)
         result = plugin(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
@@ -195,7 +195,7 @@ class Test_process(IrisTest):
     def test_masked_array(self):
         """Test masked array are handled correctly.
         Masked values are preserved following thresholding."""
-        plugin = Threshold(threshold_values=[0.1])
+        plugin = Threshold(threshold_values=0.1)
         result = plugin(self.masked_cube)
         expected_result_array = np.zeros_like(self.masked_cube.data)
         expected_result_array[2][2] = 1.0
@@ -204,7 +204,7 @@ class Test_process(IrisTest):
 
     def test_fill_masked(self):
         """Test plugin when masked points are replaced with fill value"""
-        plugin = Threshold([0.6], fill_masked=np.inf)
+        plugin = Threshold(0.6, fill_masked=np.inf)
         result = plugin(self.masked_cube)
         expected_result = np.zeros_like(self.masked_cube.data)
         expected_result[0][0] = 1.0
@@ -212,7 +212,7 @@ class Test_process(IrisTest):
 
     def test_threshold_fuzzy(self):
         """Test when a point is in the fuzzy threshold area."""
-        plugin = Threshold(threshold_values=[0.6], fuzzy_factor=self.fuzzy_factor)
+        plugin = Threshold(threshold_values=0.6, fuzzy_factor=self.fuzzy_factor)
         result = plugin(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         expected_result_array[2][2] = 1.0 / 3.0
@@ -326,14 +326,14 @@ class Test_process(IrisTest):
 
     def test_threshold_fuzzy_miss(self):
         """Test when a point is not within the fuzzy threshold area."""
-        plugin = Threshold(threshold_values=[2.0], fuzzy_factor=self.fuzzy_factor)
+        plugin = Threshold(threshold_values=2.0, fuzzy_factor=self.fuzzy_factor)
         result = plugin(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
     def test_threshold_fuzzy_miss_high_threshold(self):
         """Test when a point is not within the fuzzy high threshold area."""
-        plugin = Threshold(threshold_values=[3.0], fuzzy_factor=self.fuzzy_factor)
+        plugin = Threshold(threshold_values=3.0, fuzzy_factor=self.fuzzy_factor)
         result = plugin(self.cube)
         expected_result_array = np.zeros_like(self.cube.data)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
@@ -342,7 +342,7 @@ class Test_process(IrisTest):
         """Test a point when the threshold is negative."""
         self.cube.data[2][2] = -0.75
         plugin = Threshold(
-            threshold_values=[-1.0],
+            threshold_values=-1.0,
             fuzzy_factor=self.fuzzy_factor,
             comparison_operator="<",
         )
@@ -354,7 +354,7 @@ class Test_process(IrisTest):
     def test_threshold_below_fuzzy(self):
         """Test a point in fuzzy threshold in below-threshold-mode."""
         plugin = Threshold(
-            threshold_values=[0.6],
+            threshold_values=0.6,
             fuzzy_factor=self.fuzzy_factor,
             comparison_operator="<",
         )
@@ -366,7 +366,7 @@ class Test_process(IrisTest):
     def test_threshold_below_fuzzy_miss(self):
         """Test not meeting the threshold in fuzzy below-threshold-mode."""
         plugin = Threshold(
-            threshold_values=[2.0],
+            threshold_values=2.0,
             fuzzy_factor=self.fuzzy_factor,
             comparison_operator="<",
         )
@@ -376,7 +376,7 @@ class Test_process(IrisTest):
 
     def test_threshold_gt(self):
         """Test a point when we are in > threshold mode."""
-        plugin = Threshold(threshold_values=[0.5])
+        plugin = Threshold(threshold_values=0.5)
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
         expected_attribute = "greater_than"
@@ -392,7 +392,7 @@ class Test_process(IrisTest):
 
     def test_threshold_ge(self):
         """Test a point when we are in >= threshold mode."""
-        plugin = Threshold(threshold_values=[0.5], comparison_operator=">=")
+        plugin = Threshold(threshold_values=0.5, comparison_operator=">=")
         name = "probability_of_{}_above_threshold"
         expected_name = name.format(self.cube.name())
         expected_attribute = "greater_than_or_equal_to"
@@ -408,7 +408,7 @@ class Test_process(IrisTest):
 
     def test_threshold_lt(self):
         """Test a point when we are in < threshold mode."""
-        plugin = Threshold(threshold_values=[0.5], comparison_operator="<")
+        plugin = Threshold(threshold_values=0.5, comparison_operator="<")
         name = "probability_of_{}_below_threshold"
         expected_name = name.format(self.cube.name())
         expected_attribute = "less_than"
@@ -424,7 +424,7 @@ class Test_process(IrisTest):
 
     def test_threshold_le(self):
         """Test a point when we are in le threshold mode."""
-        plugin = Threshold(threshold_values=[0.5], comparison_operator="<=")
+        plugin = Threshold(threshold_values=0.5, comparison_operator="<=")
         name = "probability_of_{}_below_threshold"
         expected_name = name.format(self.cube.name())
         expected_attribute = "less_than_or_equal_to"
@@ -502,7 +502,7 @@ class Test_process(IrisTest):
         self.cube.data[2][2] = np.NAN
         msg = "NaN detected in input cube data"
         plugin = Threshold(
-            threshold_values=[2.0],
+            threshold_values=2.0,
             fuzzy_factor=self.fuzzy_factor,
             comparison_operator="<",
         )
@@ -512,7 +512,7 @@ class Test_process(IrisTest):
     def test_cell_method_updates(self):
         """Test plugin adds correct information to cell methods"""
         self.cube.add_cell_method(CellMethod("max", coords="time"))
-        plugin = Threshold(threshold_values=[2.0], comparison_operator=">")
+        plugin = Threshold(threshold_values=2.0, comparison_operator=">")
         result = plugin(self.cube)
         (cell_method,) = result.cell_methods
         self.assertEqual(cell_method.method, "max")
@@ -531,35 +531,35 @@ class Test__init__(IrisTest):
         fuzzy_factor = 0.6
         msg = "Invalid threshold with fuzzy factor"
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=[0.0], fuzzy_factor=fuzzy_factor)
+            Threshold(threshold_values=0.0, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_minus_1(self):
         """Test when a fuzzy factor of minus 1 is given (invalid)."""
         fuzzy_factor = -1.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: -1.0"
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=[0.6], fuzzy_factor=fuzzy_factor)
+            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_0(self):
         """Test when a fuzzy factor of zero is given (invalid)."""
         fuzzy_factor = 0.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: 0.0"
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=[0.6], fuzzy_factor=fuzzy_factor)
+            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_1(self):
         """Test when a fuzzy factor of unity is given (invalid)."""
         fuzzy_factor = 1.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: 1.0"
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=[0.6], fuzzy_factor=fuzzy_factor)
+            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
 
     def test_threshold_fuzzy_factor_2(self):
         """Test when a fuzzy factor of 2 is given (invalid)."""
         fuzzy_factor = 2.0
         msg = "Invalid fuzzy_factor: must be >0 and <1: 2.0"
         with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=[0.6], fuzzy_factor=fuzzy_factor)
+            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
 
     def test_fuzzy_factor_and_fuzzy_bounds(self):
         """Test when fuzzy_factor and fuzzy_bounds both set (ambiguous)."""
@@ -618,7 +618,7 @@ class Test__init__(IrisTest):
         )
         with self.assertRaisesRegex(ValueError, msg):
             Threshold(
-                threshold_values=[threshold], comparison_operator=comparison_operator
+                threshold_values=threshold, comparison_operator=comparison_operator
             )
 
 

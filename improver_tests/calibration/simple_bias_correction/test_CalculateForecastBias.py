@@ -253,7 +253,7 @@ def test_ensure_single_valued_forecast(num_fcst_frt, single_value_as_dim_coord):
             threshold_values=threshold_set,
             threshold_units="K",
             comparison_operator="ge",
-            collapse_coord="realization",
+            collapse_realizations=True,
         )
         with pytest.raises(ValueError, match="provided as probability data"):
             CalculateForecastBias()._ensure_single_valued_forecast(threshold_cube)

@@ -30,7 +30,8 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing thresholding classes."""
 
-from typing import Callable, List, Optional, Tuple, Union
+import numbers
+from typing import List, Optional, Tuple, Union
 
 import iris
 import netCDF4
@@ -45,10 +46,7 @@ from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
     probability_is_above_or_below,
 )
-from improver.utilities.cube_manipulation import (
-    collapse_realizations,
-    enforce_coordinate_ordering,
-)
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.probability_manipulation import comparison_operator_dict
 from improver.utilities.rescale import rescale
 from improver.utilities.spatial import (
@@ -227,11 +225,11 @@ class BasicThreshold(PostProcessingPlugin):
         else:
             # Ensure thresholds are float64 to avoid rounding errors during possible
             # unit conversion.
+            if isinstance(threshold_values, numbers.Number):
+                threshold_values = [threshold_values]
             thresholds = [float(x) for x in threshold_values]
             fuzzy_bounds = None
         return thresholds, fuzzy_bounds
-
-        self.fill_masked = fill_masked
 
     def _generate_fuzzy_bounds(
         self, fuzzy_factor_loc: float
@@ -524,11 +522,7 @@ class BasicThreshold(PostProcessingPlugin):
         for i, dslice in enumerate(thresholded_cube.data):
             result = np.divide(dslice[valid], contribution_total[valid])
             thresholded_cube.data[i, valid] = result
-            # np.divide(dslice[valid], contribution_total[valid], out=thresholded_cube.data[i, valid])
 
-        # thresholded_cube.data[..., valid] = (
-        #     thresholded_cube.data[..., valid] / contribution_total[valid]
-        # )
         if (contribution_total == 0).any():
             thresholded_cube.data = np.ma.masked_array(
                 thresholded_cube.data,
@@ -604,7 +598,7 @@ class LatitudeDependentThreshold(BasicThreshold):
                 Valid choices: > >= < <= gt ge lt le.
         """
         super().__init__(
-            thresholds=[1],
+            threshold_values=[1],
             threshold_units=threshold_units,
             comparison_operator=comparison_operator,
         )

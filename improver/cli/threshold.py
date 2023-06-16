@@ -116,7 +116,6 @@ def process(
         ValueError: If threshold_config is used for fuzzy thresholding
     """
     from improver.threshold import BasicThreshold
-    from improver.utilities.spatial import OccurrenceWithinVicinity
 
     if threshold_config and threshold_values:
         raise ValueError(
