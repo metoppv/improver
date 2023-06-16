@@ -97,7 +97,7 @@ class Test_process(IrisTest):
             data,
             name="precipitation_amount",
             units="kg m^-2 s^-1",
-            spatial_grid = "equalarea",
+            spatial_grid="equalarea",
             attributes=attributes,
             standard_grid_metadata="uk_det",
         )
@@ -108,7 +108,7 @@ class Test_process(IrisTest):
             rate_data,
             name="rainfall_rate",
             units="m s-1",
-            spatial_grid = "equalarea",
+            spatial_grid="equalarea",
             attributes=attributes,
             standard_grid_metadata="uk_det",
         )
@@ -543,7 +543,7 @@ class Test_process(IrisTest):
         vicinity = 2000
         self.plugin = Threshold(threshold_values=[0.1, 0.6], vicinity=vicinity)
         threshold1, threshold2 = np.zeros((2, *self.cube.shape))
-        threshold1[1:4, 0:4] = 1.0,
+        threshold1[1:4, 0:4] = 1.0
         threshold2[1:4, 0:3] = 1.0
         expected_result_array = np.stack([threshold1, threshold2])
 
@@ -556,7 +556,7 @@ class Test_process(IrisTest):
     def test_threshold_multi_vicinity(self):
         """Test the thresholding with application of maximum in vicinity
         processing with multiple vicinity radii."""
-        vicinity=[2000, 4000]
+        vicinity = [2000, 4000]
         self.plugin = Threshold(threshold_values=0.1, vicinity=vicinity)
         vicinity1 = np.zeros_like(self.cube.data)
         vicinity1[1:4, 1:4] = 1.0
@@ -574,7 +574,7 @@ class Test_process(IrisTest):
         processing with multiple thresholds and multiple vicinity radii."""
         cube = self.cube.copy()
         cube.data[2, 1] = 0.7
-        vicinity=[2000, 4000]
+        vicinity = [2000, 4000]
         self.plugin = Threshold(threshold_values=[0.1, 0.6], vicinity=vicinity)
         t1v1, t1v2, t2v1, t2v2 = np.zeros((4, *self.cube.shape))
         t1v1[1:4, 0:4] = 1.0
