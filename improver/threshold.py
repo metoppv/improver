@@ -127,11 +127,6 @@ class BasicThreshold(PostProcessingPlugin):
                 Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
                 distance above threshold.
-            fuzzy_bounds:
-                Optional: lower and upper bounds for fuzziness. Each entry in list
-                should be a tuple of two floats representing the lower and upper
-                bounds respectively. Tuple or list should match length of (or scalar)
-                'thresholds' argument. Should not be set if fuzzy_factor is set.
             threshold_units:
                 Units of the threshold values. If not provided the units are
                 assumed to be the same as those of the input cube.
@@ -174,7 +169,8 @@ class BasicThreshold(PostProcessingPlugin):
             if fuzzy_bounds is not None:
                 raise ValueError(
                     "Invalid combination of keywords. Cannot specify "
-                    "fuzzy_factor and fuzzy_bounds together"
+                    "both a fuzzy_factor and use a threshold_config that "
+                    "specifies bounds."
                 )
             if not 0 < fuzzy_factor < 1:
                 raise ValueError(
@@ -203,6 +199,8 @@ class BasicThreshold(PostProcessingPlugin):
 
         self.vicinity = None
         if vicinity is not None:
+            if isinstance(vicinity, numbers.Number):
+                vicinity = [vicinity]
             self.vicinity = [float(x) for x in vicinity]
 
         self.fill_masked = fill_masked
@@ -445,20 +443,19 @@ class BasicThreshold(PostProcessingPlugin):
                 for radius in self.vicinity
             ]
 
+        # Slice over realizations if required and create an empty threshold
+        # cube to store the resulting thresholded data.
         if self.collapse_realizations:
             input_slices = input_cube.slices_over("realization")
-        else:
-            input_slices = [input_cube]
-
-        # Create an empty threshold cube and a zeroed array for storing
-        # contributions (i.e. number of unmasked realization values
-        # contributing to calculation).
-        if isinstance(input_slices, list):
-            thresholded_cube = self._create_threshold_cube(input_slices[0])
-        else:
             thresholded_cube = self._create_threshold_cube(
                 next(input_cube.slices_over("realization"))
             )
+        else:
+            input_slices = [input_cube]
+            thresholded_cube = self._create_threshold_cube(input_slices[0])
+
+        # Create a zeroed array for storing contributions (i.e. number of
+        # unmasked realization values contributing to calculation).
         contribution_total = np.zeros(
             next(thresholded_cube.slices_over(self.threshold_coord_name)).shape,
             dtype=int,
