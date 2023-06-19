@@ -137,7 +137,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             ValueError: If incorrect comparison_operator is input.
             ValueError: If contradictory bounds are generated.
             ValueError: If any of additive_amount, multiplicative_amount, or
-                comparison_operator are lists when ther are not all lists.
+                comparison_operator are lists when they are not all lists.
 
         Warns:
             Warning: If difference between generated bounds and forecast is greater than
