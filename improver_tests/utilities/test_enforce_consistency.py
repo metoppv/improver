@@ -103,11 +103,16 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     """
     Calculate the expected result via a different method to that used within the plugin.
     """
-    diff = bound_data - forecast_data
-    if comparison_operator == ">=":
-        diff = np.clip(diff, 0, None)
-    else:
-        diff = np.clip(diff, None, 0)
+    diff_list = []
+    for index, bound in enumerate(bound_data):
+        diff = bound - forecast_data
+        if comparison_operator[index] == ">=":
+            diff = np.clip(diff, 0, None)
+        else:
+            diff = np.clip(diff, None, 0)
+        diff_list.append(diff)
+
+    diff = sum(diff_list)
     expected = forecast_data + diff
     return expected
 
@@ -116,9 +121,9 @@ def get_expected(forecast_data, bound_data, comparison_operator):
     "forecast_type, additive_amount, multiplicative_amount, reference_value, "
     "forecast_value, comparison_operator",
     (
-        ("probability", None, None, 0.5, 0.4, ">="),
-        ("probability", None, None, 0.4, 0.5, "<="),
-        ("probability", None, None, 0.4, 0.5, ">="),  # no change required
+        ("probability", 0, 1, 0.5, 0.4, ">="),
+        ("probability", 0, 1, 0.4, 0.5, "<="),
+        ("probability", 0, 1, 0.4, 0.5, ">="),  # no change required
         ("percentile", 0, 1.1, 50, 40, ">="),
         ("percentile", 0, 0.9, 40, 50, "<="),
         ("percentile", 10, 1, 50, 40, ">="),
@@ -128,7 +133,7 @@ def get_expected(forecast_data, bound_data, comparison_operator):
         ("realization", -5, 0.75, 20, 5, "<="),  # no change required
     ),
 )
-def test_basic(
+def test_single_bound(
     forecast_type,
     additive_amount,
     multiplicative_amount,
@@ -138,7 +143,7 @@ def test_basic(
 ):
     """
     Test that consistency between forecasts is enforced correctly for a variety of
-    percentile or probability forecasts.
+    percentile, probability, or realization forecasts when a single bound is provided.
     """
     shape = (3, 2, 2)
 
@@ -148,7 +153,7 @@ def test_basic(
         get_forecast = get_probability_forecast
         reference_value = reference_value / 100
         forecast_value = forecast_value / 100
-    elif forecast_type == "reference":
+    elif forecast_type == "realization":
         reference_cube_name = "surface_temperature"
         forecast_cube_name = "feels_like_temperature"
         get_forecast = get_realization_forecast
@@ -174,6 +179,62 @@ def test_basic(
     if multiplicative_amount is None:
         multiplicative_amount = 1
     bound_data = additive_amount + (multiplicative_amount * reference_cube.copy().data)
+    expected = get_expected(forecast_cube.data, [bound_data], [comparison_operator])
+
+    assert isinstance(result, Cube)
+    assert result.name() == forecast_cube.name()
+    assert np.shape(result) == shape
+    np.testing.assert_array_almost_equal(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    "forecast_type, additive_amount, multiplicative_amount, reference_value, "
+    "forecast_value, comparison_operator",
+    (
+        ("percentile", [0, 0], [1.1, 2], 50, 40, [">=", "<="]),
+        ("percentile", [0, 0], [0.9, 0.1], 40, 50, ["<=", ">="]),
+        ("realization", [0, 0], [1.1, 1.5], 20, 25, [">=", "<="]),
+        ("realization", [5, 5], [1.2, 0.5], 20, 15, ["<=", ">="]),
+    ),
+)
+def test_double_bound(
+    forecast_type,
+    additive_amount,
+    multiplicative_amount,
+    reference_value,
+    forecast_value,
+    comparison_operator,
+):
+    """
+    Test that consistency between forecasts is enforced correctly for a variety of
+    percentile or realization forecasts when two bounds are provided.
+    """
+    shape = (3, 2, 2)
+
+    if forecast_type == "realization":
+        reference_cube_name = "surface_temperature"
+        forecast_cube_name = "feels_like_temperature"
+        get_forecast = get_realization_forecast
+    else:
+        reference_cube_name = "wind_speed_at_10m"
+        forecast_cube_name = "wind_gust_at_10m_max-PT01H"
+        get_forecast = get_percentile_forecast
+
+    reference_cube = get_forecast(reference_value, shape, reference_cube_name)
+    forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
+
+    result = EnforceConsistentForecasts(
+        additive_amount=additive_amount,
+        multiplicative_amount=multiplicative_amount,
+        comparison_operator=comparison_operator,
+    )(forecast_cube, reference_cube)
+
+    bound_data = []
+    for i in range(2):
+        bound_data.append(
+            additive_amount[i] + (multiplicative_amount[i] * reference_cube.copy().data)
+        )
+
     expected = get_expected(forecast_cube.data, bound_data, comparison_operator)
 
     assert isinstance(result, Cube)
@@ -198,7 +259,7 @@ def test_basic(
         ("realization", 15, 293.15, ">=", 30),  # mismatching units
     ),
 )
-def test_exceptions(
+def test_single_bound_exceptions(
     forecast_type,
     forecast_value,
     reference_value,
@@ -206,8 +267,7 @@ def test_exceptions(
     diff_for_warning,
 ):
     """
-    Test that a warning is raised if the plugin changes the forecast by more than
-    diff_for_warning.
+    Test that correct errors and warnings are raised when using one bound.
     """
     shape = (3, 2, 2)
 
@@ -230,7 +290,7 @@ def test_exceptions(
     forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
 
     if comparison_operator == "=":
-        with pytest.raises(ValueError, match="Comparison_operator must be either"):
+        with pytest.raises(ValueError, match="When enforcing consistency with one"):
             EnforceConsistentForecasts(comparison_operator=comparison_operator)(
                 forecast_cube, reference_cube
             )
@@ -242,7 +302,7 @@ def test_exceptions(
                 comparison_operator=comparison_operator,
             )(forecast_cube, reference_cube)
     elif forecast_type == "realization":
-        reference_cube.units = "K"
+        reference_cube.units = "m/s"
         with pytest.raises(ValueError, match="The units in the forecast"):
             EnforceConsistentForecasts(comparison_operator=comparison_operator)(
                 forecast_cube, reference_cube
@@ -252,3 +312,68 @@ def test_exceptions(
             EnforceConsistentForecasts(diff_for_warning=diff_for_warning)(
                 forecast_cube, reference_cube
             )
+
+
+@pytest.mark.parametrize(
+    "forecast_type, additive_amount, multiplicative_amount, comparison_operator, msg",
+    (
+        (
+            "probability",
+            [0, 0],
+            [1.1, 2],
+            [">=", "<="],
+            "For probability data",
+        ),  # cannot specify additive and multiplicative amounts with probabilities
+        (
+            "percentile",
+            [0, 0],
+            [1.1, 2],
+            [">=", ">="],
+            "When comparison operators are provided as a list",
+        ),  # bad comparison operator
+        (
+            "percentile",
+            0,
+            [1.1, 2],
+            [">=", "="],
+            "If any of additive_amount",
+        ),  # not all inputs are lists
+        (
+            "percentile",
+            [0, 0],
+            [1.1, 2],
+            ["<=", ">="],
+            "The provided reference_cube",
+        ),  # contradictory bounds
+    ),
+)
+def test_double_bounds_exceptions(
+    forecast_type, additive_amount, multiplicative_amount, comparison_operator, msg,
+):
+    """
+    Test that correct errors are raised when using two bounds.
+    """
+    shape = (3, 2, 2)
+    forecast_value = 50
+    reference_value = 50
+
+    if forecast_type == "probability":
+        reference_cube_name = "cloud_area_fraction"
+        forecast_cube_name = "low_and_medium_type_cloud_area_fraction"
+        get_forecast = get_probability_forecast
+        forecast_value = forecast_value / 100
+        reference_value = reference_value / 100
+    else:
+        reference_cube_name = "wind_speed_at_10m"
+        forecast_cube_name = "wind_gust_at_10m_max-PT01H"
+        get_forecast = get_percentile_forecast
+
+    reference_cube = get_forecast(reference_value, shape, reference_cube_name)
+    forecast_cube = get_forecast(forecast_value, shape, forecast_cube_name)
+
+    with pytest.raises(ValueError, match=msg):
+        EnforceConsistentForecasts(
+            additive_amount=additive_amount,
+            multiplicative_amount=multiplicative_amount,
+            comparison_operator=comparison_operator,
+        )(forecast_cube, reference_cube)
