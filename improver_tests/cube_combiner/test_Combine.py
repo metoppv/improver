@@ -35,9 +35,9 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.cube_combiner import Combine, CubeCombiner, CubeMultiplier
+from improver.cube_combiner import Combine, CubeCombiner
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 @pytest.fixture(name="realization_cubes")
 def realization_cubes_fixture() -> CubeList:
@@ -60,27 +60,27 @@ def realization_cubes_fixture() -> CubeList:
     return CubeList(cube.slices_over("realization"))
 
 
-@pytest.mark.parametrize("broadcast_to_threshold", (False, True))
+@pytest.mark.parametrize("broadcast", (None, "threshold"))
 @pytest.mark.parametrize("minimum_realizations", (None, 1))
 @pytest.mark.parametrize(
-    "operation, expected_instance", (("+", CubeCombiner), ("*", CubeMultiplier)),
+    "operation, expected_instance", (("+", CubeCombiner),("+", CubeCombiner)),
 )
 def test_init(
-    operation, expected_instance, minimum_realizations, broadcast_to_threshold
+    operation, expected_instance, minimum_realizations, broadcast
 ):
     """Ensure the class initialises as expected"""
     result = Combine(
         operation,
-        broadcast_to_threshold=broadcast_to_threshold,
+        broadcast=broadcast,
         minimum_realizations=minimum_realizations,
         new_name="name",
     )
     assert isinstance(result.plugin, expected_instance)
     assert result.new_name == "name"
     assert result.minimum_realizations == minimum_realizations
-    assert result.broadcast_to_threshold == broadcast_to_threshold
-    if broadcast_to_threshold and isinstance(result.plugin, CubeMultiplier):
-        assert result.plugin.broadcast_to_threshold == broadcast_to_threshold
+    assert result.broadcast == broadcast
+    if broadcast is not None and isinstance(result.plugin,CubeCombiner):
+        assert result.plugin.broadcast == broadcast
 
 
 @pytest.mark.parametrize("short_realizations", [0, 1, 2, 3])
@@ -95,11 +95,23 @@ def test_filtering_realizations(realization_cubes, short_realizations):
         cubes.append(realization_cubes[-short_realizations][:-1])
         expected_realization_points = [0, 1, 2, 3][:-short_realizations]
     result = Combine(
-        "+", broadcast_to_threshold=False, minimum_realizations=1, new_name="name"
+        "+", broadcast=None, minimum_realizations=1, new_name="name"
     )(cubes)
     assert isinstance(result, Cube)
     assert np.allclose(result.coord("realization").points, expected_realization_points)
     assert np.allclose(result.data, 3)
+
+@pytest.mark.parametrize("coordinate_name", ("realization","percentile"))
+def test_cubes_different_size(realization_cubes,coordinate_name,):
+    """Checks Combine works with different broadcast coordinates."""
+    cubes=realization_cubes.merge_cube()
+    cubes.data=np.full_like(cubes.data,1)
+    cubes.coord("realization").rename(coordinate_name)
+    small_cube=next(realization_cubes[0].slices_over("realization"))
+    small_cube.remove_coord("realization")
+    enforce_coordinate_ordering(small_cube,["projection_x_coordinate","time","projection_y_coordinate"])
+    result=Combine("-",broadcast=coordinate_name)([cubes,small_cube])
+    assert np.allclose(result.data,0)
 
 
 @pytest.mark.parametrize(
