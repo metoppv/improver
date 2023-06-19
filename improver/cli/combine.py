@@ -63,7 +63,7 @@ def process(
         broadcast (str):
             If specified, the input cubes will be broadcast over the coordinate name provided. If
             "threshold" is provided the plugin will try to find a threshold coordinate on the
-            probability cube. 
+            probability cube.
         minimum_realizations (int):
             If specified, the input cubes will be filtered to ensure that only realizations that
             include all available lead times are combined. If the number of realizations that

@@ -43,7 +43,7 @@ from improver import BasePlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.metadata.probabilistic import find_threshold_coordinate, is_probability
+from improver.metadata.probabilistic import find_threshold_coordinate
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
@@ -99,7 +99,9 @@ class Combine(BasePlugin):
         self.cell_method_coordinate = cell_method_coordinate
 
         self.plugin = CubeCombiner(
-            operation, cell_method_coordinate=cell_method_coordinate,broadcast=self.broadcast
+            operation,
+            cell_method_coordinate=cell_method_coordinate,
+            broadcast=self.broadcast,
         )
 
     def process(self, cubes: CubeList) -> Cube:
@@ -162,7 +164,9 @@ class CubeCombiner(BasePlugin):
         "mean": np.add,
     }  # mean is calculated in two steps: sum and normalise
 
-    def __init__(self, operation: str, cell_method_coordinate: str = None,broadcast: str = None) -> None:
+    def __init__(
+        self, operation: str, cell_method_coordinate: str = None, broadcast: str = None
+    ) -> None:
         """Create a CubeCombiner plugin
 
         Args:
@@ -184,7 +188,7 @@ class CubeCombiner(BasePlugin):
         except KeyError:
             msg = "Unknown operation {}".format(operation)
             raise ValueError(msg)
-        self.broadcast=broadcast
+        self.broadcast = broadcast
         self.normalise = operation == "mean"
 
     @staticmethod
@@ -295,7 +299,10 @@ class CubeCombiner(BasePlugin):
         result = cube_list[0].copy()
 
         # Slice over realization if possible to reduce memory usage.
-        if "realization" in [crd.name() for crd in result.coords(dim_coords=True)] and self.broadcast != "realization":
+        if (
+            "realization" in [crd.name() for crd in result.coords(dim_coords=True)]
+            and self.broadcast != "realization"
+        ):
             rslices = iris.cube.CubeList(result.slices_over("realization"))
             for cube in cube_list[1:]:
                 cslices = cube.slices_over("realization")
@@ -337,7 +344,7 @@ class CubeCombiner(BasePlugin):
         target_cube = cube_list[0]
 
         if self.broadcast == "threshold":
-            self.broadcast=find_threshold_coordinate(cube_list[0]).name()
+            self.broadcast = find_threshold_coordinate(cube_list[0]).name()
 
         try:
             target_coord = target_cube.coord(self.broadcast)
@@ -351,7 +358,7 @@ class CubeCombiner(BasePlugin):
             try:
                 found_coord = cube.coord(target_coord)
             except CoordinateNotFoundError:
-                new_coord = target_coord.copy([0],bounds=None)
+                new_coord = target_coord.copy([0], bounds=None)
                 cube = cube.copy()
                 cube.add_aux_coord(new_coord, None)
                 cube = iris.util.new_axis(cube, new_coord)
@@ -414,11 +421,11 @@ class CubeCombiner(BasePlugin):
             )
         else:
             self._check_dimensions_match(cube_list, comparators=[eq])
-        
+
         result = self._combine_cube_data(cube_list)
         expanded_coord_names = self._get_expanded_coord_names(cube_list)
 
-        if self.operation in ["*","multiply"]:
+        if self.operation in ["*", "multiply"]:
             update_diagnostic_name(cube_list[0], new_diagnostic_name, result)
         else:
             if expanded_coord_names:
@@ -427,6 +434,7 @@ class CubeCombiner(BasePlugin):
             self._add_cell_method(result)
 
         return result
+
 
 class MaxInTimeWindow(BasePlugin):
     """Find the maximum within a time window for a period diagnostic. For example,

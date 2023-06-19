@@ -37,16 +37,17 @@ import iris
 import numpy as np
 from iris.coords import CellMethod
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.cube_combiner import Combine, CubeCombiner
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
-    set_up_variable_cube
+    set_up_variable_cube,
 )
 from improver_tests import ImproverTest
-from iris.exceptions import CoordinateNotFoundError
+
 
 class Test__init__(IrisTest):
 
@@ -129,6 +130,7 @@ class CombinerTest(ImproverTest):
             "lwe_thickness_of_precipitation_amount"
         )
         self.multiplier.remove_coord("lwe_thickness_of_precipitation_amount")
+
 
 class Test__get_expanded_coord_names(CombinerTest):
     """Test method to determine coordinates for expansion"""
@@ -324,7 +326,9 @@ class Test_process(CombinerTest):
         of the name of the first input cube."""
         cubelist = iris.cube.CubeList([self.cube5.copy(), self.multiplier])
         input_copy = deepcopy(cubelist)
-        result = CubeCombiner(operation="*",broadcast="threshold")(cubelist, "new_cube_name")
+        result = CubeCombiner(operation="*", broadcast="threshold")(
+            cubelist, "new_cube_name"
+        )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
@@ -335,22 +339,26 @@ class Test_process(CombinerTest):
         """Test that plugin broadcasts to a non-threshold coordinate."""
         validity_time = datetime(2015, 11, 19, 0)
         forecast_reference_time = datetime(2015, 11, 18, 22)
-        
+
         cloud_base_height = set_up_variable_cube(
-            np.full((2, 3, 4), 1000 , dtype=np.float32),
-            name="cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas",
+            np.full((2, 3, 4), 1000, dtype=np.float32),
+            name="cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_"
+            "than_2p5_oktas",
             units="m",
             time=validity_time,
             frt=forecast_reference_time,
         )
-        orography=set_up_variable_cube(
-            np.full((3, 4), 80 , dtype=np.float32),
-            name="orography",
-            units="m",
+        orography = set_up_variable_cube(
+            np.full((3, 4), 80, dtype=np.float32), name="orography", units="m",
         )
-        new_name="cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas"
-        result = CubeCombiner(operation="-",broadcast="realization")([cloud_base_height,orography], new_name)
-        self.assertArrayAlmostEqual(result.data,np.full_like(cloud_base_height,920))
+        new_name = (
+            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_"
+            "than_2p5_oktas"
+        )
+        result = CubeCombiner(operation="-", broadcast="realization")(
+            [cloud_base_height, orography], new_name
+        )
+        self.assertArrayAlmostEqual(result.data, np.full_like(cloud_base_height, 920))
 
     def test_vicinity_names(self):
         """Test plugin names the cube and threshold coordinate correctly for a
@@ -359,7 +367,7 @@ class Test_process(CombinerTest):
         output = "thickness_of_rainfall_amount_in_vicinity"
         self.cube5.rename(f"probability_of_{input}_above_threshold")
         cubelist = iris.cube.CubeList([self.cube5.copy(), self.multiplier])
-        result = CubeCombiner(operation="*",broadcast="threshold")(cubelist, output)
+        result = CubeCombiner(operation="*", broadcast="threshold")(cubelist, output)
         self.assertEqual(result.name(), f"probability_of_{output}_above_threshold")
         self.assertEqual(
             result.coord(var_name="threshold").name(), "thickness_of_rainfall_amount"
@@ -376,7 +384,9 @@ class Test_process(CombinerTest):
             r"\(realization: 3; latitude: 2; longitude: 2\)> to broadcast to"
         )
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            CubeCombiner(operation="*",broadcast="percentile")(cubelist, "new_cube_name")
+            CubeCombiner(operation="*", broadcast="percentile")(
+                cubelist, "new_cube_name"
+            )
 
     def test_error_broadcast_coord_is_auxcoord(self):
         """Test that plugin throws an error if asked to broadcast to a threshold coord
@@ -385,7 +395,9 @@ class Test_process(CombinerTest):
         cubelist = iris.cube.CubeList([self.cube5.copy(), self.multiplier])
         msg = "Cannot broadcast to coord threshold as it already exists as an AuxCoord"
         with self.assertRaisesRegex(TypeError, msg):
-            CubeCombiner(operation="*",broadcast="threshold")(cubelist, "new_cube_name")
+            CubeCombiner(operation="*", broadcast="threshold")(
+                cubelist, "new_cube_name"
+            )
 
     def test_multiply_preserves_bounds(self):
         """Test specific case for precipitation type, where multiplying a
@@ -423,7 +435,9 @@ class Test_process(CombinerTest):
         new_cube_name = "new_cube_name"
         expected = CellMethod("sum", coords="time", comments=f"of {new_cube_name}")
 
-        result = CubeCombiner(operation="*",broadcast="threshold")(cubelist, new_cube_name)
+        result = CubeCombiner(operation="*", broadcast="threshold")(
+            cubelist, new_cube_name
+        )
         self.assertEqual(result.cell_methods[0], expected)
 
     def test_update_cell_methods_non_probabilistic(self):
@@ -467,7 +481,9 @@ class Test_process(CombinerTest):
             additional_cell_method_2,
         ]
 
-        result = CubeCombiner(operation="*",broadcast="threshold")(cubelist, new_cube_name)
+        result = CubeCombiner(operation="*", broadcast="threshold")(
+            cubelist, new_cube_name
+        )
         self.assertArrayEqual(result.cell_methods, expected)
 
     def test_exception_mismatched_dimensions(self):
@@ -477,18 +493,17 @@ class Test_process(CombinerTest):
         plugin = CubeCombiner(operation="*",)
         msg = "Cannot combine cubes with different dimensions"
         with self.assertRaisesRegex(ValueError, msg):
-            plugin.process([self.cube5.copy(), self.multiplier],new_cube_name)
+            plugin.process([self.cube5.copy(), self.multiplier], new_cube_name)
 
     def test_with_Combine(self):
         """Test plugin works through the Combine plugin"""
         cubelist = iris.cube.CubeList([self.cube5.copy(), self.multiplier])
-        result = Combine("*", broadcast="threshold", new_name="new_cube_name")(
-            cubelist
-        )
+        result = Combine("*", broadcast="threshold", new_name="new_cube_name")(cubelist)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "probability_of_new_cube_name_above_threshold")
         self.assertEqual(result.coord(var_name="threshold").name(), "new_cube_name")
         self.assertArrayAlmostEqual(result.data, self.cube5.data)
+
 
 if __name__ == "__main__":
     unittest.main()
