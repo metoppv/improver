@@ -43,6 +43,7 @@ def process(
     broadcast=None,
     minimum_realizations=None,
     cell_method_coordinate=None,
+    expand_bound=True,
 ):
     r"""Combine input cubes.
 
@@ -71,7 +72,8 @@ def process(
         cell_method_coordinate (str):
             If specified, a cell method is added to the output with the coordinate
             provided. This is only available for max, min and mean operations.
-
+        expand_bound (bool):
+            If True then coord bounds will extended to represent all cubes being combined.
     Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
@@ -86,4 +88,5 @@ def process(
         minimum_realizations=minimum_realizations,
         new_name=new_name,
         cell_method_coordinate=cell_method_coordinate,
+        expand_bound=expand_bound,
     )(CubeList(cubes))

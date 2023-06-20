@@ -63,18 +63,16 @@ def realization_cubes_fixture() -> CubeList:
 
 @pytest.mark.parametrize("broadcast", (None, "threshold"))
 @pytest.mark.parametrize("minimum_realizations", (None, 1))
-@pytest.mark.parametrize(
-    "operation, expected_instance", (("+", CubeCombiner), ("+", CubeCombiner)),
-)
-def test_init(operation, expected_instance, minimum_realizations, broadcast):
+def test_init(minimum_realizations, broadcast):
     """Ensure the class initialises as expected"""
+    operation = "+"
     result = Combine(
         operation,
         broadcast=broadcast,
         minimum_realizations=minimum_realizations,
         new_name="name",
     )
-    assert isinstance(result.plugin, expected_instance)
+    assert isinstance(result.plugin, CubeCombiner)
     assert result.new_name == "name"
     assert result.minimum_realizations == minimum_realizations
     assert result.broadcast == broadcast

@@ -68,6 +68,7 @@ class Combine(BasePlugin):
         minimum_realizations: Union[str, int, None] = None,
         new_name: str = None,
         cell_method_coordinate: str = None,
+        expand_bound: bool = True,
     ):
         r"""
         Args:
@@ -87,6 +88,8 @@ class Combine(BasePlugin):
             cell_method_coordinate (str):
                 If specified, a cell method is added to the output with the coordinate
                 provided. This is only available for max, min and mean operations.
+            expand_bound:
+                If True then coord bounds will extended to represent all cubes being combined.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -97,11 +100,13 @@ class Combine(BasePlugin):
         self.new_name = new_name
         self.broadcast = broadcast
         self.cell_method_coordinate = cell_method_coordinate
+        self.expand_bound = expand_bound
 
         self.plugin = CubeCombiner(
             operation,
             cell_method_coordinate=cell_method_coordinate,
             broadcast=self.broadcast,
+            expand_bound=self.expand_bound,
         )
 
     def process(self, cubes: CubeList) -> Cube:
@@ -164,7 +169,11 @@ class CubeCombiner(BasePlugin):
     }  # mean is calculated in two steps: sum and normalise
 
     def __init__(
-        self, operation: str, cell_method_coordinate: str = None, broadcast: str = None
+        self,
+        operation: str,
+        cell_method_coordinate: str = None,
+        broadcast: str = None,
+        expand_bound: bool = True,
     ) -> None:
         """Create a CubeCombiner plugin
 
@@ -177,6 +186,8 @@ class CubeCombiner(BasePlugin):
             broadcast:
                 If specified, broadcast input cubes to the stated coord prior to combining -
                 the coord must already exist on the first input cube.
+            expand_bound:
+                If True then coord bounds will extended to represent all cubes being combined.
         Raises:
             ValueError: if operation is not recognised in dictionary
         """
@@ -189,6 +200,7 @@ class CubeCombiner(BasePlugin):
             raise ValueError(msg)
         self.broadcast = broadcast
         self.normalise = operation == "mean"
+        self.expand_bound = expand_bound
 
     @staticmethod
     def _check_dimensions_match(
@@ -427,7 +439,7 @@ class CubeCombiner(BasePlugin):
         if self.operation in ["*", "multiply"]:
             update_diagnostic_name(cube_list[0], new_diagnostic_name, result)
         else:
-            if expanded_coord_names:
+            if expanded_coord_names and self.expand_bound:
                 result = expand_bounds(result, cube_list, expanded_coord_names)
             result.rename(new_diagnostic_name)
             self._add_cell_method(result)

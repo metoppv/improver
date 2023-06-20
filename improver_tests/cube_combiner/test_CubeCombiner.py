@@ -277,6 +277,22 @@ class Test_process(CombinerTest):
         self.assertEqual(result.coord("time").points[0], 1447894800)
         self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
 
+    def test_bound_no_expansion(self):
+        """Test the the plugin calculates the sum of the input cubes but
+        doesn't expand the bounds on ths output if expand_bound is False"""
+        plugin = CubeCombiner("add", expand_bound=False)
+        cubelist = iris.cube.CubeList([self.cube1, self.cube2])
+        result = plugin.process(cubelist, "new_cube_name")
+        expected_data = np.full((2, 2), 1.1, dtype=np.float32)
+        self.assertEqual(result.name(), "new_cube_name")
+        self.assertArrayAlmostEqual(result.data, expected_data)
+        self.assertEqual(
+            result.coord("time").points[0], self.cube1.coord("time").points[0]
+        )
+        self.assertArrayEqual(
+            result.coord("time").bounds, self.cube1.coord("time").bounds
+        )
+
     def test_unmatched_scalar_coords(self):
         """Test a scalar coordinate that is present on the first cube is
         present unmodified on the output; and if present on a later cube is
