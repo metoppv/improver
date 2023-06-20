@@ -145,7 +145,6 @@ class Combine(BasePlugin):
                     f"({self.minimum_realizations})"
                 )
             filtered_cubes = cube.slices_over("time")
-        print(self.broadcast)
         return self.plugin(CubeList(filtered_cubes), self.new_name)
 
 
