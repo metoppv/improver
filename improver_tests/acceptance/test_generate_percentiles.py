@@ -100,6 +100,45 @@ def test_eccbounds(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_masked_percentiles_warning(tmp_path):
+    """Test masked_percentiles warning"""
+    kgo_dir = acc.kgo_root() / "generate-percentiles/basic"
+    kgo_path = kgo_dir / "kgo.nc"
+    perc_input = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        perc_input,
+        "--output",
+        output_path,
+        "--coordinates",
+        "realization",
+        "--percentiles",
+        "25,50,75",
+        "--mask-percentiles",
+    ]
+    with pytest.warns(UserWarning, match="mask_percentiles is only implemented"):
+        run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_masked_percentiles(tmp_path):
+    """Test probability conversion when masked_percentiles is True"""
+    kgo_dir = acc.kgo_root() / "generate-percentiles/probability_convert"
+    kgo_path = kgo_dir / "masked_kgo.nc"
+    prob_input = kgo_dir / "masked_input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        prob_input,
+        "--output",
+        output_path,
+        "--percentiles",
+        "25,50,75",
+        "--mask-percentiles",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 @pytest.mark.parametrize(
     "identifier", ("flat_rank_histogram_percentiles", "optimal_crps_percentiles")
 )

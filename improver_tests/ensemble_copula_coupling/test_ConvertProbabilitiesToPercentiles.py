@@ -492,6 +492,57 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, data, decimal=5)
 
+    def test_masked_data_below(self):
+        """Test that if mask_percentiles is true, data is masked as
+        expected when input probability data is below a threshold"""
+
+        expected_mask = np.full_like(self.cube.data, False, dtype=bool)
+        expected_mask[:, 0, 0] = True
+        expected_mask[1, 0, 2] = True
+        expected_mask[2, 0] = True
+        expected_mask[2, 1, 2] = True
+        expected_mask[2, 1, 0] = True
+
+        cube = set_up_probability_cube(
+            1 - self.cube.data,
+            [200, 1000, 15000],
+            variable_name="cloud_base_altitude_assuming_only_consider_cloud_\
+                area_fraction_greater_than_4p5_oktas",
+            threshold_units="m",
+            spp__relative_to_threshold="below",
+        )
+
+        result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
+            cube, self.percentiles, [0, 22000]
+        )
+        self.assertArrayEqual(result.data.mask, expected_mask)
+
+    def test_masked_data_above(self):
+        """Test that if mask_percentiles is true, data is masked as expected
+        when input probability data is above a threshold"""
+
+        expected_mask = np.full_like(self.cube.data, False, dtype=bool)
+        expected_mask[:, 0, 0] = True
+        expected_mask[1, 0, 2] = True
+        expected_mask[2, 0] = True
+        expected_mask[2, 1, 2] = True
+        expected_mask[2, 1, 0] = True
+
+        cube = set_up_probability_cube(
+            self.cube.data,
+            [200, 1000, 15000],
+            variable_name="cloud_base_altitude_assuming_only_consider_cloud_\
+                area_fraction_greater_than_4p5_oktas",
+            threshold_units="m",
+            spp__relative_to_threshold="above",
+        )
+
+        result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
+            cube, self.percentiles, [0, 22000]
+        )
+
+        self.assertArrayEqual(result.data.mask, expected_mask)
+
 
 class Test_process(IrisTest):
 

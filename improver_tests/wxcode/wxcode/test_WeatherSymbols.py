@@ -1392,6 +1392,17 @@ class Test_create_symbol_cube(IrisTest):
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
 
+    def test_manual_title(self):
+        """Test cube is constructed with appropriate metadata including a
+        user provided title attribute."""
+
+        target_title = "Weather Symbols"
+        plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), title=target_title)
+        plugin.template_cube = self.cube
+
+        result = plugin.create_symbol_cube([self.cube])
+        self.assertEqual(result.attributes["title"], target_title)
+
 
 class Test_compare_to_threshold(IrisTest):
     """Test the compare_to_threshold method ."""
