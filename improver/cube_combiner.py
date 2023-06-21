@@ -89,7 +89,7 @@ class Combine(BasePlugin):
                 If specified, a cell method is added to the output with the coordinate
                 provided. This is only available for max, min and mean operations.
             expand_bound:
-                If True then coord bounds will extended to represent all cubes being combined.
+                If True then coord bounds will be extended to represent all cubes being combined.
         """
         try:
             self.minimum_realizations = int(minimum_realizations)
@@ -187,7 +187,7 @@ class CubeCombiner(BasePlugin):
                 If specified, broadcast input cubes to the stated coord prior to combining -
                 the coord must already exist on the first input cube.
             expand_bound:
-                If True then coord bounds will extended to represent all cubes being combined.
+                If True then coord bounds will be extended to represent all cubes being combined.
         Raises:
             ValueError: if operation is not recognised in dictionary
         """

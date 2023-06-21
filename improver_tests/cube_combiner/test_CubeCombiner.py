@@ -277,8 +277,8 @@ class Test_process(CombinerTest):
         self.assertEqual(result.coord("time").points[0], 1447894800)
         self.assertArrayEqual(result.coord("time").bounds, [[1447887600, 1447894800]])
 
-    def test_bound_no_expansion(self):
-        """Test the the plugin calculates the sum of the input cubes but
+    def test_bounds_no_expansion(self):
+        """Test that the plugin calculates the sum of the input cubes but
         doesn't expand the bounds on ths output if expand_bound is False"""
         plugin = CubeCombiner("add", expand_bound=False)
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
@@ -335,7 +335,7 @@ class Test_process(CombinerTest):
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process(cubelist, "new_cube_name")
 
-    def test_broadcast_coord(self):
+    def test_broadcast_threshold_coord(self):
         """Test that plugin broadcasts to threshold coord without changing inputs.
         Using the broadcast_to_coords argument including a value of "threshold"
         will result in the returned cube maintaining the probabilistic elements
