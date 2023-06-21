@@ -35,10 +35,13 @@ import numpy as np
 import pytest
 from iris.coords import DimCoord
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.height_adjustment import SpotHeightAdjustment
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+name = "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
 
 
 @pytest.fixture()
@@ -49,19 +52,14 @@ def prob_cube() -> Cube:
     longitude = np.linspace(-0.25, 0.5, 4)
     wmo_id = ["03854", "03962", "03142", "03331"]
     threshold_coord = DimCoord(
-        points=[50, 100, 1000],
-        var_name="threshold",
-        long_name="cloud_base_height_assuming_only_consider_cloud_area_fraction_"
-        "greater_than_4p5_oktas",
-        units="m",
+        points=[50, 100, 1000], var_name="threshold", long_name=name, units="m",
     )
 
     data = np.asarray([[0.1, 0, 0.2, 0.1], [0.7, 0, 0.3, 0.2], [1, 0.4, 0.4, 0.9]])
 
     prob_cube = build_spotdata_cube(
         data,
-        name="probability_of_cloud_base_height_assuming_only_consider_cloud_area_"
-        "fraction_greater_than_4p5_oktas_below_threshold",
+        name="probability_of_" + name + "_below_threshold",
         units="1",
         altitude=altitude,
         latitude=latitude,
@@ -69,13 +67,7 @@ def prob_cube() -> Cube:
         wmo_id=wmo_id,
         additional_dims=[threshold_coord],
     )
-    enforce_coordinate_ordering(
-        prob_cube,
-        [
-            "spot_index",
-            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas",
-        ],
-    )
+    enforce_coordinate_ordering(prob_cube, ["spot_index", name])
     return prob_cube
 
 
@@ -109,7 +101,7 @@ def realization_cube() -> Cube:
 
     rea_cube = build_spotdata_cube(
         data,
-        name="cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas",
+        name=name,
         units="ft",
         altitude=altitude,
         latitude=latitude,
@@ -127,7 +119,7 @@ def percentile_cube() -> Cube:
     latitude = np.linspace(58.0, 59.5, 4)
     longitude = np.linspace(-0.25, 0.5, 4)
     wmo_id = ["03854", "03962", "03142", "03331"]
-    percentile_coord = DimCoord(points=[25, 50, 75], var_name="realization", units="1")
+    percentile_coord = DimCoord(points=[25, 50, 75], var_name="percentile", units="%")
 
     data = np.asarray(
         [[1400, 4000, -500, 100], [2000, 10000, 0, 100], [3000, 11000, 30, 150]]
@@ -135,7 +127,7 @@ def percentile_cube() -> Cube:
 
     perc_cube = build_spotdata_cube(
         data,
-        name="cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas",
+        name=name,
         units="m",
         altitude=altitude,
         latitude=latitude,
@@ -148,7 +140,7 @@ def percentile_cube() -> Cube:
 
 @pytest.fixture()
 def neighbour_cube() -> Cube:
-    """Set up a neighbourhood cube with vertical displacement coordinate"""
+    """Set up a neighbour cube with vertical displacement coordinate"""
     neighbours = np.array([[[0.0, -100.0, 0.0, 100.0]]])
 
     altitudes = np.array([0, 1, 3, 2])
@@ -169,6 +161,7 @@ def neighbour_cube() -> Cube:
     return neighbour_cube
 
 
+@pytest.mark.parametrize("order", (True, False))
 @pytest.mark.parametrize(
     "cube_name, expected",
     (
@@ -212,56 +205,54 @@ def neighbour_cube() -> Cube:
         ),
     ),
 )
-def test_cube(cube_name, expected, neighbour_cube, request):
+def test_cube(cube_name, expected, neighbour_cube, order, request):
     """Tests plugin produces correct metadata and results for different input cubes"""
     cube = request.getfixturevalue(cube_name)
-    result = SpotHeightAdjustment()(cube, neighbour_cube)
     coords_original = [c.name() for c in cube.dim_coords]
+    if order:
+        enforce_coordinate_ordering(
+            cube, [name, "realization", "percentile", "spot_index"]
+        )
+
+    coords_enforced = [c.name() for c in cube.dim_coords]
+    cube_units = cube.units
+    cube_title = cube.name()
+    try:
+        threshold_coord = cube.coord(name)
+    except CoordinateNotFoundError:
+        pass
+    result = SpotHeightAdjustment()(cube, neighbour_cube)
     coords_result = [c.name() for c in result.dim_coords]
 
-    assert coords_original == coords_result
-    assert result.units == cube.units
-    assert result.name() == cube.name()
+    if order:
+        enforce_coordinate_ordering(result, coords_original)
+    assert coords_result == coords_enforced
+    assert result.units == cube_units
+    assert result.name() == cube_title
     if cube_name == ("prob_cube" or "prob_cube_realizations"):
-        assert result.coord(
-            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-        ) == cube.coord(
-            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-        )
+        assert result.coord(name) == threshold_coord
     np.testing.assert_allclose(result.data, expected)
 
 
 def test_prob_cube_threshold_unit(prob_cube, neighbour_cube):
     """Tests that correct units and data are returned if probability cubes threshold is converted
     to metres"""
-    prob_cube.coord(
-        "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-    ).units = "km"
+    prob_cube.coord(name).units = "km"
     expected = [
         [0.1, 0.7, 1.0],
         [0, 0, 0.3999556],
         [0.2, 0.3, 0.4],
         [0.1002, 0.2000778, 0.9],
     ]
+    cube_units = prob_cube.coord(name).units
 
     result = SpotHeightAdjustment()(prob_cube, neighbour_cube)
-    assert (
-        prob_cube.coord(
-            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-        ).units
-        == result.coord(
-            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-        ).units
-    )
+    assert result.coord(name).units == cube_units
     np.testing.assert_almost_equal(result.data, expected)
 
 
 def test_insufficient_thresholds(prob_cube, neighbour_cube):
     """Tests an error is raised if there are insufficient thresholds"""
-    cube = next(
-        prob_cube.slices_over(
-            "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
-        )
-    )
-    with pytest.raises(ValueError, match="There are less than 2 thresholds"):
+    cube = next(prob_cube.slices_over(name))
+    with pytest.raises(ValueError, match="There are fewer than 2 thresholds"):
         SpotHeightAdjustment()(cube, neighbour_cube)
