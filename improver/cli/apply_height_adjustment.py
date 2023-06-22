@@ -32,7 +32,6 @@
 """Script to apply height adjustments to spot data."""
 
 from improver import cli
-from improver.spotdata.neighbour_finding import NeighbourSelection
 
 
 @cli.clizefy
@@ -79,6 +78,7 @@ def process(
             height
     """
     from improver.spotdata.height_adjustment import SpotHeightAdjustment
+    from improver.spotdata.neighbour_finding import NeighbourSelection
 
     neighbour_selection_method = NeighbourSelection(
         land_constraint=land_constraint, minimum_dz=similar_altitude
