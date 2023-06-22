@@ -124,6 +124,10 @@ a37a4829a3d45295e38d454c9983f499cca11f14b21707e4f36f1bb3da32de63  ./calculate-fo
 be26d2ea432284b08ef68a2764f7b18463840d57b9dc495961c1bd90c1bf73c5  ./calculate-forecast-bias/inputs/20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc
 3220caf063928ee4ff7905c0d30cdb48a856a5e513e8d7f5cfd6cd162dbf170d  ./calculate-forecast-bias/multiple_frt/kgo.nc
 ec49997369aab4bb84049efcbf7720d15ca7a371d366bfcb707a2ca5a0473cfd  ./calculate-forecast-bias/single_frt/kgo.nc
+90f170375e1f7673bf271ee00d35f5a6ffaf81338f708092cfb4c49d79a45a7d  ./clip/input.nc
+71dd5f9e58e286e627ccf6c90df0a29487dad6641def4fbb89edc4e33ead0b49  ./clip/kgo_(0, 4000).nc
+e1a002ee954978e9ab5830320f700a05f3f067c39bba9853587d79cd047564b8  ./clip/kgo_(1000, None).nc
+17034578353d6b7c59963c5bb2904141fc9eadf8642f18546ef8cb9efb429f86  ./clip/kgo_(None, 6000).nc
 9ae995a600331cf97ca5c64be4dd9a34adc9be7c5b5f987d3735af0d7973d7c3  ./cloud-condensation-level/pressure_at_surface.nc
 5d964d04169737f4116505c6b4ad5e2a894592c789303460f9d292fa204b3775  ./cloud-condensation-level/relative_humidity.nc
 0425846305d3e15ef78f303855254f902c6a06d33caa38ac1d12540da88e4a7d  ./cloud-condensation-level/temperature.nc
