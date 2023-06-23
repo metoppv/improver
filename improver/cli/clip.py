@@ -39,7 +39,8 @@ from improver import cli
 def process(
     cube: cli.inputcube, *, min_value: float = None, max_value: float = None,
 ):
-    """Clip the data in the input cube to be below max_value and higher than min_value.
+    """Clip the data in the input cube such that any data above max_value is set equal to
+     max_value and any data below min_value is set equal to min_value.
 
     Args:
         cube (iris.cube.Cube):
@@ -52,8 +53,9 @@ def process(
             min_value.
     Returns:
         iris.cube.Cube:
-            A cube with the same metadata as the input cube but with the data clipped to be
-            higher than min_value and lower than max_value
+            A cube with the same metadata as the input cube but with the data clipped such
+            that any data above max_value is set equal to max_value and any data below
+            min_value is set equal to min_value.
     """
     from numpy import clip
 
