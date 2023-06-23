@@ -43,7 +43,7 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            A Cube whose data will be clipped
+            A Cube whose data will be clipped. This can be a cube of spot or gridded data.
         max_value (float):
             If specified any data in cube that is above max_value will be set equal to
             max_value.
@@ -55,6 +55,12 @@ def process(
             A cube with the same metadata as the input cube but with the data clipped to be
             higher than min_value and lower than max_value
     """
-    from improver.utilities.cube_manipulation import clip_cube_data
+    from numpy import clip
 
-    return clip_cube_data(cube, min_value, max_value)
+    from improver.utilities.cube_manipulation import clip_cube_data, get_coord_names
+
+    if "spot_index" in get_coord_names(cube):
+        cube.data = clip(cube.data, min_value, max_value)
+    else:
+        cube = clip_cube_data(cube, min_value, max_value)
+    return cube
