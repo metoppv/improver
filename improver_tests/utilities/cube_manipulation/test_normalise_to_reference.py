@@ -38,12 +38,14 @@ from improver.utilities.cube_manipulation import normalise_to_reference
 
 @pytest.fixture
 def shape():
+    """Define shape of all cubes used in these tests."""
     output = (2, 3, 3)
     return output
 
 
 @pytest.fixture
 def input_cubes(shape):
+    """Create cubelist used as input for tests."""
     rain_data = 0.5 * np.ones(shape, dtype=np.float32)
     sleet_data = 0.4 * np.ones(shape, dtype=np.float32)
     snow_data = 0.1 * np.ones(shape, dtype=np.float32)
@@ -57,6 +59,7 @@ def input_cubes(shape):
 
 @pytest.fixture
 def reference_cube(shape):
+    """Create reference cube used as input for tests."""
     precip_data = 2 * np.ones(shape, dtype=np.float32)
 
     return set_up_variable_cube(precip_data, name="lwe_precipitation_rate", units="m s-1")
@@ -64,6 +67,7 @@ def reference_cube(shape):
 
 @pytest.fixture()
 def expected_cubes(shape):
+    """Create cubelist containing expected outputs of tests."""
     rain_data = 2 * 0.5 * np.ones(shape, dtype=np.float32)
     sleet_data = 2 * 0.4 * np.ones(shape, dtype=np.float32)
     snow_data = 2 * 0.1 * np.ones(shape, dtype=np.float32)
@@ -76,23 +80,32 @@ def expected_cubes(shape):
 
 
 def test_basic(input_cubes, reference_cube, expected_cubes):
+    """Test basic usage that the input cubes are updated correctly."""
     output = normalise_to_reference(input_cubes, reference_cube)
+    output_sum = output[0].data + output[1].data + output[2].data
 
     assert output == expected_cubes
+    assert np.array_equal(output_sum, reference_cube.data)
 
 
 def test_zero_total(input_cubes, reference_cube, expected_cubes):
+    """Test cubes are updated correctly when some values in input_cubes are zero in
+    all input cubes.
+    """
     for cube in input_cubes:
         cube.data[0, :, :] = 0
     for cube in expected_cubes:
         cube.data[0, :, :] = reference_cube.data[0, :, :] / 3
 
     output = normalise_to_reference(input_cubes, reference_cube)
+    output_sum = output[0].data + output[1].data + output[2].data
 
     assert output == expected_cubes
+    assert np.array_equal(output_sum, reference_cube.data)
 
 
 def test_single_input_cube(input_cubes, reference_cube, expected_cubes):
+    """Test cube is updated correctly when the input cubelist contains only one cube."""
     input_cube = input_cubes[0]
     output = normalise_to_reference(iris.cube.CubeList([input_cube]), reference_cube)
 
