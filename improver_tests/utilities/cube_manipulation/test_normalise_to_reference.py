@@ -29,9 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the "cube_manipulation.normalise_to_reference" function."""
-import pytest
-import numpy as np
 import iris
+import numpy as np
+import pytest
+
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import normalise_to_reference
 
@@ -51,7 +52,9 @@ def input_cubes(shape):
     snow_data = 0.1 * np.ones(shape, dtype=np.float32)
 
     rain_cube = set_up_variable_cube(rain_data, name="rainfall_rate", units="m s-1")
-    sleet_cube = set_up_variable_cube(sleet_data, name="lwe_sleetfall_rate", units="m s-1")
+    sleet_cube = set_up_variable_cube(
+        sleet_data, name="lwe_sleetfall_rate", units="m s-1"
+    )
     snow_cube = set_up_variable_cube(snow_data, name="lwe_showfall_rate", units="m s-1")
 
     return iris.cube.CubeList([rain_cube, sleet_cube, snow_cube])
@@ -62,7 +65,9 @@ def reference_cube(shape):
     """Create reference cube used as input for tests."""
     precip_data = 2 * np.ones(shape, dtype=np.float32)
 
-    return set_up_variable_cube(precip_data, name="lwe_precipitation_rate", units="m s-1")
+    return set_up_variable_cube(
+        precip_data, name="lwe_precipitation_rate", units="m s-1"
+    )
 
 
 @pytest.fixture()
@@ -73,7 +78,9 @@ def expected_cubes(shape):
     snow_data = 2 * 0.1 * np.ones(shape, dtype=np.float32)
 
     rain_cube = set_up_variable_cube(rain_data, name="rainfall_rate", units="m s-1")
-    sleet_cube = set_up_variable_cube(sleet_data, name="lwe_sleetfall_rate", units="m s-1")
+    sleet_cube = set_up_variable_cube(
+        sleet_data, name="lwe_sleetfall_rate", units="m s-1"
+    )
     snow_cube = set_up_variable_cube(snow_data, name="lwe_showfall_rate", units="m s-1")
 
     return iris.cube.CubeList([rain_cube, sleet_cube, snow_cube])
