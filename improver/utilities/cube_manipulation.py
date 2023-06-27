@@ -705,3 +705,24 @@ def add_coordinate_to_cube(
     output_cube.transpose(final_dim_order)
 
     return output_cube
+
+
+def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
+    output = iris.cube.CubeList()
+
+    total = cubes[0].data.copy()
+    if len(cubes) > 1:
+        for cube in cubes[1:]:
+            total = total + cube.data
+
+    # Where total is zero, set corresponding data in input cubes to one, then update
+    # total. This handles case where all cubes are zero but reference is non-zero.
+    zero_total = total == 0.0
+    for cube in cubes:
+        cube.data[zero_total] = 1.0
+        total[zero_total] += 1.0
+
+    for index, cube in enumerate(cubes):
+        output.append(cube.copy(data=reference.data * cube.data / total))
+
+    return output
