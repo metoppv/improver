@@ -35,6 +35,7 @@ from itertools import product
 
 import iris
 import numpy as np
+from iris.coords import DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from scipy.interpolate import LinearNDInterpolator
@@ -71,7 +72,7 @@ class SpotHeightAdjustment(BasePlugin):
                 extract the desired set of coordinates from the neighbour cube.
         """
         self.neighbour_selection_method = neighbour_selection_method
-        self.threshold_coord = None
+        self.threshold_coord = DimCoord
         self.units = None
 
     def adjust_prob_cube(self, spot_cube: Cube, vertical_displacement: Cube) -> Cube:
@@ -116,14 +117,9 @@ class SpotHeightAdjustment(BasePlugin):
             np.broadcast_to(np.amin(spot_cube.data, axis=1), (n_thresholds, n_sites))
         )
 
-        broadcast_thresholds = np.broadcast_to(
-            thresholds, (vertical_displacement.shape[0], n_thresholds)
-        )
+        broadcast_thresholds = np.broadcast_to(thresholds, (n_sites, n_thresholds))
         broadcast_vertical_displacement = np.transpose(
-            np.broadcast_to(
-                vertical_displacement.data,
-                (n_thresholds, vertical_displacement.shape[0]),
-            )
+            np.broadcast_to(vertical_displacement.data, (n_thresholds, n_sites),)
         )
         desired_thresholds = broadcast_thresholds + broadcast_vertical_displacement.data
 
@@ -186,7 +182,7 @@ class SpotHeightAdjustment(BasePlugin):
 
             if len(self.threshold_coord.points) < 2:
                 raise ValueError(
-                    f"There are fewer than 2 thresholds present in this cube, these are "
+                    f"There are fewer than 2 thresholds present in this cube, this is "
                     f"{spot_cube.coord(threshold_coord).points}. At least two thresholds "
                     "are needed for interpolation"
                 )

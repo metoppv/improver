@@ -88,7 +88,8 @@ def prob_cube_realizations(prob_cube) -> Cube:
 
 @pytest.fixture()
 def realization_cube() -> Cube:
-    """Set up a spot data cube with a realization coordinate"""
+    """Set up a spot data cube with a realization coordinate. The units of this cube
+    are set to feet so unit conversion can be tested within the plugin"""
     altitude = np.array([256.5, 359.1, 301.8, 406.2])
     latitude = np.linspace(58.0, 59.5, 4)
     longitude = np.linspace(-0.25, 0.5, 4)
@@ -248,6 +249,7 @@ def test_prob_cube_threshold_unit(prob_cube, neighbour_cube):
 
     result = SpotHeightAdjustment()(prob_cube, neighbour_cube)
     assert result.coord(name).units == cube_units
+    assert result.coord(name).units == "km"
     np.testing.assert_almost_equal(result.data, expected)
 
 

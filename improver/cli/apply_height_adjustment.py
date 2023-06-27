@@ -45,7 +45,7 @@ def process(
 ):
     """Apply height adjustment to account for the difference between site altitude and
     grid square orography. The spot forecast contains information representative of the
-    associated grid point. This need to be adjusted to reflect the true site altitude.
+    associated grid point. This needs to be adjusted to reflect the true site altitude.
 
     Args:
         spot_cube (iris.cube.Cube):
