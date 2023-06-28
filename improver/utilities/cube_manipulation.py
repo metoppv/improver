@@ -727,7 +727,7 @@ def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
     total = cubes[0].data.copy()
     if len(cubes) > 1:
         for cube in cubes[1:]:
-            total = total + cube.data
+            total += cube.data
 
     # Where total is zero, set corresponding data in input cubes to one, then update
     # total. This handles case where all cubes are zero but reference is non-zero.
@@ -736,7 +736,7 @@ def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
         cube.data[zero_total] = 1.0
         total[zero_total] += 1.0
 
-    for index, cube in enumerate(cubes):
+    for cube in cubes:
         output.append(cube.copy(data=reference.data * cube.data / total))
 
     return output
