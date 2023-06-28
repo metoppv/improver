@@ -59,10 +59,6 @@ def process(
     """
     from numpy import clip
 
-    from improver.utilities.cube_manipulation import clip_cube_data, get_coord_names
+    cube.data = clip(cube.data, min_value, max_value)
 
-    if "spot_index" in get_coord_names(cube):
-        cube.data = clip(cube.data, min_value, max_value)
-    else:
-        cube = clip_cube_data(cube, min_value, max_value)
     return cube
