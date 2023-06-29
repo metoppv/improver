@@ -1460,6 +1460,7 @@ class Test_process(Test_WXCode):
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
+        self.assertEqual(result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 11, 0))
 
     def test_day_night(self):
         """Test codes for night-time weather symbols are returned."""
