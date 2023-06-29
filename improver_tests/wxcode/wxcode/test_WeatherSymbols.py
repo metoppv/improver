@@ -1283,7 +1283,9 @@ class Test_create_symbol_cube(IrisTest):
             dtype=np.float32,
         )
         self.cube = set_up_probability_cube(
-            data, np.array([288, 290, 292], dtype=np.float32)
+            data,
+            np.array([288, 290, 292], dtype=np.float32),
+            blend_time=dt(2017, 10, 9, 1, 0),
         )
         self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         self.cube.attributes[
@@ -1460,7 +1462,9 @@ class Test_process(Test_WXCode):
         self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
-        self.assertEqual(result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 11, 0))
+        self.assertEqual(
+            result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 11, 0)
+        )
 
     def test_day_night(self):
         """Test codes for night-time weather symbols are returned."""
