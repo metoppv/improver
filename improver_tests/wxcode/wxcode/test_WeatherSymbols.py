@@ -59,7 +59,7 @@ class Test_WXCode(IrisTest):
         """Set up cubes and constraints required for Weather Symbols."""
 
         time = dt(2017, 10, 10, 12, 0)
-        blend_time = dt(2017, 10, 10, 6, 0)
+        blend_times = (dt(2017, 10, 9, h, 0) for h in range(12))
 
         thresholds = np.array(
             [8.33333333e-09, 2.77777778e-08, 2.77777778e-07], dtype=np.float32
@@ -71,7 +71,7 @@ class Test_WXCode(IrisTest):
             variable_name="lwe_snowfall_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         data_sleet = np.zeros((3, 3, 3), dtype=np.float32)
@@ -82,7 +82,7 @@ class Test_WXCode(IrisTest):
             variable_name="lwe_sleetfall_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         data_rain = np.array(
@@ -100,7 +100,7 @@ class Test_WXCode(IrisTest):
             variable_name="rainfall_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
@@ -111,7 +111,7 @@ class Test_WXCode(IrisTest):
             variable_name="lwe_precipitation_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         precip_vicinity = set_up_probability_cube(
@@ -120,7 +120,7 @@ class Test_WXCode(IrisTest):
             variable_name="lwe_precipitation_rate_in_vicinity",
             threshold_units="m s-1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
@@ -138,7 +138,7 @@ class Test_WXCode(IrisTest):
             variable_name="low_and_medium_type_cloud_area_fraction",
             threshold_units="1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         thresholds = np.array([0.85], dtype=np.float32)
@@ -151,7 +151,7 @@ class Test_WXCode(IrisTest):
             variable_name="low_type_cloud_area_fraction",
             threshold_units="1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
@@ -169,7 +169,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m",
             spp__relative_to_threshold="below",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         thresholds = np.array([0.0], dtype=np.float32)
@@ -184,7 +184,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m-2",
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         hail = set_up_probability_cube(
@@ -194,7 +194,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         thresholds = np.array([2.77777778e-07], dtype=np.float32)
@@ -205,7 +205,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         thresholds = np.array([1.0], dtype=np.float32)
@@ -219,7 +219,7 @@ class Test_WXCode(IrisTest):
             variable_name="shower_condition",
             threshold_units="1",
             time=time,
-            blend_time=blend_time,
+            blend_time=next(blend_times),
         )
 
         self.cubes = iris.cube.CubeList(
