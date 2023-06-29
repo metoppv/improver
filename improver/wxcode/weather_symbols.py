@@ -583,8 +583,16 @@ class WeatherSymbols(BasePlugin):
             record_run_coord_to_attr(
                 symbols, set(cubes), self.record_run_attr, discard_weights=True
             )
+        self._set_blend_time(symbols, cubes)
 
         return symbols
+
+    @staticmethod
+    def _set_blend_time(cube: Cube, cubes: CubeList):
+        """Replace the blend_time coord point on cube with the latest blend_time from cubes"""
+        reference_time = max([c.coord("blend_time").points[0] for c in cubes])
+        new_coord = cube.coord("blend_time").copy(reference_time)
+        cube.replace_coord(new_coord)
 
     @staticmethod
     def compare_array_to_threshold(
