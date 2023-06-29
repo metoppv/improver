@@ -608,7 +608,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         # Calculate probabilities at output thresholds
         probabilities_by_realization = self._get_ensemble_distributions(
-            probability_CDF, aligned_forecast, output_thresholds
+            probability_CDF, aligned_forecast, np.array(output_thresholds)
         )
 
         # Average over realizations
