@@ -38,6 +38,7 @@ import iris
 import numpy as np
 from cf_units import Unit
 from iris.coords import AuxCoord
+from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.metadata.probabilistic import (
@@ -1282,15 +1283,19 @@ class Test_create_symbol_cube(IrisTest):
             ],
             dtype=np.float32,
         )
-        self.cube = set_up_probability_cube(
-            data,
-            np.array([288, 290, 292], dtype=np.float32),
-            blend_time=dt(2017, 10, 9, 1, 0),
-        )
-        self.cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
-        self.cube.attributes[
-            "mosg__model_run"
-        ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
+        cubes = []
+        for key in ("frt", "blend_time"):
+            cube = set_up_probability_cube(
+                data,
+                np.array([288, 290, 292], dtype=np.float32),
+                **{key: dt(2017, 10, 9, 1, 0)},
+            )
+            cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
+            cube.attributes[
+                "mosg__model_run"
+            ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
+            cubes.append(cube)
+        self.cube_frt, self.cube = cubes
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
@@ -1404,6 +1409,49 @@ class Test_create_symbol_cube(IrisTest):
 
         result = plugin.create_symbol_cube([self.cube])
         self.assertEqual(result.attributes["title"], target_title)
+
+    def test_blend_time_multiple_inputs(self):
+        """Test cube is constructed with appropriate blend_time with multiple
+        source cubes. Newest blend_time should be used."""
+        self.plugin.template_cube = self.cube
+        cube1 = self.cube.copy()
+        new_coord = cube1.coord("blend_time")
+        new_coord = new_coord.copy(new_coord.points + 3600)
+        cube1.replace_coord(new_coord)
+
+        result = self.plugin.create_symbol_cube([self.cube, cube1])
+
+        self.assertEqual(
+            result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 2, 0),
+        )
+        self.assertEqual(len(result.coord("blend_time").points), 1)
+
+    def test_frt_multiple_inputs(self):
+        """Test cube is constructed with appropriate forecast_reference_time with multiple
+        source cubes. Newest forecast_reference_time should be used."""
+        self.plugin.template_cube = self.cube_frt
+        cube1 = self.cube_frt.copy()
+        new_coord = cube1.coord("forecast_reference_time")
+        new_coord = new_coord.copy(new_coord.points + 3600)
+        cube1.replace_coord(new_coord)
+
+        result = self.plugin.create_symbol_cube([self.cube_frt, cube1])
+
+        self.assertEqual(
+            result.coord("forecast_reference_time").cell(0).point,
+            dt(2017, 10, 9, 2, 0),
+        )
+        self.assertEqual(len(result.coord("forecast_reference_time").points), 1)
+
+    def test_error_blend_and_frt_inputs(self):
+        """Test cube is constructed with appropriate forecast_reference_time with multiple
+        source cubes. Newest forecast_reference_time should be used."""
+        self.plugin.template_cube = self.cube
+
+        msg = "Expected to find exactly 1 forecast_reference_time coordinate, but found none."
+
+        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            self.plugin.create_symbol_cube([self.cube_frt, self.cube])
 
 
 class Test_compare_to_threshold(IrisTest):

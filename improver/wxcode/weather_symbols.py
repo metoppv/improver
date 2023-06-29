@@ -40,6 +40,7 @@ import numpy as np
 from iris import Constraint
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin
@@ -583,15 +584,21 @@ class WeatherSymbols(BasePlugin):
             record_run_coord_to_attr(
                 symbols, set(cubes), self.record_run_attr, discard_weights=True
             )
-        self._set_blend_time(symbols, cubes)
+        self._set_reference_time(symbols, cubes)
 
         return symbols
 
     @staticmethod
-    def _set_blend_time(cube: Cube, cubes: CubeList):
-        """Replace the blend_time coord point on cube with the latest blend_time from cubes"""
-        reference_time = max([c.coord("blend_time").points[0] for c in cubes])
-        new_coord = cube.coord("blend_time").copy(reference_time)
+    def _set_reference_time(cube: Cube, cubes: CubeList):
+        """Replace the blend_time or forecast_reference_time coord point on cube with the
+        latest value from cubes. Mixed, or missing cubes will raise an error."""
+        try:
+            coord_name = "blend_time"
+            reference_time = max([c.coord(coord_name).points[0] for c in cubes])
+        except CoordinateNotFoundError:
+            coord_name = "forecast_reference_time"
+            reference_time = max([c.coord(coord_name).points[0] for c in cubes])
+        new_coord = cube.coord(coord_name).copy(reference_time)
         cube.replace_coord(new_coord)
 
     @staticmethod
