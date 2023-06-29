@@ -705,38 +705,3 @@ def add_coordinate_to_cube(
     output_cube.transpose(final_dim_order)
 
     return output_cube
-
-
-def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
-    """Update the data in cubes so that the sum of this data is equal to the reference
-    cube. This is done by replacing the data in cubes with a fraction of the data in
-    reference based upon the fraction that each cube contributes to the sum total of
-    data in cubes.
-
-    Args:
-        cubes: Cubelist containing the cubes to be updated.
-        reference: Cube with data which the sum of cubes will be forced to be equal to.
-
-    Returns:
-        Cubelist with length equal to the length of cubes. Each cube in the returned
-        cubelist will have metadata matching the cube in the same position in input
-        cubes, but containing different data.
-    """
-    output = iris.cube.CubeList()
-
-    total = cubes[0].data.copy()
-    if len(cubes) > 1:
-        for cube in cubes[1:]:
-            total += cube.data
-
-    # Where total is zero, set corresponding data in input cubes to one, then update
-    # total. This handles case where all cubes are zero but reference is non-zero.
-    zero_total = total == 0.0
-    for cube in cubes:
-        cube.data[zero_total] = 1.0
-        total[zero_total] += 1.0
-
-    for cube in cubes:
-        output.append(cube.copy(data=reference.data * cube.data / total))
-
-    return output
