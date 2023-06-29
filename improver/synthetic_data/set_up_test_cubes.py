@@ -372,7 +372,8 @@ def set_up_variable_cube(
     spatial_grid: str = "latlon",
     time: datetime = datetime(2017, 11, 10, 4, 0),
     time_bounds: Optional[Tuple[datetime, datetime]] = None,
-    frt: datetime = datetime(2017, 11, 10, 0, 0),
+    frt: Optional[datetime] = None,
+    blend_time: Optional[datetime] = None,
     realizations: Optional[Union[List[float], ndarray]] = None,
     include_scalar_coords: Optional[List[Coord]] = None,
     attributes: Optional[Dict[str, str]] = None,
@@ -407,7 +408,10 @@ def set_up_variable_cube(
         time_bounds:
             Lower and upper bound on time point, if required
         frt:
-            Single cube forecast reference time
+            Single cube forecast reference time - providing a blend_time will mean the cube has no
+            frt. Default value is datetime(2017, 11, 10, 0, 0).
+        blend_time:
+            Single cube blend time - if supplied, frt is not applied.
         realizations:
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 3D).
@@ -432,7 +436,13 @@ def set_up_variable_cube(
     Returns:
         Cube containing a single variable field
     """
-    # construct spatial dimension coordimates
+    if blend_time and frt:
+        raise ValueError(
+            "Refusing to create cube with both forecast_reference_time and blend_time"
+        )
+    if not frt and not blend_time:
+        frt = datetime(2017, 11, 10, 0, 0)
+    # construct spatial dimension coordinates
     ypoints = data.shape[-2]
     xpoints = data.shape[-1]
     y_coord, x_coord = construct_yx_coords(
@@ -448,7 +458,7 @@ def set_up_variable_cube(
     )
 
     # construct list of aux_coords_and_dims
-    scalar_coords = construct_scalar_time_coords(time, time_bounds, frt)
+    scalar_coords = construct_scalar_time_coords(time, time_bounds, frt, blend_time)
     if include_scalar_coords is not None:
         for coord in include_scalar_coords:
             scalar_coords.append((coord, None))

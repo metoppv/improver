@@ -153,10 +153,14 @@ class Test_construct_yx_coords(IrisTest):
 class Test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
 
-    def test_basic(self, ref_time_coord="forecast_reference_time", ref_time_kword="frt"):
+    def test_basic(
+        self, ref_time_coord="forecast_reference_time", ref_time_kword="frt"
+    ):
         """Test times can be set"""
         coord_dims = construct_scalar_time_coords(
-            datetime(2017, 12, 1, 14, 0), None, **{ref_time_kword: datetime(2017, 12, 1, 9, 0)}
+            datetime(2017, 12, 1, 14, 0),
+            None,
+            **{ref_time_kword: datetime(2017, 12, 1, 9, 0)},
         )
         time_coords = [item[0] for item in coord_dims]
 
@@ -188,7 +192,10 @@ class Test_construct_scalar_time_coords(IrisTest):
         """Test if blend_time AND frt are supplied, and are different
         (forecast_period should be constructed from frt)"""
         coord_dims = construct_scalar_time_coords(
-            datetime(2017, 12, 1, 14, 0), None, datetime(2017, 12, 1, 9, 0), datetime(2017, 12, 1, 10, 0)
+            datetime(2017, 12, 1, 14, 0),
+            None,
+            datetime(2017, 12, 1, 9, 0),
+            datetime(2017, 12, 1, 10, 0),
         )
         time_coords = [item[0] for item in coord_dims]
 
@@ -347,6 +354,20 @@ class Test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord("forecast_period").points[0], 10800)
         self.assertFalse(result.coords("time", dim_coords=True))
 
+    def test_blend_time(self):
+        """Test use of blend_time instead of forecast reference time"""
+        expected_time = datetime(2018, 3, 1, 12, 0)
+        expected_frt = datetime(2018, 3, 1, 9, 0)
+        result = set_up_variable_cube(
+            self.data, time=expected_time, blend_time=expected_frt
+        )
+        time_point = iris_time_to_datetime(result.coord("time"))[0]
+        self.assertEqual(time_point, expected_time)
+        frt_point = iris_time_to_datetime(result.coord("blend_time"))[0]
+        self.assertEqual(frt_point, expected_frt)
+        self.assertEqual(result.coord("forecast_period").points[0], 10800)
+        self.assertFalse(result.coords("time", dim_coords=True))
+
     def test_height_levels(self):
         """Test height coordinate is added"""
         height_levels = [1.5, 3.0, 4.5]
@@ -391,6 +412,18 @@ class Test_set_up_variable_cube(IrisTest):
         """Test specific realization values"""
         result = set_up_variable_cube(self.data_3d, realizations=np.array([0, 3, 4]))
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 3, 4]))
+
+    def test_error_frt_and_blend_time(self):
+        """Test error is raised if both frt and blend_time are supplied"""
+        ref_time = datetime(2018, 3, 1, 9, 0)
+        msg = "Refusing to create cube with both forecast_reference_time and blend_time"
+        with self.assertRaisesRegex(ValueError, msg):
+            set_up_variable_cube(
+                self.data,
+                time=datetime(2018, 3, 1, 12, 0),
+                frt=ref_time,
+                blend_time=ref_time,
+            )
 
     def test_error_unmatched_realizations(self):
         """Test error is raised if the realizations provided do not match the
