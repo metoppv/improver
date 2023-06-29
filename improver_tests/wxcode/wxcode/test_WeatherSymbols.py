@@ -60,7 +60,7 @@ class Test_WXCode(IrisTest):
         """Set up cubes and constraints required for Weather Symbols."""
 
         time = dt(2017, 10, 10, 12, 0)
-        blend_times = (dt(2017, 10, 9, h, 0) for h in range(12))
+        blend_times = (dt(2017, 10, 9, h, 0) for h in range(12, 0, -1))
 
         thresholds = np.array(
             [8.33333333e-09, 2.77777778e-08, 2.77777778e-07], dtype=np.float32
@@ -1511,7 +1511,7 @@ class Test_process(Test_WXCode):
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
         self.assertEqual(
-            result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 11, 0)
+            result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 12, 0)
         )
 
     def test_day_night(self):
