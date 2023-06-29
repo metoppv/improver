@@ -178,8 +178,11 @@ def _create_time_point(time: datetime) -> int:
 
 
 def construct_scalar_time_coords(
-    time: datetime, time_bounds: Optional[List[datetime]], frt: datetime,
-) -> List[Tuple[DimCoord, bool]]:
+    time: datetime,
+    time_bounds: Optional[List[datetime]],
+    frt: Optional[datetime] = None,
+    blend_time: Optional[datetime] = None,
+) -> List[Tuple[DimCoord, None]]:
     """
     Construct scalar time coordinates as aux_coord list
 
@@ -189,7 +192,9 @@ def construct_scalar_time_coords(
         time_bounds:
             Lower and upper bound on time point, if required
         frt:
-            Single forecast reference time point
+            Single forecast reference time point. Either this or blend_time is required.
+        blend_time:
+            Single blend time point. Either this or frt is required. Both may be supplied.
 
     Returns:
         List of iris.coords.DimCoord instances with the associated "None"
@@ -197,12 +202,20 @@ def construct_scalar_time_coords(
     """
     # generate time coordinate points
     time_point_seconds = _create_time_point(time)
-    frt_point_seconds = _create_time_point(frt)
+    if frt:
+        reference_point_seconds = _create_time_point(frt)
+    elif blend_time:
+        reference_point_seconds = _create_time_point(blend_time)
+    else:
+        raise ValueError(
+            "Cannot create forecast_period without either a forecast reference time "
+            "or a blend time."
+        )
 
     fp_coord_spec = TIME_COORDS["forecast_period"]
-    if time_point_seconds < frt_point_seconds:
+    if time_point_seconds < reference_point_seconds:
         raise ValueError("Cannot set up cube with negative forecast period")
-    fp_point_seconds = (time_point_seconds - frt_point_seconds).astype(
+    fp_point_seconds = (time_point_seconds - reference_point_seconds).astype(
         fp_coord_spec.dtype
     )
 
@@ -218,7 +231,7 @@ def construct_scalar_time_coords(
                 )
             )
         fp_bounds = np.array(
-            [[bounds[0] - frt_point_seconds, bounds[1] - frt_point_seconds]]
+            [[bounds[0] - reference_point_seconds, bounds[1] - reference_point_seconds]]
         ).astype(fp_coord_spec.dtype)
     else:
         bounds = None
@@ -228,16 +241,26 @@ def construct_scalar_time_coords(
     time_coord = DimCoord(
         time_point_seconds, "time", bounds=bounds, units=TIME_COORDS["time"].units
     )
-    frt_coord = DimCoord(
-        frt_point_seconds,
-        "forecast_reference_time",
-        units=TIME_COORDS["forecast_reference_time"].units,
-    )
+    coord_dims = [(time_coord, None)]
+    if frt:
+        frt_coord = DimCoord(
+            reference_point_seconds,
+            "forecast_reference_time",
+            units=TIME_COORDS["forecast_reference_time"].units,
+        )
+        coord_dims.append((frt_coord, None))
+    if blend_time:
+        blend_time_coord = DimCoord(
+            _create_time_point(blend_time),
+            long_name="blend_time",
+            units=TIME_COORDS["blend_time"].units,
+        )
+        coord_dims.append((blend_time_coord, None))
     fp_coord = DimCoord(
         fp_point_seconds, "forecast_period", bounds=fp_bounds, units=fp_coord_spec.units
     )
+    coord_dims.append((fp_coord, None))
 
-    coord_dims = [(time_coord, None), (frt_coord, None), (fp_coord, None)]
     return coord_dims
 
 
