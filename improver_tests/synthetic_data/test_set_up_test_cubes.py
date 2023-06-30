@@ -232,6 +232,14 @@ class Test_construct_scalar_time_coords(IrisTest):
                 datetime(2017, 12, 1, 14, 0), None, datetime(2017, 12, 1, 16, 0)
             )
 
+    def test_error_no_reference_time(self):
+        """Test an error is raised if neither a forecast reference time nor blend time are supplied
+        """
+        msg = "Cannot create forecast_period without either a forecast reference time " \
+              "or a blend time."
+        with self.assertRaisesRegex(ValueError, msg):
+            construct_scalar_time_coords(datetime(2017, 12, 1, 14, 0), None)
+
     def test_time_bounds(self):
         """Test creation of time coordinate with bounds"""
         coord_dims = construct_scalar_time_coords(
