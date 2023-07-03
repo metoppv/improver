@@ -33,20 +33,14 @@
 import warnings
 from typing import List, Optional, Union
 
-import numpy as np
 import iris
+import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
-from improver.metadata.probabilistic import (
-    is_probability,
-    is_percentile,
-    find_percentile_coordinate,
-)
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-    ResamplePercentiles,
-)
 from improver.cube_combiner import CubeCombiner
+from improver.metadata.probabilistic import is_probability
+
 
 
 class EnforceConsistentForecasts(PostProcessingPlugin):
