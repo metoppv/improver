@@ -1302,8 +1302,8 @@ class Test_create_symbol_cube(IrisTest):
         cube = set_up_probability_cube(
             data,
             np.array([288, 290, 292], dtype=np.float32),
-            frt=dt(2017, 10, 9, 1, 0),
-            blend_time=dt(2017, 10, 9, 1, 0),
+            frt=dt(2017, 11, 9, 1, 0),
+            blend_time=dt(2017, 11, 9, 1, 0),
         )
         cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
         cube.attributes[
