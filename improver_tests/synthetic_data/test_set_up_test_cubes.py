@@ -358,14 +358,14 @@ class Test_set_up_variable_cube(IrisTest):
     def test_blend_time(self):
         """Test use of blend_time instead of forecast reference time"""
         expected_time = datetime(2018, 3, 1, 12, 0)
-        expected_frt = datetime(2018, 3, 1, 9, 0)
+        expected_reference_time = datetime(2018, 3, 1, 9, 0)
         result = set_up_variable_cube(
-            self.data, time=expected_time, blend_time=expected_frt
+            self.data, time=expected_time, blend_time=expected_reference_time
         )
         time_point = iris_time_to_datetime(result.coord("time"))[0]
         self.assertEqual(time_point, expected_time)
-        frt_point = iris_time_to_datetime(result.coord("blend_time"))[0]
-        self.assertEqual(frt_point, expected_frt)
+        reference_point = iris_time_to_datetime(result.coord("blend_time"))[0]
+        self.assertEqual(reference_point, expected_reference_time)
         self.assertEqual(result.coord("forecast_period").points[0], 10800)
         self.assertFalse(result.coords("time", dim_coords=True))
 
