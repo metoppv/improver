@@ -602,11 +602,15 @@ class WeatherSymbols(BasePlugin):
                 continue
             coords_found.append(coord_name)
         if not coords_found:
-            raise CoordinateNotFoundError(f"Could not find {'or '.join(coord_names)} on all input cubes")
+            raise CoordinateNotFoundError(
+                f"Could not find {'or '.join(coord_names)} on all input cubes"
+            )
         for coord_name in coords_found:
             new_coord = cube.coord(coord_name).copy(reference_time)
             cube.replace_coord(new_coord)
-        cube.replace_coord(forecast_period_coord(cube, force_lead_time_calculation=True))
+        cube.replace_coord(
+            forecast_period_coord(cube, force_lead_time_calculation=True)
+        )
 
     @staticmethod
     def compare_array_to_threshold(

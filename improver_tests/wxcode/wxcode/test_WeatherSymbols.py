@@ -74,7 +74,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         data_sleet = np.zeros((3, 3, 3), dtype=np.float32)
@@ -86,7 +86,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         data_rain = np.array(
@@ -105,7 +105,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
@@ -117,7 +117,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         blend_time = next(blend_times)
@@ -128,7 +128,7 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
@@ -147,7 +147,7 @@ class Test_WXCode(IrisTest):
             threshold_units="1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         thresholds = np.array([0.85], dtype=np.float32)
@@ -162,7 +162,7 @@ class Test_WXCode(IrisTest):
             threshold_units="1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
@@ -182,7 +182,7 @@ class Test_WXCode(IrisTest):
             spp__relative_to_threshold="below",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         thresholds = np.array([0.0], dtype=np.float32)
@@ -198,7 +198,7 @@ class Test_WXCode(IrisTest):
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         hail = set_up_probability_cube(
@@ -209,7 +209,7 @@ class Test_WXCode(IrisTest):
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
         blend_time = next(blend_times)
         thresholds = np.array([2.77777778e-07], dtype=np.float32)
@@ -221,7 +221,7 @@ class Test_WXCode(IrisTest):
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         thresholds = np.array([1.0], dtype=np.float32)
@@ -236,7 +236,7 @@ class Test_WXCode(IrisTest):
             threshold_units="1",
             time=time,
             blend_time=blend_time,
-            frt=blend_time
+            frt=blend_time,
         )
 
         self.cubes = iris.cube.CubeList(
