@@ -38,8 +38,14 @@ import iris
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
-from improver.metadata.probabilistic import is_probability, is_percentile, find_percentile_coordinate
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import ResamplePercentiles
+from improver.metadata.probabilistic import (
+    is_probability,
+    is_percentile,
+    find_percentile_coordinate,
+)
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    ResamplePercentiles,
+)
 from improver.cube_combiner import CubeCombiner
 
 
@@ -248,9 +254,7 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
 
 
 def normalise_to_reference(
-        cubes: CubeList,
-        reference: Cube,
-        ignore_zero_total: bool = False
+    cubes: CubeList, reference: Cube, ignore_zero_total: bool = False
 ) -> CubeList:
     """Update the data in cubes so that the sum of this data is equal to the reference
     cube. This is done by replacing the data in cubes with a fraction of the data in

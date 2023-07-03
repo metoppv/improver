@@ -127,7 +127,7 @@ def test_zero_total(input_cubes, reference_cube, expected_cubes, ignore_zero_tot
 
     if not ignore_zero_total:
         with pytest.raises(
-                ValueError, match="There are instances where the total of input"
+            ValueError, match="There are instances where the total of input"
         ):
             normalise_to_reference(input_cubes, reference_cube, ignore_zero_total)
     else:
@@ -155,9 +155,7 @@ def test_single_input_cube(input_cubes, reference_cube, expected_cubes):
 def test_n_coords_mismatch(input_cubes, reference_cube):
     reference_cube = reference_cube[0, :, :]
 
-    with pytest.raises(
-            ValueError, match="The number of dimensions in input cubes"
-    ):
+    with pytest.raises(ValueError, match="The number of dimensions in input cubes"):
         normalise_to_reference(input_cubes, reference_cube)
 
 
@@ -165,7 +163,7 @@ def test_coord_values_mismatch(input_cubes, reference_cube):
     reference_cube.coord("percentile").points = np.array([50.0, 70.0], dtype=np.float32)
 
     with pytest.raises(
-            ValueError, match="The dimension coordinates on the input cubes"
+        ValueError, match="The dimension coordinates on the input cubes"
     ):
         normalise_to_reference(input_cubes, reference_cube)
 
@@ -174,6 +172,6 @@ def test_coord_names_mismatch(input_cubes, reference_cube):
     input_cubes[0].coord("percentile").rename("realizations")
 
     with pytest.raises(
-            ValueError, match="The dimension coordinates on the input cubes"
+        ValueError, match="The dimension coordinates on the input cubes"
     ):
         normalise_to_reference(input_cubes, reference_cube)

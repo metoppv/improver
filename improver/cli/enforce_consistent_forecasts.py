@@ -95,7 +95,9 @@ def process(
     """
     from iris.cube import CubeList
 
-    from improver.utilities.forecast_reference_enforcement import EnforceConsistentForecasts
+    from improver.utilities.forecast_reference_enforcement import (
+        EnforceConsistentForecasts,
+    )
     from improver.utilities.flatten import flatten
 
     if (
