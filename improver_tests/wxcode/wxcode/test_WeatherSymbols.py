@@ -1424,9 +1424,9 @@ class Test_create_symbol_cube(IrisTest):
         result = plugin.create_symbol_cube([self.cube])
         self.assertEqual(result.attributes["title"], target_title)
 
-    def test_blend_time_multiple_inputs(self):
-        """Test cube is constructed with appropriate blend_time with multiple
-        source cubes. Newest blend_time should be used."""
+    def test_reference_time_multiple_inputs(self):
+        """Test cube is constructed with appropriate reference times with multiple
+        source cubes. Newest reference time should be used."""
         self.plugin.template_cube = self.cube
         cube1 = self.cube.copy()
         for coord_name in ["blend_time", "forecast_reference_time"]:
@@ -1436,10 +1436,15 @@ class Test_create_symbol_cube(IrisTest):
 
         result = self.plugin.create_symbol_cube([self.cube, cube1])
 
+        for coord_name in ["blend_time", "forecast_reference_time"]:
+            self.assertEqual(
+                result.coord(coord_name).cell(0).point, dt(2017, 11, 9, 2, 0),
+            )
+            self.assertEqual(len(result.coord(coord_name).points), 1)
         self.assertEqual(
-            result.coord("blend_time").cell(0).point, dt(2017, 11, 9, 2, 0),
+            result.coord("forecast_period").points[0], 26 * 3600,
         )
-        self.assertEqual(len(result.coord("blend_time").points), 1)
+        self.assertEqual(len(result.coord("forecast_period").points), 1)
 
     def test_error_blend_and_frt_inputs(self):
         """Test an error is raised if input cubes have a mix of blend_time or
