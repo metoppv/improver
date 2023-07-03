@@ -42,7 +42,6 @@ from improver.cube_combiner import CubeCombiner
 from improver.metadata.probabilistic import is_probability
 
 
-
 class EnforceConsistentForecasts(PostProcessingPlugin):
     """Enforce that the forecasts provided are no less than, no greater than, or between
     some linear function(s) of a reference forecast. For example, wind speed forecasts
