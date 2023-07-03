@@ -154,13 +154,13 @@ class Test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
 
     def basic_test(
-        self, ref_time_coord="forecast_reference_time", ref_time_kword="frt"
+        self, ref_time_coord=("forecast_reference_time",), ref_time_kword=("frt",)
     ):
-        """Common method for test_basic and test_blend_time"""
+        """Common method for test_basic, test_blend_time and test_blend_time_and_frt"""
         coord_dims = construct_scalar_time_coords(
             datetime(2017, 12, 1, 14, 0),
             None,
-            **{ref_time_kword: datetime(2017, 12, 1, 9, 0)},
+            **{k: datetime(2017, 12, 1, 9, 0) for k in ref_time_kword},
         )
         time_coords = [item[0] for item in coord_dims]
 
@@ -171,18 +171,20 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coords[0])[0], datetime(2017, 12, 1, 14, 0)
         )
-        self.assertEqual(time_coords[1].name(), ref_time_coord)
-        self.assertEqual(
-            iris_time_to_datetime(time_coords[1])[0], datetime(2017, 12, 1, 9, 0)
-        )
-        self.assertEqual(time_coords[2].name(), "forecast_period")
-        self.assertEqual(time_coords[2].points[0], 3600 * 5)
+        for i, coord_name in enumerate(ref_time_coord):
+            self.assertEqual(time_coords[i + 1].name(), coord_name)
+            self.assertEqual(
+                iris_time_to_datetime(time_coords[i + 1])[0],
+                datetime(2017, 12, 1, 9, 0),
+            )
+        self.assertEqual(time_coords[-1].name(), "forecast_period")
+        self.assertEqual(time_coords[-1].points[0], 3600 * 5)
 
-        for crd in time_coords[:2]:
+        for crd in time_coords[:-1]:
             self.assertEqual(crd.dtype, np.int64)
             self.assertEqual(crd.units, "seconds since 1970-01-01 00:00:00")
-        self.assertEqual(time_coords[2].units, "seconds")
-        self.assertEqual(time_coords[2].dtype, np.int32)
+        self.assertEqual(time_coords[-1].units, "seconds")
+        self.assertEqual(time_coords[-1].dtype, np.int32)
 
     def test_basic(self):
         """Test times can be set"""
@@ -190,7 +192,14 @@ class Test_construct_scalar_time_coords(IrisTest):
 
     def test_blend_time(self):
         """Test if blend_time is supplied instead of frt"""
-        self.basic_test(ref_time_coord="blend_time", ref_time_kword="blend_time")
+        self.basic_test(ref_time_coord=["blend_time"], ref_time_kword=["blend_time"])
+
+    def test_blend_time_and_frt(self):
+        """Test if blend_time and frt are supplied"""
+        self.basic_test(
+            ref_time_coord=["forecast_reference_time", "blend_time"],
+            ref_time_kword=["frt", "blend_time"],
+        )
 
     def test_error_frt_and_blend_time_differ(self):
         """Test error is raised if both frt and blend_time are supplied but with different values"""
