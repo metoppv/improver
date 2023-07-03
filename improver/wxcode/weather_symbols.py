@@ -49,6 +49,7 @@ from improver.blending.utilities import (
     store_record_run_as_coord,
 )
 from improver.metadata.amend import update_model_id_attr_attribute
+from improver.metadata.forecast_times import forecast_period_coord
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
@@ -590,16 +591,22 @@ class WeatherSymbols(BasePlugin):
 
     @staticmethod
     def _set_reference_time(cube: Cube, cubes: CubeList):
-        """Replace the blend_time or forecast_reference_time coord point on cube with the
-        latest value from cubes. Mixed, or missing cubes will raise an error."""
-        try:
-            coord_name = "blend_time"
-            reference_time = max([c.coord(coord_name).points[0] for c in cubes])
-        except CoordinateNotFoundError:
-            coord_name = "forecast_reference_time"
-            reference_time = max([c.coord(coord_name).points[0] for c in cubes])
-        new_coord = cube.coord(coord_name).copy(reference_time)
-        cube.replace_coord(new_coord)
+        """Replace the forecast_reference_time and/or blend_time if present coord point on cube
+        with the latest value from cubes. Forecast_period is also updated."""
+        coord_names = ["forecast_reference_time", "blend_time"]
+        coords_found = []
+        for coord_name in coord_names:
+            try:
+                reference_time = max([c.coord(coord_name).points[0] for c in cubes])
+            except CoordinateNotFoundError:
+                continue
+            coords_found.append(coord_name)
+        if not coords_found:
+            raise CoordinateNotFoundError(f"Could not find {'or '.join(coord_names)} on all input cubes")
+        for coord_name in coords_found:
+            new_coord = cube.coord(coord_name).copy(reference_time)
+            cube.replace_coord(new_coord)
+        cube.replace_coord(forecast_period_coord(cube, force_lead_time_calculation=True))
 
     @staticmethod
     def compare_array_to_threshold(

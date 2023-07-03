@@ -66,24 +66,27 @@ class Test_WXCode(IrisTest):
             [8.33333333e-09, 2.77777778e-08, 2.77777778e-07], dtype=np.float32
         )
         data_snow = np.zeros((3, 3, 3), dtype=np.float32)
+        blend_time = next(blend_times)
         snowfall_rate = set_up_probability_cube(
             data_snow,
             thresholds,
             variable_name="lwe_snowfall_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         data_sleet = np.zeros((3, 3, 3), dtype=np.float32)
-
+        blend_time = next(blend_times)
         sleetfall_rate = set_up_probability_cube(
             data_sleet,
             thresholds,
             variable_name="lwe_sleetfall_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         data_rain = np.array(
@@ -94,34 +97,38 @@ class Test_WXCode(IrisTest):
             ],
             dtype=np.float32,
         )
-
+        blend_time = next(blend_times)
         rainfall_rate = set_up_probability_cube(
             data_rain,
             thresholds,
             variable_name="rainfall_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         data_precip = np.maximum.reduce([data_snow, data_sleet, data_rain])
-
+        blend_time = next(blend_times)
         precip_rate = set_up_probability_cube(
             data_precip,
             thresholds,
             variable_name="lwe_precipitation_rate",
             threshold_units="m s-1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
+        blend_time = next(blend_times)
         precip_vicinity = set_up_probability_cube(
             data_precip,
             thresholds,
             variable_name="lwe_precipitation_rate_in_vicinity",
             threshold_units="m s-1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         thresholds = np.array([0.1875, 0.8125], dtype=np.float32)
@@ -132,27 +139,30 @@ class Test_WXCode(IrisTest):
             ],
             dtype=np.float32,
         )
-
+        blend_time = next(blend_times)
         cloud = set_up_probability_cube(
             data_cloud,
             thresholds,
             variable_name="low_and_medium_type_cloud_area_fraction",
             threshold_units="1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         thresholds = np.array([0.85], dtype=np.float32)
         data_cld_low = np.array(
             [[0.0, 0.0, 0.0], [0.0, 0.0, 1.0], [0.0, 0.0, 0.0]], dtype=np.float32
         ).reshape((1, 3, 3))
+        blend_time = next(blend_times)
         cloud_low = set_up_probability_cube(
             data_cld_low,
             thresholds,
             variable_name="low_type_cloud_area_fraction",
             threshold_units="1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         thresholds = np.array([1000.0, 5000.0], dtype=np.float32)
@@ -163,6 +173,7 @@ class Test_WXCode(IrisTest):
             ],
             dtype=np.float32,
         )
+        blend_time = next(blend_times)
         visibility = set_up_probability_cube(
             data_vis,
             thresholds,
@@ -170,14 +181,15 @@ class Test_WXCode(IrisTest):
             threshold_units="m",
             spp__relative_to_threshold="below",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         thresholds = np.array([0.0], dtype=np.float32)
         data_lightning = np.zeros((1, 3, 3), dtype=np.float32)
         data_lightning[0, 0, 0] = 0.25
         data_lightning[0, 0, 1] = 0.30
-
+        blend_time = next(blend_times)
         lightning = set_up_probability_cube(
             data_lightning,
             thresholds,
@@ -185,7 +197,8 @@ class Test_WXCode(IrisTest):
             threshold_units="m-2",
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         hail = set_up_probability_cube(
@@ -195,9 +208,10 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
-
+        blend_time = next(blend_times)
         thresholds = np.array([2.77777778e-07], dtype=np.float32)
         precipmaxrate = set_up_probability_cube(
             np.zeros((1, 3, 3), dtype=np.float32),
@@ -206,21 +220,23 @@ class Test_WXCode(IrisTest):
             threshold_units="m s-1",
             time=time,
             time_bounds=[time - timedelta(hours=1), time],
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         thresholds = np.array([1.0], dtype=np.float32)
         data_shower_condition = np.array(
             [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
         )
-
+        blend_time = next(blend_times)
         shower_condition = set_up_probability_cube(
             data_shower_condition,
             thresholds,
             variable_name="shower_condition",
             threshold_units="1",
             time=time,
-            blend_time=next(blend_times),
+            blend_time=blend_time,
+            frt=blend_time
         )
 
         self.cubes = iris.cube.CubeList(
@@ -1283,19 +1299,17 @@ class Test_create_symbol_cube(IrisTest):
             ],
             dtype=np.float32,
         )
-        cubes = []
-        for key in ("frt", "blend_time"):
-            cube = set_up_probability_cube(
-                data,
-                np.array([288, 290, 292], dtype=np.float32),
-                **{key: dt(2017, 10, 9, 1, 0)},
-            )
-            cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
-            cube.attributes[
-                "mosg__model_run"
-            ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
-            cubes.append(cube)
-        self.cube_frt, self.cube = cubes
+        cube = set_up_probability_cube(
+            data,
+            np.array([288, 290, 292], dtype=np.float32),
+            frt=dt(2017, 10, 9, 1, 0),
+            blend_time=dt(2017, 10, 9, 1, 0),
+        )
+        cube.attributes["mosg__model_configuration"] = "uk_det uk_ens"
+        cube.attributes[
+            "mosg__model_run"
+        ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
+        self.cube = cube
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
         self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
@@ -1415,9 +1429,10 @@ class Test_create_symbol_cube(IrisTest):
         source cubes. Newest blend_time should be used."""
         self.plugin.template_cube = self.cube
         cube1 = self.cube.copy()
-        new_coord = cube1.coord("blend_time")
-        new_coord = new_coord.copy(new_coord.points + 3600)
-        cube1.replace_coord(new_coord)
+        for coord_name in ["blend_time", "forecast_reference_time"]:
+            new_coord = cube1.coord(coord_name)
+            new_coord = new_coord.copy(new_coord.points + 3600)
+            cube1.replace_coord(new_coord)
 
         result = self.plugin.create_symbol_cube([self.cube, cube1])
 
@@ -1426,32 +1441,17 @@ class Test_create_symbol_cube(IrisTest):
         )
         self.assertEqual(len(result.coord("blend_time").points), 1)
 
-    def test_frt_multiple_inputs(self):
-        """Test cube is constructed with appropriate forecast_reference_time with multiple
-        source cubes. Newest forecast_reference_time should be used."""
-        self.plugin.template_cube = self.cube_frt
-        cube1 = self.cube_frt.copy()
-        new_coord = cube1.coord("forecast_reference_time")
-        new_coord = new_coord.copy(new_coord.points + 3600)
-        cube1.replace_coord(new_coord)
-
-        result = self.plugin.create_symbol_cube([self.cube_frt, cube1])
-
-        self.assertEqual(
-            result.coord("forecast_reference_time").cell(0).point,
-            dt(2017, 10, 9, 2, 0),
-        )
-        self.assertEqual(len(result.coord("forecast_reference_time").points), 1)
-
     def test_error_blend_and_frt_inputs(self):
-        """Test cube is constructed with appropriate forecast_reference_time with multiple
-        source cubes. Newest forecast_reference_time should be used."""
+        """Test an error is raised if input cubes have a mix of blend_time or
+        forecast_reference_time"""
+        cube1 = self.cube.copy()
+        self.cube.remove_coord("forecast_reference_time")
+        cube1.remove_coord("blend_time")
         self.plugin.template_cube = self.cube
 
-        msg = "Expected to find exactly 1 forecast_reference_time coordinate, but found none."
-
+        msg = "Could not find"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            self.plugin.create_symbol_cube([self.cube_frt, self.cube])
+            self.plugin.create_symbol_cube([self.cube, cube1])
 
 
 class Test_compare_to_threshold(IrisTest):

@@ -408,10 +408,9 @@ def set_up_variable_cube(
         time_bounds:
             Lower and upper bound on time point, if required
         frt:
-            Single cube forecast reference time - providing a blend_time will mean the cube has no
-            frt. Default value is datetime(2017, 11, 10, 0, 0).
+            Single cube forecast reference time. Default value is datetime(2017, 11, 10, 0, 0).
         blend_time:
-            Single cube blend time - if supplied, frt is not applied.
+            Single cube blend time
         realizations:
             List of forecast realizations.  If not present, taken from the
             leading dimension of the input data array (if 3D).
@@ -437,9 +436,11 @@ def set_up_variable_cube(
         Cube containing a single variable field
     """
     if blend_time and frt:
-        raise ValueError(
-            "Refusing to create cube with both forecast_reference_time and blend_time"
-        )
+        if blend_time != frt:
+            raise ValueError(
+                "Refusing to create cube with different values for forecast_reference_time and "
+                "blend_time"
+            )
     if not frt and not blend_time:
         frt = datetime(2017, 11, 10, 0, 0)
     # construct spatial dimension coordinates

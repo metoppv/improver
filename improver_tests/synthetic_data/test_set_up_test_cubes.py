@@ -423,16 +423,18 @@ class Test_set_up_variable_cube(IrisTest):
         result = set_up_variable_cube(self.data_3d, realizations=np.array([0, 3, 4]))
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 3, 4]))
 
-    def test_error_frt_and_blend_time(self):
-        """Test error is raised if both frt and blend_time are supplied"""
-        ref_time = datetime(2018, 3, 1, 9, 0)
-        msg = "Refusing to create cube with both forecast_reference_time and blend_time"
+    def test_error_frt_and_blend_time_differ(self):
+        """Test error is raised if both frt and blend_time are supplied but with different values"""
+        msg = (
+            "Refusing to create cube with different values for forecast_reference_time and "
+            "blend_time"
+        )
         with self.assertRaisesRegex(ValueError, msg):
             set_up_variable_cube(
                 self.data,
                 time=datetime(2018, 3, 1, 12, 0),
-                frt=ref_time,
-                blend_time=ref_time,
+                frt=datetime(2018, 3, 1, 9, 0),
+                blend_time=datetime(2018, 3, 1, 8, 0),
             )
 
     def test_error_unmatched_realizations(self):
