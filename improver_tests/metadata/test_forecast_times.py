@@ -85,8 +85,9 @@ class Test_forecast_period_coord(IrisTest):
 
     def test_values_force_lead_time_calculation(self):
         """Test that the data within the coord is as expected with the
-        expected units, when the input cube has a forecast_period coordinate.
+        expected units and copied attributes, when the input cube has a forecast_period coordinate.
         """
+        self.cube.coord("forecast_period").attributes["message"] = "may include kittens"
         fp_coord = self.cube.coord("forecast_period").copy()
         # put incorrect data into the existing coordinate so we can test it is
         # correctly recalculated
@@ -95,6 +96,7 @@ class Test_forecast_period_coord(IrisTest):
         self.assertArrayEqual(result.points, fp_coord.points)
         self.assertEqual(result.units, fp_coord.units)
         self.assertEqual(result.dtype, fp_coord.dtype)
+        self.assertEqual(result.attributes, fp_coord.attributes)
 
     def test_exception_insufficient_data(self):
         """Test that a CoordinateNotFoundError exception is raised if forecast

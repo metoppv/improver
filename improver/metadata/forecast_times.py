@@ -71,7 +71,9 @@ def forecast_period_coord(
         it will be an AuxCoord.
     """
     create_dim_coord = False
+    coord_attributes = {}
     if cube.coords("forecast_period"):
+        coord_attributes = cube.coord("forecast_period").attributes
         if isinstance(cube.coord("forecast_period"), DimCoord):
             create_dim_coord = True
 
@@ -88,6 +90,7 @@ def forecast_period_coord(
             cube.coord("forecast_reference_time"),
             dim_coord=create_dim_coord,
         )
+        result_coord.attributes.update(coord_attributes)
 
     else:
         msg = (
