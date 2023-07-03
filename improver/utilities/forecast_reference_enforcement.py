@@ -247,7 +247,11 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
         return new_forecast
 
 
-def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
+def normalise_to_reference(
+        cubes: CubeList,
+        reference: Cube,
+        ignore_zero_total: bool = False
+) -> CubeList:
     """Update the data in cubes so that the sum of this data is equal to the reference
     cube. This is done by replacing the data in cubes with a fraction of the data in
     reference based upon the fraction that each cube contributes to the sum total of
@@ -256,6 +260,19 @@ def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
     Args:
         cubes: Cubelist containing the cubes to be updated.
         reference: Cube with data which the sum of cubes will be forced to be equal to.
+        ignore_zero_total: If False, an error will be raised if the sum total of data
+            in input_cubes is zero where the reference cube contains a non-zero value.
+            If True, this case will be ignored, leaving the values in the cubelist as
+            zero rather than ensuring their total equals the corresponding value in
+            reference cube.
+
+    Raises:
+        ValueError: If any input cubes have a different number of dimensions to
+            reference, or if the dimension coordinates in any of the input cubes do not
+            match the dimension coordinates in reference.
+        ValueError: If there are instances where the total of the input cubes is zero
+            but the corresponding value in reference is non-zero. This error can be
+            ignored if ignore_zero_total is true.
 
     Returns:
         Cubelist with length equal to the length of cubes. Each cube in the returned
@@ -263,40 +280,73 @@ def normalise_to_reference(cubes: CubeList, reference: Cube) -> CubeList:
         cubes, but containing different data.
     """
     input = cubes.copy()
-    mismatched_percentiles = False
-    if is_percentile(reference):
-        percentile_coord_name = find_percentile_coordinate(reference)
-        for cube in input:
-            mismatched_percentiles = cube.coord(percentile_coord_name) != reference.coord(percentile_coord_name)
-            if mismatched_percentiles:
-                break
 
-    if mismatched_percentiles:
-        reference_percentiles = reference.coord(percentile_coord_name).points.tolist()
-        input_percentiles = []
-        for index, cube in enumerate(input):
-            input_percentiles.append(cube.coord(percentile_coord_name).copy().points.tolist())
-            input[index] = ResamplePercentiles().process(cube, percentiles=reference_percentiles)
+    # check cube compatibility
+    reference_dim_coords = reference.coords(dim_coords=True)
+    n_dims_mismatch = False
+    coord_mismatch = False
+    n_dims = []
+    mismatching_coords = {}
+    for cube in input:
+        cube_dim_coords = cube.coords(dim_coords=True)
+        n_dims.append(len(cube_dim_coords))
+        if len(cube_dim_coords) != len(reference_dim_coords):
+            n_dims_mismatch = True
+        if not n_dims_mismatch:
+            mismatching_coords[cube.name()] = []
+            for dim_coord in cube_dim_coords:
+                try:
+                    reference_coord = reference.coord(dim_coord.name(), dim_coords=True)
+                except iris.exceptions.CoordinateNotFoundError:
+                    coord_mismatch = True
+                    mismatching_coords[cube.name()].append(dim_coord.name())
+                    continue
+                if not dim_coord == reference_coord:
+                    coord_mismatch = True
+                    mismatching_coords[cube.name()].append(dim_coord.name())
+
+    if n_dims_mismatch:
+        msg = (
+            f"The number of dimensions in input cubes are not all the same as the "
+            f"number of dimensions on the reference cube. The number of dimensions in "
+            f"the input cubes were {n_dims}. The number of dimensions in the "
+            f"reference cube was {len(reference_dim_coords)}."
+        )
+        raise ValueError(msg)
+
+    if coord_mismatch:
+        msg = (
+            f"The dimension coordinates on the input cubes and the reference did not "
+            f"all match. The following coordinates were found to differ: "
+            f"{mismatching_coords}."
+        )
+        raise ValueError(msg)
 
     if len(input) == 1:
         total = input[0].copy().data
     else:
         total = CubeCombiner(operation="+").process(input, input[0].name()).data
 
-    # Where total is zero, set corresponding data in input cubes to one, then update
-    # total. This handles case where all cubes are zero but reference is non-zero.
-    zero_total = total == 0.0
-    for cube in input:
-        cube.data[zero_total] = 1.0
-        total[zero_total] += 1.0
+    # check for zeroes in total when reference is non-zero
+    total_zeroes = total == 0.0
+    reference_non_zero = reference.data != 0.0
+    both_true = np.logical_and(total_zeroes, reference_non_zero)
+    if np.any(both_true):
+        if not ignore_zero_total:
+            msg = (
+                "There are instances where the total of input cubes is zero but the "
+                "corresponding value in reference is non-zero. The input cubes cannot "
+                "be updated so that the total equals the value in the reference in "
+                "these instances."
+            )
+            raise ValueError(msg)
+
+    # update total where zero to avoid dividing by zero later.
+    total[total_zeroes] = 1.0
 
     output = iris.cube.CubeList()
     for index, cube in enumerate(input):
         output_cube = cube.copy(data=reference.data * cube.data / total)
-        if mismatched_percentiles:
-            output_cube = ResamplePercentiles().process(
-                output_cube, percentiles=input_percentiles[index]
-            )
         output.append(output_cube)
 
     return output
