@@ -40,9 +40,10 @@ def process(
     *cubes: cli.inputcube,
     operation="+",
     new_name=None,
-    broadcast_to_threshold=False,
+    broadcast=None,
     minimum_realizations=None,
     cell_method_coordinate=None,
+    expand_bound=True,
 ):
     r"""Combine input cubes.
 
@@ -60,9 +61,10 @@ def process(
             +, -, \*, add, subtract, multiply, min, max, mean
         new_name (str):
             New name for the resulting dataset.
-        broadcast_to_threshold (bool):
-            If True, broadcast input cubes to the threshold coord prior to combining -
-            a threshold coord must already exist on the first input cube.
+        broadcast (str):
+            If specified, the input cubes will be broadcast over the coordinate name provided. If
+            "threshold" is provided the plugin will try to find a threshold coordinate on the
+            probability cube.
         minimum_realizations (int):
             If specified, the input cubes will be filtered to ensure that only realizations that
             include all available lead times are combined. If the number of realizations that
@@ -70,7 +72,8 @@ def process(
         cell_method_coordinate (str):
             If specified, a cell method is added to the output with the coordinate
             provided. This is only available for max, min and mean operations.
-
+        expand_bound (bool):
+            If True then coord bounds will be extended to represent all cubes being combined.
     Returns:
         result (iris.cube.Cube):
             Returns a cube with the combined data.
@@ -81,8 +84,9 @@ def process(
 
     return Combine(
         operation,
-        broadcast_to_threshold=broadcast_to_threshold,
+        broadcast=broadcast,
         minimum_realizations=minimum_realizations,
         new_name=new_name,
         cell_method_coordinate=cell_method_coordinate,
+        expand_bound=expand_bound,
     )(CubeList(cubes))
