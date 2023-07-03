@@ -153,10 +153,10 @@ class Test_construct_yx_coords(IrisTest):
 class Test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
 
-    def test_basic(
+    def basic_test(
         self, ref_time_coord="forecast_reference_time", ref_time_kword="frt"
     ):
-        """Test times can be set"""
+        """Common method for test_basic and test_blend_time"""
         coord_dims = construct_scalar_time_coords(
             datetime(2017, 12, 1, 14, 0),
             None,
@@ -184,44 +184,26 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(time_coords[2].units, "seconds")
         self.assertEqual(time_coords[2].dtype, np.int32)
 
+    def test_basic(self):
+        """Test times can be set"""
+        self.basic_test()
+
     def test_blend_time(self):
         """Test if blend_time is supplied instead of frt"""
-        self.test_basic(ref_time_coord="blend_time", ref_time_kword="blend_time")
+        self.basic_test(ref_time_coord="blend_time", ref_time_kword="blend_time")
 
-    def test_frt_and_blend_time(self):
-        """Test if blend_time AND frt are supplied, and are different
-        (forecast_period should be constructed from frt)"""
-        coord_dims = construct_scalar_time_coords(
-            datetime(2017, 12, 1, 14, 0),
-            None,
-            datetime(2017, 12, 1, 9, 0),
-            datetime(2017, 12, 1, 10, 0),
+    def test_error_frt_and_blend_time_differ(self):
+        """Test error is raised if both frt and blend_time are supplied but with different values"""
+        msg = (
+            "Refusing to create cube with different values for forecast_reference_time and "
+            "blend_time"
         )
-        time_coords = [item[0] for item in coord_dims]
-
-        for crd in time_coords:
-            self.assertIsInstance(crd, iris.coords.DimCoord)
-
-        self.assertEqual(time_coords[0].name(), "time")
-        self.assertEqual(
-            iris_time_to_datetime(time_coords[0])[0], datetime(2017, 12, 1, 14, 0)
-        )
-        self.assertEqual(time_coords[1].name(), "forecast_reference_time")
-        self.assertEqual(
-            iris_time_to_datetime(time_coords[1])[0], datetime(2017, 12, 1, 9, 0)
-        )
-        self.assertEqual(time_coords[2].name(), "blend_time")
-        self.assertEqual(
-            iris_time_to_datetime(time_coords[2])[0], datetime(2017, 12, 1, 10, 0)
-        )
-        self.assertEqual(time_coords[3].name(), "forecast_period")
-        self.assertEqual(time_coords[3].points[0], 3600 * 5)
-
-        for crd in time_coords[:3]:
-            self.assertEqual(crd.dtype, np.int64)
-            self.assertEqual(crd.units, "seconds since 1970-01-01 00:00:00")
-        self.assertEqual(time_coords[3].units, "seconds")
-        self.assertEqual(time_coords[3].dtype, np.int32)
+        with self.assertRaisesRegex(ValueError, msg):
+            construct_scalar_time_coords(
+                time=datetime(2018, 3, 1, 12, 0),
+                frt=datetime(2018, 3, 1, 9, 0),
+                blend_time=datetime(2018, 3, 1, 8, 0),
+            )
 
     def test_error_negative_fp(self):
         """Test an error is raised if the calculated forecast period is
@@ -422,20 +404,6 @@ class Test_set_up_variable_cube(IrisTest):
         """Test specific realization values"""
         result = set_up_variable_cube(self.data_3d, realizations=np.array([0, 3, 4]))
         self.assertArrayEqual(result.coord("realization").points, np.array([0, 3, 4]))
-
-    def test_error_frt_and_blend_time_differ(self):
-        """Test error is raised if both frt and blend_time are supplied but with different values"""
-        msg = (
-            "Refusing to create cube with different values for forecast_reference_time and "
-            "blend_time"
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            set_up_variable_cube(
-                self.data,
-                time=datetime(2018, 3, 1, 12, 0),
-                frt=datetime(2018, 3, 1, 9, 0),
-                blend_time=datetime(2018, 3, 1, 8, 0),
-            )
 
     def test_error_unmatched_realizations(self):
         """Test error is raised if the realizations provided do not match the

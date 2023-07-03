@@ -179,7 +179,7 @@ def _create_time_point(time: datetime) -> int:
 
 def construct_scalar_time_coords(
     time: datetime,
-    time_bounds: Optional[List[datetime]],
+    time_bounds: Optional[List[datetime]] = None,
     frt: Optional[datetime] = None,
     blend_time: Optional[datetime] = None,
 ) -> List[Tuple[DimCoord, None]]:
@@ -194,12 +194,21 @@ def construct_scalar_time_coords(
         frt:
             Single forecast reference time point. Either this or blend_time is required.
         blend_time:
-            Single blend time point. Either this or frt is required. Both may be supplied.
+            Single blend time point. Either this or frt is required. Both may not be supplied.
 
     Returns:
         List of iris.coords.DimCoord instances with the associated "None"
         dimension (format required by iris.cube.Cube initialisation).
+
+    Raises:
+        ValueError: if differing frt and blend_time are supplied
     """
+    if blend_time and frt:
+        if blend_time != frt:
+            raise ValueError(
+                "Refusing to create cube with different values for forecast_reference_time and "
+                "blend_time"
+            )
     # generate time coordinate points
     time_point_seconds = _create_time_point(time)
     if frt:
@@ -435,12 +444,6 @@ def set_up_variable_cube(
     Returns:
         Cube containing a single variable field
     """
-    if blend_time and frt:
-        if blend_time != frt:
-            raise ValueError(
-                "Refusing to create cube with different values for forecast_reference_time and "
-                "blend_time"
-            )
     if not frt and not blend_time:
         frt = datetime(2017, 11, 10, 0, 0)
     # construct spatial dimension coordinates
