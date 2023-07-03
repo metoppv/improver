@@ -1437,7 +1437,7 @@ class Test_create_symbol_cube(IrisTest):
         result = self.plugin.create_symbol_cube([self.cube, cube1])
 
         self.assertEqual(
-            result.coord("blend_time").cell(0).point, dt(2017, 10, 9, 2, 0),
+            result.coord("blend_time").cell(0).point, dt(2017, 11, 9, 2, 0),
         )
         self.assertEqual(len(result.coord("blend_time").points), 1)
 
