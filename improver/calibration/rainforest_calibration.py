@@ -49,7 +49,10 @@ from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
-from improver.ensemble_copula_coupling.utilities import interpolate_multiple_rows_same_x
+from improver.ensemble_copula_coupling.utilities import (
+    get_bounds_of_distribution,
+    interpolate_multiple_rows_same_x,
+)
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -505,16 +508,19 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         input_probabilties = probability_CDF.data
         input_probabilties = self._make_decreasing(input_probabilties)
         output_thresholds = np.array(output_thresholds)
+        bounds_data = get_bounds_of_distribution(forecast.name(), forecast.units)
+        lower_bound = bounds_data[0]
         if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(
             self.model_thresholds, output_thresholds
         ):
             output_probabilities = input_probabilties.data
         else:
+            # add lower bound with probability 1
             input_probabilties = np.concatenate(
                 [np.ones((1,) + input_probabilties.shape[1:]), input_probabilties],
                 axis=0,
             )
-            input_thresholds = np.concatenate([[0], self.model_thresholds])
+            input_thresholds = np.concatenate([[lower_bound], self.model_thresholds])
             # reshape to 2 dimensions
             input_probabilties_2d = np.reshape(
                 input_probabilties, (input_probabilties.shape[0], -1)
@@ -527,8 +533,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 (len(output_thresholds),) + input_probabilties.shape[1:],
             )
 
-        # set probability for zero threshold to 1
-        output_probabilities[0, :] = 1
+        # set probability for lower bound to 1
+        if np.isclose(output_thresholds[0], lower_bound):
+            output_probabilities[0, :] = 1
 
         # Make output cube
         aux_coords_and_dims = []
@@ -593,8 +600,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 the exception of the realization dimension. Where the feature_cube contains a
                 realization dimension this is expected to be consistent, otherwise the cube will
                 be broadcast along the realization dimension.
-            output_threhsolds:
-                Set of output threhsolds.
+            output_thresholds:
+                Set of output thresholds.
         Returns:
             The calibrated forecast cube.
 
