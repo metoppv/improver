@@ -40,7 +40,6 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
 
-import cf_units as unit
 import iris
 import numpy as np
 from iris.analysis import MEAN
@@ -50,7 +49,6 @@ from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
-from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.ensemble_copula_coupling.utilities import interpolate_multiple_rows_same_x
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
@@ -94,8 +92,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             },
         }
 
-        The keys specify the lead times and model threshold values, while the 
-        associated values are the path to the corresponding tree-model objects 
+        The keys specify the lead times and model threshold values, while the
+        associated values are the path to the corresponding tree-model objects
         for that lead time and threshold.
 
         Treelite predictors are used if treelite_runtime is an installed dependency
@@ -192,8 +190,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             },
         }
 
-        The keys specify the lead times and model threshold values, while the 
-        associated values are the path to the corresponding tree-model objects 
+        The keys specify the lead times and model threshold values, while the
+        associated values are the path to the corresponding tree-model objects
         for that lead time and threshold.
         """
         from lightgbm import Booster
@@ -487,8 +485,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self, probability_CDF: Cube, forecast: Cube, output_thresholds: List[float]
     ) -> Cube:
         """
-        Interpolate probilities calculated at model thresholds to extract probabilities at output thresholds
-        for all realizations.
+        Interpolate probilities calculated at model thresholds to extract probabilities
+        at output thresholds for all realizations.
 
         Args:
             probability_CDF:

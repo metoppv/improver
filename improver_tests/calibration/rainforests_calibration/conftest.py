@@ -69,8 +69,8 @@ def model_config(lead_times, thresholds):
     return {
         lead_time: {
             f"{threshold:06.4f}": {
-                "lightgbm_model": f"lightgbm_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",
-                "treelite_model": f"treelite_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.so",
+                "lightgbm_model": f"lightgbm_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
+                "treelite_model": f"treelite_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
             }
             for threshold in thresholds
         }
