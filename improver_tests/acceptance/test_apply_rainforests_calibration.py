@@ -55,11 +55,13 @@ def create_model_config():
         relative_path_model_config_dict = json.load(model_config_json)
 
     absolute_path_model_config_dict = {}
-    for threshold, relative_path in relative_path_model_config_dict.items():
-        absolute_path = relative_path["lightgbm_model"].replace(
-            "./", str(acc.kgo_root()) + "/"
-        )
-        absolute_path_model_config_dict[threshold] = {"lightgbm_model": absolute_path}
+    for lead_time in relative_path_model_config_dict.keys():
+        absolute_path_model_config_dict[lead_time] = {}
+        for threshold, relative_path in relative_path_model_config_dict[lead_time].items():
+            absolute_path = relative_path["lightgbm_model"].replace(
+                "./", str(acc.kgo_root()) + "/"
+            )
+            absolute_path_model_config_dict[lead_time][threshold] = {"lightgbm_model": absolute_path}
 
     return absolute_path_model_config_dict
 
