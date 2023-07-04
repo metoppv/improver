@@ -57,11 +57,15 @@ def create_model_config():
     absolute_path_model_config_dict = {}
     for lead_time in relative_path_model_config_dict.keys():
         absolute_path_model_config_dict[lead_time] = {}
-        for threshold, relative_path in relative_path_model_config_dict[lead_time].items():
+        for threshold, relative_path in relative_path_model_config_dict[
+            lead_time
+        ].items():
             absolute_path = relative_path["lightgbm_model"].replace(
                 "./", str(acc.kgo_root()) + "/"
             )
-            absolute_path_model_config_dict[lead_time][threshold] = {"lightgbm_model": absolute_path}
+            absolute_path_model_config_dict[lead_time][threshold] = {
+                "lightgbm_model": absolute_path
+            }
 
     return absolute_path_model_config_dict
 

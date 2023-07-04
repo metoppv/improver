@@ -570,7 +570,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return probability_cube
 
     def process(
-        self, forecast_cube: Cube, feature_cubes: CubeList, output_thresholds: List, threshold_units: str = None,
+        self,
+        forecast_cube: Cube,
+        feature_cubes: CubeList,
+        output_thresholds: List,
+        threshold_units: str = None,
     ) -> Cube:
         """Apply rainforests calibration to forecast cube.
 
@@ -631,10 +635,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         if threshold_units:
             original_threshold_unit = unit.Unit(threshold_units)
             forecast_unit = forecast_cube.units
-            output_thresholds_in_forecast_units = np.array([
-                original_threshold_unit.convert(x, forecast_unit)
-                for x in output_thresholds
-            ])
+            output_thresholds_in_forecast_units = np.array(
+                [
+                    original_threshold_unit.convert(x, forecast_unit)
+                    for x in output_thresholds
+                ]
+            )
         else:
             output_thresholds_in_forecast_units = np.array(output_thresholds)
 
