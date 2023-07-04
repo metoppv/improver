@@ -58,7 +58,11 @@ class Test_forecast_period_coord(IrisTest):
 
     def setUp(self):
         """Set up a test cube with a forecast period scalar coordinate"""
-        self.cube = set_up_variable_cube(np.ones((1, 3, 3), dtype=np.float32))
+        self.cube = set_up_variable_cube(
+            np.ones((1, 3, 3), dtype=np.float32),
+            frt=datetime(2017, 11, 10, 0, 0),
+            blend_time=datetime(2017, 11, 10, 0, 0),
+        )
 
     def test_basic(self):
         """Test that an iris.coords.DimCoord is returned from a cube with an
@@ -85,27 +89,44 @@ class Test_forecast_period_coord(IrisTest):
 
     def test_values_force_lead_time_calculation(self):
         """Test that the data within the coord is as expected with the
-        expected units and copied attributes, when the input cube has a forecast_period coordinate.
+        expected units and copied attributes, when the input cube has a
+        forecast_period coordinate and either a blend_time, FRT or both
+        and we use the force_lead_time_calculation option.
         """
-        self.cube.coord("forecast_period").attributes["message"] = "may include kittens"
-        fp_coord = self.cube.coord("forecast_period").copy()
-        # put incorrect data into the existing coordinate so we can test it is
-        # correctly recalculated
-        self.cube.coord("forecast_period").points = np.array([-3600], dtype=np.int32)
-        result = forecast_period_coord(self.cube, force_lead_time_calculation=True)
-        self.assertArrayEqual(result.points, fp_coord.points)
-        self.assertEqual(result.units, fp_coord.units)
-        self.assertEqual(result.dtype, fp_coord.dtype)
-        self.assertEqual(result.attributes, fp_coord.attributes)
+        for without_coord in ["blend_time", "forecast_reference_time", ""]:
+            cube = self.cube.copy()
+            if without_coord:
+                cube.remove_coord(without_coord)
+            cube.coord("forecast_period").attributes["message"] = "may include kittens"
+            fp_coord = cube.coord("forecast_period").copy()
+            # put incorrect data into the existing coordinate so we can test it is
+            # correctly recalculated
+            cube.coord("forecast_period").points = np.array([-3600], dtype=np.int32)
+            result = forecast_period_coord(cube, force_lead_time_calculation=True)
+            self.assertArrayEqual(result.points, fp_coord.points)
+            self.assertEqual(result.units, fp_coord.units)
+            self.assertEqual(result.dtype, fp_coord.dtype)
+            self.assertEqual(result.attributes, fp_coord.attributes)
 
     def test_exception_insufficient_data(self):
         """Test that a CoordinateNotFoundError exception is raised if forecast
         period cannot be calculated from the available coordinates
         """
+        self.cube.remove_coord("blend_time")
         self.cube.remove_coord("forecast_reference_time")
         self.cube.remove_coord("forecast_period")
         msg = "The forecast period coordinate is not available"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
+            forecast_period_coord(self.cube)
+
+    def test_exception_mismatching_reference_times(self):
+        """Test that a ValueError exception is raised if both
+        forecast_reference_time and blend_time are present, but with different values.
+        """
+        crd = self.cube.coord("blend_time")
+        self.cube.replace_coord(crd.copy(crd.points + 1))
+        msg = "Reference time coords do not match."
+        with self.assertRaisesRegex(ValueError, msg):
             forecast_period_coord(self.cube)
 
 
