@@ -34,7 +34,6 @@ plugins.
 
 """
 import warnings
-from itertools import product
 from typing import List, Optional, Union
 
 import cf_units as unit
