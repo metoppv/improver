@@ -39,7 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin, PostProcessingPlugin
-from improver.constants import DALR
+from improver.constants import DALR, ELR
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
@@ -50,6 +50,76 @@ from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     get_dim_coord_names,
 )
+
+
+def compute_lapse_rate_adjustment(
+    lapse_rate: np.ndarray, orog_diff: np.ndarray, max_orog_diff_limit: float = 50
+) -> np.ndarray:
+    """Compute the lapse rate adjustment i.e. the lapse rate multiplied by the
+    relevant orographic difference. The lapse rate is assumed to be appropriate for a
+    fixed vertical displacement between the source and destination orographies.
+    If the the vertical displacement is greater than the limit specified,
+    further vertical ascent or descent is assumed to follow the environmental
+    lapse rate (also known as standard atmosphere lapse rate). Note that this is an
+    extension of Sheridan et al., 2018, which applies this vertical displacement limit
+    for positive lapse rates only.
+
+    For the specific case of a deep unresolved valley with a positive lapse rate at
+    the altitude of the source orography, the atmosphere can be imagined to be
+    compartmentalised into two regions. Firstly, a cold pool section that extends below
+    the altitude of the source orography by the value given by the max orography
+    difference specified (70 m in Sheridan et al., 2018) and secondly, a standard
+    atmosphere section for the remaining orographic difference. The total lapse rate
+    adjustment is the sum of the contributions from these two vertical sections.
+
+    References:
+        Sheridan, P., S. Vosper, and S. Smith, 2018: A Physically Based Algorithm for
+        Downscaling Temperature in Complex Terrain. J. Appl. Meteor. Climatol.,
+        57, 1907–1929, https://doi.org/10.1175/JAMC-D-17-0140.1.
+
+    Args:
+        lapse_rate: Array containing lapse rate in units of K/m.
+        orog_diff: Array containing the difference in orography
+            (destination orography minus source orography) in metres.
+        max_orog_diff_limit: Maximum vertical displacement in metres to be corrected
+            using the lapse rate provided. Vertical displacement in excess of this
+            value will be corrected using the environmental lapse rate (also known
+            as standard atmosphere lapse rate). This defaults to 50.
+            Sheridan et al. use 70 m. As lapse rate adjustment could be performed
+            both for gridded data and for site data in sequence, the adjustments
+            could accumulate. To limit the possible cumulative effect from multiple
+            lapse rate corrections, a default lower than 70m has been chosen.
+
+    Returns:
+        The vertical lapse rate adjustment to be applied to correct a
+        temperature forecast in units of K.
+    """
+    orog_diff = np.broadcast_to(orog_diff, lapse_rate.shape).copy()
+    orig_orog_diff = orog_diff.copy()
+
+    # Constraint if the orographic difference is either greater than the max allowed
+    # orographic difference (e.g. an unresolved hilltop) or less than the negative of
+    # the max allowed orographic difference (e.g. an unresolved valley).
+    condition1 = orog_diff > max_orog_diff_limit
+    condition2 = orog_diff < -max_orog_diff_limit
+    orog_diff[condition1] = max_orog_diff_limit
+    orog_diff[condition2] = -max_orog_diff_limit
+    vertical_adjustment = np.multiply(orog_diff, lapse_rate)
+
+    # Compute an additional lapse rate adjustment for points with an absolute
+    # orographic difference greater than the maximum allowed.
+    orig_orog_diff[condition1] = np.clip(
+        orig_orog_diff[condition1] - max_orog_diff_limit, 0, None
+    )
+    orig_orog_diff[condition2] = np.clip(
+        orig_orog_diff[condition2] + max_orog_diff_limit, None, 0
+    )
+
+    # Assume the Environmental Lapse Rate (also known as Standard Atmosphere
+    # Lapse Rate).
+    vertical_adjustment[condition1] += np.multiply(orig_orog_diff[condition1], ELR)
+    vertical_adjustment[condition2] += np.multiply(orig_orog_diff[condition2], ELR)
+    return vertical_adjustment
 
 
 class ApplyGriddedLapseRate(PostProcessingPlugin):
@@ -139,7 +209,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
         ):
             newcube = t_slice.copy()
             newcube.convert_units("K")
-            newcube.data += np.multiply(orog_diff.data, lr_slice.data)
+            newcube.data += compute_lapse_rate_adjustment(lr_slice.data, orog_diff.data)
             adjusted_temperature.append(newcube)
 
         return iris.cube.CubeList(adjusted_temperature).merge_cube()

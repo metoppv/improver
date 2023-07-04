@@ -35,16 +35,20 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
+import pytest
+from iris.coords import CellMethod
 from iris.tests import IrisTest
 
 from improver.metadata.amend import (
     amend_attributes,
     set_history_attribute,
+    update_diagnostic_name,
     update_model_id_attr_attribute,
     update_stage_v110_metadata,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
+    set_up_percentile_cube,
     set_up_probability_cube,
     set_up_variable_cube,
 )
@@ -241,6 +245,53 @@ class Test_update_model_id_attr_attribute(IrisTest):
         msg = "Expected to find mosg__model_configuration attribute on all cubes"
         with self.assertRaisesRegex(AttributeError, msg):
             update_model_id_attr_attribute([self.cube1, self.cube2], self.model_id_attr)
+
+
+@pytest.mark.parametrize("cell_method", (True, False))
+@pytest.mark.parametrize("probability_data", (True, False))
+@pytest.mark.parametrize("in_vicinity", (True, False))
+def test_update_diagnostic_name(cell_method, in_vicinity, probability_data):
+    """Make sure that the update_diagnostic_name method makes the expected changes in the expected
+    situations. Checks that cell_method comments are updated to match the cube name, if present;
+    that "in_vicinity" can be present on the cube name but not the threshold coord name;
+    that both probabilistic and non-probabilistic meta-data are handled correctly."""
+    input_name_suffix = ""
+    if in_vicinity:
+        input_name_suffix = "_in_vicinity"
+    source_name = "lwe_thickness_of_precipitation_amount"
+    if probability_data:
+        cube = set_up_probability_cube(
+            np.zeros((2, 2, 2), dtype=np.float32),
+            [0, 1],
+            f"{source_name}{input_name_suffix}",
+            "mm",
+        )
+    else:
+        cube = set_up_percentile_cube(
+            np.zeros((2, 2, 2), dtype=np.float32),
+            [40, 60],
+            name=f"{source_name}{input_name_suffix}",
+            units="mm",
+        )
+    if cell_method:
+        cube.add_cell_method(CellMethod("mean", "time", comments=f"of {source_name}"))
+    new_base_name = "lwe_thickness_of_precipitation_amount"
+    new_name = f"{new_base_name}_in_variable_vicinity"
+    if probability_data:
+        expected_long_name = f"probability_of_{new_name}_above_threshold"
+        expected_name = new_base_name
+    else:
+        expected_long_name = new_name
+        expected_name = source_name
+    expected_cm_comment = f"of {new_base_name}"
+    update_diagnostic_name(cube, new_name, cube)
+    assert cube.long_name == expected_long_name
+    if probability_data:
+        assert cube.coord(var_name="threshold").name() == expected_name
+    else:
+        assert "threshold" not in [coord.var_name for coord in cube.coords()]
+    if cell_method:
+        assert expected_cm_comment in cube.cell_methods[0].comments
 
 
 if __name__ == "__main__":

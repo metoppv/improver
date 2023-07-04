@@ -286,6 +286,7 @@ class DayNightMask(BasePlugin):
         """ Initial the DayNightMask Object """
         self.night = 0
         self.day = 1
+        self.irregular = False
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -307,6 +308,17 @@ class DayNightMask(BasePlugin):
             on the cube as it is extracted from the first slice.
         """
         slice_coords = [cube.coord(axis="y"), cube.coord(axis="x")]
+
+        # To handle non-orthogonal spatial coordinates, i.e. multiple coordinates
+        # that share the same dimension, as in a spot-forecast.
+        spatial_coords = []
+        for dim in set([cube.coord_dims(crd) for crd in slice_coords]):
+            spatial_coords.append(cube.coords(dimensions=dim)[0])
+
+        if len(spatial_coords) != len(slice_coords):
+            self.irregular = True
+            slice_coords = spatial_coords
+
         if cube.coord("time") in cube.coords(dim_coords=True):
             slice_coords.insert(0, cube.coord("time"))
 
@@ -352,10 +364,15 @@ class DayNightMask(BasePlugin):
         lons = mask_cube.coord("longitude").points
         lats = mask_cube.coord("latitude").points
         terminator_lats = daynight_terminator(lons, day_of_year, utc_hour)
-        lons_zeros = np.zeros_like(lons)
-        lats_zeros = np.zeros_like(lats).reshape(len(lats), 1)
-        lats_on_lon = lats.reshape(len(lats), 1) + lons_zeros
-        terminator_on_lon = lats_zeros + terminator_lats
+        if self.irregular:
+            lats_on_lon = lats
+            terminator_on_lon = terminator_lats
+        else:
+            lons_zeros = np.zeros_like(lons)
+            lats_zeros = np.zeros_like(lats).reshape(len(lats), 1)
+            lats_on_lon = lats.reshape(len(lats), 1) + lons_zeros
+            terminator_on_lon = lats_zeros + terminator_lats
+
         dec = calc_solar_declination(day_of_year)
         if dec > 0.0:
             index = np.where(lats_on_lon >= terminator_on_lon)

@@ -56,7 +56,10 @@ BOUNDS_FOR_ECDF = {
         (0, 1.0), "1"
     ),
     "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas": Bounds(
-        (-300, 20000), "m"
+        (-4000, 20000), "m"
+    ),
+    "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas": Bounds(
+        (-4000, 20000), "m"
     ),
     "high_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
     "low_and_medium_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
@@ -67,6 +70,7 @@ BOUNDS_FOR_ECDF = {
     "lwe_thickness_of_graupel_and_hail_fall_amount": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_precipitation_amount": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_precipitation_amount_in_vicinity": Bounds((0, 0.5), "m"),
+    "lwe_thickness_of_precipitation_amount_in_variable_vicinity": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_sleetfall_amount": Bounds((0, 0.5), "m"),
     "lwe_thickness_of_snowfall_amount": Bounds((0, 0.5), "m"),
     "thickness_of_rainfall_amount": Bounds((0, 0.5), "m"),

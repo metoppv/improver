@@ -28,59 +28,66 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the enforce-consistent-probabilities CLI."""
+"""
+Tests for the blend-with-vicinity-and-rename CLI
+"""
 
 import pytest
 
 from . import acceptance as acc
 
 pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+PRECIP = "lwe_precipitation_rate"
 CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_enforce_consistent_probabilities(tmp_path):
-    """
-    Test enforcing of probabilities between inconsistent cubes.
-    """
-    kgo_dir = acc.kgo_root() / "enforce-consistent-probabilities"
+ATTRIBUTES_PATH = acc.kgo_root() / "blend-with-vicinity-and-rename/attributes.json"
+BLEND_WEIGHTS_PATH = (
+    acc.kgo_root() / "blend-with-vicinity-and-rename/blending_weights.json"
+)
+SOURCE_FILES = ["ncuk.nc", "ukvx.nc", "enukx.nc"]
+SOURCE_DIR = acc.kgo_root() / "blend-with-vicinity-and-rename"
+
+
+@pytest.mark.parametrize(
+    "input_files,kgo_path",
+    ((SOURCE_FILES, "with_nowcast"), (SOURCE_FILES[1:], "without_nowcast")),
+)
+def test_basic(tmp_path, input_files, kgo_path):
+    """Test blend-with-vicinity-and-rename for the case where the vicinity on the
+    input cubes matches (without_nowcast) and where it doesn't (with nowcast)"""
+    kgo_dir = acc.kgo_root() / "blend-with-vicinity-and-rename" / kgo_path
     kgo_path = kgo_dir / "kgo.nc"
-
-    hybrid_cloud = kgo_dir / "hybrid_total_cloud.nc"
-    total_cloud = kgo_dir / "total_cloud.nc"
+    source_files = [SOURCE_DIR / f for f in input_files]
     output_path = tmp_path / "output.nc"
-
     args = [
-        hybrid_cloud,
-        total_cloud,
-        "--ref-name",
-        "probability_of_cloud_area_fraction_above_threshold",
+        "--new-name",
+        "lwe_thickness_of_precipitation_amount_in_variable_vicinity",
+        "--vicinity-radius",
+        "10000",
+        "--coordinate",
+        "model_configuration",
+        "--cycletime",
+        "20230405T1100Z",
+        "--spatial-weights-from-mask",
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
+        "--weighting-coord",
+        "forecast_period",
+        "--weighting-config",
+        BLEND_WEIGHTS_PATH,
+        "--weighting-method",
+        "dict",
+        "--attributes-config",
+        ATTRIBUTES_PATH,
+        "--least-significant-digit",
+        "3",
+        *source_files,
         "--output",
         output_path,
     ]
-
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_too_many_cubes(tmp_path):
-    """
-    Test an error is raised if too many cubes are provided.
-    """
-    kgo_dir = acc.kgo_root() / "enforce-consistent-probabilities"
-
-    hybrid_cloud = kgo_dir / "hybrid_total_cloud.nc"
-    total_cloud = kgo_dir / "total_cloud.nc"
-    output_path = tmp_path / "output.nc"
-
-    args = [
-        hybrid_cloud,
-        hybrid_cloud,
-        total_cloud,
-        "--ref-name",
-        "probability_of_cloud_area_fraction_above_threshold",
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(ValueError, match="Exactly two cubes"):
-        run_cli(args)

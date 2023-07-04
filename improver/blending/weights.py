@@ -357,17 +357,19 @@ class ChooseWeightsLinear(BasePlugin):
             Cube containing the output from the interpolation. This has
             the same shape as "cube", without the x and y dimensions.
         """
+        spatial = [cube.coord(axis="y"), cube.coord(axis="x")]
+
         cubelist = iris.cube.CubeList([])
         for cube_slice, weight in zip(
             cube.slices_over(self.weighting_coord_name), weights
         ):
-            sub_slice = cube_slice[..., 0, 0]
+            sub_slice = next(cube_slice.slices_over(spatial))
             sub_slice.data = np.ones(sub_slice.data.shape) * weight
             cubelist.append(sub_slice)
 
         # re-order dimension coordinates to match input cube
         new_weights_cube = check_cube_coordinates(
-            cube[..., 0, 0], cubelist.merge_cube()
+            next(cube.slices_over(spatial)), cubelist.merge_cube()
         )
 
         # remove all scalar coordinates that are not time-, model- or
@@ -446,7 +448,14 @@ class ChooseWeightsLinear(BasePlugin):
             ]
         else:
             slice_list = [cube.coord(axis="y"), cube.coord(axis="x")]
-        return slice_list
+
+        # To handle non-orthogonal spatial coordinates, i.e. multiple coordinates
+        # that share the same dimension, as in a spot-forecast.
+        unique_slice_list = []
+        for dim in set([cube.coord_dims(crd) for crd in slice_list]):
+            unique_slice_list.append(cube.coords(dimensions=dim)[0])
+
+        return unique_slice_list
 
     def _slice_input_cubes(self, cubes: Union[Cube, CubeList]) -> CubeList:
         """

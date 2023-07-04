@@ -55,7 +55,7 @@ def probability_cube_name_regex(cube_name: str) -> Optional[Match]:
     regex = re.compile(
         "(probability_of_)"  # always starts this way
         "(?P<diag>.*?)"  # named group for the diagnostic name
-        "(_in_vicinity|)"  # optional group, may be empty
+        "(?P<vicinity>_in_vicinity|_in_variable_vicinity)?"  # optional group, may be empty
         "(?P<thresh>_above_threshold|_below_threshold|_between_thresholds|$)"
     )
     return regex.match(cube_name)
@@ -108,7 +108,7 @@ def _extract_diagnostic_name(cube_name: str, check_vicinity: bool = False) -> st
             If False the function will return X as described above, which matches
             the name of the threshold-type coordinate on the cube.  If True, the
             cube name is checked to see whether it is a vicinity diagnostic, and
-            if so the function returns "X_in_vicinity".  This is the name of the
+            if so the function returns "X_in.*_vicinity".  This is the name of the
             equivalent diagnostic in percentile or realization space.
 
     Returns:
@@ -118,15 +118,17 @@ def _extract_diagnostic_name(cube_name: str, check_vicinity: bool = False) -> st
         ValueError: If the input name does not match the expected regular
             expression (ie if cube_name_regex(cube_name) returns None).
     """
+    cube_name_parts = probability_cube_name_regex(cube_name)
     try:
-        diagnostic_name = probability_cube_name_regex(cube_name).group("diag")
+        diagnostic_name = cube_name_parts.group("diag")
     except AttributeError:
         raise ValueError(
             "Input {} is not a valid probability cube name".format(cube_name)
         )
 
-    if check_vicinity and "_in_vicinity" in cube_name:
-        diagnostic_name += "_in_vicinity"
+    vicinity_match = cube_name_parts.group("vicinity")
+    if check_vicinity and vicinity_match:
+        diagnostic_name += vicinity_match
 
     return diagnostic_name
 

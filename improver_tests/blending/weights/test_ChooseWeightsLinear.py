@@ -36,13 +36,16 @@ from datetime import datetime as dt
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord
+import pytest
+from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseWeightsLinear
 from improver.metadata.forecast_times import forecast_period_coord
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
+    construct_scalar_time_coords,
     set_up_probability_cube,
     set_up_variable_cube,
 )
@@ -57,8 +60,8 @@ CONFIG_DICT_UKV = {
 
 
 def set_up_basic_model_config_cube(frt=None, time_points=None):
-    """Set up cube with dimensions of time x air_temperature x lat x lon, plus
-     model id and configuration scalar coordinates
+    """Set up cube with dimensions of time x air_temperature x lat x lon,
+    plus model id and configuration scalar coordinates
 
     Args:
         frt (datetime.datetime):
@@ -90,6 +93,61 @@ def set_up_basic_model_config_cube(frt=None, time_points=None):
 
     cube = add_coordinate(cube, time_points, "time", is_datetime=True)
 
+    return cube
+
+
+def set_up_basic_model_config_spot_cube(frt=None, time_points=None):
+    """Set up spot cube with dimensions of time x air_temperature x site_index,
+    plus model id and configuration scalar coordinates
+
+    Args:
+        frt (datetime.datetime):
+            Forecast reference time point
+        time_points (list):
+            List of times as datetime instances to create a dim coord
+    """
+    if frt is None:
+        frt = dt(2017, 1, 10, 3, 0)
+    if time_points is None:
+        time_points = [
+            dt(2017, 1, 10, 9, 0),
+            dt(2017, 1, 10, 10, 0),
+            dt(2017, 1, 10, 11, 0),
+        ]
+
+    time_coords = construct_scalar_time_coords(frt, None, frt)
+    time_coords = [crd for crd, _ in time_coords]
+
+    n_sites = 10
+    data = np.linspace(0, 1, 2 * n_sites, dtype=np.float32).reshape((2, n_sites))
+    thresholds = np.array([275.0, 276.0], dtype=np.float32)
+
+    threshold_coord = DimCoord(thresholds, "air_temperature", units="K")
+    model_id_coord = AuxCoord([1000], long_name="model_id")
+    model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
+
+    altitudes = np.ones(n_sites, dtype=np.float32)
+    latitudes = np.arange(0, n_sites * 10, 10, dtype=np.float32)
+    longitudes = np.arange(0, n_sites * 20, 20, dtype=np.float32)
+    wmo_ids = np.arange(1000, (1000 * n_sites) + 1, 1000)
+
+    args = (altitudes, latitudes, longitudes, wmo_ids)
+    kwargs = {
+        "unique_site_id": wmo_ids,
+        "unique_site_id_key": "met_office_site_id",
+    }
+
+    cube = build_spotdata_cube(
+        data,
+        "probability_of_air_temperature_above_threshold",
+        "1",
+        *args,
+        **kwargs,
+        scalar_coords=[model_id_coord, model_config_coord, *time_coords],
+        additional_dims=[threshold_coord],
+    )
+
+    cube = add_coordinate(cube, time_points, "time", is_datetime=True)
     return cube
 
 
@@ -328,43 +386,62 @@ class Test__interpolate_to_find_weights(IrisTest):
         self.assertArrayAlmostEqual(weights, expected_weights)
 
 
-class Test__create_new_weights_cube(IrisTest):
-    """Test the _create_new_weights_cube function. """
+# Test the _create_new_weights_cube function.
 
-    def setUp(self):
-        """Set up some plugin inputs"""
-        self.plugin = ChooseWeightsLinear(
-            "forecast_period", config_dict=CONFIG_DICT_UKV
-        )
-        (self.cube,) = self.plugin._slice_input_cubes(set_up_basic_model_config_cube())
-        self.weights = np.array([0.0, 0.0, 0.2])
 
-    def test_with_dict(self):
-        """Test a new weights cube is created as intended, with the desired
-        cube name."""
-        new_weights_cube = self.plugin._create_new_weights_cube(self.cube, self.weights)
-        self.assertArrayAlmostEqual(new_weights_cube.data, self.weights)
-        self.assertEqual(new_weights_cube.name(), "weights")
-        # test only relevant coordinates have been retained on the weights cube
-        expected_coords = {
-            "time",
-            "forecast_reference_time",
-            "forecast_period",
-            "model_id",
-            "model_configuration",
-        }
-        result_coords = {coord.name() for coord in new_weights_cube.coords()}
-        self.assertSetEqual(result_coords, expected_coords)
+@pytest.fixture
+def plugin():
+    """Return an instance of the ChooseWeightsLinear plugin."""
+    return ChooseWeightsLinear("forecast_period", config_dict=CONFIG_DICT_UKV)
 
-    def test_with_dict_masked_input_cube(self):
-        """Test a new weights cube is created as intended when we have a masked
-        input cube."""
-        self.cube.data = np.ma.masked_array(
-            self.cube.data, np.ones(self.cube.data.shape) * True
-        )
-        new_weights_cube = self.plugin._create_new_weights_cube(self.cube, self.weights)
-        self.assertEqual(np.ma.is_masked(new_weights_cube.data), False)
-        self.assertArrayAlmostEqual(new_weights_cube.data, self.weights)
+
+@pytest.fixture
+def weights():
+    """Return an array of weight values."""
+    return np.array([0.0, 0.0, 0.2])
+
+
+@pytest.fixture(
+    params=[set_up_basic_model_config_cube, set_up_basic_model_config_spot_cube]
+)
+def single_thresh_input_cube(request, plugin):
+    """Return a single threshold gridded or spot cube, this is used as a
+    template for the weights cube creation."""
+    return plugin._slice_input_cubes(request.param())[0]
+
+
+def test_new_weights_with_dict(single_thresh_input_cube, weights, plugin):
+    """Test a new weights cube is created as intended, with the desired
+    cube name when using a gridded or spot forecast cube."""
+    new_weights_cube = plugin._create_new_weights_cube(
+        single_thresh_input_cube, weights
+    )
+
+    assert (new_weights_cube.data == weights).all()
+    assert new_weights_cube.name() == "weights"
+    # test only relevant coordinates have been retained on the weights cube
+    expected_coords = {
+        "time",
+        "forecast_reference_time",
+        "forecast_period",
+        "model_id",
+        "model_configuration",
+    }
+    result_coords = {coord.name() for coord in new_weights_cube.coords()}
+    assert result_coords == expected_coords
+
+
+def test_new_weights_with_dict_masked_input(single_thresh_input_cube, weights, plugin):
+    """Test a new weights cube is created as intended when we have a masked
+    input gridded or spot forecast cube."""
+    single_thresh_input_cube.data = np.ma.masked_array(
+        single_thresh_input_cube.data, np.ones(single_thresh_input_cube.data.shape),
+    )
+    new_weights_cube = plugin._create_new_weights_cube(
+        single_thresh_input_cube, weights
+    )
+    assert not np.ma.is_masked(new_weights_cube.data)
+    assert (new_weights_cube.data == weights).all()
 
 
 class Test__calculate_weights(IrisTest):
@@ -420,57 +497,68 @@ class Test__calculate_weights(IrisTest):
         self.assertEqual(new_weights_cube.name(), "weights")
 
 
-class Test__slice_input_cubes(IrisTest):
-    """Test the _slice_input_cubes method"""
+# Test the _slice_input_cubes method
 
-    def setUp(self):
-        """Set up plugin with suitable parameters (used for dict only)"""
-        self.plugin = ChooseWeightsLinear("forecast_period", CONFIG_DICT_UKV)
 
-        # create a cube with irrelevant threshold coordinate (dimensions:
-        # model_id: 2; threshold: 2; latitude: 2; longitude: 2)
-        cube = set_up_probability_cube(
-            np.ones((2, 2, 2), dtype=np.float32),
-            thresholds=np.array([278.0, 279.0], dtype=np.float32),
-        )
-        self.cube = add_coordinate(cube, [1000, 2000], "model_id", dtype=np.int32)
-        self.cube.add_aux_coord(
-            AuxCoord(["uk_det", "uk_ens"], long_name="model_configuration"), data_dims=0
-        )
+@pytest.fixture(
+    params=[set_up_basic_model_config_cube, set_up_basic_model_config_spot_cube]
+)
+def multi_model_inputs(request, output_type):
+    """Returns cubes with multiple model_ids to provide the basis for model
+    blending. One cube has multiple thresholds, one has a single threshold,
+    and one return is a cubelist where each model contribution is a separate
+    cube. Parameterisation is such that gridded and spot versions of the
+    various outputs are produced."""
 
-        # create a reference cube as above WITHOUT threshold
-        self.reference_cube = iris.util.squeeze(self.cube[:, 0, :, :].copy())
+    # create a cube with irrelevant threshold coordinate (dimensions:
+    # model_id: 2; threshold: 2; latitude: 2; longitude: 2)
+    uk_det = request.param(frt=dt(2017, 11, 10), time_points=[dt(2017, 11, 10, 4)])
+    uk_ens = uk_det.copy()
+    uk_ens.coord("model_configuration").points = ["uk_ens"]
+    uk_ens.coord("model_id").points = [2000]
 
-        # split into a cubelist by model
-        self.reference_cubelist = iris.cube.CubeList(
-            [self.reference_cube[0], self.reference_cube[1]]
-        )
+    threshold_cube = iris.cube.CubeList([uk_det, uk_ens]).merge_cube()
+    # create a reference cube as above WITHOUT threshold
+    no_threshold_cube = iris.util.squeeze(threshold_cube[:, 0, :, :].copy())
+    # split into a cubelist by model
+    reference_cubelist = iris.cube.CubeList(
+        [no_threshold_cube[0], no_threshold_cube[1]]
+    )
+    if output_type == "threshold":
+        return threshold_cube, reference_cubelist
+    if output_type == "single_threshold":
+        return no_threshold_cube, reference_cubelist
 
-    def test_slices(self):
-        """Test function slices out extra dimensions"""
-        result = self.plugin._slice_input_cubes(self.cube)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        for cube, refcube in zip(result, self.reference_cubelist):
-            self.assertArrayAlmostEqual(cube.data, refcube.data)
-            self.assertEqual(cube.metadata, refcube.metadata)
 
-    def test_cubelist(self):
-        """Test function creates cubelist with same dimensions where needed"""
-        result = self.plugin._slice_input_cubes(self.reference_cube)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        for cube, refcube in zip(result, self.reference_cubelist):
-            self.assertArrayAlmostEqual(cube.data, refcube.data)
-            self.assertEqual(cube.metadata, refcube.metadata)
+@pytest.mark.parametrize(
+    "output_type", ["threshold", "single_threshold"],
+)
+def test__slice_input_slices(plugin, multi_model_inputs):
+    """Test function slices out extra dimensions to leave only the spatial
+    dimensions. Tested using a cube with and without a threshold coordinate."""
 
-    def test_single_cube(self):
-        """Test function populates a cubelist if given a cube with a scalar
-        blending coordinate"""
-        single_cube = self.reference_cube[0]
-        result = self.plugin._slice_input_cubes(single_cube)
-        self.assertIsInstance(result, iris.cube.CubeList)
-        self.assertEqual(len(result), 1)
-        self.assertArrayAlmostEqual(result[0].data, single_cube.data)
-        self.assertEqual(result[0].metadata, single_cube.metadata)
+    test_cube, reference_cubelist = multi_model_inputs
+    result = plugin._slice_input_cubes(test_cube)
+
+    assert isinstance(result, iris.cube.CubeList)
+    for cube, refcube in zip(result, reference_cubelist):
+        assert (cube.data == refcube.data).all()
+        assert cube.metadata == refcube.metadata
+
+
+@pytest.mark.parametrize("output_type", ["single_threshold"])
+def test__slice_input_single_cube(plugin, multi_model_inputs):
+    """Test function populates a cubelist if given a cube with a scalar
+    blending coordinate"""
+
+    test_cube, _ = multi_model_inputs
+    single_cube = test_cube[0]
+    result = plugin._slice_input_cubes(single_cube)
+
+    assert isinstance(result, iris.cube.CubeList)
+    assert len(result) == 1
+    assert (result[0].data == single_cube.data).all()
+    assert result[0].metadata == single_cube.metadata
 
 
 class Test_process(IrisTest):

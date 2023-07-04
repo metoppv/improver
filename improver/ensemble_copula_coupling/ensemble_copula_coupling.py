@@ -75,6 +75,71 @@ from improver.utilities.cube_manipulation import (
 from improver.utilities.indexing_operations import choose
 
 
+class RebadgeRealizationsAsPercentiles(BasePlugin):
+    """Class to rebadge realizations as percentiles."""
+
+    def __init__(self, optimal_crps_percentiles: Optional[bool] = False):
+        """Initialise the class.
+
+        Args:
+            optimal_crps_percentiles:
+                If True, percentiles are computed following the
+                recommendation of Bröcker, 2012 for optimising the CRPS using
+                the equation: q = (i-0.5)/N, i=1,...,N, where N is the number
+                of realizations. If False, percentiles are computed as equally
+                spaced following the equation: q = i/(1+N), i=1,...,N.
+                Defaults to False.
+
+        References:
+            Bröcker, J. (2012), Evaluating raw ensembles with the continuous
+            ranked probability score. Q.J.R. Meteorol. Soc., 138: 1611-1617.
+            https://doi.org/10.1002/qj.1891
+            Hamill, T. M., and S. J. Colucci, 1997: Verification of Eta–RSM
+            Short-Range Ensemble Forecasts. Mon. Wea. Rev., 125, 1312–1327,
+            https://doi.org/10.1175/1520-0493(1997)125<1312:VOERSR>2.0.CO;2.
+        """
+        self.optimal_crps_percentiles = optimal_crps_percentiles
+
+    def process(self, cube: Cube) -> Cube:
+        """Convert a cube of realizations into percentiles by sorting the cube along
+        the realization dimension and rebadging the realization coordinate as a
+        percentile coordinate.
+
+        Args:
+            cube:
+                Cube containing realizations.
+        Returns:
+            Cube containing percentiles.
+        """
+        if not cube.coords("realization"):
+            coord_names = [c.name() for c in cube.coords(dim_coords=True)]
+            msg = (
+                "No realization coordinate is present within the input. "
+                "A realization coordinate must be present, as this will be "
+                "rebadged to be a percentile coordinate. The coordinates "
+                f"present were: {coord_names}"
+            )
+            raise CoordinateNotFoundError(msg)
+
+        result = cube.copy()
+        if cube.coords("realization", dim_coords=True):
+            (axis,) = cube.coord_dims("realization")
+            result.data = np.sort(cube.data, axis=axis)
+
+        result.coord("realization").rename("percentile")
+        result.coord("percentile").units = "%"
+        lenp = len(result.coord("percentile").points)
+        if self.optimal_crps_percentiles:
+            result.coord("percentile").points = np.array(
+                [100 * (k + 0.5) / lenp for k in range(lenp)], dtype=np.float32
+            )
+        else:
+            result.coord("percentile").points = np.array(
+                [100 * (k + 1) / (lenp + 1) for k in range(lenp)], dtype=np.float32
+            )
+        return result
+
+
 class RebadgePercentilesAsRealizations(BasePlugin):
     """
     Class to rebadge percentiles as ensemble realizations.
@@ -432,7 +497,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
     """
 
-    def __init__(self, ecc_bounds_warning: bool = False) -> None:
+    def __init__(
+        self, ecc_bounds_warning: bool = False, mask_percentiles: bool = False
+    ) -> None:
         """
         Initialise the class.
 
@@ -441,8 +508,17 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 If true and ECC bounds are exceeded by the percentile values,
                 a warning will be generated rather than an exception.
                 Default value is FALSE.
+            mask_percentiles:
+                A boolean determining whether the final percentiles should
+                be masked.
+                If True then where the percentile is higher than the probability
+                of the diagnostic existing the outputted percentile will be masked.
+                The probability of being below the final threshold in
+                forecast_probabilities is used as the probability of the diagnostic
+                existing.
         """
         self.ecc_bounds_warning = ecc_bounds_warning
+        self.mask_percentiles = mask_percentiles
 
     def _add_bounds_to_thresholds_and_probabilities(
         self,
@@ -558,6 +634,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
         threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
+        threshold_name = threshold_coord.name()
 
         original_mask = None
         if np.ma.is_masked(forecast_probabilities.data):
@@ -565,9 +642,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(forecast_probabilities, threshold_coord.name())
+        enforce_coordinate_ordering(forecast_probabilities, threshold_name)
         prob_slices = convert_cube_data_to_2d(
-            forecast_probabilities, coord=threshold_coord.name()
+            forecast_probabilities, coord=threshold_name
         )
 
         # The requirement below for a monotonically changing probability
@@ -626,11 +703,26 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             len(percentiles),
         )
 
-        template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
+        if self.mask_percentiles:
+            forecast_at_percentiles = np.ma.asarray(forecast_at_percentiles)
+            coord_constraint = {threshold_name: threshold_coord.points[-1]}
+            mask_probability = forecast_probabilities.extract(
+                iris.Constraint(coord_values=coord_constraint)
+            ).data
+
+            if relation == "above":
+                mask_probability = 1 - mask_probability
+
+            for index, perc in enumerate(percentiles_as_fractions):
+                forecast_at_percentiles[index] = np.ma.masked_where(
+                    mask_probability <= perc, forecast_at_percentiles[index]
+                )
+
+        template_cube = next(forecast_probabilities.slices_over(threshold_name))
         template_cube.rename(
             get_diagnostic_cube_name_from_probability_name(template_cube.name())
         )
-        template_cube.remove_coord(threshold_coord.name())
+        template_cube.remove_coord(threshold_name)
 
         percentile_cube = create_cube_with_percentiles(
             percentiles,
@@ -638,7 +730,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             forecast_at_percentiles,
             cube_unit=threshold_unit,
         )
-
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(

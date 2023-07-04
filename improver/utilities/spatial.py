@@ -45,6 +45,7 @@ from numpy import ndarray
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
@@ -518,35 +519,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             max_cube.data = max_data
         return max_cube
 
-    def _add_vicinity_coordinate(self, cube: Cube, radius: Union[float, int]) -> None:
-        """
-        Add a coordinate to the cube that records the vicinity radius that
-        has been applied to the data.
-
-        Args:
-            cube:
-                Vicinity processed cube.
-            radius:
-                The radius as a physical distance or number of grid points, the
-                value of which is recorded in the coordinate.
-        """
-        if self.native_grid_point_radius:
-            point = np.array(radius, dtype=np.float32)
-            units = "1"
-            attributes = {
-                "comment": "Units of 1 indicate radius of vicinity is defined "
-                "in grid points rather than physical distance"
-            }
-        else:
-            point = np.array(radius, dtype=np.float32)
-            units = "m"
-            attributes = {}
-
-        coord = AuxCoord(
-            point, units=units, long_name="radius_of_vicinity", attributes=attributes
-        )
-        cube.add_aux_coord(coord)
-
     def process(self, cube: Cube) -> Cube:
         """
         Produces the vicinity processed data. The input data is sliced to
@@ -604,7 +576,7 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             result_cube = check_cube_coordinates(cube, result_cube)
 
             # Add a coordinate recording the vicinity radius applied to the data.
-            self._add_vicinity_coordinate(result_cube, radius)
+            add_vicinity_coordinate(result_cube, radius, self.native_grid_point_radius)
 
             radii_cubes.append(result_cube)
 
@@ -716,3 +688,76 @@ def transform_grid_to_lat_lon(cube: Cube) -> Tuple[ndarray, ndarray]:
     lats = points[..., 1]
 
     return lats, lons
+
+
+def update_name_and_vicinity_coord(cube: Cube, new_name: str, vicinity_radius: float):
+    """
+    Updates a cube with a new probabilistic-style name and replaces or adds a radius_of_vicinity
+    coord with the specified radius.
+
+    Args:
+        cube: Cube to be updated in-place
+        new_name: The new name to be applied to the Cube, the threshold coord and any related
+            cell methods.
+        vicinity_radius: The point value for the radius_of_vicinity coord. The units are assumed
+            to be the same as the x and y spatial coords of the Cube
+
+    """
+    if new_name:
+        update_diagnostic_name(cube, new_name, cube)
+    if vicinity_radius:
+        # The cube blending will drop the radius_of_vicinity coord if the source cubes have
+        # differing points. We can use this to determine whether the vicinities matched:
+        vicinities_matched = "radius_of_vicinity" in [
+            coord.name() for coord in cube.coords()
+        ]
+        if vicinities_matched:
+            cube.remove_coord("radius_of_vicinity")
+        add_vicinity_coordinate(
+            cube, vicinity_radius, radius_is_max=not vicinities_matched
+        )
+
+
+def add_vicinity_coordinate(
+    cube: Cube,
+    radius: Union[float, int],
+    native_grid_point_radius: bool = False,
+    radius_is_max: bool = False,
+) -> None:
+    """
+    Add a coordinate to the cube that records the vicinity radius that
+    has been applied to the data.
+
+    Args:
+        cube:
+            Vicinity processed cube.
+        radius:
+            The radius as a physical distance (m) or number of grid points, the
+            value of which is recorded in the coordinate.
+        native_grid_point_radius:
+            True if radius is "number of grid points", else False
+        radius_is_max:
+            True if the specified radius represents a maximum value from the source data. A
+            comment is associated with the coord in this case.
+    """
+    attributes = {}
+    if radius_is_max:
+        attributes["comment"] = "Maximum"
+    if native_grid_point_radius:
+        point = np.array(radius, dtype=np.float32)
+        units = "1"
+        comment = (
+            "Units of 1 indicate radius of vicinity is defined "
+            "in grid points rather than physical distance"
+        )
+        attributes["comment"] = "; ".join(
+            [n for n in [attributes.get("comment", None), comment] if n]
+        )
+    else:
+        point = np.array(radius, dtype=np.float32)
+        units = "m"
+
+    coord = AuxCoord(
+        point, units=units, long_name="radius_of_vicinity", attributes=attributes
+    )
+    cube.add_aux_coord(coord)

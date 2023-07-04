@@ -92,3 +92,58 @@ def test_basic(tmp_path, create_model_config):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_json_threshold_config(tmp_path, create_model_config):
+    """
+    Test calibration of a forecast using a rainforests approach where
+    thresholds are specified with json file.
+    """
+    rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
+    kgo_path = rainforests_dir / "basic" / "kgo.nc"
+    forecast_path = (
+        rainforests_dir
+        / "features"
+        / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
+    )
+    feature_paths = (rainforests_dir / "features").glob("20200802T0000Z-PT00*-PT24H.nc")
+    model_config = create_model_config
+    output_path = tmp_path / "output.nc"
+    json_path = rainforests_dir / "threshold_config" / "thresholds.json"
+    args = [
+        forecast_path,
+        *feature_paths,
+        "--model-config",
+        model_config,
+        "--output-threshold-config",
+        json_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_no_threshold_config(tmp_path):
+    """
+    Test cli raises an error when no threshold config is specified.
+    """
+    rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
+    forecast_path = (
+        rainforests_dir
+        / "features"
+        / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
+    )
+    feature_paths = (rainforests_dir / "features").glob("20200802T0000Z-PT00*-PT24H.nc")
+    model_config = create_model_config
+    output_path = tmp_path / "output.nc"
+    args = [
+        forecast_path,
+        *feature_paths,
+        "--model-config",
+        model_config,
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError, match="must be specified"):
+        run_cli(args)

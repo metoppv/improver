@@ -346,10 +346,11 @@ def test__get_ensemble_distributions(
     assert result.attributes == ensemble_forecast.attributes
 
 
-def test_process_ensemble(
+def test_process_ensemble_different_threshold_unit(
     ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
-    """Test process routine with ensemble data."""
+    """Test process routine with ensemble data where unit of threshold is different from
+    unit of forecast cube."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
@@ -382,9 +383,6 @@ def test_process_deterministic(
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
-    print("****************")
-    print(plugin.lead_times)
-
     output_thresholds = [0.0, 0.0005, 0.001]
     result = plugin.process(
         deterministic_forecast, deterministic_features, output_thresholds,

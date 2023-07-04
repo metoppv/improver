@@ -47,6 +47,7 @@ def process(
     fuzzy_factor: float = None,
     collapse_coord: str = None,
     vicinity: cli.comma_separated_list = None,
+    fill_masked: float = None,
 ):
     """Module to apply thresholding to a parameter dataset.
 
@@ -102,6 +103,9 @@ def process(
             Binary land-sea mask data. True for land-points, False for sea.
             Restricts in-vicinity processing to only include points of a
             like mask value.
+        fill_masked (float):
+            If provided all masked points in cube will be replaced with the
+            provided value before thresholding.
 
     Returns:
         iris.cube.Cube:
@@ -122,7 +126,6 @@ def process(
         )
     if threshold_config and fuzzy_factor:
         raise ValueError("--threshold-config cannot be used for fuzzy thresholding")
-
     if threshold_config:
         thresholds = []
         fuzzy_bounds = []
@@ -160,6 +163,9 @@ def process(
     elif collapse_coord is not None:
         raise ValueError("Cannot collapse over non-realization coordinate")
 
+    if fill_masked is not None:
+        fill_masked = float(fill_masked)
+
     return BasicThreshold(
         thresholds,
         fuzzy_factor=fuzzy_factor,
@@ -167,4 +173,5 @@ def process(
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
         each_threshold_func=each_threshold_func_list,
+        fill_masked=fill_masked,
     )(cube)
