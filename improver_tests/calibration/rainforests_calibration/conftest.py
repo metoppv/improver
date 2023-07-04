@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Fixtures for rainforests calibration."""
+from datetime import datetime
+
 import numpy as np
 import pandas as pd
 import pytest
@@ -53,20 +55,26 @@ ATTRIBUTES = {
 
 
 @pytest.fixture
-def error_thresholds():
-    return np.array(
-        [-0.0010, -0.0001, 0.0000, 0.0001, 0.0010, 0.0100], dtype=np.float32
-    )
+def thresholds():
+    return np.array([0.0000, 0.0001, 0.0010, 0.0100], dtype=np.float32)
 
 
 @pytest.fixture
-def model_config(error_thresholds):
+def lead_times():
+    return np.array([24, 48], dtype=np.int)
+
+
+@pytest.fixture
+def model_config(lead_times, thresholds):
     return {
-        f"{threshold:06.4f}": {
-            "lightgbm_model": f"lightgbm_model_dir/test_model_{threshold:06.4f}.txt",
-            "treelite_model": f"treelite_model_dir/test_model_{threshold:06.4f}.so",
+        lead_time: {
+            f"{threshold:06.4f}": {
+                "lightgbm_model": f"lightgbm_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",
+                "treelite_model": f"treelite_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.so",
+            }
+            for threshold in thresholds
         }
-        for threshold in error_thresholds
+        for lead_time in lead_times
     }
 
 
@@ -77,6 +85,8 @@ def generate_forecast_cubes(realizations):
         np.maximum(0, rng.normal(0.002, 0.001, data_shape)).astype(np.float32),
         name="lwe_thickness_of_precipitation_amount",
         units="m",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         realizations=realizations,
         attributes=ATTRIBUTES,
     )
@@ -94,6 +104,8 @@ def generate_aligned_feature_cubes(realizations):
         np.maximum(0, rng.normal(15, 5, data_shape)).astype(np.float32),
         name="cape",
         units="J kg-1",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         realizations=realizations,
         attributes=ATTRIBUTES,
     )
@@ -101,6 +113,8 @@ def generate_aligned_feature_cubes(realizations):
         np.maximum(0, rng.normal(0.001, 0.001, data_shape)).astype(np.float32),
         name="lwe_thickness_of_convective_precipitation_amount",
         units="m",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         realizations=realizations,
         attributes=ATTRIBUTES,
     )
@@ -108,6 +122,8 @@ def generate_aligned_feature_cubes(realizations):
         np.maximum(0, rng.normal(0.002, 0.001, data_shape)).astype(np.float32),
         name="lwe_thickness_of_precipitation_amount",
         units="m",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         realizations=realizations,
         attributes=ATTRIBUTES,
     )
@@ -115,6 +131,8 @@ def generate_aligned_feature_cubes(realizations):
         np.maximum(0, rng.normal(5, 5, data_shape)).astype(np.float32),
         name="wind_speed",
         units="m s-1",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         realizations=realizations,
         attributes=ATTRIBUTES,
     )
@@ -122,6 +140,8 @@ def generate_aligned_feature_cubes(realizations):
         np.maximum(0, rng.normal(5000000, 2000000, data_shape)).astype(np.float32),
         name="integral_of_surface_downwelling_shortwave_flux_in_air_assuming_clear_sky_wrt_time",
         units="W s m-2",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         realizations=realizations,
         attributes=ATTRIBUTES,
     )
@@ -165,7 +185,7 @@ def deterministic_features():
     return generate_aligned_feature_cubes(realizations=np.arange(1))
 
 
-def prepare_dummy_training_data(features, forecast):
+def prepare_dummy_training_data(features, forecast, lead_times):
     """Create a dummy training set for tree-models."""
     # Set column names for reference in training
     fcst_column = forecast.name()
@@ -201,56 +221,64 @@ def prepare_dummy_training_data(features, forecast):
         training_data[obs_column] * training_data[fcst_column].std()
         + training_data[fcst_column].mean()
     )
+
+    # add lead time column
+    training_data["lead_time_hours"] = rng.choice(lead_times, len(training_data))
+
     return training_data, fcst_column, obs_column, train_columns
 
 
 @pytest.fixture
-def dummy_lightgbm_models(ensemble_features, ensemble_forecast, error_thresholds):
-    """Create sample lightgbm models for evaluating forecast error probabilities."""
+def dummy_lightgbm_models(ensemble_features, ensemble_forecast, thresholds, lead_times):
+    """Create sample lightgbm models for evaluating forecast probabilities."""
     import lightgbm
 
     training_data, fcst_column, obs_column, train_columns = prepare_dummy_training_data(
-        ensemble_features, ensemble_forecast
+        ensemble_features, ensemble_forecast, lead_times
     )
     # train a model for each threshold
-    tree_models = []
+    tree_models = {}
     params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
     training_columns = train_columns
-    for threshold in error_thresholds:
-        data = lightgbm.Dataset(
-            training_data[training_columns],
-            label=(
-                training_data[obs_column] - training_data[fcst_column] > threshold
-            ).astype(int),
-        )
-        booster = lightgbm.train(params, data, num_boost_round=10)
-        tree_models.append(booster)
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            curr_training_data = training_data.loc[
+                training_data["lead_time_hours"] == lead_time
+            ]
+            data = lightgbm.Dataset(
+                curr_training_data[training_columns],
+                label=(curr_training_data[obs_column] >= threshold).astype(int),
+            )
+            booster = lightgbm.train(params, data, num_boost_round=10)
+            tree_models[lead_time, threshold] = booster
 
-    return tree_models, error_thresholds
+    return tree_models, lead_times, thresholds
 
 
 @pytest.fixture
 def dummy_treelite_models(dummy_lightgbm_models, tmp_path):
-    """Create sample treelite models for evaluating forecast error probabilities."""
+    """Create sample treelite models for evaluating forecast probabilities."""
     import treelite
     import treelite_runtime
 
-    lightgbm_models, error_thresholds = dummy_lightgbm_models
-    tree_models = []
-    for model in lightgbm_models:
-        treelite_model = treelite.Model.from_lightgbm(model)
-        treelite_model.export_lib(
-            toolchain="gcc",
-            libpath=str(tmp_path / "model.so"),
-            verbose=False,
-            params={"parallel_comp": 8, "quantize": 1},
-        )
-        predictor = treelite_runtime.Predictor(
-            str(tmp_path / "model.so"), verbose=True, nthread=1
-        )
-        tree_models.append(predictor)
+    lightgbm_models, lead_times, thresholds = dummy_lightgbm_models
+    tree_models = {}
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            model = lightgbm_models[lead_time, threshold]
+            treelite_model = treelite.Model.from_lightgbm(model)
+            treelite_model.export_lib(
+                toolchain="gcc",
+                libpath=str(tmp_path / "model.so"),
+                verbose=False,
+                params={"parallel_comp": 8, "quantize": 1},
+            )
+            predictor = treelite_runtime.Predictor(
+                str(tmp_path / "model.so"), verbose=True, nthread=1
+            )
+            tree_models[lead_time, threshold] = predictor
 
-    return tree_models, error_thresholds
+    return tree_models, lead_times, thresholds
 
 
 @pytest.fixture(params=["lightgbm", "treelite"])
@@ -272,23 +300,25 @@ def plugin_and_dummy_models(request):
 
 
 @pytest.fixture
-def error_threshold_cube(error_thresholds):
-    """Create sample error-threshold cube"""
-    prob = np.array([1.0, 0.8, 0.6, 0.4, 0.2, 0.0])
-    data = np.broadcast_to(prob[:, np.newaxis, np.newaxis], (6, 10, 10))
+def threshold_cube(thresholds):
+    """Create sample threshold cube"""
+    prob = np.array([1.0, 0.8, 0.2, 0.0])
+    data = np.broadcast_to(prob[:, np.newaxis, np.newaxis], (len(thresholds), 10, 10))
     probability_cube = set_up_probability_cube(
         data.astype(np.float32),
-        thresholds=error_thresholds,
-        variable_name="forecast_error_of_lwe_thickness_of_precipitation_amount",
+        thresholds=thresholds,
+        variable_name="lwe_thickness_of_precipitation_amount",
         threshold_units="m",
+        frt=datetime(2017, 11, 10, 0, 0),
+        time=datetime(2017, 11, 11, 0, 0),
         attributes=ATTRIBUTES,
         spp__relative_to_threshold="above",
     )
-    error_threshold_cube = add_coordinate(
+    threshold_cube = add_coordinate(
         probability_cube,
         coord_points=np.arange(5),
         coord_name="realization",
         coord_units="1",
         order=[1, 0, 2, 3],
     )
-    return error_threshold_cube
+    return threshold_cube

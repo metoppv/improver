@@ -49,6 +49,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
+from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 from improver.ensemble_copula_coupling.utilities import interpolate_multiple_rows_same_x
 from improver.metadata.utilities import (
@@ -56,7 +57,6 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
-from improver.constants import SECONDS_IN_MINUTE, MINUTES_IN_HOUR
 
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
@@ -78,26 +78,27 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
         Dictionary is of format::
 
-            {
-                "-50.0" : {
-                    "lightgbm_model" : "<path_to_lightgbm_model_object>",
-                    "treelite_model" : "<path_to_treelite_model_object>"
-                },
-                "-25.0" : {
-                    "lightgbm_model" : "<path_to_lightgbm_model_object>",
-                    "treelite_model" : "<path_to_treelite_model_object>"
-                },
-                ...,
-                "50.0" : {
-                    "lightgbm_model" : "<path_to_lightgbm_model_object>",
-                    "treelite_model" : "<path_to_treelite_model_object>"
-                }
-            }
+        {
+        "24": {
+            "0.000010": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+            "0.000050": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+            "0.000100": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+        }
 
-        The keys specify the model threshold value, while the associated values
-        are the path to the corresponding tree-model objects for that threshold.
+        The keys specify the lead times and model threshold values, while the 
+        associated values are the path to the corresponding tree-model objects 
+        for that lead time and threshold.
 
-        Treelite predictors are used if treelite_runitme is an installed dependency
+        Treelite predictors are used if treelite_runtime is an installed dependency
         and an associated path has been provided for all thresholds, otherwise lightgbm
         Boosters are used as the default tree model type.
         """
@@ -109,23 +110,27 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             import treelite_runtime  # noqa: F401
 
             # Check that all required files have been specified.
-            # treelite_model_filenames = [
-            #     threshold_dict.get("treelite_model")
-            #     for threshold_dict in model_config_dict.values()
-            # ]
-            # if None in treelite_model_filenames:
-            #     raise ValueError(
-            #         "Path to treelite model missing for one or more model thresholds "
-            #         "in model_config_dict, defaulting to using lightGBM models."
-            #     )
+            treelite_model_filenames = []
+            for lead_time in model_config_dict.keys():
+                for threshold in model_config_dict[lead_time].keys():
+                    treelite_model_filenames.append(
+                        model_config_dict[lead_time][threshold].get("treelite_model")
+                    )
+            if None in treelite_model_filenames:
+                raise ValueError(
+                    "Path to treelite model missing for one or more model thresholds "
+                    "in model_config_dict, defaulting to using lightGBM models."
+                )
         except (ModuleNotFoundError, ValueError):
             # Default to lightGBM.
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
-            lightgbm_model_filenames = [
-                threshold_dict.get("lightgbm_model")
-                for threshold_dict in model_config_dict.values()
-            ]
+            lightgbm_model_filenames = []
+            for lead_time in model_config_dict.keys():
+                for threshold in model_config_dict[lead_time].keys():
+                    lightgbm_model_filenames.append(
+                        model_config_dict[lead_time][threshold].get("lightgbm_model")
+                    )
             if None in lightgbm_model_filenames:
                 raise ValueError(
                     "Path to lightgbm model missing for one or more model thresholds "
@@ -146,10 +151,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Check all model files are available before initialising."""
-        lightgbm_model_filenames = [
-            threshold_dict.get("lightgbm_model")
-            for threshold_dict in model_config_dict.values()
-        ]
+        lightgbm_model_filenames = []
+        for lead_time in model_config_dict.keys():
+            for threshold in model_config_dict[lead_time].keys():
+                lightgbm_model_filenames.append(
+                    model_config_dict[lead_time][threshold].get("lightgbm_model")
+                )
         if None in lightgbm_model_filenames:
             raise ValueError(
                 "Path to lightgbm model missing for one or more model thresholds "
@@ -169,21 +176,25 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         Dictionary is of format::
 
-            {
-                "-50.0" : {
-                    "lightgbm_model" : "<path_to_lightgbm_model_object>"
-                },
-                "-25.0" : {
-                    "lightgbm_model" : "<path_to_lightgbm_model_object>"
-                },
-                ...,
-                "50.0" : {
-                    "lightgbm_model" : "<path_to_lightgbm_model_object>"
-                }
-            }
+        {
+        "24": {
+            "0.000010": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+            "0.000050": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+            "0.000100": {
+                "lightgbm_model": "<path_to_lightgbm_model_object>",
+                "treelite_model": "<path_to_treelite_model_object>"
+            },
+        }
 
-        The keys specify the threshold value, while the associated values
-        are the path to the corresponding tree-model objects for that threshold.
+        The keys specify the lead times and model threshold values, while the 
+        associated values are the path to the corresponding tree-model objects 
+        for that lead time and threshold.
         """
         from lightgbm import Booster
 
@@ -198,13 +209,22 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             )
 
         self.lead_times = np.array([*sorted_model_config_dict.keys()])
-        self.model_thresholds = np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
+        if len(self.lead_times) > 0:
+            self.model_thresholds = np.array(
+                [*sorted_model_config_dict[self.lead_times[0]].keys()]
+            )
+        else:
+            self.model_thresholds = np.array([])
         self.model_input_converter = np.array
         self.tree_models = {}
         for lead_time in self.lead_times:
             for threshold in self.model_thresholds:
-                model_filename = Path(sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")).expanduser()
-                self.tree_models[lead_time, threshold] = Booster(model_file=str(model_filename)).reset_parameter({"num_threads": threads})
+                model_filename = Path(
+                    sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")
+                ).expanduser()
+                self.tree_models[lead_time, threshold] = Booster(
+                    model_file=str(model_filename)
+                ).reset_parameter({"num_threads": threads})
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
@@ -329,7 +349,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
         threshold_coord = DimCoord(
             self.model_thresholds,
-            long_name=forecast_variable,
+            standard_name=forecast_variable,
             var_name="threshold",
             units=forecast_cube.units,
             attributes={"spp__relative_to_threshold": "above"},
@@ -396,41 +416,20 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return 0.5 * (upper + lower)
 
     def _evaluate_probabilities(
-        self,
-        forecast_data: ndarray,
-        input_data: ndarray,
-        lead_time_hours: int,
-        forecast_variable: str,
-        forecast_variable_unit: str,
-        output_data: ndarray,
+        self, input_data: ndarray, lead_time_hours: int, output_data: ndarray,
     ) -> None:
-        """Evaluate probability that forecast exceeds thresholds, setting
-        the result to 1 when `forecast + threshold` is less than or equal to
-        the lower bound of forecast_variable, as defined in constants.BOUNDS_FOR_ECDF`.
+        """Evaluate probability that forecast exceeds thresholds.
 
         Args:
-            forecast_data:
-                1-d containing data for the variable to be calibrated.
             input_data:
                 2-d array of data for the feature variables of the model
             lead_time_hours:
                 lead time in hours
-            forecast_variable:
-                name of forecast variable
-            forecast_variable_unit:
-                unit of forecast variable
             output_data:
                 array to populate with output; will be modified in place
         """
 
         input_dataset = self.model_input_converter(input_data)
-
-        bounds_data = BOUNDS_FOR_ECDF[forecast_variable]
-        bounds_unit = unit.Unit(bounds_data[1])
-        lower_bound = bounds_data[0][0]
-        lower_bound_in_fcst_units = bounds_unit.convert(
-            lower_bound, forecast_variable_unit
-        )
 
         for threshold_index, threshold in enumerate(self.model_thresholds):
             model = self.tree_models[lead_time_hours, threshold]
@@ -463,24 +462,24 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 treelite_runtime Predictor (if treelite dependency is available).
         """
 
-        threshold_probability_cube = self._prepare_threshold_probability_cube(forecast_cube)
+        threshold_probability_cube = self._prepare_threshold_probability_cube(
+            forecast_cube
+        )
 
         input_dataset = self._prepare_features_array(feature_cubes)
 
-        forecast_data = forecast_cube.data.ravel()
-        lead_time_hours = forecast_cube.coord("forecast_period").points[0] / (SECONDS_IN_MINUTE * MINUTES_IN_HOUR)
+        lead_time_hours = forecast_cube.coord("forecast_period").points[0] / (
+            SECONDS_IN_MINUTE * MINUTES_IN_HOUR
+        )
 
         self._evaluate_probabilities(
-            forecast_data,
-            input_dataset,
-            lead_time_hours,
-            forecast_cube.name(),
-            forecast_cube.units,
-            threshold_probability_cube.data,
+            input_dataset, lead_time_hours, threshold_probability_cube.data,
         )
 
         # Enforcing monotonicity
-        threshold_probability_cube.data = self._make_decreasing(threshold_probability_cube.data)
+        threshold_probability_cube.data = self._make_decreasing(
+            threshold_probability_cube.data
+        )
 
         return threshold_probability_cube
 
@@ -493,8 +492,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         Args:
             probability_CDF:
-                Cube containing the CDF of probabilities for each enemble member at model
-                threhsolds.
+                Cube containing the CDF of probabilities for each ensemble member at model
+                thresholds.
             forecast:
                 Cube containing NWP ensemble forecast.
             output_thresholds:
@@ -507,15 +506,28 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_probabilties = probability_CDF.data
         input_probabilties = self._make_decreasing(input_probabilties)
-        if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(self.model_thresholds, output_thresholds):
+        output_thresholds = np.array(output_thresholds)
+        if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(
+            self.model_thresholds, output_thresholds
+        ):
             output_probabilities = input_probabilties.data
         else:
-            input_probabilties = np.concatenate([np.ones((1,) + input_probabilties.shape[1:]), input_probabilties], axis=0)
+            input_probabilties = np.concatenate(
+                [np.ones((1,) + input_probabilties.shape[1:]), input_probabilties],
+                axis=0,
+            )
             input_thresholds = np.concatenate([[0], self.model_thresholds])
             # reshape to 2 dimensions
-            input_probabilties_2d = np.reshape(input_probabilties, (input_probabilties.shape[0], -1))
-            output_probabilities_2d = interpolate_multiple_rows_same_x(output_thresholds, input_thresholds, input_probabilties_2d.transpose())
-            output_probabilities = np.reshape(output_probabilities_2d.transpose(), (len(output_thresholds), ) + input_probabilties.shape[1:])
+            input_probabilties_2d = np.reshape(
+                input_probabilties, (input_probabilties.shape[0], -1)
+            )
+            output_probabilities_2d = interpolate_multiple_rows_same_x(
+                output_thresholds, input_thresholds, input_probabilties_2d.transpose()
+            )
+            output_probabilities = np.reshape(
+                output_probabilities_2d.transpose(),
+                (len(output_thresholds),) + input_probabilties.shape[1:],
+            )
 
         # set probability for zero threshold to 1
         output_probabilities[0, :] = 1
@@ -628,15 +640,18 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         # is available.
         import treelite_runtime  # noqa: F401
 
-        # treelite_model_filenames = [
-        #     threshold_dict.get("treelite_model")
-        #     for threshold_dict in model_config_dict.values()
-        # ]
-        # if None in treelite_model_filenames:
-        #     raise ValueError(
-        #         "Path to treelite model missing for one or more model thresholds "
-        #         "in model_config_dict."
-        #     )
+        # Check that all required files have been specified.
+        treelite_model_filenames = []
+        for lead_time in model_config_dict.keys():
+            for threshold in model_config_dict[lead_time].keys():
+                treelite_model_filenames.append(
+                    model_config_dict[lead_time][threshold].get("treelite_model")
+                )
+        if None in treelite_model_filenames:
+            raise ValueError(
+                "Path to treelite model missing for one or more model thresholds "
+                "in model_config_dict, defaulting to using lightGBM models."
+            )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(self, model_config_dict: dict, threads: int = 1):
@@ -680,13 +695,22 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             )
 
         self.lead_times = np.array([*sorted_model_config_dict.keys()])
-        self.model_thresholds = np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
+        if len(self.lead_times) > 0:
+            self.model_thresholds = np.array(
+                [*sorted_model_config_dict[self.lead_times[0]].keys()]
+            )
+        else:
+            self.model_thresholds = np.array([])
         self.model_input_converter = DMatrix
         self.tree_models = {}
         for lead_time in self.lead_times:
             for threshold in self.model_thresholds:
-                model_filename = Path(sorted_model_config_dict[lead_time][threshold].get("treelite_model")).expanduser()
-                self.tree_models[lead_time, threshold] = Predictor(libpath=str(model_filename), verbose=False, nthread=threads)
+                model_filename = Path(
+                    sorted_model_config_dict[lead_time][threshold].get("treelite_model")
+                ).expanduser()
+                self.tree_models[lead_time, threshold] = Predictor(
+                    libpath=str(model_filename), verbose=False, nthread=threads
+                )
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.

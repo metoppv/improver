@@ -58,7 +58,7 @@ def test__new__(model_config, monkeypatch):
     assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
     model_config
     # Test exception raised when file path is missing.
-    model_config["0.0000"].pop("lightgbm_model", None)
+    model_config[24]["0.0000"].pop("lightgbm_model", None)
     with pytest.raises(ValueError):
         ApplyRainForestsCalibrationLightGBM(model_config)
 
@@ -66,13 +66,13 @@ def test__new__(model_config, monkeypatch):
 @pytest.mark.parametrize("ordered_inputs", (True, False))
 @pytest.mark.parametrize("default_threads", (True, False))
 def test__init__(
-    model_config, ordered_inputs, default_threads, error_thresholds, monkeypatch
+    model_config, ordered_inputs, default_threads, lead_times, thresholds, monkeypatch
 ):
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
 
     if not ordered_inputs:
-        tmp_value = model_config.pop("0.0000", None)
-        model_config["0.0000"] = tmp_value
+        tmp_value = model_config[24].pop("0.0000", None)
+        model_config[24]["0.0000"] = tmp_value
 
     if default_threads:
         expected_threads = 1
@@ -82,23 +82,30 @@ def test__init__(
         result = ApplyRainForestsCalibrationLightGBM(
             model_config, threads=expected_threads
         )
-    # Check thresholds and model types match
-    assert np.all(result.error_thresholds == error_thresholds)
-    for model in result.tree_models:
-        assert model.model_class == "lightgbm-Booster"
-        assert model.threads == expected_threads
+
+    # Check lead times, thresholds and model types match
+    assert np.all(result.lead_times == lead_times)
+    assert np.all(result.model_thresholds == thresholds)
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            model = result.tree_models[lead_time, threshold]
+            assert model.model_class == "lightgbm-Booster"
+            assert model.threads == expected_threads
     # Ensure threshold and files match
-    for threshold, model in zip(result.error_thresholds, result.tree_models):
-        # LightGBM library only introduced support for pathlib Paths in 3.3+
-        assert isinstance(model.model_file, str)
-        assert f"{threshold:06.4f}" in str(model.model_file)
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            model = result.tree_models[lead_time, threshold]
+            # LightGBM library only introduced support for pathlib Paths in 3.3+
+            assert isinstance(model.model_file, str)
+            assert f"{lead_time:03d}H" in str(model.model_file)
+            assert f"{threshold:06.4f}" in str(model.model_file)
 
 
 def test__check_num_features(ensemble_features, plugin_and_dummy_models):
     """Test number of features expected by tree_models matches features passed in."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
-    plugin.tree_models, _ = dummy_models
+    plugin.tree_models, _, _ = dummy_models
     plugin._check_num_features(ensemble_features)
     with pytest.raises(ValueError):
         plugin._check_num_features(ensemble_features[:-1])
@@ -170,19 +177,17 @@ def test__align_feature_variables_misaligned_dim_coords(ensemble_features):
         )._align_feature_variables(ensemble_features, misaligned_forecast_cube)
 
 
-def test__prepare_error_probability_cube(
-    ensemble_forecast, error_thresholds, error_threshold_cube
-):
-    """Test the preparation of error probability cube from input
+def test__prepare_probability_cube(ensemble_forecast, thresholds, threshold_cube):
+    """Test the preparation of probability cube from input
     forecast cube."""
     plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
-    plugin.error_thresholds = error_thresholds
-    result = plugin._prepare_error_probability_cube(ensemble_forecast)
+    plugin.model_thresholds = thresholds
+    result = plugin._prepare_threshold_probability_cube(ensemble_forecast)
 
-    assert result.long_name == error_threshold_cube.long_name
-    assert result.units == error_threshold_cube.units
-    assert result.coords() == error_threshold_cube.coords()
-    assert result.attributes == error_threshold_cube.attributes
+    assert result.long_name == threshold_cube.long_name
+    assert result.units == threshold_cube.units
+    assert result.coords() == threshold_cube.coords()
+    assert result.attributes == threshold_cube.attributes
 
 
 def test__prepare_features_array(ensemble_features):
@@ -210,33 +215,24 @@ def test__prepare_features_array(ensemble_features):
 
 
 def test__evaluate_probabilities(
-    ensemble_features, ensemble_forecast, error_threshold_cube, plugin_and_dummy_models
+    ensemble_features, threshold_cube, plugin_and_dummy_models
 ):
-    """Test that _evaluate_probabilities populates error_threshold_cube.data with
+    """Test that _evaluate_probabilities populates threshold_cube.data with
     probability data."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_models
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds, = dummy_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
-    forecast_data = ensemble_forecast.data.ravel()
-    data_before = error_threshold_cube.data.copy()
+    data_before = threshold_cube.data.copy()
     plugin._evaluate_probabilities(
-        forecast_data,
-        input_dataset,
-        ensemble_forecast.name(),
-        ensemble_forecast.units,
-        error_threshold_cube.data,
+        input_dataset, 24, threshold_cube.data,
     )
-    diff = error_threshold_cube.data - data_before
-    # check each error threshold has been populated
+    diff = threshold_cube.data - data_before
+    # check each threshold has been populated
     assert np.all(np.any(diff != 0, axis=0))
     # check data is between 0 and 1
-    assert np.all(error_threshold_cube.data >= 0)
-    assert np.all(error_threshold_cube.data <= 1)
-    # check data is 1 where forecast + error < 0
-    for i, t in enumerate(plugin.error_thresholds):
-        invalid_error = ensemble_forecast.data + t < 0
-        np.testing.assert_almost_equal(error_threshold_cube.data[i, invalid_error], 1)
+    assert np.all(threshold_cube.data >= 0)
+    assert np.all(threshold_cube.data <= 1)
 
 
 def test_make_decreasing():
@@ -295,14 +291,16 @@ def test_make_decreasing():
     np.testing.assert_almost_equal(expected, result)
 
 
-def test__calculate_error_probabilities(
+def test__calculate_threshold_probabilities(
     ensemble_features, ensemble_forecast, plugin_and_dummy_models
 ):
-    """Test calculation of error probability cube."""
+    """Test calculation of probability cube."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_models
-    result = plugin._calculate_error_probabilities(ensemble_forecast, ensemble_features)
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
+    result = plugin._calculate_threshold_probabilities(
+        ensemble_forecast, ensemble_features
+    )
 
     # Check that data has sensible probability values.
     # Note: here we are NOT checking the returned value against an expected value
@@ -319,14 +317,15 @@ def test__calculate_error_probabilities(
 
 
 def test__get_ensemble_distributions(
-    error_threshold_cube, ensemble_forecast, plugin_and_dummy_models
+    threshold_cube, ensemble_forecast, plugin_and_dummy_models
 ):
     """Test _get_ensemble_distributions."""
     plugin_cls, _ = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
     output_thresholds = [0.0, 0.0005, 0.001]
+    plugin.model_thresholds = threshold_cube.coord(var_name="threshold").points
     result = plugin._get_ensemble_distributions(
-        error_threshold_cube, ensemble_forecast, output_thresholds
+        threshold_cube, ensemble_forecast, output_thresholds
     )
     # Check that probabilities are between 0 and 1
     assert np.all(result.data >= 0.0)
@@ -353,7 +352,7 @@ def test_process_ensemble(
     """Test process routine with ensemble data."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_models
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
 
     output_thresholds = [0.0, 0.0005, 0.001]
     result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
@@ -382,7 +381,9 @@ def test_process_deterministic(
     """Test process routine with deterministic data."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
-    plugin.tree_models, plugin.error_thresholds = dummy_models
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
+    print("****************")
+    print(plugin.lead_times)
 
     output_thresholds = [0.0, 0.0005, 0.001]
     result = plugin.process(
