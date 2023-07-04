@@ -40,6 +40,7 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
 
+from cf_units import unit
 import iris
 import numpy as np
 from iris.analysis import MEAN
@@ -485,7 +486,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return threshold_probability_cube
 
     def _get_ensemble_distributions(
-        self, probability_CDF: Cube, forecast: Cube, output_thresholds: List[float]
+        self, probability_CDF: Cube, forecast: Cube, output_thresholds: ndarray
     ) -> Cube:
         """
         Interpolate probilities calculated at model thresholds to extract probabilities
@@ -498,7 +499,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             forecast:
                 Cube containing NWP ensemble forecast.
             output_thresholds:
-                Ordered list of thresholds at which to calculate the output probabilities.
+                Sorted array of thresholds at which to calculate the output probabilities.
 
         Returns:
             Cube containing probabilities at output thresholds for all realizations. Dimensions
