@@ -117,6 +117,14 @@ GROUPED_CODES_NEW2 = {
     "visibility": [5, 6],
 }
 
+GROUPED_CODES_VIS = {
+    "snow": [23, 24, 26, 27],
+    "sleet": [17, 18],
+    "rain": [10, 11, 12, 14, 15],
+    "convection": [20, 21, 29, 30],
+    "visibility": [5, 6],
+}
+
 
 def update_tree_thresholds(
     tree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
