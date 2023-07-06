@@ -55,10 +55,10 @@ BOUNDS_FOR_ECDF = {
     "cloud_area_fraction_assuming_only_consider_surface_to_1000_feet_asl": Bounds(
         (0, 1.0), "1"
     ),
-    "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas": Bounds(
+    "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_2p5_oktas": Bounds(
         (-4000, 20000), "m"
     ),
-    "cloud_base_altitude_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas": Bounds(
+    "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas": Bounds(
         (-4000, 20000), "m"
     ),
     "high_type_cloud_area_fraction": Bounds((0, 1.0), "1"),
