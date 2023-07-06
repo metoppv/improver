@@ -44,7 +44,7 @@ run_cli = acc.run_cli(CLI)
 def test_basic(tmp_path, min_value, max_value, cube_type):
     """Test clip functionality with different combinations of min and max values """
     kgo_dir = acc.kgo_root() / "clip" / cube_type
-    kgo_path = kgo_dir / f"kgo_{min_value,max_value}.nc"
+    kgo_path = kgo_dir / f"kgo_{min_value}_{max_value}.nc"
     output_path = tmp_path / "output.nc"
 
     args = [kgo_dir / "input.nc", "--output", output_path]
