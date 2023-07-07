@@ -28,14 +28,13 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Estimate a rescaling of the input forecast based on the difference in altitude
-between the grid point and the site."""
+"""Estimate and apply a rescaling of the input forecast based on the difference
+in altitude between the grid point and the site."""
 
 from typing import Union
 
 import iris
 import numpy as np
-import pandas as pd
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from numpy.polynomial import Polynomial as poly1d
@@ -65,6 +64,9 @@ class EstimateDzRescaling(PostProcessingPlugin):
         """Initialise class.
 
         Args:
+            forecast_period: The forecast period that is considered representative of
+                the input forecasts. This is required as the input forecasts could
+                contain multiple forecast periods.
             dz_lower_bound: The lowest acceptable value for the difference in
                 altitude between the grid point and the site. Sites with a lower
                 (or more negative) difference in altitude will be excluded.
@@ -108,8 +110,8 @@ class EstimateDzRescaling(PostProcessingPlugin):
         and the difference in altitude between the grid point and the site.
 
         Args:
-            forecasts: Forecast cubes.
-            truths: Truth cubes.
+            forecasts: Forecast cube.
+            truths: Truth cube.
             dz: Difference in altitude between the grid point and the site location.
 
         Returns:
@@ -120,8 +122,8 @@ class EstimateDzRescaling(PostProcessingPlugin):
         data_filter = (
             (forecasts.data != 0)
             & (truths_data != 0)
-            & (dz.data > self.dz_lower_bound)
-            & (dz.data < self.dz_upper_bound)
+            & (dz.data >= self.dz_lower_bound)
+            & (dz.data <= self.dz_upper_bound)
         )
 
         forecasts_data = forecasts.data.flatten()
@@ -141,7 +143,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
         # adjustment will be made.
         return scale_factor[1]
 
-    def _compute_scaled_dz(self, scale_factor: float, dz: Cube) -> Cube:
+    def _compute_scaled_dz(self, scale_factor: float, dz: np.ndarray) -> Cube:
         """Compute the scaled difference in altitude.
 
         Args:
@@ -150,6 +152,35 @@ class EstimateDzRescaling(PostProcessingPlugin):
 
         Returns:
             Scaled difference in altitude.
+        """
+        # Multiplication by -1 using negative exponent rule, so that this term can
+        # be multiplied by the forecast during the application step.
+        scaled_dz = np.exp(-1.0 * scale_factor * dz)
+
+        # Compute lower and upper bounds for the scaled dz.
+        # dz_lower_bound may not result in the lower bound for the scaled dz depending
+        # upon the sign of the scale_factor term.
+        scaled_dz_a = np.exp(-1.0 * scale_factor * self.dz_lower_bound)
+        scaled_dz_b = np.exp(-1.0 * scale_factor * self.dz_upper_bound)
+        scaled_dz_lower = np.amin([scaled_dz_a, scaled_dz_b])
+        scaled_dz_upper = np.amax([scaled_dz_a, scaled_dz_b])
+
+        return np.clip(scaled_dz.data, scaled_dz_lower, scaled_dz_upper)
+
+    def _compute_scaled_dz_cube(
+        self, forecast: Cube, truth: Cube, dz: Cube, scale_factor: float,
+    ):
+        """Compute the scaled difference in altitude and ensure that the output cube
+        has the correct metadata.
+
+        Args:
+            forecast: Forecast cube.
+            truth: Truth cube.
+            dz: The difference in altitude between the grid point and the site.
+            scale_factor: A scale factor deduced from a polynomial fit.
+
+        Returns:
+            Scaled difference in altitude cube with appropriate metadata.
         """
         scaled_dz = dz.copy()
         scaled_dz.rename("scaled_vertical_displacement")
@@ -162,21 +193,16 @@ class EstimateDzRescaling(PostProcessingPlugin):
             scaled_dz.remove_coord(coord_name)
         scaled_dz.attributes.pop("model_grid_hash", None)
 
-        # Multiplication by -1 using negative exponent rule, so that this term can
-        # be multiplied by the forecast during the application step.
-        scaled_dz.data = np.exp(-1.0 * scale_factor * dz.data)
+        scaled_dz.data = self._compute_scaled_dz(scale_factor, scaled_dz.data)
 
-        # Compute lower and upper bounds for the scaled dz.
-        # dz_lower_bound may not result in the lower bound for the scaled dz depending
-        # upon the sign of the scale_factor term.
-        scaled_dz_a = np.exp(-1.0 * scale_factor * self.dz_lower_bound)
-        scaled_dz_b = np.exp(-1.0 * scale_factor * self.dz_upper_bound)
-        scaled_dz_lower = np.amin([scaled_dz_a, scaled_dz_b])
-        scaled_dz_upper = np.amax([scaled_dz_a, scaled_dz_b])
+        fp_forecast_slice = next(forecast.slices_over("forecast_period"))
 
-        scaled_dz.data[(scaled_dz.data < scaled_dz_lower)] = scaled_dz_lower
-        scaled_dz.data[(scaled_dz.data > scaled_dz_upper)] = scaled_dz_upper
-
+        fp_forecast_slice.coord("forecast_period").points = np.array(
+            self.forecast_period * SECONDS_IN_HOUR,
+            dtype=TIME_COORDS["forecast_period"].dtype,
+        )
+        scaled_dz.add_aux_coord(fp_forecast_slice.coord("forecast_period"))
+        self._create_hour_coord(forecast, scaled_dz)
         return scaled_dz
 
     def _create_hour_coord(self, source_cube: Cube, target_cube: Cube):
@@ -188,21 +214,17 @@ class EstimateDzRescaling(PostProcessingPlugin):
         target_cube.
 
         Args:
-            source_cube: Cube containing the time coordinate that will be used to
-                compute the forecast reference time hour.
+            source_cube: Cube containing the forecast reference time from which
+                the hour will be extracted.
             target_cube: Cube to which an auxiliary coordinate will be added.
         """
         coord_name = "forecast_reference_time"
         # Create forecast_reference_time_hour coordinate.
-        hour_in_seconds = (
-            source_cube.coord("time").cell(0).point
-            - pd.Timedelta(hours=self.forecast_period)
-        ).hour * SECONDS_IN_HOUR
+        frt_hour = source_cube.coord(coord_name).cell(0).point.hour
         hour_coord = AuxCoord(
-            np.array(hour_in_seconds, np.int32),
-            long_name=f"{coord_name}_hour",
-            units="seconds",
+            np.array(frt_hour, np.int32), long_name=f"{coord_name}_hour", units="hours",
         )
+        hour_coord.convert_units("seconds")
         target_cube.add_aux_coord(hour_coord)
 
     def process(self, forecasts: Cube, truths: Cube, neighbour_cube: Cube) -> Cube:
@@ -237,12 +259,13 @@ class EstimateDzRescaling(PostProcessingPlugin):
         which can later be used for multiplying by a forecast to estimate the truth.
 
         Args:
-            forecasts: Forecast cubes.
-            truths: Truth cubes.
-            dz: Difference in altitude between the grid point and the site location.
+            forecasts: Forecast cube.
+            truths: Truth cube.
+            neighbour_cube: A neighbour cube containing the difference in altitude
+                between the grid point and the site location.
 
         Returns:
-            A scaled version difference of altitude between the grid point and the
+            A scaled difference of altitude between the grid point and the
             site location.
         """
         method = iris.Constraint(
@@ -272,15 +295,10 @@ class EstimateDzRescaling(PostProcessingPlugin):
         forecast_cube = forecast_cube.extract(constr)
 
         scale_factor = self._fit_polynomial(forecast_cube, truth_cube, dz_training_cube)
-        scaled_dz_cube = self._compute_scaled_dz(scale_factor, dz_cube)
-
-        fp_forecast_slice = next(forecast_cube.slices_over("forecast_period"))
-        fp_forecast_slice.coord("forecast_period").points = np.array(
-            self.forecast_period * SECONDS_IN_HOUR,
-            dtype=TIME_COORDS["forecast_period"].dtype,
+        scaled_dz_cube = self._compute_scaled_dz_cube(
+            forecast_cube, truth_cube, dz_cube, scale_factor
         )
-        scaled_dz_cube.add_aux_coord(fp_forecast_slice.coord("forecast_period"))
-        self._create_hour_coord(truth_cube, scaled_dz_cube)
+
         return scaled_dz_cube
 
 
@@ -354,17 +372,16 @@ class ApplyDzRescaling(PostProcessingPlugin):
             - forecast.coord("forecast_period").points
         )
 
-        if len(fp_diff[fp_diff >= 0]) > 0:
-            fp_index = np.argmin(fp_diff[fp_diff >= 0])
-        else:
+        if not any(fp_diff >= 0):
             (fp_hour,) = forecast.coord("forecast_period").points / SECONDS_IN_HOUR
             msg = (
-                "There is no scaled version of the difference in altitude for"
+                "There is no scaled version of the difference in altitude for "
                 f"a forecast period greater than or equal to {fp_hour}"
             )
             raise ValueError(msg)
 
-        chosen_fp = scaled_dz.coord("forecast_period").points[fp_diff >= 0][fp_index]
+        fp_index = np.argmax(fp_diff >= 0)
+        chosen_fp = scaled_dz.coord("forecast_period").points[fp_index]
         return iris.Constraint(forecast_period=chosen_fp)
 
     @staticmethod
@@ -385,7 +402,7 @@ class ApplyDzRescaling(PostProcessingPlugin):
         )
         return iris.Constraint(forecast_reference_time_hour=frt_hour_in_seconds)
 
-    def process(self, forecast, scaled_dz):
+    def process(self, forecast: Cube, scaled_dz: Cube) -> Cube:
         """Apply rescaling of the forecast to account for differences in the altitude
         between the grid point and the site, as assessed using a training dataset.
         The most appropriate scaled dz is selected by choosing the nearest forecast
@@ -397,9 +414,7 @@ class ApplyDzRescaling(PostProcessingPlugin):
                 grid point and the site.
 
         Returns:
-            A forecast has been rescaled to account for differences between historic
-            forecasts and truths that can be accounted for based on the difference
-            in altitude between the grid point and the site.
+            Altitude-corrected forecast.
 
         Raises:
             ValueError: No scaled dz could be found for the forecast period and
