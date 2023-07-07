@@ -44,6 +44,17 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.spotdata.neighbour_finding import NeighbourSelection
 
+# Define four spots
+altitude_grid = np.array([0, 50, 20, 50])
+altitude_spot = [0, 20, 100, 80]
+latitude = np.arange(4)
+longitude = np.zeros(4)
+wmo_id = ["00001", "00002", "00003", "00004"]
+# Set forecast and truth data so that the two spots that are higher than the grid have slightly
+# higher truth values.
+forecast_data = np.array([0, 20, 10, 15])
+truth_data = np.array([0, 20, 10.2, 15.1])
+
 
 def _create_forecasts(
     forecast_reference_times: List[str], forecast_periods: List[float],
@@ -55,14 +66,8 @@ def _create_forecasts(
         forecast_period: Forecast period in hours.
 
     Returns:
-        Forecast cube.
+        Forecast cube containing four spots and specified time coordinates
     """
-    data = np.array([0, 20, 10, 15])
-    altitude = np.array([0, 100, 20, 50])
-    latitude = np.array([0, 1, 2, 3])
-    longitude = np.array([0, 1, 2, 3])
-    wmo_id = ["00001", "00002", "00003", "00004"]
-
     perc_coord = AuxCoord(
         np.array(50, dtype=np.float32), long_name="percentile", units="%",
     )
@@ -98,14 +103,14 @@ def _create_forecasts(
         units=TIME_COORDS["forecast_reference_time"].units,
     )
 
-    data = np.reshape(data, (1, 1, len(wmo_id)))
+    data = np.reshape(forecast_data, (1, 1, len(wmo_id)))
     data = np.tile(data, (len(forecast_reference_times), len(forecast_periods), 1))
 
     cube = build_spotdata_cube(
         data,
         "wind_speed_at_10m",
         "m s-1",
-        altitude,
+        altitude_spot,
         latitude,
         longitude,
         wmo_id,
@@ -120,19 +125,15 @@ def _create_truths(
     forecast_reference_times: List[str], forecast_periods: List[float],
 ) -> Cube:
     """Create site truths for testing. The truth data here shows an example where the
-    wind speed is slightly greater at the sites with higher altitude.
+    wind speed is slightly greater at the sites with higher altitude_grid.
 
     Args:
-        validity_time: Timestamp e.g. "20170101T0600Z".
+        forecast_reference_times: Timestamp e.g. "20170101T0600Z".
+        forecast_periods: list of forecast period values in hours
 
     Returns:
-        Truth cube.
+        Truth cube containing four spots and specified time coordinates
     """
-    data = np.array([0, 20.2, 10, 15.1])
-    altitude = np.array([0, 100, 20, 50])
-    latitude = np.array([0, 1, 2, 3])
-    longitude = np.array([0, 1, 2, 3])
-    wmo_id = ["00001", "00002", "00003", "00004"]
     validity_times = []
     for frt in forecast_reference_times:
         for fp in forecast_periods:
@@ -145,13 +146,13 @@ def _create_truths(
         "time",
         units=TIME_COORDS["time"].units,
     )
-    data = np.reshape(data, (1, len(wmo_id)))
+    data = np.reshape(truth_data, (1, len(wmo_id)))
     data = np.tile(data, (len(validity_times), 1))
     cube = build_spotdata_cube(
         data,
         "wind_speed_at_10m",
         "m s-1",
-        altitude,
+        altitude_spot,
         latitude,
         longitude,
         wmo_id,
@@ -162,7 +163,7 @@ def _create_truths(
 
 def _create_neighbour_cube() -> Cube:
     """Use the NeighbourSelection functionality to create a cube containing the
-    most appropriate neighbouring grid point for a particular site.
+    most appropriate neighbouring grid point for the four sites.
 
     Returns:
         Neighbour cube.
@@ -171,8 +172,7 @@ def _create_neighbour_cube() -> Cube:
     land_data[0:2, 4] = 1
     land_data[4, 4] = 1
     orography_data = np.zeros((9, 9))
-    orography_data[0, 4] = 1
-    orography_data[1, 4] = 5
+    orography_data[4:8, 4] = altitude_grid
 
     # Global coordinates and cubes
     projection = iris.coord_systems.GeogCS(6371229.0)
@@ -206,12 +206,9 @@ def _create_neighbour_cube() -> Cube:
         dim_coords_and_dims=[(ycoord, 1), (xcoord, 0)],
     )
     global_sites = [
-        {"altitude": 2.0, "latitude": 0.0, "longitude": 0.1, "wmo_id": 1},
-        {"altitude": 10.0, "latitude": 1, "longitude": 1.1, "wmo_id": 2},
-        {"altitude": 100.0, "latitude": 2, "longitude": 2.1, "wmo_id": 3},
-        {"altitude": 30.0, "latitude": 3, "longitude": 3.1, "wmo_id": 4},
+        {"altitude": alt, "latitude": lat, "longitude": lon, "wmo_id": int(site)}
+        for alt, lat, lon, site in zip(altitude_spot, latitude, longitude, wmo_id)
     ]
-
     plugin = NeighbourSelection()
     cube = plugin.process(global_sites, global_orography, global_land_mask)
     return cube
@@ -222,16 +219,15 @@ def _create_neighbour_cube() -> Cube:
 @pytest.mark.parametrize(
     "forecast_periods,dz_lower_bound,dz_upper_bound,truth_adjustment,expected_data",
     [
-        ([6], -200, 200, 0, [0.9998, 0.9989, 0.9894, 0.9968]),
-        ([6], -200, 200, 0, [0.9998, 0.9989, 0.9894, 0.9968]),
-        ([6], -75, 75, 0, [0.9997, 0.9983, 0.9877, 0.9951]),
-        ([6], -200, 200, -1, [0.9986, 0.9931, 0.9331, 0.9794]),
-        ([6], -75, 75, -1, [0.9979, 0.9895, 0.9241, 0.9689]),
-        ([6], -200, 200, 1, [1.0008, 1.0040, 1.0404, 1.0119]),
-        ([6], -75, 75, 1, [1.0013, 1.0063, 1.0480, 1.0189]),
-        ([6], None, None, 0, [0.9998, 0.9989, 0.9894, 0.9968]),
-        ([6, 12], -200, 200, 0, [0.9998, 0.9989, 0.9894, 0.9968],),
-        ([6, 12], -75, 75, 0, [0.9997, 0.9983, 0.9877, 0.9951],),
+        ([6], -200, 200, 0, [1.0, 1.0043, 1.0218, 1.0174]),
+        ([6], None, None, 0, [1.0, 1.0043, 1.0218, 1.0174]),
+        ([6], -75, 75, 0, [1.0, 1.0, 1.0, 1.0]),
+        ([6], -200, 200, -1, [1.0, 0.9930, 0.9657, 0.9724]),
+        ([6], -75, 75, -1, [1.0, 0.9747, 0.9083, 0.9083]),
+        ([6], -200, 200, 1, [1.0, 1.0142, 1.0731, 1.0580]),
+        ([6], -75, 75, 1, [1.0, 1.0247, 1.0958, 1.0958]),
+        ([6, 12], -200, 200, 0, [1.0, 1.0043, 1.0218, 1.0174],),
+        ([6, 12], -75, 75, 0, [1.0, 1.0, 1.0, 1.0],),
     ],
 )
 def test_estimate_dz_rescaling(
@@ -243,11 +239,13 @@ def test_estimate_dz_rescaling(
     truth_adjustment,
     expected_data,
 ):
-    """Test the EstimateDzRescaling plugin including where multiple forecast periods
-    are supplied, and where the lower and upper bounds for the difference in altitude
-    are specified. An adjustment to truth is also included, which highlights the
-    variation in the resulting values that will be used in scaling the forecast
-    provided."""
+    """Test the EstimateDzRescaling plugin with a range of options.
+    n_frts controls how many forecast_reference_time_hours are included.
+    wmo_ids checks that a non-standard site id coordinate can be used.
+    forecast_periods is included to ensure that this can be scalar or dimensional.
+    truth_adjustment is applied to the truth data to show how larger and inverted
+    data (w.r.t. height) behave.
+    """
     forecast_reference_times = [f"201701{day+1:02}T0000Z" for day in range(n_frts)]
 
     forecasts = _create_forecasts(forecast_reference_times, forecast_periods)
