@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the ApplyDzRescaling plugin."""
+from typing import List
 
 import iris
 import numpy as np
@@ -38,34 +39,43 @@ from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube
 
 from improver.calibration.dz_rescaling import ApplyDzRescaling
+from improver.constants import SECONDS_IN_HOUR
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
+altitude = np.zeros(2)
+latitude = np.zeros(2)
+longitude = np.zeros(2)
+wmo_id = ["00001", "00002"]
+
 
 def _create_forecasts(
-    forecast_reference_time: str, validity_time: str, forecast_period: float
+    forecast_reference_time: str,
+    validity_time: str,
+    forecast_period: float,
+    forecast_percs: List[float],
 ) -> Cube:
-    """Create site forecasts for testing.
+    """Create site forecast cube for testing.
 
     Args:
         forecast_reference_time: Timestamp e.g. "20170101T0000Z".
         validity_time: Timestamp e.g. "20170101T0600Z".
         forecast_period: Forecast period in hours.
+        forecast_percs: Forecast wind speed at 10th, 50th and 90th percentile.
 
     Returns:
-        Forecast cube.
+        Forecast cube containing three percentiles and two sites.
     """
-    data = np.array([[0, 15, 5, 10], [0, 20, 10, 15], [5, 25, 15, 20]])
-    altitude = np.array([0, 100, 20, 50])
-    latitude = np.array([0, 1, 2, 3])
-    longitude = np.array([0, 1, 2, 3])
-    wmo_id = ["00001", "00002", "00003", "00004"]
+    data = np.array(forecast_percs).repeat(2).reshape(3, 2)
 
     perc_coord = DimCoord(
         np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%",
     )
     fp_coord = AuxCoord(
-        np.array(forecast_period * 3600, dtype=TIME_COORDS["forecast_period"].dtype,),
+        np.array(
+            forecast_period * SECONDS_IN_HOUR,
+            dtype=TIME_COORDS["forecast_period"].dtype,
+        ),
         "forecast_period",
         units=TIME_COORDS["forecast_period"].units,
     )
@@ -99,31 +109,39 @@ def _create_forecasts(
     return cube
 
 
-def _create_scaling_factor_cube():
-    """Create a scaling factor cube.
+def _create_scaling_factor_cube(
+    frt_hour: int, forecast_period_hour: int, scaling_factor: float
+):
+    """Create a scaling factor cube containing forecast_reference_time_hours of 3 and 9 and
+    forecast_period_hours of 6, 12, 18 and 24 and two sites.
+    All scaling factors are 1 except at the specified [frt_hour, forecast_period_hour], where
+    scaling_factor is used for the first site only.
 
     Returns:
         Scaling factor cube.
     """
     cubelist = iris.cube.CubeList()
-    for frt_hour, multiplier in zip([3, 9], [0.1, 0.15]):
-        for fp_index, forecast_period in enumerate([6, 12, 18, 24]):
-            data = np.array([1, 1.1, 1, 1.05]) + fp_index * multiplier
-            altitude = np.array([0, 100, 20, 50])
-            latitude = np.array([0, 1, 2, 3])
-            longitude = np.array([0, 1, 2, 3])
-            wmo_id = ["00001", "00002", "00003", "00004"]
+    for ref_hour in [3, 9]:
+        for forecast_period in [6, 12, 18, 24]:
+            if ref_hour == frt_hour and forecast_period == forecast_period_hour:
+                data = np.array((scaling_factor, 1), dtype=np.float32)
+            else:
+                data = np.ones(2, dtype=np.float32)
             fp_coord = AuxCoord(
                 np.array(
-                    forecast_period * 3600, dtype=TIME_COORDS["forecast_period"].dtype,
+                    forecast_period * SECONDS_IN_HOUR,
+                    dtype=TIME_COORDS["forecast_period"].dtype,
                 ),
                 "forecast_period",
                 units=TIME_COORDS["forecast_period"].units,
             )
             frth_coord = AuxCoord(
-                np.array(frt_hour * 3600, dtype=np.int32,),
+                np.array(
+                    ref_hour * SECONDS_IN_HOUR,
+                    dtype=TIME_COORDS["forecast_period"].dtype,
+                ),
                 long_name="forecast_reference_time_hour",
-                units="seconds",
+                units=TIME_COORDS["forecast_period"].units,
             )
             cube = build_spotdata_cube(
                 data,
@@ -140,27 +158,37 @@ def _create_scaling_factor_cube():
 
 
 @pytest.mark.parametrize("wmo_id", [True, False])
-@pytest.mark.parametrize(
-    "forecast_period,expected_data",
-    [
-        (5, [[0.0, 16.5, 5, 10.5], [0, 22, 10, 15.75], [5, 27.5, 15, 21]]),
-        (7, [[0.0, 18, 5.5, 11.5], [0, 24, 11, 17.25], [5.5, 30, 16.5, 23]]),
-        (11, [[0.0, 18, 5.5, 11.5], [0, 24, 11, 17.25], [5.5, 30, 16.5, 23]]),
-        (12, [[0.0, 18, 5.5, 11.5], [0, 24, 11, 17.25], [5.5, 30, 16.5, 23]]),
-    ],
-)
-def test_apply_dz_rescaling(wmo_id, forecast_period, expected_data):
-    """Test the ApplyDzRescaling plugin."""
-    forecast_reference_time = "20170101T0300Z"
+@pytest.mark.parametrize("forecast_period", [6, 18])
+@pytest.mark.parametrize("frt_hour", [3, 9])
+@pytest.mark.parametrize("scaling_factor", [0.99, 1.01])
+@pytest.mark.parametrize("forecast_time_offset", (0, -1, -5))
+def test_apply_dz_rescaling(
+    wmo_id, forecast_period, frt_hour, forecast_time_offset, scaling_factor
+):
+    """Test the ApplyDzRescaling plugin.
+    wmo_id checks that the plugin site_id_coord behaves correctly
+    forecast_period and frt_hour (hours) control which element of scaling_factor cube contains the
+    scaling_factor value
+    forecast_time_offset (hours) adjusts the time coord on the forecast cube to ensure the
+    plugin always snaps to the next largest forecast_time when the precise point is not available"""
+    forecast_reference_time = f"20170101T{frt_hour:02d}00Z"
+    forecast = [10.0, 20.0, 30.0]
+    expected_data = np.array(forecast).repeat(2).reshape(3, 2)
+    expected_data[:, 0] *= scaling_factor
 
     validity_time = (
         pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
     ).strftime("%Y%m%dT%H%MZ")
 
     forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period
+        forecast_reference_time,
+        validity_time,
+        forecast_period + forecast_time_offset,
+        forecast,
     )
-    scaling_factor = _create_scaling_factor_cube()
+    scaling_factor = _create_scaling_factor_cube(
+        frt_hour, forecast_period, scaling_factor
+    )
 
     if wmo_id:
         plugin = ApplyDzRescaling()
@@ -185,18 +213,18 @@ def test_mismatching_sites():
     ).strftime("%Y%m%dT%H%MZ")
 
     forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period
+        forecast_reference_time, validity_time, forecast_period, [10, 20, 30]
     )
-    scaling_factor = _create_scaling_factor_cube()
+    scaling_factor = _create_scaling_factor_cube(3, forecast_period, 1.0)
 
-    with pytest.raises(ValueError, match="The mismatched sites are: {'00004'}"):
-        ApplyDzRescaling()(forecast, scaling_factor[..., :3])
+    with pytest.raises(ValueError, match="The mismatched sites are: {'00002'}"):
+        ApplyDzRescaling()(forecast, scaling_factor[..., :1])
 
 
 @pytest.mark.parametrize(
     "forecast_period,frt_hour,exception",
     [
-        (100, 3, "forecast period greater than or equal to 100"),
+        (25, 3, "forecast period greater than or equal to 25"),
         (7, 2, "forecast reference time hour equal to 2"),
     ],
 )
@@ -210,9 +238,9 @@ def test_no_appropriate_scaled_dz(forecast_period, frt_hour, exception):
     ).strftime("%Y%m%dT%H%MZ")
 
     forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period
+        forecast_reference_time, validity_time, forecast_period, [10, 20, 30]
     )
-    scaling_factor = _create_scaling_factor_cube()
+    scaling_factor = _create_scaling_factor_cube(3, forecast_period, 1.0)
 
     with pytest.raises(ValueError, match=exception):
         ApplyDzRescaling()(forecast, scaling_factor)
