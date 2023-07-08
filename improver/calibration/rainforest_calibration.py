@@ -39,8 +39,7 @@
 from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
-
-from cf_units import unit
+from cf_units import Unit
 import iris
 import numpy as np
 from iris.analysis import MEAN
@@ -473,9 +472,13 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         lead_time_hours = forecast_cube.coord("forecast_period").points[0] / (
             SECONDS_IN_MINUTE * MINUTES_IN_HOUR
         )
+        # round up to next multiple of 24
+        model_lead_time = (lead_time_hours // 24) * 24
+        if lead_time_hours % 24 != 0:
+            model_lead_time += 24
 
         self._evaluate_probabilities(
-            input_dataset, lead_time_hours, threshold_probability_cube.data,
+            input_dataset, model_lead_time, threshold_probability_cube.data,
         )
 
         # Enforcing monotonicity
@@ -634,7 +637,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         # convert units of output thresholds
         if threshold_units:
-            original_threshold_unit = unit.Unit(threshold_units)
+            original_threshold_unit = Unit(threshold_units)
             forecast_unit = forecast_cube.units
             output_thresholds_in_forecast_units = np.array(
                 [
