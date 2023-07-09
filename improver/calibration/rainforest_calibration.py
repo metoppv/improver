@@ -510,10 +510,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
 
         input_probabilties = probability_CDF.data
-        input_probabilties = self._make_decreasing(input_probabilties)
-        output_thresholds = np.array(output_thresholds)
+        output_thresholds = np.array(output_thresholds, dtype=np.float32)
         bounds_data = get_bounds_of_distribution(forecast.name(), forecast.units)
-        lower_bound = bounds_data[0]
+        lower_bound = bounds_data[0].astype(np.float32)
         if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(
             self.model_thresholds, output_thresholds
         ):
@@ -521,7 +520,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         else:
             # add lower bound with probability 1
             input_probabilties = np.concatenate(
-                [np.ones((1,) + input_probabilties.shape[1:]), input_probabilties],
+                [np.ones((1,) + input_probabilties.shape[1:], dtype=np.float32), input_probabilties],
                 axis=0,
             )
             input_thresholds = np.concatenate([[lower_bound], self.model_thresholds])
@@ -536,6 +535,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 output_probabilities_2d.transpose(),
                 (len(output_thresholds),) + input_probabilties.shape[1:],
             )
+            # force interpolated probabilties to be monotone (sometimes they
+            # are not due to small floating-point errors)
+            output_probabilities = self._make_decreasing(output_probabilities)
 
         # set probability for lower bound to 1
         if np.isclose(output_thresholds[0], lower_bound):
