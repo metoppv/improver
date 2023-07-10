@@ -97,22 +97,19 @@ def input_probability_cubes(shape, thresholds):
         data[1, :, :] = 2 * data[1, :, :]
 
     rain_cube = set_up_probability_cube(
-        rain_data,
-        thresholds,
-        variable_name="rainfall_rate",
-        threshold_units="m s-1"
+        rain_data, thresholds, variable_name="rainfall_rate", threshold_units="m s-1"
     )
     sleet_cube = set_up_probability_cube(
         sleet_data,
         thresholds,
         variable_name="lwe_sleetfall_rate",
-        threshold_units="m s-1"
+        threshold_units="m s-1",
     )
     snow_cube = set_up_probability_cube(
         snow_data,
         thresholds,
         variable_name="lwe_snowfall_rate",
-        threshold_units="m s-1"
+        threshold_units="m s-1",
     )
 
     return iris.cube.CubeList([rain_cube, sleet_cube, snow_cube])
@@ -143,7 +140,7 @@ def reference_probability_cube(shape, thresholds):
         precip_data,
         thresholds,
         variable_name="lwe_precipitation_rate",
-        threshold_units="m s-1"
+        threshold_units="m s-1",
     )
 
 
@@ -185,31 +182,26 @@ def expected_probability_cubes(shape, thresholds):
         data[1, :, :] = 2 * data[1, :, :]
 
     rain_cube = set_up_probability_cube(
-        rain_data,
-        thresholds,
-        variable_name="rainfall_rate",
-        threshold_units="m s-1"
+        rain_data, thresholds, variable_name="rainfall_rate", threshold_units="m s-1"
     )
     sleet_cube = set_up_probability_cube(
         sleet_data,
         thresholds,
         variable_name="lwe_sleetfall_rate",
-        threshold_units="m s-1"
+        threshold_units="m s-1",
     )
     snow_cube = set_up_probability_cube(
         snow_data,
         thresholds,
         variable_name="lwe_snowfall_rate",
-        threshold_units="m s-1"
+        threshold_units="m s-1",
     )
 
     return iris.cube.CubeList([rain_cube, sleet_cube, snow_cube])
 
 
 def test_percentile_basic(
-        input_percentile_cubes,
-        reference_percentile_cube,
-        expected_percentile_cubes
+    input_percentile_cubes, reference_percentile_cube, expected_percentile_cubes
 ):
     """Test basic usage that the input cubes are updated correctly."""
     output = normalise_to_reference(input_percentile_cubes, reference_percentile_cube)
@@ -220,9 +212,7 @@ def test_percentile_basic(
 
 
 def test_probability_basic(
-        input_probability_cubes,
-        reference_probability_cube,
-        expected_probability_cubes
+    input_probability_cubes, reference_probability_cube, expected_probability_cubes
 ):
     """Test basic usage that the input cubes are updated correctly."""
     output = normalise_to_reference(input_probability_cubes, reference_probability_cube)
@@ -234,10 +224,10 @@ def test_probability_basic(
 
 @pytest.mark.parametrize("ignore_zero_total", (True, False))
 def test_zero_total(
-        input_percentile_cubes,
-        reference_percentile_cube,
-        expected_percentile_cubes,
-        ignore_zero_total
+    input_percentile_cubes,
+    reference_percentile_cube,
+    expected_percentile_cubes,
+    ignore_zero_total,
 ):
     """Test cubes are updated correctly when some values in input_cubes are zero in
     all input cubes.
@@ -293,7 +283,9 @@ def test_coord_values_mismatch(input_percentile_cubes, reference_percentile_cube
     """Test that an error is raised when dimension coordinates of input cubes don't
     match.
     """
-    reference_percentile_cube.coord("percentile").points = np.array([50.0, 70.0], dtype=np.float32)
+    reference_percentile_cube.coord("percentile").points = np.array(
+        [50.0, 70.0], dtype=np.float32
+    )
 
     with pytest.raises(
         ValueError, match="The dimension coordinates on the input cubes"

@@ -38,7 +38,6 @@ import numpy as np
 from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
-from improver.cube_combiner import CubeCombiner
 from improver.metadata.probabilistic import is_probability
 
 
