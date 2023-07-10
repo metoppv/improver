@@ -311,7 +311,7 @@ def normalise_to_reference(
         )
         raise ValueError(msg)
 
-    if coord_mismatch:
+    if coord_mismatch and not is_probability(reference):
         msg = (
             f"The dimension coordinates on the input cubes and the reference did not "
             f"all match. The following coordinates were found to differ: "
@@ -319,10 +319,10 @@ def normalise_to_reference(
         )
         raise ValueError(msg)
 
-    if len(input) == 1:
-        total = input[0].copy().data
-    else:
-        total = CubeCombiner(operation="+").process(input, input[0].name()).data
+    total = input[0].copy().data
+    if len(input) > 1:
+        for cube in input[1:]:
+            total += cube.data
 
     # check for zeroes in total when reference is non-zero
     total_zeroes = total == 0.0
