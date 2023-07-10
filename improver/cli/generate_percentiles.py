@@ -78,7 +78,13 @@ def process(
             range, raises a warning rather than an exception.
         mask_percentiles (bool):
             A boolean determining whether the final percentiles should
-            be masked. This is only implemented to work when converting
+            be masked. If True, then where the percentile is higher than
+            the probability of the diagnostic existing the outputted
+            percentile will be masked.
+            The probability of being below the final threshold in
+            forecast_probabilities is used as the probability of the diagnostic
+            existing.
+            This is only implemented to work when converting
             probability cubes to percentiles.
         optimal_crps_percentiles (bool):
             If True, percentiles are computed following the
