@@ -295,7 +295,7 @@ def test_coord_values_mismatch(input_percentile_cubes, reference_percentile_cube
 
 def test_coord_names_mismatch(input_percentile_cubes, reference_percentile_cube):
     """Test that an error is raised when input cubes have different dimension
-    coordinates.
+    coordinate names.
     """
     input_percentile_cubes[0].coord("percentile").rename("realizations")
 

@@ -42,11 +42,11 @@ def process(
     """Module to enforce that the sum of data in input cubes is equal to the
     corresponding data in reference.
 
-    The data are updated as follows, if cubes contains 2 cubes with data points a and b
-    respectively and corresponding reference r, then:
+    The data are updated as follows, if cubes input ios a cubelist of 2 cubes with data
+    points a and b respectively and corresponding reference r, then:
 
-    a_new = r * a / (a + b)
-    b_new = r * b / (a + b)
+    a_new = r * (a / (a + b))
+    b_new = r * (b / (a + b))
 
     which ensures that r = a_new + b_new.
 
