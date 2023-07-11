@@ -111,7 +111,7 @@ def _create_forecasts(
 
 def _create_scaling_factor_cube(
     frt_hour: int, forecast_period_hour: int, scaling_factor: float
-):
+) -> Cube:
     """Create a scaling factor cube containing forecast_reference_time_hours of 3 and 9 and
     forecast_period_hours of 6, 12, 18 and 24 and two sites.
     All scaling factors are 1 except at the specified [frt_hour, forecast_period_hour], where

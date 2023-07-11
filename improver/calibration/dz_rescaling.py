@@ -169,7 +169,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
 
     def _compute_scaled_dz_cube(
         self, forecast: Cube, dz: Cube, scale_factor: float,
-    ):
+    ) -> Cube:
         """Compute the scaled difference in altitude and ensure that the output cube
         has the correct metadata.
 
