@@ -254,22 +254,18 @@ def test_estimate_dz_rescaling(
     neighbour_cube = _create_neighbour_cube()
     truths.data = np.clip(truths.data + truth_adjustment, 0, None)
 
-    if wmo_id:
-        plugin = EstimateDzRescaling(
-            forecast_period=forecast_periods[0],
-            dz_lower_bound=dz_lower_bound,
-            dz_upper_bound=dz_upper_bound,
-        )
-    else:
+    kwargs = {}
+    if not wmo_id:
         forecasts.coord("wmo_id").rename("station_id")
         truths.coord("wmo_id").rename("station_id")
         neighbour_cube.coord("wmo_id").rename("station_id")
-        plugin = EstimateDzRescaling(
-            forecast_period=forecast_periods[0],
-            dz_lower_bound=dz_lower_bound,
-            dz_upper_bound=dz_upper_bound,
-            site_id_coord="station_id",
-        )
+        kwargs["site_id_coord"] = "station_id"
+    plugin = EstimateDzRescaling(
+        forecast_period=forecast_periods[0],
+        dz_lower_bound=dz_lower_bound,
+        dz_upper_bound=dz_upper_bound,
+        **kwargs,
+    )
 
     result = plugin(forecasts, truths, neighbour_cube)
     assert isinstance(result, Cube)
