@@ -116,7 +116,10 @@ def process(
         ValueError: If threshold_config is used for fuzzy thresholding
     """
     from improver.threshold import BasicThreshold
-    from improver.utilities.cube_manipulation import collapse_realizations
+    from improver.utilities.cube_manipulation import (
+        collapse_percentiles,
+        collapse_realizations,
+    )
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
     if threshold_config and threshold_values:
@@ -157,11 +160,13 @@ def process(
         raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
 
     if collapse_coord == "realization":
-        # TODO change collapse_coord argument to boolean "collapse_realizations"
-        # (requires suite change)
         each_threshold_func_list.append(collapse_realizations)
+    elif collapse_coord == "percentile":
+        each_threshold_func_list.append(collapse_percentiles)
     elif collapse_coord is not None:
-        raise ValueError("Cannot collapse over non-realization coordinate")
+        raise ValueError(
+            "Can only collapse over a realization or a percentile coordinate."
+        )
 
     if fill_masked is not None:
         fill_masked = float(fill_masked)
