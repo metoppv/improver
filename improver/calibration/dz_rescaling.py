@@ -168,14 +168,13 @@ class EstimateDzRescaling(PostProcessingPlugin):
         return np.clip(scaled_dz.data, scaled_dz_lower, scaled_dz_upper)
 
     def _compute_scaled_dz_cube(
-        self, forecast: Cube, truth: Cube, dz: Cube, scale_factor: float,
+        self, forecast: Cube, dz: Cube, scale_factor: float,
     ):
         """Compute the scaled difference in altitude and ensure that the output cube
         has the correct metadata.
 
         Args:
             forecast: Forecast cube.
-            truth: Truth cube.
             dz: The difference in altitude between the grid point and the site.
             scale_factor: A scale factor deduced from a polynomial fit.
 
@@ -296,7 +295,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
 
         scale_factor = self._fit_polynomial(forecast_cube, truth_cube, dz_training_cube)
         scaled_dz_cube = self._compute_scaled_dz_cube(
-            forecast_cube, truth_cube, dz_cube, scale_factor
+            forecast_cube, dz_cube, scale_factor
         )
 
         return scaled_dz_cube
