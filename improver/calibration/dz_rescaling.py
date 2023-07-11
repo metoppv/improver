@@ -143,7 +143,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
         # adjustment will be made.
         return scale_factor[1]
 
-    def _compute_scaled_dz(self, scale_factor: float, dz: np.ndarray) -> Cube:
+    def _compute_scaled_dz(self, scale_factor: float, dz: np.ndarray) -> np.ndarray:
         """Compute the scaled difference in altitude.
 
         Args:
