@@ -159,8 +159,7 @@ def test_collapse_percentile(tmp_path):
         "--collapse-coord",
         "percentile",
     ]
-    with pytest.warns(None) as record:
-        run_cli(args)
+    run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
