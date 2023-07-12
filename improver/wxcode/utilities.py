@@ -98,8 +98,9 @@ DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
 GROUPED_CODES = {
     "snow": [23, 24, 26, 27],
     "sleet": [17, 18],
-    "rain": [10, 12, 14, 15],
+    "rain": [10, 11, 12, 14, 15],
     "convection": [20, 21, 29, 30],
+    "visibility": [5, 6],
 }
 
 
