@@ -38,7 +38,7 @@ import unittest
 
 import iris
 import numpy as np
-from iris.coords import DimCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import CubeList
 from iris.tests import IrisTest
 from iris.util import squeeze
@@ -63,6 +63,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_percentile_cube,
     set_up_variable_cube,
 )
+from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 from ..ensemble_calibration.helper_functions import SetupCubes
 
@@ -355,6 +356,84 @@ class Test__filter_non_matching_cubes(SetupCubes):
         )
         self.assertEqual(hf_result, self.partial_historic_forecasts)
         self.assertEqual(truth_result, self.partial_truth)
+
+    def test_all_nan_historic_forecasts(self):
+        """Test for when a time slice of the historic forecasts contains only NaNs."""
+        historic_temperature_forecast_cube = (
+            self.historic_temperature_forecast_cube.copy()
+        )
+        historic_temperature_forecast_cube.data[:, 0] = np.full((3, 3, 3), np.nan)
+        hf_result, truth_result = filter_non_matching_cubes(
+            historic_temperature_forecast_cube, self.temperature_truth_cube
+        )
+        self.assertEqual(hf_result, self.historic_temperature_forecast_cube[:, 1:])
+        self.assertEqual(truth_result, self.temperature_truth_cube[1:])
+
+    def test_duplicate_truths(self):
+        """Test for when two forecasts match a single truth in terms of validity time.
+        In this case, the first forecast that matches the truth will be kept.
+        This can occur when processing a cube with a multi-dimensional time
+        coordinate."""
+        expected_historical_forecasts = self.historic_forecasts[0].copy()
+        expected_truth = self.truth[0].copy()
+        partial_truth = self.truth[0].copy()
+
+        # Create an historic forecast cube with a multi-dimensional time coordinate.
+        historic_forecast1 = self.historic_forecasts[0].copy()
+        historic_forecast2 = self.historic_forecasts[0].copy()
+        historic_forecast3 = self.historic_forecasts[0].copy()
+        historic_forecast4 = self.historic_forecasts[0].copy()
+
+        # Increase forecast period and validity time.
+        historic_forecast2.coord("forecast_period").points = (
+            historic_forecast2.coord("forecast_period").points + 3600
+        )
+        historic_forecast2.coord("time").points = (
+            historic_forecast2.coord("time").points + 3600
+        )
+
+        # Increase forecast reference time and validity time.
+        historic_forecast3.coord("forecast_reference_time").points = (
+            historic_forecast3.coord("forecast_reference_time").points + 3600
+        )
+        historic_forecast3.coord("time").points = (
+            historic_forecast3.coord("time").points + 3600
+        )
+
+        # Increase forecast period and forecast reference time
+        historic_forecast4.coord("forecast_period").points = (
+            historic_forecast4.coord("forecast_period").points + 3600
+        )
+        historic_forecast4.coord("forecast_reference_time").points = (
+            historic_forecast4.coord("forecast_reference_time").points + 3600
+        )
+
+        # Pre-process historic forecasts so that they can be combined.
+        cube1 = CubeList([historic_forecast1, historic_forecast2]).merge_cube()
+        cube2 = CubeList([historic_forecast3, historic_forecast4]).merge_cube()
+
+        time_points = []
+        cubelist = CubeList()
+        for cube in [cube1, cube2]:
+            cube = iris.util.new_axis(cube, "forecast_reference_time")
+            iris.util.promote_aux_coord_to_dim_coord(cube, "forecast_period")
+            cube = sort_coord_in_cube(cube, "forecast_period")
+            time_points.append(cube.coord("time").points)
+            cube.remove_coord("time")
+            cubelist.append(cube)
+        cube = cubelist.concatenate_cube()
+
+        # Add multi-dimensional time coordinate.
+        time_coord = AuxCoord(
+            np.array(np.reshape(time_points, (2, 2)), dtype=TIME_COORDS["time"].dtype,),
+            "time",
+            units=TIME_COORDS["time"].units,
+        )
+        cube.add_aux_coord(time_coord, data_dims=(0, 1))
+
+        hf_result, truth_result = filter_non_matching_cubes(cube, partial_truth)
+        self.assertEqual(hf_result, expected_historical_forecasts)
+        self.assertEqual(truth_result, expected_truth)
 
     def test_mismatching(self):
         """Test for when there is both a missing historic forecasts and a
