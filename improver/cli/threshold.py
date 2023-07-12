@@ -117,11 +117,11 @@ def process(
         ValueError: Cannot apply land-mask cube without in-vicinity processing.
         ValueError: Can only collapse over a realization or a percentile coordinate.
     """
-    from improver.threshold import BasicThreshold
-    from improver.utilities.cube_manipulation import (
-        collapse_percentiles,
-        collapse_realizations,
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        RebadgePercentilesAsRealizations,
     )
+    from improver.threshold import BasicThreshold
+    from improver.utilities.cube_manipulation import collapse_realizations
     from improver.utilities.spatial import OccurrenceWithinVicinity
 
     if threshold_config and threshold_values:
@@ -164,7 +164,8 @@ def process(
     if collapse_coord == "realization":
         each_threshold_func_list.append(collapse_realizations)
     elif collapse_coord == "percentile":
-        each_threshold_func_list.append(collapse_percentiles)
+        cube = RebadgePercentilesAsRealizations()(cube)
+        each_threshold_func_list.append(collapse_realizations)
     elif collapse_coord is not None:
         raise ValueError(
             "Can only collapse over a realization or a percentile coordinate."

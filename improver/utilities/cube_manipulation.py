@@ -96,21 +96,6 @@ def collapse_realizations(cube: Cube) -> Cube:
     return returned_cube
 
 
-def collapse_percentiles(cube: Cube) -> Cube:
-    """Collapses the percentile coord of a cube and strips the coord from the cube.
-
-    Args:
-        cube:
-            Input cube
-
-    Returns:
-        Cube with percentile coord collapsed and removed.
-    """
-    returned_cube = collapsed(cube, "percentile", iris.analysis.MEAN)
-    returned_cube.remove_coord("percentile")
-    return returned_cube
-
-
 def get_dim_coord_names(cube: Cube) -> List[str]:
     """
     Returns an ordered list of dimension coordinate names on the cube
