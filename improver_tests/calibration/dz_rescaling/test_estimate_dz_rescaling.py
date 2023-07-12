@@ -273,4 +273,5 @@ def test_estimate_dz_rescaling(
     assert result.units == "1"
     assert result.coord("forecast_reference_time_hour").points == 0
     assert result.coord("forecast_reference_time_hour").units == "seconds"
+    assert result.coord("forecast_reference_time_hour").points.dtype == np.int32
     np.testing.assert_allclose(result.data, expected_data, atol=1e-4, rtol=1e-4)
