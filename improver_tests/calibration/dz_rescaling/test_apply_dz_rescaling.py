@@ -157,12 +157,12 @@ def _create_scaling_factor_cube(
     return cubelist.merge_cube()
 
 
-@pytest.mark.parametrize("wmo_id", [True])
-@pytest.mark.parametrize("forecast_period", [6])
-@pytest.mark.parametrize("frt_hour", [3])
-@pytest.mark.parametrize("scaling_factor", [0.99])
-@pytest.mark.parametrize("forecast_period_offset", [-1])
-@pytest.mark.parametrize("frt_hour_offset", [1])
+@pytest.mark.parametrize("wmo_id", [True, False])
+@pytest.mark.parametrize("forecast_period", [6, 18])
+@pytest.mark.parametrize("frt_hour", [3, 9])
+@pytest.mark.parametrize("scaling_factor", [0.99, 1.01])
+@pytest.mark.parametrize("forecast_period_offset", [0, -1, -5])
+@pytest.mark.parametrize("frt_hour_offset", [0, 1, 2])
 def test_apply_dz_rescaling(
     wmo_id,
     forecast_period,
