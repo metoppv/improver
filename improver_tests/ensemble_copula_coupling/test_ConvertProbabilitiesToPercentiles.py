@@ -175,13 +175,10 @@ class Test__probabilities_to_percentiles(IrisTest):
             threshold_units="degC",
         )
         self.percentiles = [10, 50, 90]
-        self.bounds_pairing = (-40, 50)
 
     def test_basic(self):
         """Test that the plugin returns an Iris.cube.Cube with the expected name"""
-        result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.name(), "air_temperature")
 
@@ -192,17 +189,13 @@ class Test__probabilities_to_percentiles(IrisTest):
         ] = "between"
         msg = "Probabilities to percentiles only implemented for"
         with self.assertRaisesRegex(NotImplementedError, msg):
-            Plugin()._probabilities_to_percentiles(
-                self.cube, self.percentiles, self.bounds_pairing
-            )
+            Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
 
     def test_percentile_coord(self):
         """Test that the plugin returns an Iris.cube.Cube with an appropriate
         percentile coordinate with suitable units.
         """
-        result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
         self.assertIsInstance(result.coord("percentile"), DimCoord)
         self.assertArrayEqual(result.coord("percentile").points, self.percentiles)
         self.assertEqual(result.coord("percentile").units, unit.Unit("%"))
@@ -214,7 +207,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         # Calculate result for nontransposed cube.
         nontransposed_result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing
+            self.cube, self.percentiles
         )
 
         # Calculate result for transposed cube.
@@ -222,7 +215,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         # Transposed cube dimensions are [X, Y, P].
         self.cube.transpose([2, 1, 0])
         transposed_result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing
+            self.cube, self.percentiles
         )
 
         # Result cube will be [P, X, Y]
@@ -248,9 +241,7 @@ class Test__probabilities_to_percentiles(IrisTest):
             data.astype(np.float32), ECC_TEMPERATURE_THRESHOLDS, threshold_units="degC"
         )
 
-        result = Plugin()._probabilities_to_percentiles(
-            cube, self.percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_simple_check_data_below(self):
@@ -274,9 +265,7 @@ class Test__probabilities_to_percentiles(IrisTest):
             spp__relative_to_threshold="below",
         )
 
-        result = Plugin()._probabilities_to_percentiles(
-            cube, self.percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_check_data_multiple_timesteps(self):
@@ -286,9 +275,9 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         expected = np.array(
             [
-                [[[8.0, 8.0], [-8.0, 8.66666667]], [[8.0, -16.0], [8.0, -16.0]]],
+                [[[8.0, 8.0], [-28.0, 8.666667]], [[8.0, -46], [8.0, -46]]],
                 [[[12.0, 12.0], [12.0, 12.0]], [[10.5, 10.0], [10.5, 10.0]]],
-                [[[31.0, 31.0], [31.0, 31.0]], [[11.5, 11.33333333], [11.5, 12.0]]],
+                [[[36.0, 36.0], [36.0, 36.0]], [[11.5, 11.333333], [11.5, 12.0]]],
             ],
             dtype=np.float32,
         )
@@ -318,9 +307,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         )
 
         percentiles = [20, 60, 80]
-        result = Plugin()._probabilities_to_percentiles(
-            cube, percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(cube, percentiles)
         self.assertArrayAlmostEqual(result.data, expected, decimal=5)
 
     def test_probabilities_not_monotonically_increasing(self):
@@ -337,18 +324,14 @@ class Test__probabilities_to_percentiles(IrisTest):
 
         warning_msg = "The probability values used to construct the"
         with pytest.warns(UserWarning, match=warning_msg):
-            Plugin()._probabilities_to_percentiles(
-                cube, self.percentiles, self.bounds_pairing
-            )
+            Plugin()._probabilities_to_percentiles(cube, self.percentiles)
 
     def test_result_cube_has_no_air_temperature_threshold_coordinate(self):
         """
         Test that the plugin returns a cube with coordinates that
         do not include a threshold-type coordinate.
         """
-        result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
         try:
             threshold_coord = find_threshold_coordinate(result)
         except CoordinateNotFoundError:
@@ -362,17 +345,15 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         data = np.array(
             [
-                [[15.8, 8.0, 10.4], [-16.0, 8.0, -30.4], [-30.4, -34.0, -35.2]],
-                [[31.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -10.0, -16.0]],
-                [[46.2, 31.0, 42.4], [31.0, 11.6, 12.0], [11.0, 9.0, 3.2]],
+                [[16.8, 8.0, 10.4], [-46, 8.0, -78.4], [-78.4, -86.5, -89.2]],
+                [[36.0, 10.0, 12.0], [10.0, 10.0, 8.0], [8.0, -32.5, -46.0]],
+                [[55.2, 36.0, 50.4], [36.0, 11.6, 12.0], [11.0, 9.0, -2.8]],
             ],
             dtype=np.float32,
         )
 
-        result = Plugin()._probabilities_to_percentiles(
-            self.cube, self.percentiles, self.bounds_pairing
-        )
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        result = Plugin()._probabilities_to_percentiles(self.cube, self.percentiles)
+        self.assertArrayAlmostEqual(result.data, data, decimal=4)
 
     def test_check_single_threshold(self):
         """
@@ -382,17 +363,9 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         data = np.array(
             [
-                [[12.2, 8.0, 12.2], [-16.0, 8.0, -30.4], [-30.4, -34.0, -35.2]],
-                [
-                    [29.0, 26.66666667, 29.0],
-                    [23.75, 26.66666667, 8.0],
-                    [8.0, -10.0, -16.0],
-                ],
-                [
-                    [45.8, 45.33333333, 45.8],
-                    [44.75, 45.33333333, 41.6],
-                    [41.6, 29.0, 3.2],
-                ],
+                [[13.2, 8.0, 13.2], [-46.0, 8.0, -78.4], [-78.4, -86.5, -89.2]],
+                [[34, 31.1111, 34.0], [27.5, 31.1111, 8.0], [8.0, -32.5, -46.0],],
+                [[54.8, 54.2222, 54.8], [53.5, 54.2222, 49.6], [49.6, 34, -2.8],],
             ],
             dtype=np.float32,
         )
@@ -400,10 +373,8 @@ class Test__probabilities_to_percentiles(IrisTest):
         threshold_coord = find_threshold_coordinate(self.cube)
         cube = next(self.cube.slices_over(threshold_coord))
 
-        result = Plugin()._probabilities_to_percentiles(
-            cube, self.percentiles, self.bounds_pairing
-        )
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
+        self.assertArrayAlmostEqual(result.data, data, decimal=4)
 
     def test_lots_of_probability_thresholds(self):
         """
@@ -430,9 +401,7 @@ class Test__probabilities_to_percentiles(IrisTest):
             threshold_units="degC",
         )
 
-        result = Plugin()._probabilities_to_percentiles(
-            cube, self.percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
 
         self.assertArrayAlmostEqual(result.data, data)
 
@@ -444,32 +413,30 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         data = np.array(
             [
-                [[13.9, -16.0, 10.2], [-28.0, -16.0, -35.2], [-35.2, -37.0, -37.6]],
-                [[17.7, 8.25, 10.6], [-4.0, 8.25, -25.6], [-25.6, -31.0, -32.8]],
-                [[21.5, 8.75, 11.0], [8.33333333, 8.75, -16.0], [-16.0, -25.0, -28.0]],
-                [[25.3, 9.25, 11.4], [9.0, 9.25, -6.4], [-6.4, -19.0, -23.2]],
-                [[29.1, 9.75, 11.8], [9.66666667, 9.75, 3.2], [3.2, -13.0, -18.4]],
+                [[14.4, -46, 10.2], [-73.0, -46, -89.2], [-89.2, -93.25, -94.6],],
+                [[19.2, 8.25, 10.6], [-19, 8.25, -67.6], [-67.6, -79.75, -83.8]],
+                [[24.0, 8.75, 11.0], [8.33333, 8.75, -46.0], [-46.0, -66.25, -73.0]],
+                [[28.8, 9.25, 11.4], [9.0, 9.25, -24.4], [-24.4, -52.75, -62.2],],
+                [[33.6, 9.75, 11.8], [9.666667, 9.75, -2.8], [-2.8, -39.25, -51.4],],
                 [
-                    [32.9, 10.33333333, 15.8],
-                    [10.33333333, 10.2, 8.5],
-                    [8.33333333, -7.0, -13.6],
+                    [38.4, 10.333333, 16.8],
+                    [10.333333, 10.2, 8.5],
+                    [8.333333, -25.75, -40.6],
                 ],
-                [[36.7, 11.0, 23.4], [11.0, 10.6, 9.5], [9.0, -1.0, -8.8]],
+                [[43.2, 11.0, 26.4], [11.0, 10.6, 9.5], [9.0, -12.25, -29.8],],
                 [
-                    [40.5, 11.66666667, 31.0],
-                    [11.66666667, 11.0, 10.5],
-                    [9.66666667, 5.0, -4.0],
+                    [48.0, 11.666667, 36.0],
+                    [11.666667, 11.0, 10.5],
+                    [9.666667, 1.25, -19.0],
                 ],
-                [[44.3, 21.5, 38.6], [21.5, 11.4, 11.5], [10.5, 8.5, 0.8]],
-                [[48.1, 40.5, 46.2], [40.5, 11.8, 31.0], [11.5, 9.5, 5.6]],
+                [[52.8, 24, 45.6], [24, 11.4, 11.5], [10.5, 8.5, -8.2],],
+                [[57.6, 48, 55.2], [48, 11.8, 36.0], [11.5, 9.5, 2.6],],
             ],
             dtype=np.float32,
         )
 
         percentiles = np.arange(5, 100, 10)
-        result = Plugin()._probabilities_to_percentiles(
-            self.cube, percentiles, self.bounds_pairing
-        )
+        result = Plugin()._probabilities_to_percentiles(self.cube, percentiles)
         self.assertArrayAlmostEqual(result.data, data, decimal=5)
 
     def test_check_data_spot_forecasts(self):
@@ -479,18 +446,16 @@ class Test__probabilities_to_percentiles(IrisTest):
         """
         data = np.array(
             [
-                [15.8, 8.0, 10.4, -16.0, 8.0, -30.4, -30.4, -34.0, -35.2],
-                [31.0, 10.0, 12.0, 10.0, 10.0, 8.0, 8.0, -10.0, -16.0],
-                [46.2, 31.0, 42.4, 31.0, 11.6, 12.0, 11.0, 9.0, 3.2],
+                [16.8, 8, 10.4, -46, 8, -78.4, -78.4, -86.5, -89.2,],
+                [36.0, 10.0, 12.0, 10.0, 10.0, 8.0, 8.0, -32.5, -46.0],
+                [55.2, 36, 50.4, 36, 11.6, 12.0, 11.0, 9.0, -2.8,],
             ],
             dtype=np.float32,
         )
 
         cube = set_up_spot_test_cube(cube_type="probability")
-        result = Plugin()._probabilities_to_percentiles(
-            cube, self.percentiles, self.bounds_pairing
-        )
-        self.assertArrayAlmostEqual(result.data, data, decimal=5)
+        result = Plugin()._probabilities_to_percentiles(cube, self.percentiles)
+        self.assertArrayAlmostEqual(result.data, data, decimal=4)
 
     def test_masked_data_below(self):
         """Test that if mask_percentiles is true, data is masked as
@@ -506,14 +471,14 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = set_up_probability_cube(
             1 - self.cube.data,
             [200, 1000, 15000],
-            variable_name="cloud_base_height_assuming_only_consider_cloud_\
-                area_fraction_greater_than_4p5_oktas",
+            variable_name="cloud_base_height_assuming_only_consider_cloud_"
+            + "area_fraction_greater_than_4p5_oktas",
             threshold_units="m",
             spp__relative_to_threshold="below",
         )
 
         result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
-            cube, self.percentiles, [0, 22000]
+            cube, self.percentiles
         )
         self.assertArrayEqual(result.data.mask, expected_mask)
 
@@ -531,14 +496,14 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = set_up_probability_cube(
             self.cube.data,
             [200, 1000, 15000],
-            variable_name="cloud_base_height_assuming_only_consider_cloud_\
-                area_fraction_greater_than_4p5_oktas",
+            variable_name="cloud_base_height_assuming_only_consider_cloud_"
+            + "area_fraction_greater_than_4p5_oktas",
             threshold_units="m",
             spp__relative_to_threshold="above",
         )
 
         result = Plugin(mask_percentiles=True)._probabilities_to_percentiles(
-            cube, self.percentiles, [0, 22000]
+            cube, self.percentiles
         )
 
         self.assertArrayEqual(result.data.mask, expected_mask)

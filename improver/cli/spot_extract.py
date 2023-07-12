@@ -44,6 +44,7 @@ def process(
     similar_altitude: bool = False,
     extract_percentiles: cli.comma_separated_list = None,
     ignore_ecc_bounds_exceedance: bool = False,
+    skip_ecc_bounds: bool = False,
     new_title: str = None,
     suppress_warnings: bool = False,
     realization_collapse: bool = False,
@@ -105,9 +106,16 @@ def process(
             Note that for percentile inputs, if the desired percentile(s) do
             not exist in the input cube the available percentiles will be
             resampled to produce those requested.
-        ignore_ecc_bounds (bool):
+        ignore_ecc_bounds_exceedance (bool):
             Demotes exceptions where calculated percentiles are outside the ECC
             bounds range to warnings.
+        skip_ecc_bounds (bool):
+            If True, ECC bounds are not included when probabilities
+            are converted to percentiles. This has the effect that percentiles
+            outside of the range given by the input percentiles will be computed
+            by nearest neighbour interpolation from the nearest available percentile,
+            rather than using linear interpolation between the nearest available
+            percentile and the ECC bound.
         new_title (str):
             New title for the spot-extracted data.  If None, this attribute is
             removed from the output cube since it has no prescribed standard
@@ -174,7 +182,8 @@ def process(
         except CoordinateNotFoundError:
             if "probability_of_" in result.name():
                 result = ConvertProbabilitiesToPercentiles(
-                    ecc_bounds_warning=ignore_ecc_bounds_exceedance
+                    ecc_bounds_warning=ignore_ecc_bounds_exceedance,
+                    skip_ecc_bounds=skip_ecc_bounds
                 )(result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords("realization", dim_coords=True):

@@ -82,12 +82,41 @@ def test_percentiles_reordering(tmp_path):
         ("--skip-ecc-bounds", "without_ecc_bounds_kgo.nc"),
     ),
 )
-def test_extreme_percentiles(tmp_path, bounds_option, kgo):
+def test_skip_ecc_bounds_extreme_percentiles(tmp_path, bounds_option, kgo):
     """Test percentile to percentile conversion where outputs are more extreme than inputs
     (lowest percentile of inputs is 31, outputs have lowest of 20)"""
     kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_extremes"
     kgo_path = kgo_dir / kgo
     percentiles_path = kgo_dir / "few_percentiles_wind_cube.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--realizations-count",
+        "5",
+        percentiles_path,
+        "--output",
+        output_path,
+    ]
+    if bounds_option:
+        args += [bounds_option]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize(
+    "bounds_option, kgo",
+    (
+        ("", "with_ecc_bounds_kgo.nc"),
+        ("--skip-ecc-bounds", "without_ecc_bounds_kgo.nc"),
+    ),
+)
+def test_skip_ecc_bounds_probabilities(tmp_path, bounds_option, kgo):
+    """Test probability to percentile conversion where the percentiles need to sample
+    outside of the distribution given by the probabilities.
+    (there are three input probabilities with non-zero probabilities, outputs have
+    five percentiles)."""
+    kgo_dir = acc.kgo_root() / "generate-realizations/skip_ecc_bounds_probabilities"
+    kgo_path = kgo_dir / kgo
+    percentiles_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         "--realizations-count",
