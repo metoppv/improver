@@ -390,35 +390,25 @@ class ApplyDzRescaling(PostProcessingPlugin):
         chosen_fp = scaled_dz.coord("forecast_period").points[fp_index]
         return iris.Constraint(forecast_period=chosen_fp)
 
-    @staticmethod
     def _create_forecast_reference_time_constraint(
-        forecast: Cube, frt_hour_leniency=0
+        self, forecast: Cube, leniency: int
     ) -> iris.Constraint:
         """Create a forecast reference time constraint based on the hour within the
         forecast reference time.
 
         Args:
             forecast: Forecast to be adjusted using dz rescaling.
+            leniency: The leniency in hours to adjust the forecast reference time hour
+                when looking for a match.
 
         Returns:
             Forecast reference time hour constraint.
         """
-        if frt_hour_leniency == 0:
-            frt_hour_leniency_range = [0]
-        else:
-            frt_hour_leniency_range = range(-frt_hour_leniency, frt_hour_leniency + 1)
-        frt_hours_in_seconds = []
-        for leniency in frt_hour_leniency_range:
-            # Define forecast_reference_time constraint
-            frt_hours_in_seconds.append(
-                (
-                    forecast.coord("forecast_reference_time").cell(0).point.hour
-                    + leniency
-                )
-                * SECONDS_IN_HOUR
-            )
-
-        return iris.Constraint(forecast_reference_time_hour=frt_hours_in_seconds)
+        # Define forecast_reference_time constraint
+        frt_hour_in_seconds = (
+            forecast.coord("forecast_reference_time").cell(0).point.hour + leniency
+        ) * SECONDS_IN_HOUR
+        return iris.Constraint(forecast_reference_time_hour=frt_hour_in_seconds)
 
     def process(self, forecast: Cube, scaled_dz: Cube) -> Cube:
         """Apply rescaling of the forecast to account for differences in the altitude
@@ -441,29 +431,26 @@ class ApplyDzRescaling(PostProcessingPlugin):
         """
         self._check_mismatched_sites(forecast, scaled_dz)
         fp_constr = self._create_forecast_period_constraint(forecast, scaled_dz)
-        frt_constr = self._create_forecast_reference_time_constraint(forecast)
-
-        scaled_dz_extracted = scaled_dz.extract(fp_constr & frt_constr)
-
-        if not scaled_dz_extracted:
+        frt_hour_leniency_range = sorted(
+            list(range(-self.frt_hour_leniency, self.frt_hour_leniency + 1)), key=abs
+        )
+        for leniency in frt_hour_leniency_range:
             frt_constr = self._create_forecast_reference_time_constraint(
-                forecast, frt_hour_leniency=self.frt_hour_leniency
+                forecast, leniency
             )
             scaled_dz_extracted = scaled_dz.extract(fp_constr & frt_constr)
-
-        if not scaled_dz_extracted:
+            if scaled_dz_extracted is not None:
+                break
+        else:
             frt_hour = forecast.coord("forecast_reference_time").cell(0).point.hour
             (fp_hour,) = forecast.coord("forecast_period").points / SECONDS_IN_HOUR
             msg = (
                 "There is no scaled version of the difference in altitude for "
                 f"a forecast period greater than or equal to {fp_hour} and "
-                f"a forecast reference time hour equal to {frt_hour}"
+                f"a forecast reference time hour equal to {frt_hour} or within "
+                f"the specified leniency {self.frt_hour_leniency}."
             )
             raise ValueError(msg)
-        elif len(scaled_dz_extracted.coord("forecast_reference_time_hour").points) > 1:
-            scaled_dz_extracted = next(
-                scaled_dz_extracted.slices_over("forecast_reference_time_hour")
-            )
 
         forecast.data = forecast.data * scaled_dz_extracted.data
         return forecast
