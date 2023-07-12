@@ -306,14 +306,21 @@ class ApplyDzRescaling(PostProcessingPlugin):
     """Apply rescaling of the forecast using the difference in altitude between the
     grid point and the site."""
 
-    def __init__(self, site_id_coord: str = "wmo_id"):
+    def __init__(self, site_id_coord: str = "wmo_id", frt_hour_leniency=1):
         """Initialise class.
 
         Args:
             site_id_coord:
                 The name of the site ID coordinate. This defaults to 'wmo_id'.
+            frt_hour_leniency:
+                The forecast reference time hour for the forecast and the scaled_dz
+                are expected to match. If a leniency greater than zero is specified,
+                the forecast reference time hour will be compared with e.g. a +/-1 hour
+                leniency. If this matches to multiple instances of the scaled_dz,
+                the first match will be used.
         """
         self.site_id_coord = site_id_coord
+        self.frt_hour_leniency = frt_hour_leniency
 
     def _check_mismatched_sites(self, forecast: Cube, scaled_dz: Cube) -> None:
         """Check that the sites match for the forecast and the scaled_dz inputs.
@@ -384,7 +391,9 @@ class ApplyDzRescaling(PostProcessingPlugin):
         return iris.Constraint(forecast_period=chosen_fp)
 
     @staticmethod
-    def _create_forecast_reference_time_constraint(forecast: Cube) -> iris.Constraint:
+    def _create_forecast_reference_time_constraint(
+        forecast: Cube, frt_hour_leniency=0
+    ) -> iris.Constraint:
         """Create a forecast reference time constraint based on the hour within the
         forecast reference time.
 
@@ -394,12 +403,22 @@ class ApplyDzRescaling(PostProcessingPlugin):
         Returns:
             Forecast reference time hour constraint.
         """
-        # Define forecast_reference_time constraint
-        frt_hour_in_seconds = (
-            forecast.coord("forecast_reference_time").cell(0).point.hour
-            * SECONDS_IN_HOUR
-        )
-        return iris.Constraint(forecast_reference_time_hour=frt_hour_in_seconds)
+        if frt_hour_leniency == 0:
+            frt_hour_leniency_range = [0]
+        else:
+            frt_hour_leniency_range = range(-frt_hour_leniency, frt_hour_leniency + 1)
+        frt_hours_in_seconds = []
+        for leniency in frt_hour_leniency_range:
+            # Define forecast_reference_time constraint
+            frt_hours_in_seconds.append(
+                (
+                    forecast.coord("forecast_reference_time").cell(0).point.hour
+                    + leniency
+                )
+                * SECONDS_IN_HOUR
+            )
+
+        return iris.Constraint(forecast_reference_time_hour=frt_hours_in_seconds)
 
     def process(self, forecast: Cube, scaled_dz: Cube) -> Cube:
         """Apply rescaling of the forecast to account for differences in the altitude
@@ -424,8 +443,15 @@ class ApplyDzRescaling(PostProcessingPlugin):
         fp_constr = self._create_forecast_period_constraint(forecast, scaled_dz)
         frt_constr = self._create_forecast_reference_time_constraint(forecast)
 
-        scaled_dz = scaled_dz.extract(fp_constr & frt_constr)
-        if not scaled_dz:
+        scaled_dz_extracted = scaled_dz.extract(fp_constr & frt_constr)
+
+        if not scaled_dz_extracted:
+            frt_constr = self._create_forecast_reference_time_constraint(
+                forecast, frt_hour_leniency=self.frt_hour_leniency
+            )
+            scaled_dz_extracted = scaled_dz.extract(fp_constr & frt_constr)
+
+        if not scaled_dz_extracted:
             frt_hour = forecast.coord("forecast_reference_time").cell(0).point.hour
             (fp_hour,) = forecast.coord("forecast_period").points / SECONDS_IN_HOUR
             msg = (
@@ -434,6 +460,10 @@ class ApplyDzRescaling(PostProcessingPlugin):
                 f"a forecast reference time hour equal to {frt_hour}"
             )
             raise ValueError(msg)
+        elif len(scaled_dz_extracted.coord("forecast_reference_time_hour").points) > 1:
+            scaled_dz_extracted = next(
+                scaled_dz_extracted.slices_over("forecast_reference_time_hour")
+            )
 
-        forecast.data = forecast.data * scaled_dz.data
+        forecast.data = forecast.data * scaled_dz_extracted.data
         return forecast

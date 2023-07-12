@@ -161,41 +161,56 @@ def _create_scaling_factor_cube(
 @pytest.mark.parametrize("forecast_period", [6, 18])
 @pytest.mark.parametrize("frt_hour", [3, 9])
 @pytest.mark.parametrize("scaling_factor", [0.99, 1.01])
-@pytest.mark.parametrize("forecast_time_offset", (0, -1, -5))
+@pytest.mark.parametrize("forecast_period_offset", [0, -1, -5])
+@pytest.mark.parametrize("frt_hour_offset", [-1, 0, 1])
 def test_apply_dz_rescaling(
-    wmo_id, forecast_period, frt_hour, forecast_time_offset, scaling_factor
+    wmo_id,
+    forecast_period,
+    frt_hour,
+    forecast_period_offset,
+    scaling_factor,
+    frt_hour_offset,
 ):
     """Test the ApplyDzRescaling plugin.
-    wmo_id checks that the plugin site_id_coord behaves correctly
-    forecast_period and frt_hour (hours) control which element of scaling_factor cube contains the
-    scaling_factor value
-    forecast_time_offset (hours) adjusts the time coord on the forecast cube to ensure the
-    plugin always snaps to the next largest forecast_time when the precise point is not available"""
-    forecast_reference_time = f"20170101T{frt_hour:02d}00Z"
+    wmo_id checks that the plugin site_id_coord behaves correctly.
+    forecast_period and frt_hour (hours) control which element of scaling_factor cube
+    contains the scaling_factor value.
+    forecast_period_offset (hours) adjusts the forecast period coord on the forecast
+    cube to ensure the plugin always snaps to the next largest forecast_time when the
+    precise point is not available.
+    frt_hour_offset (hours) alters the forecast reference time hour within the forecast
+    whilst the forececast reference time hour of the scaling factor remains the same.
+    This checks that the a mismatch in the forecast reference time hour can still
+    result in a match, if a leniency is specified.
+    """
+    forecast_reference_time = f"20170101T{frt_hour-frt_hour_offset:02d}00Z"
     forecast = [10.0, 20.0, 30.0]
     expected_data = np.array(forecast).repeat(2).reshape(3, 2)
     expected_data[:, 0] *= scaling_factor
 
     validity_time = (
-        pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
+        pd.Timestamp(forecast_reference_time)
+        + pd.Timedelta(hours=forecast_period + forecast_period_offset)
     ).strftime("%Y%m%dT%H%MZ")
 
     forecast = _create_forecasts(
         forecast_reference_time,
         validity_time,
-        forecast_period + forecast_time_offset,
+        forecast_period + forecast_period_offset,
         forecast,
     )
     scaling_factor = _create_scaling_factor_cube(
         frt_hour, forecast_period, scaling_factor
     )
 
-    if wmo_id:
-        plugin = ApplyDzRescaling()
-    else:
+    kwargs = {}
+    if not wmo_id:
         forecast.coord("wmo_id").rename("station_id")
         scaling_factor.coord("wmo_id").rename("station_id")
-        plugin = ApplyDzRescaling(site_id_coord="station_id")
+        kwargs["site_id_coord"] = "station_id"
+
+    kwargs["frt_hour_leniency"] = abs(frt_hour_offset)
+    plugin = ApplyDzRescaling(**kwargs)
 
     result = plugin(forecast, scaling_factor)
     assert isinstance(result, Cube)
@@ -225,7 +240,7 @@ def test_mismatching_sites():
     "forecast_period,frt_hour,exception",
     [
         (25, 3, "forecast period greater than or equal to 25"),
-        (7, 2, "forecast reference time hour equal to 2"),
+        (7, 1, "forecast reference time hour equal to 1"),
     ],
 )
 def test_no_appropriate_scaled_dz(forecast_period, frt_hour, exception):
@@ -244,3 +259,28 @@ def test_no_appropriate_scaled_dz(forecast_period, frt_hour, exception):
 
     with pytest.raises(ValueError, match=exception):
         ApplyDzRescaling()(forecast, scaling_factor)
+
+
+def test_multiple_scaled_dz():
+    """Test an example where multiple scaled dz cubes will be returned following the
+    extraction, as multiple forecast reference time hours are within +/-1 hour of
+    the forecast reference time hour of the forecast, but none are exact matches."""
+    forecast_period = 6
+    forecast_reference_time = "20170101T0300Z"
+    forecast = [10.0, 20.0, 30.0]
+    expected_data = np.array(forecast).repeat(2).reshape(3, 2)
+
+    validity_time = (
+        pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
+    ).strftime("%Y%m%dT%H%MZ")
+
+    forecast = _create_forecasts(
+        forecast_reference_time, validity_time, forecast_period, [10, 20, 30]
+    )
+    scaling_factor = _create_scaling_factor_cube(3, forecast_period, 1.0)
+    scaling_factor.coord("forecast_reference_time_hour").points = [2 * 3600, 4 * 3600]
+
+    result = ApplyDzRescaling()(forecast, scaling_factor)
+    assert isinstance(result, Cube)
+
+    np.testing.assert_allclose(result.data, expected_data, atol=1e-4, rtol=1e-4)
