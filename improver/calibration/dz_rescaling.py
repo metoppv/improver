@@ -314,10 +314,9 @@ class ApplyDzRescaling(PostProcessingPlugin):
                 The name of the site ID coordinate. This defaults to 'wmo_id'.
             frt_hour_leniency:
                 The forecast reference time hour for the forecast and the scaled_dz
-                are expected to match. If a leniency greater than zero is specified,
-                the forecast reference time hour will be compared with e.g. a +/-1 hour
-                leniency. If this matches to multiple instances of the scaled_dz,
-                the first match will be used.
+                are expected to match. If no match is found and a leniency greater
+                than zero is specified, the forecast reference time hour will be
+                compared with e.g. a +/-1 hour leniency.
         """
         self.site_id_coord = site_id_coord
         self.frt_hour_leniency = frt_hour_leniency
