@@ -94,7 +94,12 @@ def process(
             threshold_config file.
         collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
-            over.
+            over. The only supported options are "realization" or "percentile".
+            If "percentile" is requested, the percentile coordinate will be
+            rebadged as a realization coordinate prior to collapse. The percentile
+            coordinate needs to be evenly spaced around the 50th percentile
+            to allow successful conversion from percentiles to realizations and
+            subsequent collapsing over the realization coordinate.
         vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
