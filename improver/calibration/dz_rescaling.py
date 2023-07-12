@@ -390,8 +390,9 @@ class ApplyDzRescaling(PostProcessingPlugin):
         chosen_fp = scaled_dz.coord("forecast_period").points[fp_index]
         return iris.Constraint(forecast_period=chosen_fp)
 
+    @staticmethod
     def _create_forecast_reference_time_constraint(
-        self, forecast: Cube, leniency: int
+        forecast: Cube, leniency: int
     ) -> iris.Constraint:
         """Create a forecast reference time constraint based on the hour within the
         forecast reference time.
