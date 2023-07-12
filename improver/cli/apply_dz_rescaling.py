@@ -51,12 +51,19 @@ def process(
             Percentile forecasts.
         rescaling_cube (iris.cube.Cube):
             Multiplicative scaling factor to adjust the percentile forecasts.
+            This cube is expected to contain multiple values for the forecast_period
+            and forecast_reference_time_hour coordinates. The most appropriate
+            forecast period and forecast reference_time_hour pair within the
+            rescaling cube are chosen using the forecast reference time hour from
+            the forecast and the nearest forecast period that is greater than or
+            equal to the forecast period of the forecast. This cube is generated
+            using the estimate_dz_rescaling CLI.
         site_id_coord (str):
             The name of the site ID coordinate. This defaults to 'wmo_id'.
 
     Returns:
-        iris.cube.CubeList:
-            Percentile forecasts have been rescaled to account for a difference
+        iris.cube.Cube:
+            Percentile forecasts that have been rescaled to account for a difference
             in altitude between the grid point and the site location.
     """
 

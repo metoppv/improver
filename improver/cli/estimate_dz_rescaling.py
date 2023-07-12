@@ -91,7 +91,7 @@ def process(
             The name of the site ID coordinate. This defaults to 'wmo_id'.
 
     Returns:
-        iris.cube.CubeList:
+        iris.cube.Cube:
             Cube containing a scaling factor computed using the difference
             in altitude between the grid point and the site location.
     """
