@@ -259,4 +259,3 @@ def test_no_appropriate_scaled_dz(forecast_period, frt_hour, exception):
 
     with pytest.raises(ValueError, match=exception):
         ApplyDzRescaling()(forecast, scaling_factor)
-
