@@ -53,9 +53,9 @@ def process(
     in altitude between the grid point and the site location.
 
     Args:
-        forecast (pathlib.Path):
+        forecast (iris.cube.Cube):
             Historical percentile forecasts. A 50th percentile forecast is required.
-        truth (pathlib.Path):
+        truth (iris.cube.Cube):
             Truths that are expected to match the validity times of the forecasts.
         neighbour_cube (iris.cube.Cube):
             The neighbour cube is a cube of spot-data neighbours and
@@ -66,7 +66,7 @@ def process(
             forecast period as a file with multiple forecast periods can be
             provided. A file with multiple forecast periods may be acceptable at
             longer lead times to increase sample size.
-        dz_lower_bound (float) :
+        dz_lower_bound (float):
             The lowest acceptable value for the difference in altitude
             between the grid point and the site. Sites with a lower
             (or more negative) difference in altitude will be excluded.
@@ -82,11 +82,11 @@ def process(
             the search radius when the neighbour cube was created. May be used
             with similar_altitude.
         similar_altitude (bool):
-            Use to select the nearest-with-height-constraint
-            neighbour-selection method from the neighbour_cube. These are grid
-            points that were found to be the closest in altitude to the spot
-            site within the search radius defined when the neighbour cube was
-            created. May be used with land_constraint.
+            Use to select the nearest-with-height-constraint neighbour-selection
+            method from the neighbour_cube. These are grid points that were found
+            to be the closest in altitude to the spot site within the search radius
+            defined when the neighbour cube was created. May be used with
+            land_constraint.
         site_id_coord (str):
             The name of the site ID coordinate. This defaults to 'wmo_id'.
 
