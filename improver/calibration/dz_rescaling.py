@@ -224,6 +224,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
             np.array(frt_hour, np.int32), long_name=f"{coord_name}_hour", units="hours",
         )
         hour_coord.convert_units("seconds")
+        hour_coord.points = hour_coord.points.astype(np.int32)
         target_cube.add_aux_coord(hour_coord)
 
     def process(self, forecasts: Cube, truths: Cube, neighbour_cube: Cube) -> Cube:
