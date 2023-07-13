@@ -61,20 +61,25 @@ def process(
             The neighbour cube is a cube of spot-data neighbours and
             the spot site information.
         forecast_period (int):
-            The forecast_period of the forecast used in the construction of the
-            filename. This forecast_period will also be used as the representative
-            forecast period as a file with multiple forecast periods can be
-            provided. A file with multiple forecast periods may be acceptable at
-            longer lead times to increase sample size.
+            The forecast period that is considered representative of
+            the input forecasts. This is required as the input forecasts could
+            contain multiple forecast periods.
         dz_lower_bound (float):
             The lowest acceptable value for the difference in altitude
             between the grid point and the site. Sites with a lower
             (or more negative) difference in altitude will be excluded.
-            Defaults to None.
+            If the altitude difference is calculated as site altitude minus the
+            grid point altitude, the lower bound therefore indicates how far below
+            the orographic surface (i.e. within unresolved valleys) the correction
+            should be applied. Defaults to None.
         dz_upper_bound (float):
             The highest acceptable value for the difference in altitude
             between the grid point and the site. Sites with a larger
-            positive difference in altitude will be excluded. Defaults to None.
+            positive difference in altitude will be excluded.
+            If the altitude difference is calculated as site altitude minus the
+            grid point altitude, the upper bound therefore indicates how far above
+            the orographic surface (i.e. on unresolved hills or mountains) the
+            correction should be applied. Defaults to None.
         land_constraint (bool):
             Use to select the nearest-with-land-constraint neighbour-selection
             method from the neighbour_cube. This means that the grid points
