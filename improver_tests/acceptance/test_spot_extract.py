@@ -244,12 +244,19 @@ def test_multiple_constraints(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentile_thresholded_input(tmp_path):
+@pytest.mark.parametrize(
+    "bounds_option, kgo",
+    (
+        ("", "with_ecc_bounds_extract_percentile_kgo.nc"),
+        (["--skip-ecc-bounds"], "without_ecc_bounds_kgo.nc"),
+    ),
+)
+def test_percentile_thresholded_input(tmp_path, bounds_option, kgo):
     """Test extracting percentiles from thresholded input"""
     kgo_dir = acc.kgo_root() / "spot-extract"
     neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
     threshold_path = kgo_dir / "inputs/enukx_temperature_thresholds.nc"
-    kgo_path = kgo_dir / "outputs/extract_percentile_kgo.nc"
+    kgo_path = kgo_dir / "outputs" / kgo
     output_path = tmp_path / "output.nc"
     args = [
         threshold_path,
@@ -257,9 +264,10 @@ def test_percentile_thresholded_input(tmp_path):
         "--output",
         output_path,
         "--extract-percentiles",
-        "50",
+        "2, 50, 98",
         "--new-title",
         UK_SPOT_TITLE,
+        *bounds_option,
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
