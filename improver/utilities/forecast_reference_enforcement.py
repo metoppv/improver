@@ -346,3 +346,34 @@ def normalise_to_reference(
         output.append(output_cube)
 
     return output
+
+
+def split_cubes_by_name(
+    cubes: Union[List[Cube], CubeList], cube_names: Union[str, List[str]]
+) -> tuple:
+    """Split a list of cubes into two lists; one containing all cubes with names which
+    match cube_names, and the other containing all the other cubes.
+
+    Args:
+        cubes: List of cubes
+        cube_names: the name of the cube/s to be used as reference. This can be either
+            a single name or a list of names.
+
+    Returns:
+        - A cubelist containing all cubes with names which match cube_names
+        - A cubelist containing all cubes with names which do not match cube_names
+    """
+
+    desired_cubes = iris.cube.CubeList()
+    other_cubes = iris.cube.CubeList()
+
+    if isinstance(cube_names, str):
+        cube_names = [cube_names]
+
+    for cube in cubes:
+        if cube.name() in cube_names:
+            desired_cubes.append(cube)
+        else:
+            other_cubes.append(cube)
+
+    return desired_cubes, other_cubes

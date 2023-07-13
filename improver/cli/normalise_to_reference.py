@@ -37,13 +37,16 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cubes: cli.inputcubelist, reference: cli.inputcube, ignore_zero_total: bool = False
+    *cubes: cli.inputcubelist,
+    reference_name: cli.comma_separated_list,
+    return_name: cli.comma_separated_list = None,
+    ignore_zero_total: bool = False,
 ):
-    """Module to enforce that the sum of data in input cubes is equal to the
-    corresponding data in reference.
+    """Module to enforce that the sum of data in a list of cubes is equal to the
+    corresponding data in a reference cube.
 
-    The data are updated as follows, if input cubes is a cubelist of 2 cubes with data
-    points a and b respectively and corresponding reference r, then:
+    The data are updated as follows, if there are 2 cubes to be normalised containing
+    data points a and b respectively with corresponding reference r, then:
 
     a_new = r * (a / (a + b))
     b_new = r * (b / (a + b))
@@ -51,23 +54,53 @@ def process(
     which ensures that r = a_new + b_new.
 
     Args:
-        cubes: (iris.cube.CubeList) cubes whose data will be updated so that the total
-            of these data is equal to the data in reference.
-        reference: (iris.cube.Cube) a cube containing the data which the data in cubes
-            will be updated with respect to.
-        ignore_zero_total: determines whether an error will be raised in the instance
-            where the total of cubes is zero but the corresponding value in reference
-            is non-zero. If True this error will not be raised - instead the data in
-            cubes will remain as zero values, if False an error will be raised.
+        cubes (List of iris.cube.Cube): A list of cubes containing both the cubes to be
+            updated and the reference cube. The reference cube will be identified by
+            matching the cube name to reference_name.
+        reference_name (str): The name of the reference cube, this should match exactly
+            one cube in cubes.
+        return_name (str): The name/s of the cubes to be returned. If None then all
+            updated cubes will be returned, otherwise only updated cubes with names
+            matching return_name will be returned. Defaults to None.
+        ignore_zero_total (bool): Determines whether an error will be raised in the
+            instance where the total of non-reference cubes is zero but the
+            corresponding value in reference is non-zero. If True this error will not be
+            raised - instead the data in the updated cubes will remain as zero values,
+            if False an error will be raised.
 
     Returns:
-        iris.cube.CubeList:
+        iris.cube.Cube or iris.cube.CubeList:
             A cubelist containing cubes with identical metadata to those in input cubes,
             but with data updated so that the total of the data in these cubes is equal
-            to the reference.
+            to the reference. If only one cube is being returned, then a cube is
+            returned instead of a cubelist.
 
     """
 
-    from improver.utilities.forecast_reference_enforcement import normalise_to_reference
+    from improver.utilities.forecast_reference_enforcement import (
+        normalise_to_reference,
+        split_cubes_by_name,
+    )
 
-    return normalise_to_reference(cubes, reference, ignore_zero_total)
+    cubes = cubes[0]
+
+    reference_cube, input_cubes = split_cubes_by_name(cubes, reference_name)
+
+    if len(reference_cube) == 1:
+        reference_cube = reference_cube[0]
+    else:
+        msg = (
+            f"Exactly one cube with a name matching reference_name is required, but "
+            f"{len(reference_cube)} were found."
+        )
+        raise ValueError(msg)
+
+    output = normalise_to_reference(input_cubes, reference_cube, ignore_zero_total)
+
+    if return_name is not None:
+        output, _ = split_cubes_by_name(output, return_name)
+
+    if len(output) == 1:
+        output = output[0]
+
+    return output
