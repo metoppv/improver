@@ -79,7 +79,7 @@ def test_probconvert(tmp_path, count):
 
 
 @pytest.mark.slow
-def test_ignoreeccbounds(tmp_path,):
+def test_ignore_ecc_bounds(tmp_path,):
     """Test ECC bounds warning option"""
     kgo_dir = acc.kgo_root() / "generate-percentiles/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
@@ -105,7 +105,7 @@ def test_ignoreeccbounds(tmp_path,):
     "bounds_option,kgo",
     (
         ("", "with_ecc_bounds_kgo.nc"),
-        ("--skip-ecc-bounds", "without_ecc_bounds_kgo.nc"),
+        (["--skip-ecc-bounds"], "without_ecc_bounds_kgo.nc"),
     ),
 )
 def test_skip_ecc_bounds(tmp_path, bounds_option, kgo):
@@ -122,9 +122,8 @@ def test_skip_ecc_bounds(tmp_path, bounds_option, kgo):
         "realization",
         "--percentiles",
         "2,50,98",
+        *bounds_option,
     ]
-    if bounds_option:
-        args += [bounds_option]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

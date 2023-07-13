@@ -106,7 +106,7 @@ def test_skip_ecc_bounds_extreme_percentiles(tmp_path, bounds_option, kgo):
     "bounds_option, kgo",
     (
         ("", "with_ecc_bounds_kgo.nc"),
-        ("--skip-ecc-bounds", "without_ecc_bounds_kgo.nc"),
+        (["--skip-ecc-bounds"], "without_ecc_bounds_kgo.nc"),
     ),
 )
 def test_skip_ecc_bounds_probabilities(tmp_path, bounds_option, kgo):
@@ -124,9 +124,8 @@ def test_skip_ecc_bounds_probabilities(tmp_path, bounds_option, kgo):
         percentiles_path,
         "--output",
         output_path,
+        *bounds_option,
     ]
-    if bounds_option:
-        args += [bounds_option]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

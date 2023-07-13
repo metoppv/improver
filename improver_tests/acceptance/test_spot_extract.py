@@ -248,7 +248,7 @@ def test_multiple_constraints(tmp_path):
     "bounds_option, kgo",
     (
         ("", "with_ecc_bounds_extract_percentile_kgo.nc"),
-        ("--skip-ecc-bounds", "without_ecc_bounds_kgo.nc"),
+        (["--skip-ecc-bounds"], "without_ecc_bounds_kgo.nc"),
     ),
 )
 def test_percentile_thresholded_input(tmp_path, bounds_option, kgo):
@@ -267,9 +267,8 @@ def test_percentile_thresholded_input(tmp_path, bounds_option, kgo):
         "2, 50, 98",
         "--new-title",
         UK_SPOT_TITLE,
+        *bounds_option,
     ]
-    if bounds_option:
-        args += [bounds_option]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
