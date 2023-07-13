@@ -183,7 +183,7 @@ def process(
             if "probability_of_" in result.name():
                 result = ConvertProbabilitiesToPercentiles(
                     ecc_bounds_warning=ignore_ecc_bounds_exceedance,
-                    skip_ecc_bounds=skip_ecc_bounds
+                    skip_ecc_bounds=skip_ecc_bounds,
                 )(result, percentiles=extract_percentiles)
                 result = iris.util.squeeze(result)
             elif result.coords("realization", dim_coords=True):
