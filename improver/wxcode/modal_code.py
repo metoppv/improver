@@ -149,7 +149,7 @@ class ModalWeatherCode(BasePlugin):
     @staticmethod
     def mode_aggregator(data: ndarray, axis: int) -> ndarray:
         """An aggregator for use with iris to calculate the mode along the
-        specified axis. If the modal value selected comprises less than 10%
+        specified axis. If the modal value selected comprises less than 30%
         of data along the dimension being collapsed, the value is set to the
         UNSET_CODE_INDICATOR to indicate that the uncertainty was too high to
         return a mode.
@@ -169,7 +169,7 @@ class ModalWeatherCode(BasePlugin):
         # Aggregation coordinate is moved to the -1 position in initialisation;
         # move this back to the leading coordinate
         data = np.moveaxis(data, [axis], [0])
-        minimum_significant_count = 0.1 * data.shape[0]
+        minimum_significant_count = 0.3 * data.shape[0]
         mode_result, counts = stats.mode(CODE_MAX - data, axis=0)
         mode_result[counts < minimum_significant_count] = (
             CODE_MAX - UNSET_CODE_INDICATOR
