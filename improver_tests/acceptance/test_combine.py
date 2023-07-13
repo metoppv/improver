@@ -152,7 +152,8 @@ def test_combine_broadcast(tmp_path):
         *inputs,
         "--operation",
         "multiply",
-        "--broadcast-to-threshold",
+        "--broadcast",
+        "threshold",
         "--new-name",
         "rainfall_rate",
         "--output",
@@ -174,9 +175,34 @@ def test_multiplication_cell_methods(tmp_path):
         precipphase,
         "--operation",
         "multiply",
-        "--broadcast-to-threshold",
+        "--broadcast",
+        "threshold",
         "--new-name",
         "lwe_thickness_of_snowfall_amount",
+        "--output",
+        f"{output_path}",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+@pytest.mark.parametrize("expand_bound", ("True", "False"))
+def test_expand_bound(tmp_path, expand_bound):
+    """Test combine operation with and without expand_bound"""
+    kgo_dir = acc.kgo_root() / "combine/expand_bound"
+    kgo_path = kgo_dir / f"kgo_{expand_bound}.nc"
+    orography_path = kgo_dir / "orography.nc"
+    cloud_base_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--operation",
+        "subtract",
+        "--broadcast",
+        "realization",
+        "--expand-bound",
+        expand_bound,
+        cloud_base_path,
+        orography_path,
         "--output",
         f"{output_path}",
     ]

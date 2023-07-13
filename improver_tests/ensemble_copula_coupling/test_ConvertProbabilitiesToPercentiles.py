@@ -506,7 +506,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = set_up_probability_cube(
             1 - self.cube.data,
             [200, 1000, 15000],
-            variable_name="cloud_base_altitude_assuming_only_consider_cloud_\
+            variable_name="cloud_base_height_assuming_only_consider_cloud_\
                 area_fraction_greater_than_4p5_oktas",
             threshold_units="m",
             spp__relative_to_threshold="below",
@@ -531,7 +531,7 @@ class Test__probabilities_to_percentiles(IrisTest):
         cube = set_up_probability_cube(
             self.cube.data,
             [200, 1000, 15000],
-            variable_name="cloud_base_altitude_assuming_only_consider_cloud_\
+            variable_name="cloud_base_height_assuming_only_consider_cloud_\
                 area_fraction_greater_than_4p5_oktas",
             threshold_units="m",
             spp__relative_to_threshold="above",

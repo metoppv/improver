@@ -153,10 +153,14 @@ class Test_construct_yx_coords(IrisTest):
 class Test_construct_scalar_time_coords(IrisTest):
     """Test the construct_scalar_time_coords method"""
 
-    def test_basic(self):
-        """Test times can be set"""
+    def basic_test(
+        self, ref_time_coord=("forecast_reference_time",), ref_time_kword=("frt",)
+    ):
+        """Common method for test_basic, test_blend_time and test_blend_time_and_frt"""
         coord_dims = construct_scalar_time_coords(
-            datetime(2017, 12, 1, 14, 0), None, datetime(2017, 12, 1, 9, 0)
+            datetime(2017, 12, 1, 14, 0),
+            None,
+            **{k: datetime(2017, 12, 1, 9, 0) for k in ref_time_kword},
         )
         time_coords = [item[0] for item in coord_dims]
 
@@ -167,18 +171,48 @@ class Test_construct_scalar_time_coords(IrisTest):
         self.assertEqual(
             iris_time_to_datetime(time_coords[0])[0], datetime(2017, 12, 1, 14, 0)
         )
-        self.assertEqual(time_coords[1].name(), "forecast_reference_time")
-        self.assertEqual(
-            iris_time_to_datetime(time_coords[1])[0], datetime(2017, 12, 1, 9, 0)
-        )
-        self.assertEqual(time_coords[2].name(), "forecast_period")
-        self.assertEqual(time_coords[2].points[0], 3600 * 5)
+        for i, coord_name in enumerate(ref_time_coord):
+            self.assertEqual(time_coords[i + 1].name(), coord_name)
+            self.assertEqual(
+                iris_time_to_datetime(time_coords[i + 1])[0],
+                datetime(2017, 12, 1, 9, 0),
+            )
+        self.assertEqual(time_coords[-1].name(), "forecast_period")
+        self.assertEqual(time_coords[-1].points[0], 3600 * 5)
 
-        for crd in time_coords[:2]:
+        for crd in time_coords[:-1]:
             self.assertEqual(crd.dtype, np.int64)
             self.assertEqual(crd.units, "seconds since 1970-01-01 00:00:00")
-        self.assertEqual(time_coords[2].units, "seconds")
-        self.assertEqual(time_coords[2].dtype, np.int32)
+        self.assertEqual(time_coords[-1].units, "seconds")
+        self.assertEqual(time_coords[-1].dtype, np.int32)
+
+    def test_basic(self):
+        """Test times can be set"""
+        self.basic_test()
+
+    def test_blend_time(self):
+        """Test if blend_time is supplied instead of frt"""
+        self.basic_test(ref_time_coord=["blend_time"], ref_time_kword=["blend_time"])
+
+    def test_blend_time_and_frt(self):
+        """Test if blend_time and frt are supplied"""
+        self.basic_test(
+            ref_time_coord=["forecast_reference_time", "blend_time"],
+            ref_time_kword=["frt", "blend_time"],
+        )
+
+    def test_error_frt_and_blend_time_differ(self):
+        """Test error is raised if both frt and blend_time are supplied but with different values"""
+        msg = (
+            "Refusing to create cube with different values for forecast_reference_time and "
+            "blend_time"
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            construct_scalar_time_coords(
+                time=datetime(2018, 3, 1, 12, 0),
+                frt=datetime(2018, 3, 1, 9, 0),
+                blend_time=datetime(2018, 3, 1, 8, 0),
+            )
 
     def test_error_negative_fp(self):
         """Test an error is raised if the calculated forecast period is
@@ -188,6 +222,16 @@ class Test_construct_scalar_time_coords(IrisTest):
             _ = construct_scalar_time_coords(
                 datetime(2017, 12, 1, 14, 0), None, datetime(2017, 12, 1, 16, 0)
             )
+
+    def test_error_no_reference_time(self):
+        """Test an error is raised if neither a forecast reference time nor blend time are supplied
+        """
+        msg = (
+            "Cannot create forecast_period without either a forecast reference time "
+            "or a blend time."
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            construct_scalar_time_coords(datetime(2017, 12, 1, 14, 0), None)
 
     def test_time_bounds(self):
         """Test creation of time coordinate with bounds"""
@@ -308,6 +352,20 @@ class Test_set_up_variable_cube(IrisTest):
         self.assertEqual(time_point, expected_time)
         frt_point = iris_time_to_datetime(result.coord("forecast_reference_time"))[0]
         self.assertEqual(frt_point, expected_frt)
+        self.assertEqual(result.coord("forecast_period").points[0], 10800)
+        self.assertFalse(result.coords("time", dim_coords=True))
+
+    def test_blend_time(self):
+        """Test use of blend_time instead of forecast reference time"""
+        expected_time = datetime(2018, 3, 1, 12, 0)
+        expected_reference_time = datetime(2018, 3, 1, 9, 0)
+        result = set_up_variable_cube(
+            self.data, time=expected_time, blend_time=expected_reference_time
+        )
+        time_point = iris_time_to_datetime(result.coord("time"))[0]
+        self.assertEqual(time_point, expected_time)
+        reference_point = iris_time_to_datetime(result.coord("blend_time"))[0]
+        self.assertEqual(reference_point, expected_reference_time)
         self.assertEqual(result.coord("forecast_period").points[0], 10800)
         self.assertFalse(result.coords("time", dim_coords=True))
 

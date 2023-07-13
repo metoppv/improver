@@ -166,12 +166,21 @@ def check_predictor(predictor: str) -> str:
 
 
 def filter_non_matching_cubes(
-    historic_forecast: Cube, truth: Cube
+    historic_forecast: Cube, truth: Cube,
 ) -> Tuple[Cube, Cube]:
     """
     Provide filtering for the historic forecast and truth to make sure
     that these contain matching validity times. This ensures that any
     mismatch between the historic forecasts and truth is dealt with.
+    If multiple time slices of the historic forecast match with the
+    same truth slice, only the first truth slice is kept to avoid
+    duplicate truth slices, which prevent the truth cubes being merged.
+    This can occur when processing a cube with a multi-dimensional time
+    coordinate. If a historic forecast time slice contains only NaNs,
+    then this time slice is also skipped. This can occur when processing
+    a multi-dimensional time coordinate where some of the forecast reference
+    time and forecast period combinations do not typically occur, so may
+    be filled with NaNs.
 
     Args:
         historic_forecast:
@@ -193,6 +202,7 @@ def filter_non_matching_cubes(
     """
     matching_historic_forecasts = iris.cube.CubeList([])
     matching_truths = iris.cube.CubeList([])
+    truth_times = []
     for hf_slice in historic_forecast.slices_over("time"):
         if hf_slice.coord("time").has_bounds():
             point = iris_time_to_datetime(
@@ -216,7 +226,12 @@ def filter_non_matching_cubes(
         constr = iris.Constraint(coord_values=coord_values)
         truth_slice = truth.extract(constr)
 
-        if truth_slice:
+        if (
+            truth_slice
+            and not np.isnan(hf_slice.data).all()
+            and truth_slice.coord("time").cell(0) not in truth_times
+        ):
+            truth_times.append(truth_slice.coord("time").cell(0))
             matching_historic_forecasts.append(hf_slice)
             matching_truths.append(truth_slice)
     if not matching_historic_forecasts and not matching_truths:

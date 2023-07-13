@@ -28,24 +28,30 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""Tests for the clip CLI"""
 
-from collections import namedtuple
+import pytest
 
-import numpy as np
+from . import acceptance as acc
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
+@pytest.mark.parametrize("cube_type", ("spot_data", "gridded_data"))
+@pytest.mark.parametrize("min_value,max_value", ((0, 4000), (None, 6000), (1000, None)))
+def test_basic(tmp_path, min_value, max_value, cube_type):
+    """Test clip functionality with different combinations of min and max values """
+    kgo_dir = acc.kgo_root() / "clip" / cube_type
+    kgo_path = kgo_dir / f"kgo_{min_value}_{max_value}.nc"
+    output_path = tmp_path / "output.nc"
 
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "blend_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+    args = [kgo_dir / "input.nc", "--output", output_path]
+    if min_value is not None:
+        args.append(f"--min-value={min_value}")
+    if max_value is not None:
+        args.append(f"--max-value={max_value}")
+
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
