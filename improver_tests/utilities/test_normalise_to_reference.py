@@ -41,26 +41,26 @@ from improver.utilities.forecast_reference_enforcement import normalise_to_refer
 
 
 @pytest.fixture
-def shape():
+def shape() -> tuple:
     """Define shape of all cubes used in these tests."""
     output = (2, 3, 3)
     return output
 
 
 @pytest.fixture()
-def percentiles():
+def percentiles() -> list:
     """Define the percentiles of all percentile cubes used in these tests."""
     return [40.0, 60.0]
 
 
 @pytest.fixture()
-def thresholds():
+def thresholds() -> list:
     """Define the thresholds of all probability cubes used in these tests."""
     return [1.0, 2.0]
 
 
 @pytest.fixture
-def input_percentile_cubes(shape, percentiles):
+def input_percentile_cubes(shape, percentiles) -> iris.cube.CubeList:
     """Create cubelist used as input for tests. Each cube contains percentile
     forecasts.
     """
@@ -85,7 +85,7 @@ def input_percentile_cubes(shape, percentiles):
 
 
 @pytest.fixture
-def input_probability_cubes(shape, thresholds):
+def input_probability_cubes(shape, thresholds) -> iris.cube.CubeList:
     """Create cubelist used as input for tests. Each cube contains probability
     forecasts.
     """
@@ -116,7 +116,7 @@ def input_probability_cubes(shape, thresholds):
 
 
 @pytest.fixture
-def reference_percentile_cube(shape, percentiles):
+def reference_percentile_cube(shape, percentiles) -> iris.cube.Cube:
     """Create reference cube used as input for tests. Cube contains a percentile
     forecast.
     """
@@ -129,7 +129,7 @@ def reference_percentile_cube(shape, percentiles):
 
 
 @pytest.fixture
-def reference_probability_cube(shape, thresholds):
+def reference_probability_cube(shape, thresholds) -> iris.cube.Cube:
     """Create reference cube used as input for tests. Cube contains a probability
     forecast.
     """
@@ -145,7 +145,7 @@ def reference_probability_cube(shape, thresholds):
 
 
 @pytest.fixture()
-def expected_percentile_cubes(shape, percentiles):
+def expected_percentile_cubes(shape, percentiles) -> iris.cube.CubeList:
     """Create cubelist containing expected outputs of tests. Each cube contains
     percentile forecasts.
     """
@@ -170,7 +170,7 @@ def expected_percentile_cubes(shape, percentiles):
 
 
 @pytest.fixture()
-def expected_probability_cubes(shape, thresholds):
+def expected_probability_cubes(shape, thresholds) -> iris.cube.CubeList:
     """Create cubelist containing expected outputs of tests. Each cube contains
     probability forecasts.
     """
@@ -256,17 +256,18 @@ def test_zero_total(
         assert np.array_equal(output_sum, reference_with_zeroes.data)
 
 
-def test_single_input_cube(input_percentile_cubes, reference_percentile_cube):
-    """Test cube is updated correctly when the input cubelist contains only one cube."""
-    input_cube = input_percentile_cubes[0]
-    output = normalise_to_reference(
-        iris.cube.CubeList([input_cube]), reference_percentile_cube
-    )
+@pytest.mark.parametrize("cubes_length", (0, 1))
+def test_cubes_too_short(
+    input_percentile_cubes, reference_percentile_cube, cubes_length
+):
+    """Test that an error is raised if length of input cubes is less than 2."""
+    if cubes_length == 0:
+        input_cubes = iris.cube.CubeList()
+    else:
+        input_cubes = iris.cube.CubeList([input_percentile_cubes[0]])
 
-    # check that metadata is as expected
-    assert input_cube == output[0].copy(data=input_cube.data)
-    # check that data is as expected
-    assert np.array_equal(output[0].data, reference_percentile_cube.data)
+    with pytest.raises(ValueError, match="The input cubes must be of at least length"):
+        normalise_to_reference(input_cubes, reference_percentile_cube)
 
 
 def test_n_coords_mismatch(input_percentile_cubes, reference_percentile_cube):

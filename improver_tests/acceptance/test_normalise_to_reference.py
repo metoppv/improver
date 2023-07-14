@@ -39,54 +39,62 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-@pytest.mark.parametrize("ignore_zero_total", (True, False))
+@pytest.mark.parametrize(
+    "forecast_type,ignore_zero_total",
+    (("probability", False), ("percentile", False), ("percentile", True)),
+)
 def test_normalise_to_reference(
-    tmp_path, ignore_zero_total,
+    tmp_path, forecast_type, ignore_zero_total,
 ):
     """
     Test input cubes are updated correctly so that their total equals the reference cube
     """
-    kgo_dir = acc.kgo_root() / "normalise-to-reference"
+    kgo_dir = acc.kgo_root() / f"normalise-to-reference/{forecast_type}"
     kgo_path = kgo_dir / "kgo.nc"
 
-    inputs = kgo_dir / "*rate.nc"
     output_path = tmp_path / "output.nc"
 
-    reference_name = "lwe_precipitation_rate"
+    if forecast_type == "probability":
+        inputs = kgo_dir / "*acc.nc"
+        reference_name = (
+            "probability_of_lwe_thickness_of_precipitation_amount_above_threshold"
+        )
+        return_name = "probability_of_thickness_of_rainfall_amount_above_threshold"
+    else:
+        inputs = kgo_dir / "*rate.nc"
+        reference_name = "lwe_precipitation_rate"
+        return_name = "rainfall_rate"
 
-    if ignore_zero_total:
-        args = [
-            inputs,
-            "--reference-name",
-            reference_name,
-            "--ignore-zero-total",
-            "--output",
-            output_path,
-        ]
+    args = [
+        inputs,
+        "--reference-name",
+        reference_name,
+        "--return-name",
+        return_name,
+        "--output",
+        output_path,
+    ]
+    if forecast_type == "probability":
+        run_cli(args)
+        acc.compare(output_path, kgo_path)
+    elif ignore_zero_total:
+        args.append("--ignore-zero-total")
         run_cli(args)
         acc.compare(output_path, kgo_path)
     else:
-        args = [
-            inputs,
-            "--reference-name",
-            reference_name,
-            "--output",
-            output_path,
-        ]
         with pytest.raises(
             ValueError, match="There are instances where the total of input"
         ):
             run_cli(args)
 
 
-def test_return_name(tmp_path):
+def test_incorrect_reference(tmp_path):
     """
-    Test correct cube is returned when return_name option is used.
+    Test correct error is raised when incorrect number of reference cubes are found.
     """
-    kgo_dir = acc.kgo_root() / "normalise-to-reference"
-    kgo_path = kgo_dir / "kgo_rain.nc"
+    kgo_dir = acc.kgo_root() / "normalise-to-reference/percentile"
 
-    inputs = kgo_dir / "*rate.nc"
+    inputs = kgo_dir / "input*.nc"
     output_path = tmp_path / "output.nc"
 
     reference_name = "lwe_precipitation_rate"
@@ -98,29 +106,6 @@ def test_return_name(tmp_path):
         reference_name,
         "--return-name",
         return_name,
-        "--ignore-zero-total",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_incorrect_reference(tmp_path):
-    """
-    Test correct error is raised when incorrect number of reference cubes are found.
-    """
-    kgo_dir = acc.kgo_root() / "normalise-to-reference"
-
-    inputs = kgo_dir / "input*.nc"
-    output_path = tmp_path / "output.nc"
-
-    reference_name = "lwe_precipitation_rate"
-
-    args = [
-        inputs,
-        "--reference-name",
-        reference_name,
         "--output",
         output_path,
     ]

@@ -254,7 +254,8 @@ def normalise_to_reference(
     data in cubes.
 
     Args:
-        cubes: Cubelist containing the cubes to be updated.
+        cubes: Cubelist containing the cubes to be updated. Must contain at least 2
+            cubes.
         reference: Cube with data which the sum of cubes will be forced to be equal to.
         ignore_zero_total: If False, an error will be raised if the sum total of data
             in input_cubes is zero where the reference cube contains a non-zero value.
@@ -263,6 +264,7 @@ def normalise_to_reference(
             reference cube.
 
     Raises:
+        ValueError: If length of cubes is less than 2.
         ValueError: If any input cubes have a different number of dimensions to
             reference, or if the dimension coordinates in any of the input cubes do not
             match the dimension coordinates in reference.
@@ -275,7 +277,12 @@ def normalise_to_reference(
         cubelist will have metadata matching the cube in the same position in input
         cubes, but containing different data.
     """
-    input = cubes.copy()
+    if len(cubes) < 2:
+        msg = (
+            f"The input cubes must be of at least length 2. The length of the input "
+            f"cubes was {len(cubes)}"
+        )
+        raise ValueError(msg)
 
     # check cube compatibility
     reference_dim_coords = reference.coords(dim_coords=True)
@@ -283,7 +290,7 @@ def normalise_to_reference(
     coord_mismatch = False
     n_dims = []
     mismatching_coords = {}
-    for cube in input:
+    for cube in cubes:
         cube_dim_coords = cube.coords(dim_coords=True)
         n_dims.append(len(cube_dim_coords))
         if len(cube_dim_coords) != len(reference_dim_coords):
@@ -318,9 +325,9 @@ def normalise_to_reference(
         )
         raise ValueError(msg)
 
-    total = input[0].copy().data
-    if len(input) > 1:
-        for cube in input[1:]:
+    total = cubes[0].data.copy()
+    if len(cubes) > 1:
+        for cube in cubes[1:]:
             total += cube.data
 
     # check for zeroes in total when reference is non-zero
@@ -341,7 +348,7 @@ def normalise_to_reference(
     total[total_zeroes] = 1.0
 
     output = iris.cube.CubeList()
-    for index, cube in enumerate(input):
+    for index, cube in enumerate(cubes):
         output_cube = cube.copy(data=reference.data * cube.data / total)
         output.append(output_cube)
 
@@ -349,7 +356,7 @@ def normalise_to_reference(
 
 
 def split_cubes_by_name(
-    cubes: Union[List[Cube], CubeList], cube_names: Union[str, List[str]]
+    cubes: Union[List[Cube], CubeList], cube_names: Union[str, List[str]] = None
 ) -> tuple:
     """Split a list of cubes into two lists; one containing all cubes with names which
     match cube_names, and the other containing all the other cubes.
@@ -357,7 +364,8 @@ def split_cubes_by_name(
     Args:
         cubes: List of cubes
         cube_names: the name of the cube/s to be used as reference. This can be either
-            a single name or a list of names.
+            a single name or a list of names. If None, the first cubelist returned will
+            contain all the input cubes and the second cubelist will be empty.
 
     Returns:
         - A cubelist containing all cubes with names which match cube_names
@@ -367,13 +375,15 @@ def split_cubes_by_name(
     desired_cubes = iris.cube.CubeList()
     other_cubes = iris.cube.CubeList()
 
-    if isinstance(cube_names, str):
-        cube_names = [cube_names]
-
-    for cube in cubes:
-        if cube.name() in cube_names:
-            desired_cubes.append(cube)
-        else:
-            other_cubes.append(cube)
+    if cube_names is None:
+        desired_cubes = cubes
+    else:
+        if isinstance(cube_names, str):
+            cube_names = [cube_names]
+        for cube in cubes:
+            if cube.name() in cube_names:
+                desired_cubes.append(cube)
+            else:
+                other_cubes.append(cube)
 
     return desired_cubes, other_cubes
