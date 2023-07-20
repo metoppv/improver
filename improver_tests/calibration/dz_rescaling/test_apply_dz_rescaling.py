@@ -112,7 +112,7 @@ def _create_forecasts(
 def _create_scaling_factor_cube(
     frt_hour: int, forecast_period_hour: int, scaling_factor: float
 ) -> Cube:
-    """Create a scaling factor cube containing forecast_reference_time_hours of 3 and 9 and
+    """Create a scaling factor cube containing forecast_reference_time_hours of 3 and 12 and
     forecast_period_hours of 6, 12, 18 and 24 and two sites.
     All scaling factors are 1 except at the specified [frt_hour, forecast_period_hour], where
     scaling_factor is used for the first site only.
@@ -121,7 +121,7 @@ def _create_scaling_factor_cube(
         Scaling factor cube.
     """
     cubelist = iris.cube.CubeList()
-    for ref_hour in [3, 9]:
+    for ref_hour in [3, 12]:
         for forecast_period in [6, 12, 18, 24]:
             if ref_hour == frt_hour and forecast_period == forecast_period_hour:
                 data = np.array((scaling_factor, 1), dtype=np.float32)
@@ -159,10 +159,10 @@ def _create_scaling_factor_cube(
 
 @pytest.mark.parametrize("wmo_id", [True, False])
 @pytest.mark.parametrize("forecast_period", [6, 18])
-@pytest.mark.parametrize("frt_hour", [3, 9])
+@pytest.mark.parametrize("frt_hour", [3, 12])
 @pytest.mark.parametrize("scaling_factor", [0.99, 1.01])
 @pytest.mark.parametrize("forecast_period_offset", [0, -1, -5])
-@pytest.mark.parametrize("frt_hour_offset", [0, 1, 2])
+@pytest.mark.parametrize("frt_hour_offset", [0, 1, 4])
 def test_apply_dz_rescaling(
     wmo_id,
     forecast_period,
@@ -183,7 +183,7 @@ def test_apply_dz_rescaling(
     This checks that the a mismatch in the forecast reference time hour can still
     result in a match, if a leniency is specified.
     """
-    forecast_reference_time = f"20170101T{frt_hour-frt_hour_offset:02d}00Z"
+    forecast_reference_time = f"20170101T{(frt_hour-frt_hour_offset) % 24:02d}00Z"
     forecast = [10.0, 20.0, 30.0]
     expected_data = np.array(forecast).repeat(2).reshape(3, 2)
     expected_data[:, 0] *= scaling_factor
@@ -210,6 +210,43 @@ def test_apply_dz_rescaling(
         kwargs["site_id_coord"] = "station_id"
 
     kwargs["frt_hour_leniency"] = abs(frt_hour_offset)
+    plugin = ApplyDzRescaling(**kwargs)
+
+    result = plugin(forecast, scaling_factor)
+    assert isinstance(result, Cube)
+
+    np.testing.assert_allclose(result.data, expected_data, atol=1e-4, rtol=1e-4)
+
+
+def test_use_correct_time():
+    """Test the ApplyDzRescaling plugin uses the exact forecast reference time
+    if it is available, rather than selecting another time within the leniency
+    range.
+
+    In this test a large leniency is used that could select the 03Z FRT, but
+    the 12Z FRT should be used. The scaling factors for the two FRTs are
+    different, so the data test ensures that the 12Z scaling factor has been
+    used.
+    """
+    forecast_reference_time = "20170101T1200Z"
+    forecast_period = 6
+    forecast = [10.0, 20.0, 30.0]
+    scaling_factor = 0.99
+    expected_data = np.array(forecast).repeat(2).reshape(3, 2)
+    expected_data[:, 0] *= scaling_factor
+
+    validity_time = (
+        pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
+    ).strftime("%Y%m%dT%H%MZ")
+
+    forecast = _create_forecasts(
+        forecast_reference_time, validity_time, forecast_period, forecast,
+    )
+    scaling_factor = _create_scaling_factor_cube(12, forecast_period, scaling_factor)
+    scaling_factor.data[0, 0, 0] = scaling_factor.data[0, 0, 0].copy() + 0.01
+
+    kwargs = {}
+    kwargs["frt_hour_leniency"] = abs(9)
     plugin = ApplyDzRescaling(**kwargs)
 
     result = plugin(forecast, scaling_factor)

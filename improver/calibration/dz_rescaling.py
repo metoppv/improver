@@ -407,7 +407,8 @@ class ApplyDzRescaling(PostProcessingPlugin):
         """
         # Define forecast_reference_time constraint
         frt_hour_in_seconds = (
-            forecast.coord("forecast_reference_time").cell(0).point.hour + leniency
+            (forecast.coord("forecast_reference_time").cell(0).point.hour + leniency)
+            % 24
         ) * SECONDS_IN_HOUR
         return iris.Constraint(forecast_reference_time_hour=frt_hour_in_seconds)
 
