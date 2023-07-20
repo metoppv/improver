@@ -121,7 +121,7 @@ def _create_scaling_factor_cube(
         Scaling factor cube.
     """
     cubelist = iris.cube.CubeList()
-    for ref_hour in [3, 9]:
+    for ref_hour in [3, 12]:
         for forecast_period in [6, 12, 18, 24]:
             if ref_hour == frt_hour and forecast_period == forecast_period_hour:
                 data = np.array((scaling_factor, 1), dtype=np.float32)
@@ -159,10 +159,10 @@ def _create_scaling_factor_cube(
 
 @pytest.mark.parametrize("wmo_id", [True, False])
 @pytest.mark.parametrize("forecast_period", [6, 18])
-@pytest.mark.parametrize("frt_hour", [3, 9])
+@pytest.mark.parametrize("frt_hour", [3, 12])
 @pytest.mark.parametrize("scaling_factor", [0.99, 1.01])
 @pytest.mark.parametrize("forecast_period_offset", [0, -1, -5])
-@pytest.mark.parametrize("frt_hour_offset", [0, 1, 2])
+@pytest.mark.parametrize("frt_hour_offset", [0, 1, 4])
 def test_apply_dz_rescaling(
     wmo_id,
     forecast_period,
@@ -183,7 +183,7 @@ def test_apply_dz_rescaling(
     This checks that the a mismatch in the forecast reference time hour can still
     result in a match, if a leniency is specified.
     """
-    forecast_reference_time = f"20170101T{frt_hour-frt_hour_offset:02d}00Z"
+    forecast_reference_time = f"20170101T{(frt_hour-frt_hour_offset) % 24:02d}00Z"
     forecast = [10.0, 20.0, 30.0]
     expected_data = np.array(forecast).repeat(2).reshape(3, 2)
     expected_data[:, 0] *= scaling_factor
