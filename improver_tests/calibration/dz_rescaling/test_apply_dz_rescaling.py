@@ -218,6 +218,43 @@ def test_apply_dz_rescaling(
     np.testing.assert_allclose(result.data, expected_data, atol=1e-4, rtol=1e-4)
 
 
+def test_use_correct_time():
+    """Test the ApplyDzRescaling plugin uses the exact forecast reference time
+    if it is available, rather than selecting another time within the leniency
+    range.
+
+    In this test a large leniency is used that could select the 03Z FRT, but
+    the 12Z FRT should be used. The scaling factors for the two FRTs are
+    different, so the data test ensures that the 12Z scaling factor has been
+    used.
+    """
+    forecast_reference_time = "20170101T1200Z"
+    forecast_period = 6
+    forecast = [10.0, 20.0, 30.0]
+    scaling_factor = 0.99
+    expected_data = np.array(forecast).repeat(2).reshape(3, 2)
+    expected_data[:, 0] *= scaling_factor
+
+    validity_time = (
+        pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
+    ).strftime("%Y%m%dT%H%MZ")
+
+    forecast = _create_forecasts(
+        forecast_reference_time, validity_time, forecast_period, forecast,
+    )
+    scaling_factor = _create_scaling_factor_cube(12, forecast_period, scaling_factor)
+    scaling_factor.data[0, 0, 0] = scaling_factor.data[0, 0, 0].copy() + 0.01
+
+    kwargs = {}
+    kwargs["frt_hour_leniency"] = abs(9)
+    plugin = ApplyDzRescaling(**kwargs)
+
+    result = plugin(forecast, scaling_factor)
+    assert isinstance(result, Cube)
+
+    np.testing.assert_allclose(result.data, expected_data, atol=1e-4, rtol=1e-4)
+
+
 def test_mismatching_sites():
     """Test an exception is raised if the sites mismatch."""
     forecast_period = 6
