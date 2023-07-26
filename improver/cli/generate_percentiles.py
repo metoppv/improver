@@ -41,9 +41,10 @@ def process(
     *,
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
-    ignore_ecc_bounds_exceedance=False,
-    mask_percentiles=False,
-    optimal_crps_percentiles=False,
+    ignore_ecc_bounds_exceedance: bool = False,
+    skip_ecc_bounds: bool = False,
+    mask_percentiles: bool = False,
+    optimal_crps_percentiles: bool = False,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
 
@@ -76,6 +77,13 @@ def process(
         ignore_ecc_bounds_exceedance (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
+        skip_ecc_bounds (bool):
+            If True, ECC bounds are not included when probabilities
+            are converted to percentiles. This has the effect that percentiles
+            outside of the range given by the input percentiles will be computed
+            by nearest neighbour interpolation from the nearest available percentile,
+            rather than using linear interpolation between the nearest available
+            percentile and the ECC bound.
         mask_percentiles (bool):
             A boolean determining whether the final percentiles should
             be masked. If True then where the percentile is higher than
@@ -138,6 +146,7 @@ def process(
     if is_probability(cube):
         result = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ignore_ecc_bounds_exceedance,
+            skip_ecc_bounds=skip_ecc_bounds,
             mask_percentiles=mask_percentiles,
         )(cube, percentiles=percentiles)
         if coordinates:

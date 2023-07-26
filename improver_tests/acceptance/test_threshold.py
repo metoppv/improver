@@ -144,6 +144,25 @@ def test_collapse_realization_masked_data(tmp_path, extra_arg, kgo):
     acc.compare(output_path, kgo_path)
 
 
+def test_collapse_percentile(tmp_path):
+    """Test thresholding with collapsing percentiles."""
+    kgo_dir = acc.kgo_root() / "threshold/percentile_collapse"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--threshold-values",
+        "5",
+        "--collapse-coord",
+        "percentile",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 @pytest.mark.parametrize(
     "extra_args,kgo",
     (

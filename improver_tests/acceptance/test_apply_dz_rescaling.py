@@ -28,63 +28,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module to contain generally useful constants."""
+"""
+Tests for the apply-dz-rescaling CLI
+"""
 
-# Cube comparison tolerances
-TIGHT_TOLERANCE = 1e-5
-DEFAULT_TOLERANCE = 1e-4
-LOOSE_TOLERANCE = 1e-3
+import pytest
 
-# Real Missing Data Indicator
-RMDI = -32767.0
+from . import acceptance as acc
 
-# Default percentile boundaries to calculate at for IMPROVER.
-DEFAULT_PERCENTILES = (0, 5, 10, 20, 25, 30, 40, 50, 60, 70, 75, 80, 90, 95, 100)
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-# Temporal constants
-SECONDS_IN_MINUTE = 60
-SECONDS_IN_HOUR = 3600
-MINUTES_IN_HOUR = 60
-HOURS_IN_DAY = 24
-DAYS_IN_YEAR = 365
 
-#: 0 Kelvin in degrees C
-ABSOLUTE_ZERO = -273.15
-
-#: Specific gas constant for dry air (J K-1 kg-1)
-R_DRY_AIR = 287.0
-
-#: Specific gas constant for dry air per mole (J K-1 mol-1)
-R_DRY_AIR_MOL = 8.314
-
-#: Specific gas constant for water vapour (J K-1 kg-1)
-R_WATER_VAPOUR = 461.6
-
-#: Specific heat capacity of dry air (J K-1 kg-1)
-CP_DRY_AIR = 1005.0
-
-#: Specific heat capacity of water vapour (J K-1 kg-1)
-CP_WATER_VAPOUR = 1850.0
-
-#: Triple Point of Water (K)
-TRIPLE_PT_WATER = 273.16
-
-#: Latent heat of condensation of water at 0C (J kg-1)
-LH_CONDENSATION_WATER = 2.501e6
-
-#: Molar mass of water vapour (kg mol-1)
-WATER_VAPOUR_MOLAR_MASS = 0.01801
-
-#: Latent heat temperature dependence (J K-1 kg-1); from Met Office UM.
-#: Applied to temperatures in Celsius: :math:`LH = 2501 - 2.34 \times 10^3 \times T(celsius)`
-LATENT_HEAT_T_DEPENDENCE = 2.34e3
-
-#: Repsilon, ratio of molecular weights of water and dry air (Earth; unitless)
-EARTH_REPSILON = 0.62198
-
-#: Dry Adiabatic Lapse Rate (DALR; K m-1)
-DALR = -0.0098
-
-#: Environmental Lapse Rate (ELR; K m-1)
-#: Also known as Standard Atmosphere Lapse Rate
-ELR = -0.0065
+def test_apply_dz_rescaling(tmp_path):
+    """Test apply_dz_rescaling CLI."""
+    kgo_dir = acc.kgo_root() / "apply-dz-rescaling/"
+    kgo_path = kgo_dir / "kgo.nc"
+    forecast_path = kgo_dir / "20230220T1200Z-PT0006H00M-wind_speed_at_10m.nc"
+    scaled_dz_path = kgo_dir / "scaled_dz.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        forecast_path,
+        scaled_dz_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
