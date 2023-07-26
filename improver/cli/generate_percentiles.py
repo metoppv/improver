@@ -78,14 +78,19 @@ def process(
             range, raises a warning rather than an exception.
         mask_percentiles (bool):
             A boolean determining whether the final percentiles should
-            be masked. If True, then where the percentile is higher than
+            be masked. If True then where the percentile is higher than
             the probability of the diagnostic existing the outputted
             percentile will be masked.
-            The probability of being below the final threshold in
-            forecast_probabilities is used as the probability of the diagnostic
-            existing.
-            This is only implemented to work when converting
-            probability cubes to percentiles.
+            This masking acts to cap the maximum percentile
+            that can be generated for any grid point relative to the
+            probability of exceeding the highest threshold at that point.
+            For example, if the probability of a temperature exceeding 40C
+            is 5%, the 95th and above percentiles will all be masked.
+            Likewise, if at some grid point the probability of the cloud base
+            being below 15000m (the highest threshold) is 70% then every
+            percentile above the 70th would be masked.
+            This is only implemented to work when converting probabilities to
+            percentiles.
         optimal_crps_percentiles (bool):
             If True, percentiles are computed following the
             recommendation of Bröcker, 2012 for optimising the CRPS using
