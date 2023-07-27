@@ -45,6 +45,7 @@ from iris.cube import Cube
 from numpy import ndarray
 
 from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
+from improver.metadata.probabilistic import find_percentile_coordinate
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
@@ -433,3 +434,42 @@ def interpolate_pointwise(*args):
     except ImportError:
         warnings.warn("Module numba unavailable. interpolate_pointwise will be slower.")
         return slow_interpolate_pointwise(*args)
+
+
+def check_evenly_spaced_percentiles(cube: Cube):
+    """
+    Percentiles cannot be rebadged as realizations unless they are evenly
+    spaced, centred on the 50th percentile, and equally partition percentile
+    space. If these conditions are not met for the provided cube, an
+    exception is raised.
+
+    Args:
+        cube:
+            The cube with a percentile coordinate which is tested to ensure
+            it meets the required conditions for rebadging as realizations.
+
+    Raises:
+        ValueError: If the percentile coordinate does not meet the required
+        conditions.
+    """
+    percentile_coord_name = find_percentile_coordinate(cube).name()
+
+    # Create array of percentiles from cube metadata, add in fake
+    # 0th and 100th percentiles if not already included
+    percentile_coords = np.sort(
+        np.unique(np.append(cube.coord(percentile_coord_name).points, [0, 100]))
+    )
+    percentile_diffs = np.diff(percentile_coords)
+
+    # percentiles cannot be rebadged unless they are evenly spaced,
+    # centred on 50th percentile, and equally partition percentile
+    # space
+    if not np.isclose(np.max(percentile_diffs), np.min(percentile_diffs)):
+        msg = (
+            "The percentile cube provided cannot be rebadged as ensemble "
+            "realizations. The input percentiles need to be equally spaced, "
+            "be centred on the 50th percentile, and to equally partition percentile "
+            "space. The percentiles provided were "
+            f"{cube.coord(percentile_coord_name).points}"
+        )
+        raise ValueError(msg)

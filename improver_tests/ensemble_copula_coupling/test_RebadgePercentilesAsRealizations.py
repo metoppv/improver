@@ -93,39 +93,6 @@ class Test_process(IrisTest):
         with self.assertRaisesRegex(InvalidCubeError, msg):
             Plugin().process(self.cube)
 
-    def test_raises_exception_if_percentiles_unevenly_spaced(self):
-        """Check that an exception is raised if the input percentiles
-        are not evenly spaced."""
-        cube = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-            np.array([25, 50, 90], dtype=np.float32),
-        )
-        msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin().process(cube)
-
-    def test_raises_exception_if_percentiles_not_centred(self):
-        """Check that an exception is raised if the input percentiles
-        are not centred on 50th percentile."""
-        cube = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-            np.array([30, 60, 90], dtype=np.float32),
-        )
-        msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin().process(cube)
-
-    def test_raises_exception_if_percentiles_unequal_partition_percentile_space(self):
-        """Check that an exception is raised if the input percentiles
-        don't evenly partition percentile space."""
-        cube = set_up_percentile_cube(
-            np.sort(ECC_TEMPERATURE_REALIZATIONS.copy(), axis=0),
-            np.array([10, 50, 90], dtype=np.float32),
-        )
-        msg = r"The percentile cube provided cannot be rebadged as ensemble realizations.*"
-        with self.assertRaisesRegex(ValueError, msg):
-            Plugin().process(cube)
-
 
 if __name__ == "__main__":
     unittest.main()

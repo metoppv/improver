@@ -40,6 +40,7 @@ from unittest.case import skipIf
 from unittest.mock import patch
 
 import numpy as np
+import pytest
 from cf_units import Unit
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
@@ -47,6 +48,7 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.ensemble_copula_coupling.utilities import (
+    check_evenly_spaced_percentiles,
     choose_set_of_percentiles,
     concatenate_2d_array_with_2d_array_endpoints,
     create_cube_with_percentiles,
@@ -689,6 +691,33 @@ class TestInterpolatePointwise(IrisTest):
         msg = r"xp and fp must have at least 2 dimensions"
         with self.assertRaisesRegex(ValueError, msg):
             fast_interpolate_pointwise(x, xp, fp)
+
+
+@pytest.mark.parametrize(
+    "percentiles, error",
+    [
+        ([0, 50, 100], False),  # Okay. Even spacing, centred on 50th percentile.
+        ([25, 50, 75], False),  # Okay. Even spacing, centred on 50th percentile.
+        ([20, 40, 60, 80], False),  # Okay. Even spacing, centred on 50th percentile.
+        ([0, 5, 10], True),  # Not okay. Not centred on 50th percentile.
+        ([25, 50, 60], True),  # Not okay. Asymmetric distribution.
+        ([10, 30, 50, 70, 90], True),  # Not okay. Tail spacing uneven to 0 and 100.
+    ],
+)
+def test_check_evenly_spaced_percentiles(percentiles, error):
+    """Test that the percentile spacing function raises an exception when
+    the percentiles provided do not fulfil the conditions required to
+    rebadge them as realizations."""
+    cube = set_up_percentile_cube(
+        np.array(np.zeros((len(percentiles), 2, 2)), dtype=np.float32),
+        np.array(percentiles, dtype=np.float32),
+    )
+    if error:
+        msg = "The percentile cube provided cannot be rebadged"
+        with pytest.raises(ValueError, match=msg):
+            check_evenly_spaced_percentiles(cube)
+    else:
+        check_evenly_spaced_percentiles(cube)
 
 
 if __name__ == "__main__":
