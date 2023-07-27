@@ -56,10 +56,21 @@ ALL_PARAMS = [
 
 
 @pytest.mark.slow
-def test_basic(tmp_path):
-    """Test basic wxcode processing"""
+@pytest.mark.parametrize(
+    "title_option, kgo",
+    (
+        ("", "kgo"),
+        (
+            ("--title", "IMPROVER Post-Processed Multi-Model Blend of flavours"),
+            "kgo_titled",
+        ),
+    ),
+)
+def test_basic(tmp_path, title_option, kgo):
+    """Test basic wxcode processing with and without a user defined title
+    attribute."""
     kgo_dir = acc.kgo_root() / "wxcode"
-    kgo_path = kgo_dir / "basic" / "kgo.nc"
+    kgo_path = kgo_dir / "basic" / f"{kgo}.nc"
     param_paths = [
         kgo_dir / "basic" / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS
     ]
@@ -75,6 +86,7 @@ def test_basic(tmp_path):
         "mosg__model_run",
         "--target-period",
         "3600",
+        *title_option,
         "--output",
         output_path,
     ]

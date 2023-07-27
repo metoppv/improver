@@ -114,7 +114,13 @@ def process(
     Raises:
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
+        ValueError: Cannot apply land-mask cube without in-vicinity processing.
+        ValueError: Can only collapse over a realization coordinate or a percentile
+            coordinate that has been rebadged as a realization coordinate.
     """
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        RebadgePercentilesAsRealizations,
+    )
     from improver.threshold import BasicThreshold
 
     if threshold_config and threshold_values:

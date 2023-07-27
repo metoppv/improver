@@ -168,19 +168,23 @@ def wxcode_series_fixture(
         # day code (10) to be returned.
         ([1, 1, 10, 10, 9], 10),
         # No clear representative code. Falls back to grouping, which
-        # consolidates the codes containing rain (10, 12, 14, 15) and yields
+        # consolidates the codes containing rain (10, 11, 12, 14, 15) and yields
         # the least significant of these that is present (10).
         ([1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 15], 10),
         # No clear representative code. Falls back to grouping, which
-        # consolidates the codes containing rain (10, 12, 14, 15) and yields
-        # the least significant of these which is present (12); the light
+        # consolidates the codes containing rain (10, 11, 12, 14, 15) and yields
+        # the least significant of these which is present (11); the light
         # shower code (10) is not present, so will not be picked.
-        ([1, 3, 4, 5, 6, 7, 8, 16, 11, 12, 14, 15], 12),
+        ([1, 3, 4, 5, 6, 7, 8, 16, 11, 12, 14, 15], 11),
+        # No clear representative code. This falls back to grouping,
+        # consolidates the codes containing visibility (5, 6) and yields
+        # the least significant of these which is present (5).
+        ([5, 5, 5, 5, 6, 6, 6, 6, 8, 8, 8, 8, 7, 7, 7, 7], 5),
         # An extreme edge case in which all the codes across time for a site
         # are different. All the codes fall into different groups and cannot be
         # consolidated. In this case the most significant weather from the whole
         # set is returned. In this case that is a light snow shower (23).
-        ([1, 3, 4, 5, 6, 7, 8, 10, 11, 17, 20, 23], 23),
+        ([1, 3, 4, 5, 7, 8, 10, 17, 20, 23], 23),
     ),
 )
 def test_expected_values(wxcode_series, expected):

@@ -43,6 +43,7 @@ def process(
     record_run_attr: str = None,
     target_period: int = None,
     check_tree: bool = False,
+    title: str = None,
 ):
     """ Processes cube for Weather symbols.
 
@@ -72,6 +73,11 @@ def process(
             argument required is the path to the decision tree. If the tree is found
             to be valid the required inputs will be listed. Setting this flag will
             prevent the CLI performing any other actions.
+        title (str):
+            An optional title to assign to the title attribute of the resulting
+            weather symbol output. This will override the title generated from
+            the inputs, where this generated title is only set if all of the
+            inputs share a common title.
 
     Returns:
         iris.cube.Cube:
@@ -94,4 +100,5 @@ def process(
         model_id_attr=model_id_attr,
         record_run_attr=record_run_attr,
         target_period=target_period,
+        title=title,
     )(CubeList(cubes))

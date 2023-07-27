@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to enforce consistent probabilities between two forecasts."""
+"""Script to clip the input cube's data to be between the specified values"""
 
 from improver import cli
 
@@ -37,53 +37,28 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcubelist, ref_name: str = None, diff_for_warning: float = None
+    cube: cli.inputcube, *, min_value: float = None, max_value: float = None,
 ):
-    """Module to enforce consistent probabilities between two forecast
-    cubes by lowering the probabilities in the forecast cube to be less than or
-    equal to the reference forecast.
+    """Clip the data in the input cube such that any data above max_value is set equal to
+     max_value and any data below min_value is set equal to min_value.
 
     Args:
-        cubes (iris.cube.CubeList or list of iris.cube.Cube):
-            containing:
-                forecast_cube (iris.cube.Cube):
-                    Cube of probabilities
-                ref_forecast (iris.cube.Cube)
-                    Cube of probabilities used as the upper cap for
-                    forecast_cube probabilities. It must be the same shape as
-                    forecast_cube but have a different name.
-
-        ref_name (str):
-            Name of ref_forecast cube
-        diff_for_warning (float):
-            A float between 0 and 1. If assigned, the plugin will raise a warning
-            if the forecast probabilities are decreased by more than this value.
-
+        cube (iris.cube.Cube):
+            A Cube whose data will be clipped. This can be a cube of spot or gridded data.
+        max_value (float):
+            If specified any data in cube that is above max_value will be set equal to
+            max_value.
+        min_value (float):
+            If specified any data in cube that is below min_value will be set equal to
+            min_value.
     Returns:
         iris.cube.Cube:
-            Cube with identical metadata to forecast_cube but with
-            lowered probabilities to be less than or equal to the
-            reference forecast
+            A cube with the same metadata as the input cube but with the data clipped such
+            that any data above max_value is set equal to max_value and any data below
+            min_value is set equal to min_value.
     """
-    from iris.cube import CubeList
+    from numpy import clip
 
-    from improver.calibration.reliability_calibration import (
-        EnforceConsistentProbabilities,
-    )
-    from improver.utilities.flatten import flatten
+    cube.data = clip(cube.data, min_value, max_value)
 
-    cubes = flatten(cubes)
-
-    if len(cubes) != 2:
-        raise ValueError(
-            f"Exactly two cubes should be provided but received {len(cubes)}"
-        )
-
-    ref_forecast = CubeList(cubes).extract_cube(ref_name)
-    cubes.remove(ref_forecast)
-
-    forecast_cube = cubes[0]
-
-    plugin = EnforceConsistentProbabilities(diff_for_warning=diff_for_warning)
-
-    return plugin(forecast_cube, ref_forecast)
+    return cube

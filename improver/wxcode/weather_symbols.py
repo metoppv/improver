@@ -40,6 +40,7 @@ import numpy as np
 from iris import Constraint
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
+from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin
@@ -48,6 +49,7 @@ from improver.blending.utilities import (
     store_record_run_as_coord,
 )
 from improver.metadata.amend import update_model_id_attr_attribute
+from improver.metadata.forecast_times import forecast_period_coord
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
@@ -104,6 +106,7 @@ class WeatherSymbols(BasePlugin):
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
+        title: Optional[str] = None,
     ) -> None:
         """
         Define a decision tree for determining weather symbols based upon
@@ -128,6 +131,11 @@ class WeatherSymbols(BasePlugin):
                 any threshold values that are defined with an associated period in
                 the decision tree. It will only be used if the decision tree
                 provided has threshold values defined with an associated period.
+            title:
+                An optional title to assign to the title attribute of the resulting
+                weather symbol output. This will override the title generated from
+                the inputs, where this generated title is only set if all of the
+                inputs share a common title.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -140,6 +148,7 @@ class WeatherSymbols(BasePlugin):
         self.record_run_attr = record_run_attr
         self.start_node = list(wxtree.keys())[0]
         self.target_period = target_period
+        self.title = title
         self.queries = update_tree_thresholds(wxtree, target_period)
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
@@ -548,6 +557,8 @@ class WeatherSymbols(BasePlugin):
         template_cube.remove_coord(threshold_coord)
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
+        if self.title:
+            mandatory_attributes.update({"title": self.title})
         optional_attributes = weather_code_attributes()
         if self.model_id_attr:
             optional_attributes.update(
@@ -574,8 +585,32 @@ class WeatherSymbols(BasePlugin):
             record_run_coord_to_attr(
                 symbols, set(cubes), self.record_run_attr, discard_weights=True
             )
+        self._set_reference_time(symbols, cubes)
 
         return symbols
+
+    @staticmethod
+    def _set_reference_time(cube: Cube, cubes: CubeList):
+        """Replace the forecast_reference_time and/or blend_time if present coord point on cube
+        with the latest value from cubes. Forecast_period is also updated."""
+        coord_names = ["forecast_reference_time", "blend_time"]
+        coords_found = []
+        for coord_name in coord_names:
+            try:
+                reference_time = max([c.coord(coord_name).points[0] for c in cubes])
+            except CoordinateNotFoundError:
+                continue
+            coords_found.append(coord_name)
+        if not coords_found:
+            raise CoordinateNotFoundError(
+                f"Could not find {'or '.join(coord_names)} on all input cubes"
+            )
+        for coord_name in coords_found:
+            new_coord = cube.coord(coord_name).copy(reference_time)
+            cube.replace_coord(new_coord)
+        cube.replace_coord(
+            forecast_period_coord(cube, force_lead_time_calculation=True)
+        )
 
     @staticmethod
     def compare_array_to_threshold(
