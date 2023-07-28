@@ -44,7 +44,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.threshold import BasicThreshold
+from improver.threshold import Threshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
 from .utilities import make_shower_condition_cube
@@ -171,10 +171,10 @@ class ShowerConditionProbability(PostProcessingPlugin):
         cloud, convection = self._extract_inputs(cubes)
 
         # Threshold cubes
-        cloud_thresholded = BasicThreshold(
+        cloud_thresholded = Threshold(
             self.cloud_threshold, comparison_operator="<="
         ).process(cloud)
-        convection_thresholded = BasicThreshold(self.convection_threshold).process(
+        convection_thresholded = Threshold(self.convection_threshold).process(
             convection
         )
 

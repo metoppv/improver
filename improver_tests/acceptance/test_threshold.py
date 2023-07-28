@@ -110,7 +110,8 @@ def test_collapse_realization(tmp_path):
         output_path,
         "--threshold-values",
         "280",
-        "--collapse-realizations",
+        "--collapse-coord",
+        "realization",
     ]
     with pytest.warns(None) as record:
         run_cli(args)
@@ -135,7 +136,8 @@ def test_collapse_realization_masked_data(tmp_path, extra_arg, kgo):
         output_path,
         "--threshold-values",
         "500",
-        "--collapse-realizations",
+        "--collapse-coord",
+        "realization",
     ]
     args += extra_arg
     run_cli(args)
@@ -166,10 +168,13 @@ def test_collapse_percentile(tmp_path):
     (
         (["--vicinity", "10000"], "kgo.nc"),
         (
-            ["--vicinity", "10000,20000", "--collapse-realizations"],
+            ["--vicinity", "10000,20000", "--collapse-coord", "realization"],
             "kgo_multiple_vicinities.nc",
         ),
-        (["--vicinity", "10000", "--collapse-realizations"], "kgo_collapsed.nc",),
+        (
+            ["--vicinity", "10000", "--collapse-coord", "realization"],
+            "kgo_collapsed.nc",
+        ),
         (
             [
                 acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
@@ -183,7 +188,8 @@ def test_collapse_percentile(tmp_path):
                 acc.kgo_root() / "threshold" / "vicinity" / "landmask.nc",
                 "--vicinity",
                 "10000",
-                "--collapse-realizations",
+                "--collapse-coord",
+                "realization",
             ],
             "kgo_landmask_collapsed.nc",
         ),

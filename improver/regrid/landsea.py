@@ -45,7 +45,7 @@ from improver import PostProcessingPlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.regrid.landsea2 import RegridWithLandSeaMask
-from improver.threshold import BasicThreshold
+from improver.threshold import Threshold
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.spatial import OccurrenceWithinVicinity
 
@@ -288,9 +288,9 @@ class AdjustLandSeaPoints(PostProcessingPlugin):
         # Identify nearby points on regridded input_land that match the
         # selector_value
         if selector_val > 0.5:
-            thresholder = BasicThreshold(0.5)
+            thresholder = Threshold(0.5)
         else:
-            thresholder = BasicThreshold(0.5, comparison_operator="<=")
+            thresholder = Threshold(0.5, comparison_operator="<=")
         in_vicinity = self.vicinity(thresholder(self.input_land))
 
         # Identify those points sourced from the opposite mask that are

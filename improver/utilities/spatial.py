@@ -42,6 +42,7 @@ from cf_units import Unit
 from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
+from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -394,7 +395,10 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
 
 def maximum_within_vicinity(
-    grid: ndarray, grid_point_radius: int, fill_value: float, landmask: ndarray = None
+    grid: Union[MaskedArray, ndarray],
+    grid_point_radius: int,
+    fill_value: float,
+    landmask: ndarray = None,
 ) -> ndarray:
     """
     Find grid points where a phenomenon occurs within a defined radius.
@@ -428,10 +432,11 @@ def maximum_within_vicinity(
     # points along the edge = 3
     grid_points = (2 * grid_point_radius) + 1
     processed_grid = grid.copy()
-    unmasked_grid = grid.copy()
     if np.ma.is_masked(grid):
         unmasked_grid = grid.data.copy()
         unmasked_grid[grid.mask] = -fill_value
+    else:
+        unmasked_grid = grid.copy()
     if landmask is not None:
         max_data = np.empty_like(grid)
         for match in (True, False):
@@ -451,7 +456,14 @@ def maximum_within_vicinity(
     return processed_grid
 
 
-def rename_vicinity_cube(cube):
+def rename_vicinity_cube(cube: Cube):
+    """
+    Rename a cube in place to indicate the cube has been vicinity processed.
+
+    Args:
+        cube:
+            Cube to be renamed.
+    """
     if is_probability(cube):
         cube.rename(in_vicinity_name_format(cube.name()))
     else:
@@ -460,15 +472,21 @@ def rename_vicinity_cube(cube):
 
 def create_vicinity_coord(
     radius: Union[float, int], native_grid_point_radius: bool = False
-) -> None:
+) -> AuxCoord:
     """
     Add a coordinate to the cube that records the vicinity radius that
-    has been applied to the data.
+    has been applied to the data. This radius may be a distance in
+    physical units, or if native_grid_point_radius is True, it will be
+    a number of grid cells.
 
     Args:
         radius:
             The radius as a physical distance or number of grid points, the
             value of which is recorded in the coordinate.
+        native_grid_point_radius:
+            If set to True the radius is provided a a number of grid points
+            and the metadata created will reflect that.
+
     """
     if native_grid_point_radius:
         point = np.array(radius, dtype=np.float32)

@@ -45,7 +45,7 @@ def process(
     threshold_units: str = None,
     comparison_operator=">",
     fuzzy_factor: float = None,
-    collapse_realizations: bool = False,
+    collapse_coord: str = None,
     vicinity: cli.comma_separated_list = None,
     fill_masked: float = None,
 ):
@@ -96,9 +96,14 @@ def process(
             indicating a narrower fuzzy factor region / sharper threshold.
             A fuzzy factor cannot be used with a zero threshold or a
             threshold_config file.
-        collapse_realizations (bool):
-            If set, the realization coordinate is collapsed to calculate an
-            ensemble average threshold exceedance value.
+        collapse_coord (str):
+            An optional ability to set which coordinate we want to collapse
+            over. The only supported options are "realization" or "percentile".
+            If "percentile" is requested, the percentile coordinate will be
+            rebadged as a realization coordinate prior to collapse. The percentile
+            coordinate needs to be evenly spaced around the 50th percentile
+            to allow successful conversion from percentiles to realizations and
+            subsequent collapsing over the realization coordinate.
         vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
@@ -115,13 +120,8 @@ def process(
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
         ValueError: Cannot apply land-mask cube without in-vicinity processing.
-        ValueError: Can only collapse over a realization coordinate or a percentile
-            coordinate that has been rebadged as a realization coordinate.
     """
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        RebadgePercentilesAsRealizations,
-    )
-    from improver.threshold import BasicThreshold
+    from improver.threshold import Threshold
 
     if threshold_config and threshold_values:
         raise ValueError(
@@ -133,13 +133,13 @@ def process(
     if fill_masked is not None:
         fill_masked = float(fill_masked)
 
-    return BasicThreshold(
+    return Threshold(
         threshold_values=threshold_values,
         threshold_config=threshold_config,
         fuzzy_factor=fuzzy_factor,
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
-        collapse_realizations=collapse_realizations,
+        collapse_coord=collapse_coord,
         vicinity=vicinity,
         fill_masked=fill_masked,
     )(cube, land_sea_mask)

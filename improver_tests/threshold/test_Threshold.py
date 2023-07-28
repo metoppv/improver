@@ -28,21 +28,21 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for the threshold.BasicThreshold plugin."""
+"""Unit tests for the threshold.Threshold plugin."""
 
 
 import unittest
 
 import numpy as np
 from iris.coords import CellMethod, DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.threshold import BasicThreshold as Threshold
+from improver.threshold import Threshold as Threshold
 
 
 class Test__add_threshold_coord(IrisTest):
@@ -123,6 +123,13 @@ class Test_process(IrisTest):
         data[0][0] = -32768.0
         mask[0][0] = 1
         self.masked_cube.data = np.ma.MaskedArray(data, mask=mask)
+
+        cube1 = self.cube.copy()
+        cube1.add_aux_coord(DimCoord([0], "realization"))
+        cube2 = cube1.copy()
+        cube2.coord("realization").points = [1]
+        cube2.data[2, 2] = 1.5
+        self.multi_realization_cube = CubeList([cube1, cube2]).merge_cube()
 
     def test_basic(self):
         """Test that the plugin returns an iris.cube.Cube."""
@@ -588,6 +595,35 @@ class Test_process(IrisTest):
         self.assertEqual(result.coord(var_name="threshold").shape[0], 2)
         self.assertTrue(result.coord("radius_of_vicinity"))
         self.assertArrayEqual(result.coord("radius_of_vicinity").points, vicinity)
+
+    def test_realization_collapse(self):
+        """Test the collapsing of the realization coordinate when thresholding."""
+        expected_result_array = np.zeros_like(self.multi_realization_cube.data[0])
+        expected_result_array[2][2] = 0.5
+
+        plugin = Threshold(threshold_values=1.0, collapse_coord="realization")
+        result = plugin(self.multi_realization_cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_percentile_collapse(self):
+        """Test the collapsing of the percentile coordinate when thresholding."""
+        expected_result_array = np.zeros_like(self.multi_realization_cube.data[0])
+        expected_result_array[2][2] = 0.5
+
+        self.multi_realization_cube.coord("realization").rename("percentile")
+        self.multi_realization_cube.coord("percentile").points = [0, 100]
+
+        plugin = Threshold(threshold_values=1.0, collapse_coord="percentile")
+        result = plugin(self.multi_realization_cube)
+        self.assertArrayAlmostEqual(result.data, expected_result_array)
+
+    def test_coord_collapse_exception(self):
+        """Test that an exception is raised when requesting collapse an
+        unsupported coordinate."""
+        plugin = Threshold(threshold_values=1.0, collapse_coord="kittens")
+        msg = "Can only collapse over a realization coordinate or a percentile"
+        with self.assertRaisesRegex(ValueError, msg):
+            plugin(self.multi_realization_cube)
 
 
 class Test__init__(IrisTest):

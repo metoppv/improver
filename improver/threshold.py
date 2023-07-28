@@ -41,6 +41,9 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
+from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+    RebadgePercentilesAsRealizations,
+)
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.probabilistic import (
     format_cell_methods_for_probability,
@@ -57,7 +60,7 @@ from improver.utilities.spatial import (
 )
 
 
-class BasicThreshold(PostProcessingPlugin):
+class Threshold(PostProcessingPlugin):
 
     """Apply a threshold truth criterion to a cube.
 
@@ -75,7 +78,7 @@ class BasicThreshold(PostProcessingPlugin):
         fuzzy_factor: Optional[float] = None,
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
-        collapse_realizations: bool = False,
+        collapse_coord: str = None,
         vicinity: List[float] = None,
         fill_masked: Optional[float] = None,
     ) -> None:
@@ -136,10 +139,15 @@ class BasicThreshold(PostProcessingPlugin):
                 evaluate 'data < threshold'. When using fuzzy thresholds, there
                 is no difference between < and <= or > and >=.
                 Valid choices: > >= < <= gt ge lt le.
-            collapse_realizations:
-                If True, if the input cube has a realization coordinate, this
-                will be collapsed to calculate an ensemble average. Default is
-                False.
+            collapse_coord:
+                A coordinate over which an average is calculated, collapsing
+                this coordinate. The only supported options are "realization" or
+                "percentile". If "percentile" is requested, the percentile
+                coordinate will be rebadged as a realization coordinate prior to
+                collapse. The percentile coordinate needs to be evenly spaced
+                around the 50th percentile to allow successful conversion from
+                percentiles to realizations and subsequent collapsing over the
+                realization coordinate.
             fill_masked:
                 If provided all masked points in cube will be replaced with the
                 provided value.
@@ -195,7 +203,7 @@ class BasicThreshold(PostProcessingPlugin):
         self.comparison_operator_dict = comparison_operator_dict()
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
-        self.collapse_realizations = collapse_realizations
+        self.collapse_coord = collapse_coord
 
         self.vicinity = None
         if vicinity is not None:
@@ -206,7 +214,30 @@ class BasicThreshold(PostProcessingPlugin):
         self.fill_masked = fill_masked
 
     @staticmethod
-    def _set_thresholds(threshold_values, threshold_config):
+    def _set_thresholds(
+        threshold_values: Optional[Union[float, List[float]]],
+        threshold_config: Optional[dict],
+    ) -> Tuple[List, List]:
+        """
+        Interprets a threshold_config dictionary if provided, or ensures that
+        a list of thresholds has suitable precision.
+
+        Args:
+            threshold_values:
+                A list of threshold values or a single threshold value.
+            threshold_config:
+                A dictionary defining threshold values and optionally upper
+                and lower bounds for those values to apply fuzzy thresholding.
+
+        Returns:
+            A tuple containing:
+                thresholds:
+                    A list of threshold values as float64 type.
+                fuzzy_bounds:
+                    A list of tuples that define the upper and lower bounds associated
+                    with each threshold value, these also as float64 type. If these
+                    are not set, None is returned instead.
+        """
         if threshold_config:
             thresholds = []
             fuzzy_bounds = []
@@ -326,7 +357,29 @@ class BasicThreshold(PostProcessingPlugin):
         )
         cube.units = Unit(1)
 
-    def _calculate_truth_value(self, cube, threshold, bounds):
+    def _calculate_truth_value(
+        self, cube: Cube, threshold: float, bounds: tuple
+    ) -> np.ndarray:
+        """
+        Compares the diagnostic values to the threshold value, converting units
+        and applying fuzzy bounds as required. Returns the truth value.
+
+        Args:
+            cube:
+                A cube containing the diagnostic values. The cube rather than array
+                is passed in to allow for unit conversion.
+            threshold:
+                A single threshold value against which to compare the diagnostic
+                values.
+            bounds:
+                The fuzzy bounds used for applying fuzzy thresholding.
+
+        Returns:
+            truth_value:
+                An array of truth values given by the comparison of the diagnostic
+                data to the threshold value. This is returned at the default float
+                precision.
+        """
         if self.threshold_units is not None:
             cube.convert_units(self.threshold_units)
         # if upper and lower bounds are equal, set a deterministic 0/1
@@ -360,8 +413,74 @@ class BasicThreshold(PostProcessingPlugin):
 
         return truth_value.astype(FLOAT_DTYPE)
 
-    def _create_threshold_cube(self, cube):
-        template = cube.copy(data=np.zeros(cube.shape, dtype=(FLOAT_DTYPE)))
+    def _vicinity_processing(
+        self,
+        thresholded_cube: Cube,
+        truth_value: np.ndarray,
+        unmasked: np.ndarray,
+        landmask: np.ndarray,
+        grid_point_radii: List[int],
+        index: int,
+        fill_value: float,
+    ):
+        """
+        Apply max in vicinity processing to the thresholded values. The
+        resulting modified threshold values are changed in place in
+        thresholded_cube.
+
+        Args:
+            thresholded_cube:
+                The cube into which the resulting values are added.
+            truth_value:
+                An array of thresholded values prior to the application of
+                vicinity processing.
+            unmasked:
+                Array identifying unmasked data points that should be updated.
+            landmask:
+                A binary grid of the same size as truth_value that
+                differentiates between land and sea points to allow the
+                different surface types to be processed independently.
+            grid_point_radii:
+                The vicinity radius to apply expressed as a number of grid
+                cells.
+            index:
+                Index corresponding to the threshold coordinate to identify
+                which array we are summing the contribution into.
+            fill_value:
+                A fill value used for any unset points in the resulting array.
+        """
+        for ivic, vicinity in enumerate(grid_point_radii):
+            if truth_value.ndim > 2:
+                maxes = np.zeros(truth_value.shape, dtype=FLOAT_DTYPE)
+                for yxindex in np.ndindex(*truth_value.shape[:-2]):
+                    slice_max = maximum_within_vicinity(
+                        truth_value[yxindex + (slice(None), slice(None))],
+                        vicinity,
+                        fill_value,
+                        landmask,
+                    )
+                    maxes[yxindex] = slice_max
+            else:
+                maxes = maximum_within_vicinity(
+                    truth_value, vicinity, fill_value, landmask
+                )
+            thresholded_cube.data[ivic][index][unmasked] += maxes[unmasked]
+
+    def _create_threshold_cube(self, cube: Cube) -> Cube:
+        """
+        Create a cube with suitable metadata and zeroed data array for
+        storing the thresholded diagnostic data.
+
+        Args:
+            cube:
+                A template cube from which to take the data shape.
+
+        Returns:
+            thresholded_cube:
+                A cube of a suitable form for storing and describing
+                the thresholded data.
+        """
+        template = cube.copy(data=np.zeros(cube.shape, dtype=FLOAT_DTYPE))
 
         if self.threshold_units is not None:
             template.units = self.threshold_units
@@ -383,9 +502,9 @@ class BasicThreshold(PostProcessingPlugin):
         if self.vicinity is not None:
             vicinity_coord = create_vicinity_coord(self.vicinity, False)
             vicinity_expanded = iris.cube.CubeList()
-            for i, _ in enumerate(self.vicinity):
+            for vicinity_coord_slice in vicinity_coord:
                 thresholded_copy = thresholded_cube.copy()
-                thresholded_copy.add_aux_coord(vicinity_coord[i])
+                thresholded_copy.add_aux_coord(vicinity_coord_slice)
                 vicinity_expanded.append(thresholded_copy)
             del thresholded_copy
             thresholded_cube = vicinity_expanded.merge_cube()
@@ -413,14 +532,18 @@ class BasicThreshold(PostProcessingPlugin):
                 only.
 
         Returns:
-            Cube after a threshold has been applied. The data within this
-            cube will contain values between 0 and 1 to indicate whether
-            a given threshold has been exceeded or not.
+            Cube after a threshold has been applied, possibly using fuzzy
+            bounds, and / or with vicinity processing applied to return a
+            maximum in vicinity value. The data within this cube will
+            contain values between 0 and 1 to indicate whether a given
+            threshold has been exceeded or not.
 
                 The cube meta-data will contain:
                 * Input_cube name prepended with
                 probability_of_X_above(or below)_threshold (where X is
                 the diagnostic under consideration)
+                * The cube name will be suffixed with _in_vicinity if
+                vicinity processing has been applied.
                 * Threshold dimension coordinate with same units as input_cube
                 * Threshold attribute ("greater_than",
                 "greater_than_or_equal_to", "less_than", or
@@ -429,9 +552,20 @@ class BasicThreshold(PostProcessingPlugin):
 
         Raises:
             ValueError: if a np.nan value is detected within the input cube.
+            ValueError: Can only collapse over a realization coordinate or a percentile
+                        coordinate that has been rebadged as a realization coordinate.
         """
         if self.fill_masked is not None:
             input_cube.data = np.ma.filled(input_cube.data, self.fill_masked)
+
+        if self.collapse_coord == "percentile":
+            input_cube = RebadgePercentilesAsRealizations()(input_cube)
+            self.collapse_coord = "realization"
+        elif self.collapse_coord is not None and self.collapse_coord != "realization":
+            raise ValueError(
+                "Can only collapse over a realization coordinate or a percentile "
+                "coordinate that has been rebadged as a realization coordinate."
+            )
 
         self.original_units = input_cube.units
         self.threshold_coord_name = input_cube.name()
@@ -445,10 +579,10 @@ class BasicThreshold(PostProcessingPlugin):
 
         # Slice over realizations if required and create an empty threshold
         # cube to store the resulting thresholded data.
-        if self.collapse_realizations:
-            input_slices = input_cube.slices_over("realization")
+        if self.collapse_coord is not None:
+            input_slices = input_cube.slices_over(self.collapse_coord)
             thresholded_cube = self._create_threshold_cube(
-                next(input_cube.slices_over("realization"))
+                next(input_cube.slices_over(self.collapse_coord))
             )
         else:
             input_slices = [input_cube]
@@ -471,12 +605,11 @@ class BasicThreshold(PostProcessingPlugin):
                 mask = cube.data.mask
                 unmasked = ~mask
             else:
-                mask = None
                 unmasked = np.ones(cube.shape, dtype=bool)
 
             fill_value = netCDF4.default_fillvals.get(cube.dtype.str[1:], np.inf)
 
-            # All unmasked points contibute 1 to the numerator for calculating
+            # All unmasked points contribute 1 to the numerator for calculating
             # a realization collapsed truth value. Note that if input_slices
             # above includes the realization coordinate (i.e. we are not collapsing
             # that coordinate) then contribution_total will include this extra
@@ -488,22 +621,15 @@ class BasicThreshold(PostProcessingPlugin):
             ):
                 truth_value = self._calculate_truth_value(cube, threshold, bounds)
                 if self.vicinity is not None:
-                    for ivic, vicinity in enumerate(grid_point_radii):
-                        if truth_value.ndim > 2:
-                            maxes = np.zeros(truth_value.shape, dtype=FLOAT_DTYPE)
-                            for yxindex in np.ndindex(*truth_value.shape[:-2]):
-                                slice_max = maximum_within_vicinity(
-                                    truth_value[yxindex + (slice(None), slice(None))],
-                                    vicinity,
-                                    fill_value,
-                                    landmask,
-                                )
-                                maxes[yxindex] = slice_max
-                        else:
-                            maxes = maximum_within_vicinity(
-                                truth_value, vicinity, fill_value, landmask
-                            )
-                        thresholded_cube.data[ivic][index][unmasked] += maxes[unmasked]
+                    self._vicinity_processing(
+                        thresholded_cube,
+                        truth_value,
+                        unmasked,
+                        landmask,
+                        grid_point_radii,
+                        index,
+                        fill_value,
+                    )
                 else:
                     thresholded_cube.data[index][unmasked] += truth_value[unmasked]
 
@@ -533,9 +659,9 @@ class BasicThreshold(PostProcessingPlugin):
         # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
-        if self.collapse_realizations:
+        if self.collapse_coord is not None:
             try:
-                thresholded_cube.remove_coord("realization")
+                thresholded_cube.remove_coord(self.collapse_coord)
             except CoordinateNotFoundError:
                 pass
 
@@ -560,7 +686,7 @@ class BasicThreshold(PostProcessingPlugin):
         return thresholded_cube
 
 
-class LatitudeDependentThreshold(BasicThreshold):
+class LatitudeDependentThreshold(Threshold):
 
     """Apply a latitude-dependent threshold truth criterion to a cube.
 
@@ -622,8 +748,8 @@ class LatitudeDependentThreshold(BasicThreshold):
         cube.add_aux_coord(coord, data_dims=len(cube.shape) - 2)
 
     def process(self, input_cube: Cube) -> Cube:
-        """Convert each point to a truth value based on provided threshold
-        function. If the plugin has a "threshold_units"
+        """Convert each point to a truth value based on provided threshold,
+        fuzzy bound, and vicinity values. If the plugin has a "threshold_units"
         member, this is used to convert a copy of the input_cube into
         the units specified.
 
