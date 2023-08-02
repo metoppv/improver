@@ -119,7 +119,6 @@ def process(
     Raises:
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
-        ValueError: Cannot apply land-mask cube without in-vicinity processing.
     """
     from improver.threshold import Threshold
 
