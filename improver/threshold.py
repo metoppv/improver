@@ -564,7 +564,9 @@ class Threshold(PostProcessingPlugin):
             ValueError: if a np.nan value is detected within the input cube.
         """
         if self.vicinity is None and landmask is not None:
-            raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
+            raise ValueError(
+                "Cannot apply land-mask cube without in-vicinity processing"
+            )
 
         if self.fill_masked is not None:
             input_cube.data = np.ma.filled(input_cube.data, self.fill_masked)

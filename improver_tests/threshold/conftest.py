@@ -30,21 +30,18 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Fixtures for freezing rain tests"""
 
-from typing import List, Optional, Tuple, Union
-from datetime import datetime
+from typing import List, Optional, Union
 
-from iris.cube import Cube
-from iris.coords import DimCoord
-from iris.exceptions import CoordinateNotFoundError
 import numpy as np
 import pytest
+from iris.coords import DimCoord
+from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
-    set_up_probability_cube,
-    set_up_variable_cube
+    set_up_variable_cube,
 )
-from improver.threshold import Threshold as Threshold
 from improver.utilities.probability_manipulation import comparison_operator_dict
 
 COMMON_ATTRS = {
@@ -70,7 +67,7 @@ def diagnostic_cube(n_realizations: int = 1, data: Optional[np.ndarray] = None) 
 
     if data is None:
         data = np.zeros((n_realizations, 5, 5), dtype=np.float32)
-        data[..., 2, 2]  = 0.5
+        data[..., 2, 2] = 0.5
         data = np.squeeze(data)
 
     return set_up_variable_cube(
@@ -99,7 +96,7 @@ def single_realization_cube() -> Cube:
 def multi_realization_cube() -> Cube:
     """Return the diagnostic cube with a multi-valued realization coordinate."""
     data = np.zeros((2, 5, 5), dtype=np.float32)
-    data[..., 2, 2]  = [0.45, 0.55]
+    data[..., 2, 2] = [0.45, 0.55]
     return diagnostic_cube(n_realizations=2, data=data)
 
 
@@ -137,7 +134,9 @@ def custom_cube(n_realizations: int, data: np.ndarray) -> Cube:
 
 
 @pytest.fixture
-def expected_cube_name(comparison_operator: str, vicinity: Optional[Union[float, List[float]]]) -> Cube:
+def expected_cube_name(
+    comparison_operator: str, vicinity: Optional[Union[float, List[float]]]
+) -> Cube:
     """Return a template for the name of a thresholded cube taking into
     account the comparison operator and the application of vicinity
     processing.
@@ -166,7 +165,8 @@ def expected_result(
     expected_multi_value: List[float],
     collapse: bool,
     comparator: str,
-    default_cube: Cube) -> np.ndarray:
+    default_cube: Cube,
+) -> np.ndarray:
     """Return the expected values following thresholding.
     The default cube has a 0.5 value at location (2, 2), with all other
     values set to 0. The expected result, for a ">" or ">=" threshold
@@ -211,8 +211,8 @@ def expected_result(
         n_realizations = 1
 
     if "l" in comparator:
-        expected_single_value = 1. - expected_single_value
-        expected_multi_value = [1. - value for value in expected_multi_value]
+        expected_single_value = 1.0 - expected_single_value
+        expected_multi_value = [1.0 - value for value in expected_multi_value]
         expected_result_array = np.ones_like(default_cube.data)
     else:
         expected_result_array = np.zeros_like(default_cube.data)
@@ -230,7 +230,9 @@ def expected_result(
     return expected_result_array
 
 
-@pytest.fixture(params=[deterministic_cube, single_realization_cube, multi_realization_cube])
+@pytest.fixture(
+    params=[deterministic_cube, single_realization_cube, multi_realization_cube]
+)
 def default_cube(request) -> Cube:
     """Parameterised to provide a deterministic cube, scalar realization cube,
     and multi-realization cube for testing."""
@@ -238,7 +240,11 @@ def default_cube(request) -> Cube:
 
 
 @pytest.fixture
-def threshold_coord(threshold_values: Union[float, List[float]], threshold_units: str, comparison_operator: str) -> DimCoord:
+def threshold_coord(
+    threshold_values: Union[float, List[float]],
+    threshold_units: str,
+    comparison_operator: str,
+) -> DimCoord:
     """
     Generate an expected threshold coordinate based on the threshold
     values and comparison operator.
