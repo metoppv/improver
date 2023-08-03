@@ -54,8 +54,20 @@ COMMON_ATTRS = {
 }
 
 
-def diagnostic_cube(n_realizations=1, data=None):
-    """Return a cube with a single configurable data point."""
+def diagnostic_cube(n_realizations: int = 1, data: Optional[np.ndarray] = None) -> Cube:
+    """Return a cube of preciptiation rate in mm/hr with n_realizations
+    containing the data provided by the data argument.
+
+    Args:
+        n_realizations:
+            The number of realizations to be present in the returned cube.
+        data:
+            The data to be contained in the cube. If specified this must
+            contain a leading dimension of length n_realizations.
+    Returns:
+        A diagnostic cube for use in testing.
+    """
+
     if data is None:
         data = np.zeros((n_realizations, 5, 5), dtype=np.float32)
         data[..., 2, 2]  = 0.5
@@ -72,40 +84,73 @@ def diagnostic_cube(n_realizations=1, data=None):
     )
 
 
-def deterministic_cube():
+def deterministic_cube() -> Cube:
+    """Return the diagnostic cube without a realization coordinate."""
     return diagnostic_cube()
 
 
-def single_realization_cube():
+def single_realization_cube() -> Cube:
+    """Return the diagnostic cube with a scalar realization coordinate."""
     cube = diagnostic_cube()
     cube = add_coordinate(cube, [0], "realization", dtype=np.int)
     return cube
 
 
-def multi_realization_cube():
+def multi_realization_cube() -> Cube:
+    """Return the diagnostic cube with a multi-valued realization coordinate."""
     data = np.zeros((2, 5, 5), dtype=np.float32)
     data[..., 2, 2]  = [0.45, 0.55]
     return diagnostic_cube(n_realizations=2, data=data)
 
 
-def expected_name_func(comparison_operator):
-    """Generate the text description of the comparison operator
-    for incorporation in the cube name or coordinate attributes."""
+def expected_name_func(comparison_operator: str) -> str:
+    """Return the text description of the comparison operator
+    for incorporation in the cube name or coordinate attributes.
 
+    Args:
+        comparison_operator:
+            The comparator used for thresholding, e.g. >.
+    Returns:
+        e.g. "greater_than"
+    """
     return comparison_operator_dict()[comparison_operator].spp_string
 
 
 @pytest.fixture
-def custom_cube(n_realizations, data):
+def custom_cube(n_realizations: int, data: np.ndarray) -> Cube:
+    """Provide a diagnostic cube with a configurable number of realizations
+    and custom data.
+
+    Args:
+        n_realizations:
+            The number of realizations to be present in the returned cube.
+        data:
+            The data to be contained in the cube. If specified this must
+            contain a leading dimension of length n_realizations.
+    Returns:
+        A diagnostic cube for use in testing.
+    """
+
     if data.dtype == np.float64:
         data = data.astype(np.float32)
     return diagnostic_cube(n_realizations, data)
 
 
 @pytest.fixture
-def expected_cube_name(comparison_operator, vicinity):
+def expected_cube_name(comparison_operator: str, vicinity: Optional[Union[float, List[float]]]) -> Cube:
     """Return a template for the name of a thresholded cube taking into
-    account the comparison operator."""
+    account the comparison operator and the application of vicinity
+    processing.
+
+    Args:
+        comparison_operator:
+            The comparator used for thresholding, e.g. >.
+        vicinity:
+            A vicinity radius if set, or None. Used to determine whether
+            the diagnostic name should include the vicinity term.
+    Returns:
+        The expected diagnostic name after thresholding.
+    """
 
     vicinity_name = "_in_vicinity" if vicinity is not None else ""
 
@@ -121,7 +166,7 @@ def expected_result(
     expected_multi_value: List[float],
     collapse: bool,
     comparator: str,
-    default_cube: Cube):
+    default_cube: Cube) -> np.ndarray:
     """Return the expected values following thresholding.
     The default cube has a 0.5 value at location (2, 2), with all other
     values set to 0. The expected result, for a ">" or ">=" threshold
@@ -156,6 +201,8 @@ def expected_result(
             ">=", "<", or "<=".
         default_cube:
             The input cube to the test.
+    Returns:
+        A data array that contains the expected values after thresholding.
     """
 
     try:
@@ -184,15 +231,31 @@ def expected_result(
 
 
 @pytest.fixture(params=[deterministic_cube, single_realization_cube, multi_realization_cube])
-def default_cube(request):
+def default_cube(request) -> Cube:
+    """Parameterised to provide a deterministic cube, scalar realization cube,
+    and multi-realization cube for testing."""
     return request.param()
 
 
 @pytest.fixture
-def threshold_coord(threshold_values, threshold_units, comparison_operator):
+def threshold_coord(threshold_values: Union[float, List[float]], threshold_units: str, comparison_operator: str) -> DimCoord:
     """
     Generate an expected threshold coordinate based on the threshold
     values and comparison operator.
+
+    Args:
+        threshold_values:
+            A list of threshold values, or a single value that will make
+            up the points in the returned coordinate.
+        threshold_units:
+            The units in which the threshold values were specified. Used
+            to set the threshold coordinate prior to conversion to the units
+            of the diagnostic cube (mm/hr).
+        comparison_operator:
+            The comparator used for thresholding, e.g. >.
+    Returns:
+        A constructed threshold coordinate that is expected to be found on
+        a cube thresholded with options that match the provided arguments.
     """
     attributes = {"spp__relative_to_threshold": expected_name_func(comparison_operator)}
 
