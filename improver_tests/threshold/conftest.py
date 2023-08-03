@@ -30,8 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Fixtures for freezing rain tests"""
 
+from typing import List, Optional, Tuple, Union
 from datetime import datetime
 
+from iris.cube import Cube
 from iris.coords import DimCoord
 from iris.exceptions import CoordinateNotFoundError
 import numpy as np
@@ -95,6 +97,8 @@ def expected_name_func(comparison_operator):
 
 @pytest.fixture
 def custom_cube(n_realizations, data):
+    if data.dtype == np.float64:
+        data = data.astype(np.float32)
     return diagnostic_cube(n_realizations, data)
 
 
@@ -112,8 +116,47 @@ def expected_cube_name(comparison_operator, vicinity):
 
 
 @pytest.fixture
-def expected_result(expected_single_value, expected_multi_value, collapse, comparator, default_cube):
-    """Return the expected values following thresholding."""
+def expected_result(
+    expected_single_value: float,
+    expected_multi_value: List[float],
+    collapse: bool,
+    comparator: str,
+    default_cube: Cube):
+    """Return the expected values following thresholding.
+    The default cube has a 0.5 value at location (2, 2), with all other
+    values set to 0. The expected result, for a ">" or ">=" threshold
+    comparator, is achieved by placing the expected value, or values for
+    multi-realization data without coordinate collapsing, at the (..., 2, 2)
+    location in an array full of zeros. This array matches the size of
+    the input cube.
+
+    If the comparator is changed to be be "<" or "<=" then the array is
+    filled with ones, and the expected value(s) is subtracted from 1 prior
+    to being places at the (..., 2, 2) location.
+
+    This function does no more than this to avoid making the tests harder
+    to follow. Cases for which the threshold value is equal to any of
+    the data values (without fuzziness) meaning that the ">" and ">=", or
+    "<" and "<=" comparators would give different results are handled
+    separately.
+
+    Args:
+        expected_single_value:
+            The value expected if a single realization or deterministic
+            input cube is being tested.
+        expected_multi_value:
+            The values expected for each realization is a multi-realization
+            input cube is being tested. If the collapse argument is true the
+            expected result is the mean of these values.
+        collapse:
+            Whether the test includes the collapsing of the realization
+            coordinate to calculate the final result.
+        comparator:
+            The comapartor being applied in the thresholding, either ">",
+            ">=", "<", or "<=".
+        default_cube:
+            The input cube to the test.
+    """
 
     try:
         n_realizations = default_cube.coord("realization").shape[0]

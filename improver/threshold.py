@@ -160,6 +160,8 @@ class Threshold(PostProcessingPlugin):
             ValueError: If using a fuzzy factor with a threshold of 0.0.
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
             ValueError: If both fuzzy_factor and fuzzy_bounds are set.
+            ValueError: Can only collapse over a realization coordinate or a percentile
+                        coordinate that has been rebadged as a realization coordinate.
         """
         thresholds, fuzzy_bounds = self._set_thresholds(
             threshold_values, threshold_config
@@ -203,7 +205,14 @@ class Threshold(PostProcessingPlugin):
         self.comparison_operator_dict = comparison_operator_dict()
         self.comparison_operator_string = comparison_operator
         self._decode_comparison_operator_string()
-        self.collapse_coord = collapse_coord
+
+        if collapse_coord and collapse_coord not in ["percentile", "realization"]:
+            raise ValueError(
+                "Can only collapse over a realization coordinate or a percentile "
+                "coordinate that has been rebadged as a realization coordinate."
+            )
+        else:
+            self.collapse_coord = collapse_coord
 
         self.vicinity = None
         if vicinity is not None:
@@ -553,8 +562,6 @@ class Threshold(PostProcessingPlugin):
         Raises:
             ValueError: Cannot apply land-mask cube without in-vicinity processing.
             ValueError: if a np.nan value is detected within the input cube.
-            ValueError: Can only collapse over a realization coordinate or a percentile
-                        coordinate that has been rebadged as a realization coordinate.
         """
         if self.vicinity is None and landmask is not None:
             raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
@@ -565,11 +572,6 @@ class Threshold(PostProcessingPlugin):
         if self.collapse_coord == "percentile":
             input_cube = RebadgePercentilesAsRealizations()(input_cube)
             self.collapse_coord = "realization"
-        elif self.collapse_coord is not None and self.collapse_coord != "realization":
-            raise ValueError(
-                "Can only collapse over a realization coordinate or a percentile "
-                "coordinate that has been rebadged as a realization coordinate."
-            )
 
         self.original_units = input_cube.units
         self.threshold_coord_name = input_cube.name()
