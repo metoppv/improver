@@ -519,6 +519,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 The probability of being below the final threshold in
                 forecast_probabilities is used as the probability of the diagnostic
                 existing.
+                For example if at some grid square the probability of cloud base
+                being below 15000m (the highest threshold) is 0.7 then every percentile
+                above the 70th would be masked.
             skip_ecc_bounds:
                 If true, the usage of the ECC bounds is skipped. This has the
                 effect that percentiles outside of the range given by the input
