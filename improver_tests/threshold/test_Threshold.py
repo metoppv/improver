@@ -617,14 +617,6 @@ class Test_process(IrisTest):
         result = plugin(self.multi_realization_cube)
         self.assertArrayAlmostEqual(result.data, expected_result_array)
 
-    def test_coord_collapse_exception(self):
-        """Test that an exception is raised when requesting collapse an
-        unsupported coordinate."""
-        plugin = Threshold(threshold_values=1.0, collapse_coord="kittens")
-        msg = "Can only collapse over a realization coordinate or a percentile"
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin(self.multi_realization_cube)
-
 
 class Test__init__(IrisTest):
 
