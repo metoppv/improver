@@ -151,7 +151,7 @@ def test__add_threshold_coord(default_cube, diagnostic, units):
         (1, np.zeros((25), dtype=np.int8).reshape(5, 5)),
     ],
 )
-def test_attributes_and_types(custom_cube, n_realizations, data):
+def test_attributes_and_types(custom_cube):
     """Test that the returned cube has the expected type and attributes."""
 
     expected_attributes = {
@@ -450,9 +450,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
         ),
     ],
 )
-def test_bespoke_expected_values(
-    custom_cube, kwargs, n_realizations, data, expected_result
-):
+def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
     """Test that thresholding yields the expected data values for
     different configurations. Variations tried here are:
 
@@ -475,8 +473,57 @@ def test_bespoke_expected_values(
     assert result.data.dtype == expected_result.dtype
 
 
+@pytest.mark.parametrize(
+    "kwargs,n_realizations,data,mask,expected_result",
+    [
+        # the land corner has a value of 1, this is not spread across the
+        # other points within the vicinity as these are sea points.
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]]),
+            np.array([[0, 0, 1], [0, 0, 0], [0, 0, 0]]),
+            np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]], dtype=np.float32),
+        ),
+        # a sea corner has a value of 1, this is spread across the
+        # other sea points within the vicinity, but not the central
+        # point as this is land.
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
+            np.array([[0, 0, 0], [1.0, 0, 0], [1.0, 1.0, 0]], dtype=np.float32),
+        ),
+        # a vicinity that is large enough to affect all points and a
+        # complex mask to check land points are unaffected by the
+        # spread of values from a sea point.
+        (
+            {"threshold_values": 0.5, "vicinity": 5000},
+            1,
+            np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array([[0, 1.0, 0], [1.0, 0, 1.0], [1.0, 0, 1.0]], dtype=np.float32),
+        ),
+    ],
+)
+def test_vicinity_with_landmask(custom_cube, landmask, kwargs, expected_result):
+    """Test that the application of a maximum in neighbourhood method
+    (vicinity) returns the expected values when a mask is provided
+    to limit the spread of values to matching types, e.g. a high
+    probability on land is only spread to other land points.
+    """
+    plugin = Threshold(**kwargs)
+    result = plugin(custom_cube, landmask)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result.data, expected_result)
+    assert type(result.data) == type(expected_result)
+    assert result.data.dtype == expected_result.dtype
+
+
 @pytest.mark.parametrize("n_realizations,data", [(1, np.array([[0, np.nan], [1, 1]]))])
-def test_nan_handling(custom_cube, n_realizations, data):
+def test_nan_handling(custom_cube):
     """Test that an exception is raised if the input data contains an
     unmasked NaN."""
 
@@ -485,8 +532,21 @@ def test_nan_handling(custom_cube, n_realizations, data):
         plugin(custom_cube)
 
 
+@pytest.mark.parametrize(
+    "n_realizations,data,mask", [(1, np.zeros((2, 2)), np.zeros((2, 2)))]
+)
+def test_landmask_no_vicinity(custom_cube, landmask):
+    """Test that an exception is raised if a landmask is provided but
+    vicinity processing is not being applied."""
+
+    plugin = Threshold(threshold_values=0.5)
+    msg = "Cannot apply land-mask cube without in-vicinity processing"
+    with pytest.raises(ValueError, match=msg):
+        plugin(custom_cube, landmask)
+
+
 @pytest.mark.parametrize("n_realizations,data", [(1, np.zeros((2, 2)))])
-def test_cell_methods(custom_cube, n_realizations, data):
+def test_cell_methods(custom_cube):
     """Test that cell methods are modified as expected when present
     on the input cube."""
 
@@ -501,7 +561,7 @@ def test_cell_methods(custom_cube, n_realizations, data):
 
 
 @pytest.mark.parametrize("n_realizations,data", [(4, np.zeros((4, 2, 2)))])
-def test_percentile_collapse(custom_cube, n_realizations, data):
+def test_percentile_collapse(custom_cube):
     """Test that a percentile coordinate can be collapsed to calculate
     an average. These percentiles must be equally spaced and centred on
     the 50th percentile ensure they may be considered as equivalent to

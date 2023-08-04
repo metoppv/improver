@@ -274,3 +274,22 @@ def threshold_coord(
     )
     threshold.convert_units("mm/hr")
     return threshold
+
+
+@pytest.fixture
+def landmask(mask: np.ndarray) -> Cube:
+    """
+    Return a landmask cube containing the data provided by the mask
+    argument. Points set to 1 are land, point set to 0 are sea.
+
+    Args:
+        The mask to be included within the cube.
+    Returns:
+        A land mask cube.
+    """
+    return set_up_variable_cube(
+        mask.astype(np.int8),
+        name="land_binary_mask",
+        units=1,
+        spatial_grid="equalarea",
+    )
