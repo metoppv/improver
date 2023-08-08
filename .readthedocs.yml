@@ -7,6 +7,3 @@ build:
 
 conda:
   environment: doc/rtd_environment.yml
-
-python:
-    system_packages: true
