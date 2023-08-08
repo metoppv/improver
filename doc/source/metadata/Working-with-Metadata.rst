@@ -63,7 +63,7 @@ it must update: no less, and no more.
 Writing new functions or plugins
 --------------------------------
 
-The code in IMPROVER generally falls into one of the following categories:
+The code in IMPROVER generally falls into one of four categories:
 
 Post-processing code
     This modifies an existing parameter, for example through
@@ -85,8 +85,8 @@ Calculation of post-processing parameters
     that will be used to post-process the data at a later stage.
     Plugins to apply these parameters would be post-processing code.
 
-**General utility code**
-    .. empty description, so the bold it make it consistent
+General utility code
+    Code that does not fall into any of the three categories above.
 
 There are two abstract base classes in IMPROVER:
 ``BasePlugin`` and ``PostProcessingPlugin``.
@@ -129,7 +129,7 @@ Developers should take care to:
   precipitation, cloud, lightning, etc - should be read into this function.)
 * **NOT** simply pass in all attributes from the template cube,
   as these may be inappropriate to the new parameter
-* **NEVER** to copy cell methods from the template cube,
+* **NEVER** copy cell methods from the template cube,
   as these will be inappropriate to the new parameter
 * Consider whether this parameter may be needed as a level 3 blended field,
   or as input to weather symbols.
@@ -160,10 +160,10 @@ is if organisation-specific details - such as the name of the model ID attribute
 - need to be passed in via the command line.
 Even in these cases, the plugin should take as much responsibility as possible,
 requiring minimal information from the user to inform metadata updates.
-(For example, in the model ID attribute case,
+For example, in the model ID attribute case,
 the user is required to provide the name of the attribute from which to read
 model information, rather than a ``name: value`` pairing
-to be directly applied.)
+to be directly applied.
 This maximises code flexibility and minimises the chances of
 bugs or inconsistencies by clearly recording the expected metadata
 within the code, where it can be covered by automated tests.
@@ -175,7 +175,7 @@ Metadata is almost exclusively dealt with at the code level,
 with plugins taking responsibility for updating the
 appropriate metadata internally.
 However, there are a few limited cases where the code needs information
-to be provided via command line in order to make the correct updates:
+to be provided via the command line in order to make the correct updates:
 
 Standardisation
     In the Met Office implementaiton, the “standardise” step at the start of
@@ -226,6 +226,12 @@ Using the metadata interpreter
 
 A tool has been developed to help developers identify whether code outputs
 are compliant with the IMPROVER standard.
+
+.. note::
+
+    It is probable that the metadata interpreter itself will need to be
+    updated or modified in future to accommodate new metadata that is required.
+
 This tool provides the following outputs:
 
 Returns
