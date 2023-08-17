@@ -40,8 +40,8 @@ def process(
     initial_scaling_value: float,
     first_unscaled_threshold: float,
 ):
-    """Combine the probability of visibility above or below a threshold with the probability of cloud
-    base at ground level.
+    """Combine the probability of visibility above or below a threshold with the probability of
+    cloud base at ground level.
 
     Before combining with a visibility threshold, the cube of cloud base at ground level is
     multiplied by a scalar. The scalar is determined differently depending on the corresponding

@@ -28,7 +28,6 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
 """Module for combining a visibility forecast with a scaled cloud base at ground level forecast"""
 
 import numpy as np
@@ -64,6 +63,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         self, initial_scaling_value: float, first_unscaled_threshold: float
     ) -> None:
         """Initialize plugin and define constants in the scaling distribution
+
         Args:
             initial_scaling_value:
                 Defines the scaling value used when combining with a visibility
@@ -79,7 +79,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         self.first_unscaled_threshold = first_unscaled_threshold
 
     def separate_input_cubes(self, cubes: CubeList) -> tuple:
-        """Separate cubelist into a visibility cube and a cloud base at ground level cube
+        """Separate cubelist into a visibility cube and a cloud base at ground level cube.
 
         Args:
             cubes:
