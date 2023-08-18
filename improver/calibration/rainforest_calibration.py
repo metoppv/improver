@@ -432,8 +432,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_dataset = self.model_input_converter(input_data)
 
+        if lead_time_hours in self.lead_times:
+            model_lead_time = lead_time_hours
+        else:
+            # find closest model lead time
+            best_ind = np.argmin(np.abs(self.lead_times - lead_time_hours))
+            model_lead_time = self.lead_times[best_ind]
+
         for threshold_index, threshold in enumerate(self.model_thresholds):
-            model = self.tree_models[lead_time_hours, threshold]
+            model = self.tree_models[model_lead_time, threshold]
             prediction = model.predict(input_dataset)
             prediction = np.maximum(np.minimum(1, prediction), 0)
             output_data[threshold_index, :] = np.reshape(
@@ -472,13 +479,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         lead_time_hours = forecast_cube.coord("forecast_period").points[0] / (
             SECONDS_IN_MINUTE * MINUTES_IN_HOUR
         )
-        # round up to next multiple of 24
-        model_lead_time = (lead_time_hours // 24) * 24
-        if lead_time_hours % 24 != 0:
-            model_lead_time += 24
 
         self._evaluate_probabilities(
-            input_dataset, model_lead_time, threshold_probability_cube.data,
+            input_dataset, lead_time_hours, threshold_probability_cube.data,
         )
 
         # Enforcing monotonicity
