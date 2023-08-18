@@ -202,10 +202,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # Model config is a nested dictionary. Keys of outer level are lead times, and
         # keys of inner level are thresholds. Convert these to int and float.
         sorted_model_config_dict = OrderedDict()
-        for lead_time_key in sorted(list(model_config_dict.keys())):
-            sorted_model_config_dict[int(lead_time_key)] = OrderedDict()
-            lead_time_dict = model_config_dict[lead_time_key]
-            sorted_model_config_dict[int(lead_time_key)] = OrderedDict(
+        lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
+        for lead_time_key in lead_time_keys:
+            sorted_model_config_dict[lead_time_key] = OrderedDict()
+            lead_time_dict = model_config_dict[str(lead_time_key)]
+            sorted_model_config_dict[lead_time_key] = OrderedDict(
                 sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
             )
 
@@ -432,7 +433,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_dataset = self.model_input_converter(input_data)
 
-        if lead_time_hours in self.lead_times:
+        if int(lead_time_hours) in self.lead_times:
             model_lead_time = lead_time_hours
         else:
             # find closest model lead time
@@ -722,10 +723,11 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         # Model config is a nested dictionary. Keys of outer level are lead times, and
         # keys of inner level are thresholds. Convert these to int and float.
         sorted_model_config_dict = OrderedDict()
-        for lead_time_key in sorted(list(model_config_dict.keys())):
-            sorted_model_config_dict[int(lead_time_key)] = OrderedDict()
-            lead_time_dict = model_config_dict[lead_time_key]
-            sorted_model_config_dict[int(lead_time_key)] = OrderedDict(
+        lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
+        for lead_time_key in lead_time_keys:
+            sorted_model_config_dict[lead_time_key] = OrderedDict()
+            lead_time_dict = model_config_dict[str(lead_time_key)]
+            sorted_model_config_dict[lead_time_key] = OrderedDict(
                 sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
             )
 
