@@ -65,12 +65,12 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         """Initialize plugin and define constants in the scaling distribution
 
         Args:
-            initial_scaling_value:
+            initial_scaling_value (float):
                 Defines the scaling value used when combining with a visibility
                 threshold of 0m.
-            first_unscaled_threshold:
-                Defines the first threshold that will have a scaling value of 1.
-                All thresholds greater than this will also have a scaling value of 1.
+            first_unscaled_threshold (float):
+                Defines the first threshold that will have a scaling value of 1.0.
+                All thresholds greater than this will also have a scaling value of 1.0.
         Returns:
             A tuple containing a cube of the probability of visibility relative
             to threshold and a cube of the probability of cloud base at ground level.
@@ -82,7 +82,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         """Separate cubelist into a visibility cube and a cloud base at ground level cube.
 
         Args:
-            cubes:
+            cubes (iris.cube.CubeList):
                 A cubelist only containing a cube of the probability of visibility
                 relative to thresholds and a cube of the probability of cloud base at
                 ground level
@@ -124,19 +124,19 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         """Calculates a scaling factor for every visibility threshold. The scaling factor
         is determined differently depending on the threshold:
 
-        1) If the threshold is greater than or qual to first_unscaled_threshold then the
-        scaling factor is always 1.
+        1) If the threshold is greater than or equal to first_unscaled_threshold then the
+        scaling factor is always 1.0.
         2) If the threshold is less than first_unscaled_threshold then a scaling factor
         is calculated by inputting the threshold into an inverted fourth level polynomial.
         The constants in this curve have been defined such that a threshold equal to
-        first_unscaled_threshold gives a scaling factor of 1 and a threshold of 0m gives
+        first_unscaled_threshold gives a scaling factor of 1.0 and a threshold of 0m gives
         a scaling factor equal to initial_scaling_value.
 
         This distribution has been determined by experimentation and chosen for combining
         visibility with a cloud base at ground level of 4.5 oktas or greater.
 
         Args:
-            vis_thresholds:
+            vis_thresholds (list):
                 A list of visibility thresholds
         Returns:
             A list of scaling factors. This will be the same length as vis_thresholds
@@ -164,12 +164,14 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         corresponding visibility threshold.
 
         Args:
-            visibility_cube:
-                A cube of visibility probabilities.
-            cloud_base_ground_cube:
-                A cube of cloud base at ground level probabilities. This cube should only
-                have spatial dimensions (e.g. spot_index or x,y coordinates).
 
+            cubes (iris.cube.CubeList):
+                containing:
+                    visibility (iris.cube.Cube):
+                        Cube of probability of visibility relative to thresholds
+                    cloud base at ground level (iris.cube.Cube):
+                        Cube of probability of cloud base at ground level. This cube should only
+                        have spatial dimensions (e.g. spot_index or x,y coordinates).
         Returns:
             Cube of visibility data that has been combined with the scaled cloud base at ground
             level cube.
