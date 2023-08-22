@@ -205,8 +205,10 @@ def process(
     # Section for combining land and sea points following land and sea points
     # being neighbourhood processed individually.
     if sea_only.data.max() > 0.0 and land_only.data.max() > 0.0:
-        # Recombine cubes to be a single output.
+        # Recombine cubes to be a single output, and burn back in the
+        # missing data mask from the original cube.
         combined_data = result_land.data.filled(0) + result_sea.data.filled(0)
+        combined_data = np.ma.masked_array(combined_data, cube.data.mask, copy=False)
         result = result_land.copy(data=combined_data)
 
     return result
