@@ -72,7 +72,7 @@ def process(
         initial_scaling_value (float):
             The scaling factor for a visibility threshold of 0m
         first_unscaled_threshold (float):
-            The first visibility threshold with a corresponding scaling factor of 1.
+            The first visibility threshold with a corresponding scaling factor of 1.0.
     Returns:
         iris.cube.Cube:
             Cube of probability of visibility combined with scaled cloud bases

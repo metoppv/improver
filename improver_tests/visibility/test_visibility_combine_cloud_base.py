@@ -41,7 +41,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 from improver.utilities.probability_manipulation import invert_probabilities
 from improver.visibility.visibility_combine_cloud_base import VisibilityCombineCloudBase
 
-cloud_name = (
+CLOUD_NAME = (
     "cloud_base_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas"
 )
 
@@ -88,20 +88,15 @@ def cloud_base_gridded_cube() -> Cube:
     """
     Sets-up gridded cloud base at ground level probability cube
     """
-    data = np.full((2, 2, 3), dtype=np.float32, fill_value=0.4)
+    data = np.full((1, 2, 3), dtype=np.float32, fill_value=0.4)
     data[0, 0, 0] = 0.7
     cube = set_up_probability_cube(
         data,
-        thresholds=[10, 20],
-        variable_name=cloud_name,
+        thresholds=[10],
+        variable_name=CLOUD_NAME,
         threshold_units="m",
         spp__relative_to_threshold="less_than",
         time=datetime(2023, 11, 10, 4, 0),
-    )
-    cube = cube.extract(
-        iris.Constraint(
-            cloud_base_assuming_only_consider_cloud_area_fraction_greater_than_4p5_oktas=10
-        )
     )
     return cube
 
@@ -116,7 +111,7 @@ def cloud_base_spot_cube() -> Cube:
     cube = set_up_probability_cube(
         data,
         thresholds=[10, 20],
-        variable_name=cloud_name,
+        variable_name=CLOUD_NAME,
         threshold_units="m",
         spp__relative_to_threshold="less_than",
         time=datetime(2023, 11, 10, 4, 0),
@@ -212,7 +207,7 @@ def test_if_probability_cube_error(
         )
         visibility_gridded_cube.remove_coord("visibility_in_air")
     elif prob_cube == "cloud_base_cube":
-        cloud_base_gridded_cube.remove_coord(cloud_name)
+        cloud_base_gridded_cube.remove_coord(CLOUD_NAME)
 
     error_msg = "must be a probability cube"
     with pytest.raises(ValueError, match=error_msg):

@@ -32,6 +32,7 @@
 
 import numpy as np
 from iris.cube import Cube, CubeList
+from typing import Tuple
 
 from improver import PostProcessingPlugin
 from improver.cube_combiner import Combine
@@ -47,7 +48,13 @@ from improver.utilities.probability_manipulation import invert_probabilities
 class VisibilityCombineCloudBase(PostProcessingPlugin):
     """
     Combines the probability of visibility relative to a threshold with
-    the probability of cloud base at ground level.
+    the probability of cloud base at ground level. 
+    
+    The probability of cloud base at ground level is used as proxy for
+    low visibility at a grid square. By combining these diagnostics we
+    add additional detail to the visibility diagnostic by capturing
+    low cloud over higher areas of orography not resolved in the underlying
+    visibility diagnostic.
 
     The probability of cloud base at ground level is multiplied by a scalar
     before combining. The scalar is dependent on which visibility threshold
@@ -65,24 +72,21 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         """Initialize plugin and define constants in the scaling distribution
 
         Args:
-            initial_scaling_value (float):
+            initial_scaling_value:
                 Defines the scaling value used when combining with a visibility
                 threshold of 0m.
-            first_unscaled_threshold (float):
+            first_unscaled_threshold:
                 Defines the first threshold that will have a scaling value of 1.0.
                 All thresholds greater than this will also have a scaling value of 1.0.
-        Returns:
-            A tuple containing a cube of the probability of visibility relative
-            to threshold and a cube of the probability of cloud base at ground level.
         """
         self.initial_scaling_value = initial_scaling_value
         self.first_unscaled_threshold = first_unscaled_threshold
 
-    def separate_input_cubes(self, cubes: CubeList) -> tuple:
+    def separate_input_cubes(self, cubes: CubeList) -> Tuple[Cube,Cube]:
         """Separate cubelist into a visibility cube and a cloud base at ground level cube.
 
         Args:
-            cubes (iris.cube.CubeList):
+            cubes:
                 A cubelist only containing a cube of the probability of visibility
                 relative to thresholds and a cube of the probability of cloud base at
                 ground level
@@ -106,21 +110,21 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
                 f"""Exactly two cubes should be provided; one for visibility and one for
                 cloud base at ground level. Provided cubes are {cube_names}"""
             )
-        else:
-            for cube in cubes:
-                if "visibility_in_air" in cube.name():
-                    visibility_cube = cube
-                elif "cloud_base" in cube.name():
-                    cloud_base_ground_cube = cube
-            if not visibility_cube or not cloud_base_ground_cube:
-                raise ValueError(
-                    f"""A visibility and cloud base at ground level cube must be provided.
-                    The provided cubes are {cube_names}"""
-                )
+
+        for cube in cubes:
+            if "visibility_in_air" in cube.name():
+                visibility_cube = cube
+            elif "cloud_base" in cube.name():
+                cloud_base_ground_cube = cube
+        if not visibility_cube or not cloud_base_ground_cube:
+            raise ValueError(
+                f"""A visibility and cloud base at ground level cube must be provided.
+                The provided cubes are {cube_names}"""
+            )
 
         return (visibility_cube, cloud_base_ground_cube)
 
-    def get_scaling_factors(self, vis_thresholds: list) -> list:
+    def get_scaling_factors(self, vis_thresholds: np.ndarray) -> np.ndarray:
         """Calculates a scaling factor for every visibility threshold. The scaling factor
         is determined differently depending on the threshold:
 
@@ -136,7 +140,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         visibility with a cloud base at ground level of 4.5 oktas or greater.
 
         Args:
-            vis_thresholds (list):
+            vis_thresholds:
                 A list of visibility thresholds
         Returns:
             A list of scaling factors. This will be the same length as vis_thresholds
@@ -150,7 +154,6 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         scaling_factors = np.where(
             vis_thresholds > self.first_unscaled_threshold, 1, scaling_factors
         )
-
         return scaling_factors
 
     def process(self, cubes: CubeList) -> Cube:
@@ -165,11 +168,11 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
 
         Args:
 
-            cubes (iris.cube.CubeList):
+            cubes:
                 containing:
-                    visibility (iris.cube.Cube):
+                    visibility:
                         Cube of probability of visibility relative to thresholds
-                    cloud base at ground level (iris.cube.Cube):
+                    cloud base at ground level:
                         Cube of probability of cloud base at ground level. This cube should only
                         have spatial dimensions (e.g. spot_index or x,y coordinates).
         Returns:
