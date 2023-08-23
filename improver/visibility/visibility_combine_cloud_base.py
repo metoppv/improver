@@ -30,9 +30,10 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module for combining a visibility forecast with a scaled cloud base at ground level forecast"""
 
+from typing import Tuple
+
 import numpy as np
 from iris.cube import Cube, CubeList
-from typing import Tuple
 
 from improver import PostProcessingPlugin
 from improver.cube_combiner import Combine
@@ -48,8 +49,8 @@ from improver.utilities.probability_manipulation import invert_probabilities
 class VisibilityCombineCloudBase(PostProcessingPlugin):
     """
     Combines the probability of visibility relative to a threshold with
-    the probability of cloud base at ground level. 
-    
+    the probability of cloud base at ground level.
+
     The probability of cloud base at ground level is used as proxy for
     low visibility at a grid square. By combining these diagnostics we
     add additional detail to the visibility diagnostic by capturing
@@ -82,7 +83,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         self.initial_scaling_value = initial_scaling_value
         self.first_unscaled_threshold = first_unscaled_threshold
 
-    def separate_input_cubes(self, cubes: CubeList) -> Tuple[Cube,Cube]:
+    def separate_input_cubes(self, cubes: CubeList) -> Tuple[Cube, Cube]:
         """Separate cubelist into a visibility cube and a cloud base at ground level cube.
 
         Args:
