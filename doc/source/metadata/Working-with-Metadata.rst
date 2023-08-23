@@ -178,7 +178,7 @@ However, there are a few limited cases where the code needs information
 to be provided via the command line in order to make the correct updates:
 
 Standardisation
-    In the Met Office implementaiton, the “standardise” step at the start of
+    In the Met Office implementation, the “standardise” step at the start of
     each suite chain has been configured to remove unnecessary attributes
     from incoming data.
 
