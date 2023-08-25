@@ -102,9 +102,15 @@ from improver.threshold import Threshold as Threshold
             {"threshold_values": 0.6, "collapse_coord": "kittens"},
             "Can only collapse over a realization coordinate or a percentile",
         ),
+        # threshold values provided as argument and via config
+        (
+            {"threshold_values": 0.6, "threshold_config": {"0.6"}},
+            "threshold_config and threshold_values are mutually exclusive arguments",
+        ),
     ],
 )
 def test_init(kwargs, exception):
+    """Test the exceptions raised by the __init__ method."""
     with pytest.raises(ValueError, match=exception):
         Threshold(**kwargs)
 
@@ -144,11 +150,11 @@ def test__add_threshold_coord(default_cube, diagnostic, units):
     "n_realizations,data",
     [
         # A typical case with float inputs
-        (1, np.zeros((25), dtype=np.float32).reshape(5, 5)),
+        (1, np.zeros(25, dtype=np.float32).reshape(5, 5)),
         # A case with integer inputs, where the data is converted to
         # float32 type, allowing for non-integer thresholded values,
         # i.e. due to the application of fuzzy thresholds.
-        (1, np.zeros((25), dtype=np.int8).reshape(5, 5)),
+        (1, np.zeros(25, dtype=np.int8).reshape(5, 5)),
     ],
 )
 def test_attributes_and_types(custom_cube):
@@ -172,7 +178,7 @@ def test_attributes_and_types(custom_cube):
     "comparison_operator",
     ["gt", "lt", "ge", "le", ">", "<", ">=", "<=", "GT", "LT", "GE", "LE"],
 )
-@pytest.mark.parametrize("vicinity", [None, [4000], [3000, 6000]])
+@pytest.mark.parametrize("vicinity", [None, list(), [4000], [3000, 6000]])
 @pytest.mark.parametrize("threshold_values", [-0.5, 0, [0.2, 0.4]])
 @pytest.mark.parametrize("threshold_units", ["mm/hr", "mm/day"])
 def test_threshold_metadata(
@@ -207,7 +213,7 @@ def test_threshold_metadata(
     assert result.name() == expected_cube_name.format(cube_name=ref_cube_name)
     assert result.coord(var_name="threshold") == threshold_coord
 
-    if vicinity is not None:
+    if vicinity is not None and vicinity:
         expected_vicinity = DimCoord(
             vicinity, long_name="radius_of_vicinity", units="m"
         )
@@ -310,7 +316,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
             {"threshold_config": {"0.": [-1, 1]}, "comparison_operator": "gt"},
             1,
             np.zeros((3, 3)),
-            np.ones((3, 3), dtype=np.float32) * 0.5,
+            np.full((3, 3), 0.5, dtype=np.float32),
         ),
         # negative diagnostic value above negative threshold with fuzziness.
         (
@@ -413,22 +419,15 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
                 [
                     np.stack(
                         [
-                            np.r_[[1] * 2, [0] * 3, [1] * 2, [0] * 18]
-                            .reshape((5, 5))
-                            .astype(np.float32),
-                            np.r_[[1] * 3, [0] * 2, [1] * 3, [0] * 2, [1] * 3, [0] * 12]
-                            .reshape((5, 5))
-                            .astype(np.float32),
+                            np.r_[[1] * 2, [0] * 3, [1] * 2, [0] * 18].reshape((5, 5)),
+                            np.r_[
+                                [1] * 3, [0] * 2, [1] * 3, [0] * 2, [1] * 3, [0] * 12
+                            ].reshape((5, 5)),
                         ]
                     ),
-                    np.stack(
-                        [
-                            np.zeros((5, 5), dtype=np.float32),
-                            np.zeros((5, 5), dtype=np.float32),
-                        ]
-                    ),
+                    np.zeros((2, 5, 5)),
                 ]
-            ),
+            ).astype(np.float32),
         ),
         # Multiple thresholds applied.
         (
@@ -597,3 +596,4 @@ def test_threshold_unit_conversion(default_cube):
         result.coord(var_name="threshold").points
         == np.array([3e-5, 9.0e-05, 1e-4], dtype="float32")
     ).all()
+    assert result.coord(var_name="threshold").units == "mm hr-1"

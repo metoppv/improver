@@ -288,9 +288,9 @@ class AdjustLandSeaPoints(PostProcessingPlugin):
         # Identify nearby points on regridded input_land that match the
         # selector_value
         if selector_val > 0.5:
-            thresholder = Threshold(0.5)
+            thresholder = Threshold(threshold_values=0.5)
         else:
-            thresholder = Threshold(0.5, comparison_operator="<=")
+            thresholder = Threshold(threshold_values=0.5, comparison_operator="<=")
         in_vicinity = self.vicinity(thresholder(self.input_land))
 
         # Identify those points sourced from the opposite mask that are

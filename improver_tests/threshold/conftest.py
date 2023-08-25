@@ -52,7 +52,7 @@ COMMON_ATTRS = {
 
 
 def diagnostic_cube(n_realizations: int = 1, data: Optional[np.ndarray] = None) -> Cube:
-    """Return a cube of preciptiation rate in mm/hr with n_realizations
+    """Return a cube of precipitation rate in mm/hr with n_realizations
     containing the data provided by the data argument.
 
     Args:
@@ -136,7 +136,7 @@ def custom_cube(n_realizations: int, data: np.ndarray) -> Cube:
 @pytest.fixture
 def expected_cube_name(
     comparison_operator: str, vicinity: Optional[Union[float, List[float]]]
-) -> Cube:
+) -> str:
     """Return a template for the name of a thresholded cube taking into
     account the comparison operator and the application of vicinity
     processing.
@@ -151,7 +151,7 @@ def expected_cube_name(
         The expected diagnostic name after thresholding.
     """
 
-    vicinity_name = "_in_vicinity" if vicinity is not None else ""
+    vicinity_name = "_in_vicinity" if vicinity else ""
 
     if "g" in comparison_operator.lower() or ">" in comparison_operator:
         return f"probability_of_{{cube_name}}{vicinity_name}_above_threshold"
@@ -169,20 +169,20 @@ def expected_result(
 ) -> np.ndarray:
     """Return the expected values following thresholding.
     The default cube has a 0.5 value at location (2, 2), with all other
-    values set to 0. The expected result, for a ">" or ">=" threshold
+    values set to 0. The expected result, for a "gt" or "ge" threshold
     comparator, is achieved by placing the expected value, or values for
     multi-realization data without coordinate collapsing, at the (..., 2, 2)
     location in an array full of zeros. This array matches the size of
     the input cube.
 
-    If the comparator is changed to be be "<" or "<=" then the array is
+    If the comparator is changed to be be "lt" or "le" then the array is
     filled with ones, and the expected value(s) is subtracted from 1 prior
-    to being places at the (..., 2, 2) location.
+    to being placed at the (..., 2, 2) location.
 
     This function does no more than this to avoid making the tests harder
     to follow. Cases for which the threshold value is equal to any of
-    the data values (without fuzziness) meaning that the ">" and ">=", or
-    "<" and "<=" comparators would give different results are handled
+    the data values (without fuzziness) meaning that the "gt" and "ge", or
+    "lt" and "le" comparators would give different results are handled
     separately.
 
     Args:
@@ -197,8 +197,8 @@ def expected_result(
             Whether the test includes the collapsing of the realization
             coordinate to calculate the final result.
         comparator:
-            The comapartor being applied in the thresholding, either ">",
-            ">=", "<", or "<=".
+            The comparator being applied in the thresholding, either "gt",
+            "ge", "lt", or "le".
         default_cube:
             The input cube to the test.
     Returns:

@@ -79,7 +79,7 @@ class Threshold(PostProcessingPlugin):
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
         collapse_coord: str = None,
-        vicinity: List[float] = None,
+        vicinity: Optional[Union[float, List[float]]] = None,
         fill_masked: Optional[float] = None,
     ) -> None:
         """
@@ -162,7 +162,14 @@ class Threshold(PostProcessingPlugin):
             ValueError: If both fuzzy_factor and fuzzy_bounds are set.
             ValueError: Can only collapse over a realization coordinate or a percentile
                         coordinate that has been rebadged as a realization coordinate.
+            ValueError: If threshold_config and threshold_values are both set
         """
+        if threshold_config and threshold_values:
+            raise ValueError(
+                "threshold_config and threshold_values are mutually exclusive "
+                "arguments - please provide one or the other, not both"
+            )
+
         thresholds, fuzzy_bounds = self._set_thresholds(
             threshold_values, threshold_config
         )
@@ -211,14 +218,14 @@ class Threshold(PostProcessingPlugin):
                 "Can only collapse over a realization coordinate or a percentile "
                 "coordinate that has been rebadged as a realization coordinate."
             )
-        else:
-            self.collapse_coord = collapse_coord
+        self.collapse_coord = collapse_coord
 
         self.vicinity = None
         if vicinity is not None:
             if isinstance(vicinity, numbers.Number):
                 vicinity = [vicinity]
-            self.vicinity = [float(x) for x in vicinity]
+            if vicinity:  # To handle an empty list being provided.
+                self.vicinity = [float(x) for x in vicinity]
 
         self.fill_masked = fill_masked
 
@@ -654,7 +661,7 @@ class Threshold(PostProcessingPlugin):
             result = np.divide(dslice[valid], contribution_total[valid])
             thresholded_cube.data[i, valid] = result
 
-        if (contribution_total == 0).any():
+        if not valid.all():
             thresholded_cube.data = np.ma.masked_array(
                 thresholded_cube.data,
                 mask=np.broadcast_to(~valid, thresholded_cube.shape),

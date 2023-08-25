@@ -69,7 +69,7 @@ def process(
         threshold_config (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
-            'threshold_units' It should contain a dictionary of strings that
+            'threshold_units'. It should contain a dictionary of strings that
             can be interpreted as floats with the structure:
             "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
             e.g: {"280.0": [278.0, 282.0], "290.0": [288.0, 292.0]},
@@ -115,20 +115,9 @@ def process(
     Returns:
         iris.cube.Cube:
             Cube of probabilities relative to the given thresholds
-
-    Raises:
-        ValueError: If threshold_config and threshold_values are both set
-        ValueError: If threshold_config is used for fuzzy thresholding
     """
     from improver.threshold import Threshold
 
-    if threshold_config and threshold_values:
-        raise ValueError(
-            "--threshold-config and --threshold-values are mutually exclusive "
-            "- please set one or the other, not both"
-        )
-    if threshold_config and fuzzy_factor:
-        raise ValueError("--threshold-config cannot be used for fuzzy thresholding")
     if fill_masked is not None:
         fill_masked = float(fill_masked)
 

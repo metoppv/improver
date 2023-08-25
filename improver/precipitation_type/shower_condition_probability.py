@@ -172,9 +172,9 @@ class ShowerConditionProbability(PostProcessingPlugin):
 
         # Threshold cubes
         cloud_thresholded = Threshold(
-            self.cloud_threshold, comparison_operator="<="
+            threshold_values=self.cloud_threshold, comparison_operator="<="
         ).process(cloud)
-        convection_thresholded = Threshold(self.convection_threshold).process(
+        convection_thresholded = Threshold(threshold_values=self.convection_threshold).process(
             convection
         )
 
