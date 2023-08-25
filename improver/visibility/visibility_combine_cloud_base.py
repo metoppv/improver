@@ -142,9 +142,9 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
 
         Args:
             vis_thresholds:
-                A list of visibility thresholds
+                An array of visibility thresholds
         Returns:
-            A list of scaling factors. This will be the same length as vis_thresholds
+            An array of scaling factors. This will be the same length as vis_thresholds
             and the scaling factor will have the same index as the corresponding threshold
             in vis_thresholds.
         """
