@@ -474,10 +474,11 @@ def create_vicinity_coord(
     radius: Union[float, int], native_grid_point_radius: bool = False
 ) -> AuxCoord:
     """
-    Add a coordinate to the cube that records the vicinity radius that
-    has been applied to the data. This radius may be a distance in
-    physical units, or if native_grid_point_radius is True, it will be
-    a number of grid cells.
+    Create a coordinate that records the vicinity radius passed in.
+    This radius may be a distance in physical units, or if
+    native_grid_point_radius is True, it will be a number of grid cells.
+    If the latter an attribute comment is added to note that the radius
+    is in grid cells.
 
     Args:
         radius:

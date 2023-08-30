@@ -174,9 +174,9 @@ class ShowerConditionProbability(PostProcessingPlugin):
         cloud_thresholded = Threshold(
             threshold_values=self.cloud_threshold, comparison_operator="<="
         ).process(cloud)
-        convection_thresholded = Threshold(threshold_values=self.convection_threshold).process(
-            convection
-        )
+        convection_thresholded = Threshold(
+            threshold_values=self.convection_threshold
+        ).process(convection)
 
         # Fill any missing data in the convective ratio field with zeroes.
         if np.ma.is_masked(convection_thresholded.data):

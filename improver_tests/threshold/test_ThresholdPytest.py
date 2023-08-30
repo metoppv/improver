@@ -178,7 +178,7 @@ def test_attributes_and_types(custom_cube):
     "comparison_operator",
     ["gt", "lt", "ge", "le", ">", "<", ">=", "<=", "GT", "LT", "GE", "LE"],
 )
-@pytest.mark.parametrize("vicinity", [None, list(), [4000], [3000, 6000]])
+@pytest.mark.parametrize("vicinity", [None, [4000], [3000, 6000]])
 @pytest.mark.parametrize("threshold_values", [-0.5, 0, [0.2, 0.4]])
 @pytest.mark.parametrize("threshold_units", ["mm/hr", "mm/day"])
 def test_threshold_metadata(
@@ -218,6 +218,18 @@ def test_threshold_metadata(
             vicinity, long_name="radius_of_vicinity", units="m"
         )
         assert result.coord("radius_of_vicinity") == expected_vicinity
+
+
+def test_vicinity_as_empty_list(default_cube):
+    """Test that a vicinity set as an empty list does not result in
+    a vicinity diagnostic or any exceptions. Tested for a deterministic,
+    single realization, and multi-realization cube."""
+
+    expected_cube_name = "probability_of_precipitation_rate_above_threshold"
+    plugin = Threshold(threshold_values=0.5, vicinity=list())
+    result = plugin(default_cube)
+
+    assert result.name() == expected_cube_name
 
 
 @pytest.mark.parametrize("collapse", (False, True))
@@ -381,7 +393,7 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
             np.ones((3, 3), dtype=np.float32),
         ),
         # Vicinity processing, with one corner value exceeding the threshold
-        # resulting in neighbourhing cells probabilities of 1 within the limit
+        # resulting in neighbouring cells probabilities of 1 within the limit
         # of the defined vicinity radius (2x2km grid cells)
         (
             {"threshold_values": 0.5, "vicinity": 3000},
@@ -446,6 +458,26 @@ def test_expected_values(default_cube, kwargs, collapse, comparator, expected_re
             1,
             np.ones((3, 3)),
             np.zeros((3, 3), dtype=np.float32),
+        ),
+        # value of np.inf tested with an above and below comparator, as well as an
+        # equivalence test with a threshold set to np.inf.
+        (
+            {"threshold_values": 1.0e6, "comparison_operator": "gt"},
+            1,
+            np.array([[np.inf, 0], [0, 0]]),
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+        (
+            {"threshold_values": 1.0e6, "comparison_operator": "lt"},
+            1,
+            np.array([[np.inf, 0], [0, 0]]),
+            np.array([[0, 1.0], [1.0, 1.0]], dtype=np.float32),
+        ),
+        (
+            {"threshold_values": np.inf, "comparison_operator": "ge"},
+            1,
+            np.array([[np.inf, 0], [0, 0]]),
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
         ),
     ],
 )
@@ -529,6 +561,16 @@ def test_nan_handling(custom_cube):
     plugin = Threshold(threshold_values=0.5)
     with pytest.raises(ValueError, match="NaN detected in input cube data"):
         plugin(custom_cube)
+
+
+@pytest.mark.parametrize("n_realizations,data", [(1, np.array([[0, np.inf], [1, 1]]))])
+def test_inf_handling(custom_cube):
+    """Test that an exception is raised if the input data contains an
+    unmasked NaN."""
+
+    plugin = Threshold(threshold_values=1.0e6)
+    result = plugin(custom_cube)
+    print(result.data)
 
 
 @pytest.mark.parametrize(

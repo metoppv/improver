@@ -43,7 +43,7 @@ from iris.coords import AuxCoord, CellMethod, DimCoord
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
-from numpy.testing import assert_almost_equal
+from numpy.testing import assert_almost_equal, assert_array_equal
 
 from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
@@ -52,10 +52,13 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.spatial import (
     calculate_grid_spacing,
     check_if_grid_is_equal_area,
+    create_vicinity_coord,
     distance_to_number_of_grid_cells,
     get_grid_y_x_values,
     lat_lon_determine,
+    maximum_within_vicinity,
     number_of_grid_cells_to_distance,
+    rename_vicinity_cube,
     transform_grid_to_lat_lon,
     update_name_and_vicinity_coord,
 )
@@ -643,3 +646,162 @@ def test_update_name_and_vicinity_coord(vicinity_radius, input_has_coord):
         assert coord_comment is None
     else:
         assert coord_comment == "Maximum"
+
+
+@pytest.mark.parametrize("as_grid_points", (True, False))
+@pytest.mark.parametrize("vicinity_radius", (2000.0, [2000.0, 4000.0]))
+def test_create_vicinity_coord(vicinity_radius, as_grid_points):
+    """Test that the create_vicinity_coord function returns a
+    radius_of_vicinity coordinate that records the passed in radii
+    correctly."""
+
+    result = create_vicinity_coord(vicinity_radius, as_grid_points)
+
+    assert isinstance(result, AuxCoord)
+    assert result.name() == "radius_of_vicinity"
+    assert result.dtype == np.float32
+    assert_array_equal(result.points, vicinity_radius)
+    if as_grid_points:
+        assert result.units == 1
+        assert result.attributes["comment"] == (
+            "Units of 1 indicate radius of vicinity is defined "
+            "in grid points rather than physical distance"
+        )
+    else:
+        assert result.units == "m"
+        assert result.attributes == {}
+
+
+@pytest.fixture(params=["probability", "variable"])
+def test_cube(request) -> Cube:
+    """Returns a variable or probability cube for use in tests.
+    Parameterised so both types are returned to each test.
+    """
+
+    cube_type = request.param
+    if cube_type == "probability":
+        data = np.zeros((2, 2, 2), dtype=np.float32)
+        thresholds = [273, 283]
+        return set_up_probability_cube(data, thresholds)
+    else:
+        data = np.full((2, 2), 280, dtype=np.float32)
+        return set_up_variable_cube(data)
+
+
+def test_rename_vicinity_cube(test_cube):
+    """Test that the rename_vicinity_cube function modifies variable
+    names as expected to indicate they have been vicinity processed."""
+
+    initial_name = test_cube.name()
+    rename_vicinity_cube(test_cube)
+    final_name = test_cube.name()
+
+    assert initial_name != final_name
+    assert "air_temperature_in_vicinity" in final_name
+
+
+@pytest.mark.parametrize(
+    "grid,radius,landmask,expected_result",
+    [
+        # Vicinity processing, with one non-zero central value resulting
+        # in the whole domain returning values of 1
+        (np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, np.ones((3, 3)),),
+        # Vicinity processing, with one non-zero corner value resulting
+        # in neighbouring cells values of 1 within the limit of the
+        # defined vicinity radius
+        (
+            np.array([[1.0, 0, 0], [0, 0, 0], [0, 0, 0]]),
+            1,
+            None,
+            np.array([[1.0, 1.0, 0], [1.0, 1.0, 0], [0, 0, 0]]),
+        ),
+        # Vicinity processing, with one non-zero masked value. This masked
+        # point is not considered, and so zeros are returned at neighbouring
+        # points within the vicinity radius. The masking is preserved in the
+        # returned data.
+        (
+            np.ma.masked_array(
+                [[0, 2.0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            None,
+            np.ma.masked_array(
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+        # the land corner has a value of 1, this is not spread across the
+        # other points within the vicinity as these are sea points.
+        (
+            np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]]),
+            1,
+            np.array([[0, 0, 1], [0, 0, 0], [0, 0, 0]]),
+            np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]]),
+        ),
+        # a sea corner has a value of 1, this is spread across the
+        # other sea points within the vicinity, but not the central
+        # point as this is land.
+        (
+            np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            1,
+            np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
+            np.array([[0, 0, 0], [1.0, 0, 0], [1.0, 1.0, 0]]),
+        ),
+        # a vicinity that is large enough to affect all points and a
+        # complex mask to check land points are unaffected by the
+        # spread of values from a sea point.
+        (
+            np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            2,
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array([[0, 1.0, 0], [1.0, 0, 1.0], [1.0, 0, 1.0]]),
+        ),
+        # one non-zero masked value and a land mask set as well that separates
+        # out the top row. The masked point is not considered, and so zeros
+        # are returned at all points. The land-sea mask does not affect the
+        # retention of the original mask.
+        (
+            np.ma.masked_array(
+                [[0, 2.0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            1,
+            np.array([[0, 0, 0], [1, 1, 1], [1, 1, 1]]),
+            np.ma.masked_array(
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+        ),
+    ],
+)
+def test_maximum_within_vicinity(grid, radius, landmask, expected_result):
+    """Test that maximum_within_vicinity function returns the expected
+    values and masking for various inputs. Variations tried here are:
+
+      - vicinity processing of a simple array that affects the whole array
+      - vicinity processing of a simple array that affects a corner of the
+        array
+      - vicinity processing of a masked array that returns an identically
+        masked array with no values changed.
+      - vicinity processing with a landmask that prevents any spread of
+        values to the rest of the domain.
+      - vicinity processing with a landmask that isolates the central
+        grid point from the effects of value spreading.
+      - vicinity processing with a complex landmask that leads to a dappled
+        value spread.
+      - vicinity processing with a masked array and a landmask that
+        demonstrates that the original masking is retained and not
+        modified by the landmask.
+    """
+    reference = grid.copy()
+
+    fill_value = 99999
+    result = maximum_within_vicinity(grid, radius, fill_value, landmask)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result, expected_result)
+    assert type(result) == type(expected_result)
+    assert result.dtype == np.float64
+    if np.ma.is_masked(reference):
+        assert_array_equal(reference.mask, result.mask)
