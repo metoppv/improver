@@ -670,7 +670,9 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         )
 
         result_slices = iris.cube.CubeList(
-            collapsed(c_slice, self.blend_coord, iris.analysis.MEAN, weights=w_slice)
+            collapsed(
+                c_slice, self.blend_coord, iris.analysis.MEAN, mdtol=0, weights=w_slice
+            )
             for c_slice, w_slice in zip(cube_slices, weights_slices)
         )
 
