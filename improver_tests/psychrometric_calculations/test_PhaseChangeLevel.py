@@ -315,6 +315,7 @@ class Test_fill_sea_points(IrisTest):
         data[:, :, 0] = data[:, :, 0] - 10
         data[:, :, 2] = data[:, :, 2] + 20
         self.wet_bulb_temperature = data
+        self.orography = np.zeros((3, 3))
         self.expected_phase_change_level = np.array(
             [
                 [-27.5, -15.0, -4.154759],
@@ -332,6 +333,7 @@ class Test_fill_sea_points(IrisTest):
             self.max_wb_integral,
             self.wet_bulb_temperature,
             self.heights,
+            self.orography,
         )
         self.assertArrayAlmostEqual(
             self.phase_change_level.data, self.expected_phase_change_level
@@ -348,6 +350,7 @@ class Test_fill_sea_points(IrisTest):
             self.max_wb_integral,
             self.wet_bulb_temperature,
             self.heights,
+            self.orography,
         )
         self.assertArrayAlmostEqual(self.phase_change_level.data, expected)
 
@@ -363,6 +366,24 @@ class Test_fill_sea_points(IrisTest):
             self.max_wb_integral,
             self.wet_bulb_temperature,
             self.heights,
+            self.orography,
+        )
+        self.assertArrayAlmostEqual(
+            self.phase_change_level.data, self.expected_phase_change_level
+        )
+
+    def test_non_zero_orography(self):
+        """Test that points with non-zero orography are updated correctly"""
+        plugin = PhaseChangeLevel(phase_change="snow-sleet")
+        orography = np.array([[-5, 0, 5], [-5, 0, 5], [-5, 0, 5]])
+        self.expected_phase_change_level += orography
+        plugin.fill_in_sea_points(
+            self.phase_change_level,
+            self.land_sea,
+            self.max_wb_integral,
+            self.wet_bulb_temperature,
+            self.heights,
+            orography,
         )
         self.assertArrayAlmostEqual(
             self.phase_change_level.data, self.expected_phase_change_level

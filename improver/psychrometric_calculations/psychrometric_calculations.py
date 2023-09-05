@@ -656,6 +656,7 @@ class PhaseChangeLevel(BasePlugin):
         max_wb_integral: ndarray,
         wet_bulb_temperature: ndarray,
         heights: ndarray,
+        orography: ndarray,
     ) -> None:
         """
         Fill in any sea points where we have not found a phase change level
@@ -686,6 +687,8 @@ class PhaseChangeLevel(BasePlugin):
             heights:
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
+            orography:
+                Cube of orography (m).
         """
         sea_points = (
             np.isnan(phase_change_level_data)
@@ -702,6 +705,8 @@ class PhaseChangeLevel(BasePlugin):
         self.find_extrapolated_falling_level(
             max_wb_integral, gradient, intercept, phase_change_level_data, sea_points
         )
+
+        phase_change_level_data[sea_points] += orography[sea_points]
 
     def find_max_in_nbhood_orography(self, orography_cube: Cube) -> Cube:
         """
@@ -781,6 +786,7 @@ class PhaseChangeLevel(BasePlugin):
             wb_integral.max(axis=0),
             wet_bulb_temp,
             heights,
+            orography,
         )
 
         # Any unset points at this stage are set to np.nan; these will be
