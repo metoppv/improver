@@ -281,6 +281,22 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             Array containing the smoothed field after the
             neighbourhood method has been applied.
         """
+        # Determine the smallest box containing all non-zero values with a neighbourhood-sized
+        # buffer and quit if there are none.
+        data_shape = data.shape
+        nonzero_indices = np.argwhere(data)
+        if nonzero_indices.size == 0:
+            # No non-zero values, so just return data
+            return data
+        (ystart, xstart), (ystop, xstop) = (
+            nonzero_indices.min(0),
+            nonzero_indices.max(0) + 1,
+        )
+        ystart = max(0, ystart - self.nb_size)
+        ystop = min(data_shape[0], ystop + self.nb_size)
+        xstart = max(0, xstart - self.nb_size)
+        xstop = min(data_shape[1], xstop + self.nb_size)
+
         if not self.sum_only:
             min_val = np.nanmin(data)
             max_val = np.nanmax(data)
@@ -307,6 +323,11 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         valid_data_mask = np.ones(data.shape, dtype=np.int64)
         valid_data_mask[data_mask] = 0
         data[data_mask] = 0
+
+        # Trim to the calculated box
+        data = data[ystart:ystop, xstart:xstop]
+        valid_data_mask = valid_data_mask[ystart:ystop, xstart:xstop]
+
         # Calculate neighbourhood totals for input data.
         if self.neighbourhood_method == "square":
             data = boxsum(data, self.nb_size, mode="constant")
@@ -335,6 +356,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         else:
             data_dtype = np.float32
         data = data.astype(data_dtype)
+
+        # Expand data to the full size again
+        if data.shape != data_shape:
+            untrimmed = np.zeros(data_shape, dtype=data_dtype)
+            untrimmed[ystart:ystop, xstart:xstop] = data
+            data = untrimmed
 
         if self.re_mask:
             data = np.ma.masked_array(data, data_mask, copy=False)
@@ -378,8 +405,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         grid_cells = distance_to_number_of_grid_cells(cube, self.radius)
         if self.neighbourhood_method == "circular":
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
-        elif self.neighbourhood_method == "square":
-            self.nb_size = 2 * grid_cells + 1
+        self.nb_size = 2 * grid_cells + 1
 
         try:
             mask_cube_data = mask_cube.data

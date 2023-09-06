@@ -148,6 +148,7 @@ class Test__calculate_neighbourhood(IrisTest):
         )
         plugin = NeighbourhoodProcessing("circular", self.RADIUS)
         plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
@@ -165,6 +166,7 @@ class Test__calculate_neighbourhood(IrisTest):
         )
         plugin = NeighbourhoodProcessing("circular", self.RADIUS)
         plugin.kernel = self.weighted_circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
@@ -199,6 +201,7 @@ class Test__calculate_neighbourhood(IrisTest):
         )
         plugin = NeighbourhoodProcessing("circular", self.RADIUS, sum_only=True)
         plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
@@ -229,6 +232,7 @@ class Test__calculate_neighbourhood(IrisTest):
         input_data = np.ma.masked_where(self.mask == 0, self.data_for_masked_tests)
         plugin = NeighbourhoodProcessing("circular", self.RADIUS)
         plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(input_data)
 
         self.assertArrayAlmostEqual(result.data, expected_array)
