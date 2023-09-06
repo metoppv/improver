@@ -670,7 +670,7 @@ class PhaseChangeLevel(BasePlugin):
         the extrapolation.
 
         The linear fit assumes that all sea points have an orography altitude of zero,
-        however this is not always the case. The orography altitude is  added to phase
+        however this is not always the case. The orography altitude is added to phase
         change levels calculated from the linear fit to account for this.
 
         Assumes that height is the first axis in the wet_bulb_integral array.
