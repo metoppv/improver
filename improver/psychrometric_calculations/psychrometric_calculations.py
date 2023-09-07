@@ -692,7 +692,7 @@ class PhaseChangeLevel(BasePlugin):
                 The vertical height levels above orography, matching the
                 leading dimension of the wet_bulb_temperature.
             orography:
-                Cube of orography (m).
+                Orography heights
         """
         sea_points = (
             np.isnan(phase_change_level_data)
