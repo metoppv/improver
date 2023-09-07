@@ -325,7 +325,9 @@ class Test_process(unittest.TestCase):
             "topographic_zone", "square", 2000
         )
         result = plugin(cube, mask_cube)
-        assert_allclose(result.data[...,3:6,3:6], self.expected_uncollapsed_result, equal_nan=True)
+        assert_allclose(
+            result.data[..., 3:6, 3:6], self.expected_uncollapsed_result, equal_nan=True
+        )
         expected_coords = cube.coords()
         expected_coords.insert(0, mask_cube.coord("topographic_zone"))
         self.assertEqual(result.coords(), expected_coords)

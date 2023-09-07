@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing neighbourhood processing utilities."""
 
-from typing import List, Optional, Type, Union
+from typing import List, Optional, Union
 
 import iris
 import numpy as np
