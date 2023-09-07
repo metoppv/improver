@@ -337,9 +337,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
     ) -> np.ndarray:
         """Calculate the sum-in-area from an array.
         As this can be expensive, the method first checks for the extreme cases where the data are:
-            - All zeros (result will be all zeros too)
-            - All ones (result will be max_extreme, if supplied)
-            - Contains outer rows / columns that are completely zero or completely one, these
+            All zeros (result will be all zeros too)
+            All ones (result will be max_extreme, if supplied)
+            Contains outer rows / columns that are completely zero or completely one, these
                 rows and columns are trimmed before calculating the area sum and their contents
                 will be as for the appropriate all case above.
 
