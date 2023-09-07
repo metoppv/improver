@@ -281,21 +281,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             Array containing the smoothed field after the
             neighbourhood method has been applied.
         """
-        # Determine the smallest box containing all non-zero values with a neighbourhood-sized
-        # buffer and quit if there are none.
-        data_shape = data.shape
-        nonzero_indices = np.argwhere(data)
-        if nonzero_indices.size == 0:
-            # No non-zero values, so just return data
-            return data
-        (ystart, xstart), (ystop, xstop) = (
-            nonzero_indices.min(0),
-            nonzero_indices.max(0) + 1,
-        )
-        ystart = max(0, ystart - self.nb_size)
-        ystop = min(data_shape[0], ystop + self.nb_size)
-        xstart = max(0, xstart - self.nb_size)
-        xstop = min(data_shape[1], xstop + self.nb_size)
 
         if not self.sum_only:
             min_val = np.nanmin(data)
@@ -308,58 +293,89 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         if isinstance(data, np.ma.MaskedArray):
             # Include data mask if masked array.
             data_mask = data_mask | data.mask
-            data = data.data
+            loc_data = data.data
+        else:
+            loc_data = data
 
-        # Working type.
+        # Define working type and output type.
         if issubclass(data.dtype.type, np.complexfloating):
-            data_dtype = np.complex128
+            loc_data_dtype = np.complex128
+            out_data_dtype = np.complex64
         else:
             # Use 64-bit types for enough precision in accumulations.
-            data_dtype = np.float64
-        data = np.array(data, dtype=data_dtype)
+            loc_data_dtype = np.float64
+            out_data_dtype = np.float32
+        data = np.array(data, dtype=loc_data_dtype)
 
         # Replace invalid elements with zeros so they don't count towards
         # neighbourhood sum
-        valid_data_mask = np.ones(data.shape, dtype=np.int64)
+        valid_data_mask = np.ones(loc_data.shape, dtype=np.int64)
         valid_data_mask[data_mask] = 0
-        data[data_mask] = 0
+        loc_data[data_mask] = 0
 
-        # Trim to the calculated box
-        data = data[ystart:ystop, xstart:xstop]
-        valid_data_mask = valid_data_mask[ystart:ystop, xstart:xstop]
-
-        # Calculate neighbourhood totals for input data.
-        if self.neighbourhood_method == "square":
-            data = boxsum(data, self.nb_size, mode="constant")
-        elif self.neighbourhood_method == "circular":
-            data = correlate(data, self.kernel, mode="nearest")
-        if not self.sum_only:
-            # Calculate neighbourhood totals for valid mask.
-            if self.neighbourhood_method == "square":
-                area_sum = boxsum(valid_data_mask, self.nb_size, mode="constant")
-            elif self.neighbourhood_method == "circular":
-                area_sum = correlate(
-                    valid_data_mask.astype(np.float32), self.kernel, mode="nearest"
+        # Determine the smallest box containing all non-zero or all non-one values with a
+        # neighbourhood-sized buffer and quit if there are none.
+        data_shape = data.shape
+        ystart = xstart = 0
+        ystop, xstop = data.shape
+        size = data.size + 1
+        extreme = 0
+        for _extreme in [0, 1]:
+            nonextreme_indices = np.argwhere(loc_data != _extreme)
+            if nonextreme_indices.size == 0:
+                # No non-extreme values after masking.
+                size, extreme = 0, _extreme
+                break
+            (_ystart, _xstart), (_ystop, _xstop) = (
+                nonextreme_indices.min(0),
+                nonextreme_indices.max(0) + 1,
+            )
+            _ystart = max(0, _ystart - self.nb_size)
+            _ystop = min(data_shape[0], _ystop + self.nb_size)
+            _xstart = max(0, _xstart - self.nb_size)
+            _xstop = min(data_shape[1], _xstop + self.nb_size)
+            _size = (_ystop - _ystart) * (_xstop - _xstart)
+            if _size < size:
+                size, extreme, ystart, ystop, xstart, xstop = (
+                    _size, _extreme,
+                    _ystart,
+                    _ystop,
+                    _xstart,
+                    _xstop,
                 )
 
-            with np.errstate(divide="ignore", invalid="ignore"):
-                # Calculate neighbourhood mean.
-                data = data / area_sum
-            # For points where all data in the neighbourhood is masked,
-            # set result to nan
-            data[area_sum == 0] = np.nan
-            data = data.clip(min_val, max_val)
+        if size:
+            # Trim to the calculated box
+            data = loc_data[ystart:ystop, xstart:xstop]
+            valid_data_mask = valid_data_mask[ystart:ystop, xstart:xstop]
 
-        # Output type.
-        if issubclass(data.dtype.type, np.complexfloating):
-            data_dtype = np.complex64
+            # Calculate neighbourhood totals for input data.
+            if self.neighbourhood_method == "square":
+                data = boxsum(data, self.nb_size, mode="constant")
+            elif self.neighbourhood_method == "circular":
+                data = correlate(data, self.kernel, mode="nearest")
+            if not self.sum_only:
+                # Calculate neighbourhood totals for valid mask.
+                if self.neighbourhood_method == "square":
+                    area_sum = boxsum(valid_data_mask, self.nb_size, mode="constant")
+                elif self.neighbourhood_method == "circular":
+                    area_sum = correlate(
+                        valid_data_mask.astype(np.float32), self.kernel, mode="nearest"
+                    )
+
+                with np.errstate(divide="ignore", invalid="ignore"):
+                    # Calculate neighbourhood mean.
+                    data = data / area_sum
+                # For points where all data in the neighbourhood is masked,
+                # set result to nan
+                data[area_sum == 0] = np.nan
+                data = data.clip(min_val, max_val).astype(out_data_dtype)
         else:
-            data_dtype = np.float32
-        data = data.astype(data_dtype)
+            data = np.full(data_shape, extreme, dtype=out_data_dtype)
 
         # Expand data to the full size again
         if data.shape != data_shape:
-            untrimmed = np.zeros(data_shape, dtype=data_dtype)
+            untrimmed = np.full(data_shape, extreme, dtype=out_data_dtype)
             untrimmed[ystart:ystop, xstart:xstop] = data
             data = untrimmed
 
