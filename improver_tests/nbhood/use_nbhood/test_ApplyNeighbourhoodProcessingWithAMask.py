@@ -277,6 +277,60 @@ class Test_process(unittest.TestCase):
         self.assertEqual(result.coords(), expected_coords)
         self.assertEqual(result.metadata, self.cube.metadata)
 
+    def test_empty_no_collapse_square(self):
+        """In this case, the data are all zero to trigger the "all zero" optimisation."""
+        plugin = ApplyNeighbourhoodProcessingWithAMask(
+            "topographic_zone", "square", 2000
+        )
+        self.cube.data = np.zeros_like(self.cube.data)
+        expected = np.zeros_like(self.expected_uncollapsed_result)
+        expected[np.where(np.isnan(self.expected_uncollapsed_result))] = np.nan
+        result = plugin(self.cube, self.mask_cube)
+        assert_allclose(result.data, expected, equal_nan=True)
+        expected_coords = self.cube.coords()
+        expected_coords.insert(0, self.mask_cube.coord("topographic_zone"))
+        self.assertEqual(result.coords(), expected_coords)
+        self.assertEqual(result.metadata, self.cube.metadata)
+
+    def test_sparse_no_collapse_square(self):
+        """Repeat test_basic_no_collapse_square but with a large buffer of zeroes
+        so that we trigger the data-shrinking efficiency code.
+        """
+        data = np.zeros((1, 9, 9), dtype=np.float32)
+        data[..., 3:6, 3:6] = np.array(
+            [[[1, 1, 1], [1, 1, 0], [0, 0, 0]]], dtype=np.float32,
+        )
+        cube = set_up_probability_cube(data, [278.15], spatial_grid="equalarea",)
+        # Set up mask cube. Currently mask cubes have sea points set to zero,
+        # not masked out.
+        mask_data = np.zeros((3, 9, 9), dtype=np.float32)
+        mask_data[..., 3:6, 3:6] = np.array(
+            [
+                [[0, 1, 0], [1, 1, 0], [0, 0, 0]],
+                [[0, 0, 1], [0, 0, 1], [1, 1, 0]],
+                [[0, 0, 0], [0, 0, 0], [0, 0, 1]],
+            ],
+            dtype=np.float32,
+        )
+        mask_cube = set_up_variable_cube(
+            np.ones((9, 9), dtype=np.float32),
+            name="topographic_zone_weights",
+            units="1",
+            spatial_grid="equalarea",
+        )
+        mask_cube = add_coordinate(mask_cube, [50, 100, 150], "topographic_zone", "m")
+        mask_cube.data = mask_data
+
+        plugin = ApplyNeighbourhoodProcessingWithAMask(
+            "topographic_zone", "square", 2000
+        )
+        result = plugin(cube, mask_cube)
+        assert_allclose(result.data[...,3:6,3:6], self.expected_uncollapsed_result, equal_nan=True)
+        expected_coords = cube.coords()
+        expected_coords.insert(0, mask_cube.coord("topographic_zone"))
+        self.assertEqual(result.coords(), expected_coords)
+        self.assertEqual(result.metadata, cube.metadata)
+
     def test_basic_no_collapse_circular(self):
         """Test process for a cube with 1 threshold and no collapse.
         This test shows the result of neighbourhood processing the same input
