@@ -382,7 +382,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         if size != data.size:
             # Determine default array for the extremes around the edges, or everywhere
             if isinstance(when_all_extremes, np.ndarray):
-                untrimmed = when_all_extremes
+                untrimmed = when_all_extremes.copy()
             else:
                 untrimmed = np.full(data_shape, when_all_extremes)
         if size:

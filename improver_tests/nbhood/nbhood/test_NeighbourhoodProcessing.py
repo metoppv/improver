@@ -152,6 +152,27 @@ class Test__calculate_neighbourhood(IrisTest):
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
+    def test_edge_circular(self):
+        """Test the _calculate_neighbourhood method with a circular neighbourhood that crosses the
+        edge. The zero is now in the left column and the "nearest" method means that this zero
+        is repeated in the sum, so the final calculation is 3 / 5 instead of 4 / 5."""
+        data = np.ones_like(self.data)
+        data[:, :3] = self.data[:, 2:]
+        expected_array = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [0.8, 1.0, 1.0, 1.0, 1.0],
+                [0.6, 0.8, 1.0, 1.0, 1.0],
+                [0.8, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
+        plugin = NeighbourhoodProcessing("circular", self.RADIUS)
+        plugin.kernel = self.circular_kernel
+        plugin.nb_size = max(plugin.kernel.shape)
+        result = plugin._calculate_neighbourhood(data)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
     def test_basic_weighted_circular(self):
         """Test the _calculate_neighbourhood method with a
         weighted circular neighbourhood."""
