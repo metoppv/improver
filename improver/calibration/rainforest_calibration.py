@@ -46,7 +46,6 @@ from cf_units import Unit
 from iris.analysis import MEAN
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
-from lightgbm import Booster
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
