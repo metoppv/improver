@@ -488,15 +488,18 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             best_ind = np.argmin(np.abs(self.lead_times - lead_time_hours))
             model_lead_time = self.lead_times[best_ind]
 
+        sort_ind = np.lexsort(tuple([input_data[:, i] for i in range(input_data.shape[1])]))
+        sorted_data = input_data[sort_ind]
+        reverse_sort_ind = np.argsort(sort_ind)
+
         for threshold_index, threshold in enumerate(self.model_thresholds):
             # bin data by feature splits, and sort so that similar rows are grouped
             feature_splits = self.feature_splits[model_lead_time, threshold]
-            binned_data = np.empty(input_data.shape, dtype=np.int32)
+            binned_sorted_data = np.empty(input_data.shape, dtype=np.int32)
             for i in range(len(feature_splits)):
-                binned_data[:, i] = np.digitize(input_data[:, i], bins=feature_splits[i])
-            sort_ind = np.lexsort(tuple([binned_data[:, i] for i in range(binned_data.shape[1])]))
-            sorted_binned_data = binned_data[sort_ind]
-            diff = np.any(np.diff(sorted_binned_data, axis=0) != 0, axis=1)
+                binned_sorted_data[:, i] = np.digitize(sorted_data[:, i], bins=feature_splits[i])
+            diff = np.any(np.diff(binned_sorted_data, axis=0) != 0, axis=1)
+            print(np.mean(diff))
             predict_rows = np.concatenate([[0], np.nonzero(diff)[0]])
             data_for_prediction = input_data[predict_rows]
             # predict
@@ -513,10 +516,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             idx = np.maximum.accumulate(idx)
             full_prediction = np.where(nan_ind, full_prediction[idx], full_prediction)
             # restore original order
-            full_prediction = full_prediction[np.argsort(sort_ind)]
+            full_prediction = full_prediction[reverse_sort_ind]
             output_data[threshold_index, :] = np.reshape(
                 full_prediction, output_data.shape[1:]
             )
+        
         return
 
     def _calculate_threshold_probabilities(
