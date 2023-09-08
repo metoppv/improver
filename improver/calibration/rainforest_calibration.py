@@ -458,7 +458,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         reverse_sort_ind = np.argsort(sort_ind)
         # we only need to predict for rows which are different from the previous row
         diff = np.any(np.diff(sorted_data, axis=0) != 0 , axis=1)
-        predict_rows = np.concatenate([[0], np.nonzero(diff)[0]])
+        predict_rows = np.concatenate([[0], np.nonzero(diff)[0] + 1])
         data_for_prediction = input_data[sort_ind][predict_rows]
         full_prediction = np.empty((input_data.shape[0], ))
         dataset_for_prediction = self.model_input_converter(data_for_prediction)
