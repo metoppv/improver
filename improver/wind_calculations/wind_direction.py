@@ -184,11 +184,8 @@ class WindDirection(PostProcessingPlugin):
 
         angle = np.angle(complex_in, deg=True)
 
-        # If angle negative value - add 360 degrees.
-        angle = np.where(angle < 0, angle + 360, angle)
-
-        # If angle == 360 - set to zero degrees.
-        angle = np.where(np.isclose(angle, 360, atol=0.001), 0.0, angle)
+        # Convert angles so they are in the range [0, 360)
+        angle = np.mod(angle, 360)
 
         # We don't need 64 bit precision.
         angle = angle.astype(np.float32)
