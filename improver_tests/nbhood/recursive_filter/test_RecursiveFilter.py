@@ -35,7 +35,6 @@ from datetime import timedelta
 
 import iris
 import numpy as np
-import pytest
 from iris.cube import Cube
 from iris.tests import IrisTest
 
