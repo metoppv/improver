@@ -50,6 +50,7 @@ from lightgbm import Booster
 
 from improver import PostProcessingPlugin
 from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
+from improver.calibration.numba_utilities import forward_fill
 from improver.ensemble_copula_coupling.utilities import (
     get_bounds_of_distribution,
     interpolate_multiple_rows_same_x,
@@ -59,50 +60,6 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
-
-def get_gbdt_splits(est: Booster) -> List[ndarray]:
-    """Find the feature splits used in a LightGBM model.
-    
-    Adapted from the function `get_split_value_histogram` in the LightGBM code
-    https://github.com/microsoft/LightGBM/blob/ee51120118b1e4a04c13df32da923d5805f4f9f9/python-package/lightgbm/basic.py
-    Copyright Microsoft Corporation, licensed under the MIT License
-
-    Args:
-        est: LightGBM Booster
-
-    Returns:
-        list of ndarrays, one for each feature. Features are sorted alphabetically, and each feature's 
-        array is sorted.
-    """
-
-    model = est.dump_model()
-    feature_names = model.get('feature_names')
-
-    def get_split_values(root, values=[]):
-        """Recursively construct list of split values for a single tree."""
-        if 'split_index' in root:  # non-leaf
-            if feature_names is not None and isinstance(feature, str):
-                split_feature = feature_names[root['split_feature']]
-            else:
-                split_feature = root['split_feature']
-            if split_feature == feature:
-                if isinstance(root['threshold'], str):
-                    raise ValueError('Cannot compute split value histogram for the categorical feature')
-                else:
-                    values.append(root['threshold'])
-            get_split_values(root['left_child'], values)
-            get_split_values(root['right_child'], values)
-        return values
-
-    split_arr = []
-    for feature in np.sort(feature_names):
-        tree_infos = model['tree_info']
-        values = []
-        for tree_info in tree_infos:
-            values += get_split_values(tree_info['tree_structure'])
-        split_arr.append(np.sort(np.array(values)))
-    
-    return split_arr
 
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
@@ -158,7 +115,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             # Check that all required files have been specified.
             treelite_model_filenames = []
             for lead_time in model_config_dict.keys():
-                for threshold in model_config_dict[lead_time].keys():
+                threshold_keys = [t for t in model_config_dict[lead_time] if t != "combined_feature_splits"]
+                for threshold in threshold_keys:
                     treelite_model_filenames.append(
                         model_config_dict[lead_time][threshold].get("treelite_model")
                     )
@@ -199,7 +157,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """Check all model files are available before initialising."""
         lightgbm_model_filenames = []
         for lead_time in model_config_dict.keys():
-            for threshold in model_config_dict[lead_time].keys():
+            threshold_keys = [t for t in model_config_dict[lead_time] if t != "combined_feature_splits"]
+            for threshold in threshold_keys:
                 lightgbm_model_filenames.append(
                     model_config_dict[lead_time][threshold].get("lightgbm_model")
                 )
@@ -248,7 +207,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         # keys of inner level are thresholds. Convert these to int and float.
         sorted_model_config_dict = OrderedDict()
         lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
+        self.combined_feature_splits = {}
         for lead_time_key in lead_time_keys:
+            self.combined_feature_splits[int(lead_time_key)] = model_config_dict[str(lead_time_key)].pop("combined_feature_splits")
             sorted_model_config_dict[lead_time_key] = OrderedDict()
             lead_time_dict = model_config_dict[str(lead_time_key)]
             sorted_model_config_dict[lead_time_key] = OrderedDict(
@@ -273,7 +234,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 self.tree_models[lead_time, threshold] = Booster(
                     model_file=str(model_filename)
                 ).reset_parameter({"num_threads": threads})
-                self.feature_splits[lead_time, threshold] = get_gbdt_splits(self.tree_models[lead_time, threshold])
+                self.feature_splits[lead_time, threshold] = sorted_model_config_dict[lead_time][threshold].get("feature_splits")
 
 
     def _check_num_features(self, features: CubeList) -> None:
@@ -479,8 +440,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 array to populate with output; will be modified in place
         """
 
-        #input_dataset = self.model_input_converter(input_data)
-
         if int(lead_time_hours) in self.lead_times:
             model_lead_time = lead_time_hours
         else:
@@ -488,33 +447,28 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             best_ind = np.argmin(np.abs(self.lead_times - lead_time_hours))
             model_lead_time = self.lead_times[best_ind]
 
-        sort_ind = np.lexsort(tuple([input_data[:, i] for i in range(input_data.shape[1])]))
-        sorted_data = input_data[sort_ind]
+        # bin by feature splits
+        feature_splits = self.combined_feature_splits[model_lead_time]
+        binned_data = np.empty(input_data.shape, dtype=np.int32)
+        for i in range(len(feature_splits)):
+            binned_data[:, i] = np.digitize(input_data[:, i], bins=feature_splits[i])
+        # sort so rows in the same bins are grouped      
+        sort_ind = np.lexsort(tuple([binned_data[:, i] for i in range(input_data.shape[1])]))
+        sorted_data = binned_data[sort_ind]
         reverse_sort_ind = np.argsort(sort_ind)
+        # we only need to predict for rows which are different from the previous row
+        diff = np.any(np.diff(sorted_data, axis=0) != 0 , axis=1)
+        predict_rows = np.concatenate([[0], np.nonzero(diff)[0]])
+        data_for_prediction = input_data[sort_ind][predict_rows]
+        full_prediction = np.empty((input_data.shape[0], ))
+        dataset_for_prediction = self.model_input_converter(data_for_prediction)
 
         for threshold_index, threshold in enumerate(self.model_thresholds):
-            # bin data by feature splits, and sort so that similar rows are grouped
-            feature_splits = self.feature_splits[model_lead_time, threshold]
-            binned_sorted_data = np.empty(input_data.shape, dtype=np.int32)
-            for i in range(len(feature_splits)):
-                binned_sorted_data[:, i] = np.digitize(sorted_data[:, i], bins=feature_splits[i])
-            diff = np.any(np.diff(binned_sorted_data, axis=0) != 0, axis=1)
-            print(np.mean(diff))
-            predict_rows = np.concatenate([[0], np.nonzero(diff)[0]])
-            data_for_prediction = input_data[predict_rows]
-            # predict
-            dataset_for_prediction = self.model_input_converter(data_for_prediction)
             model = self.tree_models[model_lead_time, threshold]
             prediction = model.predict(dataset_for_prediction)
             prediction = np.maximum(np.minimum(1, prediction), 0)
-            full_prediction = np.empty((input_data.shape[0], ))
-            full_prediction.fill(np.nan)
-            full_prediction[predict_rows] = prediction
-            # forward-fill code from here: https://stackoverflow.com/a/41191127
-            nan_ind = np.isnan(full_prediction)
-            idx = np.where(~nan_ind, np.arange(len(full_prediction)), 0)
-            idx = np.maximum.accumulate(idx)
-            full_prediction = np.where(nan_ind, full_prediction[idx], full_prediction)
+            full_prediction[predict_rows] = prediction 
+            forward_fill(full_prediction, predict_rows)
             # restore original order
             full_prediction = full_prediction[reverse_sort_ind]
             output_data[threshold_index, :] = np.reshape(
@@ -753,7 +707,8 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         # Check that all required files have been specified.
         treelite_model_filenames = []
         for lead_time in model_config_dict.keys():
-            for threshold in model_config_dict[lead_time].keys():
+            threshold_keys = [t for t in model_config_dict[lead_time] if t != "combined_feature_splits"]
+            for threshold in threshold_keys:
                 treelite_model_filenames.append(
                     model_config_dict[lead_time][threshold].get("treelite_model")
                 )
@@ -798,7 +753,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         # keys of inner level are thresholds. Convert these to int and float.
         sorted_model_config_dict = OrderedDict()
         lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
+        self.combined_feature_splits = {}
         for lead_time_key in lead_time_keys:
+            self.combined_feature_splits[int(lead_time_key)] = model_config_dict[str(lead_time_key)].pop("combined_feature_splits")
             sorted_model_config_dict[lead_time_key] = OrderedDict()
             lead_time_dict = model_config_dict[str(lead_time_key)]
             sorted_model_config_dict[lead_time_key] = OrderedDict(
@@ -815,6 +772,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         self.model_input_converter = DMatrix
         self.tree_models = {}
         self.feature_splits = {}
+        
         for lead_time in self.lead_times:
             for threshold in self.model_thresholds:
                 model_filename = Path(
@@ -823,11 +781,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 self.tree_models[lead_time, threshold] = Predictor(
                     libpath=str(model_filename), verbose=False, nthread=threads
                 )
-                tree_model_filename = Path(
-                    sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")
-                ).expanduser()
-                lightgbm_model = Booster(model_file=str(tree_model_filename))
-                self.feature_splits[lead_time, threshold] = get_gbdt_splits(lightgbm_model)
+                self.feature_splits[lead_time, threshold] = sorted_model_config_dict[lead_time][threshold].get("feature_splits")
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
