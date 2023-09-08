@@ -50,7 +50,6 @@ from lightgbm import Booster
 
 from improver import PostProcessingPlugin
 from improver.constants import MINUTES_IN_HOUR, SECONDS_IN_MINUTE
-from improver.calibration.numba_utilities import forward_fill
 from improver.ensemble_copula_coupling.utilities import (
     get_bounds_of_distribution,
     interpolate_multiple_rows_same_x,
@@ -461,6 +460,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         predict_rows = np.concatenate([[0], np.nonzero(diff)[0] + 1])
         data_for_prediction = input_data[sort_ind][predict_rows]
         full_prediction = np.empty((input_data.shape[0], ))
+        # forward fill code inspired by this: https://stackoverflow.com/a/41191127
+        fill_inds = np.zeros(len(full_prediction), dtype=np.int32)
+        fill_inds[predict_rows] = predict_rows
+        fill_inds = np.maximum.accumulate(fill_inds)
         dataset_for_prediction = self.model_input_converter(data_for_prediction)
 
         for threshold_index, threshold in enumerate(self.model_thresholds):
@@ -468,7 +471,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             prediction = model.predict(dataset_for_prediction)
             prediction = np.maximum(np.minimum(1, prediction), 0)
             full_prediction[predict_rows] = prediction 
-            forward_fill(full_prediction, predict_rows)
+            full_prediction = full_prediction[fill_inds]
             # restore original order
             full_prediction = full_prediction[reverse_sort_ind]
             output_data[threshold_index, :] = np.reshape(
