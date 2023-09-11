@@ -320,7 +320,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         else:
             area_sum = self._do_nbhood_sum(valid_data_mask)
         # Where data are all ones in nbhood, result will be same as area_sum
-        data = self._do_nbhood_sum(data, max_extreme=area_sum)
+        data = self._do_nbhood_sum(data, max_extreme=area_sum.astype(loc_data_dtype))
 
         if not self.sum_only:
             with np.errstate(divide="ignore", invalid="ignore"):
@@ -353,7 +353,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         data_shape = data.shape
         ystart = xstart = 0
         ystop, xstop = data.shape
-        size = data.size + 1
+        size = data.size
         when_all_extremes = 0
         half_nb_size = (self.nb_size // 2) + 1  # rounded up
         for _extreme, _when_all_extremes in ((0, 0), (1, max_extreme)):
@@ -386,9 +386,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         if size != data.size:
             # Determine default array for the extremes around the edges, or everywhere
             if isinstance(when_all_extremes, np.ndarray):
-                untrimmed = when_all_extremes.copy()
+                untrimmed = when_all_extremes.astype(data.dtype)
             else:
-                untrimmed = np.full(data_shape, when_all_extremes)
+                untrimmed = np.full(data_shape, when_all_extremes, dtype=data.dtype)
         if size:
             # Trim to the calculated box
             data = data[ystart:ystop, xstart:xstop]
