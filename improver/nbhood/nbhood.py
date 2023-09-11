@@ -307,7 +307,11 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
         # Replace invalid elements with zeros so they don't count towards
         # neighbourhood sum
-        valid_data_mask = np.ones(data.shape, dtype=np.int64)
+        if self.neighbourhood_method == "circular":
+            mask_type = np.float32
+        else:
+            mask_type = np.int64
+        valid_data_mask = np.ones(data.shape, dtype=mask_type)
         valid_data_mask[data_mask] = 0
         data[data_mask] = 0
 
