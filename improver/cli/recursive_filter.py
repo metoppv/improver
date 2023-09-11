@@ -48,6 +48,14 @@ def process(
     Gaussian-like kernel or smooth over short distances. The filter uses a
     smoothing_coefficient (between 0 and 1) to control what proportion of the
     probability is passed onto the next grid-square in the x and y directions.
+
+    Each iteration of the recursive filter applies the smoothing coefficients
+    forwards and backwards in both the x and y directions. Applying 1-10
+    iterations of the filter is typical. Each iteration further smooths the
+    data, meaning the user must make a judgement regarding the number of
+    iterations to apply that preserves real detail whilst removing artefacts
+    in their data.
+
     The IMPROVER plugin actually limits the maximum smoothing coefficient to
     a value of 0.5. Above this the smoothing is considered to be too great.
     The smoothing_coefficient can be set on a grid square by grid-square basis
