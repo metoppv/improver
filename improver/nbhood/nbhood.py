@@ -316,11 +316,12 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         data[data_mask] = 0
 
         if self.sum_only:
-            area_sum = None
+            max_extreme_data = None
         else:
             area_sum = self._do_nbhood_sum(valid_data_mask)
+            max_extreme_data = area_sum.astype(loc_data_dtype)
         # Where data are all ones in nbhood, result will be same as area_sum
-        data = self._do_nbhood_sum(data, max_extreme=area_sum.astype(loc_data_dtype))
+        data = self._do_nbhood_sum(data, max_extreme=max_extreme_data)
 
         if not self.sum_only:
             with np.errstate(divide="ignore", invalid="ignore"):
