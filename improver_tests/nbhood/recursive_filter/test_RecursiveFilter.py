@@ -428,7 +428,7 @@ class Test__run_recursion(Test_RecursiveFilter):
             edge_width=edge_width
         )._pad_coefficients(*self.smoothing_coefficients)
         padded_cube = pad_cube_with_halo(cube, 2 * edge_width, 2 * edge_width)
-        print(repr(padded_cube.data))
+
         result = RecursiveFilter(edge_width=edge_width)._run_recursion(
             padded_cube, smoothing_coefficients_x, smoothing_coefficients_y, 3,
         )
