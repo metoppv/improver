@@ -55,7 +55,7 @@ def test__new__(model_config, monkeypatch):
     result = ApplyRainForestsCalibrationTreelite(model_config)
     assert type(result).__name__ == "ApplyRainForestsCalibrationTreelite"
     # Test exception raised when file path is missing.
-    model_config[24]["0.0000"].pop("treelite_model", None)
+    model_config["24"]["0.0000"].pop("treelite_model", None)
     with pytest.raises(ValueError):
         ApplyRainForestsCalibrationTreelite(model_config)
 
@@ -72,8 +72,8 @@ def test__init__(
     monkeypatch.setattr(treelite_runtime, "Predictor", MockPredictor)
 
     if not ordered_inputs:
-        tmp_value = model_config[24].pop("0.0000", None)
-        model_config[24]["0.0000"] = tmp_value
+        tmp_value = model_config["24"].pop("0.0000", None)
+        model_config["24"]["0.0000"] = tmp_value
 
     if default_threads:
         expected_threads = 1
