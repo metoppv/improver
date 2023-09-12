@@ -412,7 +412,6 @@ try:
     from improver.ensemble_copula_coupling.numba_utilities import (
         fast_interp_same_x,
         fast_interp_same_y,
-        fast_interpolate_pointwise,
     )
 except ImportError:
     numba_installed = False
