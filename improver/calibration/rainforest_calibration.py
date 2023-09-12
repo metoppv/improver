@@ -522,7 +522,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(
             self.model_thresholds, output_thresholds
         ):
-            output_probabilities = input_probabilties.data
+            output_probabilities = np.copy(input_probabilties.data)
         else:
             # add lower bound with probability 1
             input_probabilties = np.concatenate(

@@ -371,11 +371,6 @@ def test_process_ensemble_different_threshold_unit(
     threshold_dim = result.coord_dims(forecast_variable)
     assert threshold_dim == (0,)
 
-    # Check with different threshold unit
-    output_thresholds_mm = [0.0, 0.5, 1.0]
-    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds, threshold_units="mm")
-    np.testing.assert_almost_equal(threshold_coord.points, output_thresholds)
-
     # Check that dimensions are same as the input forecast, apart from first dimension
     assert (
         result.coords(dim_coords=True)[1:]
@@ -383,6 +378,16 @@ def test_process_ensemble_different_threshold_unit(
     )
     assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
     assert result.attributes == ensemble_forecast.attributes
+
+    # Check with different threshold unit
+    output_thresholds_mm = [0.0, 0.5, 1.0]
+    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds_mm, threshold_units="mm")
+    np.testing.assert_almost_equal(threshold_coord.points, output_thresholds)
+
+    # Check where output thresholds are the same as model thresholds
+    result = plugin.process(ensemble_forecast, ensemble_features, plugin.model_thresholds)
+    threshold_coord = result.coord(forecast_variable)
+    np.testing.assert_almost_equal(threshold_coord.points, plugin.model_thresholds)
 
 
 def test_process_deterministic(
