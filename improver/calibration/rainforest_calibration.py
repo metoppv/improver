@@ -39,9 +39,10 @@
 from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
-from cf_units import Unit
+
 import iris
 import numpy as np
+from cf_units import Unit
 from iris.analysis import MEAN
 from iris.coords import DimCoord
 from iris.cube import Cube, CubeList
@@ -524,7 +525,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         else:
             # add lower bound with probability 1
             input_probabilties = np.concatenate(
-                [np.ones((1,) + input_probabilties.shape[1:], dtype=np.float32), input_probabilties],
+                [
+                    np.ones((1,) + input_probabilties.shape[1:], dtype=np.float32),
+                    input_probabilties,
+                ],
                 axis=0,
             )
             input_thresholds = np.concatenate([[lower_bound], self.model_thresholds])
