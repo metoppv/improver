@@ -36,6 +36,7 @@ from iris import Constraint
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
 )
+from improver.constants import SECONDS_IN_HOUR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 lightgbm = pytest.importorskip("lightgbm")
@@ -350,11 +351,33 @@ def test__get_ensemble_distributions(
     assert result.attributes == ensemble_forecast.attributes
 
 
-def test_process_ensemble_different_threshold_unit(
+def test_lead_time_without_matching_model(
     ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
-    """Test process routine with ensemble data where unit of threshold is different from
-    unit of forecast cube."""
+    """Test that when calibration is applied on a lead time with no 
+    exactly matching model, the closest matching model lead time is selected."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
+
+    output_thresholds = [0.0, 0.0005, 0.001]
+    result_24_hour = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds,
+    )
+    ensemble_forecast.coord("forecast_period").points = [27 * SECONDS_IN_HOUR]
+    for cube in ensemble_features:
+        cube.coord("forecast_period").points = [27 * SECONDS_IN_HOUR]
+    result_27_hour = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds,
+    )
+    np.testing.assert_almost_equal(result_24_hour.data, result_27_hour.data)
+
+
+def test_process_ensemble_specifying_thresholds(
+    ensemble_forecast, ensemble_features, plugin_and_dummy_models
+):
+    """Test process routine with ensemble data with different ways of specifying 
+    output thresholds."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
@@ -379,13 +402,17 @@ def test_process_ensemble_different_threshold_unit(
     assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
     assert result.attributes == ensemble_forecast.attributes
 
-    # Check with different threshold unit
+    # Check where unit of output threshold is different from unit of forecast cube
     output_thresholds_mm = [0.0, 0.5, 1.0]
-    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds_mm, threshold_units="mm")
+    result = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds_mm, threshold_units="mm"
+    )
     np.testing.assert_almost_equal(threshold_coord.points, output_thresholds)
 
     # Check where output thresholds are the same as model thresholds
-    result = plugin.process(ensemble_forecast, ensemble_features, plugin.model_thresholds)
+    result = plugin.process(
+        ensemble_forecast, ensemble_features, plugin.model_thresholds
+    )
     threshold_coord = result.coord(forecast_variable)
     np.testing.assert_almost_equal(threshold_coord.points, plugin.model_thresholds)
 
