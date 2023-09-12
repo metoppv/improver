@@ -146,6 +146,10 @@ def test__align_feature_variables_deterministic(
         model_config_dict={}
     )._align_feature_variables(deterministic_features, deterministic_forecast)
 
+    # print(aligned_features[4].data)
+    # print(expected_features[4].data)
+    # print(aligned_features[4].data == expected_features[4].data)
+
     assert aligned_features == expected_features
     assert aligned_forecast == expected_forecast
 
@@ -377,10 +381,12 @@ def test_process_ensemble_different_threshold_unit(
 
 
 def test_process_deterministic(
-    deterministic_forecast, deterministic_features, plugin_and_dummy_models
+    deterministic_forecast,
+    deterministic_features,
+    plugin_and_dummy_models_deterministic,
 ):
     """Test process routine with deterministic data."""
-    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin_cls, dummy_models = plugin_and_dummy_models_deterministic
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
     output_thresholds = [0.0, 0.0005, 0.001]
