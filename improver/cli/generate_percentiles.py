@@ -41,9 +41,10 @@ def process(
     *,
     coordinates: cli.comma_separated_list = None,
     percentiles: cli.comma_separated_list = None,
-    ignore_ecc_bounds_exceedance=False,
-    mask_percentiles=False,
-    optimal_crps_percentiles=False,
+    ignore_ecc_bounds_exceedance: bool = False,
+    skip_ecc_bounds: bool = False,
+    mask_percentiles: bool = False,
+    optimal_crps_percentiles: bool = False,
 ):
     r"""Collapses cube coordinates and calculate percentiled data.
 
@@ -76,10 +77,28 @@ def process(
         ignore_ecc_bounds_exceedance (bool):
             If True, where calculated percentiles are outside the ECC bounds
             range, raises a warning rather than an exception.
+        skip_ecc_bounds (bool):
+            If True, ECC bounds are not included when probabilities
+            are converted to percentiles. This has the effect that percentiles
+            outside of the range given by the input percentiles will be computed
+            by nearest neighbour interpolation from the nearest available percentile,
+            rather than using linear interpolation between the nearest available
+            percentile and the ECC bound.
         mask_percentiles (bool):
             A boolean determining whether the final percentiles should
-            be masked. This is only implemented to work when converting
-            probability cubes to percentiles.
+            be masked. If True then where the percentile is higher than
+            the probability of the diagnostic existing the outputted
+            percentile will be masked.
+            This masking acts to cap the maximum percentile
+            that can be generated for any grid point relative to the
+            probability of exceeding the highest threshold at that point.
+            For example, if the probability of a temperature exceeding 40C
+            is 5%, the 95th and above percentiles will all be masked.
+            Likewise, if at some grid point the probability of the cloud base
+            being below 15000m (the highest threshold) is 70% then every
+            percentile above the 70th would be masked.
+            This is only implemented to work when converting probabilities to
+            percentiles.
         optimal_crps_percentiles (bool):
             If True, percentiles are computed following the
             recommendation of Bröcker, 2012 for optimising the CRPS using
@@ -127,6 +146,7 @@ def process(
     if is_probability(cube):
         result = ConvertProbabilitiesToPercentiles(
             ecc_bounds_warning=ignore_ecc_bounds_exceedance,
+            skip_ecc_bounds=skip_ecc_bounds,
             mask_percentiles=mask_percentiles,
         )(cube, percentiles=percentiles)
         if coordinates:

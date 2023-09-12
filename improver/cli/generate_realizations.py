@@ -67,12 +67,14 @@ def process(
             before realization) exceed the ECC bounds range, raises a
             warning rather than an exception.
         skip_ecc_bounds (bool):
-            If True, ECC bounds are not included when percentiles are resampled
-            as an intermediate step prior to creating realizations. This has the
-            effect that percentiles outside of the range given by the input
-            percentiles will be computed by nearest neighbour interpolation from
-            the nearest available percentile, rather than using linear interpolation
-            between the nearest available percentile and the ECC bound.
+            If True, ECC bounds are not included either when percentiles are resampled
+            as an intermediate step prior to creating realizations or when probabilities
+            are converted to percentiles as an intermediate step prior to creating
+            realizations. This has the effect that percentiles outside of the range
+            given by the input percentiles will be computed by nearest neighbour
+            interpolation from the nearest available percentile, rather than using
+            linear interpolation between the nearest available percentile and
+            the ECC bound.
 
     Returns:
         iris.cube.Cube:
@@ -107,7 +109,8 @@ def process(
         )(cube, no_of_percentiles=realizations_count)
     else:
         percentiles = ConvertProbabilitiesToPercentiles(
-            ecc_bounds_warning=ignore_ecc_bounds_exceedance
+            ecc_bounds_warning=ignore_ecc_bounds_exceedance,
+            skip_ecc_bounds=skip_ecc_bounds,
         )(cube, no_of_percentiles=realizations_count)
 
     if raw_cube:

@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,24 +29,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""Script to clip the input cube's data to be between the specified values"""
 
-from collections import namedtuple
+from improver import cli
 
-import numpy as np
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+@cli.clizefy
+@cli.with_output
+def process(
+    cube: cli.inputcube, *, min_value: float = None, max_value: float = None,
+):
+    """Clip the data in the input cube such that any data above max_value is set equal to
+     max_value and any data below min_value is set equal to min_value.
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
+    Args:
+        cube (iris.cube.Cube):
+            A Cube whose data will be clipped. This can be a cube of spot or gridded data.
+        max_value (float):
+            If specified any data in cube that is above max_value will be set equal to
+            max_value.
+        min_value (float):
+            If specified any data in cube that is below min_value will be set equal to
+            min_value.
+    Returns:
+        iris.cube.Cube:
+            A cube with the same metadata as the input cube but with the data clipped such
+            that any data above max_value is set equal to max_value and any data below
+            min_value is set equal to min_value.
+    """
+    from numpy import clip
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
+    cube.data = clip(cube.data, min_value, max_value)
 
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "blend_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+    return cube
