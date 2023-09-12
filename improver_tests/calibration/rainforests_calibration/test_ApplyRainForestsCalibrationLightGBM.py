@@ -354,7 +354,7 @@ def test__get_ensemble_distributions(
 def test_lead_time_without_matching_model(
     ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
-    """Test that when calibration is applied on a lead time with no 
+    """Test that when calibration is applied on a lead time with no
     exactly matching model, the closest matching model lead time is selected."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
@@ -376,7 +376,7 @@ def test_lead_time_without_matching_model(
 def test_process_ensemble_specifying_thresholds(
     ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
-    """Test process routine with ensemble data with different ways of specifying 
+    """Test process routine with ensemble data with different ways of specifying
     output thresholds."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
