@@ -175,7 +175,7 @@ def expected_result(
     location in an array full of zeros. This array matches the size of
     the input cube.
 
-    If the comparator is changed to be be "lt" or "le" then the array is
+    If the comparator is changed to be "lt" or "le" then the array is
     filled with ones, and the expected value(s) is subtracted from 1 prior
     to being placed at the (..., 2, 2) location.
 

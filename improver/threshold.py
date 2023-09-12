@@ -221,7 +221,7 @@ class Threshold(PostProcessingPlugin):
         self.collapse_coord = collapse_coord
 
         self.vicinity = None
-        if vicinity is not None:
+        if vicinity:
             if isinstance(vicinity, numbers.Number):
                 vicinity = [vicinity]
             if vicinity:  # To handle an empty list being provided.

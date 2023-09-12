@@ -213,7 +213,7 @@ def test_threshold_metadata(
     assert result.name() == expected_cube_name.format(cube_name=ref_cube_name)
     assert result.coord(var_name="threshold") == threshold_coord
 
-    if vicinity is not None and vicinity:
+    if vicinity:
         expected_vicinity = DimCoord(
             vicinity, long_name="radius_of_vicinity", units="m"
         )
