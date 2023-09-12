@@ -179,19 +179,20 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         Dictionary is of format::
 
         {
-        "24": {
-            "0.000010": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000050": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000100": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
+            "24": {
+                "0.000010": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000050": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+                "0.000100": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
+            }
         }
 
         The keys specify the lead times and model threshold values, while the
@@ -706,18 +707,22 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
         Dictionary is of format::
 
-            {
-                "-50.0" : {
-                    "treelite_model" : "<path_to_treelite_model_object>"
+        {
+            "24": {
+                "0.000010": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
                 },
-                "-25.0" : {
-                    "treelite_model" : "<path_to_treelite_model_object>"
+                "0.000050": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
                 },
-                ...,
-                "50.0" : {
-                    "treelite_model" : "<path_to_treelite_model_object>"
-                }
+                "0.000100": {
+                    "lightgbm_model": "<path_to_lightgbm_model_object>",
+                    "treelite_model": "<path_to_treelite_model_object>"
+                },
             }
+        }
 
         The keys specify the model threshold value, while the associated values
         are the path to the corresponding tree-model objects for that threshold.
