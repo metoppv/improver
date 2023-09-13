@@ -37,9 +37,11 @@
 """
 
 from collections import OrderedDict
+from functools import reduce
 from pathlib import Path
 from typing import List, Tuple
 
+from lightgbm import Booster
 import iris
 import numpy as np
 from cf_units import Unit
@@ -60,6 +62,43 @@ from improver.metadata.utilities import (
 )
 from improver.utilities.cube_manipulation import add_coordinate_to_cube, compare_coords
 
+from numba import jit
+
+
+def get_gbdt_splits(est):
+    """Find the feature splits used in a LightGBM model.
+    
+    Adapted from the function `get_split_value_histogram` in the LightGBM code
+    https://github.com/microsoft/LightGBM/blob/ee51120118b1e4a04c13df32da923d5805f4f9f9/python-package/lightgbm/basic.py
+    Copyright Microsoft Corporation, licensed under the MIT License
+
+    Args:
+        est: LightGBM Booster
+
+    Returns:
+        list of ndarray, one for each feature. Features are sorted alphabetically.
+    """
+
+    model = est.dump_model()
+
+    def get_split_values(root, split_arr):
+        """Recursively construct set of split values for a single tree."""
+        if "split_index" in root:  # non-leaf
+            split_feature = root["split_feature"]
+            split_arr[split_feature].append(root["threshold"])
+            get_split_values(root["left_child"], split_arr)
+            get_split_values(root["right_child"], split_arr)
+
+    
+    split_arr = [[] for i in range(model["max_feature_idx"] + 1)]
+    tree_infos = model["tree_info"]
+
+    for tree_info in tree_infos:
+        get_split_values(tree_info["tree_structure"], split_arr)
+    
+    return [np.unique(x) for x in split_arr]
+
+    
 
 class ApplyRainForestsCalibration(PostProcessingPlugin):
     """Generic class to calibrate input forecast via RainForests.
@@ -80,7 +119,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all models.
-                This option can only be used if model_config_dict contains model bins.
 
         Dictionary is of format::
 
@@ -152,8 +190,53 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     def process(self) -> None:
         """Subclasses should override this function."""
         raise NotImplementedError(
-            "Process function must be called via subclass method."
+            "process function must be called via subclass method."
         )
+    
+    def _get_num_features(self) -> int:
+        """Subclasses should override this function."""
+        raise NotImplementedError(
+            "_get_num_features function must be called via subclass method."
+        )
+
+    def _check_num_features(self, features: CubeList) -> None:
+        """Check that the correct number of features has been passed into the model.
+        Args:
+            features:
+                Cubelist containing feature variables.
+        """
+        expected_num_features = self._get_num_features()
+        if expected_num_features != len(features):
+            raise ValueError(
+                "Number of expected features does not match number of feature cubes."
+            )
+
+    def _get_feature_splits(self, model_config_dict):
+            split_feature_string = "split_feature="
+            threshold_string = "threshold="
+            self.combined_feature_splits = {}
+            for lead_time_str in model_config_dict.keys():
+                lead_time = int(lead_time_str)
+                all_splits = [set() for i in range(self._get_num_features())]
+                for threshold_str in model_config_dict[lead_time_str].keys():
+                    lgb_model_filename = Path(
+                        model_config_dict[lead_time_str][threshold_str].get("lightgbm_model")
+                    ).expanduser()
+                    with open(lgb_model_filename, "r") as f:
+                        for line in f:
+                            if line.startswith(split_feature_string):
+                                line = line[len(split_feature_string):-1]
+                                if len(line) == 0:
+                                    continue
+                                features = [int(x) for x in line.split(" ")]
+                            elif line.startswith(threshold_string):
+                                line = line[len(threshold_string):-1]
+                                if len(line) == 0:
+                                    continue
+                                splits = [float(x) for x in line.split(" ")]
+                                for feature_ind, threshold in zip(features, splits):
+                                    all_splits[feature_ind].add(threshold)                
+                self.combined_feature_splits[lead_time] = [np.sort(list(x)) for x in all_splits]
 
 
 class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
@@ -194,7 +277,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all models.
-                This option can only be used if model_config_dict contains model bins.
 
         Dictionary is of format::
 
@@ -220,23 +302,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
         from lightgbm import Booster
 
-        self.bin_data = bin_data
-
         # Model config is a nested dictionary. Keys of outer level are lead times, and
         # keys of inner level are thresholds. Convert these to int and float.
         sorted_model_config_dict = OrderedDict()
         lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
         self.combined_feature_splits = {}
         for lead_time_key in lead_time_keys:
-            combined_splits = model_config_dict[str(lead_time_key)].pop(
-                "combined_feature_splits", None
-            )
-            if self.bin_data:
-                if not combined_splits:
-                    raise ValueError(
-                        "model_config_dict must contain combined_feature_splits for each lead time"
-                    )
-                self.combined_feature_splits[int(lead_time_key)] = combined_splits
             sorted_model_config_dict[lead_time_key] = OrderedDict()
             lead_time_dict = model_config_dict[str(lead_time_key)]
             sorted_model_config_dict[lead_time_key] = OrderedDict(
@@ -261,18 +332,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                     model_file=str(model_filename)
                 ).reset_parameter({"num_threads": threads})
 
-    def _check_num_features(self, features: CubeList) -> None:
-        """Check that the correct number of features has been passed into the model.
+        self.bin_data = bin_data
+        if self.bin_data:
+            self._get_feature_splits(model_config_dict)
 
-        Args:
-            features:
-                Cubelist containing feature variables.
-        """
-        expected_num_features = list(self.tree_models.values())[0].num_feature()
-        if expected_num_features != len(features):
-            raise ValueError(
-                "Number of expected features does not match number of feature cubes."
-            )
+    def _get_num_features(self) -> int:
+        return self.tree_models[self.lead_times[0], self.model_thresholds[0]].num_feature()
 
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
@@ -780,7 +845,6 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
                 if there are many data points which fall into the same bins for all models.
-                This option can only be used if model_config_dict contains model bins.
 
         Dictionary is of format::
 
@@ -802,23 +866,11 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         """
         from treelite_runtime import DMatrix, Predictor
 
-        self.bin_data = bin_data
-
         # Model config is a nested dictionary. Keys of outer level are lead times, and
         # keys of inner level are thresholds. Convert these to int and float.
         sorted_model_config_dict = OrderedDict()
         lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
-        self.combined_feature_splits = {}
         for lead_time_key in lead_time_keys:
-            combined_splits = model_config_dict[str(lead_time_key)].pop(
-                "combined_feature_splits", None
-            )
-            if self.bin_data:
-                if not combined_splits:
-                    raise ValueError(
-                        "model_config_dict must contain combined_feature_splits for each lead time"
-                    )
-                self.combined_feature_splits[int(lead_time_key)] = combined_splits
             sorted_model_config_dict[lead_time_key] = OrderedDict()
             lead_time_dict = model_config_dict[str(lead_time_key)]
             sorted_model_config_dict[lead_time_key] = OrderedDict(
@@ -843,14 +895,11 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                     libpath=str(model_filename), verbose=False, nthread=threads
                 )
 
-    def _check_num_features(self, features: CubeList) -> None:
-        """Check that the correct number of features has been passed into the model.
-        Args:
-            features:
-                Cubelist containing feature variables.
-        """
-        expected_num_features = list(self.tree_models.values())[0].num_feature
-        if expected_num_features != len(features):
-            raise ValueError(
-                "Number of expected features does not match number of feature cubes."
-            )
+        self.bin_data = bin_data
+        if self.bin_data:
+            self._get_feature_splits(model_config_dict)
+
+
+    def _get_num_features(self) -> int:
+        return self.tree_models[self.lead_times[0], self.model_thresholds[0]].num_feature
+
