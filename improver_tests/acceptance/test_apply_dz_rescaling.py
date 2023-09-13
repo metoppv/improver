@@ -28,24 +28,31 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""
+Tests for the apply-dz-rescaling CLI
+"""
 
-from collections import namedtuple
+import pytest
 
-import numpy as np
+from . import acceptance as acc
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
-
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "blend_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+def test_apply_dz_rescaling(tmp_path):
+    """Test apply_dz_rescaling CLI."""
+    kgo_dir = acc.kgo_root() / "apply-dz-rescaling/"
+    kgo_path = kgo_dir / "kgo.nc"
+    forecast_path = kgo_dir / "20230220T1200Z-PT0006H00M-wind_speed_at_10m.nc"
+    scaled_dz_path = kgo_dir / "scaled_dz.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        forecast_path,
+        scaled_dz_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

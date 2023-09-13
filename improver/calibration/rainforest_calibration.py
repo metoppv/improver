@@ -253,21 +253,22 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         Dictionary is of format::
 
-        {
-        "24": {
-            "0.000010": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000050": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-            "0.000100": {
-                "lightgbm_model": "<path_to_lightgbm_model_object>",
-                "treelite_model": "<path_to_treelite_model_object>"
-            },
-        }
+            {
+                "24": {
+                    "0.000010": {
+                        "lightgbm_model": "<path_to_lightgbm_model_object>",
+                        "treelite_model": "<path_to_treelite_model_object>"
+                    },
+                    "0.000050": {
+                        "lightgbm_model": "<path_to_lightgbm_model_object>",
+                        "treelite_model": "<path_to_treelite_model_object>"
+                    },
+                    "0.000100": {
+                        "lightgbm_model": "<path_to_lightgbm_model_object>",
+                        "treelite_model": "<path_to_treelite_model_object>"
+                    },
+                }
+            }
 
         The keys specify the lead times and model threshold values, while the
         associated values are the path to the corresponding tree-model objects
@@ -624,7 +625,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(
             self.model_thresholds, output_thresholds
         ):
-            output_probabilities = input_probabilties.data
+            output_probabilities = np.copy(input_probabilties.data)
         else:
             # add lower bound with probability 1
             input_probabilties = np.concatenate(
@@ -820,15 +821,19 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         Dictionary is of format::
 
             {
-                "-50.0" : {
-                    "treelite_model" : "<path_to_treelite_model_object>"
-                },
-                "-25.0" : {
-                    "treelite_model" : "<path_to_treelite_model_object>"
-                },
-                ...,
-                "50.0" : {
-                    "treelite_model" : "<path_to_treelite_model_object>"
+                "24": {
+                    "0.000010": {
+                        "lightgbm_model": "<path_to_lightgbm_model_object>",
+                        "treelite_model": "<path_to_treelite_model_object>"
+                    },
+                    "0.000050": {
+                        "lightgbm_model": "<path_to_lightgbm_model_object>",
+                        "treelite_model": "<path_to_treelite_model_object>"
+                    },
+                    "0.000100": {
+                        "lightgbm_model": "<path_to_lightgbm_model_object>",
+                        "treelite_model": "<path_to_treelite_model_object>"
+                    },
                 }
             }
 

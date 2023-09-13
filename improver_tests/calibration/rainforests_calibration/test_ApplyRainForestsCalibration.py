@@ -80,12 +80,13 @@ def test__new__(
     else:
         monkeypatch.setitem(sys.modules, "treelite_runtime", None)
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
+    print(model_config)
     if not treelite_file:
         # Model type should default to lightgbm if there are any treelite models
         # missing across any thresholds
-        model_config[24]["0.0000"].pop("treelite_model", None)
+        model_config["24"]["0.0000"].pop("treelite_model", None)
     if not lightgbm_keys:
-        model_config[24]["0.0000"].pop("lightgbm_model", None)
+        model_config["24"]["0.0000"].pop("lightgbm_model", None)
 
     if treelite_model and treelite_file:
         expected_class = "ApplyRainForestsCalibrationTreelite"

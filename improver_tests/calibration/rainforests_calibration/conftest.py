@@ -35,11 +35,16 @@ import numpy as np
 import pandas as pd
 import pytest
 from iris import Constraint
+from iris.analysis import MEAN, STD_DEV
 from iris.cube import CubeList
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
     ApplyRainForestsCalibrationTreelite,
+)
+from improver.metadata.utilities import (
+    create_new_diagnostic_cube,
+    generate_mandatory_attributes,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -67,7 +72,7 @@ def lead_times():
 @pytest.fixture
 def model_config(lead_times, thresholds):
     return {
-        lead_time: {
+        str(lead_time): {
             f"{threshold:06.4f}": {
                 "lightgbm_model": f"lightgbm_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
                 "treelite_model": f"treelite_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
@@ -150,15 +155,42 @@ def generate_aligned_feature_cubes(realizations):
         clearsky_solar_rad.data = np.broadcast_to(
             clearsky_solar_rad.data[0, :, :], data_shape
         )
-    return CubeList(
-        [
-            cape,
-            precipitation_accumulation_from_convection,
-            precipitation_accumulation,
-            wind_speed,
-            clearsky_solar_rad,
-        ]
-    )
+    cubes = [
+        cape,
+        precipitation_accumulation_from_convection,
+        precipitation_accumulation,
+        wind_speed,
+        clearsky_solar_rad,
+    ]
+    if len(realizations) > 1:
+        precipitation_accumulation_mean = create_new_diagnostic_cube(
+            name="ensemble_mean_lwe_thickness_of_precipitation_amount",
+            units=precipitation_accumulation.units,
+            template_cube=precipitation_accumulation,
+            mandatory_attributes=generate_mandatory_attributes(
+                [precipitation_accumulation]
+            ),
+            optional_attributes=precipitation_accumulation.attributes,
+            data=np.broadcast_to(
+                precipitation_accumulation.collapsed("realization", MEAN).data,
+                precipitation_accumulation.data.shape,
+            ),
+        )
+        precipitation_accumulation_std = create_new_diagnostic_cube(
+            name="ensemble_std_lwe_thickness_of_precipitation_amount",
+            units=precipitation_accumulation.units,
+            template_cube=precipitation_accumulation,
+            mandatory_attributes=generate_mandatory_attributes(
+                [precipitation_accumulation]
+            ),
+            optional_attributes=precipitation_accumulation.attributes,
+            data=np.broadcast_to(
+                precipitation_accumulation.collapsed("realization", STD_DEV).data,
+                precipitation_accumulation.data.shape,
+            ),
+        )
+        cubes += [precipitation_accumulation_mean, precipitation_accumulation_std]
+    return CubeList(cubes)
 
 
 @pytest.fixture
@@ -294,6 +326,79 @@ def plugin_and_dummy_models(request):
         return (
             ApplyRainForestsCalibrationTreelite,
             request.getfixturevalue("dummy_treelite_models"),
+        )
+    else:
+        pytest.fail("unknown plugin type")
+
+
+@pytest.fixture
+def dummy_lightgbm_models_deterministic(
+    ensemble_features, ensemble_forecast, thresholds, lead_times
+):
+    """Create sample lightgbm models for evaluating forecast probabilities."""
+    import lightgbm
+
+    training_data, fcst_column, obs_column, train_columns = prepare_dummy_training_data(
+        ensemble_features, ensemble_forecast, lead_times
+    )
+    # train a model for each threshold
+    tree_models = {}
+    params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
+    training_columns = [c for c in train_columns if "ensemble" not in c]
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            curr_training_data = training_data.loc[
+                training_data["lead_time_hours"] == lead_time
+            ]
+            data = lightgbm.Dataset(
+                curr_training_data[training_columns],
+                label=(curr_training_data[obs_column] >= threshold).astype(int),
+            )
+            booster = lightgbm.train(params, data, num_boost_round=10)
+            tree_models[lead_time, threshold] = booster
+
+    return tree_models, lead_times, thresholds
+
+
+@pytest.fixture
+def dummy_treelite_models_deterministic(dummy_lightgbm_models_deterministic, tmp_path):
+    """Create sample treelite models for evaluating forecast probabilities."""
+    import treelite
+    import treelite_runtime
+
+    lightgbm_models, lead_times, thresholds = dummy_lightgbm_models_deterministic
+    tree_models = {}
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            model = lightgbm_models[lead_time, threshold]
+            treelite_model = treelite.Model.from_lightgbm(model)
+            treelite_model.export_lib(
+                toolchain="gcc",
+                libpath=str(tmp_path / "model.so"),
+                verbose=False,
+                params={"parallel_comp": 8, "quantize": 1},
+            )
+            predictor = treelite_runtime.Predictor(
+                str(tmp_path / "model.so"), verbose=True, nthread=1
+            )
+            tree_models[lead_time, threshold] = predictor
+
+    return tree_models, lead_times, thresholds
+
+
+@pytest.fixture(params=["lightgbm", "treelite"])
+def plugin_and_dummy_models_deterministic(request):
+    if request.param == "lightgbm":
+        _ = pytest.importorskip("lightgbm")
+        return (
+            ApplyRainForestsCalibrationLightGBM,
+            request.getfixturevalue("dummy_lightgbm_models_deterministic"),
+        )
+    elif request.param == "treelite":
+        _ = pytest.importorskip("treelite")
+        return (
+            ApplyRainForestsCalibrationTreelite,
+            request.getfixturevalue("dummy_treelite_models_deterministic"),
         )
     else:
         pytest.fail("unknown plugin type")

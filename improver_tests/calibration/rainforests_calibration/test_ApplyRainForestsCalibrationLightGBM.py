@@ -36,6 +36,7 @@ from iris import Constraint
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
 )
+from improver.constants import SECONDS_IN_HOUR
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 lightgbm = pytest.importorskip("lightgbm")
@@ -58,7 +59,7 @@ def test__new__(model_config, monkeypatch):
     assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
     model_config
     # Test exception raised when file path is missing.
-    model_config[24]["0.0000"].pop("lightgbm_model", None)
+    model_config["24"]["0.0000"].pop("lightgbm_model", None)
     with pytest.raises(ValueError):
         ApplyRainForestsCalibrationLightGBM(model_config)
 
@@ -71,8 +72,8 @@ def test__init__(
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
 
     if not ordered_inputs:
-        tmp_value = model_config[24].pop("0.0000", None)
-        model_config[24]["0.0000"] = tmp_value
+        tmp_value = model_config["24"].pop("0.0000", None)
+        model_config["24"]["0.0000"] = tmp_value
 
     if default_threads:
         expected_threads = 1
@@ -145,6 +146,10 @@ def test__align_feature_variables_deterministic(
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}
     )._align_feature_variables(deterministic_features, deterministic_forecast)
+
+    # print(aligned_features[4].data)
+    # print(expected_features[4].data)
+    # print(aligned_features[4].data == expected_features[4].data)
 
     assert aligned_features == expected_features
     assert aligned_forecast == expected_forecast
@@ -346,11 +351,33 @@ def test__get_ensemble_distributions(
     assert result.attributes == ensemble_forecast.attributes
 
 
-def test_process_ensemble_different_threshold_unit(
+def test_lead_time_without_matching_model(
     ensemble_forecast, ensemble_features, plugin_and_dummy_models
 ):
-    """Test process routine with ensemble data where unit of threshold is different from
-    unit of forecast cube."""
+    """Test that when calibration is applied on a lead time with no
+    exactly matching model, the closest matching model lead time is selected."""
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
+
+    output_thresholds = [0.0, 0.0005, 0.001]
+    result_24_hour = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds,
+    )
+    ensemble_forecast.coord("forecast_period").points = [27 * SECONDS_IN_HOUR]
+    for cube in ensemble_features:
+        cube.coord("forecast_period").points = [27 * SECONDS_IN_HOUR]
+    result_27_hour = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds,
+    )
+    np.testing.assert_almost_equal(result_24_hour.data, result_27_hour.data)
+
+
+def test_process_ensemble_specifying_thresholds(
+    ensemble_forecast, ensemble_features, plugin_and_dummy_models
+):
+    """Test process routine with ensemble data with different ways of specifying
+    output thresholds."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
@@ -375,12 +402,28 @@ def test_process_ensemble_different_threshold_unit(
     assert result.coords(dim_coords=False) == ensemble_forecast.coords(dim_coords=False)
     assert result.attributes == ensemble_forecast.attributes
 
+    # Check where unit of output threshold is different from unit of forecast cube
+    output_thresholds_mm = [0.0, 0.5, 1.0]
+    result = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds_mm, threshold_units="mm"
+    )
+    np.testing.assert_almost_equal(threshold_coord.points, output_thresholds)
+
+    # Check where output thresholds are the same as model thresholds
+    result = plugin.process(
+        ensemble_forecast, ensemble_features, plugin.model_thresholds
+    )
+    threshold_coord = result.coord(forecast_variable)
+    np.testing.assert_almost_equal(threshold_coord.points, plugin.model_thresholds)
+
 
 def test_process_deterministic(
-    deterministic_forecast, deterministic_features, plugin_and_dummy_models
+    deterministic_forecast,
+    deterministic_features,
+    plugin_and_dummy_models_deterministic,
 ):
     """Test process routine with deterministic data."""
-    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin_cls, dummy_models = plugin_and_dummy_models_deterministic
     plugin = plugin_cls(model_config_dict={})
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
     output_thresholds = [0.0, 0.0005, 0.001]

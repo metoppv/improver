@@ -39,7 +39,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.utilities.enforce_consistency import EnforceConsistentForecasts
+from improver.utilities.forecast_reference_enforcement import EnforceConsistentForecasts
 
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "Unit Test Data",
