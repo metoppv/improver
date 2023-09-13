@@ -355,7 +355,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         ystop, xstop = data.shape
         size = data.size
         when_all_extremes = 0
-        half_nb_size = (self.nb_size // 2) + 2  # rounded up
+        half_nb_size = self.nb_size // 2
         for _extreme, _when_all_extremes in ((0, 0), (1, max_extreme)):
             if _when_all_extremes is None:
                 # We can't take this shortcut
@@ -369,6 +369,14 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                     nonextreme_indices.min(0),
                     nonextreme_indices.max(0) + 1,
                 )
+                if (
+                    (_ystart - self.nb_size < 0)
+                    or (_ystop + self.nb_size > data_shape[-2])
+                    or (_xstart - self.nb_size < 0)
+                    or (_xstop + self.nb_size > data_shape[-1])
+                ):
+                    #  Cannot safely crop this domain with enough buffer to preserve the result.
+                    continue
                 _ystart = max(0, _ystart - half_nb_size)
                 _ystop = min(data_shape[0], _ystop + half_nb_size)
                 _xstart = max(0, _xstart - half_nb_size)
@@ -383,19 +391,34 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                     _xstart,
                     _xstop,
                 )
+        square_buffer_kwargs = {"mode": "constant"}
         if size != data.size:
             # Determine default array for the extremes around the edges, or everywhere
             if isinstance(when_all_extremes, np.ndarray):
                 untrimmed = when_all_extremes.astype(data.dtype)
             else:
                 untrimmed = np.full(data_shape, when_all_extremes, dtype=data.dtype)
-        if size:
-            # Trim to the calculated box
-            data = data[ystart:ystop, xstart:xstop]
+            if (
+                self.neighbourhood_method == "square"
+                and min(ystart, xstart, data_shape[-2] - ystop, data_shape[-1] - xstop)
+                >= half_nb_size + 1
+            ):
+                # Trim to the calculated box plus padding
+                # and rely on boxsum to return the right sized array
+                data = data[
+                    ystart - half_nb_size - 1 : ystop + half_nb_size,
+                    xstart - half_nb_size - 1 : xstop + half_nb_size,
+                ]
+                square_buffer_kwargs = {}
+            else:
+                # Trim to the calculated box without padding and let boxsum do its padding.
+                # Circular neighbourhoods will ignore the square_buffer_kwargs.
+                data = data[ystart:ystop, xstart:xstop]
 
-            # Calculate neighbourhood totals for input data.
+        if size:
+            # Calculate neighbourhood totals for input data if it isn't all constant.
             if self.neighbourhood_method == "square":
-                data = boxsum(data, self.nb_size, mode="constant")
+                data = boxsum(data, self.nb_size, **square_buffer_kwargs)
             elif self.neighbourhood_method == "circular":
                 data = correlate(data, self.kernel, mode="nearest")
         else:
