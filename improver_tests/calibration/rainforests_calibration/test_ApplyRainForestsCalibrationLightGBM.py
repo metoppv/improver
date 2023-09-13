@@ -147,10 +147,6 @@ def test__align_feature_variables_deterministic(
         model_config_dict={}
     )._align_feature_variables(deterministic_features, deterministic_forecast)
 
-    # print(aligned_features[4].data)
-    # print(expected_features[4].data)
-    # print(aligned_features[4].data == expected_features[4].data)
-
     assert aligned_features == expected_features
     assert aligned_forecast == expected_forecast
 
