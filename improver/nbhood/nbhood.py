@@ -355,7 +355,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         ystop, xstop = data.shape
         size = data.size
         when_all_extremes = 0
-        half_nb_size = (self.nb_size // 2) + 1  # rounded up
+        half_nb_size = (self.nb_size // 2) + 2  # rounded up
         for _extreme, _when_all_extremes in ((0, 0), (1, max_extreme)):
             if _when_all_extremes is None:
                 # We can't take this shortcut

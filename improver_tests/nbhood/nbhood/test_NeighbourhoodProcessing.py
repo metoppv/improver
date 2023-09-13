@@ -226,6 +226,38 @@ class Test__calculate_neighbourhood(IrisTest):
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
+    def test_annulus_square(self):
+        """Test the _calculate_neighbourhood method with a square neighbourhood where the data
+        are ones with a central block of zeros, which will trigger the array-shrinking optimisation
+        AND the padding method."""
+        data = np.ones((8, 8), dtype=self.data.dtype)
+        data[3:5, 3:5] = 0
+        expected_array = np.ones((8, 8), dtype=self.data.dtype)
+        expected_array[3:5, 3:5] = 5 / 9  # centre
+        expected_array[2::3, 3:5] = 7 / 9  # edges (y)
+        expected_array[3:5, 2::3] = 7 / 9  # edges (x)
+        expected_array[2::3, 2::3] = 8 / 9  # corners
+        plugin = NeighbourhoodProcessing("square", self.RADIUS)
+        plugin.nb_size = self.nbhood_size
+        result = plugin._calculate_neighbourhood(data)
+        self.assertArrayAlmostEqual(result, expected_array)
+
+    def test_annulus_circular(self):
+        """Test the _calculate_neighbourhood method with a circular neighbourhood where the data
+        are ones with a central block of zeros, which will trigger the array-shrinking optimisation
+        AND the padding method."""
+        data = np.ones((8, 8), dtype=self.data.dtype)
+        data[3:5, 3:5] = 0
+        expected_array = np.ones((8, 8), dtype=self.data.dtype)
+        expected_array[3:5, 3:5] = 0.4  # centre
+        expected_array[2::3, 3:5] = 0.8  # edges (y)
+        expected_array[3:5, 2::3] = 0.8  # edges (x)
+        plugin = NeighbourhoodProcessing("circular", self.RADIUS)
+        plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
+        result = plugin._calculate_neighbourhood(data)
+        self.assertArrayAlmostEqual(result, expected_array)
+
     def test_masked_array_re_mask_true_square(self):
         """Test the _calculate_neighbourhood method when masked data is
         passed in and re-masking is applied."""
