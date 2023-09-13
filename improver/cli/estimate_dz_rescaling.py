@@ -50,7 +50,8 @@ def process(
     site_id_coord: str = "wmo_id",
 ):
     """Estimate a scaling factor to account for a correction linked to the difference
-    in altitude between the grid point and the site location.
+    in altitude between the grid point and the site location. Note that the output
+    will have the same sites as provided by the neighbour cube.
 
     Args:
         forecast (iris.cube.Cube):

@@ -115,7 +115,8 @@ class EstimateDzRescaling(PostProcessingPlugin):
             dz: Difference in altitude between the grid point and the site location.
 
         Returns:
-            A scale factor deduced from a polynomial fit.
+            A scale factor deduced from a polynomial fit. This is a single value
+            deduced from the fit between the forecasts and the truths.
         """
         truths_data = np.reshape(truths.data, forecasts.shape)
 
@@ -151,7 +152,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
             dz: The difference in altitude between the grid point and the site.
 
         Returns:
-            Scaled difference in altitude.
+            Scaled difference in altitude at each site.
         """
         # Multiplication by -1 using negative exponent rule, so that this term can
         # be multiplied by the forecast during the application step.
@@ -230,7 +231,11 @@ class EstimateDzRescaling(PostProcessingPlugin):
     def process(self, forecasts: Cube, truths: Cube, neighbour_cube: Cube) -> Cube:
         """Fit a polynomial using the forecasts and truths to compute a scaled
         version of the difference of altitude between the grid point and the
-        site location.
+        site location. There is expected to be overlap between the sites provided by
+        the forecasts, truths and neighbour_cube. The polynomial will be fitted using
+        the forecasts and truths and the resulting scale factor will be applied to
+        all sites within the neighbour cube. The output scaled dz will contain sites
+        matching the neighbour cube.
 
         A mathematical summary of the steps within this plugin are:
 
@@ -262,7 +267,8 @@ class EstimateDzRescaling(PostProcessingPlugin):
             forecasts: Forecast cube.
             truths: Truth cube.
             neighbour_cube: A neighbour cube containing the difference in altitude
-                between the grid point and the site location.
+                between the grid point and the site location. Note that the output
+                will have the same sites as found within the neighbour cube.
 
         Returns:
             A scaled difference of altitude between the grid point and the
