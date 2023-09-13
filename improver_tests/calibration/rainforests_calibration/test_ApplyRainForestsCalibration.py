@@ -80,7 +80,6 @@ def test__new__(
     else:
         monkeypatch.setitem(sys.modules, "treelite_runtime", None)
     monkeypatch.setattr(lightgbm, "Booster", MockBooster)
-    print(model_config)
     if not treelite_file:
         # Model type should default to lightgbm if there are any treelite models
         # missing across any thresholds
