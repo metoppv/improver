@@ -211,32 +211,32 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "Number of expected features does not match number of feature cubes."
             )
 
+
     def _get_feature_splits(self, model_config_dict):
-            split_feature_string = "split_feature="
-            threshold_string = "threshold="
-            self.combined_feature_splits = {}
-            for lead_time_str in model_config_dict.keys():
-                lead_time = int(lead_time_str)
-                all_splits = [set() for i in range(self._get_num_features())]
-                for threshold_str in model_config_dict[lead_time_str].keys():
-                    lgb_model_filename = Path(
-                        model_config_dict[lead_time_str][threshold_str].get("lightgbm_model")
-                    ).expanduser()
-                    with open(lgb_model_filename, "r") as f:
-                        for line in f:
-                            if line.startswith(split_feature_string):
-                                line = line[len(split_feature_string):-1]
-                                if len(line) == 0:
-                                    continue
-                                features = [int(x) for x in line.split(" ")]
-                            elif line.startswith(threshold_string):
-                                line = line[len(threshold_string):-1]
-                                if len(line) == 0:
-                                    continue
-                                splits = [float(x) for x in line.split(" ")]
-                                for feature_ind, threshold in zip(features, splits):
-                                    all_splits[feature_ind].add(threshold)                
-                self.combined_feature_splits[lead_time] = [np.sort(list(x)) for x in all_splits]
+        split_feature_string = "split_feature="
+        threshold_string = "threshold="
+        self.combined_feature_splits = {}
+        for lead_time in self.lead_times:
+            all_splits = [set() for i in range(self._get_num_features())]
+            for threshold_str in model_config_dict[str(lead_time)].keys():
+                lgb_model_filename = Path(
+                    model_config_dict[str(lead_time)][threshold_str].get("lightgbm_model")
+                ).expanduser()
+                with open(lgb_model_filename, "r") as f:
+                    for line in f:
+                        if line.startswith(split_feature_string):
+                            line = line[len(split_feature_string):-1]
+                            if len(line) == 0:
+                                continue
+                            features = [int(x) for x in line.split(" ")]
+                        elif line.startswith(threshold_string):
+                            line = line[len(threshold_string):-1]
+                            if len(line) == 0:
+                                continue
+                            splits = [float(x) for x in line.split(" ")]
+                            for feature_ind, threshold in zip(features, splits):
+                                all_splits[feature_ind].add(threshold)                
+            self.combined_feature_splits[lead_time] = [np.sort(list(x)) for x in all_splits]
 
 
 class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
@@ -302,35 +302,29 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
         from lightgbm import Booster
 
+        self.model_input_converter = np.array
+
         # Model config is a nested dictionary. Keys of outer level are lead times, and
         # keys of inner level are thresholds. Convert these to int and float.
-        sorted_model_config_dict = OrderedDict()
-        lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
-        self.combined_feature_splits = {}
-        for lead_time_key in lead_time_keys:
-            sorted_model_config_dict[lead_time_key] = OrderedDict()
-            lead_time_dict = model_config_dict[str(lead_time_key)]
-            sorted_model_config_dict[lead_time_key] = OrderedDict(
-                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
-            )
-
-        self.lead_times = np.array([*sorted_model_config_dict.keys()])
-        if len(self.lead_times) > 0:
-            self.model_thresholds = np.array(
-                [*sorted_model_config_dict[self.lead_times[0]].keys()]
-            )
-        else:
-            self.model_thresholds = np.array([])
-        self.model_input_converter = np.array
+        lead_times = []
+        self.model_thresholds = None
         self.tree_models = {}
-        for lead_time in self.lead_times:
-            for threshold in self.model_thresholds:
+        for lead_time_str in model_config_dict.keys():
+            lead_time = int(lead_time_str)
+            lead_times.append(lead_time)
+            thresholds = []
+            for threshold_str in model_config_dict[lead_time_str].keys():
+                threshold = np.float32(threshold_str)
+                thresholds.append(threshold)
                 model_filename = Path(
-                    sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")
+                    model_config_dict[lead_time_str][threshold_str].get("lightgbm_model")
                 ).expanduser()
                 self.tree_models[lead_time, threshold] = Booster(
                     model_file=str(model_filename)
                 ).reset_parameter({"num_threads": threads})
+            if self.model_thresholds is None:
+                self.model_thresholds = np.sort(thresholds)
+        self.lead_times = np.sort(lead_times)
 
         self.bin_data = bin_data
         if self.bin_data:
@@ -866,34 +860,29 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         """
         from treelite_runtime import DMatrix, Predictor
 
+        self.model_input_converter = DMatrix
+
         # Model config is a nested dictionary. Keys of outer level are lead times, and
         # keys of inner level are thresholds. Convert these to int and float.
-        sorted_model_config_dict = OrderedDict()
-        lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
-        for lead_time_key in lead_time_keys:
-            sorted_model_config_dict[lead_time_key] = OrderedDict()
-            lead_time_dict = model_config_dict[str(lead_time_key)]
-            sorted_model_config_dict[lead_time_key] = OrderedDict(
-                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
-            )
-
-        self.lead_times = np.array([*sorted_model_config_dict.keys()])
-        if len(self.lead_times) > 0:
-            self.model_thresholds = np.array(
-                [*sorted_model_config_dict[self.lead_times[0]].keys()]
-            )
-        else:
-            self.model_thresholds = np.array([])
-        self.model_input_converter = DMatrix
+        lead_times = []
+        self.model_thresholds = None
         self.tree_models = {}
-        for lead_time in self.lead_times:
-            for threshold in self.model_thresholds:
+        for lead_time_str in model_config_dict.keys():
+            lead_time = int(lead_time_str)
+            lead_times.append(lead_time)
+            thresholds = []
+            for threshold_str in model_config_dict[lead_time_str].keys():
+                threshold = np.float32(threshold_str)
+                thresholds.append(threshold)
                 model_filename = Path(
-                    sorted_model_config_dict[lead_time][threshold].get("treelite_model")
+                    model_config_dict[lead_time_str][threshold_str].get("treelite_model")
                 ).expanduser()
                 self.tree_models[lead_time, threshold] = Predictor(
                     libpath=str(model_filename), verbose=False, nthread=threads
                 )
+            if self.model_thresholds is None:
+                self.model_thresholds = np.sort(thresholds)
+        self.lead_times = np.sort(lead_times)
 
         self.bin_data = bin_data
         if self.bin_data:
