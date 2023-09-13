@@ -354,6 +354,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         ystart = xstart = 0
         ystop, xstop = data.shape
         size = data.size
+        extreme = 0
         when_all_extremes = 0
         half_nb_size = self.nb_size // 2
         for _extreme, _when_all_extremes in ((0, 0), (1, max_extreme)):
@@ -383,15 +384,16 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 _xstop = min(data_shape[1], _xstop + half_nb_size)
             _size = (_ystop - _ystart) * (_xstop - _xstart)
             if _size < size:
-                size, when_all_extremes, ystart, ystop, xstart, xstop = (
+                size, extreme, when_all_extremes, ystart, ystop, xstart, xstop = (
                     _size,
+                    _extreme,
                     _when_all_extremes,
                     _ystart,
                     _ystop,
                     _xstart,
                     _xstop,
                 )
-        square_buffer_kwargs = {"mode": "constant"}
+        square_buffer_kwargs = {"mode": "constant", "constant_value": extreme}
         if size != data.size:
             # Determine default array for the extremes around the edges, or everywhere
             if isinstance(when_all_extremes, np.ndarray):
