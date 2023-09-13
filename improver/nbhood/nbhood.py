@@ -356,9 +356,11 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         size = data.size
         extreme = 0
         when_all_extremes = 0
-        half_nb_size = (self.nb_size // 2)
+        half_nb_size = self.nb_size // 2
         for _extreme, _when_all_extremes in ((0, 0), (1, max_extreme)):
-            if _when_all_extremes is None or issubclass(data.dtype.type, np.complexfloating):
+            if _when_all_extremes is None or issubclass(
+                data.dtype.type, np.complexfloating
+            ):
                 # We can't take this shortcut if we don't have either a default value/array,
                 # or the data values are complex, as comparisons with non-complex values are
                 # tricky.
