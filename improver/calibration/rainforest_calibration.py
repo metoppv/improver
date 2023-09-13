@@ -172,7 +172,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "Number of expected features does not match number of feature cubes."
             )
 
-    def _get_feature_splits(self, model_config_dict) -> Dict[List[ndarray]]:
+    def _get_feature_splits(self, model_config_dict) -> Dict[int, List[ndarray]]:
         """Get the combined feature splits (over all thresholds) for each lead time.
         
         Args:
