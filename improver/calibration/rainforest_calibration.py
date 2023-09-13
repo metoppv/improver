@@ -303,7 +303,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         self.bin_data = bin_data
         if self.bin_data:
-            self._get_feature_splits(model_config_dict)
+            self.combined_feature_splits = self._get_feature_splits(model_config_dict)
 
     def _get_num_features(self) -> int:
         return self.tree_models[
@@ -865,7 +865,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
         self.bin_data = bin_data
         if self.bin_data:
-            self._get_feature_splits(model_config_dict)
+            self.combined_feature_splits = self._get_feature_splits(model_config_dict)
 
     def _get_num_features(self) -> int:
         return self.tree_models[
