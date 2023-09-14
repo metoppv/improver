@@ -414,7 +414,11 @@ def test_process_ensemble_specifying_thresholds(
 
 
 def test_process_with_bin_data(
-    ensemble_forecast, ensemble_features, plugin_and_dummy_models, model_config, lightgbm_model_files
+    ensemble_forecast,
+    ensemble_features,
+    plugin_and_dummy_models,
+    model_config,
+    lightgbm_model_files,
 ):
     """Test that bin_data option does not affect the results.
     The lightgbm_model_files parameter is not used explicitly, but it is
@@ -434,7 +438,9 @@ def test_process_with_bin_data(
     plugin = plugin_cls(model_config_dict={}, bin_data=True)
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
     plugin.combined_feature_splits = plugin._get_feature_splits(model_config)
-    result_bin = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
+    result_bin = plugin.process(
+        ensemble_forecast, ensemble_features, output_thresholds,
+    )
 
     np.testing.assert_almost_equal(result.data, result_bin.data)
 

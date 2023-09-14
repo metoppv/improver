@@ -29,15 +29,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Fixtures for rainforests calibration."""
+import os
 from datetime import datetime
 
 import numpy as np
-import os
 import pandas as pd
 import pytest
 from iris import Constraint
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import CubeList
+from lightgbm import Booster
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
@@ -52,8 +53,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-
-from lightgbm import Booster
 
 ATTRIBUTES = {
     "title": "Test forecast",
@@ -343,7 +342,9 @@ def lightgbm_model_files(dummy_lightgbm_models, model_config):
     for lead_time in lead_times:
         for threshold in thresholds:
             model = tree_models[lead_time, threshold]
-            model_path = model_config[str(lead_time)][f"{threshold:06.4f}"]["lightgbm_model"]
+            model_path = model_config[str(lead_time)][f"{threshold:06.4f}"][
+                "lightgbm_model"
+            ]
             model_dir = os.path.dirname(model_path)
             if not os.path.exists(model_dir):
                 os.makedirs(model_dir)

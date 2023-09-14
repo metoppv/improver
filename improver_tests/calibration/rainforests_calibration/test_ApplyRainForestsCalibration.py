@@ -101,7 +101,9 @@ def test__new__(
 
 
 @pytest.mark.parametrize("treelite_file", (True, False))
-def test__get_feature_splits(treelite_file, model_config, plugin_and_dummy_models, lightgbm_model_files):
+def test__get_feature_splits(
+    treelite_file, model_config, plugin_and_dummy_models, lightgbm_model_files
+):
     """Test that _get_feature_splits returns a dict in the expected format.
     The lightgbm_model_files parameter is not used explicitly, but it is
     required in order to make the files available."""
@@ -119,7 +121,7 @@ def test__get_feature_splits(treelite_file, model_config, plugin_and_dummy_model
     lead_times = sorted([int(x) for x in model_config.keys()])
     assert sorted(list(splits.keys())) == lead_times
 
-    model_path =  model_config["24"]["0.0000"].get("lightgbm_model")
+    model_path = model_config["24"]["0.0000"].get("lightgbm_model")
     model = lightgbm.Booster(model_file=model_path)
     num_features = len(model.feature_name())
-    assert(all([len(x) == num_features for x in splits.values()]))
+    assert all([len(x) == num_features for x in splits.values()])
