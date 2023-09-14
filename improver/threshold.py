@@ -39,6 +39,7 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
+from collections.abc import Iterable
 
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -222,10 +223,10 @@ class Threshold(PostProcessingPlugin):
 
         self.vicinity = None
         if vicinity:
-            if isinstance(vicinity, numbers.Number):
-                vicinity = [vicinity]
-            if vicinity:  # To handle an empty list being provided.
+            if isinstance(vicinity, Iterable):
                 self.vicinity = [float(x) for x in vicinity]
+            else:
+                self.vicinity = [float(vicinity)]
 
         self.fill_masked = fill_masked
 
