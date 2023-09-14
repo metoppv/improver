@@ -38,7 +38,6 @@ import pytest
 from iris import Constraint
 from iris.analysis import MEAN, STD_DEV
 from iris.cube import CubeList
-from lightgbm import Booster
 
 from improver.calibration.rainforest_calibration import (
     ApplyRainForestsCalibrationLightGBM,
