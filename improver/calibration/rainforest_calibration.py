@@ -307,9 +307,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             self.combined_feature_splits = self._get_feature_splits(model_config_dict)
 
     def _get_num_features(self) -> int:
-        return self.tree_models[
-            self.lead_times[0], self.model_thresholds[0]
-        ].num_feature()
+        return next(iter(self.tree_models.values())).num_feature()
+
 
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
@@ -873,6 +872,4 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             self.combined_feature_splits = self._get_feature_splits(model_config_dict)
 
     def _get_num_features(self) -> int:
-        return self.tree_models[
-            self.lead_times[0], self.model_thresholds[0]
-        ].num_feature
+        return next(iter(self.tree_models.values())).num_feature

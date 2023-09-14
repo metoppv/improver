@@ -32,6 +32,7 @@
 from datetime import datetime
 
 import numpy as np
+import os
 import pandas as pd
 import pytest
 from iris import Constraint
@@ -52,6 +53,8 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 
+from lightgbm import Booster
+
 ATTRIBUTES = {
     "title": "Test forecast",
     "source": "IMPROVER",
@@ -70,12 +73,14 @@ def lead_times():
 
 
 @pytest.fixture
-def model_config(lead_times, thresholds):
+def model_config(lead_times, thresholds, tmp_path):
+    lightgbm_model_dir = tmp_path / "lightgbm_model_dir"
+    treelite_model_dir = tmp_path / "treelite_model_dir"
     return {
         str(lead_time): {
             f"{threshold:06.4f}": {
-                "lightgbm_model": f"lightgbm_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
-                "treelite_model": f"treelite_model_dir/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
+                "lightgbm_model": f"{lightgbm_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.txt",  # noqa: E501
+                "treelite_model": f"{treelite_model_dir}/test_model_{lead_time:03d}H_{threshold:06.4f}.so",  # noqa: E501
             }
             for threshold in thresholds
         }
@@ -329,6 +334,20 @@ def plugin_and_dummy_models(request):
         )
     else:
         pytest.fail("unknown plugin type")
+
+
+@pytest.fixture()
+def lightgbm_model_files(dummy_lightgbm_models, model_config):
+    """Write the lightgbm model files to the location specified in model config."""
+    tree_models, lead_times, thresholds = dummy_lightgbm_models
+    for lead_time in lead_times:
+        for threshold in thresholds:
+            model = tree_models[lead_time, threshold]
+            model_path = model_config[str(lead_time)][f"{threshold:06.4f}"]["lightgbm_model"]
+            model_dir = os.path.dirname(model_path)
+            if not os.path.exists(model_dir):
+                os.makedirs(model_dir)
+            model.save_model(model_path)
 
 
 @pytest.fixture
