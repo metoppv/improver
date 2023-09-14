@@ -31,6 +31,7 @@
 """Module containing thresholding classes."""
 
 import numbers
+from collections.abc import Iterable
 from typing import List, Optional, Tuple, Union
 
 import iris
@@ -39,7 +40,6 @@ import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
-from collections.abc import Iterable
 
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
