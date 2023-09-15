@@ -55,6 +55,7 @@ from improver.utilities.cube_manipulation import (
     get_dim_coord_names,
     sort_coord_in_cube,
 )
+from improver.wind_calculations.wind_direction import WindDirection
 
 
 class MergeCubesForWeightedBlending(BasePlugin):
@@ -732,13 +733,20 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
 
-        # Do blending and update metadata
+        # Do blending and update metadata. Circular data are blended using the
+        # wind direction functionality. Circular data are identified by having
+        # units of "degrees".
         if self.check_percentile_coord(cube):
             enforce_coordinate_ordering(cube, [self.blend_coord, "percentile"])
             result = self.percentile_weighted_mean(cube, weights)
         else:
             enforce_coordinate_ordering(cube, [self.blend_coord])
+            if cube.units == "degrees":
+                cube.data = WindDirection.deg_to_complex(cube.data)
+
             result = self.weighted_mean(cube, weights)
+            if cube.units == "degrees":
+                result.data = WindDirection.complex_to_deg(result.data)
 
         # Reorder resulting dimensions to match input
         enforce_coordinate_ordering(result, output_dims)
