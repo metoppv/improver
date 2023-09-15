@@ -266,7 +266,7 @@ class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
             prev_x_y_slice = x_y_slice
 
             cube_slices = iris.cube.CubeList([])
-            # Apply each mask in in mask_cube to the 2D input slice.
+            # Apply each mask in mask_cube to the 2D input slice.
             for mask_slice in mask_cube.slices_over(self.coord_for_masking):
                 output_cube = plugin(x_y_slice, mask_cube=mask_slice)
                 coord_object = mask_slice.coord(self.coord_for_masking).copy()
