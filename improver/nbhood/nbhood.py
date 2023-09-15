@@ -338,7 +338,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         return data.astype(out_data_dtype)
 
     def _do_nbhood_sum(
-        self, data: np.ndarray, max_extreme: Optional[Union[int, np.ndarray]] = None,
+        self, data: np.ndarray, max_extreme: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """Calculate the sum-in-area from an array.
         As this can be expensive, the method first checks for the extreme cases where the data are:
@@ -347,6 +347,17 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         Contains outer rows / columns that are completely zero or completely one, these
         rows and columns are trimmed before calculating the area sum and their contents
         will be as for the appropriate all case above.
+
+        Args:
+            data:
+                Input data array where any masking has already been replaced with zeroes.
+            max_extreme:
+                Used as the result for any large areas of data that are all ones, allowing an
+                optimisation to be used. If not supplied, the optimisation will only be used for
+                large areas of zeroes, where a return of zero can be safely predicted.
+
+        Returns:
+            Array containing the sum of data within the usable neighbourhood of each point.
         """
         # Determine the smallest box containing all non-zero or all non-one values with a
         # neighbourhood-sized buffer and quit if there are none.
@@ -355,19 +366,20 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         ystop, xstop = data.shape
         size = data.size
         extreme = 0
-        when_all_extremes = 0
+        fill_value = 0
         half_nb_size = self.nb_size // 2
-        for _extreme, _when_all_extremes in ((0, 0), (1, max_extreme)):
-            if _when_all_extremes is None or issubclass(
-                data.dtype.type, np.complexfloating
-            ):
+        # For the two extreme values, 0 and 1, find the size and position of the smallest array
+        # that includes all other values with a buffer of the neighbourhood radius.
+        # The smallest box from either extreme will be passed to the neighbourhooding method.
+        for _extreme, _fill_value in {0: 0, 1: max_extreme}.items():
+            if _fill_value is None or issubclass(data.dtype.type, np.complexfloating):
                 # We can't take this shortcut if we don't have either a default value/array,
                 # or the data values are complex, as comparisons with non-complex values are
                 # tricky.
                 continue
             nonextreme_indices = np.argwhere(data != _extreme)
             if nonextreme_indices.size == 0:
-                # No non-extreme values, so result will be _when_all_extremes if set
+                # No non-extreme values, so result will be _fill_value if set
                 _ystart = _ystop = _xstart = _xstop = 0
             else:
                 (_ystart, _xstart), (_ystop, _xstop) = (
@@ -380,23 +392,25 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
                 _xstop = min(data_shape[1], _xstop + half_nb_size)
             _size = (_ystop - _ystart) * (_xstop - _xstart)
             if _size < size:
-                size, extreme, when_all_extremes, ystart, ystop, xstart, xstop = (
+                size, extreme, fill_value, ystart, ystop, xstart, xstop = (
                     _size,
                     _extreme,
-                    _when_all_extremes,
+                    _fill_value,
                     _ystart,
                     _ystop,
                     _xstart,
                     _xstop,
                 )
         if size != data.size:
-            # Determine default array for the extremes around the edges, or everywhere
-            if isinstance(when_all_extremes, np.ndarray):
-                untrimmed = when_all_extremes.astype(data.dtype)
+            # If our chosen extreme allows us to process a subset of data, define the default array
+            # of neighbourhood sums that we know we will get for regions of extreme data values.
+            if isinstance(fill_value, np.ndarray):
+                untrimmed = fill_value.astype(data.dtype)
             else:
-                untrimmed = np.full(data_shape, when_all_extremes, dtype=data.dtype)
+                untrimmed = np.full(data_shape, fill_value, dtype=data.dtype)
         if size:
-            # Trim to the calculated box
+            # The subset of data is non-zero in size, so calculate the neighbourhood sums in the
+            # subset.
             data = data[ystart:ystop, xstart:xstop]
 
             # Calculate neighbourhood totals for input data.
