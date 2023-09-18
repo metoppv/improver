@@ -62,9 +62,9 @@ def process(
             The neighbour cube is a cube of spot-data neighbours and
             the spot site information.
         forecast_period (int):
-            The forecast period that is considered representative of
-            the input forecasts. This is required as the input forecasts could
-            contain multiple forecast periods.
+            The forecast period in hours that is considered representative of the
+            input forecasts. This is required as the input forecasts could contain
+            multiple forecast periods.
         dz_lower_bound (float):
             The lowest acceptable value for the difference in altitude
             between the grid point and the site. Sites with a lower
