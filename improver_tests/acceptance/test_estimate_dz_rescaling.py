@@ -41,12 +41,27 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_estimate_dz_rescaling(tmp_path):
+@pytest.mark.parametrize(
+    "forecast, truth, kgo",
+    (
+        (
+            "T1200Z-PT0006H00M-wind_speed_at_10m.nc",
+            "T1200Z-srfc_wind_sped_spot_truths.nc",
+            "T1200Z_kgo.nc"
+        ),
+        (
+            "T1500Z-PT0132H00M-wind_speed_at_10m.nc",
+            "T1500Z-srfc_wind_sped_spot_truths.nc",
+            "T1500Z_kgo.nc"
+        ),
+    ),
+)
+def test_estimate_dz_rescaling(tmp_path, forecast, truth, kgo):
     """Test estimate_dz_rescaling CLI."""
     kgo_dir = acc.kgo_root() / "estimate-dz-rescaling/"
-    kgo_path = kgo_dir / "kgo.nc"
-    forecast_path = kgo_dir / "T1200Z-PT0006H00M-wind_speed_at_10m.nc"
-    truth_path = kgo_dir / "T1200Z-srfc_wind_sped_spot_truths.nc"
+    kgo_path = kgo_dir / kgo
+    forecast_path = kgo_dir / forecast
+    truth_path = kgo_dir / truth
     neighbour_path = kgo_dir / "neighbour.nc"
     output_path = tmp_path / "output.nc"
     args = [
