@@ -47,12 +47,12 @@ run_cli = acc.run_cli(CLI)
         (
             "T1200Z-PT0006H00M-wind_speed_at_10m.nc",
             "T1200Z-srfc_wind_sped_spot_truths.nc",
-            "T1200Z_kgo.nc"
+            "T1200Z_kgo.nc",
         ),
         (
             "T1500Z-PT0132H00M-wind_speed_at_10m.nc",
             "T1500Z-srfc_wind_sped_spot_truths.nc",
-            "T1500Z_kgo.nc"
+            "T1500Z_kgo.nc",
         ),
     ),
 )
