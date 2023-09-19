@@ -35,7 +35,6 @@ from datetime import timedelta
 
 import iris
 import numpy as np
-import pytest
 from iris.cube import Cube
 from iris.tests import IrisTest
 
@@ -168,16 +167,6 @@ class Test__init__(Test_RecursiveFilter):
             RecursiveFilter(
                 iterations=iterations, edge_width=1,
             )
-
-    def test_iterations_warn(self):
-        """Test when the iteration value is more than 3 it warns."""
-        iterations = 5
-        warning_msg = (
-            "More than two iterations degrades the conservation"
-            "of probability assumption."
-        )
-        with pytest.warns(UserWarning, match=warning_msg):
-            RecursiveFilter(iterations=iterations)
 
 
 class Test__validate_coefficients(Test_RecursiveFilter):
@@ -428,6 +417,22 @@ class Test__run_recursion(Test_RecursiveFilter):
             self.iterations,
         )
         expected_result = 0.12302627
+        self.assertAlmostEqual(result.data[4][4], expected_result)
+
+    def test_result_multiple_iterations(self):
+        """Test that the _run_recursion method returns the expected value after
+        several iterations."""
+        edge_width = 1
+        cube = iris.util.squeeze(self.cube)
+        smoothing_coefficients_x, smoothing_coefficients_y = RecursiveFilter(
+            edge_width=edge_width
+        )._pad_coefficients(*self.smoothing_coefficients)
+        padded_cube = pad_cube_with_halo(cube, 2 * edge_width, 2 * edge_width)
+
+        result = RecursiveFilter(edge_width=edge_width)._run_recursion(
+            padded_cube, smoothing_coefficients_x, smoothing_coefficients_y, 3,
+        )
+        expected_result = 0.034629755
         self.assertAlmostEqual(result.data[4][4], expected_result)
 
     def test_different_smoothing_coefficients(self):
