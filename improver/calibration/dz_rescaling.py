@@ -219,7 +219,6 @@ class EstimateDzRescaling(PostProcessingPlugin):
                 the hour will be extracted.
             target_cube: Cube to which an auxiliary coordinate will be added.
         """
-        coord_name = "forecast_reference_time"
         # Create forecast_reference_time_hour coordinate. Use the time coordinate and
         # the forecast_period argument provided in case the forecast_reference_time
         # coordinate is not always the same within all input forecasts.
@@ -228,7 +227,9 @@ class EstimateDzRescaling(PostProcessingPlugin):
             - pd.Timedelta(hours=self.forecast_period)
         ).hour
         hour_coord = AuxCoord(
-            np.array(frt_hour, np.int32), long_name=f"{coord_name}_hour", units="hours",
+            np.array(frt_hour, np.int32),
+            long_name="forecast_reference_time_hour",
+            units="hours",
         )
         hour_coord.convert_units("seconds")
         hour_coord.points = hour_coord.points.astype(np.int32)
