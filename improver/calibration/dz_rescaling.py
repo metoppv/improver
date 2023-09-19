@@ -35,6 +35,7 @@ from typing import Union
 
 import iris
 import numpy as np
+import pandas as pd
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from numpy.polynomial import Polynomial as poly1d
@@ -64,9 +65,9 @@ class EstimateDzRescaling(PostProcessingPlugin):
         """Initialise class.
 
         Args:
-            forecast_period: The forecast period that is considered representative of
-                the input forecasts. This is required as the input forecasts could
-                contain multiple forecast periods.
+            forecast_period: The forecast period in hours that is considered
+                representative of the input forecasts. This is required as the input
+                forecasts could contain multiple forecast periods.
             dz_lower_bound: The lowest acceptable value for the difference in
                 altitude between the grid point and the site. Sites with a lower
                 (or more negative) difference in altitude will be excluded.
@@ -218,11 +219,17 @@ class EstimateDzRescaling(PostProcessingPlugin):
                 the hour will be extracted.
             target_cube: Cube to which an auxiliary coordinate will be added.
         """
-        coord_name = "forecast_reference_time"
-        # Create forecast_reference_time_hour coordinate.
-        frt_hour = source_cube.coord(coord_name).cell(0).point.hour
+        # Create forecast_reference_time_hour coordinate. Use the time coordinate and
+        # the forecast_period argument provided in case the forecast_reference_time
+        # coordinate is not always the same within all input forecasts.
+        frt_hour = (
+            source_cube.coord("time").cell(0).point
+            - pd.Timedelta(hours=self.forecast_period)
+        ).hour
         hour_coord = AuxCoord(
-            np.array(frt_hour, np.int32), long_name=f"{coord_name}_hour", units="hours",
+            np.array(frt_hour, np.int32),
+            long_name="forecast_reference_time_hour",
+            units="hours",
         )
         hour_coord.convert_units("seconds")
         hour_coord.points = hour_coord.points.astype(np.int32)
