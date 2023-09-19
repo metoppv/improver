@@ -425,6 +425,11 @@ class TemporalInterpolation(BasePlugin):
         cube = MergeCubes()(cubes)
 
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
+        if cube_t0.units == "degrees" and cube_t1.units == "degrees":
+            interpolated_cube.data = WindDirection.complex_to_deg(
+                interpolated_cube.data
+            )
+
         self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
         if self.interpolation_method == "solar":
@@ -435,9 +440,5 @@ class TemporalInterpolation(BasePlugin):
             for single_time in interpolated_cube.slices_over("time"):
                 interpolated_cubes.append(single_time)
 
-        if cube_t0.units == "degrees" and cube_t1.units == "degrees":
-            interpolated_cubes.data = WindDirection.complex_to_deg(
-                interpolated_cubes.data
-            )
 
         return interpolated_cubes
