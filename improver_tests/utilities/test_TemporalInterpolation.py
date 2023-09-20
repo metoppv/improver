@@ -676,6 +676,66 @@ class Test_process(IrisTest):
         )
         self.assertIsInstance(result, iris.cube.CubeList)
 
+    def test_wind_direction_interpolation_over_north(self):
+        """Test that wind directions are interpolated properly at the 0/360
+        circular cross-over."""
+
+        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 350
+        data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 20
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
+        cube_time_0 = set_up_variable_cube(
+            data_time_0,
+            units="degrees",
+            time=self.time_0,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
+        )
+        cube_time_1 = set_up_variable_cube(
+            data_time_1,
+            units="degrees",
+            time=self.time_1,
+            frt=self.time_1,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
+        )
+        expected_data = np.ones((self.npoints, self.npoints), dtype=np.float32) * 5
+        (result,) = TemporalInterpolation(interval_in_minutes=180).process(
+            cube_time_0, cube_time_1
+        )
+
+        self.assertArrayAlmostEqual(expected_data, result.data, decimal=4)
+
+    def test_wind_direction_interpolation(self):
+        """Test that wind directions are interpolated properly when the interpolation
+        doesn't cross the 0/360 boundary."""
+
+        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 40
+        data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 60
+        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
+        cube_time_0 = set_up_variable_cube(
+            data_time_0,
+            units="degrees",
+            time=self.time_0,
+            frt=self.time_0,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
+        )
+        cube_time_1 = set_up_variable_cube(
+            data_time_1,
+            units="degrees",
+            time=self.time_1,
+            frt=self.time_1,
+            domain_corner=domain_corner,
+            grid_spacing=grid_spacing,
+        )
+        expected_data = np.ones((self.npoints, self.npoints), dtype=np.float32) * 50
+        (result,) = TemporalInterpolation(interval_in_minutes=180).process(
+            cube_time_0, cube_time_1
+        )
+
+        self.assertArrayAlmostEqual(expected_data, result.data, decimal=4)
+
     def test_valid_single_interpolation(self):
         """Test interpolating to the mid point of the time range. Expect the
         data to be half way between, and the time coordinate should be at
