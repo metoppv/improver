@@ -94,7 +94,12 @@ def process(
             threshold_config file.
         collapse_coord (str):
             An optional ability to set which coordinate we want to collapse
-            over.
+            over. The only supported options are "realization" or "percentile".
+            If "percentile" is requested, the percentile coordinate will be
+            rebadged as a realization coordinate prior to collapse. The percentile
+            coordinate needs to be evenly spaced around the 50th percentile
+            to allow successful conversion from percentiles to realizations and
+            subsequent collapsing over the realization coordinate.
         vicinity (list of float / int):
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
@@ -114,7 +119,13 @@ def process(
     Raises:
         ValueError: If threshold_config and threshold_values are both set
         ValueError: If threshold_config is used for fuzzy thresholding
+        ValueError: Cannot apply land-mask cube without in-vicinity processing.
+        ValueError: Can only collapse over a realization coordinate or a percentile
+            coordinate that has been rebadged as a realization coordinate.
     """
+    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
+        RebadgePercentilesAsRealizations,
+    )
     from improver.threshold import BasicThreshold
     from improver.utilities.cube_manipulation import collapse_realizations
     from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -157,11 +168,15 @@ def process(
         raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
 
     if collapse_coord == "realization":
-        # TODO change collapse_coord argument to boolean "collapse_realizations"
-        # (requires suite change)
+        each_threshold_func_list.append(collapse_realizations)
+    elif collapse_coord == "percentile":
+        cube = RebadgePercentilesAsRealizations()(cube)
         each_threshold_func_list.append(collapse_realizations)
     elif collapse_coord is not None:
-        raise ValueError("Cannot collapse over non-realization coordinate")
+        raise ValueError(
+            "Can only collapse over a realization coordinate or a percentile "
+            "coordinate that has been rebadged as a realization coordinate."
+        )
 
     if fill_masked is not None:
         fill_masked = float(fill_masked)

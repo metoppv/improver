@@ -28,13 +28,14 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Provides utilities for enforcing consistency between forecasts."""
+"""Provides utilities for updating a forecast or forecasts based on a reference."""
 
 import warnings
 from typing import List, Optional, Union
 
+import iris
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver import PostProcessingPlugin
 from improver.metadata.probabilistic import is_probability
@@ -242,3 +243,147 @@ class EnforceConsistentForecasts(PostProcessingPlugin):
             )
 
         return new_forecast
+
+
+def normalise_to_reference(
+    cubes: CubeList, reference: Cube, ignore_zero_total: bool = False
+) -> CubeList:
+    """Update the data in cubes so that the sum of this data is equal to the reference
+    cube. This is done by replacing the data in cubes with a fraction of the data in
+    reference based upon the fraction that each cube contributes to the sum total of
+    data in cubes.
+
+    Args:
+        cubes: Cubelist containing the cubes to be updated. Must contain at least 2
+            cubes.
+        reference: Cube with data which the sum of cubes will be forced to be equal to.
+        ignore_zero_total: If False, an error will be raised if the sum total of data
+            in input_cubes is zero where the reference cube contains a non-zero value.
+            If True, this case will be ignored, leaving the values in the cubelist as
+            zero rather than ensuring their total equals the corresponding value in
+            reference cube.
+
+    Raises:
+        ValueError: If length of cubes is less than 2.
+        ValueError: If any input cubes have a different number of dimensions to
+            reference, or if the dimension coordinates in any of the input cubes do not
+            match the dimension coordinates in reference.
+        ValueError: If there are instances where the total of the input cubes is zero
+            but the corresponding value in reference is non-zero. This error can be
+            ignored if ignore_zero_total is true.
+
+    Returns:
+        Cubelist with length equal to the length of cubes. Each cube in the returned
+        cubelist will have metadata matching the cube in the same position in input
+        cubes, but containing different data.
+    """
+    if len(cubes) < 2:
+        msg = (
+            f"The input cubes must be of at least length 2. The length of the input "
+            f"cubes was {len(cubes)}"
+        )
+        raise ValueError(msg)
+
+    # check cube compatibility
+    reference_dim_coords = reference.coords(dim_coords=True)
+    n_dims_mismatch = False
+    coord_mismatch = False
+    n_dims = []
+    mismatching_coords = {}
+    for cube in cubes:
+        cube_dim_coords = cube.coords(dim_coords=True)
+        n_dims.append(len(cube_dim_coords))
+        if len(cube_dim_coords) != len(reference_dim_coords):
+            n_dims_mismatch = True
+        if not n_dims_mismatch:
+            mismatching_coords[cube.name()] = []
+            for dim_coord in cube_dim_coords:
+                try:
+                    reference_coord = reference.coord(dim_coord.name(), dim_coords=True)
+                except iris.exceptions.CoordinateNotFoundError:
+                    coord_mismatch = True
+                    mismatching_coords[cube.name()].append(dim_coord.name())
+                    continue
+                if not dim_coord == reference_coord:
+                    coord_mismatch = True
+                    mismatching_coords[cube.name()].append(dim_coord.name())
+
+    if n_dims_mismatch:
+        msg = (
+            f"The number of dimensions in input cubes are not all the same as the "
+            f"number of dimensions on the reference cube. The number of dimensions in "
+            f"the input cubes were {n_dims}. The number of dimensions in the "
+            f"reference cube was {len(reference_dim_coords)}."
+        )
+        raise ValueError(msg)
+
+    if coord_mismatch and not is_probability(reference):
+        msg = (
+            f"The dimension coordinates on the input cubes and the reference did not "
+            f"all match. The following coordinates were found to differ: "
+            f"{mismatching_coords}."
+        )
+        raise ValueError(msg)
+
+    total = cubes[0].data.copy()
+    if len(cubes) > 1:
+        for cube in cubes[1:]:
+            total += cube.data
+
+    # check for zeroes in total when reference is non-zero
+    total_zeroes = total == 0.0
+    reference_non_zero = reference.data != 0.0
+    both_true = np.logical_and(total_zeroes, reference_non_zero)
+    if np.any(both_true):
+        if not ignore_zero_total:
+            msg = (
+                "There are instances where the total of input cubes is zero but the "
+                "corresponding value in reference is non-zero. The input cubes cannot "
+                "be updated so that the total equals the value in the reference in "
+                "these instances."
+            )
+            raise ValueError(msg)
+
+    # update total where zero to avoid dividing by zero later.
+    total[total_zeroes] = 1.0
+
+    output = iris.cube.CubeList()
+    for index, cube in enumerate(cubes):
+        output_cube = cube.copy(data=reference.data * cube.data / total)
+        output.append(output_cube)
+
+    return output
+
+
+def split_cubes_by_name(
+    cubes: Union[List[Cube], CubeList], cube_names: Union[str, List[str]] = None
+) -> tuple:
+    """Split a list of cubes into two lists; one containing all cubes with names which
+    match cube_names, and the other containing all the other cubes.
+
+    Args:
+        cubes: List of cubes
+        cube_names: the name of the cube/s to be used as reference. This can be either
+            a single name or a list of names. If None, the first cubelist returned will
+            contain all the input cubes and the second cubelist will be empty.
+
+    Returns:
+        - A cubelist containing all cubes with names which match cube_names
+        - A cubelist containing all cubes with names which do not match cube_names
+    """
+
+    desired_cubes = iris.cube.CubeList()
+    other_cubes = iris.cube.CubeList()
+
+    if cube_names is None:
+        desired_cubes = cubes
+    else:
+        if isinstance(cube_names, str):
+            cube_names = [cube_names]
+        for cube in cubes:
+            if cube.name() in cube_names:
+                desired_cubes.append(cube)
+            else:
+                other_cubes.append(cube)
+
+    return desired_cubes, other_cubes

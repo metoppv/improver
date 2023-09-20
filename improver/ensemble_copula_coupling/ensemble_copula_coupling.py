@@ -497,7 +497,12 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
     """
 
-    def __init__(self, ecc_bounds_warning: bool = False) -> None:
+    def __init__(
+        self,
+        ecc_bounds_warning: bool = False,
+        mask_percentiles: bool = False,
+        skip_ecc_bounds=False,
+    ) -> None:
         """
         Initialise the class.
 
@@ -506,8 +511,28 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                 If true and ECC bounds are exceeded by the percentile values,
                 a warning will be generated rather than an exception.
                 Default value is FALSE.
+            mask_percentiles:
+                A boolean determining whether the final percentiles should
+                be masked.
+                If True then where the percentile is higher than the probability
+                of the diagnostic existing the outputted percentile will be masked.
+                The probability of being below the final threshold in
+                forecast_probabilities is used as the probability of the diagnostic
+                existing.
+                For example if at some grid square the probability of cloud base
+                being below 15000m (the highest threshold) is 0.7 then every percentile
+                above the 70th would be masked.
+            skip_ecc_bounds:
+                If true, the usage of the ECC bounds is skipped. This has the
+                effect that percentiles outside of the range given by the input
+                percentiles will be computed by nearest neighbour interpolation from
+                the nearest available percentile, rather than using linear interpolation
+                between the nearest available percentile and the ECC bound.
+
         """
         self.ecc_bounds_warning = ecc_bounds_warning
+        self.mask_percentiles = mask_percentiles
+        self.skip_ecc_bounds = skip_ecc_bounds
 
     def _add_bounds_to_thresholds_and_probabilities(
         self,
@@ -586,10 +611,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-        self,
-        forecast_probabilities: Cube,
-        percentiles: ndarray,
-        bounds_pairing: Tuple[int, int],
+        self, forecast_probabilities: Cube, percentiles: ndarray,
     ) -> Cube:
         """
         Conversion of probabilities to percentiles through the construction
@@ -603,9 +625,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             percentiles:
                 Array of percentiles, at which the corresponding values will be
                 calculated.
-            bounds_pairing:
-                Lower and upper bound to be used as the ends of the
-                cumulative distribution function.
 
         Returns:
             Cube containing values for the required diagnostic e.g.
@@ -623,6 +642,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
         threshold_unit = threshold_coord.units
         threshold_points = threshold_coord.points
+        threshold_name = threshold_coord.name()
 
         original_mask = None
         if np.ma.is_masked(forecast_probabilities.data):
@@ -630,9 +650,9 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
 
         # Ensure that the percentile dimension is first, so that the
         # conversion to a 2d array produces data in the desired order.
-        enforce_coordinate_ordering(forecast_probabilities, threshold_coord.name())
+        enforce_coordinate_ordering(forecast_probabilities, threshold_name)
         prob_slices = convert_cube_data_to_2d(
-            forecast_probabilities, coord=threshold_coord.name()
+            forecast_probabilities, coord=threshold_name
         )
 
         # The requirement below for a monotonically changing probability
@@ -654,12 +674,18 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
             raise NotImplementedError(msg)
 
-        (
-            threshold_points,
-            probabilities_for_cdf,
-        ) = self._add_bounds_to_thresholds_and_probabilities(
-            threshold_points, probabilities_for_cdf, bounds_pairing
-        )
+        if not self.skip_ecc_bounds:
+            phenom_name = get_threshold_coord_name_from_probability_name(
+                forecast_probabilities.name()
+            )
+            cube_units = forecast_probabilities.coord(threshold_coord.name()).units
+            bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
+            (
+                threshold_points,
+                probabilities_for_cdf,
+            ) = self._add_bounds_to_thresholds_and_probabilities(
+                threshold_points, probabilities_for_cdf, bounds_pairing
+            )
 
         if np.any(np.diff(probabilities_for_cdf) < 0):
             msg = (
@@ -691,11 +717,26 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             len(percentiles),
         )
 
-        template_cube = next(forecast_probabilities.slices_over(threshold_coord.name()))
+        if self.mask_percentiles:
+            forecast_at_percentiles = np.ma.asarray(forecast_at_percentiles)
+            coord_constraint = {threshold_name: threshold_coord.points[-1]}
+            mask_probability = forecast_probabilities.extract(
+                iris.Constraint(coord_values=coord_constraint)
+            ).data
+
+            if relation == "above":
+                mask_probability = 1 - mask_probability
+
+            for index, perc in enumerate(percentiles_as_fractions):
+                forecast_at_percentiles[index] = np.ma.masked_where(
+                    mask_probability <= perc, forecast_at_percentiles[index]
+                )
+
+        template_cube = next(forecast_probabilities.slices_over(threshold_name))
         template_cube.rename(
             get_diagnostic_cube_name_from_probability_name(template_cube.name())
         )
-        template_cube.remove_coord(threshold_coord.name())
+        template_cube.remove_coord(threshold_name)
 
         percentile_cube = create_cube_with_percentiles(
             percentiles,
@@ -703,7 +744,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             forecast_at_percentiles,
             cube_unit=threshold_unit,
         )
-
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
             percentile_cube.data = np.ma.MaskedArray(
@@ -764,9 +804,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             )
 
         threshold_coord = find_threshold_coordinate(forecast_probabilities)
-        phenom_name = get_threshold_coord_name_from_probability_name(
-            forecast_probabilities.name()
-        )
 
         if no_of_percentiles is None:
             no_of_percentiles = len(
@@ -781,9 +818,6 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
             percentiles = [percentiles]
         percentiles = np.array(percentiles, dtype=np.float32)
 
-        cube_units = forecast_probabilities.coord(threshold_coord.name()).units
-        bounds_pairing = get_bounds_of_distribution(phenom_name, cube_units)
-
         # If a cube still has multiple realizations, slice over these to reduce
         # the memory requirements into manageable chunks.
         try:
@@ -794,9 +828,7 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
         cubelist = iris.cube.CubeList([])
         for cube_realization in slices_over_realization:
             cubelist.append(
-                self._probabilities_to_percentiles(
-                    cube_realization, percentiles, bounds_pairing
-                )
+                self._probabilities_to_percentiles(cube_realization, percentiles)
             )
         forecast_at_percentiles = cubelist.merge_cube()
 

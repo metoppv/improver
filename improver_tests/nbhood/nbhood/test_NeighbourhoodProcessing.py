@@ -148,7 +148,29 @@ class Test__calculate_neighbourhood(IrisTest):
         )
         plugin = NeighbourhoodProcessing("circular", self.RADIUS)
         plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
+        self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_edge_circular(self):
+        """Test the _calculate_neighbourhood method with a circular neighbourhood that crosses the
+        edge. The zero is now in the left column and the "nearest" method means that this zero
+        is repeated in the sum, so the final calculation is 3 / 5 instead of 4 / 5."""
+        data = np.ones_like(self.data)
+        data[:, :3] = self.data[:, 2:]
+        expected_array = np.array(
+            [
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+                [0.8, 1.0, 1.0, 1.0, 1.0],
+                [0.6, 0.8, 1.0, 1.0, 1.0],
+                [0.8, 1.0, 1.0, 1.0, 1.0],
+                [1.0, 1.0, 1.0, 1.0, 1.0],
+            ]
+        )
+        plugin = NeighbourhoodProcessing("circular", self.RADIUS)
+        plugin.kernel = self.circular_kernel
+        plugin.nb_size = max(plugin.kernel.shape)
+        result = plugin._calculate_neighbourhood(data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
     def test_basic_weighted_circular(self):
@@ -165,6 +187,7 @@ class Test__calculate_neighbourhood(IrisTest):
         )
         plugin = NeighbourhoodProcessing("circular", self.RADIUS)
         plugin.kernel = self.weighted_circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
 
@@ -199,8 +222,41 @@ class Test__calculate_neighbourhood(IrisTest):
         )
         plugin = NeighbourhoodProcessing("circular", self.RADIUS, sum_only=True)
         plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(self.data)
         self.assertArrayAlmostEqual(result.data, expected_array)
+
+    def test_annulus_square(self):
+        """Test the _calculate_neighbourhood method with a square neighbourhood where the data
+        are ones with a central block of zeros, which will trigger the array-shrinking optimisation
+        AND the padding method."""
+        data = np.ones((10, 10), dtype=self.data.dtype)
+        data[4:6, 4:6] = 0
+        expected_array = np.ones_like(data, dtype=self.data.dtype)
+        expected_array[4:6, 4:6] = 5 / 9  # centre
+        expected_array[3:7:3, 4:6] = 7 / 9  # edges (y)
+        expected_array[4:6, 3:7:3] = 7 / 9  # edges (x)
+        expected_array[3:7:3, 3:7:3] = 8 / 9  # corners
+        plugin = NeighbourhoodProcessing("square", self.RADIUS)
+        plugin.nb_size = self.nbhood_size
+        result = plugin._calculate_neighbourhood(data)
+        self.assertArrayAlmostEqual(result, expected_array)
+
+    def test_annulus_circular(self):
+        """Test the _calculate_neighbourhood method with a circular neighbourhood where the data
+        are ones with a central block of zeros, which will trigger the array-shrinking optimisation
+        AND the padding method."""
+        data = np.ones((10, 10), dtype=self.data.dtype)
+        data[4:6, 4:6] = 0
+        expected_array = np.ones_like(data, dtype=self.data.dtype)
+        expected_array[4:6, 4:6] = 0.4  # centre
+        expected_array[3:7:3, 4:6] = 0.8  # edges (y)
+        expected_array[4:6, 3:7:3] = 0.8  # edges (x)
+        plugin = NeighbourhoodProcessing("circular", self.RADIUS)
+        plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
+        result = plugin._calculate_neighbourhood(data)
+        self.assertArrayAlmostEqual(result, expected_array)
 
     def test_masked_array_re_mask_true_square(self):
         """Test the _calculate_neighbourhood method when masked data is
@@ -229,6 +285,7 @@ class Test__calculate_neighbourhood(IrisTest):
         input_data = np.ma.masked_where(self.mask == 0, self.data_for_masked_tests)
         plugin = NeighbourhoodProcessing("circular", self.RADIUS)
         plugin.kernel = self.circular_kernel
+        plugin.nb_size = self.nbhood_size
         result = plugin._calculate_neighbourhood(input_data)
 
         self.assertArrayAlmostEqual(result.data, expected_array)

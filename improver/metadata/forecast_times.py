@@ -54,14 +54,14 @@ def forecast_period_coord(
     """
     Return the lead time coordinate (forecast_period) from a cube, either by
     reading an existing forecast_period coordinate, or by calculating the
-    difference between time and forecast_reference_time.
+    difference between time and forecast_reference_time or blend_time.
 
     Args:
         cube:
             Cube from which the lead times will be determined.
         force_lead_time_calculation:
             Force the lead time to be calculated from the
-            forecast_reference_time and the time coordinate, even if
+            reference time and the time coordinates, even if
             the forecast_period coordinate exists. Default is False.
 
     Returns:
@@ -71,28 +71,41 @@ def forecast_period_coord(
         it will be an AuxCoord.
     """
     create_dim_coord = False
+    coord_attributes = {}
+    frt_coord = cube.coords("forecast_reference_time")
+    blend_time_coord = cube.coords("blend_time")
+    reference_coord = frt_coord if frt_coord else blend_time_coord
+    if frt_coord and blend_time_coord:
+        if not frt_coord[0].points == blend_time_coord[0].points:
+            raise ValueError(
+                "Reference time coords do not match. forecast_reference_time is "
+                f"{frt_coord[0].cell(0).point}; blend_time is {blend_time_coord[0].cell(0).point}"
+            )
+
     if cube.coords("forecast_period"):
+        coord_attributes = cube.coord("forecast_period").attributes
         if isinstance(cube.coord("forecast_period"), DimCoord):
             create_dim_coord = True
 
     if cube.coords("forecast_period") and not force_lead_time_calculation:
         result_coord = cube.coord("forecast_period").copy()
 
-    elif cube.coords("time") and cube.coords("forecast_reference_time"):
+    elif cube.coords("time") and reference_coord:
         # Cube must adhere to mandatory standards for safe time calculations
         check_mandatory_standards(cube)
         # Try to calculate forecast period from forecast reference time and
         # time coordinates
         result_coord = _calculate_forecast_period(
             cube.coord("time"),
-            cube.coord("forecast_reference_time"),
+            cube.coord(reference_coord[0]),
             dim_coord=create_dim_coord,
         )
+        result_coord.attributes.update(coord_attributes)
 
     else:
         msg = (
             "The forecast period coordinate is not available within {}."
-            "The time coordinate and forecast_reference_time "
+            "The time coordinate and (forecast_reference_time or blend_time) "
             "coordinate were also not available for calculating "
             "the forecast_period.".format(cube)
         )
