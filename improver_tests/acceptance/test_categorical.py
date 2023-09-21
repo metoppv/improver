@@ -214,12 +214,12 @@ def test_without_optional_input(tmp_path):
         ("bad_wx_decision_tree.json", "Unreachable node 'unreachable'"),
     ),
 )
-def test_trees(wxtree, expected):
+def test_trees(decision_tree, expected):
     """Test the check-tree option"""
     kgo_dir = acc.kgo_root() / "wxcode"
     args = [
         "--decision-tree",
-        kgo_dir / wxtree,
+        kgo_dir / decision_tree,
         "--check-tree",
         "--target-period",
         "3600",
