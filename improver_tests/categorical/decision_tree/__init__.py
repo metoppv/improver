@@ -35,7 +35,7 @@ from typing import Any, Dict
 
 import numpy as np
 
-from improver.categorical.utilities import weather_code_attributes
+from improver.categorical.utilities import categorical_attributes
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
@@ -74,7 +74,7 @@ def set_up_wxcube(
         "time": time,
         "time_bounds": time_bounds,
         "frt": frt,
-        "attributes": weather_code_attributes(),
+        "attributes": categorical_attributes(wxcode_decision_tree()),
         "spatial_grid": "equalarea",
         "domain_corner": (0, -30000),
     }

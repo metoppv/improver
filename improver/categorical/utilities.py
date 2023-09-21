@@ -116,18 +116,28 @@ def update_tree_thresholds(
     return tree
 
 
-def weather_code_attributes() -> Dict[str, Any]:
+def categorical_attributes(decision_tree: Dict) -> Dict[str, Any]:
     """
+    Extracts leaf items from decision_tree and creates cube attributes from them.
+
+    Args:
+        decision_tree:
+            Decision tree definition, provided as a dictionary.
+
     Returns:
-        Attributes defining weather code meanings.
+        Attributes defining category meanings.
     """
     import numpy as np
 
     attributes = {}
-    wx_keys = np.array(list(WX_DICT.keys()))
-    attributes.update({"weather_code": wx_keys})
-    wxstring = " ".join(WX_DICT.values())
-    attributes.update({"weather_code_meaning": wxstring})
+    name = decision_tree["meta"]["name"]
+    leaves = {v["leaf"]: k for k, v in decision_tree.items() if "leaf" in v.keys()}
+    as_sorted_dict = OrderedDict(sorted(leaves.items(), key=lambda k: k[0]))
+
+    wx_keys = np.array(list(as_sorted_dict.keys()))
+    attributes.update({name: wx_keys})
+    wxstring = " ".join(as_sorted_dict.values())
+    attributes.update({f"{name}_meaning": wxstring})
     return attributes
 
 
@@ -153,12 +163,14 @@ def expand_nested_lists(query: Dict[str, Any], key: str) -> List[Any]:
     return items
 
 
-def update_daynight(cube: Cube) -> Cube:
+def update_daynight(cube: Cube, day_night: Dict) -> Cube:
     """ Update category depending on whether it is day or night
 
     Args:
         cube:
             Cube containing only daytime weather symbols.
+        day_night:
+            Dictionary of day codes (keys) and matching night codes (values)
 
     Returns:
         Cube containing day and night categories
@@ -175,22 +187,21 @@ def update_daynight(cube: Cube) -> Cube:
         msg = "cube must have time coordinate "
         raise CoordinateNotFoundError(msg)
 
-    cubewx_daynight = cube.copy()
+    cube_day_night = cube.copy()
     daynightplugin = solar.DayNightMask()
-    daynight_mask = daynightplugin(cubewx_daynight)
+    daynight_mask = daynightplugin(cube_day_night)
 
-    # Loop over the codes which decrease by 1 if a night time value
-    # e.g. 1 - sunny day becomes 0 - clear night.
-    for val in DAYNIGHT_CODES:
-        index = np.where(cubewx_daynight.data == val)
-        # Where day leave as is, where night adjust category by negative 1.
-        cubewx_daynight.data[index] = np.where(
+    # Loop over the codes which have a night time value.
+    for k, v in day_night.items():
+        index = np.where(cube_day_night.data == k)
+        # Where day leave as is, where night adjust category to given value.
+        cube_day_night.data[index] = np.where(
             daynight_mask.data[index] == daynightplugin.day,
-            cubewx_daynight.data[index],
-            cubewx_daynight.data[index] - 1,
+            cube_day_night.data[index],
+            v,
         )
 
-    return cubewx_daynight
+    return cube_day_night
 
 
 def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:

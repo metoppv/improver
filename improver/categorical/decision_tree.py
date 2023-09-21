@@ -54,7 +54,7 @@ from improver.categorical.utilities import (
     is_variable,
     update_daynight,
     update_tree_thresholds,
-    weather_code_attributes,
+    categorical_attributes,
 )
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.forecast_times import forecast_period_coord
@@ -115,8 +115,7 @@ class ApplyDecisionTree(BasePlugin):
 
         Args:
             decision_tree:
-                Decision tree definition, provided as a
-                dictionary.
+                Decision tree definition, provided as a dictionary.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
@@ -555,7 +554,7 @@ class ApplyDecisionTree(BasePlugin):
         mandatory_attributes = generate_mandatory_attributes(cubes)
         if self.title:
             mandatory_attributes.update({"title": self.title})
-        optional_attributes = weather_code_attributes()
+        optional_attributes = categorical_attributes(self.queries)
         if self.model_id_attr:
             optional_attributes.update(
                 update_model_id_attr_attribute(cubes, self.model_id_attr)

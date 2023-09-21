@@ -49,7 +49,7 @@ from improver.categorical.utilities import (
     interrogate_decision_tree,
     update_daynight,
     update_tree_thresholds,
-    weather_code_attributes,
+    categorical_attributes,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -96,8 +96,8 @@ def test_update_tree_thresholds_exception():
         update_tree_thresholds(tree, target_period=None)
 
 
-class Test_weather_code_attributes(IrisTest):
-    """ Test weather_code_attributes is working correctly """
+class Test_categorical_attributes(IrisTest):
+    """ Test categorical_attributes is working correctly """
 
     def setUp(self):
         """Set up cube """
@@ -112,8 +112,42 @@ class Test_weather_code_attributes(IrisTest):
         self.cube = add_coordinate(
             cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3],
         )
-        self.wxcode = np.array(list(WX_DICT.keys()))
-        self.wxmeaning = " ".join(WX_DICT.values())
+        self.wxcode = np.arange(31)
+        self.wxmeaning = " ".join(
+            [
+                "Clear_Night",
+                "Sunny_Day",
+                "Partly_Cloudy_Night",
+                "Partly_Cloudy_Day",
+                "Dust",
+                "Mist",
+                "Fog",
+                "Cloudy",
+                "Overcast",
+                "Light_Shower_Night",
+                "Light_Shower_Day",
+                "Drizzle",
+                "Light_Rain",
+                "Heavy_Shower_Night",
+                "Heavy_Shower_Day",
+                "Heavy_Rain",
+                "Sleet_Shower_Night",
+                "Sleet_Shower_Day",
+                "Sleet",
+                "Hail_Shower_Night",
+                "Hail_Shower_Day",
+                "Hail",
+                "Light_Snow_Shower_Night",
+                "Light_Snow_Shower_Day",
+                "Light_Snow",
+                "Heavy_Snow_Shower_Night",
+                "Heavy_Snow_Shower_Day",
+                "Heavy_Snow",
+                "Thunder_Shower_Night",
+                "Thunder_Shower_Day",
+                "Thunder",
+            ]
+        )
         self.data_directory = mkdtemp()
         self.nc_file = self.data_directory + "/wxcode.nc"
         pathlib.Path(self.nc_file).touch(exist_ok=True)
@@ -125,13 +159,13 @@ class Test_weather_code_attributes(IrisTest):
 
     def test_values(self):
         """Test attribute values are correctly set."""
-        result = weather_code_attributes()
+        result = categorical_attributes(wxcode_decision_tree())
         self.assertArrayEqual(result["weather_code"], self.wxcode)
         self.assertEqual(result["weather_code_meaning"], self.wxmeaning)
 
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
-        self.cube.attributes.update(weather_code_attributes())
+        self.cube.attributes.update(categorical_attributes(wxcode_decision_tree()))
         save_netcdf(self.cube, self.nc_file)
         result = load_cube(self.nc_file)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
@@ -171,8 +205,17 @@ class Test_update_daynight(IrisTest):
 
     def setUp(self):
         """Set up for update_daynight class"""
-        self.wxcode = np.array(list(WX_DICT.keys()))
-        self.wxmeaning = " ".join(WX_DICT.values())
+        self.day_night = {
+            1: 0,
+            3: 2,
+            10: 9,
+            14: 13,
+            17: 16,
+            20: 19,
+            23: 22,
+            26: 25,
+            29: 28,
+        }
         self.cube_data = np.array(
             [
                 [1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
@@ -195,14 +238,13 @@ class Test_update_daynight(IrisTest):
         )
 
     def test_basic(self):
-        """Test that the function returns a weather code cube."""
+        """Test that the function returns a cube with the same name, units and attributes."""
         cube = set_up_wxcube()
-        result = update_daynight(cube)
+        result = update_daynight(cube, self.day_night)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "weather_code")
-        self.assertEqual(result.units, "1")
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertEqual(result.name(), cube.name())
+        self.assertEqual(result.units, cube.units)
+        self.assertDictEqual(result.attributes, cube.attributes)
 
     def test_raise_error_no_time_coordinate(self):
         """Test that the function raises an error if no time coordinate."""
@@ -210,7 +252,7 @@ class Test_update_daynight(IrisTest):
         cube.coord("time").rename("nottime")
         msg = "cube must have time coordinate"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            update_daynight(cube)
+            update_daynight(cube, self.day_night)
 
     def test_wxcode_updated(self):
         """Test Correct wxcodes returned for cube."""
@@ -237,7 +279,7 @@ class Test_update_daynight(IrisTest):
                 [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29],
             ]
         )
-        result = update_daynight(cube)
+        result = update_daynight(cube, self.day_night)
         self.assertArrayEqual(result.data, expected_result)
         self.assertEqual(result.shape, (16, 16))
 
@@ -267,7 +309,7 @@ class Test_update_daynight(IrisTest):
                 [28, 28, 28, 28, 28, 28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29],
             ]
         )
-        result = update_daynight(cube)
+        result = update_daynight(cube, self.day_night)
 
         self.assertArrayEqual(result.data, expected_result)
         self.assertEqual(result.data.shape, (16, 16))
@@ -286,7 +328,7 @@ class Test_update_daynight(IrisTest):
 
         expected_result = np.ones((3, 16, 16))
         expected_result[0, :, :] = 0
-        result = update_daynight(cube)
+        result = update_daynight(cube, self.day_night)
         self.assertArrayEqual(result.data, expected_result)
 
     def test_basic_lat_lon(self):
@@ -294,10 +336,9 @@ class Test_update_daynight(IrisTest):
         cube = set_up_wxcube(lat_lon=True)
         result = update_daynight(cube)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertEqual(result.name(), "weather_code")
-        self.assertEqual(result.units, "1")
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertEqual(result.name(), cube.name())
+        self.assertEqual(result.units, cube.units)
+        self.assertDictEqual(result.attributes, cube.attributes)
 
     def test_wxcode_updated_on_latlon(self):
         """Test Correct wxcodes returned for lat lon cube."""
@@ -324,7 +365,7 @@ class Test_update_daynight(IrisTest):
                 [28, 28, 28, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29, 29],
             ]
         )
-        result = update_daynight(cube)
+        result = update_daynight(cube, self.day_night)
         self.assertArrayEqual(result.data, expected_result)
 
 
@@ -575,12 +616,7 @@ def modify_tree_fixture(node, key, value):
             "no_precipitation_cloud",
             "Unreachable node 'fog_conditions'",
         ),
-        (
-            "lightning",
-            "kittens",
-            0,
-            "Node lightning contains unknown key 'kittens'",
-        ),
+        ("lightning", "kittens", 0, "Node lightning contains unknown key 'kittens'",),
     ),
 )
 def test_check_tree(modify_tree, expected):
