@@ -78,6 +78,7 @@ def test_update_tree_thresholds(
     target period."""
 
     tree = wxcode_decision_tree(accumulation=accumulation)
+    tree.pop("meta")
     tree = update_tree_thresholds(tree, target_period=target_period)
     (result,) = tree["heavy_precipitation"]["diagnostic_thresholds"]
 
@@ -91,6 +92,7 @@ def test_update_tree_thresholds_exception():
     are defined with an associated period, but no target_period is provided."""
 
     tree = wxcode_decision_tree(accumulation=True)
+    tree.pop("meta")
     expected = "The decision tree contains thresholds defined"
     with pytest.raises(ValueError, match=expected):
         update_tree_thresholds(tree, target_period=None)
@@ -334,7 +336,7 @@ class Test_update_daynight(IrisTest):
     def test_basic_lat_lon(self):
         """Test that the function returns a weather code lat lon cube.."""
         cube = set_up_wxcube(lat_lon=True)
-        result = update_daynight(cube)
+        result = update_daynight(cube, self.day_night)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(result.name(), cube.name())
         self.assertEqual(result.units, cube.units)

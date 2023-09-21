@@ -107,8 +107,8 @@ def update_tree_thresholds(
             values = values * target_period / period
         return iris.coords.AuxCoord(values, units=units)
 
-    for query in tree.values():
-        if "leaf" in query.keys():
+    for key, query in tree.items():
+        if key == "meta" or "leaf" in query.keys():
             continue
         query["diagnostic_thresholds"] = _make_thresholds_with_units(
             query["diagnostic_thresholds"]
@@ -223,6 +223,8 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     # Diagnostic names and threshold values.
     requirements = {}
     for query in decision_tree.values():
+        if "diagnostic_fields" not in query.keys():
+            continue
         diagnostics = get_parameter_names(
             expand_nested_lists(query, "diagnostic_fields")
         )
@@ -376,7 +378,10 @@ def check_tree(
             issues.append(f"Meta node contains unexpected keys {unexpected_keys}")
     start_node = list(decision_tree.keys())[0]
     all_targets = np.array(
-        [(n.get("if_true"), n.get("if_false"), n.get("if_night")) for n in decision_tree.values()]
+        [
+            (n.get("if_true"), n.get("if_false"), n.get("if_night"))
+            for n in decision_tree.values()
+        ]
     ).flatten()
     decision_tree = update_tree_thresholds(decision_tree, target_period)
 
@@ -395,9 +400,7 @@ def check_tree(
                     f"Unreachable leaf '{node}'. Add 'is_unreachable': True to suppress this issue."
                 )
             if (items.get("is_unreachable", False)) and node in all_targets:
-                issues.append(
-                    f"Leaf '{node}' has 'is_unreachable' but can be reached."
-                )
+                issues.append(f"Leaf '{node}' has 'is_unreachable' but can be reached.")
 
             # If leaf key is present, check it is an int.
             leaf_target = items.get("leaf", -1)
