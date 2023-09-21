@@ -42,7 +42,6 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.categorical.decision_tree import ApplyDecisionTree
-from improver.categorical.utilities import WX_DICT
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,

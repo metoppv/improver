@@ -43,7 +43,6 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.categorical.utilities import (
-    WX_DICT,
     check_tree,
     expand_nested_lists,
     get_parameter_names,
@@ -59,44 +58,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
 from improver_tests.categorical.decision_tree import set_up_wxcube, wxcode_decision_tree
-
-
-class Test_wx_dict(IrisTest):
-    """ Test WX_DICT set correctly """
-
-    def test_wxcode_values(self):
-        """Check wxcode values are set correctly."""
-        self.assertEqual(WX_DICT[0], "Clear_Night")
-        self.assertEqual(WX_DICT[1], "Sunny_Day")
-        self.assertEqual(WX_DICT[2], "Partly_Cloudy_Night")
-        self.assertEqual(WX_DICT[3], "Partly_Cloudy_Day")
-        self.assertEqual(WX_DICT[4], "Dust")
-        self.assertEqual(WX_DICT[5], "Mist")
-        self.assertEqual(WX_DICT[6], "Fog")
-        self.assertEqual(WX_DICT[7], "Cloudy")
-        self.assertEqual(WX_DICT[8], "Overcast")
-        self.assertEqual(WX_DICT[9], "Light_Shower_Night")
-        self.assertEqual(WX_DICT[10], "Light_Shower_Day")
-        self.assertEqual(WX_DICT[11], "Drizzle")
-        self.assertEqual(WX_DICT[12], "Light_Rain")
-        self.assertEqual(WX_DICT[13], "Heavy_Shower_Night")
-        self.assertEqual(WX_DICT[14], "Heavy_Shower_Day")
-        self.assertEqual(WX_DICT[15], "Heavy_Rain")
-        self.assertEqual(WX_DICT[16], "Sleet_Shower_Night")
-        self.assertEqual(WX_DICT[17], "Sleet_Shower_Day")
-        self.assertEqual(WX_DICT[18], "Sleet")
-        self.assertEqual(WX_DICT[19], "Hail_Shower_Night")
-        self.assertEqual(WX_DICT[20], "Hail_Shower_Day")
-        self.assertEqual(WX_DICT[21], "Hail")
-        self.assertEqual(WX_DICT[22], "Light_Snow_Shower_Night")
-        self.assertEqual(WX_DICT[23], "Light_Snow_Shower_Day")
-        self.assertEqual(WX_DICT[24], "Light_Snow")
-        self.assertEqual(WX_DICT[25], "Heavy_Snow_Shower_Night")
-        self.assertEqual(WX_DICT[26], "Heavy_Snow_Shower_Day")
-        self.assertEqual(WX_DICT[27], "Heavy_Snow")
-        self.assertEqual(WX_DICT[28], "Thunder_Shower_Night")
-        self.assertEqual(WX_DICT[29], "Thunder_Shower_Day")
-        self.assertEqual(WX_DICT[30], "Thunder")
 
 
 @pytest.mark.parametrize(
@@ -460,13 +421,21 @@ class Test_get_parameter_names(IrisTest):
 def modify_tree_fixture(node, key, value):
     """Create a new decision tree and modify it"""
     tree = wxcode_decision_tree()
-    tree[node][key] = value
+    if key is None:
+        tree.pop(node)
+    elif value is None:
+        tree[node].pop(key)
+    else:
+        tree[node][key] = value
     return tree
 
 
 @pytest.mark.parametrize(
     "node, key, value, expected",
     (
+        ("meta", None, None, "Decision tree does not contain a mandatory meta key",),
+        ("meta", "name", None, "Meta node does not contain mandatory keys {'name'}",),
+        ("meta", "pets", "kittens", "Meta node contains unexpected keys {'pets'}",),
         (
             "lightning",
             "if_diagnostic_missing",
@@ -509,30 +478,40 @@ def modify_tree_fixture(node, key, value):
                 "should be 'above' or 'below'"
             ),
         ),
+        ("Thunder", "leaf", 10.2, "Leaf 'Thunder' has non-int target: 10.2",),
         (
-            "lightning_shower",
-            "if_true",
-            100,
-            (
-                "Node lightning_shower results in an invalid category of 100 for the "
-                "if_true condition"
-            ),
+            "Clear_Night",
+            "if_night",
+            "kittens",
+            "Leaf 'Clear_Night' does not point to a valid target (kittens).",
         ),
         (
+            "Clear_Night",
+            "if_night",
             "lightning_shower",
-            "if_false",
-            100,
-            (
-                "Node lightning_shower results in an invalid category of 100 for the "
-                "if_false condition"
-            ),
+            "Target 'lightning_shower' of leaf 'Clear_Night' is not a leaf.",
         ),
         (
-            "lightning_shower",
+            "Clear_Night",
+            "pets",
+            "kittens",
+            "Leaf node 'Clear_Night' contains unknown key 'pets'",
+        ),
+        (
+            "Clear_Night",
+            "is_unreachable",
+            True,
+            "Leaf 'Clear_Night' has 'is_unreachable' but can be reached.",
+        ),
+        ("Mist", "group", None, "Leaf 'Fog' is in a group of 1 (visibility).",),
+        (
+            "sleet_in_vicinity_cloud",
             "if_false",
             "kittens",
-            "Node lightning_shower has an invalid destination of kittens for the if_false "
-            "condition",
+            (
+                "Node sleet_in_vicinity_cloud has an invalid destination of kittens for the "
+                "if_false condition"
+            ),
         ),
         (
             "snow_in_vicinity",
@@ -596,20 +575,17 @@ def modify_tree_fixture(node, key, value):
             "no_precipitation_cloud",
             "Unreachable node 'fog_conditions'",
         ),
+        (
+            "lightning",
+            "kittens",
+            0,
+            "Node lightning contains unknown key 'kittens'",
+        ),
     ),
 )
 def test_check_tree(modify_tree, expected):
     """Test that the various possible decision tree problems are identified."""
     result = check_tree(modify_tree)
-    assert result == expected
-
-
-def test_check_tree_invalid_key():
-    """Modify a wx decision tree."""
-    expected = "Node lightning contains unknown key 'kittens'"
-    tree = wxcode_decision_tree()
-    tree["lightning"]["kittens"] = 0
-    result = check_tree(tree)
     assert result == expected
 
 

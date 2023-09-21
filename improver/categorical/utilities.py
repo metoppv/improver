@@ -37,6 +37,8 @@ import iris
 import numpy as np
 from iris.cube import Cube
 
+META_REQUIRED_KEY_WORDS = ["name"]
+
 REQUIRED_KEY_WORDS = [
     "if_true",
     "if_false",
@@ -48,6 +50,9 @@ REQUIRED_KEY_WORDS = [
     "diagnostic_conditions",
 ]
 
+LEAF_REQUIRED_KEY_WORDS = ["leaf"]
+LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group"]
+
 OPTIONAL_KEY_WORDS = ["if_diagnostic_missing"]
 
 THRESHOLD_CONDITIONS = ["<=", "<", ">", ">="]
@@ -55,53 +60,6 @@ CONDITION_COMBINATIONS = ["AND", "OR"]
 DIAGNOSTIC_CONDITIONS = ["below", "above"]
 
 KEYWORDS_DIAGNOSTIC_MISSING = ["if_true", "if_false"]
-
-
-_WX_DICT_IN = {
-    0: "Clear_Night",
-    1: "Sunny_Day",
-    2: "Partly_Cloudy_Night",
-    3: "Partly_Cloudy_Day",
-    4: "Dust",
-    5: "Mist",
-    6: "Fog",
-    7: "Cloudy",
-    8: "Overcast",
-    9: "Light_Shower_Night",
-    10: "Light_Shower_Day",
-    11: "Drizzle",
-    12: "Light_Rain",
-    13: "Heavy_Shower_Night",
-    14: "Heavy_Shower_Day",
-    15: "Heavy_Rain",
-    16: "Sleet_Shower_Night",
-    17: "Sleet_Shower_Day",
-    18: "Sleet",
-    19: "Hail_Shower_Night",
-    20: "Hail_Shower_Day",
-    21: "Hail",
-    22: "Light_Snow_Shower_Night",
-    23: "Light_Snow_Shower_Day",
-    24: "Light_Snow",
-    25: "Heavy_Snow_Shower_Night",
-    26: "Heavy_Snow_Shower_Day",
-    27: "Heavy_Snow",
-    28: "Thunder_Shower_Night",
-    29: "Thunder_Shower_Day",
-    30: "Thunder",
-}
-
-WX_DICT = OrderedDict(sorted(_WX_DICT_IN.items(), key=lambda t: t[0]))
-
-DAYNIGHT_CODES = [1, 3, 10, 14, 17, 20, 23, 26, 29]
-
-GROUPED_CODES = {
-    "snow": [23, 24, 26, 27],
-    "sleet": [17, 18],
-    "rain": [10, 11, 12, 14, 15],
-    "convection": [20, 21, 29, 30],
-    "visibility": [5, 6],
-}
 
 
 def update_tree_thresholds(
@@ -150,6 +108,8 @@ def update_tree_thresholds(
         return iris.coords.AuxCoord(values, units=units)
 
     for query in tree.values():
+        if "leaf" in query.keys():
+            continue
         query["diagnostic_thresholds"] = _make_thresholds_with_units(
             query["diagnostic_thresholds"]
         )
@@ -373,8 +333,7 @@ def check_tree(
 
     Args:
         decision_tree:
-            Decision tree definition, provided as a
-            dictionary.
+            Decision tree definition, provided as a dictionary.
         target_period:
             The period in seconds that the categorical data being produced should
             represent. This should correspond with any period diagnostics, e.g.
@@ -394,108 +353,163 @@ def check_tree(
         raise ValueError("Decision tree is not a dictionary")
 
     issues = []
+    meta = decision_tree.pop("meta", None)
+    if meta is None:
+        issues.append("Decision tree does not contain a mandatory meta key")
+    else:
+        missing_keys = set(META_REQUIRED_KEY_WORDS) - set(meta.keys())
+        unexpected_keys = set(meta.keys()) - set(META_REQUIRED_KEY_WORDS)
+        if missing_keys:
+            issues.append(f"Meta node does not contain mandatory keys {missing_keys}")
+        if unexpected_keys:
+            issues.append(f"Meta node contains unexpected keys {unexpected_keys}")
     start_node = list(decision_tree.keys())[0]
     all_targets = np.array(
-        [(n["if_true"], n["if_false"]) for n in decision_tree.values()]
+        [(n.get("if_true"), n.get("if_false"), n.get("if_night")) for n in decision_tree.values()]
     ).flatten()
     decision_tree = update_tree_thresholds(decision_tree, target_period)
-    valid_codes = list(WX_DICT.keys())
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
+    all_leaf_key_words = LEAF_REQUIRED_KEY_WORDS + LEAF_OPTIONAL_KEY_WORDS
     for node, items in decision_tree.items():
-        # Check the tree only contains expected keys
-        for entry in decision_tree[node]:
-            if entry not in all_key_words:
-                issues.append(f"Node {node} contains unknown key '{entry}'")
+        if "leaf" in items.keys():
+            # Check the leaf only contains expected keys
+            for entry in items.keys():
+                if entry not in all_leaf_key_words:
+                    issues.append(f"Leaf node '{node}' contains unknown key '{entry}'")
 
-        # Check that this node is reachable, or is the start_node
-        if not ((node == start_node) or node in all_targets):
-            issues.append(f"Unreachable node '{node}'")
-
-        # Check that if_diagnostic_missing key points at a if_true or if_false
-        # node
-        if "if_diagnostic_missing" in items:
-            entry = items["if_diagnostic_missing"]
-            if entry not in KEYWORDS_DIAGNOSTIC_MISSING:
+            # Check that this leaf is reachable, or is declared unreachable.
+            if not ((items.get("is_unreachable", False)) or node in all_targets):
                 issues.append(
-                    f"Node {node} contains an if_diagnostic_missing key "
-                    f"that targets key '{entry}' which is neither 'if_true' "
-                    "nor 'if_false'"
+                    f"Unreachable leaf '{node}'. Add 'is_unreachable': True to suppress this issue."
+                )
+            if (items.get("is_unreachable", False)) and node in all_targets:
+                issues.append(
+                    f"Leaf '{node}' has 'is_unreachable' but can be reached."
                 )
 
-        # Check that only permissible values are used in condition_combination
-        # this will be AND / OR for multiple diagnostic fields, or blank otherwise
-        combination = decision_tree[node]["condition_combination"]
-        num_diagnostics = len(decision_tree[node]["diagnostic_fields"])
-        if num_diagnostics == 2 and combination not in CONDITION_COMBINATIONS:
-            issues.append(
-                f"Node {node} utilises 2 diagnostic fields but "
-                f"'{combination}' is not a valid combination condition"
-            )
-        elif num_diagnostics != 2 and combination:
-            issues.append(
-                f"Node {node} utilises combination condition "
-                f"'{combination}' but does not use 2 diagnostic fields "
-                "for combination in this way"
-            )
+            # If leaf key is present, check it is an int.
+            leaf_target = items.get("leaf", -1)
+            if not isinstance(leaf_target, int):
+                issues.append(f"Leaf '{node}' has non-int target: {leaf_target}")
 
-        # Check only permissible values are used in threshold_condition
-        threshold = decision_tree[node]["threshold_condition"]
-        if threshold not in THRESHOLD_CONDITIONS:
-            issues.append(f"Node {node} uses invalid threshold condition {threshold}")
+            # If leaf has "if_night", check it points to another leaf.
+            if "if_night" in items.keys():
+                target = decision_tree.get(items["if_night"], None)
+                if not target:
+                    issues.append(
+                        f"Leaf '{node}' does not point to a valid target ({items['if_night']})."
+                    )
+                elif "leaf" not in target.keys():
+                    issues.append(
+                        f"Target '{items['if_night']}' of leaf '{node}' is not a leaf."
+                    )
+            # If leaf has "group", check the group contains at least two members.
+            if "group" in items.keys():
+                members = [
+                    k
+                    for k, v in decision_tree.items()
+                    if v.get("group", None) == items["group"]
+                ]
+                if len(members) == 1:
+                    issues.append(
+                        f"Leaf '{node}' is in a group of 1 ({items['group']})."
+                    )
+        else:
+            # Check the tree only contains expected keys
+            for entry in items.keys():
+                if entry not in all_key_words:
+                    issues.append(f"Node {node} contains unknown key '{entry}'")
 
-        # Check diagnostic_conditions are all above or below.
-        diagnostic = decision_tree[node]["diagnostic_conditions"]
-        tests_diagnostic = diagnostic
-        if isinstance(diagnostic[0], list):
-            tests_diagnostic = [item for sublist in diagnostic for item in sublist]
-        for value in tests_diagnostic:
-            if value not in DIAGNOSTIC_CONDITIONS:
+            # Check that this node is reachable, or is the start_node
+            if not ((node == start_node) or node in all_targets):
+                issues.append(f"Unreachable node '{node}'")
+
+            # Check that if_diagnostic_missing key points at a if_true or if_false
+            # node
+            if "if_diagnostic_missing" in items.keys():
+                entry = items["if_diagnostic_missing"]
+                if entry not in KEYWORDS_DIAGNOSTIC_MISSING:
+                    issues.append(
+                        f"Node {node} contains an if_diagnostic_missing key "
+                        f"that targets key '{entry}' which is neither 'if_true' "
+                        "nor 'if_false'"
+                    )
+
+            # Check that only permissible values are used in condition_combination
+            # this will be AND / OR for multiple diagnostic fields, or blank otherwise
+            combination = decision_tree[node]["condition_combination"]
+            num_diagnostics = len(decision_tree[node]["diagnostic_fields"])
+            if num_diagnostics == 2 and combination not in CONDITION_COMBINATIONS:
                 issues.append(
-                    f"Node {node} uses invalid diagnostic condition "
-                    f"'{value}'; this should be 'above' or 'below'"
+                    f"Node {node} utilises 2 diagnostic fields but "
+                    f"'{combination}' is not a valid combination condition"
+                )
+            elif num_diagnostics != 2 and combination:
+                issues.append(
+                    f"Node {node} utilises combination condition "
+                    f"'{combination}' but does not use 2 diagnostic fields "
+                    "for combination in this way"
                 )
 
-        # Check the succeed and fail destinations are valid; that is a valid
-        # category for leaf nodes, and other tree nodes otherwise
-        for result in "if_true", "if_false":
-            value = decision_tree[node][result]
-            if isinstance(value, str):
-                if value not in decision_tree.keys():
+            # Check only permissible values are used in threshold_condition
+            threshold = items["threshold_condition"]
+            if threshold not in THRESHOLD_CONDITIONS:
+                issues.append(
+                    f"Node {node} uses invalid threshold condition {threshold}"
+                )
+
+            # Check diagnostic_conditions are all above or below.
+            diagnostic = items["diagnostic_conditions"]
+            tests_diagnostic = diagnostic
+            if isinstance(diagnostic[0], list):
+                tests_diagnostic = [item for sublist in diagnostic for item in sublist]
+            for value in tests_diagnostic:
+                if value not in DIAGNOSTIC_CONDITIONS:
                     issues.append(
-                        f"Node {node} has an invalid destination "
-                        f"of {value} for the {result} condition"
-                    )
-            else:
-                if value not in valid_codes:
-                    issues.append(
-                        f"Node {node} results in an invalid category "
-                        f"of {value} for the {result} condition"
+                        f"Node {node} uses invalid diagnostic condition "
+                        f"'{value}'; this should be 'above' or 'below'"
                     )
 
-        # Check diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds
-        # are all nested equivalently
-        if not _check_diagnostic_lists_consistency(items):
-            issues.append(
-                f"Node {node} has inconsistent nesting for the "
-                "diagnostic_fields, diagnostic_conditions, and "
-                "diagnostic_thresholds fields"
-            )
+            # Check the succeed and fail destinations are valid; that is a valid
+            # category for leaf nodes, and other tree nodes otherwise
+            for result in "if_true", "if_false":
+                value = items[result]
+                if isinstance(value, str):
+                    if value not in decision_tree.keys():
+                        issues.append(
+                            f"Node {node} has an invalid destination "
+                            f"of {value} for the {result} condition"
+                        )
+                else:
+                    issues.append(
+                        f"Node {node} results in a bare category "
+                        f"of {value} for the {result} condition. Should point to a leaf."
+                    )
 
-        # Check probability thresholds are numeric and there are as many of them
-        # as there are diagnostics_fields.
-        prob_thresholds = items["probability_thresholds"]
-        diagnostic_fields = items["diagnostic_fields"]
-        if not all(isinstance(x, (int, float)) for x in prob_thresholds):
-            issues.append(
-                f"Node {node} has a non-numeric probability threshold "
-                f"{prob_thresholds}"
-            )
-        if not len(prob_thresholds) == len(get_parameter_names(diagnostic_fields)):
-            issues.append(
-                f"Node {node} has a different number of probability thresholds "
-                f"and diagnostic_fields: {prob_thresholds}, {diagnostic_fields}"
-            )
+            # Check diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds
+            # are all nested equivalently
+            if not _check_diagnostic_lists_consistency(items):
+                issues.append(
+                    f"Node {node} has inconsistent nesting for the "
+                    "diagnostic_fields, diagnostic_conditions, and "
+                    "diagnostic_thresholds fields"
+                )
+
+            # Check probability thresholds are numeric and there are as many of them
+            # as there are diagnostics_fields.
+            prob_thresholds = items["probability_thresholds"]
+            diagnostic_fields = items["diagnostic_fields"]
+            if not all(isinstance(x, (int, float)) for x in prob_thresholds):
+                issues.append(
+                    f"Node {node} has a non-numeric probability threshold "
+                    f"{prob_thresholds}"
+                )
+            if not len(prob_thresholds) == len(get_parameter_names(diagnostic_fields)):
+                issues.append(
+                    f"Node {node} has a different number of probability thresholds "
+                    f"and diagnostic_fields: {prob_thresholds}, {diagnostic_fields}"
+                )
 
     if not issues:
         issues.append("Decision tree OK\nRequired inputs are:")
