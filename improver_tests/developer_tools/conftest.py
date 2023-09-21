@@ -36,6 +36,7 @@ import iris
 import numpy as np
 import pytest
 
+from improver.categorical.utilities import weather_code_attributes
 from improver.developer_tools.metadata_interpreter import MOMetadataInterpreter
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
@@ -45,7 +46,6 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
-from improver.categorical.utilities import weather_code_attributes
 
 
 def _update_blended_time_coords(cube):
