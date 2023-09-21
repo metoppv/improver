@@ -35,8 +35,8 @@ from typing import Any, Dict
 
 import numpy as np
 
+from improver.categorical.utilities import weather_code_attributes
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.wxcode.utilities import weather_code_attributes
 
 
 def set_up_wxcube(

@@ -42,13 +42,7 @@ import pytest
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
-from improver.utilities.load import load_cube
-from improver.utilities.save import save_netcdf
-from improver.wxcode.utilities import (
+from improver.categorical.utilities import (
     WX_DICT,
     check_tree,
     expand_nested_lists,
@@ -58,8 +52,13 @@ from improver.wxcode.utilities import (
     update_tree_thresholds,
     weather_code_attributes,
 )
-
-from . import set_up_wxcube, wxcode_decision_tree
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_variable_cube,
+)
+from improver.utilities.load import load_cube
+from improver.utilities.save import save_netcdf
+from improver_tests.categorical.decision_tree import set_up_wxcube, wxcode_decision_tree
 
 
 class Test_wx_dict(IrisTest):
@@ -515,7 +514,7 @@ def modify_tree_fixture(node, key, value):
             "if_true",
             100,
             (
-                "Node lightning_shower results in an invalid weather code of 100 for the "
+                "Node lightning_shower results in an invalid category of 100 for the "
                 "if_true condition"
             ),
         ),
@@ -524,7 +523,7 @@ def modify_tree_fixture(node, key, value):
             "if_false",
             100,
             (
-                "Node lightning_shower results in an invalid weather code of 100 for the "
+                "Node lightning_shower results in an invalid category of 100 for the "
                 "if_false condition"
             ),
         ),

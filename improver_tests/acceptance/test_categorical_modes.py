@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,42 +28,63 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate modal weather symbols over periods."""
+"""Tests for the categorical-modes CLI"""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    *cubes: cli.inputcube, model_id_attr: str = None, record_run_attr: str = None
-):
-    """Generates a modal weather symbol for the period covered by the input
-    weather symbol cubes. Where there are different weather codes available
-    for night and day, the modal code returned is always a day code, regardless
-    of the times covered by the input files.
+@pytest.mark.parametrize(
+    "test_path",
+    [
+        "gridded_input",
+        "spot_input",
+        "gridded_ties",
+        "spot_ties",
+        "blend_mismatch_inputs",
+        "single_input",
+    ],
+)
+@pytest.mark.slow
+def test_expected(tmp_path, test_path):
+    """Test categorical wxcode modal calculation returns the expected results. The tests
+    are:
 
-    Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing weather symbols cubes that cover the period
-            over which a modal symbol is desired.
-        model_id_attr (str):
-            Name of attribute recording source models that should be
-            inherited by the output cube. The source models are expected as
-            a space-separated string.
-        record_run_attr:
-            Name of attribute used to record models and cycles used in
-            constructing the weather symbols.
-
-    Returns:
-        iris.cube.Cube:
-            A cube of modal weather symbols over a period.
+        - simple gridded / spot data input
+        - gridded / spot data input engineered to provide many ties that are
+          solved using grouping
+        - a night-time code test using spot data
+        - spot data where one input has a different blend-time to the rest
+        - a single input file rather than multiple
     """
-    from improver.wxcode.modal_code import ModalWeatherCode
+    kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = (kgo_dir).glob("202012*.nc")
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return ModalWeatherCode(
-        model_id_attr=model_id_attr, record_run_attr=record_run_attr,
-    )(cubes)
+def test_no_input(tmp_path):
+    """Test an exceptions is raised by the CLI if no cubes are provided."""
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(RuntimeError, match="Not enough input arguments*"):
+        run_cli(args)

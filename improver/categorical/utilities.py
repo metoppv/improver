@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""This module defines the utilities required for wxcode plugin """
+"""This module defines the utilities required for decision tree plugin """
 
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional
@@ -115,9 +115,9 @@ def update_tree_thresholds(
 
     Args:
         tree:
-            Weather symbols decision tree.
+            Decision tree.
         target_period:
-            The period in seconds that the weather symbol being produced should
+            The period in seconds that the categories being produced should
             represent. This should correspond with any period diagnostics, e.g.
             precipitation accumulation, being used as input. This is used to scale
             any threshold values that are defined with an associated period in
@@ -193,15 +193,15 @@ def expand_nested_lists(query: Dict[str, Any], key: str) -> List[Any]:
     return items
 
 
-def update_daynight(cubewx: Cube) -> Cube:
-    """ Update weather cube depending on whether it is day or night
+def update_daynight(cube: Cube) -> Cube:
+    """ Update category depending on whether it is day or night
 
     Args:
-        cubewx:
+        cube:
             Cube containing only daytime weather symbols.
 
     Returns:
-        Cube containing day and night weather symbols
+        Cube containing day and night categories
 
     Raises:
         CoordinateNotFoundError : cube must have time coordinate.
@@ -211,11 +211,11 @@ def update_daynight(cubewx: Cube) -> Cube:
 
     import improver.utilities.solar as solar
 
-    if not cubewx.coords("time"):
+    if not cube.coords("time"):
         msg = "cube must have time coordinate "
         raise CoordinateNotFoundError(msg)
 
-    cubewx_daynight = cubewx.copy()
+    cubewx_daynight = cube.copy()
     daynightplugin = solar.DayNightMask()
     daynight_mask = daynightplugin(cubewx_daynight)
 
@@ -223,8 +223,7 @@ def update_daynight(cubewx: Cube) -> Cube:
     # e.g. 1 - sunny day becomes 0 - clear night.
     for val in DAYNIGHT_CODES:
         index = np.where(cubewx_daynight.data == val)
-        # Where day leave as is, where night correct weather
-        # code to value  - 1.
+        # Where day leave as is, where night adjust category by negative 1.
         cubewx_daynight.data[index] = np.where(
             daynight_mask.data[index] == daynightplugin.day,
             cubewx_daynight.data[index],
@@ -234,7 +233,7 @@ def update_daynight(cubewx: Cube) -> Cube:
     return cubewx_daynight
 
 
-def interrogate_decision_tree(wxtree: Dict[str, Dict[str, Any]]) -> List[str]:
+def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
@@ -243,16 +242,16 @@ def interrogate_decision_tree(wxtree: Dict[str, Dict[str, Any]]) -> List[str]:
     the user of the necessary inputs for a provided decision tree.
 
     Args:
-        wxtree:
-            The weather symbol tree that is to be interrogated.
+        decision_tree:
+            The decision tree that is to be interrogated.
 
     Returns:
-        Returns a formatted string descring the diagnostics required,
+        Returns a formatted string describing the diagnostics required,
         including threshold details.
     """
     # Diagnostic names and threshold values.
     requirements = {}
-    for query in wxtree.values():
+    for query in decision_tree.values():
         diagnostics = get_parameter_names(
             expand_nested_lists(query, "diagnostic_fields")
         )
@@ -323,7 +322,7 @@ def _check_diagnostic_lists_consistency(query: Dict[str, Any]) -> bool:
 
     Args:
         query:
-            of weather-symbols decision-making information
+            of categorical decision-making information
     """
     diagnostic_keys = [
         "diagnostic_fields",
@@ -368,16 +367,16 @@ def _check_nested_list_consistency(query: List[List[Any]]) -> bool:
 
 
 def check_tree(
-    wxtree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
+    decision_tree: Dict[str, Dict[str, Any]], target_period: Optional[int] = None
 ) -> str:
     """Perform some checks to ensure the provided decision tree is valid.
 
     Args:
-        wxtree:
-            Weather symbols decision tree definition, provided as a
+        decision_tree:
+            Decision tree definition, provided as a
             dictionary.
         target_period:
-            The period in seconds that the weather symbol being produced should
+            The period in seconds that the categorical data being produced should
             represent. This should correspond with any period diagnostics, e.g.
             precipitation accumulation, being used as input. This is used to scale
             any threshold values that are defined with an associated period in
@@ -388,24 +387,24 @@ def check_tree(
         required input diagnostics.
 
     Raises:
-        ValueError: If wxtree is not a dictionary.
+        ValueError: If decision_tree is not a dictionary.
     """
     # Check tree is a dictionary
-    if not isinstance(wxtree, dict):
+    if not isinstance(decision_tree, dict):
         raise ValueError("Decision tree is not a dictionary")
 
     issues = []
-    start_node = list(wxtree.keys())[0]
+    start_node = list(decision_tree.keys())[0]
     all_targets = np.array(
-        [(n["if_true"], n["if_false"]) for n in wxtree.values()]
+        [(n["if_true"], n["if_false"]) for n in decision_tree.values()]
     ).flatten()
-    wxtree = update_tree_thresholds(wxtree, target_period)
+    decision_tree = update_tree_thresholds(decision_tree, target_period)
     valid_codes = list(WX_DICT.keys())
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
-    for node, items in wxtree.items():
+    for node, items in decision_tree.items():
         # Check the tree only contains expected keys
-        for entry in wxtree[node]:
+        for entry in decision_tree[node]:
             if entry not in all_key_words:
                 issues.append(f"Node {node} contains unknown key '{entry}'")
 
@@ -426,8 +425,8 @@ def check_tree(
 
         # Check that only permissible values are used in condition_combination
         # this will be AND / OR for multiple diagnostic fields, or blank otherwise
-        combination = wxtree[node]["condition_combination"]
-        num_diagnostics = len(wxtree[node]["diagnostic_fields"])
+        combination = decision_tree[node]["condition_combination"]
+        num_diagnostics = len(decision_tree[node]["diagnostic_fields"])
         if num_diagnostics == 2 and combination not in CONDITION_COMBINATIONS:
             issues.append(
                 f"Node {node} utilises 2 diagnostic fields but "
@@ -441,12 +440,12 @@ def check_tree(
             )
 
         # Check only permissible values are used in threshold_condition
-        threshold = wxtree[node]["threshold_condition"]
+        threshold = decision_tree[node]["threshold_condition"]
         if threshold not in THRESHOLD_CONDITIONS:
             issues.append(f"Node {node} uses invalid threshold condition {threshold}")
 
         # Check diagnostic_conditions are all above or below.
-        diagnostic = wxtree[node]["diagnostic_conditions"]
+        diagnostic = decision_tree[node]["diagnostic_conditions"]
         tests_diagnostic = diagnostic
         if isinstance(diagnostic[0], list):
             tests_diagnostic = [item for sublist in diagnostic for item in sublist]
@@ -457,12 +456,12 @@ def check_tree(
                     f"'{value}'; this should be 'above' or 'below'"
                 )
 
-        # Check the succeed and fail destinations are valid; that is valid
-        # weather codes for leaf nodes, and other tree nodes otherwise
+        # Check the succeed and fail destinations are valid; that is a valid
+        # category for leaf nodes, and other tree nodes otherwise
         for result in "if_true", "if_false":
-            value = wxtree[node][result]
+            value = decision_tree[node][result]
             if isinstance(value, str):
-                if value not in wxtree.keys():
+                if value not in decision_tree.keys():
                     issues.append(
                         f"Node {node} has an invalid destination "
                         f"of {value} for the {result} condition"
@@ -470,8 +469,8 @@ def check_tree(
             else:
                 if value not in valid_codes:
                     issues.append(
-                        f"Node {node} results in an invalid weather "
-                        f"code of {value} for the {result} condition"
+                        f"Node {node} results in an invalid category "
+                        f"of {value} for the {result} condition"
                     )
 
         # Check diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds
@@ -500,5 +499,5 @@ def check_tree(
 
     if not issues:
         issues.append("Decision tree OK\nRequired inputs are:")
-        issues.append(interrogate_decision_tree(wxtree))
+        issues.append(interrogate_decision_tree(decision_tree))
     return "\n".join(issues)

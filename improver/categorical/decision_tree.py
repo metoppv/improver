@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing weather symbol implementation."""
+"""Module containing categorical decision tree implementation."""
 
 
 import copy
@@ -48,6 +48,14 @@ from improver.blending.utilities import (
     record_run_coord_to_attr,
     store_record_run_as_coord,
 )
+from improver.categorical.utilities import (
+    expand_nested_lists,
+    get_parameter_names,
+    is_variable,
+    update_daynight,
+    update_tree_thresholds,
+    weather_code_attributes,
+)
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.forecast_times import forecast_period_coord
 from improver.metadata.probabilistic import (
@@ -58,14 +66,6 @@ from improver.metadata.probabilistic import (
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
-)
-from improver.wxcode.utilities import (
-    expand_nested_lists,
-    get_parameter_names,
-    is_variable,
-    update_daynight,
-    update_tree_thresholds,
-    weather_code_attributes,
 )
 
 
@@ -89,12 +89,13 @@ def _define_invertible_conditions() -> Dict[str, str]:
 INVERTIBLE_CONDITIONS = _define_invertible_conditions()
 
 
-class WeatherSymbols(BasePlugin):
+class ApplyDecisionTree(BasePlugin):
     """
-    Definition and implementation of a weather symbol decision tree. This
+    Definition and implementation of a categorical decision tree. This
     plugin uses a variety of diagnostic inputs and the decision tree logic
-    to determine the most representative weather symbol for each site
-    defined in the input cubes.
+    to determine the most representative category for each location
+    defined in the input cubes. This can be used for generating categorical data such
+    as weather symbols.
 
     .. See the documentation for information about building a decision tree.
     .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
@@ -102,20 +103,19 @@ class WeatherSymbols(BasePlugin):
 
     def __init__(
         self,
-        wxtree: dict,
+        decision_tree: dict,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
     ) -> None:
         """
-        Define a decision tree for determining weather symbols based upon
-        the input diagnostics. Use this decision tree to allocate a weather
-        symbol to each point.
+        Define a decision tree for determining a category based upon
+        the input diagnostics. Use this decision tree to allocate a category to each location.
 
         Args:
-            wxtree:
-                Weather symbols decision tree definition, provided as a
+            decision_tree:
+                Decision tree definition, provided as a
                 dictionary.
             model_id_attr:
                 Name of attribute recording source models that should be
@@ -123,9 +123,9 @@ class WeatherSymbols(BasePlugin):
                 a space-separated string.
             record_run_attr:
                 Name of attribute used to record models and cycles used in
-                constructing the weather symbols.
+                constructing the output.
             target_period:
-                The period in seconds that the weather symbol being produced should
+                The period in seconds that the category being produced should
                 represent. This should correspond with any period diagnostics, e.g.
                 precipitation accumulation, being used as input. This is used to scale
                 any threshold values that are defined with an associated period in
@@ -133,7 +133,7 @@ class WeatherSymbols(BasePlugin):
                 provided has threshold values defined with an associated period.
             title:
                 An optional title to assign to the title attribute of the resulting
-                weather symbol output. This will override the title generated from
+                output. This will override the title generated from
                 the inputs, where this generated title is only set if all of the
                 inputs share a common title.
 
@@ -146,10 +146,10 @@ class WeatherSymbols(BasePlugin):
 
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
-        self.start_node = list(wxtree.keys())[0]
+        self.start_node = list(decision_tree.keys())[0]
         self.target_period = target_period
         self.title = title
-        self.queries = update_tree_thresholds(wxtree, target_period)
+        self.queries = update_tree_thresholds(decision_tree, target_period)
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
@@ -158,7 +158,7 @@ class WeatherSymbols(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        return "<WeatherSymbols start_node={}>".format(self.start_node)
+        return "<ApplyDecisionTree start_node={}>".format(self.start_node)
 
     def prepare_input_cubes(
         self, cubes: CubeList
@@ -254,11 +254,7 @@ class WeatherSymbols(BasePlugin):
                     used_cubes.extend(matched_threshold)
 
         if missing_data:
-            msg = (
-                "Weather Symbols input cubes are missing"
-                " the following required"
-                " input fields:\n"
-            )
+            msg = "Decision Tree input cubes are missing the following required input fields:\n"
             dyn_msg = "name: {}, threshold: {}, " "spp__relative_to_threshold: {}\n"
             for item in missing_data:
                 msg = msg + dyn_msg.format(*item)
@@ -268,18 +264,18 @@ class WeatherSymbols(BasePlugin):
             optional_node_data_missing = None
         return used_cubes, optional_node_data_missing
 
-    def check_coincidence(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+    def check_coincidence(self, cubes: Union[List[Cube], CubeList]):
         """
         Check that all the provided cubes are valid at the same time and if any
         of the input cubes have time bounds, these match.
 
         The last input cube with bounds (or first input cube if none have bounds)
-        is selected as a template_cube for later producing the weather symbol
+        is selected as a template_cube for later producing the output
         cube.
 
         Args:
             cubes:
-                List of input cubes used to generate weather symbols
+                List of input cubes used in the decision tree
 
         Raises:
             ValueError: If validity times differ for diagnostics.
@@ -304,7 +300,7 @@ class WeatherSymbols(BasePlugin):
                 f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
             ]
             raise ValueError(
-                "Weather symbol input cubes are valid at different times; "
+                "Decision Tree input cubes are valid at different times; "
                 f"\n{diagnostic_times}"
             )
         # Check that if multiple bounds have been returned, they are all identical.
@@ -315,7 +311,7 @@ class WeatherSymbols(BasePlugin):
             ]
             raise ValueError(
                 "Period diagnostics with different periods have been provided "
-                "as input to the weather symbols code. Period diagnostics must "
+                "as input to the decision tree code. Period diagnostics must "
                 "all describe the same period to be used together."
                 f"\n{diagnostic_bounds}"
             )
@@ -508,13 +504,13 @@ class WeatherSymbols(BasePlugin):
                 The node name of the tree root (currently always
                 lightning).
             end:
-                The weather symbol code to which we are tracing all routes.
+                The category code to which we are tracing all routes.
             route:
                 A list of node names found so far.
 
         Returns:
             A list of node names that defines the route from the tree root
-            to the weather symbol leaf (end of chain).
+            to the category leaf (end of chain).
 
         References:
             Method based upon Python Patterns - Implementing Graphs essay
@@ -532,22 +528,22 @@ class WeatherSymbols(BasePlugin):
         routes = []
         for node in graph[start]:
             if node not in route:
-                newroutes = WeatherSymbols.find_all_routes(
+                newroutes = ApplyDecisionTree.find_all_routes(
                     graph, node, end, route=route
                 )
                 routes.extend(newroutes)
         return routes
 
-    def create_symbol_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+    def create_categorical_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
-        Create an empty weather symbol cube
+        Create an empty categorical cube
 
         Args:
             cubes:
-                List of input cubes used to generate weather symbols
+                List of input cubes used in the decision tree
 
         Returns:
-            A cube with suitable metadata to describe the weather symbols
+            A cube with suitable metadata to describe the categories
             that will fill it and data initiated with the value -1 to allow
             any unset points to be readily identified.
         """
@@ -652,7 +648,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             cubes:
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
+                decision tree, these at co-incident times.
             expression:
                 Defined recursively:
                 A list consisting of an iris.Constraint or a list of
@@ -721,7 +717,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             cubes:
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
+                decision tree, these at co-incident times.
             condition_chain:
                 A valid condition chain is defined recursively:
                 (1) If each a_1, ..., a_n is an extract expression (i.e. a
@@ -779,16 +775,15 @@ class WeatherSymbols(BasePlugin):
         return res
 
     def process(self, cubes: CubeList) -> Cube:
-        """Apply the decision tree to the input cubes to produce weather
-        symbol output.
+        """Apply the decision tree to the input cubes to produce categorical output.
 
         Args:
             cubes:
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
+                decision tree, these at co-incident times.
 
         Returns:
-            A cube of weather symbols.
+            A cube of categorical data.
         """
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
@@ -803,20 +798,18 @@ class WeatherSymbols(BasePlugin):
             key: [self.queries[key]["if_true"], self.queries[key]["if_false"]]
             for key in self.queries
         }
-        # Search through tree for all leaves (weather code end points)
-        defined_symbols = []
+        # Search through tree for all leaves (category end points)
+        defined_categories = []
         for item in self.queries.values():
             for value in item.values():
                 if isinstance(value, int):
-                    defined_symbols.append(value)
-        # Create symbol cube
-        symbols = self.create_symbol_cube(cubes)
-        # Loop over possible symbols
+                    defined_categories.append(value)
+        # Create categorical cube
+        categories = self.create_categorical_cube(cubes)
+        # Loop over possible categories
 
-        for symbol_code in defined_symbols:
-            # In current decision tree
-            # start node is lightning
-            routes = self.find_all_routes(graph, self.start_node, symbol_code,)
+        for category_code in defined_categories:
+            routes = self.find_all_routes(graph, self.start_node, category_code,)
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
@@ -826,7 +819,7 @@ class WeatherSymbols(BasePlugin):
                     try:
                         next_node = route[i_node + 1]
                     except KeyError:
-                        next_node = symbol_code
+                        next_node = category_code
 
                     if current["if_false"] == next_node:
 
@@ -839,10 +832,10 @@ class WeatherSymbols(BasePlugin):
                 test_chain = [conditions, "AND"]
 
                 # Set grid locations to suitable weather symbol
-                symbols.data[
+                categories.data[
                     np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
-                ] = symbol_code
+                ] = category_code
 
-        # Update symbols for day or night.
-        symbols = update_daynight(symbols)
-        return symbols
+        # Update categories for day or night where appropriate.
+        categories = update_daynight(categories)
+        return categories

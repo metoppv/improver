@@ -40,11 +40,10 @@ import pytest
 from iris.cube import CubeList
 
 from improver.blending import WEIGHT_FORMAT
+from improver.categorical.modal_code import ModalWeatherCode
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
-from improver.wxcode.modal_code import ModalWeatherCode
-
-from . import set_up_wxcube
+from improver_tests.categorical.decision_tree import set_up_wxcube
 
 MODEL_ID_ATTR = "mosg__model_configuration"
 RECORD_RUN_ATTR = "mosg__model_run"

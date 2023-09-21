@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wxcode CLI"""
+"""Tests for the categorical CLI"""
 import re
 
 import pytest
@@ -67,7 +67,7 @@ ALL_PARAMS = [
     ),
 )
 def test_basic(tmp_path, title_option, kgo):
-    """Test basic wxcode processing with and without a user defined title
+    """Test basic categorical wxcode processing with and without a user defined title
     attribute."""
     kgo_dir = acc.kgo_root() / "wxcode"
     kgo_path = kgo_dir / "basic" / f"{kgo}.nc"
@@ -78,7 +78,7 @@ def test_basic(tmp_path, title_option, kgo):
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
-        "--wxtree",
+        "--decision-tree",
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
@@ -96,7 +96,7 @@ def test_basic(tmp_path, title_option, kgo):
 
 @pytest.mark.slow
 def test_native_units(tmp_path):
-    """Test wxcode processing with non-SI units for threshold coordinates:
+    """Test categorical wxcode processing with non-SI units for threshold coordinates:
     precipitation: mm
     visibility: feet
     """
@@ -111,7 +111,7 @@ def test_native_units(tmp_path):
 
     args = [
         *param_paths,
-        "--wxtree",
+        "--decision-tree",
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
@@ -127,7 +127,7 @@ def test_native_units(tmp_path):
 
 
 def test_global(tmp_path):
-    """Test global wxcode processing"""
+    """Test global categorical wxcode processing"""
     kgo_dir = acc.kgo_root() / "wxcode"
     kgo_path = kgo_dir / "global" / "kgo.nc"
     params = [param for param in ALL_PARAMS if "hail" not in param]
@@ -138,7 +138,7 @@ def test_global(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
-        "--wxtree",
+        "--decision-tree",
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
@@ -152,7 +152,7 @@ def test_global(tmp_path):
 
 
 def test_insufficient_files(tmp_path):
-    """Test wxcode processing with insufficient files"""
+    """Test categorical processing with insufficient files"""
     kgo_dir = acc.kgo_root() / "wxcode"
     params = [
         "low_and_medium_type_cloud_area_fraction_above",
@@ -167,7 +167,7 @@ def test_insufficient_files(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
-        "--wxtree",
+        "--decision-tree",
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
@@ -181,8 +181,8 @@ def test_insufficient_files(tmp_path):
 
 
 @pytest.mark.slow
-def test_no_lightning(tmp_path):
-    """Test wxcode processing with no lightning"""
+def test_without_optional_input(tmp_path):
+    """Test categorical processing with an optional input absent"""
     kgo_dir = acc.kgo_root() / "wxcode"
     kgo_path = kgo_dir / "basic" / "kgo_no_lightning.nc"
     param_paths = [
@@ -194,7 +194,7 @@ def test_no_lightning(tmp_path):
     output_path = tmp_path / "output.nc"
     args = [
         *param_paths,
-        "--wxtree",
+        "--decision-tree",
         wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
@@ -208,7 +208,7 @@ def test_no_lightning(tmp_path):
 
 
 @pytest.mark.parametrize(
-    "wxtree,expected",
+    "decision_tree,expected",
     (
         ("wx_decision_tree.json", "Decision tree OK\nRequired inputs are:"),
         ("bad_wx_decision_tree.json", "Unreachable node 'unreachable'"),
@@ -218,7 +218,7 @@ def test_trees(wxtree, expected):
     """Test the check-tree option"""
     kgo_dir = acc.kgo_root() / "wxcode"
     args = [
-        "--wxtree",
+        "--decision-tree",
         kgo_dir / wxtree,
         "--check-tree",
         "--target-period",
