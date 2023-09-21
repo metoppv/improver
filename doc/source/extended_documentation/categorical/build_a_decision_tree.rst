@@ -1,12 +1,12 @@
-**Weather symbol decision trees**
+**Decision trees**
 
-Weather symbol decision trees use diagnostic fields to diagnose a suitable
-symbol to represent the weather conditions. The tree is comprised of a series
-of interconnected decision nodes. At each node one or multiple forecast
+Decision trees use diagnostic fields to diagnose a suitable category to represent
+the weather conditions, for a weather symbol for example. The tree is comprised
+of a series of interconnected decision nodes. At each node one or multiple forecast
 diagnostics are compared to predefined threshold values. The node has an if_true
-and if_false path on to the next node, or on to a resulting weather symbol. By
+and if_false path on to the next node, or on to a resulting category. By
 traversing the nodes it should be possible, given the right weather conditions,
-to arrive at any of the weather symbols.
+to arrive at any of the categories.
 
 The first few nodes of a decision tree are represented in the schematic below.
 

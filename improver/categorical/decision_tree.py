@@ -98,7 +98,7 @@ class ApplyDecisionTree(BasePlugin):
     as weather symbols.
 
     .. See the documentation for information about building a decision tree.
-    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
+    .. include:: extended_documentation/categorical/build_a_decision_tree.rst
     """
 
     def __init__(

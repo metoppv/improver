@@ -67,9 +67,9 @@ ALL_PARAMS = [
     ),
 )
 def test_basic(tmp_path, title_option, kgo):
-    """Test basic categorical wxcode processing with and without a user defined title
+    """Test basic categorical weather symbol processing with and without a user defined title
     attribute."""
-    kgo_dir = acc.kgo_root() / "wxcode"
+    kgo_dir = acc.kgo_root() / "categorical"
     kgo_path = kgo_dir / "basic" / f"{kgo}.nc"
     param_paths = [
         kgo_dir / "basic" / f"probability_of_{p}_threshold.nc" for p in ALL_PARAMS
@@ -96,11 +96,11 @@ def test_basic(tmp_path, title_option, kgo):
 
 @pytest.mark.slow
 def test_native_units(tmp_path):
-    """Test categorical wxcode processing with non-SI units for threshold coordinates:
+    """Test categorical weather symbol processing with non-SI units for threshold coordinates:
     precipitation: mm
     visibility: feet
     """
-    kgo_dir = acc.kgo_root() / "wxcode"
+    kgo_dir = acc.kgo_root() / "categorical"
     kgo_path = kgo_dir / "basic" / "kgo.nc"
     param_paths = [
         kgo_dir / "native_units" / f"probability_of_{p}_threshold.nc"
@@ -127,8 +127,8 @@ def test_native_units(tmp_path):
 
 
 def test_global(tmp_path):
-    """Test global categorical wxcode processing"""
-    kgo_dir = acc.kgo_root() / "wxcode"
+    """Test global categorical weather symbol processing"""
+    kgo_dir = acc.kgo_root() / "categorical"
     kgo_path = kgo_dir / "global" / "kgo.nc"
     params = [param for param in ALL_PARAMS if "hail" not in param]
     param_paths = [
@@ -153,7 +153,7 @@ def test_global(tmp_path):
 
 def test_insufficient_files(tmp_path):
     """Test categorical processing with insufficient files"""
-    kgo_dir = acc.kgo_root() / "wxcode"
+    kgo_dir = acc.kgo_root() / "categorical"
     params = [
         "low_and_medium_type_cloud_area_fraction_above",
         "low_type_cloud_area_fraction_above",
@@ -183,7 +183,7 @@ def test_insufficient_files(tmp_path):
 @pytest.mark.slow
 def test_without_optional_input(tmp_path):
     """Test categorical processing with an optional input absent"""
-    kgo_dir = acc.kgo_root() / "wxcode"
+    kgo_dir = acc.kgo_root() / "categorical"
     kgo_path = kgo_dir / "basic" / "kgo_no_lightning.nc"
     param_paths = [
         kgo_dir / "basic" / f"probability_of_{p}_threshold.nc"
@@ -216,7 +216,7 @@ def test_without_optional_input(tmp_path):
 )
 def test_trees(decision_tree, expected):
     """Test the check-tree option"""
-    kgo_dir = acc.kgo_root() / "wxcode"
+    kgo_dir = acc.kgo_root() / "categorical"
     args = [
         "--decision-tree",
         kgo_dir / decision_tree,

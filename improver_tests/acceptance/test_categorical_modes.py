@@ -52,8 +52,8 @@ run_cli = acc.run_cli(CLI)
 )
 @pytest.mark.slow
 def test_expected(tmp_path, test_path):
-    """Test categorical wxcode modal calculation returns the expected results. The tests
-    are:
+    """Test categorical modal calculation returns the expected results with weather symbol data.
+    The tests are:
 
         - simple gridded / spot data input
         - gridded / spot data input engineered to provide many ties that are
@@ -62,7 +62,7 @@ def test_expected(tmp_path, test_path):
         - spot data where one input has a different blend-time to the rest
         - a single input file rather than multiple
     """
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
+    kgo_dir = acc.kgo_root() / "categorical-modes" / test_path
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = (kgo_dir).glob("202012*.nc")
     output_path = tmp_path / "output.nc"
