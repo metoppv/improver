@@ -109,6 +109,7 @@ The first leaf node above is encoded as follows::
         "leaf": 29,
         "if_night": "Thunder_Shower_Night",
         "group": "convection",
+        "is_unreachable": True,
     },
   }
 
@@ -122,6 +123,8 @@ accessed with this key contains the following.
     time symbol is required.
   - **group** (str, optional): Indicates which group this leaf belongs to when
     determining the modal category.
+  - **is_unreachable** (bool): True for a leaf which needs including in the meta data but
+    cannot be reached.
 
 Every decision tree must have a starting node, and this is taken as the first
 node defined in the dictionary, or second if the first node is the meta node.
