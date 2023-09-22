@@ -65,9 +65,12 @@ def test_expected(tmp_path, test_path):
     kgo_dir = acc.kgo_root() / "categorical-modes" / test_path
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = (kgo_dir).glob("202012*.nc")
+    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
+        "--decision-tree",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--record-run-attr",
@@ -81,8 +84,11 @@ def test_expected(tmp_path, test_path):
 
 def test_no_input(tmp_path):
     """Test an exceptions is raised by the CLI if no cubes are provided."""
+    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
+        "--decision-tree",
+        wxtree,
         "--output",
         output_path,
     ]

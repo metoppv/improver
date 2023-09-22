@@ -37,7 +37,10 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, model_id_attr: str = None, record_run_attr: str = None
+    *cubes: cli.inputcube,
+    decision_tree: cli.inputjson = None,
+    model_id_attr: str = None,
+    record_run_attr: str = None,
 ):
     """Generates a modal category for the period covered by the input
     categorical cubes. Where there are different categories available
@@ -49,6 +52,8 @@ def process(
         cubes (iris.cube.CubeList):
             A cubelist containing categorical cubes that cover the period
             over which a modal category is desired.
+        decision_tree (dict):
+            A JSON file containing a decision tree definition.
         model_id_attr (str):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
@@ -59,13 +64,13 @@ def process(
 
     Returns:
         iris.cube.Cube:
-            A cube of modal weather symbols over a period.
+            A cube of modal categories over a period.
     """
-    from improver.categorical.modal_code import ModalWeatherCode
+    from improver.categorical.modal_code import ModalCategory
 
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return ModalWeatherCode(
-        model_id_attr=model_id_attr, record_run_attr=record_run_attr,
+    return ModalCategory(
+        decision_tree, model_id_attr=model_id_attr, record_run_attr=record_run_attr,
     )(cubes)

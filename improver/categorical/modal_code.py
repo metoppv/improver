@@ -51,7 +51,7 @@ from ..metadata.forecast_times import forecast_period_coord
 from .utilities import day_night_map
 
 
-class ModalWeatherCode(BasePlugin):
+class ModalCategory(BasePlugin):
     """Plugin that returns the modal code over the period spanned by the
     input data. In cases of a tie in the mode values, scipy returns the smaller
     value. The opposite is desirable in this case as the significance /
@@ -89,7 +89,7 @@ class ModalWeatherCode(BasePlugin):
         Args:
             decision_tree:
                 The decision tree used to generate the categories and which contains the
-                mapping of day and night categories and of category groupings
+                mapping of day and night categories and of category groupings.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as

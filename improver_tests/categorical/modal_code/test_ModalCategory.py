@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for ModalWeatherCode class."""
+"""Unit tests for ModalCategory class."""
 
 from calendar import timegm
 from datetime import datetime as dt
@@ -40,7 +40,7 @@ import pytest
 from iris.cube import CubeList
 
 from improver.blending import WEIGHT_FORMAT
-from improver.categorical.modal_code import ModalWeatherCode
+from improver.categorical.modal_code import ModalCategory
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver_tests.categorical.decision_tree import set_up_wxcube, wxcode_decision_tree
@@ -189,7 +189,7 @@ def wxcode_series_fixture(
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
-    result = ModalWeatherCode(wxcode_decision_tree())(wxcode_cubes)
+    result = ModalCategory(wxcode_decision_tree())(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
@@ -227,7 +227,7 @@ def test_metadata(wxcode_series):
     if record_run_attr:
         kwargs.update({"record_run_attr": RECORD_RUN_ATTR})
 
-    result = ModalWeatherCode(wxcode_decision_tree(), **kwargs)(wxcode_cubes)
+    result = ModalCategory(wxcode_decision_tree(), **kwargs)(wxcode_cubes)
 
     n_times = len(wxcode_cubes)
     expected_time = TARGET_TIME
@@ -291,4 +291,4 @@ def test_unmatching_bounds_exception(wxcode_series):
     with pytest.raises(
         ValueError, match="Input diagnostics do not have consistent periods."
     ):
-        ModalWeatherCode(wxcode_decision_tree())(wxcode_cubes)
+        ModalCategory(wxcode_decision_tree())(wxcode_cubes)
