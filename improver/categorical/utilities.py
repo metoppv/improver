@@ -388,6 +388,16 @@ def check_tree(
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
     all_leaf_key_words = LEAF_REQUIRED_KEY_WORDS + LEAF_OPTIONAL_KEY_WORDS
+
+    # Check that all leaves have a unique "leaf" value
+    all_leaves = [v["leaf"] for v in decision_tree.values() if "leaf" in v.keys()]
+    unique_leaves = set()
+    duplicates = [x for x in all_leaves if x in unique_leaves or unique_leaves.add(x)]
+    if duplicates:
+        issues.append(
+            f"These leaf categories are used more than once: {sorted(list(set(duplicates)))}"
+        )
+
     for node, items in decision_tree.items():
         if "leaf" in items.keys():
             # Check the leaf only contains expected keys
@@ -408,7 +418,8 @@ def check_tree(
             if not isinstance(leaf_target, int):
                 issues.append(f"Leaf '{node}' has non-int target: {leaf_target}")
 
-            # If leaf has "if_night", check it points to another leaf.
+            # If leaf has "if_night", check it points to another leaf
+            # AND that the other leaf does NOT have "if_night".
             if "if_night" in items.keys():
                 target = decision_tree.get(items["if_night"], None)
                 if not target:
@@ -418,6 +429,11 @@ def check_tree(
                 elif "leaf" not in target.keys():
                     issues.append(
                         f"Target '{items['if_night']}' of leaf '{node}' is not a leaf."
+                    )
+                elif "if_night" in target.keys():
+                    issues.append(
+                        f"Night target '{items['if_night']}' of leaf '{node}' "
+                        "also has a night target."
                     )
             # If leaf has "group", check the group contains at least two members.
             if "group" in items.keys():

@@ -532,18 +532,6 @@ def modify_tree_fixture(node, key, value):
         ("Thunder", "leaf", 10.2, "Leaf 'Thunder' has non-int target: 10.2",),
         (
             "Clear_Night",
-            "if_night",
-            "kittens",
-            "Leaf 'Clear_Night' does not point to a valid target (kittens).",
-        ),
-        (
-            "Clear_Night",
-            "if_night",
-            "lightning_shower",
-            "Target 'lightning_shower' of leaf 'Clear_Night' is not a leaf.",
-        ),
-        (
-            "Clear_Night",
             "pets",
             "kittens",
             "Leaf node 'Clear_Night' contains unknown key 'pets'",
@@ -641,6 +629,52 @@ def modify_tree_fixture(node, key, value):
 def test_check_tree(modify_tree, expected):
     """Test that the various possible decision tree problems are identified."""
     result = check_tree(modify_tree)
+    assert result == expected
+
+
+@pytest.mark.parametrize("node, key", (("Sunny_Day", "if_night"),))
+@pytest.mark.parametrize(
+    "value, expected",
+    (
+        ("kittens", "Leaf 'Sunny_Day' does not point to a valid target (kittens).",),
+        (
+            "Partly_Cloudy_Day",
+            "Night target 'Partly_Cloudy_Day' of leaf 'Sunny_Day' also has a night target.",
+        ),
+        (
+            "lightning_shower",
+            "Target 'lightning_shower' of leaf 'Sunny_Day' is not a leaf.",
+        ),
+    ),
+)
+def test_check_tree_if_night(modify_tree, expected):
+    """Test that the various possible decision tree problems related to if_night are identified.
+    These are separated out because we need to mark the night leaf as unreachable"""
+    modify_tree["Clear_Night"]["is_unreachable"] = True
+    result = check_tree(modify_tree)
+    assert result == expected
+
+
+@pytest.mark.parametrize(
+    "nodes, expected",
+    (
+        ({"Thunder": 28}, "These leaf categories are used more than once: [28]",),
+        (
+            {"Thunder": 28, "Thunder_Shower_Day": 28},
+            "These leaf categories are used more than once: [28]",
+        ),
+        (
+            {"Thunder": 28, "Heavy_Snow": 26},
+            "These leaf categories are used more than once: [26, 28]",
+        ),
+    ),
+)
+def test_check_tree_duplicate_leaves(nodes, expected):
+    """Test that the various possible leaf duplicates are identified."""
+    tree = wxcode_decision_tree()
+    for node, value in nodes.items():
+        tree[node]["leaf"] = value
+    result = check_tree(tree)
     assert result == expected
 
 
