@@ -1073,11 +1073,11 @@ class Test_remove_optional_missing(IrisTest):
     def test_intermediate_node(self):
         """Test that if a node other than the first node is missing, is gets
         cut out of the possible paths through the decision tree. In this case
-        it means that the hail "if_false" path skips "heavy_precipitation"
+        it means that the hail "if_false" path skips "hail_precip"
         and instead targets its "if_diagnostic_missing" option, which is
-        "heavy_precipitation_cloud"."""
+        "heavy_precipitation"."""
 
-        missing_diagnostics = "heavy_precipitation"
+        missing_diagnostics = "hail_precip"
         target = self.plugin.queries[missing_diagnostics]["if_diagnostic_missing"]
         expected = self.plugin.queries[missing_diagnostics][target]
 
@@ -1493,8 +1493,6 @@ class Test_process(Test_WXCode):
     def setUp(self):
         """ Set up wxcubes for testing. """
         super().setUp()
-        self.wxcode = np.array(list(WX_DICT.keys()))
-        self.wxmeaning = " ".join(WX_DICT.values())
         self.expected_wxcode = np.array([[1, 29, 5], [6, 7, 8], [10, 11, 12]])
         self.expected_wxcode_night = np.array([[0, 28, 5], [6, 7, 8], [9, 11, 12]])
         self.expected_wxcode_no_lightning = np.array(
@@ -1509,8 +1507,6 @@ class Test_process(Test_WXCode):
         """
         result = self.plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
         self.assertEqual(

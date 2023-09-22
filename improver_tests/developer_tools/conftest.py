@@ -320,7 +320,10 @@ def wxcode_fixture():
         "mosg__model_configuration": "uk_det uk_ens",
         "mosg__model_run": "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
     }
-    attributes.update(categorical_attributes(wxcode_decision_tree()))
+    decision_tree = wxcode_decision_tree()
+    attributes.update(
+        categorical_attributes(decision_tree, decision_tree["meta"]["name"])
+    )
     cube = set_up_variable_cube(
         data,
         name="weather_code",

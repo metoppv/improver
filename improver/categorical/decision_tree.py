@@ -49,12 +49,12 @@ from improver.blending.utilities import (
     store_record_run_as_coord,
 )
 from improver.categorical.utilities import (
+    categorical_attributes,
     expand_nested_lists,
     get_parameter_names,
     is_variable,
     update_daynight,
     update_tree_thresholds,
-    categorical_attributes,
 )
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.forecast_times import forecast_period_coord
@@ -145,10 +145,14 @@ class ApplyDecisionTree(BasePlugin):
 
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
-        self.start_node = list(decision_tree.keys())[0]
+        node_names = list(decision_tree.keys())
+        self.start_node = node_names[1] if node_names[0] == "meta" else node_names[0]
         self.target_period = target_period
         self.title = title
-        self.queries = update_tree_thresholds(decision_tree, target_period)
+        self.meta = decision_tree["meta"]
+        self.queries = update_tree_thresholds(
+            {k: v for k, v in decision_tree.items() if k != "meta"}, target_period
+        )
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
@@ -158,6 +162,20 @@ class ApplyDecisionTree(BasePlugin):
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<ApplyDecisionTree start_node={}>".format(self.start_node)
+
+    @staticmethod
+    def _is_decision_node(key: str, query: Dict) -> bool:
+        """
+        Args:
+            key:
+                Decision name ("meta" indicates a non-decision node)
+            query:
+                Dict where key "leaf" indicates a non-decision node
+
+        Returns:
+            True if query represents a decision node
+        """
+        return key != "meta" and "leaf" not in query.keys()
 
     def prepare_input_cubes(
         self, cubes: CubeList
@@ -192,6 +210,8 @@ class ApplyDecisionTree(BasePlugin):
         optional_node_data_missing = []
         missing_data = []
         for key, query in self.queries.items():
+            if not self._is_decision_node(key, query):
+                continue
             diagnostics = get_parameter_names(
                 expand_nested_lists(query, "diagnostic_fields")
             )
@@ -480,9 +500,9 @@ class ApplyDecisionTree(BasePlugin):
             alternative = self.queries[missing][target]
 
             for node, query in self.queries.items():
-                if query["if_true"] == missing:
+                if query.get("if_true", None) == missing:
                     query["if_true"] = alternative
-                if query["if_false"] == missing:
+                if query.get("if_false", None) == missing:
                     query["if_false"] = alternative
 
             if self.start_node == missing:
@@ -554,7 +574,7 @@ class ApplyDecisionTree(BasePlugin):
         mandatory_attributes = generate_mandatory_attributes(cubes)
         if self.title:
             mandatory_attributes.update({"title": self.title})
-        optional_attributes = categorical_attributes(self.queries)
+        optional_attributes = categorical_attributes(self.queries, self.meta["name"])
         if self.model_id_attr:
             optional_attributes.update(
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
@@ -565,7 +585,7 @@ class ApplyDecisionTree(BasePlugin):
             )
 
         symbols = create_new_diagnostic_cube(
-            "weather_code",
+            self.meta["name"],
             "1",
             template_cube,
             mandatory_attributes,
@@ -773,6 +793,14 @@ class ApplyDecisionTree(BasePlugin):
                 raise RuntimeError(msg)
         return res
 
+    def _day_night_map(self) -> Dict:
+        """Returns a dict showing which night values are linked to which day values"""
+        return {
+            v["leaf"]: self.queries[v["if_night"]]["leaf"]
+            for k, v in self.queries.items()
+            if "if_night" in v.keys()
+        }
+
     def process(self, cubes: CubeList) -> Cube:
         """Apply the decision tree to the input cubes to produce categorical output.
 
@@ -794,7 +822,9 @@ class ApplyDecisionTree(BasePlugin):
 
         # Construct graph nodes dictionary
         graph = {
-            key: [self.queries[key]["if_true"], self.queries[key]["if_false"]]
+            key: [self.queries[key]["leaf"]]
+            if "leaf" in self.queries[key].keys()
+            else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
             for key in self.queries
         }
         # Search through tree for all leaves (category end points)
@@ -820,14 +850,14 @@ class ApplyDecisionTree(BasePlugin):
                     except KeyError:
                         next_node = category_code
 
-                    if current["if_false"] == next_node:
+                    if current.get("if_false") == next_node:
 
                         (
                             current["threshold_condition"],
                             current["condition_combination"],
                         ) = self.invert_condition(current)
-
-                    conditions.append(self.create_condition_chain(current))
+                    if "leaf" not in current.keys():
+                        conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
 
                 # Set grid locations to suitable weather symbol
@@ -836,5 +866,5 @@ class ApplyDecisionTree(BasePlugin):
                 ] = category_code
 
         # Update categories for day or night where appropriate.
-        categories = update_daynight(categories)
+        categories = update_daynight(categories, self._day_night_map())
         return categories

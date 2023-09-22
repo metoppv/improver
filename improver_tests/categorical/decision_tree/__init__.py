@@ -68,13 +68,16 @@ def set_up_wxcube(
             cube of weather codes set to 1
             data shape (time_points, 16, 16)
     """
+    decision_tree = wxcode_decision_tree()
     kwargs = {
         "name": "weather_code",
         "units": 1,
         "time": time,
         "time_bounds": time_bounds,
         "frt": frt,
-        "attributes": categorical_attributes(wxcode_decision_tree()),
+        "attributes": categorical_attributes(
+            decision_tree, decision_tree["meta"]["name"]
+        ),
         "spatial_grid": "equalarea",
         "domain_corner": (0, -30000),
     }

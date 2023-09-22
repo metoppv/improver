@@ -2,15 +2,16 @@
 
 Decision trees use diagnostic fields to diagnose a suitable category to represent
 the weather conditions, for a weather symbol for example. The tree is comprised
-of a series of interconnected decision nodes. At each node one or multiple forecast
-diagnostics are compared to predefined threshold values. The node has an if_true
-and if_false path on to the next node, or on to a resulting category. By
-traversing the nodes it should be possible, given the right weather conditions,
-to arrive at any of the categories.
+of a series of interconnected decision nodes, leaf nodes and a stand-alone meta node.
+At each decision node one or multiple forecast diagnostics are compared to
+predefined threshold values. The decision node has an if_true and if_false path on
+to the next node. By traversing the nodes it should be possible, given the right
+weather conditions, to arrive at any of the leaf nodes, which describe the leaf
+name, code, and optional information for night-time and modal grouping.
 
 The first few nodes of a decision tree are represented in the schematic below.
 
-.. figure:: extended_documentation/wxcode/thunder_nodes.png
+.. figure:: extended_documentation/categorical/thunder_nodes.png
      :align: center
      :scale: 80 %
      :alt: Schematic of thundery nodes in a decision tree
@@ -26,7 +27,19 @@ forecast, proceed to the if_true node, else move to the if_false node.
 
 **Encoding a decision tree**
 
-The first node above is encoded as follows::
+The meta node provides the name to use for the metadata of the resulting cube and
+can be anywhere in the decision tree.
+This becomes the cube name and is also used for two attributes that describe the
+categorical data: **<name>** and **<name>_meaning**::
+
+  {
+    "meta": {
+        "name": "weather_code",
+    },
+  }
+
+
+The first decision node in the thundery nodes shown above is encoded as follows::
 
   {
     "lightning": {
@@ -48,14 +61,10 @@ The key at the first level, "lightning" in this case, names the node so that it
 can be targeted as an if_true or if_false destination from other nodes. The dictionary
 accessed with this key contains the essentials that make the node function.
 
-  - **if_true** (str or int): The next node to test if the condition in this
-    node is true. Alternatively this may be an integer number that identifies
-    which weather symbol has been reached; this is for the leaf (or final)
-    nodes in the tree.
-  - **if_false** (str or int): The next node to test if the condition in this node
-    is false. Alternatively this may be an integer number that identifies which
-    weather symbol has been reached; this is for the leaf (or final) nodes in
-    the tree.
+  - **if_true** (str): The next node if the condition in this
+    node is true.
+  - **if_false** (str): The next node if the condition in this node
+    is false.
   - **if_diagnostic_missing** (str, optional): If the expected
     diagnostic is not provided, should the tree proceed to the if_true or if_false
     node. This can be useful if the tree is to be applied to output from
@@ -93,8 +102,29 @@ accessed with this key contains the essentials that make the node function.
     against the spp__relative_to_threshold attribute of the threshold coordinate
     in the provided diagnostic.
 
+The first leaf node above is encoded as follows::
+
+  {
+    "Thunder_Shower_Day": {
+        "leaf": 29,
+        "if_night": "Thunder_Shower_Night",
+        "group": "convection",
+    },
+  }
+
+The key at the first level, "Thunder_Shower_Day" in this case, names the node so that it
+can be targeted as an if_true or if_false destination from decision nodes. The key
+also forms part of the metadata attribute defining the category meanings. The dictionary
+accessed with this key contains the following.
+
+  - **leaf** (int): The category code associated with this leaf
+  - **if_night** (str, optional): The alternate leaf node to be used when a night
+    time symbol is required.
+  - **group** (str, optional): Indicates which group this leaf belongs to when
+    determining the modal category.
+
 Every decision tree must have a starting node, and this is taken as the first
-node defined in the dictionary.
+node defined in the dictionary, or second if the first node is the meta node.
 
 Manipulation of the diagnostics is possible using the decision tree configuration
 to enable more complex comparisons. For example::

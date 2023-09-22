@@ -43,13 +43,13 @@ from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
 from improver.categorical.utilities import (
+    categorical_attributes,
     check_tree,
     expand_nested_lists,
     get_parameter_names,
     interrogate_decision_tree,
     update_daynight,
     update_tree_thresholds,
-    categorical_attributes,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -114,6 +114,7 @@ class Test_categorical_attributes(IrisTest):
         self.cube = add_coordinate(
             cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3],
         )
+        self.decision_tree = wxcode_decision_tree()
         self.wxcode = np.arange(31)
         self.wxmeaning = " ".join(
             [
@@ -161,13 +162,19 @@ class Test_categorical_attributes(IrisTest):
 
     def test_values(self):
         """Test attribute values are correctly set."""
-        result = categorical_attributes(wxcode_decision_tree())
+        result = categorical_attributes(
+            self.decision_tree, self.decision_tree["meta"]["name"]
+        )
         self.assertArrayEqual(result["weather_code"], self.wxcode)
         self.assertEqual(result["weather_code_meaning"], self.wxmeaning)
 
     def test_metadata_saves(self):
         """Test that the metadata saves as NetCDF correctly."""
-        self.cube.attributes.update(categorical_attributes(wxcode_decision_tree()))
+        self.cube.attributes.update(
+            categorical_attributes(
+                self.decision_tree, self.decision_tree["meta"]["name"]
+            )
+        )
         save_netcdf(self.cube, self.nc_file)
         result = load_cube(self.nc_file)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)

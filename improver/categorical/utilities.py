@@ -116,13 +116,15 @@ def update_tree_thresholds(
     return tree
 
 
-def categorical_attributes(decision_tree: Dict) -> Dict[str, Any]:
+def categorical_attributes(decision_tree: Dict, name: str) -> Dict[str, Any]:
     """
     Extracts leaf items from decision_tree and creates cube attributes from them.
 
     Args:
         decision_tree:
             Decision tree definition, provided as a dictionary.
+        name:
+            Name of the categorical variable
 
     Returns:
         Attributes defining category meanings.
@@ -130,7 +132,6 @@ def categorical_attributes(decision_tree: Dict) -> Dict[str, Any]:
     import numpy as np
 
     attributes = {}
-    name = decision_tree["meta"]["name"]
     leaves = {v["leaf"]: k for k, v in decision_tree.items() if "leaf" in v.keys()}
     as_sorted_dict = OrderedDict(sorted(leaves.items(), key=lambda k: k[0]))
 
