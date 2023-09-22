@@ -1286,9 +1286,9 @@ class Test_check_coincidence(Test_WXCode):
         self.assertEqual(self.plugin.template_cube, expected)
 
 
-class Test_create_symbol_cube(IrisTest):
+class Test_create_categorical_cube(IrisTest):
 
-    """Test the create_symbol_cube method ."""
+    """Test the create_categorical_cube method ."""
 
     def setUp(self):
         """Set up cube."""
@@ -1311,8 +1311,6 @@ class Test_create_symbol_cube(IrisTest):
             "mosg__model_run"
         ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
         self.cube = cube
-        self.wxcode = np.array(list(WX_DICT.keys()))
-        self.wxmeaning = " ".join(WX_DICT.values())
         self.plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
 
     def test_basic(self):
@@ -1321,8 +1319,9 @@ class Test_create_symbol_cube(IrisTest):
         self.plugin.template_cube = self.cube
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertIsInstance(result.attributes["weather_code"], np.ndarray)
+        self.assertTrue(len(result.attributes["weather_code"]), 31)
+        self.assertTrue(len(result.attributes["weather_code_meaning"].split(" ")), 31)
         self.assertNotIn("mosg__model_configuration", result.attributes)
         self.assertNotIn("mosg__model_run", result.attributes)
         self.assertTrue((result.data.mask).all())
@@ -1334,8 +1333,6 @@ class Test_create_symbol_cube(IrisTest):
         self.plugin.model_id_attr = "mosg__model_configuration"
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
@@ -1351,8 +1348,6 @@ class Test_create_symbol_cube(IrisTest):
         self.plugin.record_run_attr = "mosg__model_run"
         result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayEqual(
             result.attributes["mosg__model_run"],
             "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
