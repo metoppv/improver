@@ -542,6 +542,12 @@ def modify_tree_fixture(node, key, value):
             True,
             "Leaf 'Clear_Night' has 'is_unreachable' but can be reached.",
         ),
+        (
+            "Dust",
+            "is_unreachable",
+            None,
+            "Unreachable leaf 'Dust'. Add 'is_unreachable': True to suppress this issue.",
+        ),
         ("Mist", "group", None, "Leaf 'Fog' is in a group of 1 (visibility).",),
         (
             "sleet_in_vicinity_cloud",
