@@ -838,10 +838,7 @@ class ApplyDecisionTree(BasePlugin):
                 for i_node in range(len(route) - 1):
                     current_node = route[i_node]
                     current = copy.copy(self.queries[current_node])
-                    try:
-                        next_node = route[i_node + 1]
-                    except KeyError:
-                        next_node = category_code
+                    next_node = route[i_node + 1]
 
                     if current.get("if_false") == next_node:
 
