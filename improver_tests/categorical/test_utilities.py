@@ -50,6 +50,7 @@ from improver.categorical.utilities import (
     interrogate_decision_tree,
     update_daynight,
     update_tree_thresholds,
+    day_night_map,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -660,6 +661,22 @@ def test_check_tree_list_requirements():
     tree = wxcode_decision_tree()
     result = check_tree(tree)
     assert expected in result
+
+
+def test_day_night_map():
+    """
+    Check that the "if_night" keys are correctly followed
+    """
+    tree = {
+        "Clear_Night": {"leaf": 5},
+        "Sunny_Day": {"leaf": 1, "if_night": "Clear_Night"},
+        "Rainy": {"leaf": 10},
+        "Rain_Shower_Day": {"leaf": 6, "if_night": "Rain_Shower_Night"},
+        "Rain_Shower_Night": {"leaf": 7},
+    }
+    result = day_night_map(tree)
+    expected = {1: 5, 6: 7}
+    assert expected == result
 
 
 if __name__ == "__main__":
