@@ -45,12 +45,12 @@ from iris.tests import IrisTest
 from improver.categorical.utilities import (
     categorical_attributes,
     check_tree,
+    day_night_map,
     expand_nested_lists,
     get_parameter_names,
     interrogate_decision_tree,
     update_daynight,
     update_tree_thresholds,
-    day_night_map,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
