@@ -50,6 +50,7 @@ from improver.blending.utilities import (
 )
 from improver.categorical.utilities import (
     categorical_attributes,
+    day_night_map,
     expand_nested_lists,
     get_parameter_names,
     is_variable,
@@ -793,14 +794,6 @@ class ApplyDecisionTree(BasePlugin):
                 raise RuntimeError(msg)
         return res
 
-    def _day_night_map(self) -> Dict:
-        """Returns a dict showing which night values are linked to which day values"""
-        return {
-            v["leaf"]: self.queries[v["if_night"]]["leaf"]
-            for k, v in self.queries.items()
-            if "if_night" in v.keys()
-        }
-
     def process(self, cubes: CubeList) -> Cube:
         """Apply the decision tree to the input cubes to produce categorical output.
 
@@ -866,5 +859,5 @@ class ApplyDecisionTree(BasePlugin):
                 ] = category_code
 
         # Update categories for day or night where appropriate.
-        categories = update_daynight(categories, self._day_night_map())
+        categories = update_daynight(categories, day_night_map(self.queries))
         return categories

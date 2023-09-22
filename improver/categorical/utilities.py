@@ -530,3 +530,20 @@ def check_tree(
         issues.append("Decision tree OK\nRequired inputs are:")
         issues.append(interrogate_decision_tree(decision_tree))
     return "\n".join(issues)
+
+
+def day_night_map(decision_tree) -> Dict:
+    """Returns a dict showing which night values are linked to which day values
+
+    Args:
+        decision_tree:
+            Decision tree definition, provided as a dictionary.
+
+    Returns:
+        dict showing which night categories (values) are linked to which day categories (keys)
+    """
+    return {
+        v["leaf"]: decision_tree[v["if_night"]]["leaf"]
+        for k, v in decision_tree.items()
+        if "if_night" in v.keys()
+    }
