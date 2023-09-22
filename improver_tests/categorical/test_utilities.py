@@ -626,6 +626,15 @@ def modify_tree_fixture(node, key, value):
             "Unreachable node 'fog_conditions'",
         ),
         ("lightning", "kittens", 0, "Node lightning contains unknown key 'kittens'",),
+        (
+            "sleet_in_vicinity_cloud",
+            "if_false",
+            18,
+            (
+                "Node sleet_in_vicinity_cloud results in a bare category of 18 for the if_false "
+                "condition. Should point to a leaf."
+            ),
+        ),
     ),
 )
 def test_check_tree(modify_tree, expected):
