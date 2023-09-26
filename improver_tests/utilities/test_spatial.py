@@ -55,6 +55,7 @@ from improver.utilities.spatial import (
     distance_to_number_of_grid_cells,
     get_grid_y_x_values,
     lat_lon_determine,
+    maximum_in_height,
     number_of_grid_cells_to_distance,
     transform_grid_to_lat_lon,
     update_name_and_vicinity_coord,
@@ -643,3 +644,34 @@ def test_update_name_and_vicinity_coord(vicinity_radius, input_has_coord):
         assert coord_comment is None
     else:
         assert coord_comment == "Maximum"
+
+
+@pytest.mark.parametrize(
+    "lower_bound,upper_bound,expected",
+    (
+        (None, None, [300, 400, 300]),
+        (None, 200, [300, 400, 100]),
+        (250, None, [200, 300, 300]),
+        (50, 1000, [300, 400, 300]),
+    ),
+)
+def test_maximum_in_height(lower_bound, upper_bound, expected):
+    """Test that the maximum over the height coordinate is correctly calculated for
+    different combinations of upper and lower bounds."""
+
+    data = np.array(
+        [
+            [[100, 200, 100], [100, 200, 100]],
+            [[300, 400, 100], [300, 400, 100]],
+            [[200, 300, 300], [200, 300, 300]],
+        ]
+    )
+    cube = set_up_variable_cube(
+        data=data, name="wet_bulb_temperature", height_levels=[100, 200, 300]
+    )
+    result = maximum_in_height(
+        cube, lower_height_bound=lower_bound, upper_height_bound=upper_bound
+    )
+
+    assert np.allclose(result.data, [expected] * 2)
+    assert "maximum_wet_bulb_temperature_between" in result.name()
