@@ -42,8 +42,8 @@ def process(
     lower_height_bound: float = None,
     upper_height_bound: float = None,
 ):
-    """Calculate the maximum value over the height coordinate of a cube. If height bounds are specified
-    then the maximum value between these height levels is calculated.
+    """Calculate the maximum value over the height coordinate of a cube. If height bounds are
+    specified then the maximum value between these height levels is calculated.
 
     Args:
         cube (iris.cube.Cube):
