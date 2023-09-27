@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing a plugin to calculate the modal weather code in a period."""
+"""Module containing a plugin to calculate the modal category in a period."""
 
 from typing import Dict, Optional
 
@@ -52,27 +52,27 @@ from .utilities import day_night_map
 
 
 class ModalCategory(BasePlugin):
-    """Plugin that returns the modal code over the period spanned by the
+    """Plugin that returns the modal category over the period spanned by the
     input data. In cases of a tie in the mode values, scipy returns the smaller
     value. The opposite is desirable in this case as the significance /
-    importance of the weather codes generally increases with the value. To
-    achieve this the codes are subtracted from an arbitrarily larger
+    importance of the weather code categories generally increases with the value. To
+    achieve this the categories are subtracted from an arbitrarily larger
     number prior to calculating the mode, and this operation reversed in the
     final output.
 
-    If there are many different codes for a single point over the time
+    If there are many different categories for a single point over the time
     spanned by the input cubes it may be that the returned mode is not robust.
-    Given the preference to return more significant codes explained above,
-    a 12 hour period with 12 different codes, one of which is thunder, will
-    return a thunder code to describe the whole period. This is likely not a
+    Given the preference to return more significant categories explained above,
+    a 12 hour period with 12 different categories, one of which is severe, will
+    return that severe category to describe the whole period. This is likely not a
     good representation. In these cases grouping is used to try and select
-    a suitable weather code (e.g. a rain shower if the codes include a mix of
+    a suitable category (e.g. a rain shower if the codes include a mix of
     rain showers and dynamic rain) by providing a more robust mode. The lowest
     number (least significant) member of the group is returned as the code.
     Use of the least significant member reflects the lower certainty in the
     forecasts.
 
-    Where there are different weather codes available for night and day, the
+    Where there are different categories available for night and day, the
     modal code returned is always a day code, regardless of the times
     covered by the input files.
     """
@@ -96,7 +96,7 @@ class ModalCategory(BasePlugin):
                 a space-separated string.
             record_run_attr:
                 Name of attribute used to record models and cycles used in
-                constructing the weather symbols.
+                constructing the categories.
         """
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
         self.decision_tree = decision_tree
@@ -115,12 +115,12 @@ class ModalCategory(BasePlugin):
 
     def _unify_day_and_night(self, cube: Cube):
         """Remove distinction between day and night codes so they can each
-        contribute when calculating the modal code. The cube of weather
-        codes is modified in place with all night codes made into their
+        contribute when calculating the modal code. The cube of categorical data
+        is modified in place with all night codes made into their
         daytime equivalents.
 
         Args:
-            A cube of weather codes.
+            A cube of categorical data
         """
         for day, night in self.day_night_map.items():
             cube.data[cube.data == night] = day
@@ -136,9 +136,9 @@ class ModalCategory(BasePlugin):
 
     def _group_codes(self, modal: Cube, cube: Cube):
         """In instances where the mode returned is not significant, i.e. the
-        weather code chosen occurs infrequently in the period, the codes can be
+        category chosen occurs infrequently in the period, the codes can be
         grouped to yield a more definitive period code. Given the uncertainty,
-        the least significant weather type (lowest number in a group that is
+        the least significant category (lowest number in a group that is
         found in the data) is used to replace the other data values that belong
         to that group prior to recalculating the modal code.
 
@@ -146,7 +146,7 @@ class ModalCategory(BasePlugin):
 
         Args:
             modal:
-                The modal weather code cube which contains UNSET_CODE_INDICATOR
+                The modal categorical cube which contains UNSET_CODE_INDICATOR
                 values that need to be replaced with a more definitive period
                 code.
             cube:
@@ -218,18 +218,18 @@ class ModalCategory(BasePlugin):
             cube.replace_coord(new_coord)
 
     def process(self, cubes: CubeList) -> Cube:
-        """Calculate the modal weather code, with handling for edge cases.
+        """Calculate the modal categorical code, with handling for edge cases.
 
         Args:
             cubes:
-                A list of weather code cubes at different times. A modal
+                A list of categorical cubes at different times. A modal
                 code will be calculated over the time coordinate to return
-                the most comon code, which is taken to be the best
+                the most common code, which is taken to be the best
                 representation of the whole period.
 
         Returns:
-            A single weather code cube with time bounds that span those of
-            the input weather code cubes.
+            A single categorical cube with time bounds that span those of
+            the input categorical cubes.
         """
         # Store the information for the record_run attribute on the cubes.
         if self.record_run_attr and self.model_id_attr:

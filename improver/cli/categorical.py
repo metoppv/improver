@@ -53,7 +53,8 @@ def process(
             A cubelist containing the diagnostics required for the
             decision tree, these at co-incident times.
         decision_tree (dict):
-            A JSON file containing a decision tree definition.
+            A JSON file containing a decision tree definition. Full information on decision
+            trees can be found in improver.categorical.decision_tree.
         model_id_attr (str):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as

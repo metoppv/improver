@@ -167,6 +167,10 @@ class ApplyDecisionTree(BasePlugin):
     @staticmethod
     def _is_decision_node(key: str, query: Dict) -> bool:
         """
+        Determine whether a given node is a decision node.
+        The meta node has a key of "meta", leaf nodes have a query key of "leaf", everything
+        else is a decision node.
+
         Args:
             key:
                 Decision name ("meta" indicates a non-decision node)
@@ -500,7 +504,7 @@ class ApplyDecisionTree(BasePlugin):
             target = self.queries[missing]["if_diagnostic_missing"]
             alternative = self.queries[missing][target]
 
-            for node, query in self.queries.items():
+            for query in self.queries.values():
                 if query.get("if_true", None) == missing:
                     query["if_true"] = alternative
                 if query.get("if_false", None) == missing:
@@ -556,7 +560,12 @@ class ApplyDecisionTree(BasePlugin):
 
     def create_categorical_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
-        Create an empty categorical cube
+        Create an empty categorical cube taking the cube name and categorical attribute names
+        from the meta node, and categorical attribute values from the leaf nodes.
+        The reference time is the latest from the set of input cubes and the optional record
+        run attribute is a combination from all source cubes. Everything else comes from the
+        template cube, which is the first cube with time bounds, or the first cube if none
+        have time bounds.
 
         Args:
             cubes:

@@ -1,7 +1,7 @@
 **Decision trees**
 
 Decision trees use diagnostic fields to diagnose a suitable category to represent
-the weather conditions, for a weather symbol for example. The tree is comprised
+the weather conditions, such as a weather symbol. The tree is comprised
 of a series of interconnected decision nodes, leaf nodes and a stand-alone meta node.
 At each decision node one or multiple forecast diagnostics are compared to
 predefined threshold values. The decision node has an if_true and if_false path on
@@ -28,7 +28,7 @@ forecast, proceed to the if_true node, else move to the if_false node.
 **Encoding a decision tree**
 
 The meta node provides the name to use for the metadata of the resulting cube and
-can be anywhere in the decision tree.
+can be anywhere in the decision tree, but must have "meta" as its key.
 This becomes the cube name and is also used for two attributes that describe the
 categorical data: **<name>** and **<name>_meaning**::
 
@@ -125,6 +125,9 @@ accessed with this key contains the following.
     determining the modal category.
   - **is_unreachable** (bool): True for a leaf which needs including in the meta data but
     cannot be reached.
+
+The modal category also relies on the severity of symbols generally increasing with
+the category value, so that in the case of ties, the more severe category is selected.
 
 Every decision tree must have a starting node, and this is taken as the first
 node defined in the dictionary, or second if the first node is the meta node.
