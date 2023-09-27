@@ -705,3 +705,54 @@ def add_coordinate_to_cube(
     output_cube.transpose(final_dim_order)
 
     return output_cube
+
+def maximum_in_height(
+    cube: Cube, lower_height_bound: float = None, upper_height_bound: float = None
+) -> Cube:
+    """Calculate the maximum value over the height coordinate. If bounds are specified
+    then the maximum value between the lower_height_bound and upper_height_bound is calculated.
+
+    If either the upper or lower bound is None then no bound is applied. For example if no
+    lower bound is provided but an upper bound of 300m is provided then the maximum is
+    calculated for all height levels less than 300m.
+
+    Args:
+        cube:
+            A cube with a height coordinate.
+        lower_height_bound:
+            The lower bound for the height coordinate. This is either a float or None if no
+            lower bound is desired. Any specified bounds should have the same units as the
+            height coordinate of cube.
+        upper_height_bound:
+            The upper bound for the height coordinate. This is either a float or None if no
+            upper bound is desired. Any specified bounds should have the same units as the
+            height coordinate of cube.
+    Returns:
+        A cube of the maximum value over the height coordinate or maximum value between the desired
+        height values. This cube inherits Iris' meta-data updates to the height coordinate and to the
+        cell methods
+    """
+    cube_name = cube.name()
+    height_levels = cube.coord("height").points
+
+    # replace None in bounds with a numerical value either below or above the range of height
+    # levels in the cube so it can be used as a constraint.
+    if lower_height_bound is None:
+        lower_height_bound = min(height_levels)
+    if upper_height_bound is None:
+        upper_height_bound = max(height_levels)
+
+    height_constraint = iris.Constraint(
+        height=lambda height: lower_height_bound <= height <= upper_height_bound
+    )
+    cube_subsetted = cube.extract(height_constraint)
+
+    if len(cube_subsetted.coord("height").points) > 1:
+        max_cube = cube_subsetted.collapsed("height", iris.analysis.MAX)
+    else:
+        max_cube = cube_subsetted
+
+    max_cube.rename(
+        f"maximum_{cube_name}_between_{lower_height_bound}m_and_{upper_height_bound}m"
+    )
+    return max_cube

@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,41 +28,44 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate the maximum over the height coordinate"""
+"""
+Unit tests for the function "cube_manipulation.maximum_in_height".
+"""
 
-from improver import cli
+import pytest
+import numpy as np
 
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_variable_cube,
+)
+from improver.utilities.cube_manipulation import maximum_in_height
 
-@cli.clizefy
-@cli.with_output
-def process(
-    cube: cli.inputcube,
-    *,
-    lower_height_bound: float = None,
-    upper_height_bound: float = None,
-):
-    """Calculate the maximum value over the height coordinate of a cube. If height bounds are
-    specified then the maximum value between these height levels is calculated.
+@pytest.mark.parametrize(
+    "lower_bound,upper_bound,expected",
+    (
+        (None, None, [300, 400, 300]),
+        (None, 200, [300, 400, 100]),
+        (250, None, [200, 300, 300]),
+        (50, 1000, [300, 400, 300]),
+    ),
+)
+def test_maximum_in_height(lower_bound, upper_bound, expected):
+    """Test that the maximum over the height coordinate is correctly calculated for
+    different combinations of upper and lower bounds."""
 
-    Args:
-        cube (iris.cube.Cube):
-            A cube with a height coordinate.
-        lower_height_bound (float):
-            The lower bound for the height coordinate. This is either a float or None if no lower
-            bound is desired. Any specified bounds should have the same units as the height
-            coordinate of cube.
-        upper_height_bound (float):
-            The upper bound for the height coordinate. This is either a float or None if no upper
-            bound is desired. Any specified bounds should have the same units as the height
-            coordinate of cube.
-    Returns:
-        A cube of the maximum value over the height coordinate or maximum value between the provided
-        height bounds."""
-
-    from improver.utilities.cube_manipulation import maximum_in_height
-
-    return maximum_in_height(
-        cube,
-        lower_height_bound=lower_height_bound,
-        upper_height_bound=upper_height_bound,
+    data = np.array(
+        [
+            [[100, 200, 100], [100, 200, 100]],
+            [[300, 400, 100], [300, 400, 100]],
+            [[200, 300, 300], [200, 300, 300]],
+        ]
     )
+    cube = set_up_variable_cube(
+        data=data, name="wet_bulb_temperature", height_levels=[100, 200, 300]
+    )
+    result = maximum_in_height(
+        cube, lower_height_bound=lower_bound, upper_height_bound=upper_bound
+    )
+
+    assert np.allclose(result.data, [expected] * 2)
+    assert "maximum_wet_bulb_temperature_between" in result.name()
