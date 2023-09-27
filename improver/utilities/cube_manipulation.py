@@ -730,8 +730,8 @@ def maximum_in_height(
             height coordinate of cube.
     Returns:
         A cube of the maximum value over the height coordinate or maximum value between the desired
-        height values. This cube inherits Iris' meta-data updates to the height coordinate and to the
-        cell methods
+        height values. This cube inherits Iris' meta-data updates to the height coordinate and to
+        the cell methods.
     """
     cube_name = cube.name()
     height_levels = cube.coord("height").points

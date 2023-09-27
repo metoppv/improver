@@ -32,8 +32,8 @@
 Unit tests for the function "cube_manipulation.maximum_in_height".
 """
 
-import pytest
 import numpy as np
+import pytest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import maximum_in_height
