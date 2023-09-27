@@ -706,6 +706,7 @@ def add_coordinate_to_cube(
 
     return output_cube
 
+
 def maximum_in_height(
     cube: Cube, lower_height_bound: float = None, upper_height_bound: float = None
 ) -> Cube:
