@@ -139,7 +139,10 @@ class SpotExtraction(BasePlugin):
             return (unique_id_coord.points, unique_id_coord.name())
 
     def get_aux_coords(
-        self, diagnostic_cube: Cube, x_indices: ndarray, y_indices: ndarray,
+        self,
+        diagnostic_cube: Cube,
+        x_indices: ndarray,
+        y_indices: ndarray,
     ) -> Tuple[List[AuxCoord], List[AuxCoord]]:
         """
         Extract scalar and non-scalar auxiliary coordinates from the diagnostic

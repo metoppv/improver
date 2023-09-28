@@ -275,7 +275,7 @@ class Test_process(Test_SpotLapseRateAdjust):
 
     def test_probability_cube(self):
         """Ensure that the plugin exits with value error if the spot data cube
-        is in probability space. """
+        is in probability space."""
 
         diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
         data = np.ones((3, 3, 3), dtype=np.float32)

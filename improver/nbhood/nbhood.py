@@ -120,7 +120,9 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
     """
 
     def __init__(
-        self, radii: Union[float, List[float]], lead_times: Optional[List] = None,
+        self,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
     ) -> None:
         """
         Create a base neighbourhood processing plugin that processes radii
@@ -338,7 +340,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         return data.astype(out_data_dtype)
 
     def _do_nbhood_sum(
-        self, data: np.ndarray, max_extreme: Optional[np.ndarray] = None,
+        self,
+        data: np.ndarray,
+        max_extreme: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """Calculate the sum-in-area from an array.
         As this can be expensive, the method first checks for the extreme cases where the data are:

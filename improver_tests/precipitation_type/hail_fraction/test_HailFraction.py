@@ -174,10 +174,12 @@ def test_basic(
     )
     hail_size.data = np.full_like(hail_size.data, hail_size_value)
     cloud_condensation_level.data = np.full_like(
-        cloud_condensation_level.data, cloud_condensation_level_value,
+        cloud_condensation_level.data,
+        cloud_condensation_level_value,
     )
     convective_cloud_top.data = np.full_like(
-        convective_cloud_top.data, convective_cloud_top_value,
+        convective_cloud_top.data,
+        convective_cloud_top_value,
     )
     hail_melting_level.data = np.full_like(
         hail_melting_level.data, hail_melting_level_value

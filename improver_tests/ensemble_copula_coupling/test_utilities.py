@@ -167,8 +167,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         self.assertEqual(result.units, Unit("1"))
 
     def test_many_percentiles(self):
-        """Test that the plugin returns an Iris.cube.Cube with many percentiles.
-        """
+        """Test that the plugin returns an Iris.cube.Cube with many percentiles."""
         percentiles = np.linspace(0, 100, 100)
         cube_data = np.zeros(
             [

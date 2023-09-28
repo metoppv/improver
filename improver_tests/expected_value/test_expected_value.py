@@ -181,7 +181,10 @@ def test_process_threshold_bounded(single_bounded_threshold_cube):
     """Check expected value of a below bounded distribution eg. precipitation."""
     expval = ExpectedValue().process(single_bounded_threshold_cube)
     np.testing.assert_allclose(
-        expval.data[0], [0.0, 0.01, 3.985], rtol=0, atol=1e-6,
+        expval.data[0],
+        [0.0, 0.01, 3.985],
+        rtol=0,
+        atol=1e-6,
     )
 
 
@@ -192,7 +195,8 @@ def test_process_threshold_abovebelow(threshold_cube):
     threshold_cube_airtemp = threshold_cube.coord("air_temperature")
     threshold_below_cube_airtemp = threshold_below_cube.coord("air_temperature")
     np.testing.assert_array_equal(
-        threshold_cube_airtemp.points, threshold_below_cube_airtemp.points,
+        threshold_cube_airtemp.points,
+        threshold_below_cube_airtemp.points,
     )
     assert (
         threshold_cube_airtemp.attributes["spp__relative_to_threshold"]

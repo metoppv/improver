@@ -353,7 +353,11 @@ def test_process_lat_lon(target_grid, surface_altitude):
     accumulation_period = 24
 
     # Check that default behaviour results in cube with altitude for z-coord.
-    result = GenerateClearskySolarRadiation()(target_grid, time, accumulation_period,)
+    result = GenerateClearskySolarRadiation()(
+        target_grid,
+        time,
+        accumulation_period,
+    )
     assert np.isclose(result.coord("altitude").points[0], 0.0)
 
     # Check cube has same spatial coords as target_grid
@@ -381,7 +385,9 @@ def test_process_equal_area(target_grid_equal_area):
 
     # Check that default behaviour results in cube with altitude for z-coord.
     result = GenerateClearskySolarRadiation()(
-        target_grid_equal_area, time, accumulation_period,
+        target_grid_equal_area,
+        time,
+        accumulation_period,
     )
     # Check cube has same spatial coords as target_grid
     assert result.coords(dim_coords=True) == target_grid_equal_area.coords(

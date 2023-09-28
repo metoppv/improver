@@ -42,7 +42,7 @@ class Test_interpolate_missing_data(IrisTest):
     """Test the interpolate_missing_data method"""
 
     def setUp(self):
-        """ Set up arrays for testing."""
+        """Set up arrays for testing."""
         self.data = np.array([[1.0, 1.0, 2.0], [1.0, np.nan, 2.0], [1.0, 2.0, 2.0]])
         self.limit_data = np.full((3, 3), 3.0)
         self.valid_data = np.full((3, 3), True)

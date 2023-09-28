@@ -43,7 +43,9 @@ from improver.metadata.utilities import (
 
 
 def calculate_uv_index(
-    uv_downward: Cube, scale_factor: float = 3.6, model_id_attr: Optional[str] = None,
+    uv_downward: Cube,
+    scale_factor: float = 3.6,
+    model_id_attr: Optional[str] = None,
 ) -> Cube:
     """
     A plugin to calculate the uv index using radiation flux in UV downward

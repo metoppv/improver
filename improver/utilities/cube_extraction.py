@@ -318,14 +318,16 @@ class ExtractPressureLevel(BasePlugin):
     """
 
     def __init__(
-        self, positive_correlation: bool, value_of_pressure_level: float,
+        self,
+        positive_correlation: bool,
+        value_of_pressure_level: float,
     ):
         """Sets up Class
-            Args:
-                positive_correlation:
-                    Set to True when the variable generally increases as pressure increases
-                value_of_pressure_level:
-                    The value of the input cube for which the pressure level is required
+        Args:
+            positive_correlation:
+                Set to True when the variable generally increases as pressure increases
+            value_of_pressure_level:
+                The value of the input cube for which the pressure level is required
         """
 
         self.positive_correlation = positive_correlation
@@ -364,8 +366,7 @@ class ExtractPressureLevel(BasePlugin):
 
         Args:
             cube:
-                Cube of variable on pressure levels (3D) (modified in-place).
-"""
+                Cube of variable on pressure levels (3D) (modified in-place)."""
         if np.isfinite(cube.data).all() and not np.ma.is_masked(cube.data):
             return
         data = np.ma.masked_invalid(cube.data)
@@ -422,7 +423,9 @@ class ExtractPressureLevel(BasePlugin):
             p_slice = [slice(None)] * data.ndim
             p_slice[pressure_axis] = slice(p, p + 1)
             data[p_slice] = np.ma.where(
-                data.mask[p_slice], data[last_p_slice] + local_increment, data[p_slice],
+                data.mask[p_slice],
+                data[last_p_slice] + local_increment,
+                data[p_slice],
             )
             last_p_slice = p_slice
 
@@ -469,7 +472,9 @@ class ExtractPressureLevel(BasePlugin):
         )
         # Now fill in remaining missing values which should be at the minimum end:
         pressure_of_variable = np.where(
-            pressure_of_variable.mask, min_pressure, pressure_of_variable,
+            pressure_of_variable.mask,
+            min_pressure,
+            pressure_of_variable,
         )
         return pressure_of_variable
 

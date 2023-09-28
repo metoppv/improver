@@ -224,8 +224,8 @@ class Test_construct_scalar_time_coords(IrisTest):
             )
 
     def test_error_no_reference_time(self):
-        """Test an error is raised if neither a forecast reference time nor blend time are supplied
-        """
+        """Test an error is raised if neither a forecast reference time nor blend time
+        are supplied"""
         msg = (
             "Cannot create forecast_period without either a forecast reference time "
             "or a blend time."
@@ -441,7 +441,7 @@ class Test_set_up_variable_cube(IrisTest):
             )
 
     def test_realizations_from_data_height_levels(self):
-        """ Tests realizations from data and height coordinates added """
+        """Tests realizations from data and height coordinates added"""
         height_levels = [1.5, 3.0, 4.5]
         data_4d = np.array([self.data_3d, self.data_3d])
         result = set_up_variable_cube(data_4d, height_levels=height_levels)
@@ -454,7 +454,7 @@ class Test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord_dims("longitude"), (3,))
 
     def test_realizations_height_levels(self):
-        """ Tests realizations and height coordinates added """
+        """Tests realizations and height coordinates added"""
         realizations = [0, 3]
         height_levels = [1.5, 3.0, 4.5]
         data_4d = np.array([self.data_3d, self.data_3d])
@@ -472,7 +472,7 @@ class Test_set_up_variable_cube(IrisTest):
         self.assertEqual(result.coord_dims("longitude"), (3,))
 
     def test_error_no_height_levels_4d_data(self):
-        """ Tests error is raised if 4d data provided but not height_levels """
+        """Tests error is raised if 4d data provided but not height_levels"""
         data_4d = np.array([self.data_3d, self.data_3d])
         msg = "Height levels must be provided if data has 4 dimensions."
         with self.assertRaisesRegex(ValueError, msg):
@@ -726,7 +726,8 @@ class Test_set_up_probability_cube(IrisTest):
         self.assertEqual(thresh_coord.units, "K")
         self.assertEqual(len(thresh_coord.attributes), 1)
         self.assertEqual(
-            thresh_coord.attributes["spp__relative_to_threshold"], "greater_than",
+            thresh_coord.attributes["spp__relative_to_threshold"],
+            "greater_than",
         )
         check_mandatory_standards(result)
 
@@ -771,7 +772,9 @@ class Test_set_up_probability_cube(IrisTest):
     def test_vicinity_cube(self):
         """Test an in-vicinity cube gets the correct name and threshold coordinate"""
         result = set_up_probability_cube(
-            self.data, self.thresholds, variable_name="air_temperature_in_vicinity",
+            self.data,
+            self.thresholds,
+            variable_name="air_temperature_in_vicinity",
         )
         thresh_coord = find_threshold_coordinate(result)
         self.assertEqual(

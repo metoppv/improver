@@ -388,8 +388,7 @@ def with_output(
 
 
 def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
-    """Decorator for creating CLI objects.
-    """
+    """Decorator for creating CLI objects."""
     if obj is None:
         return partial(clizefy, helper_class=helper_class, **kwargs)
     if hasattr(obj, "cli"):

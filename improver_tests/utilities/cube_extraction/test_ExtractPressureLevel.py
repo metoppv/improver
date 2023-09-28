@@ -211,7 +211,10 @@ def test_basic(
 )
 @pytest.mark.parametrize("special_value", (np.nan, True, np.inf))
 def test_only_one_point(
-    temperature_on_pressure_levels, index, expected, special_value,
+    temperature_on_pressure_levels,
+    index,
+    expected,
+    special_value,
 ):
     """Tests the ExtractPressureLevel plugin with the unusual case that only one layer has
     a valid value.

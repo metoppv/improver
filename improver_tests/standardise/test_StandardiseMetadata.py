@@ -148,7 +148,9 @@ class Test_process(IrisTest):
             iris.coords.CellMethod(method="point", coords="time"),
             iris.coords.CellMethod(method="max", coords="realization"),
         ]
-        result = self.plugin.process(cube,)
+        result = self.plugin.process(
+            cube,
+        )
         self.assertEqual(
             result.cell_methods,
             (iris.coords.CellMethod(method="max", coords="realization"),),

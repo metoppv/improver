@@ -80,7 +80,7 @@ class Test__calc_lapse_rate(IrisTest):
         self.land_sea_mask = ~np.zeros_like(self.temperature, dtype=bool)
 
     def test_returns_expected_values(self):
-        """Test that the function returns expected lapse rate. """
+        """Test that the function returns expected lapse rate."""
 
         expected_out = -0.00765005774676
         result = LapseRate(nbhood_radius=1)._generate_lapse_rate_array(
@@ -90,7 +90,7 @@ class Test__calc_lapse_rate(IrisTest):
 
     def test_handles_nan(self):
         """Test that the function returns DALR value when central point
-           is NaN."""
+        is NaN."""
 
         self.temperature[..., 1, 1] = np.nan
         expected_out = DALR
@@ -150,7 +150,7 @@ class Test_process(IrisTest):
         self.land_sea_mask.units = cf_units.Unit("1")
 
     def test_basic(self):
-        """Test that the plugin returns expected data type. """
+        """Test that the plugin returns expected data type."""
         result = LapseRate(nbhood_radius=1).process(
             self.temperature, self.orography, self.land_sea_mask
         )
@@ -202,7 +202,7 @@ class Test_process(IrisTest):
 
     def test_fails_if_temperature_is_not_cube(self):
         """Test code raises a Type Error if input temperature cube is
-           not a cube."""
+        not a cube."""
         incorrect_input = 50.0
         msg = "Temperature input is not a cube, but {0}".format(type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
@@ -212,7 +212,7 @@ class Test_process(IrisTest):
 
     def test_fails_if_orography_is_not_cube(self):
         """Test code raises a Type Error if input orography cube is
-           not a cube."""
+        not a cube."""
         incorrect_input = 50.0
         msg = "Orography input is not a cube, but {0}".format(type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
@@ -222,7 +222,7 @@ class Test_process(IrisTest):
 
     def test_fails_if_land_sea_mask_is_not_cube(self):
         """Test code raises a Type Error if input land/sea mask cube is
-           not a cube."""
+        not a cube."""
         incorrect_input = 50.0
         msg = "Land/Sea mask input is not a cube, but {0}".format(type(incorrect_input))
         with self.assertRaisesRegexp(TypeError, msg):
@@ -232,7 +232,7 @@ class Test_process(IrisTest):
 
     def test_fails_if_temperature_wrong_units(self):
         """Test code raises a Value Error if the temperature cube is the
-           wrong unit."""
+        wrong unit."""
         #  Swap cubes around so have wrong units.
         msg = r"Unable to convert from 'Unit\('m'\)' to 'Unit\('K'\)'."
         with self.assertRaisesRegexp(ValueError, msg):
@@ -242,7 +242,7 @@ class Test_process(IrisTest):
 
     def test_fails_if_orography_wrong_units(self):
         """Test code raises a Value Error if the orography cube is the
-           wrong unit."""
+        wrong unit."""
         msg = r"Unable to convert from 'Unit\('K'\)' to 'Unit\('metres'\)'."
         with self.assertRaisesRegexp(ValueError, msg):
             LapseRate(nbhood_radius=1).process(
@@ -276,7 +276,7 @@ class Test_process(IrisTest):
 
     def test_constant_orog(self):
         """Test that the function returns expected DALR values where the
-           orography fields are constant values.
+        orography fields are constant values.
         """
         expected_out = np.full((1, 5, 5), DALR)
 
@@ -321,7 +321,7 @@ class Test_process(IrisTest):
 
     def test_lapse_rate_limits(self):
         """Test that the function limits the lapse rate to +DALR and -3*DALR.
-           Where DALR = Dry Adiabatic Lapse Rate.
+        Where DALR = Dry Adiabatic Lapse Rate.
         """
         expected_out = np.array(
             [
@@ -443,7 +443,7 @@ class Test_process(IrisTest):
 
     def test_handles_nan_value(self):
         """Test that the function handles a NaN temperature value by replacing
-           it with DALR.
+        it with DALR.
         """
         expected_out = np.array(
             [
@@ -476,7 +476,7 @@ class Test_process(IrisTest):
 
     def test_landsea_mask(self):
         """Test that the function returns DALR values wherever a land/sea
-           mask is true. Mask is True for land-points and False for Sea.
+        mask is true. Mask is True for land-points and False for Sea.
         """
         expected_out = np.array(
             [
@@ -538,7 +538,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_mask_max_height_diff_arg(self):
-        """ Test that the function removes or leaves neighbours where their
+        """Test that the function removes or leaves neighbours where their
         height difference from the centre point is greater than a
         specified, non-default max_height_diff."""
         expected_out = np.array(
@@ -569,8 +569,8 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_decr_temp_incr_orog(self):
-        """ Test code where temperature is decreasing with height. This is the
-            expected scenario for lapse rate.
+        """Test code where temperature is decreasing with height. This is the
+        expected scenario for lapse rate.
         """
         expected_out = np.array(
             [
@@ -599,7 +599,7 @@ class Test_process(IrisTest):
         self.assertArrayAlmostEqual(result.data, expected_out)
 
     def test_decr_temp_decr_orog(self):
-        """ Test code where the temperature increases with height."""
+        """Test code where the temperature increases with height."""
         expected_out = np.array(
             [
                 [

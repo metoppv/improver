@@ -51,7 +51,7 @@ from improver.utilities.cube_manipulation import (
 
 
 class WeightsUtilities:
-    """ Utilities for Weight processing. """
+    """Utilities for Weight processing."""
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -93,7 +93,11 @@ class WeightsUtilities:
         return normalised_weights
 
     @staticmethod
-    def build_weights_cube(cube: Cube, weights: ndarray, blending_coord: str,) -> Cube:
+    def build_weights_cube(
+        cube: Cube,
+        weights: ndarray,
+        blending_coord: str,
+    ) -> Cube:
         """Build a cube containing weights for use in blending.
 
         Args:
@@ -525,7 +529,7 @@ class ChooseWeightsLinear(BasePlugin):
 
 
 class ChooseDefaultWeightsLinear(BasePlugin):
-    """ Calculate Default Weights using Linear Function. """
+    """Calculate Default Weights using Linear Function."""
 
     def __init__(self, y0val: float, ynval: float) -> None:
         """
@@ -618,7 +622,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
 
 
 class ChooseDefaultWeightsNonLinear(BasePlugin):
-    """ Calculate Default Weights using NonLinear Function. """
+    """Calculate Default Weights using NonLinear Function."""
 
     def __init__(self, cval: float) -> None:
         """
@@ -671,7 +675,10 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
         return weights
 
     def process(
-        self, cube: Cube, coord_name: str, inverse_ordering: bool = False,
+        self,
+        cube: Cube,
+        coord_name: str,
+        inverse_ordering: bool = False,
     ) -> Cube:
         """
         Calculate nonlinear weights for a given cube and coord.
@@ -729,7 +736,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
 
 
 class ChooseDefaultWeightsTriangular(BasePlugin):
-    """ Calculate Default Weights using a Triangular Function. """
+    """Calculate Default Weights using a Triangular Function."""
 
     def __init__(self, width: float, units: Union[Unit, str] = "no_unit") -> None:
         """Set up for calculating default weights using triangular function.

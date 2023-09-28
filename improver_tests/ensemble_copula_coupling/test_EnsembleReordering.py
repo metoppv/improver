@@ -93,7 +93,9 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         )
 
         result = Plugin()._recycle_raw_ensemble_realizations(
-            self.percentile_cube, self.realization_cube, self.perc_coord,
+            self.percentile_cube,
+            self.realization_cube,
+            self.perc_coord,
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord("realization").points, [0, 1, 2])
@@ -114,7 +116,9 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         raw_forecast_realizations = self.realization_cube[:2, :, :]
         raw_forecast_realizations.coord("realization").points = [12, 13]
         result = Plugin()._recycle_raw_ensemble_realizations(
-            self.percentile_cube, raw_forecast_realizations, self.perc_coord,
+            self.percentile_cube,
+            raw_forecast_realizations,
+            self.perc_coord,
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord("realization").points, [12, 13, 14])
@@ -134,7 +138,9 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
 
         post_processed_forecast_percentiles = self.percentile_cube[:2, :, :]
         result = Plugin()._recycle_raw_ensemble_realizations(
-            post_processed_forecast_percentiles, self.realization_cube, self.perc_coord,
+            post_processed_forecast_percentiles,
+            self.realization_cube,
+            self.perc_coord,
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord("realization").points, [0, 1])

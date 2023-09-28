@@ -36,7 +36,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube, coverage: cli.inputcube):
-    """ Extend radar mask based on coverage data.
+    """Extend radar mask based on coverage data.
 
     Extends the mask on radar data based on the radar coverage composite.
     Update the mask on the input cube to reflect where coverage is valid.

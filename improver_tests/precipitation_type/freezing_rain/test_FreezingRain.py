@@ -241,7 +241,8 @@ def test_realization_matching(
 
 @pytest.mark.parametrize("period", TIME_WINDOW_TYPE)
 def test_no_realization_matching(
-    precipitation_multi_realization, temperature_multi_realization,
+    precipitation_multi_realization,
+    temperature_multi_realization,
 ):
     """Test that an error is raised if the inputs have no common realizations."""
     cubes = iris.cube.CubeList(

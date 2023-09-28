@@ -130,7 +130,9 @@ def calculate_svp_in_air(temperature: ndarray, pressure: ndarray) -> ndarray:
 
 
 def dry_adiabatic_temperature(
-    initial_temperature: ndarray, initial_pressure: ndarray, final_pressure: ndarray,
+    initial_temperature: ndarray,
+    initial_pressure: ndarray,
+    final_pressure: ndarray,
 ) -> ndarray:
     """
     Calculate temperature at final_pressure after adiabatic adjustment of dry air from the
@@ -157,7 +159,9 @@ def dry_adiabatic_temperature(
 
 
 def dry_adiabatic_pressure(
-    initial_temperature: ndarray, initial_pressure: ndarray, final_temperature: ndarray,
+    initial_temperature: ndarray,
+    initial_pressure: ndarray,
+    final_temperature: ndarray,
 ) -> ndarray:
     """
     Calculate pressure at final_temperature after adiabatic adjustment of dry air from the
@@ -844,7 +848,9 @@ class PhaseChangeLevel(BasePlugin):
         if np.isnan(phase_change_data).any():
             # This should be rare.
             phase_change_data = interpolate_missing_data(
-                phase_change_data, method="nearest", limit=orography,
+                phase_change_data,
+                method="nearest",
+                limit=orography,
             )
         return phase_change_data
 

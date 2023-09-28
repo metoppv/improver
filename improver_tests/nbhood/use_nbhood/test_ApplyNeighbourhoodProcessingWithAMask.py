@@ -66,7 +66,9 @@ class Test_collapse_mask_coord(unittest.TestCase):
             dtype=np.float32,
         )
         cube = set_up_probability_cube(
-            np.ones((1, 3, 3), dtype=np.float32), [278.15], spatial_grid="equalarea",
+            np.ones((1, 3, 3), dtype=np.float32),
+            [278.15],
+            spatial_grid="equalarea",
         )
         self.cube = add_coordinate(cube, [50, 100, 150], "topographic_zone", "m")
         self.cube = iris.util.squeeze(self.cube)
@@ -187,8 +189,15 @@ class Test_process(unittest.TestCase):
         Set up expected results.
         """
         # Set up cube to process.
-        data = np.array([[[1, 1, 1], [1, 1, 0], [0, 0, 0]]], dtype=np.float32,)
-        self.cube = set_up_probability_cube(data, [278.15], spatial_grid="equalarea",)
+        data = np.array(
+            [[[1, 1, 1], [1, 1, 0], [0, 0, 0]]],
+            dtype=np.float32,
+        )
+        self.cube = set_up_probability_cube(
+            data,
+            [278.15],
+            spatial_grid="equalarea",
+        )
         # Set up mask cube. Currently mask cubes have sea points set to zero,
         # not masked out.
         mask_data = np.array(
@@ -253,7 +262,8 @@ class Test_process(unittest.TestCase):
         )
         # Set up expected collapsed result
         expected_result = np.array(
-            [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]], dtype=np.float32,
+            [[np.nan, 1.0, 0.5], [1.0, 0.625, 0.25], [0.0, 0.0, 0.0]],
+            dtype=np.float32,
         )
         expected_mask = np.array(
             [[True, False, False], [False, False, False], [False, False, False]],
@@ -298,9 +308,14 @@ class Test_process(unittest.TestCase):
         """
         data = np.zeros((1, 9, 9), dtype=np.float32)
         data[..., 3:6, 3:6] = np.array(
-            [[[1, 1, 1], [1, 1, 0], [0, 0, 0]]], dtype=np.float32,
+            [[[1, 1, 1], [1, 1, 0], [0, 0, 0]]],
+            dtype=np.float32,
         )
-        cube = set_up_probability_cube(data, [278.15], spatial_grid="equalarea",)
+        cube = set_up_probability_cube(
+            data,
+            [278.15],
+            spatial_grid="equalarea",
+        )
         # Set up mask cube. Currently mask cubes have sea points set to zero,
         # not masked out.
         mask_data = np.zeros((3, 9, 9), dtype=np.float32)

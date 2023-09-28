@@ -48,7 +48,7 @@ class Test_Setup(unittest.TestCase):
     """Set up for InterpolateUsingDifference tests."""
 
     def setUp(self):
-        """ Set up arrays for testing."""
+        """Set up arrays for testing."""
         snow_sleet = np.array(
             [[5.0, 5.0, 5.0], [10.0, 10.0, 10.0], [5.0, 5.0, 5.0]], dtype=np.float32
         )

@@ -78,5 +78,9 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
         ]
     )
     return HailSize(model_id_attr=model_id_attr)(
-        ccl_temperature, ccl_pressure, temperature, wet_bulb_zero, orography,
+        ccl_temperature,
+        ccl_pressure,
+        temperature,
+        wet_bulb_zero,
+        orography,
     )

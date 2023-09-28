@@ -49,8 +49,20 @@ from improver.synthetic_data.set_up_test_cubes import (
 from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
-@pytest.mark.parametrize("scalar_realization", (True, False,))
-@pytest.mark.parametrize("optimal_crps_percentiles", (True, False,))
+@pytest.mark.parametrize(
+    "scalar_realization",
+    (
+        True,
+        False,
+    ),
+)
+@pytest.mark.parametrize(
+    "optimal_crps_percentiles",
+    (
+        True,
+        False,
+    ),
+)
 @pytest.mark.parametrize(
     "data", (ECC_TEMPERATURE_REALIZATIONS, ECC_TEMPERATURE_REALIZATIONS[::-1])
 )

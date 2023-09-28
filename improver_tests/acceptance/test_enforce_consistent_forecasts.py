@@ -130,7 +130,10 @@ def test_too_many_cubes(tmp_path):
 
 @pytest.mark.parametrize(
     "additive_amount, multiplicative_amount, comparison_operator",
-    (("0.0, 0.0", "1.0", ">="), ("0.0, 0.0, 0.0", "1.0, 1.0, 1.0", ">=, >=, <="),),
+    (
+        ("0.0, 0.0", "1.0", ">="),
+        ("0.0, 0.0, 0.0", "1.0, 1.0, 1.0", ">=, >=, <="),
+    ),
 )
 def test_bad_inputs(
     tmp_path, additive_amount, multiplicative_amount, comparison_operator

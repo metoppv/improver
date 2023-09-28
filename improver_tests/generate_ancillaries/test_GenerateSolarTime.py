@@ -52,7 +52,9 @@ ATTRIBUTES = {
 @pytest.fixture
 def target_grid() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((10, 8), dtype=np.float32), name="template", attributes=ATTRIBUTES,
+        data=np.ones((10, 8), dtype=np.float32),
+        name="template",
+        attributes=ATTRIBUTES,
     )
 
 

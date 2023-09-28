@@ -92,7 +92,10 @@ class Test_process(IrisTest):
         """Set up cube."""
         data = np.ones((16, 16), dtype=np.float32)
         data[7, 7] = 0
-        self.cube = set_up_variable_cube(data, spatial_grid="equalarea",)
+        self.cube = set_up_variable_cube(
+            data,
+            spatial_grid="equalarea",
+        )
 
     def test_single_point_nan(self):
         """Test behaviour for a single NaN grid cell."""
@@ -103,7 +106,7 @@ class Test_process(IrisTest):
 
     def test_correct_radii_set(self):
         """Test that the correct neighbourhood radius is set when interpolation
-         is required"""
+        is required"""
 
         radii = [5600, 9500]
         lead_times = [3, 5]

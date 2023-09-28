@@ -63,7 +63,7 @@ from . import set_up_wxcube, wxcode_decision_tree
 
 
 class Test_wx_dict(IrisTest):
-    """ Test WX_DICT set correctly """
+    """Test WX_DICT set correctly"""
 
     def test_wxcode_values(self):
         """Check wxcode values are set correctly."""
@@ -137,20 +137,28 @@ def test_update_tree_thresholds_exception():
 
 
 class Test_weather_code_attributes(IrisTest):
-    """ Test weather_code_attributes is working correctly """
+    """Test weather_code_attributes is working correctly"""
 
     def setUp(self):
-        """Set up cube """
+        """Set up cube"""
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
         ).reshape((2, 3, 3))
-        cube = set_up_variable_cube(data, "weather_code", "1",)
+        cube = set_up_variable_cube(
+            data,
+            "weather_code",
+            "1",
+        )
         date_times = [
             datetime.datetime(2017, 11, 19, 0, 30),
             datetime.datetime(2017, 11, 19, 1, 30),
         ]
         self.cube = add_coordinate(
-            cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3],
+            cube,
+            date_times,
+            "time",
+            is_datetime=True,
+            order=[1, 0, 2, 3],
         )
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
@@ -179,10 +187,10 @@ class Test_weather_code_attributes(IrisTest):
 
 
 class Test_expand_nested_lists(IrisTest):
-    """ Test expand_nested_lists is working correctly """
+    """Test expand_nested_lists is working correctly"""
 
     def setUp(self):
-        """ Set up dictionary for testing """
+        """Set up dictionary for testing"""
         self.dictionary = {
             "list": ["a", "a"],
             "list_of_lists": [["a", "a"], ["a", "a"]],
@@ -282,7 +290,7 @@ class Test_update_daynight(IrisTest):
         self.assertEqual(result.shape, (16, 16))
 
     def test_wxcode_time_different_seconds(self):
-        """ Test code works if time coordinate has a difference in the number
+        """Test code works if time coordinate has a difference in the number
         of seconds, which should round to the same time in hours and minutes.
         This was raised by changes to cftime which altered its precision."""
         cube = set_up_wxcube(time=datetime.datetime(2018, 9, 12, 5, 42, 59))
@@ -313,7 +321,7 @@ class Test_update_daynight(IrisTest):
         self.assertEqual(result.data.shape, (16, 16))
 
     def test_wxcode_time_as_array(self):
-        """ Test code works if time is an array of dimension > 1 """
+        """Test code works if time is an array of dimension > 1"""
         time_points = [
             datetime.datetime(2018, 9, 12, 5),
             datetime.datetime(2018, 9, 12, 6),

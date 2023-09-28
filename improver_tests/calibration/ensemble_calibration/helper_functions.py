@@ -64,7 +64,7 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-         """
+        """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
     def assertCalibratedVariablesAlmostEqual(self, first, second):
@@ -80,7 +80,7 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-         """
+        """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
 

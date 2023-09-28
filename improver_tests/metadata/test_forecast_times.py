@@ -381,7 +381,7 @@ class Test__find_latest_cycletime(IrisTest):
 
     def setUp(self):
         """Set up a template cubes with scalar time, forecast_reference_time
-           and forecast_period coordinates"""
+        and forecast_period coordinates"""
         self.input_cube = set_up_variable_cube(
             np.full((7, 7), 273.15, dtype=np.float32),
             time=datetime(2015, 11, 23, 6),
@@ -411,7 +411,7 @@ class Test__find_latest_cycletime(IrisTest):
 
     def test_two_cubes_same_reference_time(self):
         """Test the a cycletime is still found when two cubes have the same
-           cycletime."""
+        cycletime."""
         input_cubelist = iris.cube.CubeList([self.input_cube, self.input_cube.copy()])
         cycletime = _find_latest_cycletime(input_cubelist)
         expected_datetime = datetime(2015, 11, 23, 3)

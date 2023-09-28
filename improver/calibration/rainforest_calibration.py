@@ -334,7 +334,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             attributes={"spp__relative_to_threshold": "above"},
         )
         error_probability_cube = add_coordinate_to_cube(
-            error_probability_cube, new_coord=error_threshold_coord,
+            error_probability_cube,
+            new_coord=error_threshold_coord,
         )
 
         return error_probability_cube
@@ -449,7 +450,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return
 
     def _calculate_error_probabilities(
-        self, forecast_cube: Cube, feature_cubes: CubeList,
+        self,
+        forecast_cube: Cube,
+        feature_cubes: CubeList,
     ) -> Cube:
         """Evaluate the error exceedence probabilities for forecast_cube using the tree_models,
         with the associated feature_cubes taken as inputs to the tree_model predictors.
@@ -576,7 +579,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
         probability_cube = add_coordinate_to_cube(
-            probability_cube, new_coord=threshold_coord,
+            probability_cube,
+            new_coord=threshold_coord,
         )
         probability_cube.data = output_array
         return probability_cube

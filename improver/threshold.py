@@ -477,7 +477,8 @@ class LatitudeDependentThreshold(BasicThreshold):
         # Add a scalar axis for the longitude axis so that numpy's array-
         # broadcasting knows what we want to do
         truth_value = self.comparison_operator.function(
-            cube.data, np.expand_dims(threshold_over_latitude, 1),
+            cube.data,
+            np.expand_dims(threshold_over_latitude, 1),
         )
 
         truth_value = truth_value.astype(FLOAT_DTYPE)

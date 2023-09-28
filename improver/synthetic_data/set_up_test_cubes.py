@@ -119,7 +119,10 @@ def construct_yx_coords(
 
 
 def _create_yx_arrays(
-    ypoints: int, xpoints: int, domain_corner: Tuple[float, float], grid_spacing: float,
+    ypoints: int,
+    xpoints: int,
+    domain_corner: Tuple[float, float],
+    grid_spacing: float,
 ) -> Tuple[ndarray, ndarray]:
     """
     Creates arrays for constructing y and x DimCoords.
@@ -315,8 +318,8 @@ def _construct_dimension_coords(
     height_levels: Union[List[float], ndarray],
     pressure: bool,
 ) -> DimCoord:
-    """ Create array of all dimension coordinates. These dimensions will be ordered:
-    realization, height/pressure, y, x. """
+    """Create array of all dimension coordinates. These dimensions will be ordered:
+    realization, height/pressure, y, x."""
     data_shape = data.shape
     ndims = len(data_shape)
 
@@ -491,7 +494,9 @@ def set_up_variable_cube(
 
 
 def set_up_percentile_cube(
-    data: ndarray, percentiles: Union[List[float], ndarray], **kwargs: Any,
+    data: ndarray,
+    percentiles: Union[List[float], ndarray],
+    **kwargs: Any,
 ) -> Cube:
     """
     Set up a cube containing percentiles of a variable with:
@@ -513,7 +518,11 @@ def set_up_percentile_cube(
     Returns:
         Cube containing percentiles
     """
-    cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
+    cube = set_up_variable_cube(
+        data,
+        realizations=percentiles,
+        **kwargs,
+    )
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
     if len(percentiles) == 1:
@@ -579,7 +588,11 @@ def set_up_probability_cube(
         raise ValueError(msg)
 
     cube = set_up_variable_cube(
-        data, name=name, units="1", realizations=thresholds, **kwargs,
+        data,
+        name=name,
+        units="1",
+        realizations=thresholds,
+        **kwargs,
     )
     threshold_name = variable_name.replace("_in_vicinity", "")
     cube.coord("realization").rename(threshold_name)
@@ -652,7 +665,9 @@ def add_coordinate(
     for val in coord_points:
         temp_cube = cube.copy()
         coord = DimCoord(
-            np.array([val], dtype=dtype), units=coord_units, attributes=attributes,
+            np.array([val], dtype=dtype),
+            units=coord_units,
+            attributes=attributes,
         )
         coord.rename(coord_name)
         temp_cube.add_aux_coord(coord)

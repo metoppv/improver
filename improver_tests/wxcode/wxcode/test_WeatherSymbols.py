@@ -226,7 +226,8 @@ class Test_WXCode(IrisTest):
 
         thresholds = np.array([1.0], dtype=np.float32)
         data_shower_condition = np.array(
-            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]], dtype=np.float32,
+            [[[0.0, 1.0, 0.0], [0.0, 1.0, 1.0], [1.0, 0.0, 0.0]]],
+            dtype=np.float32,
         )
         blend_time = next(blend_times)
         shower_condition = set_up_probability_cube(
@@ -436,7 +437,7 @@ class Test_create_condition_chain(Test_WXCode):
     """Test the create_condition_chain method."""
 
     def setUp(self):
-        """ Set up queries for testing"""
+        """Set up queries for testing"""
         super().setUp()
         self.dummy_queries = {
             "significant_precipitation": {
@@ -732,7 +733,10 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                    cell.point,
+                    t.points[0],
+                    rtol=self.plugin.float_tolerance,
+                    atol=0,
                 ),
             ),
             "-",
@@ -741,7 +745,10 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_rainfall_rate_above_threshold",
                 rainfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                    cell.point,
+                    t.points[0],
+                    rtol=self.plugin.float_tolerance,
+                    atol=0,
                 ),
             ),
         ]
@@ -762,7 +769,10 @@ class Test_evaluate_extract_expression(Test_WXCode):
             iris.Constraint(
                 name="probability_of_lwe_sleetfall_rate_above_threshold",
                 lwe_sleetfall_rate=lambda cell: np.isclose(
-                    cell.point, t.points[0], rtol=self.plugin.float_tolerance, atol=0,
+                    cell.point,
+                    t.points[0],
+                    rtol=self.plugin.float_tolerance,
+                    atol=0,
                 ),
             ),
             "+",
@@ -1145,7 +1155,7 @@ class Test_find_all_routes(IrisTest):
     """Test the find_all_routes method ."""
 
     def setUp(self):
-        """ Setup testing graph """
+        """Setup testing graph"""
         self.test_graph = {
             "start_node": ["success_1", "fail_0"],
             "success_1": ["success_1_1", "fail_1_0"],
@@ -1395,9 +1405,13 @@ class Test_create_symbol_cube(IrisTest):
             self.cube.coord("forecast_period").points[0],
         ]
 
-        self.cube.coord("time").bounds = np.array(expected_time, dtype=np.int64,)
+        self.cube.coord("time").bounds = np.array(
+            expected_time,
+            dtype=np.int64,
+        )
         self.cube.coord("forecast_period").bounds = np.array(
-            expected_fp, dtype=np.int32,
+            expected_fp,
+            dtype=np.int32,
         )
         self.plugin.template_cube = self.cube
         result = self.plugin.create_symbol_cube([self.cube])
@@ -1438,11 +1452,13 @@ class Test_create_symbol_cube(IrisTest):
 
         for coord_name in ["blend_time", "forecast_reference_time"]:
             self.assertEqual(
-                result.coord(coord_name).cell(0).point, dt(2017, 11, 9, 2, 0),
+                result.coord(coord_name).cell(0).point,
+                dt(2017, 11, 9, 2, 0),
             )
             self.assertEqual(len(result.coord(coord_name).points), 1)
         self.assertEqual(
-            result.coord("forecast_period").points[0], 26 * 3600,
+            result.coord("forecast_period").points[0],
+            26 * 3600,
         )
         self.assertEqual(len(result.coord("forecast_period").points), 1)
 
@@ -1493,7 +1509,7 @@ class Test_process(Test_WXCode):
     """Test the find_all_routes method ."""
 
     def setUp(self):
-        """ Set up wxcubes for testing. """
+        """Set up wxcubes for testing."""
         super().setUp()
         self.wxcode = np.array(list(WX_DICT.keys()))
         self.wxmeaning = " ".join(WX_DICT.values())
@@ -1507,8 +1523,7 @@ class Test_process(Test_WXCode):
         )
 
     def test_basic(self):
-        """Test process returns a weather code cube with right values and type.
-        """
+        """Test process returns a weather code cube with right values and type."""
         result = self.plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
@@ -1541,7 +1556,7 @@ class Test_process(Test_WXCode):
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode_no_lightning)
 
     def test_lightning(self):
-        """Test process returns right values if all lightning. """
+        """Test process returns right values if all lightning."""
         data_lightning = np.ones((3, 3))
         cubes = self.cubes
         cubes[9].data = data_lightning
@@ -1619,7 +1634,8 @@ class Test_process(Test_WXCode):
             dtype=np.float32,
         )
         data_shower_condition = np.array(
-            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]], dtype=np.float32,
+            [[1.0, 0.0, 1.0], [0.0, 1.0, 0.0], [1.0, 0.0, 0.0]],
+            dtype=np.float32,
         )
 
         data_cld_low = np.zeros((3, 3))

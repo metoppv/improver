@@ -356,7 +356,11 @@ def test_process_ensemble(
     plugin.tree_models, plugin.error_thresholds = dummy_models
 
     output_thresholds = [0.0, 0.0005, 0.001]
-    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
+    result = plugin.process(
+        ensemble_forecast,
+        ensemble_features,
+        output_thresholds,
+    )
 
     forecast_variable = ensemble_forecast.name()
     assert result.long_name == f"probability_of_{forecast_variable}_above_threshold"
@@ -406,7 +410,9 @@ def test_process_deterministic(
 
     output_thresholds = [0.0, 0.0005, 0.001]
     result = plugin.process(
-        deterministic_forecast, deterministic_features, output_thresholds,
+        deterministic_forecast,
+        deterministic_features,
+        output_thresholds,
     )
 
     forecast_variable = deterministic_forecast.name()

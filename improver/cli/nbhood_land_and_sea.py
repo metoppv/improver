@@ -47,7 +47,7 @@ def process(
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
 ):
-    """ Module to process land and sea separately before combining them.
+    """Module to process land and sea separately before combining them.
 
     Neighbourhood the input dataset over two distinct regions of land and sea.
     If performed as a single level neighbourhood, a land-sea mask should be

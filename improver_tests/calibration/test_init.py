@@ -561,7 +561,8 @@ def test_matching_validity_times(time, validity_times, expected):
 
 
 @pytest.mark.parametrize(
-    "comment", [(None), ("Example comment")],
+    "comment",
+    [(None), ("Example comment")],
 )
 def test_add_warning_to_comment(comment):
     """Test the addition of a warning comment if calibration has been attempted

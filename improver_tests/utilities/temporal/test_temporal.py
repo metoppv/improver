@@ -459,7 +459,8 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [2 * 3600, 3 * 3600], TIME_COORDS["forecast_period"].dtype,
+            [2 * 3600, 3 * 3600],
+            TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube, 1)
         self.assertIsInstance(result, Cube)
@@ -479,7 +480,8 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype,
+            [0, 3 * 3600],
+            dtype=TIME_COORDS["forecast_period"].dtype,
         )
         result = relabel_to_period(self.cube_with_bounds, 3)
         self.assertEqual(result.coord("time"), expected_time)

@@ -126,15 +126,24 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         spatial_product = np.prod(self.truth.shape[-2:])
         self.initial_guess_spot_mean = np.broadcast_to(
             self.initial_guess_for_mean,
-            (spatial_product, len(self.initial_guess_for_mean),),
+            (
+                spatial_product,
+                len(self.initial_guess_for_mean),
+            ),
         )
         self.initial_guess_spot_realizations = np.broadcast_to(
             self.initial_guess_for_realization,
-            (spatial_product, len(self.initial_guess_for_realization),),
+            (
+                spatial_product,
+                len(self.initial_guess_for_realization),
+            ),
         )
         self.ig_spot_mean_additional_predictor = np.broadcast_to(
             self.initial_guess_mean_additional_predictor,
-            (spatial_product, len(self.initial_guess_mean_additional_predictor),),
+            (
+                spatial_product,
+                len(self.initial_guess_mean_additional_predictor),
+            ),
         )
 
 

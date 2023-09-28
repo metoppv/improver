@@ -194,7 +194,7 @@ def expand_nested_lists(query: Dict[str, Any], key: str) -> List[Any]:
 
 
 def update_daynight(cubewx: Cube) -> Cube:
-    """ Update weather cube depending on whether it is day or night
+    """Update weather cube depending on whether it is day or night
 
     Args:
         cubewx:

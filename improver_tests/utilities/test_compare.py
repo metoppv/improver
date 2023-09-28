@@ -264,7 +264,11 @@ def test_ignore_netcdf_attrs(dummy_nc):
     # Check modifying a simple attribute
     actual_ds.setncattr("float_number", 3.2)
     compare.compare_attributes(
-        "root", actual_ds, expected_ds, ["float_number"], message_collector,
+        "root",
+        actual_ds,
+        expected_ds,
+        ["float_number"],
+        message_collector,
     )
     assert len(messages_reported) == 0
 
@@ -275,7 +279,11 @@ def test_ignore_netcdf_attrs(dummy_nc):
     # Check adding another attribute
     actual_ds.setncattr("extra", "additional")
     compare.compare_attributes(
-        "longer name", actual_ds, expected_ds, ["extra"], message_collector,
+        "longer name",
+        actual_ds,
+        expected_ds,
+        ["extra"],
+        message_collector,
     )
     assert len(messages_reported) == 0
 
@@ -286,7 +294,11 @@ def test_ignore_netcdf_attrs(dummy_nc):
     # Check removing an attribute
     actual_ds.delncattr("float_number")
     compare.compare_attributes(
-        "root", actual_ds, expected_ds, ["float_number"], message_collector,
+        "root",
+        actual_ds,
+        expected_ds,
+        ["float_number"],
+        message_collector,
     )
     assert len(messages_reported) == 0
 

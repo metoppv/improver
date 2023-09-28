@@ -48,7 +48,9 @@ from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
-    array_2d: ndarray, low_endpoint: float, high_endpoint: float,
+    array_2d: ndarray,
+    low_endpoint: float,
+    high_endpoint: float,
 ) -> ndarray:
     """
     For a 2d array, add a 2d array as the lower and upper endpoints.

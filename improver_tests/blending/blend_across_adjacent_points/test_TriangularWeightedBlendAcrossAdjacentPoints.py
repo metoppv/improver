@@ -134,7 +134,7 @@ class Test__find_central_point(IrisTest):
 
     def test_central_point_not_available(self):
         """Test that the central point is not available within the
-           input cube."""
+        input cube."""
         forecast_period = 2
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             "forecast_period", forecast_period, "hours", self.width
@@ -154,7 +154,7 @@ class Test_process(IrisTest):
 
     def test_basic_triangle_width_1(self):
         """Test that the plugin produces sensible results when the width
-           of the triangle is 1. This is equivalent to no blending."""
+        of the triangle is 1. This is equivalent to no blending."""
         width = 1.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             "forecast_period", self.forecast_period, "hours", width
@@ -168,7 +168,7 @@ class Test_process(IrisTest):
 
     def test_basic_triangle_width_2(self):
         """Test that the plugin produces sensible results when the width
-           of the triangle is 2 and there is some blending."""
+        of the triangle is 2 and there is some blending."""
         width = 2.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
             "forecast_period", self.forecast_period, "hours", width
@@ -183,7 +183,7 @@ class Test_process(IrisTest):
 
     def test_central_point_not_in_allowed_range(self):
         """Test that an exception is generated when the central cube is not
-           within the allowed range."""
+        within the allowed range."""
         width = 1.0
         forecast_period = 2
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
@@ -195,7 +195,7 @@ class Test_process(IrisTest):
 
     def test_alternative_parameter_units(self):
         """Test that the plugin produces sensible results when the width
-           of the triangle is 7200 seconds. """
+        of the triangle is 7200 seconds."""
         forecast_period = 0
         width = 7200.0
         plugin = TriangularWeightedBlendAcrossAdjacentPoints(
@@ -227,7 +227,7 @@ class Test_process(IrisTest):
 
     def test_extra_dimension(self):
         """Test that the plugin retains the single height point from the input
-           cube."""
+        cube."""
 
         # Creates a cube containing the expected outputs.
         fill_value = 1 + 1 / 3.0
@@ -255,7 +255,7 @@ class Test_process(IrisTest):
 
     def test_works_two_thresh(self):
         """Test that the plugin works with a cube that contains multiple
-           thresholds."""
+        thresholds."""
         width = 2.0
         thresh_cube = self.cube.copy()
         thresh_cubes = add_coordinate(

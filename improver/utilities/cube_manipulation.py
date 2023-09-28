@@ -562,7 +562,9 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
 
 
 def expand_bounds(
-    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str],
+    result_cube: Cube,
+    cubelist: Union[List[Cube], CubeList],
+    coord_names: List[str],
 ) -> Cube:
     """Alter a coordinate on result_cube such that bounds are expanded to cover
     the entire range of the input cubes (cubelist).  The input result_cube is

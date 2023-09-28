@@ -283,7 +283,7 @@ class DayNightMask(BasePlugin):
     """
 
     def __init__(self) -> None:
-        """ Initial the DayNightMask Object """
+        """Initial the DayNightMask Object"""
         self.night = 0
         self.day = 1
         self.irregular = False

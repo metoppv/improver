@@ -69,7 +69,7 @@ class CombinerTest(ImproverTest):
     """Set up a common set of test cubes for subsequent test classes."""
 
     def setUp(self):
-        """ Set up cubes for testing. """
+        """Set up cubes for testing."""
         data = np.full((1, 2, 2), 0.5, dtype=np.float32)
         self.cube1 = set_up_probability_cube(
             data,
@@ -197,7 +197,7 @@ class Test_process(CombinerTest):
         self.assertCubeListEqual(input_copy, cubelist)
 
     def test_mean(self):
-        """Test that the plugin calculates the mean correctly. """
+        """Test that the plugin calculates the mean correctly."""
         plugin = CubeCombiner("mean")
         cubelist = iris.cube.CubeList([self.cube1, self.cube2])
         result = plugin.process(cubelist, "new_cube_name")
@@ -365,7 +365,9 @@ class Test_process(CombinerTest):
             frt=forecast_reference_time,
         )
         orography = set_up_variable_cube(
-            np.full((3, 4), 80, dtype=np.float32), name="orography", units="m",
+            np.full((3, 4), 80, dtype=np.float32),
+            name="orography",
+            units="m",
         )
         new_name = (
             "cloud_base_height_assuming_only_consider_cloud_area_fraction_greater_"
@@ -438,7 +440,8 @@ class Test_process(CombinerTest):
             frt=forecast_reference_time,
         )
         result = CubeCombiner(operation="*",)(
-            [precip_accum, snow_prob], "lwe_thickness_of_snowfall_amount",
+            [precip_accum, snow_prob],
+            "lwe_thickness_of_snowfall_amount",
         )
         self.assertArrayAlmostEqual(result.data, np.full((2, 3, 3), 0.3))
         self.assertArrayEqual(result.coord("time"), precip_accum.coord("time"))
@@ -473,7 +476,9 @@ class Test_process(CombinerTest):
         new_cube_name = "new_cube_name"
         expected = CellMethod("sum", coords="time", comments=f"of {new_cube_name}")
 
-        result = CubeCombiner(operation="*",)(cubelist, new_cube_name)
+        result = CubeCombiner(
+            operation="*",
+        )(cubelist, new_cube_name)
         self.assertEqual(result.cell_methods[0], expected)
 
     def test_unmodified_cell_methods(self):
@@ -506,7 +511,9 @@ class Test_process(CombinerTest):
         """Test an error is raised if dimension coordinates do not match"""
         self.multiplier.coord("latitude").rename("projection_y_coordinate")
         new_cube_name = "new_cube_name"
-        plugin = CubeCombiner(operation="*",)
+        plugin = CubeCombiner(
+            operation="*",
+        )
         msg = "Cannot combine cubes with different dimensions"
         with self.assertRaisesRegex(ValueError, msg):
             plugin.process([self.cube5.copy(), self.multiplier], new_cube_name)

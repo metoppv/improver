@@ -257,7 +257,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             A reliability table cube.
         """
 
-        def _get_coords_and_dims(coord_names: List[str],) -> List[Tuple[DimCoord, int]]:
+        def _get_coords_and_dims(
+            coord_names: List[str],
+        ) -> List[Tuple[DimCoord, int]]:
             """Obtain the requested coordinates and their dimension index from
             the forecast slice cube."""
             coords_and_dims = []
@@ -424,7 +426,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             # as being masked within the resulting reliability table.
             mask = threshold_reliability.mask & table.mask
             threshold_reliability = np.ma.array(
-                threshold_reliability.data + table.data, mask=mask, dtype=np.float32,
+                threshold_reliability.data + table.data,
+                mask=mask,
+                dtype=np.float32,
             )
         else:
             np.add(
@@ -1281,7 +1285,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return np.clip(interpolated, 0, 1)
 
     def _apply_calibration(
-        self, forecast: Cube, reliability_table: Union[Cube, CubeList],
+        self,
+        forecast: Cube,
+        reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
         Apply reliability calibration to a forecast.
@@ -1337,7 +1343,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return calibrated_forecast
 
     def _apply_point_by_point_calibration(
-        self, forecast: Cube, reliability_table: CubeList,
+        self,
+        forecast: Cube,
+        reliability_table: CubeList,
     ) -> Cube:
         """
         Apply point by point reliability calibration by iteratively picking a spatial
@@ -1409,7 +1417,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return calibrated_forecast
 
     def process(
-        self, forecast: Cube, reliability_table: Union[Cube, CubeList],
+        self,
+        forecast: Cube,
+        reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
         Apply reliability calibration to a forecast. The reliability table
@@ -1434,7 +1444,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         else:
             calibrated_forecast = self._apply_calibration(
-                forecast=forecast, reliability_table=reliability_table,
+                forecast=forecast,
+                reliability_table=reliability_table,
             )
 
         # enforce correct data type

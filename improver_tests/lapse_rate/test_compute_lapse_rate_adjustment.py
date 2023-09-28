@@ -73,7 +73,13 @@ def set_up_cubes(lapse_rate):
     return orog_diff_cube, lapse_rate_cube
 
 
-@pytest.mark.parametrize("max_orog_diff_limit", (50, 70,))
+@pytest.mark.parametrize(
+    "max_orog_diff_limit",
+    (
+        50,
+        70,
+    ),
+)
 @pytest.mark.parametrize("lapse_rate", (-ELR, 0, ELR))
 def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_limit):
     """Test the computation of the lapse rate adjustment."""

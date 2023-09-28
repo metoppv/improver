@@ -451,11 +451,17 @@ class WeatherSymbols(BasePlugin):
         threshold_val = threshold.points.item()
         if abs(threshold_val) < self.float_abs_tolerance:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance,
+                cell.point,
+                threshold_val,
+                rtol=0,
+                atol=self.float_abs_tolerance,
             )
         else:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=self.float_tolerance, atol=0,
+                cell.point,
+                threshold_val,
+                rtol=self.float_tolerance,
+                atol=0,
             )
 
         kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
@@ -495,7 +501,10 @@ class WeatherSymbols(BasePlugin):
 
     @staticmethod
     def find_all_routes(
-        graph: Dict, start: str, end: int, route: Optional[List[str]] = None,
+        graph: Dict,
+        start: str,
+        end: int,
+        route: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -816,7 +825,11 @@ class WeatherSymbols(BasePlugin):
         for symbol_code in defined_symbols:
             # In current decision tree
             # start node is lightning
-            routes = self.find_all_routes(graph, self.start_node, symbol_code,)
+            routes = self.find_all_routes(
+                graph,
+                self.start_node,
+                symbol_code,
+            )
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []

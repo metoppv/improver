@@ -166,7 +166,8 @@ def check_predictor(predictor: str) -> str:
 
 
 def filter_non_matching_cubes(
-    historic_forecast: Cube, truth: Cube,
+    historic_forecast: Cube,
+    truth: Cube,
 ) -> Tuple[Cube, Cube]:
     """
     Provide filtering for the historic forecast and truth to make sure

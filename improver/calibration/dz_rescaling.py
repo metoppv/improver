@@ -170,7 +170,10 @@ class EstimateDzRescaling(PostProcessingPlugin):
         return np.clip(scaled_dz.data, scaled_dz_lower, scaled_dz_upper)
 
     def _compute_scaled_dz_cube(
-        self, forecast: Cube, dz: Cube, scale_factor: float,
+        self,
+        forecast: Cube,
+        dz: Cube,
+        scale_factor: float,
     ) -> Cube:
         """Compute the scaled difference in altitude and ensure that the output cube
         has the correct metadata.

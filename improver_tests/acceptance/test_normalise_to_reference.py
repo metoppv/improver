@@ -44,7 +44,9 @@ run_cli = acc.run_cli(CLI)
     (("probability", False), ("percentile", False), ("percentile", True)),
 )
 def test_normalise_to_reference(
-    tmp_path, forecast_type, ignore_zero_total,
+    tmp_path,
+    forecast_type,
+    ignore_zero_total,
 ):
     """
     Test input cubes are updated correctly so that their total equals the reference cube

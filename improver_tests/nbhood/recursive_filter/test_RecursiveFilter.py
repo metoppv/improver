@@ -165,7 +165,8 @@ class Test__init__(Test_RecursiveFilter):
         msg = "Invalid number of iterations: must be >= 1: 0"
         with self.assertRaisesRegex(ValueError, msg):
             RecursiveFilter(
-                iterations=iterations, edge_width=1,
+                iterations=iterations,
+                edge_width=1,
             )
 
 
@@ -306,7 +307,7 @@ class Test__recurse_forward(Test_RecursiveFilter):
 
     def test_first_axis(self):
         """Test that the returned _recurse_forward array has the expected
-           type and result."""
+        type and result."""
         expected_result = np.array(
             [
                 [0.0000, 0.00000, 0.100000, 0.00000, 0.0000],
@@ -324,7 +325,7 @@ class Test__recurse_forward(Test_RecursiveFilter):
 
     def test_second_axis(self):
         """Test that the returned _recurse_forward array has the expected
-           type and result."""
+        type and result."""
         expected_result = np.array(
             [
                 [0.0, 0.000, 0.0500, 0.02500, 0.012500],
@@ -347,7 +348,7 @@ class Test__recurse_backward(Test_RecursiveFilter):
 
     def test_first_axis(self):
         """Test that the returned _recurse_backward array has the expected
-           type and result."""
+        type and result."""
         expected_result = np.array(
             [
                 [0.0125, 0.03125, 0.196875, 0.03125, 0.0125],
@@ -365,7 +366,7 @@ class Test__recurse_backward(Test_RecursiveFilter):
 
     def test_second_axis(self):
         """Test that the returned _recurse_backward array has the expected
-           type and result."""
+        type and result."""
         expected_result = np.array(
             [
                 [0.012500, 0.02500, 0.0500, 0.000, 0.0],
@@ -430,7 +431,10 @@ class Test__run_recursion(Test_RecursiveFilter):
         padded_cube = pad_cube_with_halo(cube, 2 * edge_width, 2 * edge_width)
 
         result = RecursiveFilter(edge_width=edge_width)._run_recursion(
-            padded_cube, smoothing_coefficients_x, smoothing_coefficients_y, 3,
+            padded_cube,
+            smoothing_coefficients_x,
+            smoothing_coefficients_y,
+            3,
         )
         expected_result = 0.034629755
         self.assertAlmostEqual(result.data[4][4], expected_result)
@@ -465,7 +469,7 @@ class Test__run_recursion(Test_RecursiveFilter):
 
 class Test_process(Test_RecursiveFilter):
 
-    """Test the process method. """
+    """Test the process method."""
 
     # Test output from plugin returns expected values
     def test_return_type_and_shape(self):
@@ -473,16 +477,26 @@ class Test_process(Test_RecursiveFilter):
         the expected shape."""
         # Output data array should have same dimensions as input data array
         expected_shape = (1, 5, 5)
-        plugin = RecursiveFilter(iterations=self.iterations,)
-        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
+        result = plugin(
+            self.cube,
+            smoothing_coefficients=self.smoothing_coefficients,
+        )
         self.assertIsInstance(result, Cube)
         self.assertEqual(result.shape, expected_shape)
         self.assertEqual(result.shape, expected_shape)
 
     def test_smoothing_coefficient_cubes(self):
         """Test that the RecursiveFilter plugin returns the correct data."""
-        plugin = RecursiveFilter(iterations=self.iterations,)
-        result = plugin(self.cube, smoothing_coefficients=self.smoothing_coefficients,)
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
+        result = plugin(
+            self.cube,
+            smoothing_coefficients=self.smoothing_coefficients,
+        )
         expected = 0.14994797
         self.assertAlmostEqual(result.data[0][2][2], expected)
 
@@ -490,7 +504,9 @@ class Test_process(Test_RecursiveFilter):
         """Test that the RecursiveFilter plugin returns the correct data
         when a masked data cube.
         """
-        plugin = RecursiveFilter(iterations=self.iterations,)
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
         mask = np.zeros(self.cube.data.shape)
         mask[0][3][2] = 1
         self.cube.data = np.ma.MaskedArray(self.cube.data, mask=mask)
@@ -504,7 +520,9 @@ class Test_process(Test_RecursiveFilter):
         coordinate when the input cube spatial dimensions are (x, y) not
         (y, x)"""
         enforce_coordinate_ordering(self.cube, ["realization", "longitude", "latitude"])
-        plugin = RecursiveFilter(iterations=self.iterations,)
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
         result = plugin(
             self.cube, smoothing_coefficients=self.smoothing_coefficients_alternative
         )
@@ -536,7 +554,9 @@ class Test_process(Test_RecursiveFilter):
         mask[0, 0, 2, 2] = 1
         mask[1, 0, 2, 3] = 1
         cube.data = np.ma.MaskedArray(cube.data, mask=mask)
-        plugin = RecursiveFilter(iterations=self.iterations,)
+        plugin = RecursiveFilter(
+            iterations=self.iterations,
+        )
         msg = "multiple time points is unsupported"
         with self.assertRaisesRegex(ValueError, msg):
             plugin(cube, smoothing_coefficients=self.smoothing_coefficients)

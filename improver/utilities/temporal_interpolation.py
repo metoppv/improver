@@ -440,5 +440,4 @@ class TemporalInterpolation(BasePlugin):
             for single_time in interpolated_cube.slices_over("time"):
                 interpolated_cubes.append(single_time)
 
-
         return interpolated_cubes

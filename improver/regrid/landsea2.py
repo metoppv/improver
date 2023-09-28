@@ -223,7 +223,12 @@ class RegridWithLandSeaMask(PostProcessingPlugin):
             # These will be updated for mask/mismatched surface type further below
             index_range = np.arange(weights.shape[0])
             weights[index_range] = basic_weights(
-                index_range, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing,
+                index_range,
+                indexes,
+                out_latlons,
+                in_latlons,
+                lat_spacing,
+                lon_spacing,
             )
 
             if WITH_MASK in self.regrid_mode:

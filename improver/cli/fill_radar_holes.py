@@ -36,7 +36,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube):
-    """ Fill in small "no data" holes in the radar composite
+    """Fill in small "no data" holes in the radar composite
 
     Args:
         cube (iris.cube.Cube):

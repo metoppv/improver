@@ -57,7 +57,8 @@ truth_data = np.array([0, 20, 10.2, 15.1])
 
 
 def _create_forecasts(
-    forecast_reference_times: List[str], forecast_periods: List[float],
+    forecast_reference_times: List[str],
+    forecast_periods: List[float],
 ) -> Cube:
     """Create site forecasts for testing.
 
@@ -69,7 +70,9 @@ def _create_forecasts(
         Forecast cube containing four spots and specified time coordinates
     """
     perc_coord = AuxCoord(
-        np.array(50, dtype=np.float32), long_name="percentile", units="%",
+        np.array(50, dtype=np.float32),
+        long_name="percentile",
+        units="%",
     )
     fp_coord = DimCoord(
         np.array(
@@ -91,14 +94,20 @@ def _create_forecasts(
         validity_times, (len(forecast_reference_times), len(forecast_periods))
     )
     time_coord = AuxCoord(
-        np.array(validity_times, dtype=TIME_COORDS["time"].dtype,),
+        np.array(
+            validity_times,
+            dtype=TIME_COORDS["time"].dtype,
+        ),
         "time",
         units=TIME_COORDS["time"].units,
     )
 
     frts = [pd.Timestamp(frt).timestamp() for frt in forecast_reference_times]
     frt_coord = DimCoord(
-        np.array(frts, dtype=TIME_COORDS["forecast_reference_time"].dtype,),
+        np.array(
+            frts,
+            dtype=TIME_COORDS["forecast_reference_time"].dtype,
+        ),
         "forecast_reference_time",
         units=TIME_COORDS["forecast_reference_time"].units,
     )
@@ -122,7 +131,8 @@ def _create_forecasts(
 
 
 def _create_truths(
-    forecast_reference_times: List[str], forecast_periods: List[float],
+    forecast_reference_times: List[str],
+    forecast_periods: List[float],
 ) -> Cube:
     """Create site truths for testing. The truth data here shows an example where the
     wind speed is slightly greater at the sites with higher altitude_grid.
@@ -142,7 +152,10 @@ def _create_truths(
             )
 
     time_coord = DimCoord(
-        np.array(validity_times, dtype=TIME_COORDS["time"].dtype,),
+        np.array(
+            validity_times,
+            dtype=TIME_COORDS["time"].dtype,
+        ),
         "time",
         units=TIME_COORDS["time"].units,
     )
@@ -226,8 +239,20 @@ def _create_neighbour_cube() -> Cube:
         ([6], -75, 75, -1, [1.0, 0.9747, 0.9083, 0.9083]),
         ([6], -200, 200, 1, [1.0, 1.0142, 1.0731, 1.0580]),
         ([6], -75, 75, 1, [1.0, 1.0247, 1.0958, 1.0958]),
-        ([6, 12], -200, 200, 0, [1.0, 1.0043, 1.0218, 1.0174],),
-        ([6, 12], -75, 75, 0, [1.0, 1.0, 1.0, 1.0],),
+        (
+            [6, 12],
+            -200,
+            200,
+            0,
+            [1.0, 1.0043, 1.0218, 1.0174],
+        ),
+        (
+            [6, 12],
+            -75,
+            75,
+            0,
+            [1.0, 1.0, 1.0, 1.0],
+        ),
     ],
 )
 def test_estimate_dz_rescaling(

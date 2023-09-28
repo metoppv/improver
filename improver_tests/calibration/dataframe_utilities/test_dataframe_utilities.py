@@ -162,7 +162,9 @@ class SetupSharedDataFrames(ImproverTest):
         )
 
         self.height_coord = iris.coords.AuxCoord(
-            np.array(self.height, dtype=np.float32), "height", units="m",
+            np.array(self.height, dtype=np.float32),
+            "height",
+            units="m",
         )
 
         # Modify the forecast and truth DataFrames so that one of the sites is
@@ -449,20 +451,29 @@ class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
     def test_three_day_training_period_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for a period diagnostic."""
-        result = truth_dataframe_to_cube(self.truth_df, self.date_range,)
+        result = truth_dataframe_to_cube(
+            self.truth_df,
+            self.date_range,
+        )
         self.assertCubeEqual(result, self.expected_period_truth)
 
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
         self.truth_df["period"] = pd.Timedelta("NaT")
-        result = truth_dataframe_to_cube(self.truth_df, self.date_range,)
+        result = truth_dataframe_to_cube(
+            self.truth_df,
+            self.date_range,
+        )
         self.assertCubeEqual(result, self.expected_instantaneous_truth)
 
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a two day training length."""
-        result = truth_dataframe_to_cube(self.truth_df, self.date_range_two_days,)
+        result = truth_dataframe_to_cube(
+            self.truth_df,
+            self.date_range_two_days,
+        )
         self.assertCubeEqual(result, self.expected_period_truth[1:, :])
 
     def test_empty_dataframe(self):
@@ -471,7 +482,10 @@ class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
         date_range = pd.date_range(
             end=validity_time, periods=int(self.training_length), freq="D", tz="UTC"
         )
-        result = truth_dataframe_to_cube(self.truth_df, date_range,)
+        result = truth_dataframe_to_cube(
+            self.truth_df,
+            date_range,
+        )
         self.assertIsNone(result)
 
     def test_nonunique_values_in_column(self):

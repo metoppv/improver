@@ -505,7 +505,10 @@ def test_no_coefficients_with_prob_template(tmp_path):
     )
     # Check output matches kgo.
     acc.compare(
-        output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE,
+        output_path,
+        kgo_path,
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
     )
 
 

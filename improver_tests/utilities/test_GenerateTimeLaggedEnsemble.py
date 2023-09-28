@@ -93,7 +93,7 @@ class Test_process(IrisTest):
 
     def test_realizations(self):
         """Test that the expected metadata is correct with a different
-           realizations"""
+        realizations"""
         self.input_cube2.coord("realization").points = np.array(
             [6, 7, 8], dtype=np.int32
         )
@@ -112,8 +112,8 @@ class Test_process(IrisTest):
 
     def test_duplicate_realizations(self):
         """Test that the expected metadata is correct with different
-           realizations and that realizations are renumbered if a
-           duplicate is found"""
+        realizations and that realizations are renumbered if a
+        duplicate is found"""
         self.input_cube2.coord("realization").points = np.array([0, 7, 8])
         result = GenerateTimeLaggedEnsemble().process(self.input_cubelist)
         expected_realizations = [0, 1, 2, 3, 4, 5]
@@ -130,8 +130,8 @@ class Test_process(IrisTest):
 
     def test_duplicate_realizations_more_input_cubes(self):
         """Test that the expected metadata is correct with different
-           realizations and that realizations are renumbered if a
-           duplicate is found, with 3 input cubes."""
+        realizations and that realizations are renumbered if a
+        duplicate is found, with 3 input cubes."""
         self.input_cube2.coord("realization").points = np.array([6, 7, 8])
         input_cube3 = self.input_cube2.copy()
         input_cube3.coord("forecast_reference_time").points = np.array(

@@ -176,7 +176,9 @@ def update_diagnostic_name(source_cube: Cube, new_diagnostic_name: str, result: 
 
 
 def _update_cell_methods(
-    cell_methods: Tuple[CellMethod], original_name: str, new_diagnostic_name: str,
+    cell_methods: Tuple[CellMethod],
+    original_name: str,
+    new_diagnostic_name: str,
 ) -> List[CellMethod]:
     """
     Update any cell methods that include a comment that refers to the

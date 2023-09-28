@@ -230,7 +230,9 @@ class Test__init__(SetupCubes):
         """Test that the plugin instance defines the expected
         coefficient names."""
         expected = ["alpha", "beta", "gamma", "delta"]
-        plugin = Plugin(self.distribution,)
+        plugin = Plugin(
+            self.distribution,
+        )
         self.assertEqual(plugin.coeff_names, expected)
 
     def test_invalid_distribution(self):
@@ -300,10 +302,12 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         self.assertEqual(len(result), 4)
         for cube in result:
             self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
+                cube.coord("forecast_reference_time").cell(0).point,
+                self.expected_frt,
             )
             self.assertEqual(
-                cube.coord("forecast_period"), self.expected_fp,
+                cube.coord("forecast_period"),
+                self.expected_fp,
             )
             self.assertArrayAlmostEqual(
                 cube.coord(axis="x").points, self.expected_x_coord_points
@@ -336,10 +340,12 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         self.assertEqual(len(result), 4)
         for cube in result:
             self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
+                cube.coord("forecast_reference_time").cell(0).point,
+                self.expected_frt,
             )
             self.assertEqual(
-                cube.coord("forecast_period"), self.expected_fp,
+                cube.coord("forecast_period"),
+                self.expected_fp,
             )
 
     def test_exception_for_multi_valued_forecast_period(self):
@@ -415,10 +421,12 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         self.assertEqual(len(result), 4)
         for cube in result:
             self.assertEqual(
-                cube.coord("forecast_reference_time").cell(0).point, self.expected_frt,
+                cube.coord("forecast_reference_time").cell(0).point,
+                self.expected_frt,
             )
             self.assertEqual(
-                cube.coord("forecast_period"), self.expected_fp,
+                cube.coord("forecast_period"),
+                self.expected_fp,
             )
             self.assertAlmostEqual(
                 cube.coord("latitude"),
@@ -483,7 +491,9 @@ class Test_create_coefficients_cubelist(SetupCubes, SetupExpectedCoefficients):
         predictor = "mean"
         optimised_coeffs = [1, 2, 3]
         plugin = Plugin(
-            distribution=distribution, desired_units=desired_units, predictor=predictor,
+            distribution=distribution,
+            desired_units=desired_units,
+            predictor=predictor,
         )
         msg = "The number of coefficients in"
         with self.assertRaisesRegex(ValueError, msg):
@@ -598,8 +608,8 @@ class Test_compute_initial_guess(IrisTest):
         self.hist_fcast_pred_mean_mhalo = cube.collapsed(
             "realization", iris.analysis.MEAN
         )
-        self.hist_fcast_pred_mean_mhalo.data = self.hist_fcast_pred_mean_mhalo.data.astype(
-            np.float32
+        self.hist_fcast_pred_mean_mhalo.data = (
+            self.hist_fcast_pred_mean_mhalo.data.astype(np.float32)
         )
         self.hist_fcast_pred_mean_mhalo_data = np.expand_dims(
             self.hist_fcast_pred_mean_mhalo.data, axis=0
@@ -654,7 +664,10 @@ class Test_compute_initial_guess(IrisTest):
         )
 
         result = plugin.compute_initial_guess(
-            self.truth.data, self.hist_fcast_pred_mean_data, self.predictor, None,
+            self.truth.data,
+            self.hist_fcast_pred_mean_data,
+            self.predictor,
+            None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -703,7 +716,10 @@ class Test_compute_initial_guess(IrisTest):
             desired_units=self.desired_units,
         )
         result = plugin.compute_initial_guess(
-            self.truth.data, self.hist_fcast_pred_mean_data, self.predictor, None,
+            self.truth.data,
+            self.hist_fcast_pred_mean_data,
+            self.predictor,
+            None,
         )
 
         self.assertArrayAlmostEqual(
@@ -807,7 +823,10 @@ class Test_compute_initial_guess(IrisTest):
             desired_units=self.desired_units,
         )
         result = plugin.compute_initial_guess(
-            self.truth.data, self.additional_predictors, self.predictor, None,
+            self.truth.data,
+            self.additional_predictors,
+            self.predictor,
+            None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(result, self.expected_multiple_predictors_default)
@@ -825,7 +844,10 @@ class Test_compute_initial_guess(IrisTest):
             desired_units=self.desired_units,
         )
         result = plugin.compute_initial_guess(
-            self.truth.data, self.additional_predictors, self.predictor, None,
+            self.truth.data,
+            self.additional_predictors,
+            self.predictor,
+            None,
         )
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayAlmostEqual(
@@ -953,7 +975,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -975,7 +998,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1061,7 +1085,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_norm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1081,7 +1106,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_truncnorm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_truncnorm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1110,7 +1136,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_truncnorm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_truncnorm,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1191,11 +1218,13 @@ class Test_process(
         )
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data, self.expected_mean_pred_each_grid_point[cube.name()],
+                cube.data,
+                self.expected_mean_pred_each_grid_point[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coord,
+                [c.name() for c in cube.coords(dim_coords=True)],
+                expected_dim_coord,
             )
         beta_cube = result.extract_cube("emos_coefficient_beta")
         self.assertArrayEqual(
@@ -1222,11 +1251,13 @@ class Test_process(
         )
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data, self.expected_mean_pred_each_grid_point[cube.name()],
+                cube.data,
+                self.expected_mean_pred_each_grid_point[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
+                [c.name() for c in cube.coords(dim_coords=True)],
+                expected_dim_coords,
             )
 
     def test_point_by_point_sites(self):
@@ -1238,11 +1269,13 @@ class Test_process(
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data, self.expected_mean_pred_each_site[cube.name()],
+                cube.data,
+                self.expected_mean_pred_each_site[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
+                [c.name() for c in cube.coords(dim_coords=True)],
+                expected_dim_coords,
             )
 
     def test_point_by_point_sites_realizations(self):
@@ -1262,7 +1295,8 @@ class Test_process(
         result = plugin.process(self.historic_forecast_spot_cube, self.truth_spot_cube)
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data, self.expected_realizations_each_site[cube.name()],
+                cube.data,
+                self.expected_realizations_each_site[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
@@ -1300,7 +1334,8 @@ class Test_process(
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
-                [c.name() for c in cube.coords(dim_coords=True)], expected_dim_coords,
+                [c.name() for c in cube.coords(dim_coords=True)],
+                expected_dim_coords,
             )
 
     def test_point_by_point_default_initial_guess_realizations(self):
@@ -1343,7 +1378,8 @@ class Test_process(
             CubeList([self.spot_altitude_cube]),
         )
         self.assertEMOSCoefficientsAlmostEqual(
-            np.hstack([cube.data for cube in result]), self.expected_mean_pred_norm_alt,
+            np.hstack([cube.data for cube in result]),
+            self.expected_mean_pred_norm_alt,
         )
         self.assertArrayEqual(
             [cube.name() for cube in result], self.expected_coeff_names
@@ -1374,7 +1410,8 @@ class Test_process(
 
         for cube in result:
             self.assertEMOSCoefficientsAlmostEqual(
-                cube.data, self.expected_mean_pred_each_site_alt[cube.name()],
+                cube.data,
+                self.expected_mean_pred_each_site_alt[cube.name()],
             )
             self.assertIn(cube.name(), self.expected_coeff_names)
             self.assertEqual(
@@ -1424,7 +1461,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_norm,
         )
 
     def test_historic_forecast_unit_conversion(self):
@@ -1439,7 +1477,8 @@ class Test_process(
         )
 
         self.assertEMOSCoefficientsAlmostEqual(
-            np.array([cube.data for cube in result]), self.expected_mean_pred_norm,
+            np.array([cube.data for cube in result]),
+            self.expected_mean_pred_norm,
         )
 
     def test_non_matching_units(self):

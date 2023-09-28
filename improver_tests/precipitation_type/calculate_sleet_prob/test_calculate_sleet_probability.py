@@ -40,7 +40,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
 class Test_calculate_sleet_probability(IrisTest):
-    """ Tests the calculate sleet probability function."""
+    """Tests the calculate sleet probability function."""
 
     def setUp(self):
         """Create cubes to input into the function."""

@@ -66,5 +66,6 @@ def process(
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
     return ModalWeatherCode(
-        model_id_attr=model_id_attr, record_run_attr=record_run_attr,
+        model_id_attr=model_id_attr,
+        record_run_attr=record_run_attr,
     )(cubes)

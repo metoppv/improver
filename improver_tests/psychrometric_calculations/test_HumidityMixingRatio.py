@@ -51,7 +51,10 @@ def temperature_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature data"""
     data = np.full((2, 2, 2), fill_value=300, dtype=np.float32)
     temperature_cube = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data,
+        name="air_temperature",
+        units="K",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return temperature_cube
 
@@ -61,7 +64,10 @@ def pressure_cube_fixture() -> Cube:
     """Set up a r, y, x cube of pressure data"""
     data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
     pressure_cube = set_up_variable_cube(
-        data, name="air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data,
+        name="air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure_cube
 

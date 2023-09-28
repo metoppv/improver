@@ -41,7 +41,9 @@ from improver.utilities.flatten import flatten
 @pytest.fixture
 def cube() -> Cube:
     """Sets up a cube for testing"""
-    return set_up_variable_cube(np.zeros((2, 2), dtype=np.float32),)
+    return set_up_variable_cube(
+        np.zeros((2, 2), dtype=np.float32),
+    )
 
 
 @pytest.mark.parametrize(
@@ -71,7 +73,12 @@ def test_basic(nested, expected):
 
 
 @pytest.mark.parametrize(
-    "nested", ((0), ("cat"), ({0: {1: "cat"}, 1: {2: "dog"}}),),
+    "nested",
+    (
+        (0),
+        ("cat"),
+        ({0: {1: "cat"}, 1: {2: "dog"}}),
+    ),
 )
 def test_exception(nested):
     """Test an exception is raised if inappropriate types

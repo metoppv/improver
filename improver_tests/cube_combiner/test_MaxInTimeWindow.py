@@ -86,10 +86,12 @@ def setup_probability_cubes(period=3) -> CubeList:
 
 
 @pytest.mark.parametrize(
-    "period", [(3), (1)],
+    "period",
+    [(3), (1)],
 )
 @pytest.mark.parametrize(
-    "forecast_cubes", [(setup_realization_cubes), (setup_probability_cubes)],
+    "forecast_cubes",
+    [(setup_realization_cubes), (setup_probability_cubes)],
 )
 def test_basic(forecast_cubes, period):
     """Test for max in a time window."""
@@ -170,7 +172,8 @@ def test_bound_mismatch():
 
 
 @pytest.mark.parametrize(
-    "minimum_realizations", [(4), (5)],
+    "minimum_realizations",
+    [(4), (5)],
 )
 def test_minimum_realizations(minimum_realizations):
     """Test the behaviour if the number of realizations is less than the minimum

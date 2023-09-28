@@ -204,7 +204,8 @@ class CubeCombiner(BasePlugin):
 
     @staticmethod
     def _check_dimensions_match(
-        cube_list: Union[List[Cube], CubeList], comparators: List[Callable] = [eq],
+        cube_list: Union[List[Cube], CubeList],
+        comparators: List[Callable] = [eq],
     ) -> None:
         """
         Check all coordinate dimensions on the input cubes match according to
@@ -398,7 +399,9 @@ class CubeCombiner(BasePlugin):
         )
 
     def process(
-        self, cube_list: Union[List[Cube], CubeList], new_diagnostic_name: str,
+        self,
+        cube_list: Union[List[Cube], CubeList],
+        new_diagnostic_name: str,
     ) -> Cube:
         """
         Combine data and metadata from a list of input cubes into a single

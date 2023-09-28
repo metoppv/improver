@@ -230,7 +230,10 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         (lambda l: l[0].rename("kittens"), "Expected to find cubes of "),
         (lambda l: l[1].rename("poodles"), "Expected to find cubes of "),
         (remove_a_cube, "Expected to find cubes of "),
-        (add_unexpected_cube, re.escape("Unexpected Cube(s) found in inputs: "),),
+        (
+            add_unexpected_cube,
+            re.escape("Unexpected Cube(s) found in inputs: "),
+        ),
         (spatial_shift, "Spatial coords of input Cubes do not match: "),
         (lambda l: units_to_kg(l[0]), "Unable to convert from"),
         (lambda l: units_to_kg(l[1]), "Unable to convert from"),

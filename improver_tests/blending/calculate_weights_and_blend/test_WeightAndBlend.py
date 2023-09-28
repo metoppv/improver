@@ -364,7 +364,8 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test output is a cube"""
         result = self.plugin_cycle.process(
-            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+            [self.ukv_cube, self.ukv_cube_latest],
+            cycletime=self.cycletime,
         )
         self.assertIsInstance(result, iris.cube.Cube)
 
@@ -377,7 +378,8 @@ class Test_process(IrisTest):
         message = "Blending masked data without spatial weights"
         with pytest.warns(UserWarning, match=message):
             self.plugin_cycle.process(
-                [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+                [ukv_cube, self.ukv_cube_latest],
+                cycletime=self.cycletime,
             )
 
     def test_cycle_blend_linear(self):

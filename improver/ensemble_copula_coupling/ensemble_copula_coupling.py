@@ -405,7 +405,9 @@ class ResamplePercentiles(BasePlugin):
         template_cube = next(forecast_at_percentiles.slices_over(percentile_coord_name))
         template_cube.remove_coord(percentile_coord_name)
         percentile_cube = create_cube_with_percentiles(
-            desired_percentiles, template_cube, forecast_at_percentiles_data,
+            desired_percentiles,
+            template_cube,
+            forecast_at_percentiles_data,
         )
         if original_mask is not None:
             original_mask = np.broadcast_to(original_mask, percentile_cube.shape)
@@ -475,7 +477,9 @@ class ResamplePercentiles(BasePlugin):
             )
 
         forecast_at_percentiles = self._interpolate_percentiles(
-            forecast_at_percentiles, percentiles, percentile_coord.name(),
+            forecast_at_percentiles,
+            percentiles,
+            percentile_coord.name(),
         )
         return forecast_at_percentiles
 
@@ -603,15 +607,19 @@ class ConvertProbabilitiesToPercentiles(BasePlugin):
                     upper_bound = max(threshold_points_with_endpoints)
                 if lower_bound > min(threshold_points_with_endpoints):
                     lower_bound = min(threshold_points_with_endpoints)
-                threshold_points_with_endpoints = insert_lower_and_upper_endpoint_to_1d_array(
-                    threshold_points, lower_bound, upper_bound
+                threshold_points_with_endpoints = (
+                    insert_lower_and_upper_endpoint_to_1d_array(
+                        threshold_points, lower_bound, upper_bound
+                    )
                 )
             else:
                 raise ValueError(msg)
         return threshold_points_with_endpoints, probabilities_for_cdf
 
     def _probabilities_to_percentiles(
-        self, forecast_probabilities: Cube, percentiles: ndarray,
+        self,
+        forecast_probabilities: Cube,
+        percentiles: ndarray,
     ) -> Cube:
         """
         Conversion of probabilities to percentiles through the construction
@@ -846,7 +854,9 @@ class ConvertLocationAndScaleParameters:
     """
 
     def __init__(
-        self, distribution: str = "norm", shape_parameters: Optional[ndarray] = None,
+        self,
+        distribution: str = "norm",
+        shape_parameters: Optional[ndarray] = None,
     ) -> None:
         """
         Initialise the class.
@@ -1113,8 +1123,10 @@ class ConvertLocationAndScaleParametersToPercentiles(
 
         if no_of_percentiles:
             percentiles = choose_set_of_percentiles(no_of_percentiles)
-        calibrated_forecast_percentiles = self._location_and_scale_parameters_to_percentiles(
-            location_parameter, scale_parameter, template_cube, percentiles
+        calibrated_forecast_percentiles = (
+            self._location_and_scale_parameters_to_percentiles(
+                location_parameter, scale_parameter, template_cube, percentiles
+            )
         )
 
         return calibrated_forecast_percentiles

@@ -435,7 +435,8 @@ def test_new_weights_with_dict_masked_input(single_thresh_input_cube, weights, p
     """Test a new weights cube is created as intended when we have a masked
     input gridded or spot forecast cube."""
     single_thresh_input_cube.data = np.ma.masked_array(
-        single_thresh_input_cube.data, np.ones(single_thresh_input_cube.data.shape),
+        single_thresh_input_cube.data,
+        np.ones(single_thresh_input_cube.data.shape),
     )
     new_weights_cube = plugin._create_new_weights_cube(
         single_thresh_input_cube, weights
@@ -531,7 +532,8 @@ def multi_model_inputs(request, output_type):
 
 
 @pytest.mark.parametrize(
-    "output_type", ["threshold", "single_threshold"],
+    "output_type",
+    ["threshold", "single_threshold"],
 )
 def test__slice_input_slices(plugin, multi_model_inputs):
     """Test function slices out extra dimensions to leave only the spatial

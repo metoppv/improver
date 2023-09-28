@@ -377,7 +377,12 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         optimised_coeffs = minimize(
             minimisation_function,
             initial_guess,
-            args=(forecast_predictor_data, truth_data, forecast_var_data, sqrt_pi,),
+            args=(
+                forecast_predictor_data,
+                truth_data,
+                forecast_var_data,
+                sqrt_pi,
+            ),
             method="Nelder-Mead",
             tol=self.tolerance,
             options={"maxiter": self.max_iterations, "return_all": True},
@@ -494,7 +499,10 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         x_coord = fp_template.coord(axis="x")
         if fp_template.coord_dims(y_coord) == fp_template.coord_dims(x_coord):
             return np.transpose(np.array(optimised_coeffs)).reshape(
-                (len(initial_guess[0]), len(fp_template.coord(axis="y").points),)
+                (
+                    len(initial_guess[0]),
+                    len(fp_template.coord(axis="y").points),
+                )
             )
         else:
             return np.transpose(np.array(optimised_coeffs)).reshape(
@@ -876,7 +884,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         for index, fp in enumerate(forecast_predictors):
             template_cube_copy = template_cube.copy()
             predictor_index = iris.coords.DimCoord(
-                np.array(index, dtype=np.int8), long_name="predictor_index", units="1",
+                np.array(index, dtype=np.int8),
+                long_name="predictor_index",
+                units="1",
             )
             template_cube_copy.add_aux_coord(predictor_index)
             template_cube_copy = iris.util.new_axis(template_cube_copy, predictor_index)
@@ -887,7 +897,8 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             fp_names, long_name="predictor_name", units="no_unit"
         )
         template_cube.add_aux_coord(
-            predictor_name, data_dims=template_cube.coord_dims("predictor_index"),
+            predictor_name,
+            data_dims=template_cube.coord_dims("predictor_index"),
         )
         return iris.util.squeeze(template_cube)
 
@@ -1462,15 +1473,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         for axis in ["x", "y"]:
             for coeff_cube in self.coefficients_cubelist:
                 if (
-                    (
-                        self.current_forecast.coord(axis=axis).collapsed().points
-                        != coeff_cube.coord(axis=axis).collapsed().points
-                    ).all()
-                    or (
-                        self.current_forecast.coord(axis=axis).collapsed().bounds
-                        != coeff_cube.coord(axis=axis).collapsed().bounds
-                    ).all()
-                ):
+                    self.current_forecast.coord(axis=axis).collapsed().points
+                    != coeff_cube.coord(axis=axis).collapsed().points
+                ).all() or (
+                    self.current_forecast.coord(axis=axis).collapsed().bounds
+                    != coeff_cube.coord(axis=axis).collapsed().bounds
+                ).all():
                     raise ValueError(
                         msg.format(
                             axis,

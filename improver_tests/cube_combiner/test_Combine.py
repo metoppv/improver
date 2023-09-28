@@ -101,7 +101,8 @@ def test_filtering_realizations(realization_cubes, short_realizations):
 
 @pytest.mark.parametrize("coordinate_name", ("realization", "percentile"))
 def test_cubes_different_size(
-    realization_cubes, coordinate_name,
+    realization_cubes,
+    coordinate_name,
 ):
     """Checks Combine works with different broadcast coordinates."""
     cubes = realization_cubes.merge_cube()

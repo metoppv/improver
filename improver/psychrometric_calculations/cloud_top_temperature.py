@@ -93,7 +93,9 @@ class CloudTopTemperature(PostProcessingPlugin):
 
             (pressure,) = t.coord("pressure").points
             t_dry_parcel = dry_adiabatic_temperature(
-                self.t_at_ccl.data[mask], self.p_at_ccl.data[mask], pressure,
+                self.t_at_ccl.data[mask],
+                self.p_at_ccl.data[mask],
+                pressure,
             )
 
             t_parcel = np.full_like(t.data, np.nan)

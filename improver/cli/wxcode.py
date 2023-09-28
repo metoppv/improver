@@ -45,7 +45,7 @@ def process(
     check_tree: bool = False,
     title: str = None,
 ):
-    """ Processes cube for Weather symbols.
+    """Processes cube for Weather symbols.
 
     Args:
         cubes (iris.cube.CubeList):

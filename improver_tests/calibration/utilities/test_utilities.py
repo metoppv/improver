@@ -230,7 +230,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
 
     def test_4D_input_not_masked_preserve_leading_dim(self):
         """Test input array is unchanged when input in 4D.
-           This should give the same answer as the corresponding 3D array."""
+        This should give the same answer as the corresponding 3D array."""
         data_array = self.data_array.reshape((3, 2, 2, 2))
         result = flatten_ignoring_masked_data(
             data_array, preserve_leading_dimension=True
@@ -425,7 +425,10 @@ class Test__filter_non_matching_cubes(SetupCubes):
 
         # Add multi-dimensional time coordinate.
         time_coord = AuxCoord(
-            np.array(np.reshape(time_points, (2, 2)), dtype=TIME_COORDS["time"].dtype,),
+            np.array(
+                np.reshape(time_points, (2, 2)),
+                dtype=TIME_COORDS["time"].dtype,
+            ),
             "time",
             units=TIME_COORDS["time"].units,
         )
@@ -617,7 +620,7 @@ class Test_merge_land_and_sea(IrisTest):
 class Test_forecast_coords_match(IrisTest):
 
     """Test for function that tests if forecast period and the hour of the
-     forecast_reference_time coordinate match between two cubes."""
+    forecast_reference_time coordinate match between two cubes."""
 
     def setUp(self):
         """Set-up testing."""

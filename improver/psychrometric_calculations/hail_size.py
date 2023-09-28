@@ -102,9 +102,9 @@ class HailSize(BasePlugin):
 
     def __init__(self, model_id_attr: str = None):
         """Sets up Class
-            Args:
-                model_id_attr:
-                    Name of model ID attribute to be copied from source cubes to output cube
+        Args:
+            model_id_attr:
+                Name of model ID attribute to be copied from source cubes to output cube
         """
 
         self.final_order = None
@@ -215,17 +215,17 @@ class HailSize(BasePlugin):
     ) -> None:
         """Checks the size and units of input cubes and enforces the standard coord order
 
-            Args:
-                ccl_temperature:
-                    Cube of cloud condensation level temperature
-                ccl_pressure:
-                    Cube of cloud condensation level pressure
-                temperature_on_pressure:
-                    Cube of environment temperature on pressure levels
-                wet_bulb_zero_asl:
-                    Cube of the height of the wet bulb freezing level above sea level
-                orography:
-                    Cube of the orography height.
+        Args:
+            ccl_temperature:
+                Cube of cloud condensation level temperature
+            ccl_pressure:
+                Cube of cloud condensation level pressure
+            temperature_on_pressure:
+                Cube of environment temperature on pressure levels
+            wet_bulb_zero_asl:
+                Cube of the height of the wet bulb freezing level above sea level
+            orography:
+                Cube of the orography height.
         """
         coord_order = ["realization", "pressure"] + [
             temperature_on_pressure.coord(axis=axis).name() for axis in "yx"

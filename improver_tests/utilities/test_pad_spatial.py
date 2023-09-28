@@ -276,7 +276,8 @@ class Test_pad_cube_with_halo(IrisTest):
         self.cube.data[2, 2] = 0
 
         data = np.array(
-            [[0.0, 0.1, 0.0], [0.1, 0.5, 0.1], [0.0, 0.1, 0.0]], dtype=np.float32,
+            [[0.0, 0.1, 0.0], [0.1, 0.5, 0.1], [0.0, 0.1, 0.0]],
+            dtype=np.float32,
         )
         self.alternative_cube = self.cube[1:-1, 1:-1].copy(data=data)
 

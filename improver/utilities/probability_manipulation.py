@@ -62,21 +62,31 @@ def comparison_operator_dict() -> Dict[str, namedtuple]:
     comparison_operator_dict.update(
         dict.fromkeys(
             ["gt", "GT", ">"],
-            inequality(function=operator.gt, spp_string="greater_than", inverse="le",),
+            inequality(
+                function=operator.gt,
+                spp_string="greater_than",
+                inverse="le",
+            ),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["le", "LE", "<="],
             inequality(
-                function=operator.le, spp_string="less_than_or_equal_to", inverse="gt",
+                function=operator.le,
+                spp_string="less_than_or_equal_to",
+                inverse="gt",
             ),
         )
     )
     comparison_operator_dict.update(
         dict.fromkeys(
             ["lt", "LT", "<"],
-            inequality(function=operator.lt, spp_string="less_than", inverse="ge",),
+            inequality(
+                function=operator.lt,
+                spp_string="less_than",
+                inverse="ge",
+            ),
         )
     )
     return comparison_operator_dict

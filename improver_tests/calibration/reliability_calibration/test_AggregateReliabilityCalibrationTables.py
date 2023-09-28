@@ -138,7 +138,8 @@ def test_process_aggregating_over_cubes_and_coordinates(
 
     plugin = Plugin()
     result = plugin.process(
-        [reliability_cube, different_frt], coordinates=["latitude", "longitude"],
+        [reliability_cube, different_frt],
+        coordinates=["latitude", "longitude"],
     )
     assert_array_equal(result.data, lat_lon_collapse * 2)
     assert_array_equal(result.coord(frt).points, expected_points)

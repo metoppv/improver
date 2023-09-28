@@ -113,7 +113,7 @@ class Test__make_mask_cube(IrisTest):
 
     def test_cube_attribute_include_seapoints(self):
         """Test the new attribute is added to the cube when seapoints
-           included."""
+        included."""
         result = _make_mask_cube(
             self.mask,
             self.coords,

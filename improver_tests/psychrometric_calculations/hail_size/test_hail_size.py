@@ -90,7 +90,10 @@ def orography() -> Cube:
     """Set up a r, y, x cube of orography data"""
     data = np.full((3, 2), fill_value=0, dtype=np.float32)
     orography_cube = set_up_variable_cube(
-        data, name="surface_altitude", units="m", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data,
+        name="surface_altitude",
+        units="m",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return orography_cube
 
@@ -160,10 +163,28 @@ https://doi.org/10.1175/1520-0477-34.6.235
 @pytest.mark.parametrize(
     "ccl_p,ccl_t,wbz,orog,expected",
     (
-        (75000, 290, 2200, 0, 0.035,),  # values approx from tephigram in literature
-        (75000, 290, 5000, 0, 0,),  # wet bulb zero (wbz) height greater than 4400m
+        (
+            75000,
+            290,
+            2200,
+            0,
+            0.035,
+        ),  # values approx from tephigram in literature
+        (
+            75000,
+            290,
+            5000,
+            0,
+            0,
+        ),  # wet bulb zero (wbz) height greater than 4400m
         (75000, 290, 5000, 2800, 0.035),  # orography reduces wbz height to 2200m
-        (75000, 290, 3400, 0, 0.025,),  # wbz height above 3350m but less than 4400m
+        (
+            75000,
+            290,
+            3400,
+            0,
+            0.025,
+        ),  # wbz height above 3350m but less than 4400m
         (94000, 273, 2200, 0, 0),  # vertical value negative
         (1000, 270, 2200, 0, 0),  # horizontal value negative
         (95000, 330, 2200, 0, 0.08),  # vertical greater than length of table

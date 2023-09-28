@@ -68,7 +68,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.threshold_points = np.array([276, 277, 278], dtype=np.float32)
 
     def test_above(self):
-        """ Tests the case where spp__relative_threshold is above"""
+        """Tests the case where spp__relative_threshold is above"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="above"
         )
@@ -76,7 +76,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "above")
 
     def test_below(self):
-        """ Tests the case where spp__relative_threshold is below"""
+        """Tests the case where spp__relative_threshold is below"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="below"
         )
@@ -84,7 +84,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "below")
 
     def test_greater_than(self):
-        """ Tests the case where spp__relative_threshold is greater_than"""
+        """Tests the case where spp__relative_threshold is greater_than"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="greater_than"
         )
@@ -92,7 +92,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "above")
 
     def test_greater_than_or_equal_to(self):
-        """ Tests the case where spp__relative_threshold is
+        """Tests the case where spp__relative_threshold is
         greater_than_or_equal_to"""
         cube = set_up_probability_cube(
             self.data,
@@ -103,7 +103,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "above")
 
     def test_less_than(self):
-        """ Tests the case where spp__relative_threshold is less_than"""
+        """Tests the case where spp__relative_threshold is less_than"""
         cube = set_up_probability_cube(
             self.data, self.threshold_points, spp__relative_to_threshold="less_than"
         )
@@ -111,7 +111,7 @@ class Test_probability_is_or_below(unittest.TestCase):
         self.assertEqual(result, "below")
 
     def test_less_than_or_equal_to(self):
-        """ Tests the case where spp__relative_threshold is
+        """Tests the case where spp__relative_threshold is
         less_than_or_equal_to"""
         cube = set_up_probability_cube(
             self.data,
@@ -124,7 +124,10 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_no_spp__relative_to_threshold(self):
         """Tests it returns None if there is no spp__relative_to_threshold
         attribute."""
-        cube = set_up_probability_cube(self.data, self.threshold_points,)
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+        )
         cube.coord("air_temperature").attributes = {
             "relative_to_threshold": "greater_than"
         }
@@ -134,7 +137,10 @@ class Test_probability_is_or_below(unittest.TestCase):
     def test_incorrect_attribute(self):
         """Tests it returns None if the spp__relative_to_threshold
         attribute has an invalid value."""
-        cube = set_up_probability_cube(self.data, self.threshold_points,)
+        cube = set_up_probability_cube(
+            self.data,
+            self.threshold_points,
+        )
         cube.coord("air_temperature").attributes = {
             "spp__relative_to_threshold": "higher"
         }
@@ -205,8 +211,7 @@ class Test_get_threshold_coord_name_from_probability_name(unittest.TestCase):
         self.assertEqual(result, "air_temperature")
 
     def test_between_thresholds(self):
-        """Test correct name is returned from a probability between thresholds
-        """
+        """Test correct name is returned from a probability between thresholds"""
         result = get_threshold_coord_name_from_probability_name(
             "probability_of_visibility_in_air_between_thresholds"
         )
@@ -304,8 +309,7 @@ class Test_find_threshold_coordinate(IrisTest):
         self.assertIsInstance(threshold_coord, iris.coords.Coord)
 
     def test_old_convention(self):
-        """Test function recognises threshold coordinate with name "threshold"
-        """
+        """Test function recognises threshold coordinate with name "threshold" """
         threshold_coord = find_threshold_coordinate(self.cube_old)
         self.assertEqual(threshold_coord.name(), "threshold")
         self.assertArrayAlmostEqual(threshold_coord.points, self.threshold_points)

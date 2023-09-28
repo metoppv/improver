@@ -135,7 +135,8 @@ def test_latlon_from_cube(request, fixture_name, expected):
 
 
 @pytest.mark.parametrize(
-    "fixture_name", ["latlon_single", "equal_single", "latlon_ens", "equal_ens"],
+    "fixture_name",
+    ["latlon_single", "equal_single", "latlon_ens", "equal_ens"],
 )
 def test_flatten_spatial_dimensions(request, fixture_name):
     """Test the flatten_spatial_dimensions function"""

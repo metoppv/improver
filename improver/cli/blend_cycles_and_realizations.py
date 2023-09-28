@@ -39,7 +39,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, cycletime: str = None,
+    *cubes: cli.inputcube,
+    cycletime: str = None,
 ):
     """Runs equal-weighted blending for a specific scenario.
 
@@ -68,6 +69,14 @@ def process(
     for cube in cubes:
         cubelist.append(collapse_realizations(cube))
 
-    plugin = WeightAndBlend("forecast_reference_time", "linear", y0val=0.5, ynval=0.5,)
-    cube = plugin(cubelist, cycletime=cycletime,)
+    plugin = WeightAndBlend(
+        "forecast_reference_time",
+        "linear",
+        y0val=0.5,
+        ynval=0.5,
+    )
+    cube = plugin(
+        cubelist,
+        cycletime=cycletime,
+    )
     return cube

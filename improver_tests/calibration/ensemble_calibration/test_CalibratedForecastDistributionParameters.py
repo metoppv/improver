@@ -176,7 +176,8 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             dtype=np.float32,
         )
         self.expected_loc_param_realizations_sites = np.array(
-            [277.7531, 277.4529, 277.553, 277.2528], dtype=np.float32,
+            [277.7531, 277.4529, 277.553, 277.2528],
+            dtype=np.float32,
         )
 
         self.expected_scale_param_realizations_sites = np.array(
@@ -250,7 +251,7 @@ class Test__repr__(IrisTest):
 
 class Test__spatial_domain_match(SetupCoefficientsCubes):
 
-    """ Test the _spatial_domain_match method."""
+    """Test the _spatial_domain_match method."""
 
     def setUp(self):
         super().setUp()
@@ -328,7 +329,9 @@ class Test__calculate_location_parameter_from_mean(
             location_parameter, self.expected_loc_param_mean
         )
         assert_array_almost_equal(
-            location_parameter, self.expected_loc_param_realizations, decimal=0,
+            location_parameter,
+            self.expected_loc_param_realizations,
+            decimal=0,
         )
 
     def test_missing_additional_predictor(self):

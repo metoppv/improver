@@ -244,7 +244,7 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_with_least_significant_figure(self, m):
-        """Tests save_netcdf, compression-level=0 and least-significant-digit=2 """
+        """Tests save_netcdf, compression-level=0 and least-significant-digit=2"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         result = wrapped_with_output.cli(
             "argv[0]",

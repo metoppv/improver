@@ -161,7 +161,9 @@ def process(
         )(cube, mask_cube=mask)
     elif neighbourhood_output == "percentiles":
         result = GeneratePercentilesFromANeighbourhood(
-            radius_or_radii, lead_times=lead_times, percentiles=percentiles,
+            radius_or_radii,
+            lead_times=lead_times,
+            percentiles=percentiles,
         )(cube)
 
     if degrees_as_complex:

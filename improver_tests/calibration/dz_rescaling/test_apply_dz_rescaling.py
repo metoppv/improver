@@ -69,7 +69,9 @@ def _create_forecasts(
     data = np.array(forecast_percs).repeat(2).reshape(3, 2)
 
     perc_coord = DimCoord(
-        np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%",
+        np.array([10, 50, 90], dtype=np.float32),
+        long_name="percentile",
+        units="%",
     )
     fp_coord = AuxCoord(
         np.array(
@@ -81,7 +83,8 @@ def _create_forecasts(
     )
     time_coord = AuxCoord(
         np.array(
-            pd.Timestamp(validity_time).timestamp(), dtype=TIME_COORDS["time"].dtype,
+            pd.Timestamp(validity_time).timestamp(),
+            dtype=TIME_COORDS["time"].dtype,
         ),
         "time",
         units=TIME_COORDS["time"].units,
@@ -240,7 +243,10 @@ def test_use_correct_time():
     ).strftime("%Y%m%dT%H%MZ")
 
     forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period, forecast,
+        forecast_reference_time,
+        validity_time,
+        forecast_period,
+        forecast,
     )
     scaling_factor = _create_scaling_factor_cube(12, forecast_period, scaling_factor)
     scaling_factor.data[0, 0, 0] = scaling_factor.data[0, 0, 0].copy() + 0.01
