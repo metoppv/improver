@@ -37,6 +37,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 import numpy as np
 from iris import Constraint
 from iris.cube import Cube
+from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
@@ -312,49 +313,51 @@ def thin_cube(cube: Cube, thinning_dict: Dict[str, int]) -> Cube:
     return cube[tuple(slices)]
 
 
-class ExtractPressureLevel(BasePlugin):
+class ExtractLevel(BasePlugin):
     """
-    Class for extracting a pressure surface from data-on-pressure-levels.
+    Class for extracting a pressure or height surface from data-on-levels.
     """
 
     def __init__(
-        self, positive_correlation: bool, value_of_pressure_level: float,
+        self, positive_correlation: bool, value_of_level: float,
     ):
         """Sets up Class
             Args:
                 positive_correlation:
-                    Set to True when the variable generally increases as pressure increases
-                value_of_pressure_level:
-                    The value of the input cube for which the pressure level is required
+                    Set to True when the variable generally increases as pressure increase or when the variable
+                    generally increases as height decreases.
+                value_of_level:
+                    The value of the input cube for which the pressure or height level is required
         """
 
         self.positive_correlation = positive_correlation
-        self.value_of_pressure_level = value_of_pressure_level
+        self.value_of_level = value_of_level
+        self.coordinate=None
 
-    @staticmethod
-    def pressure_grid(variable_on_pressure: Cube) -> np.ndarray:
-        """Creates a pressure grid of the same shape as variable_on_pressure cube.
+    def coordinate_grid(self, variable_on_levels: Cube) -> np.ndarray:
+        """Creates a pressure or height grid of the same shape as variable_on_levels cube.
         It is populated at every grid square and for every realization with
-        a column of all pressure levels taken from variable_on_pressure's pressure coordinate
+        a column of all pressure or height levels taken from variable_on_levels's pressure or height
+        coordinate
 
         Args:
-            variable_on_pressure:
-                Cube of some variable with pressure levels
+            variable_on_levels:
+                Cube of some variable with pressure or height levels
         Returns:
-            An n dimensional array with the same dimensions as variable_on_pressure containing,
-            at every grid square and for every realization, a column of all pressure levels
-            taken from variable_on_pressure's pressure coordinate
+            An n dimensional array with the same dimensions as variable_on_levels containing,
+            at every grid square and for every realization, a column of all pressure or height levels
+            taken from variable_on_levels's pressure or height coordinate
         """
 
-        required_shape = variable_on_pressure.shape
-        pressure_points = variable_on_pressure.coord("pressure").points
-        (pressure_axis,) = variable_on_pressure.coord_dims("pressure")
-        pressure_shape = np.ones_like(required_shape)
-        pressure_shape[pressure_axis] = required_shape[pressure_axis]
-        pressure_array = np.broadcast_to(
-            pressure_points.reshape(pressure_shape), required_shape
+        required_shape = variable_on_levels.shape
+        coordinate_points = variable_on_levels.coord(self.coordinate).points
+        (coordinate_axis,) = variable_on_levels.coord_dims(self.coordinate)
+        coordinate_shape = np.ones_like(required_shape)
+        coordinate_shape[coordinate_axis] = required_shape[coordinate_axis]
+        coordinate_array = np.broadcast_to(
+            coordinate_points.reshape(coordinate_shape), required_shape
         )
-        return pressure_array
+        return coordinate_array
 
     def fill_invalid(self, cube: Cube):
         """Populate any invalid values in the source data with the neighbouring value in that
@@ -364,177 +367,191 @@ class ExtractPressureLevel(BasePlugin):
 
         Args:
             cube:
-                Cube of variable on pressure levels (3D) (modified in-place).
+                Cube of variable on levels (3D) (modified in-place).
 """
         if np.isfinite(cube.data).all() and not np.ma.is_masked(cube.data):
             return
         data = np.ma.masked_invalid(cube.data)
-        (pressure_axis,) = cube.coord_dims("pressure")
-        pressure_points = cube.coord("pressure").points
+        (coordinate_axis,) = cube.coord_dims(self.coordinate)
+        coordinate_points = cube.coord(self.coordinate).points
         # Find the least significant increment to use as an offset for filling missing values.
         # We don't really care so long as it is non-zero and has the same sign.
-        increasing_p_order = np.all(np.diff(cube.coord("pressure").points) > 0)
-        sign = 1 if self.positive_correlation == increasing_p_order else -1
+        increasing_order = np.all(np.diff(cube.coord(self.coordinate).points) > 0)
+        sign = 1 if self.positive_correlation == increasing_order else -1
         v_increment = sign * 10 ** (-cube.attributes.get("least_significant_digit", 2))
         self._one_way_fill(
-            data, pressure_axis, pressure_points, v_increment, reverse=True
+            data, coordinate_axis, coordinate_points, v_increment, reverse=True
         )
         cube.data = data
         if np.isfinite(cube.data).all() and not np.ma.is_masked(cube.data):
             # We've filled everything in. No need to try again.
             return
         self._one_way_fill(
-            data, pressure_axis, pressure_points, v_increment, reverse=False
+            data, coordinate_axis, coordinate_points, v_increment, reverse=False
         )
         cube.data = data
 
     @staticmethod
     def _one_way_fill(
         data: np.ma.MaskedArray,
-        pressure_axis: int,
-        pressure_points: np.ndarray,
+        coordinate_axis: int,
+        coordinate_points: np.ndarray,
         v_increment: np.ndarray,
         reverse: bool = False,
     ):
         """
-        Scans through the pressure axis forwards or backwards, filling any missing data with the
+        Scans through the pressure or height axis forwards or backwards, filling any missing data with the
         previous value plus (or minus in reverse) the specified increment. Running this in both
         directions will therefore populate all columns so long as there is at least one valid
         data point to start with.
         """
-        last_p_slice = [slice(None)] * data.ndim
+        last_slice = [slice(None)] * data.ndim
         if reverse:
             local_increment = -v_increment
-            first = len(pressure_points) - 2
+            first = len(coordinate_points) - 2
             last = -1
             step = -1
-            last_p_slice[pressure_axis] = slice(
-                len(pressure_points) - 1, len(pressure_points)
+            last_slice[coordinate_axis] = slice(
+                len(coordinate_points) - 1, len(coordinate_points)
             )
         else:
             local_increment = v_increment
             first = 1
-            last = len(pressure_points)
+            last = len(coordinate_points)
             step = 1
-            last_p_slice[pressure_axis] = slice(0, 1)
+            last_slice[coordinate_axis] = slice(0, 1)
 
-        for p in range(first, last, step):
-            p_slice = [slice(None)] * data.ndim
-            p_slice[pressure_axis] = slice(p, p + 1)
-            data[p_slice] = np.ma.where(
-                data.mask[p_slice], data[last_p_slice] + local_increment, data[p_slice],
+        for c in range(first, last, step):
+            c_slice = [slice(None)] * data.ndim
+            c_slice[coordinate_axis] = slice(c, c + 1)
+            data[c_slice] = np.ma.where(
+                data.mask[c_slice], data[last_slice] + local_increment, data[c_slice],
             )
-            last_p_slice = p_slice
+            last_slice = c_slice
 
     def fill_in_bounds(
-        self, pressure_of_variable: np.ma.MaskedArray, source_cube: Cube
+        self, value_of_variable: np.ma.MaskedArray, source_cube: Cube
     ) -> np.ndarray:
-        """Update any undefined pressure_of_variable values with the maximum or minimum
-        pressure for that column. This occurs when the requested variable value falls above
-        or below the entire pressure column.
-        Maximum pressure is chosen if the maximum data value in the column is lower than
-        the value of self.value_of_pressure_level.
+        """Update any undefined value_of_variable values with the maximum or minimum
+        pressure or height for that column. This occurs when the requested variable value falls above
+        or below the entire column.
+        Maximum pressure or height is chosen if the maximum data value in the column is lower than
+        the value of self.value_of_level.
 
         Args:
-            pressure_of_variable:
-                2D array of the pressure at the required variable value, masked True
+            value_of_variable:
+                2D array of the pressure or height at the required variable value, masked True
                 where this method needs to fill it in. (modified in-place)
             source_cube:
-                Cube of variable on pressure levels (3D) which shows where the lowest
+                Cube of variable on levels (3D) which shows where the lowest
                 and highest valid values are.
         Returns:
-            Updated pressure_of_variable array
+            Updated value_of_variable array
         """
-        if not np.ma.is_masked(pressure_of_variable):
-            return pressure_of_variable.data
-        pressure_coord = source_cube.coord("pressure")
-        max_pressure = pressure_coord.points.max()
-        min_pressure = pressure_coord.points.min()
-        (pressure_axis,) = source_cube.coord_dims("pressure")
-        max_pressure_index = np.argmax(pressure_coord.points)
-        # The values at the maximum pressure will be compared with the requested variable value
-        # using an appropriate operator based on whether value and pressure are increasing.
+        if not np.ma.is_masked(value_of_variable):
+            return value_of_variable.data
+        coord = source_cube.coord(self.coordinate)
+        max_coordinate = coord.points.max()
+        min_coordinate = coord.points.min()
+        (coordinate_axis,) = source_cube.coord_dims(self.coordinate)
+        max_index = np.argmax(coord.points)
+        # The values at the maximum pressure or height will be compared with the requested variable value
+        # using an appropriate operator based on whether value and pressure (or height) are increasing.
         comparator = operator.lt if self.positive_correlation else operator.gt
-        values_at_max_pressure = source_cube.data.take(
-            axis=pressure_axis, indices=max_pressure_index
+        values_at_max = source_cube.data.take(
+            axis=coordinate_axis, indices=max_index
         )
-        # First, fill in missing values at the maximum end of the pressure coordinate:
-        pressure_of_variable = np.ma.where(
+        # First, fill in missing values at the maximum end of the pressure or height coordinate:
+        value_of_variable = np.ma.where(
             np.logical_and(
-                comparator(values_at_max_pressure, self.value_of_pressure_level),
-                pressure_of_variable.mask,
+                comparator(values_at_max, self.value_of_level),
+                value_of_variable.mask,
             ),
-            max_pressure,
-            pressure_of_variable,
+            max_coordinate,
+            value_of_variable,
         )
         # Now fill in remaining missing values which should be at the minimum end:
-        pressure_of_variable = np.where(
-            pressure_of_variable.mask, min_pressure, pressure_of_variable,
+        value_of_variable = np.where(
+            value_of_variable.mask, min_coordinate, value_of_variable,
         )
-        return pressure_of_variable
+        return value_of_variable
 
-    def _make_pressure_cube(
-        self, result_data: np.array, variable_on_pressure_levels: Cube
+    def _make_template_cube(
+        self, result_data: np.array, variable_on_levels: Cube
     ) -> Cube:
-        """Creates a cube of the variable on a pressure level based on the input cube"""
-        pressure_cube = next(
-            variable_on_pressure_levels.slices_over(["pressure"])
+        """Creates a cube of the variable on a pressure or height level based on the input cube"""
+        template_cube = next(
+            variable_on_levels.slices_over([self.coordinate])
         ).copy(result_data)
-        pressure_cube.rename(
-            "pressure_of_atmosphere_at_"
-            f"{self.value_of_pressure_level}{variable_on_pressure_levels.units}"
-        )
-        pressure_cube.units = variable_on_pressure_levels.coord("pressure").units
-        pressure_cube.remove_coord("pressure")
-        return pressure_cube
+        if self.coordinate=="pressure":
+            template_cube.rename(
+                "pressure_of_atmosphere_at_"
+                f"{self.value_of_level}{variable_on_levels.units}"
+            )
+        else:
+            template_cube.rename(
+                "height_at_"
+                f"{self.value_of_level}{variable_on_levels.units}"
+            )
 
-    def process(self, variable_on_pressure_levels: Cube) -> Cube:
-        """Extracts the pressure level where the environment
-        variable first intersects self.value_of_pressure_level starting at a pressure value
-        near the surface and ascending in altitude from there.
-        Where the pressure surface falls outside the available data, the maximum or minimum
-        pressure will be returned, even if the source data has no value at that point.
+        template_cube.units = variable_on_levels.coord(self.coordinate).units
+        template_cube.remove_coord(self.coordinate)
+        return template_cube
+
+    def process(self, variable_on_levels: Cube) -> Cube:
+        """Extracts the pressure or height level (depending on which is present on the cube) 
+        where the environment variable first intersects self.value_of_level starting at a pressure or height
+        value near the surface and ascending in altitude from there.
+        Where the surface falls outside the available data, the maximum or minimum
+        of the surface will be returned, even if the source data has no value at that point.
 
         Args:
-            variable_on_pressure_levels:
-                A cube of data on pressure levels
+            variable_on_levels:
+                A cube of data on pressure or height levels
         Returns:
-            A cube of the environment pressure at self.value_of_pressure_level
+            A cube of the environment pressure or height at self.value_of_level
         """
         from stratify import interpolate
 
-        self.fill_invalid(variable_on_pressure_levels)
+        # if both a pressure and height coordinate exists then pressure takes priority
+        # over the height coordinate
+        try:
+            self.coordinate=variable_on_levels.coord("pressure").name()
+        except CoordinateNotFoundError:
+            self.coordinate=variable_on_levels.coord("height").name()
 
-        if "realization" in [c.name() for c in variable_on_pressure_levels.dim_coords]:
-            slicer = variable_on_pressure_levels.slices_over((["realization"]))
-            one_slice = variable_on_pressure_levels.slices_over(
+        self.fill_invalid(variable_on_levels)
+
+        if "realization" in [c.name() for c in variable_on_levels.dim_coords]:
+            slicer = variable_on_levels.slices_over((["realization"]))
+            one_slice = variable_on_levels.slices_over(
                 (["realization"])
             ).next()
             has_r_coord = True
         else:
-            slicer = [variable_on_pressure_levels]
-            one_slice = variable_on_pressure_levels
+            slicer = [variable_on_levels]
+            one_slice = variable_on_levels
             has_r_coord = False
-        p_grid = self.pressure_grid(one_slice).astype(np.float32)
-        (pressure_axis,) = one_slice.coord_dims("pressure")
+        grid = self.coordinate_grid(one_slice).astype(np.float32)
+        (coordinate_axis,) = one_slice.coord_dims(self.coordinate)
         result_data = np.empty_like(
-            variable_on_pressure_levels.slices_over((["pressure"])).next().data
+            variable_on_levels.slices_over(([self.coordinate])).next().data
         )
         for i, zyx_slice in enumerate(slicer):
             interp_data = interpolate(
-                np.array([self.value_of_pressure_level], dtype=np.float32),
+                np.array([self.value_of_level], dtype=np.float32),
                 zyx_slice.data.data,
-                p_grid,
-                axis=pressure_axis,
-            ).squeeze(axis=pressure_axis)
+                grid,
+                axis=coordinate_axis,
+            ).squeeze(axis=coordinate_axis)
             if has_r_coord:
                 result_data[i] = interp_data
             else:
                 result_data = interp_data
         result_data = np.ma.masked_invalid(result_data)
-        result_data = self.fill_in_bounds(result_data, variable_on_pressure_levels)
+        result_data = self.fill_in_bounds(result_data, variable_on_levels)
 
-        pressure_cube = self._make_pressure_cube(
-            result_data, variable_on_pressure_levels
+        output_cube = self._make_template_cube(
+            result_data, variable_on_levels
         )
-        return pressure_cube
+        return output_cube
