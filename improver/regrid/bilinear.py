@@ -1,7 +1,7 @@
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
-# All rights reerved.
+# All rights reserved.
 #
 # Redistribution and use in source and binary forms, with or without
 # modification, are permitted provided that the following conditions are met:
@@ -212,7 +212,7 @@ def adjust_boundary_indexes(
         indexes[point_lat_max, 0] = indexes[point_lat_max, 1] - in_lons_size
         indexes[point_lat_max, 3] = indexes[point_lat_max, 0] + 1
 
-   if lon_max_equal:
+    if lon_max_equal:
         indexes[point_lon_max, 0] = indexes[point_lon_max, 0] - 1
         indexes[point_lon_max, 1] = indexes[point_lon_max, 1] - 1
         indexes[point_lon_max, 2] = indexes[point_lon_max, 1] + 1
