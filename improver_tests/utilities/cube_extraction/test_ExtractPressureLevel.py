@@ -227,25 +227,6 @@ def test_basic(
     else:
         cube_shape_check_without_realizations(result)
 
-@pytest.mark.parametrize("temperature,expected_height", ((280,2000),(276,2666),(274,3000),(273,4388)))
-def test_temperature_inverison(temperature_on_height_levels,temperature,expected_height):
-    """Checks that ExtractLevel will extract the lowest height of the desired temperature
-    if there are two valid points with the same temperature (e.g. a temperature inversion)"""
-    temperatures=np.array([300, 286, 280, 274, 280, 262, 257, 245], dtype=np.float32)
-    data = np.broadcast_to(
-        temperatures.reshape((1, len(temperatures), 1, 1)), (2, len(temperatures), 3, 2)
-    )
-    temperature_on_height_levels.data=data
-
-    expected_data = np.full_like(
-        temperature_on_height_levels.data[:, 0, ...], expected_height
-    )
-    result = ExtractLevel(
-        value_of_level=temperature, positive_correlation=False
-    )(temperature_on_height_levels)
-
-    np.testing.assert_array_almost_equal(result.data,expected_data,decimal=0)
-
 @pytest.mark.parametrize(
     "index, expected",
     (

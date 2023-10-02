@@ -429,53 +429,6 @@ class ExtractLevel(BasePlugin):
             )
             last_slice = c_slice
 
-    def fill_in_bounds(
-        self, value_of_variable: np.ma.MaskedArray, source_cube: Cube
-    ) -> np.ndarray:
-        """Update any undefined value_of_variable values with the maximum or minimum
-        pressure or height for that column. This occurs when the requested variable value falls above
-        or below the entire column.
-        Maximum pressure or height is chosen if the maximum data value in the column is lower than
-        the value of self.value_of_level.
-
-        Args:
-            value_of_variable:
-                2D array of the pressure or height at the required variable value, masked True
-                where this method needs to fill it in. (modified in-place)
-            source_cube:
-                Cube of variable on levels (3D) which shows where the lowest
-                and highest valid values are.
-        Returns:
-            Updated value_of_variable array
-        """
-        if not np.ma.is_masked(value_of_variable):
-            return value_of_variable.data
-        coord = source_cube.coord(self.coordinate)
-        max_coordinate = coord.points.max()
-        min_coordinate = coord.points.min()
-        (coordinate_axis,) = source_cube.coord_dims(self.coordinate)
-        max_index = np.argmax(coord.points)
-        # The values at the maximum pressure or height will be compared with the requested variable value
-        # using an appropriate operator based on whether value and pressure (or height) are increasing.
-        comparator = operator.lt if self.positive_correlation else operator.gt
-        values_at_max = source_cube.data.take(
-            axis=coordinate_axis, indices=max_index
-        )
-        # First, fill in missing values at the maximum end of the pressure or height coordinate:
-        value_of_variable = np.ma.where(
-            np.logical_and(
-                comparator(values_at_max, self.value_of_level),
-                value_of_variable.mask,
-            ),
-            max_coordinate,
-            value_of_variable,
-        )
-        # Now fill in remaining missing values which should be at the minimum end:
-        value_of_variable = np.where(
-            value_of_variable.mask, min_coordinate, value_of_variable,
-        )
-        return value_of_variable
-
     def _make_template_cube(
         self, result_data: np.array, variable_on_levels: Cube
     ) -> Cube:
@@ -511,7 +464,7 @@ class ExtractLevel(BasePlugin):
         Returns:
             A cube of the environment pressure or height at self.value_of_level
         """
-        from stratify import interpolate
+        from stratify import interpolate, EXTRAPOLATE_NEAREST
 
         # if both a pressure and height coordinate exists then pressure takes priority
         # over the height coordinate
@@ -543,13 +496,13 @@ class ExtractLevel(BasePlugin):
                 zyx_slice.data.data,
                 grid,
                 axis=coordinate_axis,
+                rising=False,
+                extrapolation=EXTRAPOLATE_NEAREST
             ).squeeze(axis=coordinate_axis)
             if has_r_coord:
                 result_data[i] = interp_data
             else:
                 result_data = interp_data
-        result_data = np.ma.masked_invalid(result_data)
-        result_data = self.fill_in_bounds(result_data, variable_on_levels)
 
         output_cube = self._make_template_cube(
             result_data, variable_on_levels
