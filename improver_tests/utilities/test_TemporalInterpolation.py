@@ -699,7 +699,7 @@ class Test_process(IrisTest):
             domain_corner=domain_corner,
             grid_spacing=grid_spacing,
         )
-        expected_data = np.ones((self.npoints, self.npoints), dtype=np.float32) * 5
+        expected_data = np.full((self.npoints, self.npoints), 5, dtype=np.float32)
         (result,) = TemporalInterpolation(interval_in_minutes=180).process(
             cube_time_0, cube_time_1
         )

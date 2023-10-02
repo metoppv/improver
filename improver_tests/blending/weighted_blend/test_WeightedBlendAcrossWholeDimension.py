@@ -493,8 +493,8 @@ class Test_weighted_mean(Test_weighted_blend):
         cube = add_coordinate(
             cube, frt_points, "forecast_reference_time", is_datetime=True
         )
-        cube.data[0][:][:] = 10.0
-        cube.data[1][:][:] = 30.0
+        cube.data[0] = 10.0
+        cube.data[1] = 30.0
         expected = np.full((2, 2), 20.0)
         result = self.plugin.weighted_mean(cube, None)
         self.assertArrayAlmostEqual(result.data, expected, decimal=4)
