@@ -36,14 +36,12 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    wet_bulb_temperature: cli.inputcube
-):
+def process(wet_bulb_temperature: cli.inputcube):
     """Module to generate wet-bulb freezing level.
 
     The height level at which the wet-bulb temperature first drops below 237.15K
-    (0 degrees Celsius) is extracted from the wet-bulb temperature cube. 
-    
+    (0 degrees Celsius) is extracted from the wet-bulb temperature cube.
+
     In grid squares where the temperature never goes below 237.15K the highest
     height level on the cube is returned. In grid square where the temperature
     starts below 237.15K the lowest height on the cube is returned.
@@ -59,7 +57,9 @@ def process(
     """
     from improver.utilities.cube_extraction import ExtractLevel
 
-    wet_bulb_freezing_level=ExtractLevel(positive_correlation=False,value_of_level=273.15)(wet_bulb_temperature)
+    wet_bulb_freezing_level = ExtractLevel(
+        positive_correlation=False, value_of_level=273.15
+    )(wet_bulb_temperature)
     wet_bulb_freezing_level.rename("wet_bulb_freezing_level")
 
     return wet_bulb_freezing_level

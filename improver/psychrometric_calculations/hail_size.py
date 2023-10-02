@@ -534,9 +534,7 @@ class HailSize(BasePlugin):
         temperature_at_268.rename("temperature_of_atmosphere_at_268.15K")
         temperature_at_268.remove_coord("pressure")
         temperature = np.full_like(
-            temperature_at_268.data,
-            extract_pressure.value_of_level,
-            dtype=np.float32,
+            temperature_at_268.data, extract_pressure.value_of_level, dtype=np.float32,
         )
         temperature = np.ma.masked_where(np.ma.getmask(pressure_at_268), temperature)
         temperature_at_268.data = temperature

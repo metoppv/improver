@@ -30,7 +30,6 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Utilities to parse a list of constraints and extract matching subcube """
 
-import operator
 from ast import literal_eval
 from typing import Callable, Dict, List, Optional, Tuple, Union
 
@@ -324,15 +323,16 @@ class ExtractLevel(BasePlugin):
         """Sets up Class
             Args:
                 positive_correlation:
-                    Set to True when the variable generally increases as pressure increase or when the variable
-                    generally increases as height decreases.
+                    Set to True when the variable generally increases as pressure increase
+                    or when the variable generally increases as height decreases.
                 value_of_level:
-                    The value of the input cube for which the pressure or height level is required
+                    The value of the input cube for which the pressure or height level
+                    is required
         """
 
         self.positive_correlation = positive_correlation
         self.value_of_level = value_of_level
-        self.coordinate=None
+        self.coordinate = None
 
     def coordinate_grid(self, variable_on_levels: Cube) -> np.ndarray:
         """Creates a pressure or height grid of the same shape as variable_on_levels cube.
@@ -345,8 +345,8 @@ class ExtractLevel(BasePlugin):
                 Cube of some variable with pressure or height levels
         Returns:
             An n dimensional array with the same dimensions as variable_on_levels containing,
-            at every grid square and for every realization, a column of all pressure or height levels
-            taken from variable_on_levels's pressure or height coordinate
+            at every grid square and for every realization, a column of all pressure or
+            height levels taken from variable_on_levels's pressure or height coordinate
         """
 
         required_shape = variable_on_levels.shape
@@ -400,10 +400,10 @@ class ExtractLevel(BasePlugin):
         reverse: bool = False,
     ):
         """
-        Scans through the pressure or height axis forwards or backwards, filling any missing data with the
-        previous value plus (or minus in reverse) the specified increment. Running this in both
-        directions will therefore populate all columns so long as there is at least one valid
-        data point to start with.
+        Scans through the pressure or height axis forwards or backwards, filling any missing
+        data with the previous value plus (or minus in reverse) the specified increment.
+        Running this in both directions will therefore populate all columns so long as there
+        is at least one valid data point to start with.
         """
         last_slice = [slice(None)] * data.ndim
         if reverse:
@@ -433,18 +433,17 @@ class ExtractLevel(BasePlugin):
         self, result_data: np.array, variable_on_levels: Cube
     ) -> Cube:
         """Creates a cube of the variable on a pressure or height level based on the input cube"""
-        template_cube = next(
-            variable_on_levels.slices_over([self.coordinate])
-        ).copy(result_data)
-        if self.coordinate=="pressure":
+        template_cube = next(variable_on_levels.slices_over([self.coordinate])).copy(
+            result_data
+        )
+        if self.coordinate == "pressure":
             template_cube.rename(
                 "pressure_of_atmosphere_at_"
                 f"{self.value_of_level}{variable_on_levels.units}"
             )
         else:
             template_cube.rename(
-                "height_at_"
-                f"{self.value_of_level}{variable_on_levels.units}"
+                "height_at_" f"{self.value_of_level}{variable_on_levels.units}"
             )
 
         template_cube.units = variable_on_levels.coord(self.coordinate).units
@@ -452,9 +451,9 @@ class ExtractLevel(BasePlugin):
         return template_cube
 
     def process(self, variable_on_levels: Cube) -> Cube:
-        """Extracts the pressure or height level (depending on which is present on the cube) 
-        where the environment variable first intersects self.value_of_level starting at a pressure or height
-        value near the surface and ascending in altitude from there.
+        """Extracts the pressure or height level (depending on which is present on the cube)
+        where the environment variable first intersects self.value_of_level starting at a
+        pressure or height value near the surface and ascending in altitude from there.
         Where the surface falls outside the available data, the maximum or minimum
         of the surface will be returned, even if the source data has no value at that point.
 
@@ -464,22 +463,20 @@ class ExtractLevel(BasePlugin):
         Returns:
             A cube of the environment pressure or height at self.value_of_level
         """
-        from stratify import interpolate, EXTRAPOLATE_NEAREST
+        from stratify import EXTRAPOLATE_NEAREST, interpolate
 
         # if both a pressure and height coordinate exists then pressure takes priority
         # over the height coordinate
         try:
-            self.coordinate=variable_on_levels.coord("pressure").name()
+            self.coordinate = variable_on_levels.coord("pressure").name()
         except CoordinateNotFoundError:
-            self.coordinate=variable_on_levels.coord("height").name()
+            self.coordinate = variable_on_levels.coord("height").name()
 
         self.fill_invalid(variable_on_levels)
 
         if "realization" in [c.name() for c in variable_on_levels.dim_coords]:
             slicer = variable_on_levels.slices_over((["realization"]))
-            one_slice = variable_on_levels.slices_over(
-                (["realization"])
-            ).next()
+            one_slice = variable_on_levels.slices_over((["realization"])).next()
             has_r_coord = True
         else:
             slicer = [variable_on_levels]
@@ -497,14 +494,12 @@ class ExtractLevel(BasePlugin):
                 grid,
                 axis=coordinate_axis,
                 rising=False,
-                extrapolation=EXTRAPOLATE_NEAREST
+                extrapolation=EXTRAPOLATE_NEAREST,
             ).squeeze(axis=coordinate_axis)
             if has_r_coord:
                 result_data[i] = interp_data
             else:
                 result_data = interp_data
 
-        output_cube = self._make_template_cube(
-            result_data, variable_on_levels
-        )
+        output_cube = self._make_template_cube(result_data, variable_on_levels)
         return output_cube

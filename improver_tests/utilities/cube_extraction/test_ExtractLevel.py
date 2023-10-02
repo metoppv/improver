@@ -63,6 +63,7 @@ def temperature_on_pressure_levels() -> Cube:
     )
     return t_cube
 
+
 @pytest.fixture
 def temperature_on_height_levels() -> Cube:
     """Set up a r, h, y, x cube of temperature of atmosphere on height levels"""
@@ -79,9 +80,10 @@ def temperature_on_height_levels() -> Cube:
     )
     return t_cube
 
-def metadata_check(cube_slice: Cube, value: float, units: str,coordinate:str):
+
+def metadata_check(cube_slice: Cube, value: float, units: str, coordinate: str):
     """Checks the cube produced by plugin has the expected metadata."""
-    if coordinate=="pressure":
+    if coordinate == "pressure":
         assert cube_slice.long_name == f"pressure_of_atmosphere_at_{value}{units}"
         assert cube_slice.units == "Pa"
     else:
@@ -121,7 +123,8 @@ def cube_shape_check_without_realizations(cube_slice):
     ]
     assert cube_slice.shape == (3, 2)
 
-@pytest.mark.parametrize("coordinate",("pressure","height"))
+
+@pytest.mark.parametrize("coordinate", ("pressure", "height"))
 @pytest.mark.parametrize("least_significant_digit", (0, None))
 @pytest.mark.parametrize("reverse_coordinate", (False, True))
 @pytest.mark.parametrize(
@@ -145,7 +148,7 @@ def test_basic(
     special_value,
     reverse_coordinate,
     least_significant_digit,
-    coordinate
+    coordinate,
 ):
     """Tests the ExtractLevel plugin with values for temperature and
     temperature on levels to check for expected result.
@@ -156,41 +159,39 @@ def test_basic(
     Tests behaviour when extracting a pressure level or height level.
     Also checks the metadata of the output cube"""
     if coordinate == "height":
-        temperature_on_levels=request.getfixturevalue("temperature_on_height_levels")
+        temperature_on_levels = request.getfixturevalue("temperature_on_height_levels")
     else:
-        temperature_on_levels=request.getfixturevalue("temperature_on_pressure_levels")
+        temperature_on_levels = request.getfixturevalue(
+            "temperature_on_pressure_levels"
+        )
     special_value_index = 0
     positive_correlation = True
     if reverse_coordinate:
         # Flip the pressure coordinate for this test. We also swap which end the
         # special value goes, so we can test _one_way_fill in both modes.
-        temperature_on_levels.coord(
+        temperature_on_levels.coord(coordinate).points = temperature_on_levels.coord(
             coordinate
-        ).points = temperature_on_levels.coord(coordinate).points[::-1]
+        ).points[::-1]
         special_value_index = -1
         positive_correlation = False
-    
-    if coordinate=="height":
+
+    if coordinate == "height":
         # height has the opposite correlation to pressure
-        positive_correlation= not positive_correlation
+        positive_correlation = not positive_correlation
     expected = np.interp(
         expected_index,
         range(len(temperature_on_levels.coord(coordinate).points)),
         temperature_on_levels.coord(coordinate).points,
     )
 
-    expected_data = np.full_like(
-        temperature_on_levels.data[:, 0, ...], expected
-    )
+    expected_data = np.full_like(temperature_on_levels.data[:, 0, ...], expected)
 
     if special_value is True:
         # This is a proxy for setting a mask=True entry
         temperature_on_levels.data = np.ma.MaskedArray(
             temperature_on_levels.data, mask=False
         )
-        temperature_on_levels.data.mask[
-            0, special_value_index, 0, 0
-        ] = special_value
+        temperature_on_levels.data.mask[0, special_value_index, 0, 0] = special_value
     elif special_value is None:
         pass
     else:
@@ -202,9 +203,7 @@ def test_basic(
             else:
                 temperature_on_levels.data[0, 0:2, 0, 0] = special_value
         else:
-            temperature_on_levels.data[
-                0, special_value_index, 0, 0
-            ] = special_value
+            temperature_on_levels.data[0, special_value_index, 0, 0] = special_value
 
     if not with_realization:
         temperature_on_levels = temperature_on_levels[0]
@@ -221,11 +220,12 @@ def test_basic(
 
     assert not np.ma.is_masked(result.data)
     np.testing.assert_array_almost_equal(result.data, expected_data)
-    metadata_check(result, temperature, temperature_on_levels.units,coordinate)
+    metadata_check(result, temperature, temperature_on_levels.units, coordinate)
     if with_realization:
         cube_shape_check_with_realizations(result)
     else:
         cube_shape_check_without_realizations(result)
+
 
 @pytest.mark.parametrize(
     "index, expected",
@@ -263,8 +263,8 @@ def test_only_one_point(
     expected_data = np.full_like(temperature_on_pressure_levels.data[0, ...], 80000)
     expected_data[0, 0] = expected
 
-    result = ExtractLevel(
-        value_of_level=280, positive_correlation=True
-    )(temperature_on_pressure_levels)
+    result = ExtractLevel(value_of_level=280, positive_correlation=True)(
+        temperature_on_pressure_levels
+    )
     assert not np.ma.is_masked(result.data)
     np.testing.assert_array_almost_equal(result.data, expected_data)
