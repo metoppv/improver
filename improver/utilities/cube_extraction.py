@@ -321,13 +321,14 @@ class ExtractLevel(BasePlugin):
         self, positive_correlation: bool, value_of_level: float,
     ):
         """Sets up Class
-            Args:
-                positive_correlation:
-                    Set to True when the variable generally increases as pressure increase
-                    or when the variable generally increases as height decreases.
-                value_of_level:
-                    The value of the input cube for which the pressure or height level
-                    is required
+
+        Args:
+            positive_correlation:
+                Set to True when the variable generally increases as pressure increase
+                or when the variable generally increases as height decreases.
+            value_of_level:
+                The value of the input cube for which the pressure or height level
+                is required
         """
 
         self.positive_correlation = positive_correlation
