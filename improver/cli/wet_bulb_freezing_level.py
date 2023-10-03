@@ -39,12 +39,12 @@ from improver import cli
 def process(wet_bulb_temperature: cli.inputcube):
     """Module to generate wet-bulb freezing level.
 
-    The height level at which the wet-bulb temperature first drops below 237.15K
+    The height level at which the wet-bulb temperature first drops below 273.15K
     (0 degrees Celsius) is extracted from the wet-bulb temperature cube.
 
-    In grid squares where the temperature never goes below 237.15K the highest
+    In grid squares where the temperature never goes below 273.15K the highest
     height level on the cube is returned. In grid square where the temperature
-    starts below 237.15K the lowest height on the cube is returned.
+    starts below 273.15K the lowest height on the cube is returned.
 
     Args:
         wet_bulb_temperature (iris.cube.Cube):
