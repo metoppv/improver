@@ -135,10 +135,10 @@ def categorical_attributes(decision_tree: Dict, name: str) -> Dict[str, Any]:
     leaves = {v["leaf"]: k for k, v in decision_tree.items() if "leaf" in v.keys()}
     as_sorted_dict = OrderedDict(sorted(leaves.items(), key=lambda k: k[0]))
 
-    wx_keys = np.array(list(as_sorted_dict.keys()))
-    attributes.update({name: wx_keys})
-    wxstring = " ".join(as_sorted_dict.values())
-    attributes.update({f"{name}_meaning": wxstring})
+    values = np.array(list(as_sorted_dict.keys()))
+    attributes.update({name: values})
+    meanings = " ".join(as_sorted_dict.values())
+    attributes.update({f"{name}_meaning": meanings})
     return attributes
 
 
