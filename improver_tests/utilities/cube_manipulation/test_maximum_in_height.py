@@ -67,4 +67,4 @@ def test_maximum_in_height(lower_bound, upper_bound, expected):
     )
 
     assert np.allclose(result.data, [expected] * 2)
-    assert "maximum_wet_bulb_temperature_between" in result.name()
+    assert "wet_bulb_temperature" == result.name()

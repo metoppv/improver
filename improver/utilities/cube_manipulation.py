@@ -733,7 +733,6 @@ def maximum_in_height(
         height values. This cube inherits Iris' meta-data updates to the height coordinate and to
         the cell methods.
     """
-    cube_name = cube.name()
     height_levels = cube.coord("height").points
 
     # replace None in bounds with a numerical value either below or above the range of height
@@ -753,7 +752,4 @@ def maximum_in_height(
     else:
         max_cube = cube_subsetted
 
-    max_cube.rename(
-        f"maximum_{cube_name}_between_{lower_height_bound}m_and_{upper_height_bound}m"
-    )
     return max_cube
