@@ -397,7 +397,7 @@ def threshold_cube(thresholds):
         frt=datetime(2017, 11, 10, 0, 0),
         time=datetime(2017, 11, 11, 0, 0),
         attributes=ATTRIBUTES,
-        spp__relative_to_threshold="above",
+        spp__relative_to_threshold="greater_than_or_equal_to",
     )
     threshold_cube = add_coordinate(
         probability_cube,

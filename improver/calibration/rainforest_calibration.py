@@ -335,13 +335,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         return aligned_cubes[:-1], aligned_cubes[-1]
 
-    def _prepare_threshold_probability_cube(self, forecast_cube):
+    def _prepare_threshold_probability_cube(self, forecast_cube, thresholds):
         """Initialise a cube with the same dimensions as the input forecast_cube,
         with an additional threshold dimension added as the leading dimension.
 
         Args:
             forecast_cube:
                 Cube containing the forecast to be calibrated.
+            thresholds:
+                Points of the the threshold dimension.
 
         Returns:
             An empty probability cube.
@@ -356,11 +358,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
         )
         threshold_coord = DimCoord(
-            self.model_thresholds,
+            thresholds,
             standard_name=forecast_variable,
             var_name="threshold",
             units=forecast_cube.units,
-            attributes={"spp__relative_to_threshold": "above"},
+            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
         probability_cube = add_coordinate_to_cube(
             probability_cube, new_coord=threshold_coord,
@@ -478,7 +480,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
 
         threshold_probability_cube = self._prepare_threshold_probability_cube(
-            forecast_cube
+            forecast_cube, self.model_thresholds
         )
 
         input_dataset = self._prepare_features_array(feature_cubes)
@@ -557,35 +559,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_probabilities[0, :] = 1
 
         # Make output cube
-        aux_coords_and_dims = []
-        for coord in getattr(forecast, "aux_coords"):
-            coord_dims = forecast.coord_dims(coord)
-            if len(coord_dims) == 0:
-                aux_coords_and_dims.append((coord.copy(), []))
-            else:
-                aux_coords_and_dims.append(
-                    (coord.copy(), forecast.coord_dims(coord)[0] + 1)
-                )
-        forecast_variable = forecast.name()
-        threshold_dim = iris.coords.DimCoord(
-            output_thresholds.astype(np.float32),
-            standard_name=forecast_variable,
-            units=forecast.units,
-            var_name="threshold",
-            attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
-        )
-        dim_coords_and_dims = [(threshold_dim, 0)] + [
-            (coord.copy(), forecast.coord_dims(coord)[0] + 1)
-            for coord in forecast.coords(dim_coords=True)
-        ]
-        probability_cube = iris.cube.Cube(
-            output_probabilities.astype(np.float32),
-            long_name=f"probability_of_{forecast_variable}_above_threshold",
-            units=1,
-            attributes=forecast.attributes,
-            dim_coords_and_dims=dim_coords_and_dims,
-            aux_coords_and_dims=aux_coords_and_dims,
-        )
+        probability_cube = self._prepare_threshold_probability_cube(forecast, output_thresholds)
+        probability_cube.data = output_probabilities.astype(np.float32)
         return probability_cube
 
     def process(

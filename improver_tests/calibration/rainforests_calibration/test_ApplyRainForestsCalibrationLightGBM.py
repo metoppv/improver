@@ -188,7 +188,7 @@ def test__prepare_probability_cube(ensemble_forecast, thresholds, threshold_cube
     forecast cube."""
     plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
     plugin.model_thresholds = thresholds
-    result = plugin._prepare_threshold_probability_cube(ensemble_forecast)
+    result = plugin._prepare_threshold_probability_cube(ensemble_forecast, thresholds)
 
     assert result.long_name == threshold_cube.long_name
     assert result.units == threshold_cube.units
