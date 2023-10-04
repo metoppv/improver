@@ -43,6 +43,7 @@ from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
 from improver.blending.utilities import (
     get_coords_to_remove,
+    match_site_forecasts,
     record_run_coord_to_attr,
     update_blended_metadata,
     update_record_run_weights,
@@ -77,6 +78,7 @@ class WeightAndBlend(PostProcessingPlugin):
         ynval: Optional[float] = None,
         cval: Optional[float] = None,
         inverse_ordering: bool = False,
+        allow_site_mismatch = True,
     ) -> None:
         """
         Initialise central parameters
@@ -233,6 +235,7 @@ class WeightAndBlend(PostProcessingPlugin):
     def process(
         self,
         cubelist: Union[List[Cube], CubeList],
+        reference_site_cube: Optional[Cube] = None,
         cycletime: Optional[str] = None,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
@@ -248,6 +251,10 @@ class WeightAndBlend(PostProcessingPlugin):
         Args:
             cubelist:
                 List of cubes to be merged and blended
+            reference_site_cube:
+                If blending site forecasts, this cube can optionally be supplied
+                to ensure the target sitelist is produced. At least one of the
+                input cubes must contain sites that match the reference_site_cube.
             cycletime:
                 The forecast reference time to be used after blending has been
                 applied, in the format YYYYMMDDTHHMMZ. If not provided, the
@@ -297,6 +304,12 @@ class WeightAndBlend(PostProcessingPlugin):
                 "record_run_attr can only be used with model_id_attr, which "
                 "has not been provided."
             )
+
+        # If the cubes for blending are site forecasts, check that the sites they
+        # contain match. If not, attempt to construct matching cubes for blending.
+        if reference_site_cube is not None and cubelist[0].coords("spot_index"):
+            print("aligning sites")
+            cubelist = match_site_forecasts(cubelist, reference_site_cube)
 
         # Prepare cubes for weighted blending, including creating custom metadata
         # for multi-model blending. The merged cube has a monotonically ascending

@@ -457,3 +457,94 @@ def update_record_run_weights(cube: Cube, weights: Cube, blend_coord: str) -> Cu
         cubes.append(cslice)
 
     return cubes.merge_cube()
+
+
+def match_site_forecasts(cubes: CubeList, target: Cube) -> CubeList:
+    """
+    When blending site forecasts, if the sitelist is changed and pre and
+    post change data are to be blended, we must unify the shapes of the
+    input forecasts. This allows us to add or remove sites and still blend
+    site forecasts without having to throw away data at sites that exist
+    in the pre and post change sitelists.
+
+    This is achieved by matching the sites in the input forecasts to a
+    target sitelist. This is achieved by constructing masked arrays of the
+    target size, and inserting into these sites from the provided cubes
+    where available. When these are blended the masked points do not
+    contribute to the blend. At least one of the input cubes must have
+    sites that match the target sitelist to ensure there is some data for
+    every site. Sites what exist in the inputs but not in the target
+    sitelist are removed.
+
+    Args:
+        cubes:
+            Input site forecasts that need to be matched against the target
+            cube.
+        target:
+            A neighbour site list that is used to define which sites are
+            desired as output.
+
+    Returns:
+        reconstructed_cubes:
+            A cubelist in which all cubes are of matching shape and contain
+            the same sites. The metadata of these cubes is unchanged. They
+            include masked data points where the corresponding input cube
+            did not provide data for a given site.
+
+    Raises:
+        ValueError: If no input forecast is for a sitelist that matches the
+                    target sitelist.
+    """
+    reconstructed_cubes = []
+    mismatched_cubes = []
+    # Check which cubes are in need of reconstruction and which are not.
+    for cube in cubes:
+        if np.array_equal(cube.coord("met_office_site_id").points, target.coord("met_office_site_id").points):
+            reconstructed_cubes.append(cube)
+        else:
+            mismatched_cubes.append(cube)
+
+    if not reconstructed_cubes:
+        raise ValueError("No input cubes match the target site list")
+
+    if not mismatched_cubes:
+        return cubes
+
+    template_cube = reconstructed_cubes[0]
+    site_coord_dim = template_cube.coord_dims("met_office_site_id")
+    for cube in mismatched_cubes:
+        reconstructed = template_cube.copy()
+        reconstructed.data = np.ma.masked_all_like(reconstructed.data)
+        if cube != template_cube:
+            # Find the indices at which the sites in the mismatched cube fall in
+            # the target cube. These will be used to insert the data into the
+            # reconstructed cube. Also record where these are sourced from to
+            # allow sites to be removed.
+            indices = []
+            sources = []
+            for ii, site_id in enumerate(cube.coord("met_office_site_id").points):
+                index, = np.where(reconstructed.coord("met_office_site_id").points == site_id)
+                if list(index):
+                    indices.append(index[0])
+                    sources.append(ii)
+
+            # Insert data for all available sites and unmask these points
+            # All sites for which there is no data remain masked and do
+            # not contribute to the eventual blend.
+            reconstructed.data[..., indices] = cube.data[..., sources]
+            reconstructed.data.mask[..., indices] = 0
+
+            # Update the coordinates and metadata on the reconstructed cube
+            # to match the original. The only exception is those coordinates
+            # associated with the site id as these should be left as set
+            # in the template cube.
+            for orginal_coord, template_crd in zip(cube.coords(), reconstructed.coords()):
+                if reconstructed.coord_dims(template_crd) != site_coord_dim:
+                    reconstructed.replace_coord(orginal_coord)
+            reconstructed.metadata = cube.metadata
+
+            reconstructed_cubes.append(reconstructed)
+        else:
+            reconstructed_cubes.append(cube)
+
+    return reconstructed_cubes
