@@ -759,6 +759,61 @@ class Test_forecast_and_truth_dataframes_to_cubes(
         self.assertCubeEqual(result[0], self.expected_period_forecast[:, 1:])
         self.assertCubeEqual(result[1], self.expected_period_truth[1:])
 
+    def test_moving_forecast_site(self):
+        """Test that if a site has different values for the altitude, latitude or
+        longitude at different times within the forecasts, potentially due to a
+        site update, the altitude, latitude and longitude from the most recent
+        time point is assigned to all times."""
+        df = self.forecast_df
+        condition1 = (df["wmo_id"] == "03002") & (df["time"] == self.time3)
+        df.loc[condition1, "altitude"] = 5
+        df.loc[condition1, "latitude"] = 40
+        df.loc[condition1, "longitude"] = -15
+
+        expected_period_forecast = self.expected_period_forecast.copy()
+        expected_period_forecast.coord("altitude").points[0] = 5
+        expected_period_forecast.coord("latitude").points[0] = 40
+        expected_period_forecast.coord("longitude").points[0] = -15
+        expected_period_truth = self.expected_period_truth.copy()
+        expected_period_truth.coord("altitude").points[0] = 5
+        expected_period_truth.coord("latitude").points[0] = 40
+        expected_period_truth.coord("longitude").points[0] = -15
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            df,
+            self.truth_subset_df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], expected_period_forecast)
+        self.assertCubeEqual(result[1], expected_period_truth)
+
+    def test_moving_truth_site(self):
+        """Test that if a site has different values for the altitude, latitude or
+        longitude at different times within the truths, this has no effect on the
+        outputs as only the altitude, latitude and longitude from the forecasts are
+        preserved."""
+        df = self.truth_subset_df
+        condition1 = (df["wmo_id"] == "03002") & (df["time"] == self.time3)
+        df.loc[condition1, "altitude"] = 5
+        df.loc[condition1, "latitude"] = 40
+        df.loc[condition1, "longitude"] = -15
+
+        result = forecast_and_truth_dataframes_to_cubes(
+            self.forecast_df,
+            df,
+            self.cycletime,
+            self.forecast_period,
+            self.training_length,
+        )
+
+        self.assertEqual(len(result), 2)
+        self.assertCubeEqual(result[0], self.expected_period_forecast)
+        self.assertCubeEqual(result[1], self.expected_period_truth)
+
     def test_new_site_with_only_one_forecast_and_truth(self):
         """Test for a site that has a forecast and truth data point for the most
         recent time only. Other sites are present at all forecast and truth times.
