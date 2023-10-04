@@ -638,17 +638,17 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_thresholds_in_forecast_units = np.array(output_thresholds)
 
         # Calculate probabilities at output thresholds
-        probabilities_by_realization = self._get_ensemble_distributions(
+        interpolated_per_member_CDF = self._get_ensemble_distributions(
             per_member_CDF, aligned_forecast, output_thresholds_in_forecast_units
         )
 
         # Average over realizations
-        per_member_probability_cube = probabilities_by_realization.collapsed(
+        probability_cube = interpolated_per_member_CDF.collapsed(
             "realization", MEAN
         )
-        per_member_probability_cube.remove_coord("realization")
+        probability_cube.remove_coord("realization")
 
-        return per_member_probability_cube
+        return probability_cube
 
 
 class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
