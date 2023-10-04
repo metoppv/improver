@@ -271,14 +271,13 @@ def dummy_lightgbm_models(ensemble_features, ensemble_forecast, thresholds, lead
     # train a model for each threshold
     tree_models = {}
     params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
-    training_columns = train_columns
     for lead_time in lead_times:
         for threshold in thresholds:
             curr_training_data = training_data.loc[
                 training_data["lead_time_hours"] == lead_time
             ]
             data = lightgbm.Dataset(
-                curr_training_data[training_columns],
+                curr_training_data[train_columns],
                 label=(curr_training_data[obs_column] >= threshold).astype(int),
             )
             booster = lightgbm.train(params, data, num_boost_round=10)
@@ -333,25 +332,24 @@ def plugin_and_dummy_models(request):
 
 @pytest.fixture
 def dummy_lightgbm_models_deterministic(
-    ensemble_features, ensemble_forecast, thresholds, lead_times
+    deterministic_features, deterministic_forecast, thresholds, lead_times
 ):
     """Create sample lightgbm models for evaluating forecast probabilities."""
     import lightgbm
 
     training_data, fcst_column, obs_column, train_columns = prepare_dummy_training_data(
-        ensemble_features, ensemble_forecast, lead_times
+        deterministic_features, deterministic_forecast, lead_times
     )
     # train a model for each threshold
     tree_models = {}
     params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
-    training_columns = [c for c in train_columns if "ensemble" not in c]
     for lead_time in lead_times:
         for threshold in thresholds:
             curr_training_data = training_data.loc[
                 training_data["lead_time_hours"] == lead_time
             ]
             data = lightgbm.Dataset(
-                curr_training_data[training_columns],
+                curr_training_data[train_columns],
                 label=(curr_training_data[obs_column] >= threshold).astype(int),
             )
             booster = lightgbm.train(params, data, num_boost_round=10)
