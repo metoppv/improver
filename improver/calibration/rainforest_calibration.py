@@ -201,20 +201,17 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         from lightgbm import Booster
 
         # Model config is a nested dictionary. Keys of outer level are lead times, and
-        # keys of inner level are thresholds. Convert these to int and float.
+        # keys of inner level are thresholds. Convert these to float.
         sorted_model_config_dict = OrderedDict()
-        lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
-        for lead_time_key in lead_time_keys:
-            sorted_model_config_dict[lead_time_key] = OrderedDict()
-            lead_time_dict = model_config_dict[str(lead_time_key)]
-            sorted_model_config_dict[lead_time_key] = OrderedDict(
+        for key, lead_time_dict in model_config_dict.items():
+            sorted_model_config_dict[np.float32(key)] = OrderedDict(
                 sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
             )
 
-        self.lead_times = np.array([*sorted_model_config_dict.keys()])
+        self.lead_times = np.sort(np.array([*sorted_model_config_dict.keys()]))
         if len(self.lead_times) > 0:
-            self.model_thresholds = np.array(
-                [*sorted_model_config_dict[self.lead_times[0]].keys()]
+            self.model_thresholds = np.sort(
+                np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
             )
         else:
             self.model_thresholds = np.array([])
@@ -440,7 +437,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         input_dataset = self.model_input_converter(input_data)
 
-        if int(lead_time_hours) in self.lead_times:
+        if np.float32(lead_time_hours) in self.lead_times:
             model_lead_time = lead_time_hours
         else:
             # find closest model lead time
@@ -710,20 +707,17 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         from treelite_runtime import DMatrix, Predictor
 
         # Model config is a nested dictionary. Keys of outer level are lead times, and
-        # keys of inner level are thresholds. Convert these to int and float.
+        # keys of inner level are thresholds. Convert these to float.
         sorted_model_config_dict = OrderedDict()
-        lead_time_keys = sorted([int(key) for key in model_config_dict.keys()])
-        for lead_time_key in lead_time_keys:
-            sorted_model_config_dict[lead_time_key] = OrderedDict()
-            lead_time_dict = model_config_dict[str(lead_time_key)]
-            sorted_model_config_dict[lead_time_key] = OrderedDict(
+        for key, lead_time_dict in model_config_dict.items():
+            sorted_model_config_dict[np.float32(key)] = OrderedDict(
                 sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
             )
 
-        self.lead_times = np.array([*sorted_model_config_dict.keys()])
+        self.lead_times = np.sort(np.array([*sorted_model_config_dict.keys()]))
         if len(self.lead_times) > 0:
-            self.model_thresholds = np.array(
-                [*sorted_model_config_dict[self.lead_times[0]].keys()]
+            self.model_thresholds = np.sort(
+                np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
             )
         else:
             self.model_thresholds = np.array([])
