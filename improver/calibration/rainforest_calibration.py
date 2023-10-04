@@ -601,7 +601,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         These error distributions are formed in a two-step process:
 
-        1. Evaluate error CDF defined over the specified error_thresholds. Each exceedance
+        1. Evaluate error CDF defined over the specified error_thresholds. Each exceedence
         probability is evaluated using the corresponding decision-tree model.
 
         2. Interpolate the CDF to extract a series of percentiles for the error distribution.
