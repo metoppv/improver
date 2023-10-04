@@ -497,15 +497,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return threshold_probability_cube
 
     def _get_ensemble_distributions(
-        self, probability_CDF: Cube, forecast: Cube, output_thresholds: ndarray
+        self, per_member_CDF: Cube, forecast: Cube, output_thresholds: ndarray
     ) -> Cube:
         """
         Interpolate probilities calculated at model thresholds to extract probabilities
         at output thresholds for all realizations.
 
         Args:
-            probability_CDF:
-                Cube containing the CDF of probabilities for each ensemble member at model
+            per_member_CDF:
+                Cube containing the CDF probabilities for each ensemble member at model
                 thresholds.
             forecast:
                 Cube containing NWP ensemble forecast.
@@ -517,7 +517,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             are same as forecast cube with additional threshold dimension first.
         """
 
-        input_probabilties = probability_CDF.data
+        input_probabilties = per_member_CDF.data
         output_thresholds = np.array(output_thresholds, dtype=np.float32)
         bounds_data = get_bounds_of_distribution(forecast.name(), forecast.units)
         lower_bound = bounds_data[0].astype(np.float32)
@@ -575,16 +575,16 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         to deterministic forecast cubes if one is not already present.
 
         The calibration is done in a situation dependent fashion using a series of
-        decision-tree models to construct representative distributions which are
-        then used to map each input ensemble member onto a series of realisable values.
+        decision-tree models to construct representative probability distributions for
+        each input ensemble member which are then blended to give the calibrated
+        distribution for the full ensemble.
 
         These distributions are formed in a two-step process:
 
         1. Evaluate CDF defined over the specified model thresholds for each ensemble member.
-        Each exceedence probability is evaluated using the corresponding decision-tree model.
+        Each threshold exceedence probability is evaluated using the corresponding decision-tree model.
 
-        2. Interpolate each ensemble member distribution to the output thresholds, then average
-        over ensemble members
+        2. Interpolate each ensemble member distribution to the output thresholds.
 
         Args:
             forecast_cube:
@@ -619,7 +619,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Evaluate the CDF using tree models.
-        probability_CDF = self._calculate_threshold_probabilities(
+        per_member_CDF = self._calculate_threshold_probabilities(
             aligned_forecast, aligned_features
         )
 
@@ -638,14 +638,14 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
         # Calculate probabilities at output thresholds
         probabilities_by_realization = self._get_ensemble_distributions(
-            probability_CDF, aligned_forecast, output_thresholds_in_forecast_units
+            per_member_CDF, aligned_forecast, output_thresholds_in_forecast_units
         )
 
         # Average over realizations
-        output_cube = probabilities_by_realization.collapsed("realization", MEAN)
-        output_cube.remove_coord("realization")
+        per_member_probability_cube = probabilities_by_realization.collapsed("realization", MEAN)
+        per_member_probability_cube.remove_coord("realization")
 
-        return output_cube
+        return per_member_probability_cube
 
 
 class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
