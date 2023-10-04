@@ -582,7 +582,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         These distributions are formed in a two-step process:
 
         1. Evaluate CDF defined over the specified model thresholds for each ensemble member.
-        Each threshold exceedence probability is evaluated using the corresponding decision-tree model.
+        Each threshold exceedence probability is evaluated using the corresponding
+        decision-tree model.
 
         2. Interpolate each ensemble member distribution to the output thresholds.
 
@@ -642,7 +643,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Average over realizations
-        per_member_probability_cube = probabilities_by_realization.collapsed("realization", MEAN)
+        per_member_probability_cube = probabilities_by_realization.collapsed(
+            "realization", MEAN
+        )
         per_member_probability_cube.remove_coord("realization")
 
         return per_member_probability_cube
