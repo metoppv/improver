@@ -40,7 +40,6 @@ from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
 
-import iris
 import numpy as np
 from cf_units import Unit
 from iris.analysis import MEAN
@@ -559,7 +558,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_probabilities[0, :] = 1
 
         # Make output cube
-        probability_cube = self._prepare_threshold_probability_cube(forecast, output_thresholds)
+        probability_cube = self._prepare_threshold_probability_cube(
+            forecast, output_thresholds
+        )
         probability_cube.data = output_probabilities.astype(np.float32)
         return probability_cube
 
