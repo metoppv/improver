@@ -443,7 +443,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 if np.any(forecast_bool):
                     input_subset = self.model_input_converter(input_data[forecast_bool])
                     prediction[forecast_bool] = model.predict(input_subset)
-
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
             )
