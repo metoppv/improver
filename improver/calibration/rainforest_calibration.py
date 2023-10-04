@@ -222,6 +222,10 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self.model_input_converter = np.array
         self.tree_models = {}
         for lead_time in self.lead_times:
+            # check all lead times have the same thresholds
+            curr_thresholds = np.array([*sorted_model_config_dict[lead_time].keys()])
+            if np.any(curr_thresholds != self.model_thresholds):
+                raise ValueError("The same thresholds must be used for all lead times.")
             for threshold in self.model_thresholds:
                 model_filename = Path(
                     sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")
@@ -750,6 +754,10 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         self.model_input_converter = DMatrix
         self.tree_models = {}
         for lead_time in self.lead_times:
+            # check all lead times have the same thresholds
+            curr_thresholds = np.array([*sorted_model_config_dict[lead_time].keys()])
+            if np.any(curr_thresholds != self.model_thresholds):
+                raise ValueError("The same thresholds must be used for all lead times.")
             for threshold in self.model_thresholds:
                 model_filename = Path(
                     sorted_model_config_dict[lead_time][threshold].get("treelite_model")

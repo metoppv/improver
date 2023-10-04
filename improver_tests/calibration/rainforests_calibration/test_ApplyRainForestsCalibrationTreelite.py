@@ -99,3 +99,8 @@ def test__init__(
             assert isinstance(model.model_file, str)
             assert f"{lead_time:03d}H" in str(model.model_file)
             assert f"{threshold:06.4f}" in str(model.model_file)
+    # Test error is raised if lead times have different thresholds
+    val = model_config["24"].pop("0.0000")
+    model_config["24"]["1.0000"] = val
+    with pytest.raises(ValueError):
+        ApplyRainForestsCalibrationTreelite(model_config, threads=expected_threads)
