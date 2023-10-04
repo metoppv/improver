@@ -506,7 +506,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         Args:
             per_member_CDF:
                 Cube containing the CDF probabilities for each ensemble member at model
-                thresholds.
+                thresholds, with threshold as the first dimension.
             forecast:
                 Cube containing NWP ensemble forecast.
             output_thresholds:
