@@ -644,7 +644,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Average over realizations
-        calibrated_probability_cube = interpolated_per_realization_CDF.collapsed("realization", MEAN)
+        calibrated_probability_cube = interpolated_per_realization_CDF.collapsed(
+            "realization", MEAN
+        )
         calibrated_probability_cube.remove_coord("realization")
 
         return calibrated_probability_cube
