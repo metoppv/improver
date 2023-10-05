@@ -122,9 +122,9 @@ def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast)
     coordinate present in some cube variables."""
     expected_features = ensemble_features.copy()
     # Drop realization coordinate from one of the ensemble features
-    dervied_field_cube = ensemble_features.pop(-1).extract(Constraint(realization=0))
-    dervied_field_cube.remove_coord("realization")
-    ensemble_features.append(dervied_field_cube)
+    derived_field_cube = ensemble_features.pop(-1).extract(Constraint(realization=0))
+    derived_field_cube.remove_coord("realization")
+    ensemble_features.append(derived_field_cube)
 
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}

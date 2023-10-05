@@ -498,14 +498,14 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return threshold_probability_cube
 
     def _get_ensemble_distributions(
-        self, per_member_CDF: Cube, forecast: Cube, output_thresholds: ndarray
+        self, per_realization_CDF: Cube, forecast: Cube, output_thresholds: ndarray
     ) -> Cube:
         """
         Interpolate probilities calculated at model thresholds to extract probabilities
         at output thresholds for all realizations.
 
         Args:
-            per_member_CDF:
+            per_realization_CDF:
                 Cube containing the CDF probabilities for each ensemble member at model
                 thresholds, with threshold as the first dimension.
             forecast:
@@ -518,34 +518,34 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             are same as forecast cube with additional threshold dimension first.
         """
 
-        input_probabilties = per_member_CDF.data
+        input_probabilities = per_realization_CDF.data
         output_thresholds = np.array(output_thresholds, dtype=np.float32)
         bounds_data = get_bounds_of_distribution(forecast.name(), forecast.units)
         lower_bound = bounds_data[0].astype(np.float32)
         if (len(self.model_thresholds) == len(output_thresholds)) and np.allclose(
             self.model_thresholds, output_thresholds
         ):
-            output_probabilities = np.copy(input_probabilties.data)
+            output_probabilities = np.copy(input_probabilities.data)
         else:
             # add lower bound with probability 1
-            input_probabilties = np.concatenate(
+            input_probabilities = np.concatenate(
                 [
-                    np.ones((1,) + input_probabilties.shape[1:], dtype=np.float32),
-                    input_probabilties,
+                    np.ones((1,) + input_probabilities.shape[1:], dtype=np.float32),
+                    input_probabilities,
                 ],
                 axis=0,
             )
             input_thresholds = np.concatenate([[lower_bound], self.model_thresholds])
             # reshape to 2 dimensions
-            input_probabilties_2d = np.reshape(
-                input_probabilties, (input_probabilties.shape[0], -1)
+            input_probabilities_2d = np.reshape(
+                input_probabilities, (input_probabilities.shape[0], -1)
             )
             output_probabilities_2d = interpolate_multiple_rows_same_x(
-                output_thresholds, input_thresholds, input_probabilties_2d.transpose()
+                output_thresholds, input_thresholds, input_probabilities_2d.transpose()
             )
             output_probabilities = np.reshape(
                 output_probabilities_2d.transpose(),
-                (len(output_thresholds),) + input_probabilties.shape[1:],
+                (len(output_thresholds),) + input_probabilities.shape[1:],
             )
             # force interpolated probabilties to be monotone (sometimes they
             # are not due to small floating-point errors)
@@ -621,7 +621,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         # Evaluate the CDF using tree models.
-        per_member_CDF = self._calculate_threshold_probabilities(
+        per_realization_CDF = self._calculate_threshold_probabilities(
             aligned_forecast, aligned_features
         )
 
@@ -639,15 +639,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             output_thresholds_in_forecast_units = np.array(output_thresholds)
 
         # Calculate probabilities at output thresholds
-        interpolated_per_member_CDF = self._get_ensemble_distributions(
-            per_member_CDF, aligned_forecast, output_thresholds_in_forecast_units
+        interpolated_per_realization_CDF = self._get_ensemble_distributions(
+            per_realization_CDF, aligned_forecast, output_thresholds_in_forecast_units
         )
 
         # Average over realizations
-        probability_cube = interpolated_per_member_CDF.collapsed("realization", MEAN)
-        probability_cube.remove_coord("realization")
+        calibrated_probability_cube = interpolated_per_realization_CDF.collapsed("realization", MEAN)
+        calibrated_probability_cube.remove_coord("realization")
 
-        return probability_cube
+        return calibrated_probability_cube
 
 
 class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
