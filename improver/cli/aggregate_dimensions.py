@@ -39,33 +39,34 @@ from improver import cli
 @cli.with_output
 def process(
     cube: cli.inputcube,
+    *,
     dimensions: cli.comma_separated_list = ["realization"],
     aggregation: str = "mean",
-    new_name: str = None,
     broadcast: bool = False,
+    new_name: str = None,
 ):
     """Collapse and aggregate cube.
 
     Args:
-        cube:
+        cube (iris.cube.Cube):
             Probabilistic data with a realization, threshold or percentile
             representation.
-        dimensions:
+        dimensions (list):
             List of dimensions to collapse.
-        aggregation:
+        aggregation (str):
             One of "sum", "mean", "median", "std_dev", "min", "max".
-        new_name:
-            New name for output cube; if None use iris default.
-        broadcast:
-            If True, broadcast result back to original dimensions. 
+        broadcast (bool):
+            If True, broadcast result back to original dimensions.
             Otherwise, return collapsed cube.
+        new_name (str):
+            New name for output cube; if None use iris default.
 
     Returns:
-        Aggregated cube. If broadcast is True, dimensions are the same as input cube,
-        outherwise aggregated dimensions are removed.
+        iris.cube.Cube:
+            Aggregated cube. If broadcast is True, dimensions are the same as input cube,
+            outherwise aggregated dimensions are removed.
     """
 
-
-    from imporver.utilities.cube_manipulation import aggregate
+    from improver.utilities.cube_manipulation import aggregate
 
     return aggregate(cube, dimensions, aggregation, broadcast, new_name)
