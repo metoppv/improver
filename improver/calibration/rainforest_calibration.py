@@ -352,6 +352,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             units="1",
             template_cube=forecast_cube,
             mandatory_attributes=generate_mandatory_attributes([forecast_cube]),
+            optional_attributes=forecast_cube.attributes,
         )
         threshold_coord = DimCoord(
             thresholds,
