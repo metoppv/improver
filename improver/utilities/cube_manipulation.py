@@ -123,10 +123,8 @@ def aggregate(
             'aggregation must be one of "sum", "mean", "median", "std_dev", "min", "max"'
         )
 
-    # convert dimensions to a list if required
     if isinstance(dimensions, str):
         dimensions = [dimensions]
-    assert isinstance(dimensions, list)
     collapsed_cube = collapsed(cube, dimensions, aggregator)
     if (
         (aggregation == "std_dev")
