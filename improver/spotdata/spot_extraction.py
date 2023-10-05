@@ -43,10 +43,11 @@ from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import create_coordinate_hash
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 from . import UNIQUE_ID_ATTRIBUTE
+from .build_spotdata_cube import build_spotdata_cube
+from .utilities import check_for_unique_id
 
 
 class SpotExtraction(BasePlugin):
@@ -112,31 +113,6 @@ class SpotExtraction(BasePlugin):
                 self.neighbour_selection_method, available_methods
             )
         )
-
-    @staticmethod
-    def check_for_unique_id(neighbour_cube: Cube) -> Optional[Tuple[ndarray, str]]:
-        """
-        Determine if there is a unique ID coordinate, and if so return
-        the values and name of that coordinate.
-
-        Args:
-            neighbour_cube:
-                This cube on which to look for a unique site ID coordinate.
-
-        Returns:
-            - array of unique site IDs
-            - name of unique site ID coordinate
-        """
-        try:
-            (unique_id_coord,) = [
-                crd
-                for crd in neighbour_cube.coords()
-                if UNIQUE_ID_ATTRIBUTE in crd.attributes
-            ]
-        except ValueError:
-            pass
-        else:
-            return (unique_id_coord.points, unique_id_coord.name())
 
     def get_aux_coords(
         self, diagnostic_cube: Cube, x_indices: ndarray, y_indices: ndarray,
@@ -305,7 +281,7 @@ class SpotExtraction(BasePlugin):
         check_grid_match([neighbour_cube, diagnostic_cube])
 
         # Get the unique_site_id if it is present on the neighbour cbue
-        unique_site_id_data = self.check_for_unique_id(neighbour_cube)
+        unique_site_id_data = check_for_unique_id(neighbour_cube)
         if unique_site_id_data:
             unique_site_id = unique_site_id_data[0]
             unique_site_id_key = unique_site_id_data[1]

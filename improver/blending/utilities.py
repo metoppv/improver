@@ -53,6 +53,7 @@ from improver.metadata.constants.attributes import (
 )
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
+from improver.spotdata.utilities import check_for_unique_id
 from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
 
@@ -468,12 +469,12 @@ def match_site_forecasts(cubes: CubeList, target: Cube) -> CubeList:
     in the pre and post change sitelists.
 
     This is achieved by matching the sites in the input forecasts to a
-    target sitelist. This is achieved by constructing masked arrays of the
+    target sitelist. This is done by constructing masked arrays of the
     target size, and inserting into these sites from the provided cubes
     where available. When these are blended the masked points do not
     contribute to the blend. At least one of the input cubes must have
     sites that match the target sitelist to ensure there is some data for
-    every site. Sites what exist in the inputs but not in the target
+    every site. Sites that exist in the inputs but not in the target
     sitelist are removed.
 
     Args:
@@ -492,14 +493,28 @@ def match_site_forecasts(cubes: CubeList, target: Cube) -> CubeList:
             did not provide data for a given site.
 
     Raises:
+        ValueError: If the target cube does not contain a unique site identifier
+                    coordinate.
         ValueError: If no input forecast is for a sitelist that matches the
                     target sitelist.
     """
+    site_id_coord = check_for_unique_id(target)
+    if site_id_coord is None:
+        raise ValueError(
+            "The site list cube does not contain a unique site ID coordinate. "
+            "As such it is not possible to ensure the input cubes all describe "
+            "identical sites."
+        )
+    else:
+        site_id_coord = site_id_coord[1]
+
     reconstructed_cubes = []
     mismatched_cubes = []
     # Check which cubes are in need of reconstruction and which are not.
     for cube in cubes:
-        if np.array_equal(cube.coord("met_office_site_id").points, target.coord("met_office_site_id").points):
+        if np.array_equal(
+            cube.coord(site_id_coord).points, target.coord(site_id_coord).points
+        ):
             reconstructed_cubes.append(cube)
         else:
             mismatched_cubes.append(cube)
@@ -511,40 +526,36 @@ def match_site_forecasts(cubes: CubeList, target: Cube) -> CubeList:
         return cubes
 
     template_cube = reconstructed_cubes[0]
-    site_coord_dim = template_cube.coord_dims("met_office_site_id")
+    site_coord_dim = template_cube.coord_dims(site_id_coord)
     for cube in mismatched_cubes:
         reconstructed = template_cube.copy()
         reconstructed.data = np.ma.masked_all_like(reconstructed.data)
-        if cube != template_cube:
-            # Find the indices at which the sites in the mismatched cube fall in
-            # the target cube. These will be used to insert the data into the
-            # reconstructed cube. Also record where these are sourced from to
-            # allow sites to be removed.
-            indices = []
-            sources = []
-            for ii, site_id in enumerate(cube.coord("met_office_site_id").points):
-                index, = np.where(reconstructed.coord("met_office_site_id").points == site_id)
-                if list(index):
-                    indices.append(index[0])
-                    sources.append(ii)
+        # Find the indices at which the sites in the mismatched cube fall in
+        # the target cube. These will be used to insert the data into the
+        # reconstructed cube. Also record where these are sourced from to
+        # allow sites to be removed.
+        indices = []
+        sources = []
+        for ii, site_id in enumerate(cube.coord(site_id_coord).points):
+            (index,) = np.where(reconstructed.coord(site_id_coord).points == site_id)
+            if list(index):
+                indices.append(index[0])
+                sources.append(ii)
 
-            # Insert data for all available sites and unmask these points
-            # All sites for which there is no data remain masked and do
-            # not contribute to the eventual blend.
-            reconstructed.data[..., indices] = cube.data[..., sources]
-            reconstructed.data.mask[..., indices] = 0
+        # Insert data for all available sites and unmask these points
+        # All sites for which there is no data remain masked and do
+        # not contribute to the eventual blend.
+        reconstructed.data[..., indices] = cube.data[..., sources]
+        reconstructed.data.mask[..., indices] = 0
 
-            # Update the coordinates and metadata on the reconstructed cube
-            # to match the original. The only exception is those coordinates
-            # associated with the site id as these should be left as set
-            # in the template cube.
-            for orginal_coord, template_crd in zip(cube.coords(), reconstructed.coords()):
-                if reconstructed.coord_dims(template_crd) != site_coord_dim:
-                    reconstructed.replace_coord(orginal_coord)
-            reconstructed.metadata = cube.metadata
-
-            reconstructed_cubes.append(reconstructed)
-        else:
-            reconstructed_cubes.append(cube)
+        # Update the coordinates and metadata on the reconstructed cube
+        # to match the original. The only exception is those coordinates
+        # associated with the site id as these should be left as set
+        # in the template cube.
+        for orginal_coord, template_crd in zip(cube.coords(), reconstructed.coords()):
+            if reconstructed.coord_dims(template_crd) != site_coord_dim:
+                reconstructed.replace_coord(orginal_coord)
+        reconstructed.metadata = cube.metadata
+        reconstructed_cubes.append(reconstructed)
 
     return reconstructed_cubes

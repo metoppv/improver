@@ -31,7 +31,7 @@
 """Test utilities to support weighted blending"""
 
 from datetime import datetime
-from typing import List, Union, Tuple
+from typing import List, Tuple, Union
 
 import iris
 import numpy as np
@@ -570,19 +570,12 @@ def test_update_record_run_weights_old_inputs(
         )
 
 
-
-
-
-
-
-
-
-
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "mandatory title",
     "source": "mandatory_source",
     "institution": "mandatory_institution",
 }
+
 
 def spot_coords(n_sites):
     """Define a set of coordinates for use in creating spot forecast or
@@ -635,7 +628,7 @@ def threshold_coord(diagnostic_name, thresholds, units):
         standard_name=diagnostic_name,
         units=units,
         var_name="threshold",
-        attributes={'spp__relative_to_threshold': 'greater_than_or_equal_to'}
+        attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
     )
     return crd
 
@@ -694,75 +687,85 @@ def make_neighbour_cube(n_sites, data):
     cube_units = 1
 
     spot_neighbour_cube = build_spotdata_cube(
-        np.array(data, dtype=np.float32),
-        cube_name,
-        cube_units,
-        *args,
-        **kwargs,
+        np.array(data, dtype=np.float32), cube_name, cube_units, *args, **kwargs,
     )
     return spot_neighbour_cube
 
+
 @pytest.fixture
-def spot_cubes(n_sites_ref, n_sites_mismatch) -> Tuple[Cube, Cube, Cube]:
+def spot_cubes(n_sites, ref_filter, mismatch_filter) -> Tuple[Cube, Cube, Cube]:
     """Set up a spot data cube with n_sites from a given model."""
 
     name = "air_temperature"
     units = "K"
     threshold_values = [273.15, 275.15]
 
-    data_ref = np.array([0.1] * n_sites_ref + [0.2] * n_sites_ref, dtype=np.float32).reshape(2, n_sites_ref)
-    data_mismatch = np.array([0.1] * n_sites_mismatch + [0.2] * n_sites_mismatch, dtype=np.float32).reshape(2, n_sites_mismatch)
+    data = np.linspace(0, 0.9, 2 * n_sites, dtype=np.float32).reshape(2, n_sites)
+    cube = make_threshold_cube(n_sites, name, units, data, threshold_values)
 
-    date_ref = np.linspace(0, 1, 2 * n_sites_ref, dtype=np.float32).reshape(2, n_sites_ref)
-    date_mismatch = np.linspace(0, 1, 2 * n_sites_ref, dtype=np.float32).reshape(2, n_sites_ref)
+    data = np.ones(3 * n_sites).reshape(1, 3, n_sites)
+    neighbours = make_neighbour_cube(n_sites, data)
 
-    cube_ref = make_threshold_cube(n_sites_ref, name, units, data_ref, threshold_values)
-    cube_mismatch = make_threshold_cube(n_sites_mismatch, name, units, data_mismatch, threshold_values)
-
-    data = np.ones(3 * n_sites_ref).reshape(1, 3, n_sites_ref)
-    neighbours = make_neighbour_cube(n_sites_ref, data)
-
-    return cube_ref, cube_mismatch, neighbours
+    return cube[:, ref_filter], cube[:, mismatch_filter], neighbours[:, :, ref_filter]
 
 
-
-@pytest.mark.parametrize("n_sites_ref, n_sites_mismatch", (
-    # (3, 3),
-    # (3, 2),
-    # (2, 3),
-    (3, 6),
-    # (6, 3),
-))
-def test_match_site_forecasts(n_sites_ref, n_sites_mismatch, spot_cubes):
+@pytest.mark.parametrize(
+    "n_sites, ref_filter, mismatch_filter",
+    (
+        (
+            5,
+            slice(None),
+            slice(0, 3),
+        ),  # Mismatch cube missing last 3 sites so is padded
+        (
+            5,
+            slice(None),
+            slice(None, None, 2),
+        ),  # Mismatch cube missing every other site so is padded and rearranged
+        (
+            5,
+            slice(0, 3, None),
+            slice(None),
+        ),  # Mismatch cube contains 3 extra sites that are dropped
+        (
+            5,
+            slice(None, None, 2),
+            slice(None),
+        ),  # Mismatch cube contains 3 extra sites at intervals that are dropped
+        (
+            5,
+            slice(0, 3, None),
+            slice(1, 4, None),
+        ),  # Cubes are the same size, but contain different sites. The
+        # mismatch cube is padded and rearranged to match the reference cube.
+    ),
+)
+def test_match_site_forecasts(n_sites, ref_filter, mismatch_filter, spot_cubes):
     """Test that this function returns cubes with the same number of sites
     as the provided neighbour site cube. If there is a cube that does not
     match the site cube, it is padded or trimmed, with suitable rearrangement
     to match the reference cube which matches the neighbour cube."""
 
     cube_ref, cube_mismatch, neighbours = spot_cubes
-
-    # Test where the numer of sites is the same between the two input cubes
-    # but the IDs are different, meaning that the mismatch cube ends up
-    # with some masked points.
-    if n_sites_mismatch == 6:
-        cube_mismatch = cube_mismatch[:, ::2]
-
-    # Test where
-    if n_sites_ref == 6:
-        cube_ref = cube_ref[:, ::2]
-        neighbours = neighbours[..., ::2]
-        n_sites_ref = 3
-
-    print(cube_mismatch.coord("met_office_site_id").points)
-    print(cube_ref.coord("met_office_site_id").points)
-
     cubes = CubeList([cube_ref.copy(), cube_mismatch])
 
     result = match_site_forecasts(cubes, neighbours)
 
+    # Compare to the input cube_ref which has sites that match the neighbour cube.
     for cube in result:
-        print(cube.data)
-        assert cube.shape == (2, n_sites_ref)
+        assert cube.shape == (2, neighbours.shape[-1])
         assert cube.data.dtype == np.float32
-        for crd in ["latitude", "longitude", "altitude", "met_office_site_id", "wmo_id"]:
+        for crd in [
+            "latitude",
+            "longitude",
+            "altitude",
+            "met_office_site_id",
+            "wmo_id",
+        ]:
             assert cube.coord(crd) == cube_ref.coord(crd)
+
+    # Both cubes are derived from a single cube containing the same data prior
+    # to slicing. As such we expect the data values in the returned cubes after
+    # trimming / padding / rearranging to match at the unmasked points.
+    mask = result[1].data.mask
+    np.testing.assert_almost_equal(result[0].data[~mask], result[1].data[~mask])

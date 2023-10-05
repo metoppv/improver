@@ -231,28 +231,6 @@ class Test_extract_coordinates(Test_SpotExtraction):
             plugin.extract_coordinates(self.neighbour_cube)
 
 
-class Test_check_for_unique_id(Test_SpotExtraction):
-
-    """Test identification of unique site ID coordinates from coordinate
-    attributes."""
-
-    def test_unique_is_present(self):
-        """Test that the IDs and coordinate name are returned if a unique site
-        ID coordinate is present on the neighbour cube."""
-        plugin = SpotExtraction()
-        result = plugin.check_for_unique_id(self.neighbour_cube)
-        self.assertArrayEqual(result[0], self.unique_site_id)
-        self.assertEqual(result[1], self.unique_site_id_key)
-
-    def test_unique_is_not_present(self):
-        """Test that Nones are returned if no unique site ID coordinate is
-        present on the neighbour cube."""
-        self.neighbour_cube.remove_coord("met_office_site_id")
-        plugin = SpotExtraction()
-        result = plugin.check_for_unique_id(self.neighbour_cube)
-        self.assertIsNone(result)
-
-
 class Test_get_aux_coords(Test_SpotExtraction):
 
     """Test the extraction of scalar and non-scalar auxiliary coordinates
