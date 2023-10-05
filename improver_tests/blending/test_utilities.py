@@ -31,7 +31,7 @@
 """Test utilities to support weighted blending"""
 
 from datetime import datetime
-from typing import List, Union
+from typing import List, Union, Tuple
 
 import iris
 import numpy as np
@@ -49,12 +49,14 @@ from improver.blending import (
 from improver.blending.utilities import (
     find_blend_dim_coord,
     get_coords_to_remove,
+    match_site_forecasts,
     record_run_coord_to_attr,
     store_record_run_as_coord,
     update_blended_metadata,
     update_record_run_weights,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
@@ -566,3 +568,201 @@ def test_update_record_run_weights_old_inputs(
         update_record_run_weights(
             model_cube_with_blend_record, model_blending_weights, MODEL_BLEND_COORD
         )
+
+
+
+
+
+
+
+
+
+
+LOCAL_MANDATORY_ATTRIBUTES = {
+    "title": "mandatory title",
+    "source": "mandatory_source",
+    "institution": "mandatory_institution",
+}
+
+def spot_coords(n_sites):
+    """Define a set of coordinates for use in creating spot forecast or
+    ancillary inputs.
+
+    Args:
+        n_sites:
+            The number of sites described by the coordinates.
+    Returns:
+        tuple:
+            Containing a tuple and dict.
+            The tuple contains the altitude, latitude, longitude, and
+            wmo_id coordinate values.
+            The dict contains the kwargs to use with the build_spotdata_cube
+            function.
+    """
+
+    altitudes = np.arange(0, n_sites, 1, dtype=np.float32)
+    latitudes = np.arange(0, n_sites * 10, 10, dtype=np.float32)
+    longitudes = np.arange(0, n_sites * 20, 20, dtype=np.float32)
+    wmo_ids = np.arange(1000, (1000 * n_sites) + 1, 1000)
+    kwargs = {
+        "unique_site_id": wmo_ids,
+        "unique_site_id_key": "met_office_site_id",
+        "grid_attributes": ["x_index", "y_index", "vertical_displacement"],
+        "neighbour_methods": ["nearest"],
+    }
+    return (altitudes, latitudes, longitudes, wmo_ids), kwargs
+
+
+def threshold_coord(diagnostic_name, thresholds, units):
+    """Defined a threshold coordinate with the given name,
+     threshold values, and units. Assumes a greater than
+     threshold.
+
+     Args:
+         diagnostic_name:
+             The name of the diagnostic, e.g. air_temperature
+         thresholds:
+             The threshold values as a list or array.
+         units:
+             The units of the threshold values.
+
+     Returns:
+         Threshold dimension coordinate.
+     """
+
+    crd = iris.coords.DimCoord(
+        np.array(thresholds, dtype=np.float32),
+        standard_name=diagnostic_name,
+        units=units,
+        var_name="threshold",
+        attributes={'spp__relative_to_threshold': 'greater_than_or_equal_to'}
+    )
+    return crd
+
+
+def make_threshold_cube(n_sites, name, units, data, threshold_values):
+    """Create a spot threshold cube.
+
+    Args:
+        n_sites:
+            Number of sites to create in the spot cube.
+        name:
+            The diagnostic name.
+        data:
+            The data to populate the cube with.
+        threshold_values:
+            The threshold values.
+
+    Returns:
+        A spot data cube.
+    """
+    args, kwargs = spot_coords(n_sites)
+    kwargs.pop("neighbour_methods")
+    kwargs.pop("grid_attributes")
+    threshold = threshold_coord(name, threshold_values, units)
+
+    cube_name = f"probability_of_{name}_above_threshold"
+    cube_units = 1
+
+    spot_data_cube = build_spotdata_cube(
+        np.array(data, dtype=np.float32),
+        cube_name,
+        cube_units,
+        *args,
+        **kwargs,
+        additional_dims=[threshold],
+    )
+    spot_data_cube.attributes = LOCAL_MANDATORY_ATTRIBUTES
+    return spot_data_cube
+
+
+def make_neighbour_cube(n_sites, data):
+    """Create a spot neighbour cube.
+
+    Args:
+        n_sites:
+            Number of sites to create in the spot cube.
+        data:
+            The data to populate the cube with. This is grid point
+            indices and vertical displacements.
+
+    Returns:
+        A spot neighbour cube.
+    """
+    args, kwargs = spot_coords(n_sites)
+    cube_name = "grid_neighbours"
+    cube_units = 1
+
+    spot_neighbour_cube = build_spotdata_cube(
+        np.array(data, dtype=np.float32),
+        cube_name,
+        cube_units,
+        *args,
+        **kwargs,
+    )
+    return spot_neighbour_cube
+
+@pytest.fixture
+def spot_cubes(n_sites_ref, n_sites_mismatch) -> Tuple[Cube, Cube, Cube]:
+    """Set up a spot data cube with n_sites from a given model."""
+
+    name = "air_temperature"
+    units = "K"
+    threshold_values = [273.15, 275.15]
+
+    data_ref = np.array([0.1] * n_sites_ref + [0.2] * n_sites_ref, dtype=np.float32).reshape(2, n_sites_ref)
+    data_mismatch = np.array([0.1] * n_sites_mismatch + [0.2] * n_sites_mismatch, dtype=np.float32).reshape(2, n_sites_mismatch)
+
+    date_ref = np.linspace(0, 1, 2 * n_sites_ref, dtype=np.float32).reshape(2, n_sites_ref)
+    date_mismatch = np.linspace(0, 1, 2 * n_sites_ref, dtype=np.float32).reshape(2, n_sites_ref)
+
+    cube_ref = make_threshold_cube(n_sites_ref, name, units, data_ref, threshold_values)
+    cube_mismatch = make_threshold_cube(n_sites_mismatch, name, units, data_mismatch, threshold_values)
+
+    data = np.ones(3 * n_sites_ref).reshape(1, 3, n_sites_ref)
+    neighbours = make_neighbour_cube(n_sites_ref, data)
+
+    return cube_ref, cube_mismatch, neighbours
+
+
+
+@pytest.mark.parametrize("n_sites_ref, n_sites_mismatch", (
+    # (3, 3),
+    # (3, 2),
+    # (2, 3),
+    (3, 6),
+    # (6, 3),
+))
+def test_match_site_forecasts(n_sites_ref, n_sites_mismatch, spot_cubes):
+    """Test that this function returns cubes with the same number of sites
+    as the provided neighbour site cube. If there is a cube that does not
+    match the site cube, it is padded or trimmed, with suitable rearrangement
+    to match the reference cube which matches the neighbour cube."""
+
+    cube_ref, cube_mismatch, neighbours = spot_cubes
+
+    # Test where the numer of sites is the same between the two input cubes
+    # but the IDs are different, meaning that the mismatch cube ends up
+    # with some masked points.
+    if n_sites_mismatch == 6:
+        cube_mismatch = cube_mismatch[:, ::2]
+
+    # Test where
+    if n_sites_ref == 6:
+        cube_ref = cube_ref[:, ::2]
+        neighbours = neighbours[..., ::2]
+        n_sites_ref = 3
+
+    print(cube_mismatch.coord("met_office_site_id").points)
+    print(cube_ref.coord("met_office_site_id").points)
+
+    cubes = CubeList([cube_ref.copy(), cube_mismatch])
+
+    result = match_site_forecasts(cubes, neighbours)
+
+    for cube in result:
+        print(cube.data)
+        assert cube.shape == (2, n_sites_ref)
+        assert cube.data.dtype == np.float32
+        for crd in ["latitude", "longitude", "altitude", "met_office_site_id", "wmo_id"]:
+            assert cube.coord(crd) == cube_ref.coord(crd)

@@ -308,7 +308,6 @@ class WeightAndBlend(PostProcessingPlugin):
         # If the cubes for blending are site forecasts, check that the sites they
         # contain match. If not, attempt to construct matching cubes for blending.
         if reference_site_cube is not None and cubelist[0].coords("spot_index"):
-            print("aligning sites")
             cubelist = match_site_forecasts(cubelist, reference_site_cube)
 
         # Prepare cubes for weighted blending, including creating custom metadata
