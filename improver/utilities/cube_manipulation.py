@@ -81,6 +81,68 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
+def aggregate(
+    cube: Cube,
+    dimensions: List[str] = ["realization"],
+    aggregation: str = "mean",
+    broadcast: bool = False,
+    new_name=None,
+):
+    """Aggregate a cube over the given dimensions.
+
+    Args:
+        cube:
+            Cube to aggregate
+        dimensions:
+            List of dimensions to aggregate; default is ["realization"]
+        aggregation:
+            One of "sum", "mean", "median", "std_dev", "min", "max";
+            default is "mean".
+        broadcast:
+            If True, broadcast result back to original dimensions. 
+            Otherwise, return collapsed cube.            
+        new_name:
+            New name for output cube; if None use iris default.
+
+    Returns:
+        Aggregated cube. If broadcast is True, dimensions are the same as input cube,
+        otherwise dimensions are collapsed."""
+
+    aggregator_dict = {
+        "sum": iris.analysis.SUM,
+        "mean": iris.analysis.MEAN,
+        "median": iris.analysis.MEDIAN,
+        "std_dev": iris.analysis.STD_DEV,
+        "min": iris.analysis.MIN,
+        "max": iris.analysis.MAX,
+    }
+
+    aggregator = aggregator_dict.get(aggregation)
+    if aggregator is None:
+        raise ValueError(
+            'aggregation must be one of "sum", "mean", "median", "std_dev", "min", "max"'
+        )
+
+    collapsed_cube = collapsed(cube, dimensions, aggregator)
+    if broadcast:
+        original_dims = []
+        for i in range(len(cube.data.shape)):
+            original_dims.append(cube.coord(dimensions=[i], dim_coords=True).name())
+            new_shape = list(cube.data.shape)
+            for i, dim in enumerate(original_dims):
+                if dim in dimensions:
+                    new_shape[i] = 1
+            new_data = np.reshape(collapsed_cube.data, new_shape)
+            returned_cube = cube.copy(data=np.broadcast_to(new_data, cube.data.shape,))
+    else:
+        returned_cube = collapsed_cube
+
+    if new_name:
+        returned_cube.rename(new_name)
+
+    return returned_cube
+
+
 def collapse_realizations(cube: Cube) -> Cube:
     """Collapses the realization coord of a cube and strips the coord from the cube.
 
