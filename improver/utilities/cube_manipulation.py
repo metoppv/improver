@@ -83,7 +83,7 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
 
 def aggregate(
     cube: Cube,
-    dimensions: List[str] = ["realization"],
+    dimensions: Union[str, List[str]] = "realization",
     aggregation: str = "mean",
     broadcast: bool = False,
     new_name=None,
@@ -94,7 +94,7 @@ def aggregate(
         cube:
             Cube to aggregate
         dimensions:
-            List of dimensions to aggregate; default is ["realization"]
+            List of dimensions to aggregate; default is "realization"
         aggregation:
             One of "sum", "mean", "median", "std_dev", "min", "max";
             default is "mean".
@@ -123,6 +123,10 @@ def aggregate(
             'aggregation must be one of "sum", "mean", "median", "std_dev", "min", "max"'
         )
 
+    # convert dimensions to a list if required
+    if isinstance(dimensions, str):
+        dimensions = [dimensions]
+    assert(isinstance(dimensions, list))
     collapsed_cube = collapsed(cube, dimensions, aggregator)
     if (
         (aggregation == "std_dev")
