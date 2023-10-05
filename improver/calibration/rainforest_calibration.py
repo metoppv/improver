@@ -501,7 +501,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         self, per_realization_CDF: Cube, forecast: Cube, output_thresholds: ndarray
     ) -> Cube:
         """
-        Interpolate probilities calculated at model thresholds to extract probabilities
+        Interpolate probabilities calculated at model thresholds to extract probabilities
         at output thresholds for all realizations.
 
         Args:
