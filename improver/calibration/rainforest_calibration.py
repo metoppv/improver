@@ -36,6 +36,7 @@
 
 """
 
+import warnings
 from collections import OrderedDict
 from pathlib import Path
 from typing import List, Tuple
@@ -214,6 +215,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
             )
         else:
+            warnings.warn(
+                "Model config does not contain lead time keys; calibration will not work"
+            )
             self.model_thresholds = np.array([])
         self.model_input_converter = np.array
         self.tree_models = {}
@@ -724,6 +728,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
             )
         else:
+            warnings.warn(
+                "Model config does not contain lead time keys; calibration will not work"
+            )
             self.model_thresholds = np.array([])
         self.model_input_converter = DMatrix
         self.tree_models = {}

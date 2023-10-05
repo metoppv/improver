@@ -117,6 +117,12 @@ def test__check_num_features(ensemble_features, plugin_and_dummy_models):
         plugin._check_num_features(ensemble_features[:-1])
 
 
+def test__empty_config_warning(plugin_and_dummy_models):
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    with pytest.warns(Warning, match="calibration will not work"):
+        plugin_cls(model_config_dict={})
+
+
 def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast):
     """Check cube alignment when using feature and forecast variables when realization
     coordinate present in some cube variables."""
