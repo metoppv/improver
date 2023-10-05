@@ -99,8 +99,8 @@ def aggregate(
             One of "sum", "mean", "median", "std_dev", "min", "max";
             default is "mean".
         broadcast:
-            If True, broadcast result back to original dimensions. 
-            Otherwise, return collapsed cube.            
+            If True, broadcast result back to original dimensions.
+            Otherwise, return collapsed cube.
         new_name:
             New name for output cube; if None use iris default.
 
@@ -124,6 +124,14 @@ def aggregate(
         )
 
     collapsed_cube = collapsed(cube, dimensions, aggregator)
+    if (
+        (aggregation == "std_dev")
+        and (collapsed_cube.data.size == cube.data.size)
+        and (np.ma.is_masked(collapsed_cube.data))
+    ):
+        # Standard deviation is undefined. Iris masks the entire output,
+        # but we also set the underlying data to np.nan here.
+        collapsed_cube.data.data[:] = np.nan
     if broadcast:
         original_dims = []
         for i in range(len(cube.data.shape)):
@@ -133,7 +141,13 @@ def aggregate(
                 if dim in dimensions:
                     new_shape[i] = 1
             new_data = np.reshape(collapsed_cube.data, new_shape)
-            returned_cube = cube.copy(data=np.broadcast_to(new_data, cube.data.shape,))
+            new_data = np.broadcast_to(new_data, cube.data.shape,)
+            if np.ma.is_masked(collapsed_cube.data):
+                mask = np.ma.getmask(collapsed_cube.data)
+                reshaped_mask = np.reshape(mask, new_shape)
+                broadcasted_mask = np.broadcast_to(reshaped_mask, cube.data.shape,)
+                new_data = np.ma.masked_array(new_data, broadcasted_mask)
+            returned_cube = cube.copy(data=new_data)
     else:
         returned_cube = collapsed_cube
 

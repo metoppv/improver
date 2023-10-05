@@ -87,6 +87,16 @@ class Test_aggregate(unittest.TestCase):
             expected_data = self.cube.collapsed(["realization"], value).data
             self.assertTrue((result.data == expected_data).all())
 
+    def test_1d_std_dev(self):
+        """Test that when std_dev is calculated over a dimension of size 1,
+        output is all masked and underlying value is np.nan.
+        """
+        data = 281 * np.random.random_sample((1, 3, 3)).astype(np.float32)
+        cube_1d = set_up_variable_cube(data, realizations=[0])
+        result = aggregate(cube_1d, "realization", "std_dev", broadcast=True)
+        self.assertTrue(np.all(np.ma.getmask(result.data)))
+        self.assertTrue(np.all(np.isnan(result.data.data)))
+
     def test_rename(self):
         """Test rename functionality."""
         new_name = "ensemble_mean"
