@@ -60,6 +60,13 @@ class Test_aggregate(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             aggregate(self.cube, "realization", "product")
 
+    def test_invalid_dimension(self):
+        """Test that an error is raised if aggregagation dimension
+        does not exist."""
+        msg = "does not exist"
+        with self.assertRaisesRegex(ValueError, msg):
+            aggregate(self.cube, "height", "mean")
+
     def test_default(self):
         """Test with default options."""
         result = aggregate(self.cube)

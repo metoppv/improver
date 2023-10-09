@@ -125,6 +125,9 @@ def aggregate(
 
     if isinstance(dimensions, str):
         dimensions = [dimensions]
+    for dimension in dimensions:
+        if not(cube.coords(dimension)):
+            raise ValueError(f"Dimension {dimension} does not exist on the cube.")
     collapsed_cube = collapsed(cube, dimensions, aggregator)
     if (
         (method == "std_dev")
