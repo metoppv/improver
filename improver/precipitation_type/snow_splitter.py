@@ -50,10 +50,10 @@ class SnowSplitter(BasePlugin):
 
     def __init__(self, variable: str):
         """Sets up Class
-            Args:
-                variable
-                    A string of either rain or snow depending on which diagnostic's
-                    rate/accumulation should be outputted
+        Args:
+            variable
+                A string of either rain or snow depending on which diagnostic's
+                rate/accumulation should be outputted
         """
         self.variable = variable
 
