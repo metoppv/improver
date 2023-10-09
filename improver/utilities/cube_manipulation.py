@@ -107,9 +107,6 @@ def collapse_realizations(cube: Cube, method="mean") -> Cube:
     if aggregator is None:
         raise ValueError(f"method must be one of {list(aggregator_dict.keys())}")
 
-    if not (cube.coords("realization", dim_coords=True)):
-        raise ValueError("Dimension realization does not exist on the cube.")
-
     returned_cube = collapsed(cube, "realization", aggregator)
     returned_cube.remove_coord("realization")
 

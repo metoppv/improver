@@ -36,6 +36,7 @@ import unittest
 
 import iris
 import numpy as np
+from iris.exceptions import CoordinateCollapseError
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import collapse_realizations
@@ -64,9 +65,8 @@ class Test_aggregate(unittest.TestCase):
     def test_invalid_dimension(self):
         """Test that an error is raised if realization dimension
         does not exist."""
-        msg = "does not exist"
         sub_cube = self.cube.extract(iris.Constraint(realization=0))
-        with self.assertRaisesRegex(ValueError, msg):
+        with self.assertRaises(CoordinateCollapseError):
             collapse_realizations(sub_cube, "mean")
 
     def test_different_aggregators(self):
