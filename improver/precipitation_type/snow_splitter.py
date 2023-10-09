@@ -49,7 +49,9 @@ class SnowSplitter(BasePlugin):
      """
 
     def __init__(self, variable: str):
-        """Sets up Class
+        """
+        Sets up Class
+        
         Args:
             variable:
                 A string of either rain or snow depending on which diagnostic's
