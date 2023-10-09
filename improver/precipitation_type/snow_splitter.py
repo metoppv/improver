@@ -133,8 +133,8 @@ class SnowSplitter(BasePlugin):
             other_cube = snow_cube
         else:
             raise ValueError(
-                f"""Invalid output variable provided. Provided output variable is {self.variable}. Valid
-                             values for output variable are snow or rain"""
+                f"""Invalid output variable provided. Provided output variable is {self.variable}.
+                    Valid values for output variable are snow or rain"""
             )
 
         # arbitrary function that maps combinations of rain and snow probabilities
