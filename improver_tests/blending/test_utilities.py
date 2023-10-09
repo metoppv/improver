@@ -30,15 +30,11 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Test utilities to support weighted blending"""
 
-from datetime import datetime
-from typing import List, Tuple, Union
-
 import iris
 import numpy as np
 import pytest
-from iris.coords import AuxCoord
+
 from iris.cube import Cube, CubeList
-from numpy import ndarray
 
 from improver.blending import (
     MODEL_BLEND_COORD,
@@ -56,157 +52,6 @@ from improver.blending.utilities import (
     update_record_run_weights,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
-
-
-def setup_cycle_cube() -> Cube:
-    """Set up a cube for cycle blending"""
-    thresholds = [10, 20]
-    data = np.ones((2, 2, 2), dtype=np.float32)
-    frt_list = [
-        datetime(2017, 11, 10, 0),
-        datetime(2017, 11, 10, 1),
-        datetime(2017, 11, 10, 2),
-    ]
-    cycle_cubes = iris.cube.CubeList([])
-    for frt in frt_list:
-        cycle_cubes.append(
-            set_up_probability_cube(
-                data,
-                thresholds,
-                spatial_grid="equalarea",
-                time=datetime(2017, 11, 10, 4, 0),
-                frt=frt,
-                attributes={"mosg__model_configuration": "uk_det"},
-            )
-        )
-    return cycle_cubes.merge_cube()
-
-
-@pytest.fixture
-def cycle_cube() -> Cube:
-    """Return a cube suitable for cycle blending."""
-    return setup_cycle_cube()
-
-
-@pytest.fixture
-def cycle_cube_with_blend_record() -> Cube:
-    """Return a cube suitable for cycle blending which includes a blend
-    record auxiliary coordinate. This is used to construct a record_run
-    attribute."""
-    cubes = setup_cycle_cube()
-    updated_cubes = CubeList()
-    for cube in cubes.slices_over("forecast_reference_time"):
-        time = (
-            cube.coord("forecast_reference_time").cell(0).point.strftime("%Y%m%dT%H%MZ")
-        )
-
-        blend_record_coord = AuxCoord(
-            [f"uk_det:{time}:{1:{WEIGHT_FORMAT}}"], long_name=RECORD_COORD
-        )
-        cube.add_aux_coord(blend_record_coord)
-        updated_cubes.append(cube)
-    return updated_cubes.merge_cube()
-
-
-def create_weights_cube(
-    cube: Cube, blending_coord: str, weights: Union[List, ndarray]
-) -> Cube:
-    """Creates a weights cube using the provided weights. These weights are
-    associated with the provided blending_coord."""
-    weights_cube = next(cube.slices(blending_coord))
-    weights_cube.attributes = None
-    blending_dim = cube.coord_dims(blending_coord)
-    defunct_coords = [
-        crd.name()
-        for crd in cube.coords(dim_coords=True)
-        if not cube.coord_dims(crd) == blending_dim
-    ]
-    for crd in defunct_coords:
-        weights_cube.remove_coord(crd)
-    weights_cube.data = weights
-    weights_cube.rename("weights")
-    weights_cube.units = 1
-
-    return weights_cube
-
-
-@pytest.fixture
-def cycle_blending_weights(weights: Union[List, ndarray]) -> Cube:
-    """Using a template cube that is constructed for cycle blending,
-    create a weights cube that can be applied to it. The weights
-    within the cube are those provided."""
-    cube = setup_cycle_cube()
-    blending_coord = "forecast_reference_time"
-    return create_weights_cube(cube, blending_coord, weights)
-
-
-def setup_model_cube() -> Cube:
-    """Set up a cube for model blending"""
-    thresholds = [10, 20]
-    data = np.ones((2, 2, 2), dtype=np.float32)
-    model_ids = [0, 1000]
-    model_names = ["uk_det", "uk_ens"]
-    model_cubes = iris.cube.CubeList([])
-    for id, name in zip(model_ids, model_names):
-        model_id_coord = iris.coords.AuxCoord([id], long_name=MODEL_BLEND_COORD)
-        model_name_coord = iris.coords.AuxCoord([name], long_name=MODEL_NAME_COORD)
-        model_cubes.append(
-            set_up_probability_cube(
-                data,
-                thresholds,
-                spatial_grid="equalarea",
-                time=datetime(2017, 11, 10, 4),
-                frt=datetime(2017, 11, 10, 1),
-                include_scalar_coords=[model_id_coord, model_name_coord],
-            )
-        )
-    return model_cubes.merge_cube()
-
-
-@pytest.fixture
-def model_cube() -> Cube:
-    """Return a cube suitable for model blending."""
-    return setup_model_cube()
-
-
-def model_blend_record_template() -> List[str]:
-    """Return blend_record template entries for a cycle blended uk_det cube
-    and a cycle blended uk_ens cube. Two template entries are returned that
-    can be formatted with the required weights."""
-    return [
-        "uk_det:20171110T0000Z:{uk_det_weight:{WEIGHT_FORMAT}}\n"
-        "uk_det:20171110T0100Z:{uk_det_weight:{WEIGHT_FORMAT}}",
-        "uk_ens:20171109T2300Z:{uk_ens_weight:{WEIGHT_FORMAT}}\n"
-        "uk_ens:20171110T0000Z:{uk_ens_weight:{WEIGHT_FORMAT}}\n"
-        "uk_ens:20171110T0100Z:{uk_ens_weight:{WEIGHT_FORMAT}}",
-    ]
-
-
-@pytest.fixture
-def model_cube_with_blend_record() -> Cube:
-    """Return a cube suitable for model blending which includes a blend
-    record auxiliary coordinate. This is used to construct a record_run
-    attribute."""
-    cube = setup_model_cube()
-    points = [
-        item.format(uk_det_weight=0.5, uk_ens_weight=1 / 3, WEIGHT_FORMAT=WEIGHT_FORMAT)
-        for item in model_blend_record_template()
-    ]
-    blend_record_coord = AuxCoord(points, long_name=RECORD_COORD)
-    cube.add_aux_coord(blend_record_coord, 0)
-    return cube
-
-
-@pytest.fixture
-def model_blending_weights(weights: Union[List, ndarray]) -> Cube:
-    """Using a template cube that is constructed for model blending,
-    create a weights cube that can be applied to it. The weights
-    within the cube are those provided."""
-    cube = setup_model_cube()
-    blending_coord = MODEL_BLEND_COORD
-    return create_weights_cube(cube, blending_coord, weights)
 
 
 @pytest.mark.parametrize(
@@ -502,7 +347,7 @@ def test_update_record_run_weights_cycle(
     ],
 )
 def test_update_record_run_weights_model(
-    model_cube_with_blend_record, model_blending_weights, weights
+    model_cube_with_blend_record, model_blending_weights, weights, model_blend_record_template
 ):
     """Test that weights are updated as expected in a model blend cube where
     the RECORD_COORD has been constructed from the record_run attributes of
@@ -523,7 +368,7 @@ def test_update_record_run_weights_model(
             uk_ens_weight=uk_ens_final_weight,
             WEIGHT_FORMAT=WEIGHT_FORMAT,
         )
-        for item in model_blend_record_template()
+        for item in model_blend_record_template
     ]
 
     result = update_record_run_weights(
@@ -544,7 +389,7 @@ def test_update_record_run_weights_model(
 
 @pytest.mark.parametrize("weights", [[0.5, 0.5]])
 def test_update_record_run_weights_old_inputs(
-    model_cube_with_blend_record, model_blending_weights
+    model_cube_with_blend_record, model_blending_weights, model_blend_record_template
 ):
     """Test that an exception is raised if older inputs without a weight
     recorded in the record_run attribute are passed in. This might happen
@@ -554,7 +399,7 @@ def test_update_record_run_weights_old_inputs(
     recording."""
 
     attributes = []
-    attribute_entries = model_blend_record_template()
+    attribute_entries = model_blend_record_template
     attributes.append(attribute_entries[0].format(uk_det_weight="", WEIGHT_FORMAT=""))
     attributes.append(
         attribute_entries[1].format(uk_ens_weight=1 / 3, WEIGHT_FORMAT=WEIGHT_FORMAT)
@@ -570,148 +415,14 @@ def test_update_record_run_weights_old_inputs(
         )
 
 
-LOCAL_MANDATORY_ATTRIBUTES = {
-    "title": "mandatory title",
-    "source": "mandatory_source",
-    "institution": "mandatory_institution",
-}
-
-
-def spot_coords(n_sites):
-    """Define a set of coordinates for use in creating spot forecast or
-    ancillary inputs.
-
-    Args:
-        n_sites:
-            The number of sites described by the coordinates.
-    Returns:
-        tuple:
-            Containing a tuple and dict.
-            The tuple contains the altitude, latitude, longitude, and
-            wmo_id coordinate values.
-            The dict contains the kwargs to use with the build_spotdata_cube
-            function.
-    """
-
-    altitudes = np.arange(0, n_sites, 1, dtype=np.float32)
-    latitudes = np.arange(0, n_sites * 10, 10, dtype=np.float32)
-    longitudes = np.arange(0, n_sites * 20, 20, dtype=np.float32)
-    wmo_ids = np.arange(1000, (1000 * n_sites) + 1, 1000)
-    kwargs = {
-        "unique_site_id": wmo_ids,
-        "unique_site_id_key": "met_office_site_id",
-        "grid_attributes": ["x_index", "y_index", "vertical_displacement"],
-        "neighbour_methods": ["nearest"],
-    }
-    return (altitudes, latitudes, longitudes, wmo_ids), kwargs
-
-
-def threshold_coord(diagnostic_name, thresholds, units):
-    """Defined a threshold coordinate with the given name,
-     threshold values, and units. Assumes a greater than
-     threshold.
-
-     Args:
-         diagnostic_name:
-             The name of the diagnostic, e.g. air_temperature
-         thresholds:
-             The threshold values as a list or array.
-         units:
-             The units of the threshold values.
-
-     Returns:
-         Threshold dimension coordinate.
-     """
-
-    crd = iris.coords.DimCoord(
-        np.array(thresholds, dtype=np.float32),
-        standard_name=diagnostic_name,
-        units=units,
-        var_name="threshold",
-        attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
-    )
-    return crd
-
-
-def make_threshold_cube(n_sites, name, units, data, threshold_values):
-    """Create a spot threshold cube.
-
-    Args:
-        n_sites:
-            Number of sites to create in the spot cube.
-        name:
-            The diagnostic name.
-        data:
-            The data to populate the cube with.
-        threshold_values:
-            The threshold values.
-
-    Returns:
-        A spot data cube.
-    """
-    args, kwargs = spot_coords(n_sites)
-    kwargs.pop("neighbour_methods")
-    kwargs.pop("grid_attributes")
-    threshold = threshold_coord(name, threshold_values, units)
-
-    cube_name = f"probability_of_{name}_above_threshold"
-    cube_units = 1
-
-    spot_data_cube = build_spotdata_cube(
-        np.array(data, dtype=np.float32),
-        cube_name,
-        cube_units,
-        *args,
-        **kwargs,
-        additional_dims=[threshold],
-    )
-    spot_data_cube.attributes = LOCAL_MANDATORY_ATTRIBUTES
-    return spot_data_cube
-
-
-def make_neighbour_cube(n_sites, data):
-    """Create a spot neighbour cube.
-
-    Args:
-        n_sites:
-            Number of sites to create in the spot cube.
-        data:
-            The data to populate the cube with. This is grid point
-            indices and vertical displacements.
-
-    Returns:
-        A spot neighbour cube.
-    """
-    args, kwargs = spot_coords(n_sites)
-    cube_name = "grid_neighbours"
-    cube_units = 1
-
-    spot_neighbour_cube = build_spotdata_cube(
-        np.array(data, dtype=np.float32), cube_name, cube_units, *args, **kwargs,
-    )
-    return spot_neighbour_cube
-
-
-@pytest.fixture
-def spot_cubes(n_sites, ref_filter, mismatch_filter) -> Tuple[Cube, Cube, Cube]:
-    """Set up a spot data cube with n_sites from a given model."""
-
-    name = "air_temperature"
-    units = "K"
-    threshold_values = [273.15, 275.15]
-
-    data = np.linspace(0, 0.9, 2 * n_sites, dtype=np.float32).reshape(2, n_sites)
-    cube = make_threshold_cube(n_sites, name, units, data, threshold_values)
-
-    data = np.ones(3 * n_sites).reshape(1, 3, n_sites)
-    neighbours = make_neighbour_cube(n_sites, data)
-
-    return cube[:, ref_filter], cube[:, mismatch_filter], neighbours[:, :, ref_filter]
-
-
 @pytest.mark.parametrize(
     "n_sites, ref_filter, mismatch_filter",
     (
+        (
+            5,
+            slice(None),
+            slice(None),
+        ),  # All cubes match and are returned unchanged
         (
             5,
             slice(None),
@@ -740,7 +451,7 @@ def spot_cubes(n_sites, ref_filter, mismatch_filter) -> Tuple[Cube, Cube, Cube]:
         # mismatch cube is padded and rearranged to match the reference cube.
     ),
 )
-def test_match_site_forecasts(n_sites, ref_filter, mismatch_filter, spot_cubes):
+def test_match_site_forecasts(spot_cubes):
     """Test that this function returns cubes with the same number of sites
     as the provided neighbour site cube. If there is a cube that does not
     match the site cube, it is padded or trimmed, with suitable rearrangement
@@ -748,6 +459,9 @@ def test_match_site_forecasts(n_sites, ref_filter, mismatch_filter, spot_cubes):
 
     cube_ref, cube_mismatch, neighbours = spot_cubes
     cubes = CubeList([cube_ref.copy(), cube_mismatch])
+
+    print(cubes[0])
+    print(cubes[1])
 
     result = match_site_forecasts(cubes, neighbours)
 
@@ -767,5 +481,38 @@ def test_match_site_forecasts(n_sites, ref_filter, mismatch_filter, spot_cubes):
     # Both cubes are derived from a single cube containing the same data prior
     # to slicing. As such we expect the data values in the returned cubes after
     # trimming / padding / rearranging to match at the unmasked points.
-    mask = result[1].data.mask
-    np.testing.assert_almost_equal(result[0].data[~mask], result[1].data[~mask])
+    try:
+        mask = result[1].data.mask
+    except:
+        # If there is no masking, the cubes are returned unchanged.
+        assert cube_ref == result[0]
+        assert cube_mismatch == result[1]
+    else:
+        np.testing.assert_almost_equal(result[0].data[~mask], result[1].data[~mask])
+
+
+def test_match_site_forecasts_no_id_exception(default_cubes):
+    """Test an exception is raised if the neighbour cube that
+    defines the expected site does not contain a unique id
+    identifier coordinate."""
+
+    cube_ref, cube_mismatch, neighbours = default_cubes
+    cubes = CubeList([cube_ref, cube_mismatch])
+    neighbours.coord("met_office_site_id").attributes = {}
+
+    with pytest.raises(
+        ValueError, match="The site list cube does not contain a unique site ID coordinate"
+    ):
+        match_site_forecasts(cubes, neighbours)
+
+
+def test_match_site_forecasts_no_matches(default_cubes):
+    """Test an exception is raised if non of the input cubes have sites
+    that match the neighbour cube."""
+    cube_ref, cube_mismatch, neighbours = default_cubes
+    cubes = CubeList([cube_ref[..., :4], cube_mismatch[..., :4]])
+
+    with pytest.raises(
+        ValueError, match="No input cubes match the target site list"
+    ):
+        match_site_forecasts(cubes, neighbours)

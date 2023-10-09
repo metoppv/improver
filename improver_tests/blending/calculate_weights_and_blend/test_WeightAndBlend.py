@@ -38,6 +38,7 @@ import numpy as np
 import pytest
 from iris.tests import IrisTest
 
+from ..conftest import make_neighbour_cube
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -57,6 +58,7 @@ MODEL_WEIGHTS_WITH_ZERO = {
     "uk_det": {"forecast_period": [0, 4, 8], "weights": [0, 0, 0], "units": "hours"},
     "uk_ens": {"forecast_period": [0, 4, 8], "weights": [0, 1, 1], "units": "hours"},
 }
+DATETIME_FORMAT = "%Y%m%dT%H%MZ"
 
 
 def set_up_masked_cubes():
@@ -720,6 +722,98 @@ class Test_process_spatial_weights(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+@pytest.mark.parametrize(
+    "data,expected",
+    (
+        ([np.full((1, 3), 0.4), np.full((1, 3), 0.6)], np.full((3), 0.5)),  # Matching sites, 2 cycles
+        ([
+            np.array([0.6] * 3 + [0.4] * 3).reshape(2, 3),
+            np.array([0.4] * 3 + [0.2] * 3).reshape(2, 3)
+        ],
+        np.array([0.5] * 3 + [0.3] *3).reshape(2, 3)),  # Matching sites, 2 cycles, 2 thresholds.
+        ([np.full((1, 3), 0.4), np.full((1, 3), 0.6), np.full((1, 3), 0.8)], np.full((3), 0.6)),  # Matching sites, 3 cycles
+        ([np.full((1, 4), 0.4), np.full((1, 3), 0.6)], np.array([0.5, 0.5, 0.5, 0.4])),  # 2 cycles, first more sites
+        ([np.full((1, 3), 0.4), np.full((1, 4), 0.6)], np.full((3), 0.5)),  # 2 cycles, second more sites
+        ([np.full((1, 4), 0.6), np.full((1, 3), 0.4), np.full((1, 2), 0.2)], np.array([0.4, 0.4, 0.5, 0.6])),  # 3 cycles, successively fewer sites
+    ),
+)
+def test_process_cycle_blending_spot_cubes(cycle_blend_spot_cubes, expected):
+    """Test the blending of spot cubes using the WeightAndBlend plugin.
+    Paramterized input is
+    In cases where the input cubes contain different sites (different
+    shaped) a neighbour cube is generated based on the first cube. This
+    controls which sites should be returned, allowing trimming or padding
+    to match the cube shapes."""
+
+    cubes, frts = cycle_blend_spot_cubes
+    cycle_time = max(frts)
+
+    plugin_cycle = WeightAndBlend(
+        "forecast_reference_time", "linear", y0val=1, ynval=1
+    )
+    n_cycles = len(cubes)
+    expected_model_att = "\n".join([f"uk_det:{frt.strftime(DATETIME_FORMAT)}:{1. / n_cycles:1.3f}" for frt in sorted(frts)])
+
+    neighbours = None
+    if len(set([item.shape for item in cubes])) > 1:
+        n_sites = cubes[0].shape[-1]
+        data = np.ones(3 * n_sites).reshape(1, 3, n_sites)
+        neighbours = make_neighbour_cube(n_sites, data)
+
+    result = plugin_cycle.process(
+        cubes,
+        reference_site_cube=neighbours,
+        cycletime=cycle_time.strftime(DATETIME_FORMAT),
+        model_id_attr="mosg__model_configuration",
+        record_run_attr="mosg__model_run",
+    )
+
+    np.testing.assert_almost_equal(result.data, expected.astype(np.float32))
+    assert result.attributes["mosg__model_configuration"] == "uk_det"
+    assert result.coord("forecast_reference_time").points[0] == 1510272000  # 00Z 10th Nov 2017
+    assert result.coord("forecast_period").points[0] == 21600  # 6 hour forecast period
+    assert result.coord("time").points[0] == 1510293600  # 06Z 10th Nov 2017
+    assert result.attributes["mosg__model_run"] == expected_model_att
+
+
+@pytest.mark.parametrize(
+    "models,leadtime,expected",
+    (
+        (["nc_det", "uk_det", "uk_ens"], 1, 0.6),
+    ),
+)
+def test_process_model_blending_spot_cubes(model_blend_spot_cubes, expected):
+    """Test the blending of spot cubes using the WeightAndBlend plugin.
+    Paramterized input is
+    In cases where the input cubes contain different sites (different
+    shaped) a neighbour cube is generated based on the first cube. This
+    controls which sites should be returned, allowing trimming or padding
+    to match the cube shapes."""
+
+    plugin_model = WeightAndBlend(
+        "model_id",
+        "dict",
+        weighting_coord="forecast_period",
+        wts_dict=MODEL_WEIGHTS,
+    )
+    cycle_time = dt(2017, 11, 10, 0, 0)
+
+    result = plugin_model.process(
+        model_blend_spot_cubes,
+        # reference_site_cube=neighbours,
+        cycletime=cycle_time.strftime(DATETIME_FORMAT),
+        model_id_attr="mosg__model_configuration",
+        record_run_attr="mosg__model_run",
+    )
+    print(result.data)
+
+
+    # np.testing.assert_almost_equal(result.data, np.full((3), expected, dtype=np.float32))
+    # assert result.attributes["mosg__model_configuration"] == "uk_det"
+    # assert result.coord("forecast_reference_time").points[0] == 1510272000  # 00Z 10th Nov 2017
+    # assert result.coord("forecast_period").points[0] == 21600  # 6 hour forecast period
+    # assert result.coord("time").points[0] == 1510293600  # 06Z 10th Nov 2017
+    # assert result.attributes["mosg__model_run"] == expected_model_att
 
 if __name__ == "__main__":
     unittest.main()

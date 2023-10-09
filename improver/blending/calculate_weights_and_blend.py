@@ -78,7 +78,6 @@ class WeightAndBlend(PostProcessingPlugin):
         ynval: Optional[float] = None,
         cval: Optional[float] = None,
         inverse_ordering: bool = False,
-        allow_site_mismatch=True,
     ) -> None:
         """
         Initialise central parameters
