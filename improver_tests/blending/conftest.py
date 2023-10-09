@@ -32,19 +32,13 @@
 
 from datetime import datetime, timedelta
 from typing import List, Tuple, Union
-import numpy as np
-from numpy import ndarray
-import pytest
 
 import iris
+import numpy as np
+import pytest
 from iris.coords import AuxCoord
 from iris.cube import Cube, CubeList
-
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.synthetic_data.set_up_test_cubes import (
-    set_up_probability_cube,
-    construct_scalar_time_coords,
-)
+from numpy import ndarray
 
 from improver.blending import (
     MODEL_BLEND_COORD,
@@ -52,7 +46,11 @@ from improver.blending import (
     RECORD_COORD,
     WEIGHT_FORMAT,
 )
-
+from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import (
+    construct_scalar_time_coords,
+    set_up_probability_cube,
+)
 
 LOCAL_MANDATORY_ATTRIBUTES = {
     "title": "mandatory title",
@@ -384,7 +382,7 @@ def cycle_blend_spot_cubes(data) -> Tuple[Cube, Cube, Cube]:
 
     name = "air_temperature"
     units = "K"
-    time=datetime(2017, 11, 10, 6, 0)
+    time = datetime(2017, 11, 10, 6, 0)
     model = "uk_det"
 
     cubes = CubeList()
@@ -394,8 +392,15 @@ def cycle_blend_spot_cubes(data) -> Tuple[Cube, Cube, Cube]:
         threshold_values = np.arange(273.15, 273.15 + n_thresholds, 1)
         frts.append(time - timedelta(hours=index + 6))
         cube = make_threshold_cube(
-                n_sites, name, units, cube_data, threshold_values, time=time, frt=frts[-1], model=model
-            )
+            n_sites,
+            name,
+            units,
+            cube_data,
+            threshold_values,
+            time=time,
+            frt=frts[-1],
+            model=model,
+        )
         if n_thresholds == 1:
             cube = iris.util.squeeze(cube)
         cubes.append(cube)
@@ -404,7 +409,7 @@ def cycle_blend_spot_cubes(data) -> Tuple[Cube, Cube, Cube]:
 
 
 @pytest.fixture
-def model_blend_spot_cubes(models, leadtime) -> Tuple[Cube, Cube, Cube]:
+def model_blend_spot_cubes(models, filters, leadtime) -> Tuple[Cube, Cube, Cube]:
     """Call function to return spot data cubes suitable for testing
     model blending.
     """
@@ -421,14 +426,22 @@ def model_blend_spot_cubes(models, leadtime) -> Tuple[Cube, Cube, Cube]:
         "uk_ens": 0.2,
     }
     threshold_values = [273.15]
-    n_sites = 3
+    n_sites = 5
 
-    for model in models:
+    for model, filter in zip(models, filters):
         data = np.full((1, n_sites), model_data[model])
         cube = make_threshold_cube(
-                n_sites, name, units, data, threshold_values, time=time, frt=frt, model=model
-            )
+            n_sites,
+            name,
+            units,
+            data,
+            threshold_values,
+            time=time,
+            frt=frt,
+            model=model,
+        )
         cube = iris.util.squeeze(cube)
+        cube = cube[..., filter]
         cubes.append(cube)
 
     return cubes

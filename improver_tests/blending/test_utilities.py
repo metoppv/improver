@@ -33,7 +33,6 @@
 import iris
 import numpy as np
 import pytest
-
 from iris.cube import Cube, CubeList
 
 from improver.blending import (
@@ -347,7 +346,10 @@ def test_update_record_run_weights_cycle(
     ],
 )
 def test_update_record_run_weights_model(
-    model_cube_with_blend_record, model_blending_weights, weights, model_blend_record_template
+    model_cube_with_blend_record,
+    model_blending_weights,
+    weights,
+    model_blend_record_template,
 ):
     """Test that weights are updated as expected in a model blend cube where
     the RECORD_COORD has been constructed from the record_run attributes of
@@ -418,11 +420,7 @@ def test_update_record_run_weights_old_inputs(
 @pytest.mark.parametrize(
     "n_sites, ref_filter, mismatch_filter",
     (
-        (
-            5,
-            slice(None),
-            slice(None),
-        ),  # All cubes match and are returned unchanged
+        (5, slice(None), slice(None),),  # All cubes match and are returned unchanged
         (
             5,
             slice(None),
@@ -483,7 +481,7 @@ def test_match_site_forecasts(spot_cubes):
     # trimming / padding / rearranging to match at the unmasked points.
     try:
         mask = result[1].data.mask
-    except:
+    except AttributeError:
         # If there is no masking, the cubes are returned unchanged.
         assert cube_ref == result[0]
         assert cube_mismatch == result[1]
@@ -501,7 +499,8 @@ def test_match_site_forecasts_no_id_exception(default_cubes):
     neighbours.coord("met_office_site_id").attributes = {}
 
     with pytest.raises(
-        ValueError, match="The site list cube does not contain a unique site ID coordinate"
+        ValueError,
+        match="The site list cube does not contain a unique site ID coordinate",
     ):
         match_site_forecasts(cubes, neighbours)
 
@@ -512,7 +511,5 @@ def test_match_site_forecasts_no_matches(default_cubes):
     cube_ref, cube_mismatch, neighbours = default_cubes
     cubes = CubeList([cube_ref[..., :4], cube_mismatch[..., :4]])
 
-    with pytest.raises(
-        ValueError, match="No input cubes match the target site list"
-    ):
+    with pytest.raises(ValueError, match="No input cubes match the target site list"):
         match_site_forecasts(cubes, neighbours)

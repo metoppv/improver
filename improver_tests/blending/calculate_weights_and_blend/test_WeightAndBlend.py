@@ -38,7 +38,6 @@ import numpy as np
 import pytest
 from iris.tests import IrisTest
 
-from ..conftest import make_neighbour_cube
 from improver.blending.calculate_weights_and_blend import WeightAndBlend
 from improver.blending.weighted_blend import MergeCubesForWeightedBlending
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
@@ -46,6 +45,8 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+
+from ..conftest import make_neighbour_cube
 
 MODEL_WEIGHTS = {
     "nc_det": {"forecast_period": [0, 4, 8], "weights": [1, 0, 0], "units": "hours"},
@@ -722,19 +723,37 @@ class Test_process_spatial_weights(IrisTest):
         )
         self.assertArrayAlmostEqual(result.data, expected_data)
 
+
 @pytest.mark.parametrize(
     "data,expected",
     (
-        ([np.full((1, 3), 0.4), np.full((1, 3), 0.6)], np.full((3), 0.5)),  # Matching sites, 2 cycles
-        ([
-            np.array([0.6] * 3 + [0.4] * 3).reshape(2, 3),
-            np.array([0.4] * 3 + [0.2] * 3).reshape(2, 3)
-        ],
-        np.array([0.5] * 3 + [0.3] *3).reshape(2, 3)),  # Matching sites, 2 cycles, 2 thresholds.
-        ([np.full((1, 3), 0.4), np.full((1, 3), 0.6), np.full((1, 3), 0.8)], np.full((3), 0.6)),  # Matching sites, 3 cycles
-        ([np.full((1, 4), 0.4), np.full((1, 3), 0.6)], np.array([0.5, 0.5, 0.5, 0.4])),  # 2 cycles, first more sites
-        ([np.full((1, 3), 0.4), np.full((1, 4), 0.6)], np.full((3), 0.5)),  # 2 cycles, second more sites
-        ([np.full((1, 4), 0.6), np.full((1, 3), 0.4), np.full((1, 2), 0.2)], np.array([0.4, 0.4, 0.5, 0.6])),  # 3 cycles, successively fewer sites
+        (
+            [np.full((1, 3), 0.4), np.full((1, 3), 0.6)],
+            np.full((3), 0.5),
+        ),  # Matching sites, 2 cycles
+        (
+            [
+                np.array([0.6] * 3 + [0.4] * 3).reshape(2, 3),
+                np.array([0.4] * 3 + [0.2] * 3).reshape(2, 3),
+            ],
+            np.array([0.5] * 3 + [0.3] * 3).reshape(2, 3),
+        ),  # Matching sites, 2 cycles, 2 thresholds.
+        (
+            [np.full((1, 3), 0.4), np.full((1, 3), 0.6), np.full((1, 3), 0.8)],
+            np.full((3), 0.6),
+        ),  # Matching sites, 3 cycles
+        (
+            [np.full((1, 4), 0.4), np.full((1, 3), 0.6)],
+            np.array([0.5, 0.5, 0.5, 0.4]),
+        ),  # 2 cycles, first more sites
+        (
+            [np.full((1, 3), 0.4), np.full((1, 4), 0.6)],
+            np.full((3), 0.5),
+        ),  # 2 cycles, second more sites
+        (
+            [np.full((1, 4), 0.6), np.full((1, 3), 0.4), np.full((1, 2), 0.2)],
+            np.array([0.4, 0.4, 0.5, 0.6]),
+        ),  # 3 cycles, successively fewer sites
     ),
 )
 def test_process_cycle_blending_spot_cubes(cycle_blend_spot_cubes, expected):
@@ -748,11 +767,14 @@ def test_process_cycle_blending_spot_cubes(cycle_blend_spot_cubes, expected):
     cubes, frts = cycle_blend_spot_cubes
     cycle_time = max(frts)
 
-    plugin_cycle = WeightAndBlend(
-        "forecast_reference_time", "linear", y0val=1, ynval=1
-    )
+    plugin_cycle = WeightAndBlend("forecast_reference_time", "linear", y0val=1, ynval=1)
     n_cycles = len(cubes)
-    expected_model_att = "\n".join([f"uk_det:{frt.strftime(DATETIME_FORMAT)}:{1. / n_cycles:1.3f}" for frt in sorted(frts)])
+    expected_model_att = "\n".join(
+        [
+            f"uk_det:{frt.strftime(DATETIME_FORMAT)}:{1. / n_cycles:1.3f}"
+            for frt in sorted(frts)
+        ]
+    )
 
     neighbours = None
     if len(set([item.shape for item in cubes])) > 1:
@@ -770,19 +792,71 @@ def test_process_cycle_blending_spot_cubes(cycle_blend_spot_cubes, expected):
 
     np.testing.assert_almost_equal(result.data, expected.astype(np.float32))
     assert result.attributes["mosg__model_configuration"] == "uk_det"
-    assert result.coord("forecast_reference_time").points[0] == 1510272000  # 00Z 10th Nov 2017
+    assert (
+        result.coord("forecast_reference_time").points[0] == 1510272000
+    )  # 00Z 10th Nov 2017
     assert result.coord("forecast_period").points[0] == 21600  # 6 hour forecast period
     assert result.coord("time").points[0] == 1510293600  # 06Z 10th Nov 2017
     assert result.attributes["mosg__model_run"] == expected_model_att
 
 
 @pytest.mark.parametrize(
-    "models,leadtime,expected",
+    "models,filters,leadtime,expected_values,expected_weights",
     (
-        (["nc_det", "uk_det", "uk_ens"], 1, 0.6),
+        (
+            ["nc_det", "uk_det", "uk_ens"],
+            [slice(None), slice(None), slice(None)],
+            0,
+            np.full(5, 0.6),
+            [1, 0, 0],
+        ),  # Matching sites, 3 model blend, T+0
+        (
+            ["nc_det", "uk_det", "uk_ens"],
+            [slice(None), slice(None), slice(None)],
+            1,
+            np.full(5, 0.48),
+            [0.6, 0.2, 0.2],
+        ),  # Matching sites, 3 model blend, T+1
+        (
+            ["nc_det", "uk_det", "uk_ens"],
+            [slice(None), slice(None), slice(None)],
+            4,
+            np.full(5, 0.3),
+            [0, 0.5, 0.5],
+        ),  # Matching sites, 3 model blend, T+4
+        (
+            ["uk_det", "uk_ens"],
+            [slice(None), slice(None)],
+            1,
+            np.full(5, 0.3),
+            [0.5, 0.5],
+        ),  # Matching sites, 2 model blend, T+1
+        (
+            ["nc_det", "uk_ens"],
+            [slice(None), slice(None)],
+            2,
+            np.full(5, 0.4),
+            [0.5, 0.5],
+        ),  # Matching sites, 2 model blend, T+2
+        (
+            ["nc_det", "uk_det", "uk_ens"],
+            [slice(0, 3), slice(0, 4), slice(None)],
+            1,
+            np.array([0.48, 0.48, 0.48, 0.3, 0.2]),
+            [0.6, 0.2, 0.2],
+        ),  # 3 models, successively fewer sites, T+1
+        (
+            ["nc_det", "uk_det", "uk_ens"],
+            [slice(None), slice(None, None, 2), slice(None)],
+            1,
+            np.array([0.48, 0.5, 0.48, 0.5, 0.48]),
+            [0.6, 0.2, 0.2],
+        ),  # 3 models, uk_det missing every other site, T+1
     ),
 )
-def test_process_model_blending_spot_cubes(model_blend_spot_cubes, expected):
+def test_process_model_blending_spot_cubes(
+    model_blend_spot_cubes, models, expected_values, expected_weights
+):
     """Test the blending of spot cubes using the WeightAndBlend plugin.
     Paramterized input is
     In cases where the input cubes contain different sites (different
@@ -791,29 +865,38 @@ def test_process_model_blending_spot_cubes(model_blend_spot_cubes, expected):
     to match the cube shapes."""
 
     plugin_model = WeightAndBlend(
-        "model_id",
-        "dict",
-        weighting_coord="forecast_period",
-        wts_dict=MODEL_WEIGHTS,
+        "model_id", "dict", weighting_coord="forecast_period", wts_dict=MODEL_WEIGHTS,
     )
     cycle_time = dt(2017, 11, 10, 0, 0)
 
+    neighbours = None
+    if len(set([item.shape for item in model_blend_spot_cubes])) > 1:
+        data = np.ones(15).reshape(1, 3, 5)
+        neighbours = make_neighbour_cube(5, data)
+
+    expected_model_att = []
+    for model, weight in zip(models, expected_weights):
+        if weight > 0:
+            expected_model_att.append(
+                f"{model}:{cycle_time.strftime(DATETIME_FORMAT)}:{weight:1.3f}"
+            )
+    expected_model_att = "\n".join(expected_model_att)
+
     result = plugin_model.process(
         model_blend_spot_cubes,
-        # reference_site_cube=neighbours,
+        reference_site_cube=neighbours,
         cycletime=cycle_time.strftime(DATETIME_FORMAT),
         model_id_attr="mosg__model_configuration",
         record_run_attr="mosg__model_run",
     )
-    print(result.data)
 
-
-    # np.testing.assert_almost_equal(result.data, np.full((3), expected, dtype=np.float32))
+    np.testing.assert_almost_equal(result.data, expected_values)
     # assert result.attributes["mosg__model_configuration"] == "uk_det"
     # assert result.coord("forecast_reference_time").points[0] == 1510272000  # 00Z 10th Nov 2017
     # assert result.coord("forecast_period").points[0] == 21600  # 6 hour forecast period
     # assert result.coord("time").points[0] == 1510293600  # 06Z 10th Nov 2017
-    # assert result.attributes["mosg__model_run"] == expected_model_att
+    assert result.attributes["mosg__model_run"] == expected_model_att
+
 
 if __name__ == "__main__":
     unittest.main()
