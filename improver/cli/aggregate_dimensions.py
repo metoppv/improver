@@ -49,8 +49,7 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Probabilistic data with a realization, threshold or percentile
-            representation.
+            Data cube.
         dimensions (list):
             List of dimensions to collapse.
         method (str):
