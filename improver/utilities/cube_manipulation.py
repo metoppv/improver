@@ -84,7 +84,7 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
 def aggregate(
     cube: Cube,
     dimensions: Union[str, List[str]] = "realization",
-    aggregation: str = "mean",
+    method: str = "mean",
     broadcast: bool = False,
     new_name=None,
 ):
@@ -95,7 +95,7 @@ def aggregate(
             Cube to aggregate
         dimensions:
             List of dimensions to aggregate; default is "realization"
-        aggregation:
+        method:
             One of "sum", "mean", "median", "std_dev", "min", "max";
             default is "mean".
         broadcast:
@@ -117,17 +117,17 @@ def aggregate(
         "max": iris.analysis.MAX,
     }
 
-    aggregator = aggregator_dict.get(aggregation)
+    aggregator = aggregator_dict.get(method)
     if aggregator is None:
         raise ValueError(
-            'aggregation must be one of "sum", "mean", "median", "std_dev", "min", "max"'
+            f"method must be one of {list(aggregator_dict.keys())}"
         )
 
     if isinstance(dimensions, str):
         dimensions = [dimensions]
     collapsed_cube = collapsed(cube, dimensions, aggregator)
     if (
-        (aggregation == "std_dev")
+        (method == "std_dev")
         and (collapsed_cube.data.size == cube.data.size)
         and (np.ma.is_masked(collapsed_cube.data))
     ):

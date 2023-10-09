@@ -56,7 +56,7 @@ class Test_aggregate(unittest.TestCase):
     def test_invalid_aggregator(self):
         """Test that an error is raised if aggregation method is not one
         of the allowed types."""
-        msg = "aggregation must be one of"
+        msg = "method must be one of"
         with self.assertRaisesRegex(ValueError, msg):
             aggregate(self.cube, "realization", "product")
 

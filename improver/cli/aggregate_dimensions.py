@@ -41,7 +41,7 @@ def process(
     cube: cli.inputcube,
     *,
     dimensions: cli.comma_separated_list = ["realization"],
-    aggregation: str = "mean",
+    method: str = "mean",
     broadcast: bool = False,
     new_name: str = None,
 ):
@@ -53,7 +53,7 @@ def process(
             representation.
         dimensions (list):
             List of dimensions to collapse.
-        aggregation (str):
+        method (str):
             One of "sum", "mean", "median", "std_dev", "min", "max".
         broadcast (bool):
             If True, broadcast result back to original dimensions.
@@ -69,4 +69,4 @@ def process(
 
     from improver.utilities.cube_manipulation import aggregate
 
-    return aggregate(cube, dimensions, aggregation, broadcast, new_name)
+    return aggregate(cube, dimensions, method, broadcast, new_name)
