@@ -51,7 +51,7 @@ class SnowSplitter(BasePlugin):
     def __init__(self, variable: str):
         """Sets up Class
         Args:
-            variable
+            variable:
                 A string of either rain or snow depending on which diagnostic's
                 rate/accumulation should be outputted
         """
@@ -64,9 +64,9 @@ class SnowSplitter(BasePlugin):
         Args:
             cubes:
                 containing:
-                    rain_cube
+                    rain_cube:
                         Cube of the probability of rain at the surface.
-                    snow_cube
+                    snow_cube:
                         Cube of the probability of snow at the surface.
                     precip_cube:
                         Cube of either precipitation rate or precipitation accumulation.
@@ -109,9 +109,9 @@ class SnowSplitter(BasePlugin):
         Args:
             cubes:
                 containing:
-                    rain_cube
+                    rain_cube:
                         Cube of the probability of rain at the surface.
-                    snow_cube
+                    snow_cube:
                         Cube of the probability of snow at the surface.
                     precip_cube:
                         Cube of either precipitation rate or precipitation accumulation.
