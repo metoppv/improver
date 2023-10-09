@@ -38,34 +38,28 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
-    *,
-    dimensions: cli.comma_separated_list = ["realization"],
-    method: str = "mean",
-    broadcast: bool = False,
-    new_name: str = None,
+    cube: cli.inputcube, *, method: str = "mean", new_name: str = None,
 ):
     """Collapse and aggregate cube.
 
     Args:
         cube (iris.cube.Cube):
             Data cube.
-        dimensions (list):
-            List of dimensions to collapse.
         method (str):
             One of "sum", "mean", "median", "std_dev", "min", "max".
-        broadcast (bool):
-            If True, broadcast result back to original dimensions.
-            Otherwise, return collapsed cube.
         new_name (str):
             New name for output cube; if None use iris default.
 
     Returns:
         iris.cube.Cube:
-            Aggregated cube. If broadcast is True, dimensions are the same as input cube,
-            outherwise aggregated dimensions are removed.
+            Collapsed cube. Dimensions are the same as input cube,
+            without realization dimension.
     """
 
-    from improver.utilities.cube_manipulation import aggregate
+    from improver.utilities.cube_manipulation import collapse_realizations
 
-    return aggregate(cube, dimensions, method, broadcast, new_name)
+    collapsed_cube = collapse_realizations(cube, method=method)
+    if new_name:
+        collapsed_cube.rename(new_name)
+
+    return collapsed_cube

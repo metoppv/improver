@@ -81,32 +81,18 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
-def aggregate(
-    cube: Cube,
-    dimensions: Union[str, List[str]] = "realization",
-    method: str = "mean",
-    broadcast: bool = False,
-    new_name=None,
-):
-    """Aggregate a cube over the given dimensions.
+def collapse_realizations(cube: Cube, method="mean") -> Cube:
+    """Collapses the realization coord of a cube and strips the coord from the cube.
 
     Args:
         cube:
-            Cube to aggregate
-        dimensions:
-            List of dimensions to aggregate; default is "realization"
+            Input cube
         method:
             One of "sum", "mean", "median", "std_dev", "min", "max";
             default is "mean".
-        broadcast:
-            If True, broadcast result back to original dimensions.
-            Otherwise, return collapsed cube.
-        new_name:
-            New name for output cube; if None use iris default.
-
     Returns:
-        Aggregated cube. If broadcast is True, dimensions are the same as input cube,
-        otherwise dimensions are collapsed."""
+        Cube with realization coord collapsed and removed.
+    """
 
     aggregator_dict = {
         "sum": iris.analysis.SUM,
@@ -119,60 +105,12 @@ def aggregate(
 
     aggregator = aggregator_dict.get(method)
     if aggregator is None:
-        raise ValueError(
-            f"method must be one of {list(aggregator_dict.keys())}"
-        )
+        raise ValueError(f"method must be one of {list(aggregator_dict.keys())}")
 
-    if isinstance(dimensions, str):
-        dimensions = [dimensions]
-    for dimension in dimensions:
-        if not(cube.coords(dimension)):
-            raise ValueError(f"Dimension {dimension} does not exist on the cube.")
-    collapsed_cube = collapsed(cube, dimensions, aggregator)
-    if (
-        (method == "std_dev")
-        and (collapsed_cube.data.size == cube.data.size)
-        and (np.ma.is_masked(collapsed_cube.data))
-    ):
-        # Standard deviation is undefined. Iris masks the entire output,
-        # but we also set the underlying data to np.nan here.
-        collapsed_cube.data.data[:] = np.nan
-    if broadcast:
-        original_dims = []
-        for i in range(len(cube.data.shape)):
-            original_dims.append(cube.coord(dimensions=[i], dim_coords=True).name())
-            new_shape = list(cube.data.shape)
-            for i, dim in enumerate(original_dims):
-                if dim in dimensions:
-                    new_shape[i] = 1
-            new_data = np.reshape(collapsed_cube.data, new_shape)
-            new_data = np.broadcast_to(new_data, cube.data.shape,)
-            if np.ma.is_masked(collapsed_cube.data):
-                mask = np.ma.getmask(collapsed_cube.data)
-                reshaped_mask = np.reshape(mask, new_shape)
-                broadcasted_mask = np.broadcast_to(reshaped_mask, cube.data.shape,)
-                new_data = np.ma.masked_array(new_data, broadcasted_mask)
-            returned_cube = cube.copy(data=new_data)
-    else:
-        returned_cube = collapsed_cube
+    if not (cube.coords("realization", dim_coords=True)):
+        raise ValueError("Dimension realization does not exist on the cube.")
 
-    if new_name:
-        returned_cube.rename(new_name)
-
-    return returned_cube
-
-
-def collapse_realizations(cube: Cube) -> Cube:
-    """Collapses the realization coord of a cube and strips the coord from the cube.
-
-    Args:
-        cube:
-            Input cube
-
-    Returns:
-        Cube with realization coord collapsed and removed.
-    """
-    returned_cube = collapsed(cube, "realization", iris.analysis.MEAN)
+    returned_cube = collapsed(cube, "realization", aggregator)
     returned_cube.remove_coord("realization")
     return returned_cube
 

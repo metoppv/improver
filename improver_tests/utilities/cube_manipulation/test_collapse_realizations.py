@@ -32,18 +32,63 @@
 Unit tests for the function collapsed.
 """
 
+import unittest
+
+import iris
 import numpy as np
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import collapse_realizations
 
 
-def test_basic():
-    """Test that a collapsed cube is returned with no realization coord"""
-    data = np.full((3, 3, 3), fill_value=281.0, dtype=np.float32)
-    cube = set_up_variable_cube(data, realizations=[0, 1, 2])
-    result = collapse_realizations(cube)
-    assert "realization" not in [
-        coord.name() for coord in result.dim_coords + result.aux_coords
-    ]
-    assert (result.data == np.full((3, 3), fill_value=281.0, dtype=np.float32)).all()
+class Test_aggregate(unittest.TestCase):
+
+    """Test the collapse_realizations utility."""
+
+    def setUp(self):
+        """Use temperature cube to test with."""
+        data = 281 * np.random.random_sample((3, 3, 3)).astype(np.float32)
+        self.cube = set_up_variable_cube(data, realizations=[0, 1, 2])
+        self.expected_data = self.cube.collapsed(
+            ["realization"], iris.analysis.MEAN
+        ).data
+
+    def test_basic(self):
+        """Test that a collapsed cube is returned with no realization coord"""
+        result = collapse_realizations(self.cube)
+        assert "realization" not in [
+            coord.name() for coord in result.dim_coords + result.aux_coords
+        ]
+        assert (result.data == self.expected_data).all()
+
+    def test_invalid_dimension(self):
+        """Test that an error is raised if realization dimension
+        does not exist."""
+        msg = "does not exist"
+        sub_cube = self.cube.extract(iris.Constraint(realization=0))
+        with self.assertRaisesRegex(ValueError, msg):
+            collapse_realizations(sub_cube, "mean")
+
+    def test_different_aggregators(self):
+        """Test aggregators other than mean."""
+        aggregator_dict = {
+            "sum": iris.analysis.SUM,
+            "median": iris.analysis.MEDIAN,
+            "std_dev": iris.analysis.STD_DEV,
+            "min": iris.analysis.MIN,
+            "max": iris.analysis.MAX,
+        }
+        for key, value in aggregator_dict.items():
+            result = collapse_realizations(self.cube, key)
+            expected_data = self.cube.collapsed(["realization"], value).data
+            self.assertTrue((result.data == expected_data).all())
+
+    def test_1d_std_dev(self):
+        """Test that when std_dev is calculated over a dimension of size 1,
+        output is all masked and underlying value is np.nan.
+        """
+        data = 281 * np.random.random_sample((1, 3, 3)).astype(np.float32)
+        cube_1d = set_up_variable_cube(data, realizations=[0])
+        result = collapse_realizations(cube_1d, "std_dev")
+        self.assertTrue(np.all(np.ma.getmask(result.data)))
+        self.assertTrue(np.all(np.isnan(result.data.data)))

@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the aggregate-dimensions CLI"""
+"""Tests for the collapse-realizations CLI"""
 
 
 import pytest
@@ -40,69 +40,17 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_broadcast_mean(tmp_path):
+def test_basic(tmp_path):
     """
-    Test mean aggregation on realization with broadcasting.
+    Test mean aggregation.
     """
 
-    kgo_dir = acc.kgo_root() / "aggregate-dimensions"
-    kgo_path = kgo_dir / "kgo_broadcast_mean.nc"
+    kgo_dir = acc.kgo_root() / "collapse-realizations"
+    kgo_path = kgo_dir / "kgo_mean.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_path,
-        "--dimensions",
-        "realization",
-        "--method",
-        "mean",
-        "--broadcast",
-        "--new-name",
-        "ensemble_mean_of_air_temperature",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_broadcast_std_dev(tmp_path):
-    """
-    Test std_dev aggregation on realization with broadcasting.
-    """
-
-    kgo_dir = acc.kgo_root() / "aggregate-dimensions"
-    kgo_path = kgo_dir / "kgo_broadcast_stddev.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--dimensions",
-        "realization",
-        "--method",
-        "std_dev",
-        "--broadcast",
-        "--new-name",
-        "ensemble_standard_deviation_of_air_temperature",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
-def test_no_broadcast_mean(tmp_path):
-    """
-    Test mean aggregation on realization without broadcasting.
-    """
-
-    kgo_dir = acc.kgo_root() / "aggregate-dimensions"
-    kgo_path = kgo_dir / "kgo_no_broadcast.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--dimensions",
-        "realization",
         "--method",
         "mean",
         "--new-name",
