@@ -112,6 +112,16 @@ def collapse_realizations(cube: Cube, method="mean") -> Cube:
 
     returned_cube = collapsed(cube, "realization", aggregator)
     returned_cube.remove_coord("realization")
+
+    if (
+        (aggregation == "std_dev")
+        and (returned_cube.data.size == cube.data.size)
+        and (np.ma.is_masked(returned_cube.data))
+    ):
+        # Standard deviation is undefined. Iris masks the entire output,
+        # but we also set the underlying data to np.nan here.
+        returned_cube.data.data[:] = np.nan
+
     return returned_cube
 
 
