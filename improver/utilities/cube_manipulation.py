@@ -86,7 +86,7 @@ def collapse_realizations(cube: Cube, method="mean") -> Cube:
 
     Args:
         cube:
-            Input cube
+            Cube to be aggregated.
         method:
             One of "sum", "mean", "median", "std_dev", "min", "max";
             default is "mean".
