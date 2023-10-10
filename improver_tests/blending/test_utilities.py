@@ -33,8 +33,8 @@
 import iris
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
 from iris.coords import AuxCoord
+from iris.cube import Cube, CubeList
 
 from improver.blending import (
     MODEL_BLEND_COORD,
@@ -513,7 +513,9 @@ def test_match_site_coordinates(spot_cubes):
     cube_ref.add_aux_coord(food_crd)
     cube_mismatch.add_aux_coord(pet_crd)
     cube_mismatch.coord("time").points = cube_mismatch.coord("time").points + 3600
-    cube_mismatch.coord("forecast_period").points = cube_mismatch.coord("forecast_period").points + 3600
+    cube_mismatch.coord("forecast_period").points = (
+        cube_mismatch.coord("forecast_period").points + 3600
+    )
 
     cubes = CubeList([cube_ref.copy(), cube_mismatch.copy()])
 

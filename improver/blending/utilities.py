@@ -564,11 +564,15 @@ def match_site_forecasts(cubes: CubeList, target: Cube) -> CubeList:
                 if original_coord in cube.coords(dim_coords=True):
                     reconstructed.add_dim_coord(original_coord, original_coord_dim)
                 else:
-                    reconstructed.add_aux_coord(original_coord, data_dims=original_coord_dim)
+                    reconstructed.add_aux_coord(
+                        original_coord, data_dims=original_coord_dim
+                    )
 
         # Remove any coordinates being inherited from the template that are
         # not on the original cube, e.g. blend_time for a Nowcast cube.
-        residual_coords = set([crd.name() for crd in template_cube.coords()]) - set([crd.name() for crd in cube.coords()])
+        residual_coords = set([crd.name() for crd in template_cube.coords()]) - set(
+            [crd.name() for crd in cube.coords()]
+        )
         for crd in residual_coords:
             reconstructed.remove_coord(crd)
 
