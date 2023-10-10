@@ -83,6 +83,14 @@ class Test_aggregate(unittest.TestCase):
             expected_data = self.cube.collapsed(["realization"], value).data
             self.assertTrue((result.data == expected_data).all())
 
+    def test_invalid_aggregators(self):
+        """Test that an error is raised if aggregator is not
+        one of the allowed types."""
+
+        msg = "method must be one of"
+        with self.assertRaises(ValueError, msg=msg):
+            collapse_realizations(self.cube, method="product")
+
     def test_1d_std_dev(self):
         """Test that when std_dev is calculated over a dimension of size 1,
         output is all masked and underlying value is np.nan.
