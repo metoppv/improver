@@ -121,26 +121,29 @@ class SnowSplitter(BasePlugin):
         Returns:
             Cube of rain/snow (depending on self.output_is_rain) rate/accumulation (depending on
             precipitation cube)
-        
+
         Raises:
-            ValueError: If, at some grid square, both snow_cube and rain_cube have a probability of 0
+            ValueError: If, at some grid square, both snow_cube and rain_cube have a probability of
+            0
         """
 
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
         assert_spatial_coords_match([rain_cube, snow_cube, precip_cube])
-        if np.any(np.where((rain_cube+snow_cube).data == 0,True,False)):
-            raise ValueError("""There is atleast 1 grid square where the probability of snow
-                             at the surface and the probability of rain at the surface are both 0""")
+        if np.any(np.where((rain_cube + snow_cube).data == 0, True, False)):
+            raise ValueError(
+                """There is atleast 1 grid square where the probability of snow
+                             at the surface and the probability of rain at the surface are both 0"""
+            )
 
         if self.output_is_rain:
             required_cube = rain_cube
             other_cube = snow_cube
-            name="rain"
+            name = "rain"
         else:
             required_cube = snow_cube
             other_cube = rain_cube
-            name="snow"
+            name = "snow"
 
         # arbitrary function that maps combinations of rain and snow probabilities
         # to an appropriate coefficient
