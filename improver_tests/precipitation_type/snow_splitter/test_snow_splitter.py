@@ -83,10 +83,10 @@ def precip_rate_cube() -> Cube:
 
 
 @pytest.mark.parametrize(
-    "output_variable,cube_name", (("rain", "rain_rate"), ("snow", "snow_rate"))
+    "output_is_rain,cube_name", ((True, "rain_rate"), (False, "snow_rate"))
 )
 @pytest.mark.parametrize(
-    "rain_value, snow_value,expected",
+    "rain_value,snow_value,expected",
     ((1, 1, 0.5), (0, 1, "dependent"), (1, 0, "dependent")),
 )
 def test_basic(
@@ -95,7 +95,7 @@ def test_basic(
     precip_rate_cube,
     snow_value,
     rain_value,
-    output_variable,
+    output_is_rain,
     cube_name,
     expected,
 ):
@@ -105,21 +105,26 @@ def test_basic(
     rain_cube.data = np.full_like(rain_cube.data, rain_value)
     snow_cube.data = np.full_like(snow_cube.data, snow_value)
 
-    result = SnowSplitter(variable=output_variable)(
+    result = SnowSplitter(output_is_rain=output_is_rain)(
         CubeList([snow_cube, rain_cube, precip_rate_cube])
     )
 
     if expected == "dependent":
-        expected = rain_value if output_variable == "rain" else snow_value
+        expected = rain_value if output_is_rain else snow_value
 
     assert np.isclose(result.data, expected).all()
     assert result.name() == cube_name
+    assert result.units == "m/s"
+    assert result.attributes==LOCAL_MANDATORY_ATTRIBUTES
 
 
-def test_incorrect_variable_error(snow_cube, rain_cube, precip_rate_cube):
-    """Test an error is raised if an invalid output variable is requested"""
+def test_both_phases_0(snow_cube, rain_cube, precip_rate_cube):
+    """Test an error is raised if both snow and rain_cube have a probability of
+    0"""
 
-    with pytest.raises(ValueError, match="Invalid output variable provided"):
-        SnowSplitter(variable="hail")(
+    rain_cube.data = np.full_like(rain_cube.data, 0)
+    snow_cube.data = np.full_like(snow_cube.data, 0)
+    with pytest.raises(ValueError, match="1 grid square where the probability of snow"):
+        SnowSplitter(output_is_rain=False)(
             CubeList([snow_cube, rain_cube, precip_rate_cube])
         )

@@ -35,7 +35,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(*cubes: cli.inputcube, variable: str):
+def process(*cubes: cli.inputcube, output_is_rain: bool):
     """
     Separates the snow/rain contribution from precipitation rate/accumulation.
 
@@ -58,13 +58,13 @@ def process(*cubes: cli.inputcube, variable: str):
         cubes (iris.cube.CubeList or list):
             Contains cubes of probability of rain at surface, probability of snow at
             surface and precipitation rate/accumulation.
-        variable (str):
-            Can be assigned either rain or snow. This determines whether the snow or
-            rain contribution of the precipitation is outputted
+        output_is_rain (bool):
+            A boolean where True means the plugin will output rain and False means the
+            output is snow.
 
     Returns:
         iris.cube.Cube:
-            Cube of rain/snow (depending on self.variable) rate/accumulation (depending
+            Cube of rain/snow (depending on self.output_is-rain) rate/accumulation (depending
             on precipitation cube)
 
     """
@@ -72,4 +72,4 @@ def process(*cubes: cli.inputcube, variable: str):
 
     from improver.precipitation_type.snow_splitter import SnowSplitter
 
-    return SnowSplitter(variable=variable)(CubeList(cubes))
+    return SnowSplitter(output_is_rain=output_is_rain)(CubeList(cubes))

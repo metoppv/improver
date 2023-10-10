@@ -48,16 +48,16 @@ class SnowSplitter(BasePlugin):
     is rain or snow.
      """
 
-    def __init__(self, variable: str):
+    def __init__(self, output_is_rain: bool):
         """
         Sets up Class
 
         Args:
-            variable:
-                A string of either rain or snow depending on which diagnostic's
-                rate/accumulation should be outputted
+            output_is_rain:
+                A boolean where True means the plugin will output rain and False means the
+                output is snow.
         """
-        self.variable = variable
+        self.output_is_rain = output_is_rain
 
     @staticmethod
     def separate_input_cubes(cubes: CubeList) -> Tuple[Cube, Cube, Cube]:
@@ -94,11 +94,11 @@ class SnowSplitter(BasePlugin):
         Splits the precipitation cube data into a snow or rain contribution.
 
         Whether the output is a rate or accumulation will depend on the precipitation_cube.
-        self.variable will determine whether the outputted cube is a cube of snow or rain.
+        output_is_rain will determine whether the outputted cube is a cube of snow or rain.
 
         The probability of rain and snow at the surfaces should only contain 1's where the
-        precip type is present at the surface and0's where the precip type is not present
-        at the surface. These cubes need to be consistent with eachother such that either
+        phase is present at the surface and 0's where the phase is not present
+        at the surface. These cubes need to be consistent with each other such that either
         rain or snow is always present at the surface (e.g. at no grid square can both
         diagnostics have a probability of 0).
 
@@ -119,32 +119,35 @@ class SnowSplitter(BasePlugin):
                         Cube of either precipitation rate or precipitation accumulation.
 
         Returns:
-            Cube of rain/snow (depending on self.variable) rate/accumulation (depending on
+            Cube of rain/snow (depending on self.output_is_rain) rate/accumulation (depending on
             precipitation cube)
+        
+        Raises:
+            ValueError: If, at some grid square, both snow_cube and rain_cube have a probability of 0
         """
 
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
         assert_spatial_coords_match([rain_cube, snow_cube, precip_cube])
+        if np.any(np.where((rain_cube+snow_cube).data == 0,True,False)):
+            raise ValueError("""There is atleast 1 grid square where the probability of snow
+                             at the surface and the probability of rain at the surface are both 0""")
 
-        if self.variable == "snow":
-            required_cube = snow_cube
-            other_cube = rain_cube
-        elif self.variable == "rain":
+        if self.output_is_rain:
             required_cube = rain_cube
             other_cube = snow_cube
+            name="rain"
         else:
-            raise ValueError(
-                f"""Invalid output variable provided. Provided output variable is {self.variable}.
-                    Valid values for output variable are snow or rain"""
-            )
+            required_cube = snow_cube
+            other_cube = rain_cube
+            name="snow"
 
         # arbitrary function that maps combinations of rain and snow probabilities
         # to an appropriate coefficient
         coefficient_cube = (required_cube - other_cube + 1) / 2
         coefficient_cube.data = coefficient_cube.data.astype(np.float32)
 
-        new_name = precip_cube.name().replace("precipitation", self.variable)
+        new_name = precip_cube.name().replace("precipitation", name)
         output_cube = Combine(operation="*", new_name=new_name)(
             [precip_cube, coefficient_cube]
         )
