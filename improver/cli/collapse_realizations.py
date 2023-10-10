@@ -54,7 +54,7 @@ def process(
         iris.cube.Cube:
             Collapsed cube. Dimensions are the same as input cube,
             without realization dimension.
-    
+
     Raises:
         ValueError: if realization is not a dimension coordinate.
     """
