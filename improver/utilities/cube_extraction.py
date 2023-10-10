@@ -463,11 +463,18 @@ class ExtractLevel(BasePlugin):
                 A cube of data on pressure or height levels
         Returns:
             A cube of the environment pressure or height at self.value_of_level
+
+        Raises:
+            NotImplementError:
+                If variable_on_levels has both a height and pressure coordinate
         """
         from stratify import EXTRAPOLATE_NEAREST, interpolate
 
-        # if both a pressure and height coordinate exists then pressure takes priority
-        # over the height coordinate
+        coord_list = [coord.name() for coord in variable_on_levels.coords()]
+        if "height" in coord_list and "pressure" in coord_list:
+            raise NotImplementedError("""Input Cube has both a pressure and height coordinate. 
+                                      Only one of these should be present on the cube.""")
+
         try:
             self.coordinate = variable_on_levels.coord("pressure").name()
         except CoordinateNotFoundError:

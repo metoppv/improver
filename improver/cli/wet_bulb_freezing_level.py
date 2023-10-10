@@ -40,10 +40,11 @@ def process(wet_bulb_temperature: cli.inputcube):
     """Module to generate wet-bulb freezing level.
 
     The height level at which the wet-bulb temperature first drops below 273.15K
-    (0 degrees Celsius) is extracted from the wet-bulb temperature cube.
+    (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
+    the ground and ascending through height levels.
 
     In grid squares where the temperature never goes below 273.15K the highest
-    height level on the cube is returned. In grid square where the temperature
+    height level on the cube is returned. In grid squares where the temperature
     starts below 273.15K the lowest height on the cube is returned.
 
     Args:
