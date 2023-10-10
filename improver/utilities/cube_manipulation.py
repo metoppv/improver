@@ -112,7 +112,7 @@ def collapse_realizations(cube: Cube, method="mean") -> Cube:
 
     if (
         (method == "std_dev")
-        and (returned_cube.data.size == cube.data.size)
+        and (len(cube.coord("realization").points) == 1)
         and (np.ma.is_masked(returned_cube.data))
     ):
         # Standard deviation is undefined. Iris masks the entire output,
