@@ -60,3 +60,24 @@ def test_basic(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_no_realization_coord(tmp_path):
+    """
+    Test that an error is raised if there is no realization dimension.
+    """
+
+    kgo_dir = acc.kgo_root() / "collapse-realizations"
+    input_path = kgo_dir / "input_no_realization.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--method",
+        "mean",
+        "--new-name",
+        "ensemble_mean_of_air_temperature",
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError):
+        run_cli(args)

@@ -54,9 +54,15 @@ def process(
         iris.cube.Cube:
             Collapsed cube. Dimensions are the same as input cube,
             without realization dimension.
+    
+    Raises:
+        ValueError: if realization is not a dimension coordinate.
     """
 
     from improver.utilities.cube_manipulation import collapse_realizations
+
+    if not (cube.coords("realization", dim_coords=True)):
+        raise ValueError("realization must be a dimension coordinate.")
 
     collapsed_cube = collapse_realizations(cube, method=method)
     if new_name:
