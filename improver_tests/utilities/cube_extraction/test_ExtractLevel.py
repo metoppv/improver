@@ -33,7 +33,7 @@ from collections.abc import Iterable
 
 import numpy as np
 import pytest
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_extraction import ExtractLevel
@@ -269,9 +269,15 @@ def test_only_one_point(
     assert not np.ma.is_masked(result.data)
     np.testing.assert_array_almost_equal(result.data, expected_data)
 
-def test_both_pressure_and_height_error(temperature_on_height_levels,temperature_on_pressure_levels):
+
+def test_both_pressure_and_height_error(temperature_on_height_levels):
+    """Tests an error is raised if both pressure and height coordinates are present
+    on the input cube"""
     temperature_on_height_levels.coord("realization").rename("pressure")
-    with pytest.raises(NotImplementedError,match="Input Cube has both a pressure and height coordinate."):
-        ExtractLevel(
-            value_of_level=277, positive_correlation=True
-        )(temperature_on_height_levels)
+    with pytest.raises(
+        NotImplementedError,
+        match="Input Cube has both a pressure and height coordinate.",
+    ):
+        ExtractLevel(value_of_level=277, positive_correlation=True)(
+            temperature_on_height_levels
+        )

@@ -472,8 +472,10 @@ class ExtractLevel(BasePlugin):
 
         coord_list = [coord.name() for coord in variable_on_levels.coords()]
         if "height" in coord_list and "pressure" in coord_list:
-            raise NotImplementedError("""Input Cube has both a pressure and height coordinate. 
-                                      Only one of these should be present on the cube.""")
+            raise NotImplementedError(
+                """Input Cube has both a pressure and height coordinate.
+                                      Only one of these should be present on the cube."""
+            )
 
         try:
             self.coordinate = variable_on_levels.coord("pressure").name()
