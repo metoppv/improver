@@ -732,6 +732,10 @@ def maximum_in_height(
         A cube of the maximum value over the height coordinate or maximum value between the desired
         height values. This cube inherits Iris' meta-data updates to the height coordinate and to
         the cell methods.
+
+    Raises:
+        ValueError:
+            If the cube has no height levels between the lower_height_bound and upper_height_bound
     """
     height_levels = cube.coord("height").points
 
@@ -746,6 +750,12 @@ def maximum_in_height(
         height=lambda height: lower_height_bound <= height <= upper_height_bound
     )
     cube_subsetted = cube.extract(height_constraint)
+
+    if cube_subsetted is None:
+        raise ValueError(
+            f"""The provided cube doesn't have any height levels between the provided bounds.
+                         The provided bounds were {lower_height_bound},{upper_height_bound}."""
+        )
 
     if len(cube_subsetted.coord("height").points) > 1:
         max_cube = cube_subsetted.collapsed("height", iris.analysis.MAX)
