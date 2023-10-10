@@ -552,9 +552,27 @@ def match_site_forecasts(cubes: CubeList, target: Cube) -> CubeList:
         # to match the original. The only exception is those coordinates
         # associated with the site id as these should be left as set
         # in the template cube.
-        for orginal_coord, template_crd in zip(cube.coords(), reconstructed.coords()):
-            if reconstructed.coord_dims(template_crd) != site_coord_dim:
-                reconstructed.replace_coord(orginal_coord)
+        for original_coord in cube.coords():
+            original_coord_dim = cube.coord_dims(original_coord)
+
+            # Only reset coordinates not associated with the site_id
+            if original_coord_dim != site_coord_dim:
+                # Coordinate may exist but have e.g. different attributes
+                # hence remove and add rather than replace.
+                if reconstructed.coords(original_coord.name()):
+                    reconstructed.remove_coord(original_coord.name())
+                if original_coord in cube.coords(dim_coords=True):
+                    reconstructed.add_dim_coord(original_coord, original_coord_dim)
+                else:
+                    reconstructed.add_aux_coord(original_coord, data_dims=original_coord_dim)
+
+        # Remove any coordinates being inherited from the template that are
+        # not on the original cube, e.g. blend_time for a Nowcast cube.
+        residual_coords = set([crd.name() for crd in template_cube.coords()]) - set([crd.name() for crd in cube.coords()])
+        for crd in residual_coords:
+            reconstructed.remove_coord(crd)
+
+        # Reset the metadata
         reconstructed.metadata = cube.metadata
         reconstructed_cubes.append(reconstructed)
 

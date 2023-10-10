@@ -34,6 +34,7 @@ import iris
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
+from iris.coords import AuxCoord
 
 from improver.blending import (
     MODEL_BLEND_COORD,
@@ -458,9 +459,6 @@ def test_match_site_forecasts(spot_cubes):
     cube_ref, cube_mismatch, neighbours = spot_cubes
     cubes = CubeList([cube_ref.copy(), cube_mismatch])
 
-    print(cubes[0])
-    print(cubes[1])
-
     result = match_site_forecasts(cubes, neighbours)
 
     # Compare to the input cube_ref which has sites that match the neighbour cube.
@@ -487,6 +485,46 @@ def test_match_site_forecasts(spot_cubes):
         assert cube_mismatch == result[1]
     else:
         np.testing.assert_almost_equal(result[0].data[~mask], result[1].data[~mask])
+
+
+@pytest.mark.parametrize(
+    "n_sites, ref_filter, mismatch_filter",
+    (
+        (
+            5,
+            slice(None),
+            slice(0, 3),
+        ),  # Mismatch cube missing last 3 sites so is padded
+    ),
+)
+def test_match_site_coordinates(spot_cubes):
+    """Test that the padded cubes are returned without additional
+    coordinates inherited from the reference cube that is used as a
+    template and with any additional coordinates they originally
+    possessed that are not on the reference cube. Check that values
+    that differ between them, e.g. scalar coordinates like time,
+    continue to differ."""
+
+    cube_ref, cube_mismatch, neighbours = spot_cubes
+
+    food_crd = AuxCoord(["lasagne"], long_name="food_identifier")
+    pet_crd = AuxCoord(["kittens"], long_name="pet_identifier")
+
+    cube_ref.add_aux_coord(food_crd)
+    cube_mismatch.add_aux_coord(pet_crd)
+    cube_mismatch.coord("time").points = cube_mismatch.coord("time").points + 3600
+    cube_mismatch.coord("forecast_period").points = cube_mismatch.coord("forecast_period").points + 3600
+
+    cubes = CubeList([cube_ref.copy(), cube_mismatch.copy()])
+
+    result = match_site_forecasts(cubes, neighbours)
+
+    for crd in result[0].coords():
+        assert result[0].coord(crd) == cube_ref.coord(crd)
+
+    for crd in result[1].coords():
+        if not result[1].coord_dims(crd):
+            assert result[1].coord(crd) == cube_mismatch.coord(crd)
 
 
 def test_match_site_forecasts_no_id_exception(default_cubes):

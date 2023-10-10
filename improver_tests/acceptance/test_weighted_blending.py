@@ -290,6 +290,38 @@ def test_model_spot(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_mismatch_spot(tmp_path):
+    """Test multi-model blending for spot data with mismatched sites."""
+    kgo_dir = acc.kgo_root() / "weighted_blending/mismatch_spot"
+    kgo_path = kgo_dir / "kgo.nc"
+    model_inputs = list(kgo_dir.glob("*rainrate.nc"))
+    sitelist = kgo_dir / "neighbours.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        "--reference-site-cube",
+        sitelist,
+        "--coordinate",
+        "model_configuration",
+        "--cycletime",
+        "20231010T0800Z",
+        "--ynval",
+        "1",
+        "--y0val",
+        "1",
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
+        "--attributes-config",
+        ATTRIBUTES_PATH,
+        *model_inputs,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_fails_no_model_id(tmp_path):
     """Test multi-model blending fails if model_id_attr is not specified"""
     kgo_dir = acc.kgo_root() / "weighted_blending/model"
