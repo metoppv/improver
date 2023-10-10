@@ -62,6 +62,26 @@ def test_basic(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_no_rename(tmp_path):
+    """
+    Test mean aggregation with new-name unspecified.
+    """
+
+    kgo_dir = acc.kgo_root() / "collapse-realizations"
+    kgo_path = kgo_dir / "kgo_no_rename.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--method",
+        "mean",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_no_realization_coord(tmp_path):
     """
     Test that an error is raised if there is no realization dimension.
