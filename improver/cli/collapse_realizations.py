@@ -44,7 +44,7 @@ def process(
 
     Args:
         cube (iris.cube.Cube):
-            Data cube.
+            Cube to be aggregated.
         method (str):
             One of "sum", "mean", "median", "std_dev", "min", "max".
         new_name (str):
