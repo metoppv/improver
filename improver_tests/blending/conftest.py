@@ -36,7 +36,7 @@ from typing import List, Tuple, Union
 import iris
 import numpy as np
 import pytest
-from iris.coords import AuxCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 
@@ -209,7 +209,7 @@ def model_blending_weights(weights: Union[List, ndarray]) -> Cube:
     return create_weights_cube(cube, blending_coord, weights)
 
 
-def spot_coords(n_sites):
+def spot_coords(n_sites: int) -> Tuple[Tuple[ndarray, ndarray, ndarray, ndarray], dict]:
     """Define a set of coordinates for use in creating spot forecast or
     ancillary inputs.
 
@@ -238,7 +238,9 @@ def spot_coords(n_sites):
     return (altitudes, latitudes, longitudes, wmo_ids), kwargs
 
 
-def threshold_coord(diagnostic_name, thresholds, units):
+def threshold_coord(
+    diagnostic_name: str, thresholds: Union[ndarray, List], units: str
+) -> DimCoord:
     """Defined a threshold coordinate with the given name,
      threshold values, and units. Assumes a greater than
      threshold.
@@ -255,7 +257,7 @@ def threshold_coord(diagnostic_name, thresholds, units):
          Threshold dimension coordinate.
      """
 
-    crd = iris.coords.DimCoord(
+    crd = DimCoord(
         np.array(thresholds, dtype=np.float32),
         standard_name=diagnostic_name,
         units=units,
@@ -265,7 +267,16 @@ def threshold_coord(diagnostic_name, thresholds, units):
     return crd
 
 
-def make_threshold_cube(n_sites, name, units, data, threshold_values, time, frt, model):
+def make_threshold_cube(
+    n_sites: int,
+    name: str,
+    units: str,
+    data: ndarray,
+    threshold_values: Union[ndarray, List],
+    time: datetime,
+    frt: datetime,
+    model: str,
+) -> Cube:
     """Create a spot threshold cube.
 
     Args:
@@ -273,6 +284,8 @@ def make_threshold_cube(n_sites, name, units, data, threshold_values, time, frt,
             Number of sites to create in the spot cube.
         name:
             The diagnostic name.
+        units:
+            Units of the threshold values.
         data:
             The data to populate the cube with.
         threshold_values:
@@ -282,10 +295,10 @@ def make_threshold_cube(n_sites, name, units, data, threshold_values, time, frt,
         frt:
             The forecast reference time of the data.
         model:
-            A model identifier attribute.
+            A model identifier attribute, e.g. uk_det
 
     Returns:
-        A spot data cube.
+        A spot data probability cube.
     """
     args, kwargs = spot_coords(n_sites)
     kwargs.pop("neighbour_methods")
@@ -312,7 +325,7 @@ def make_threshold_cube(n_sites, name, units, data, threshold_values, time, frt,
     return spot_data_cube
 
 
-def make_neighbour_cube(n_sites, data):
+def make_neighbour_cube(n_sites: int, data: Union[ndarray, List]) -> Cube:
     """Create a spot neighbour cube.
 
     Args:
@@ -336,14 +349,35 @@ def make_neighbour_cube(n_sites, data):
 
 
 def create_spot_cubes(
-    n_sites,
-    ref_filter,
-    mismatch_filter,
-    time=datetime(2017, 11, 10, 4, 0),
-    frt=datetime(2017, 11, 10, 0, 0),
-    model="uk_det",
+    n_sites: int,
+    ref_filter: slice,
+    mismatch_filter: slice,
+    time: datetime = datetime(2017, 11, 10, 4, 0),
+    frt: datetime = datetime(2017, 11, 10, 0, 0),
+    model: str = "uk_det",
 ) -> Tuple[Cube, Cube, Cube]:
-    """Set up a spot data cube with n_sites from a given model."""
+    """Set up a spot data cube with n_sites from a given model.
+
+    Args:
+        n_sites:
+            Number of sites to create in the spot cube.
+        ref_filter:
+            A slice operator for subsetting the cube to produce the
+            reference cube.
+        mismatch_filter:
+            A slice operator for subsetting the cube to produce the
+            mismatch cube.
+        time:
+            The validity time of the data.
+        frt:
+            The forecast reference time of the data.
+        model:
+            A model identifier attribute, e.g. uk_det
+
+    Returns:
+        A tuple containing the reference cube, the mismatch cube, and a
+        neighbour cube that describes the sites in the reference cube.
+    """
 
     name = "air_temperature"
     units = "K"
@@ -361,23 +395,66 @@ def create_spot_cubes(
 
 
 @pytest.fixture
-def spot_cubes(n_sites, ref_filter, mismatch_filter) -> Tuple[Cube, Cube, Cube]:
-    """Call function to return spot data cubes with n_sites."""
+def spot_cubes(
+    n_sites: int, ref_filter: slice, mismatch_filter: slice
+) -> Tuple[Cube, Cube, Cube]:
+    """Call function to return spot data cubes with n_sites.
+
+    Args:
+        n_sites:
+            Number of sites to create in the spot cube.
+        ref_filter:
+            A slice operator for subsetting the cube to produce the
+            reference cube.
+        mismatch_filter:
+            A slice operator for subsetting the cube to produce the
+            mismatch cube.
+
+    Returns:
+        A tuple containing the reference cube, the mismatch cube, and a
+        neighbour cube that describes the sites in the reference cube. All
+        the cubes have two thresholds.
+    """
     return create_spot_cubes(n_sites, ref_filter, mismatch_filter)
 
 
 @pytest.fixture
 def default_cubes() -> Tuple[Cube, Cube, Cube]:
-    """Call function to return spot data cubes with n_sites."""
+    """Call function to return some pre-configured spot data cubes for use
+    in standard tests, e.g. raising of exceptions.
+
+    Returns:
+        A tuple containing the reference cube, the mismatch cube, and a
+        neighbour cube, all with 5 matching sites and 2 thresholds.
+    """
     return create_spot_cubes(5, slice(None), slice(None))
 
 
 @pytest.fixture
-def cycle_blend_spot_cubes(data) -> Tuple[Cube, Cube, Cube]:
+def cycle_blend_spot_cubes(data: List[ndarray]) -> Tuple[CubeList, List]:
     """Call function to return spot data cubes suitable for testing
     cycle blending.
 
     The input data must be a list of arrays shaped as (threshold, site_index).
+    One cube is generated for each array, each with a different forecast
+    reference time.
+
+    Args:
+        data:
+            A list of ndarrays, each shaped as (n_thresholds, n_sites).
+
+    Returns:
+        A tuple containing:
+            A cubelist that contains a cube for each data array passed in.
+            Each has a number of thresholds determined by the leading
+            dimension of the data array used in its construction. Each has a
+            number of sites determined by the trailing dimension of the data
+            array used in its construction. Each cube has a different
+            forecast reference time, these differing by 1 hour. Threshold
+            coordinates of length 1 are squeezed to become scalar coordinates.
+
+            Also a list of forecast reference times that correspond to the
+            returned cubes.
     """
 
     name = "air_temperature"
@@ -409,9 +486,31 @@ def cycle_blend_spot_cubes(data) -> Tuple[Cube, Cube, Cube]:
 
 
 @pytest.fixture
-def model_blend_spot_cubes(models, filters, leadtime) -> Tuple[Cube, Cube, Cube]:
+def model_blend_spot_cubes(
+    models: List[str], filters: List[slice], leadtime: float
+) -> CubeList:
     """Call function to return spot data cubes suitable for testing
     model blending.
+
+    Args:
+        models:
+            A list of model identifiers. One or more of: "nc_det", "uk_det",
+            or "uk_ens".
+        filters:
+            A list of slice operators that must be the same length as the list
+            of model identifiers. The cube constructed for each model is
+            sliced using this operator so that they may each contain
+            different sites.
+        leadtime:
+            The lead-time, or forecast period at which the cube should be
+            valid relative to the assumed forecast reference time.
+
+    Returns:
+        A cubelist that contains a cube for each model identifier. Each cube
+        is filled with data values that are defined below for a given model.
+        The returned cubes are sliced using the provided slice operators to
+        allow a different selection of sites in each cube. A single threshold
+        is created and is a scalar coordinate on the returned cube.
     """
 
     name = "air_temperature"
