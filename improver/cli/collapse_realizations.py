@@ -40,7 +40,7 @@ from improver import cli
 def process(
     cube: cli.inputcube, *, method: str = "mean", new_name: str = None,
 ):
-    """Collapse and aggregate cube.
+    """Collapse the realization dimension of a cube.
 
     Args:
         cube (iris.cube.Cube):
