@@ -50,9 +50,7 @@ def temperature_cube():
 def test_basic(temperature_cube):
     """Test that a collapsed cube is returned with no realization coord."""
     result = collapse_realizations(temperature_cube)
-    assert "realization" not in [
-        coord.name() for coord in result.coords()
-    ]
+    assert "realization" not in [coord.name() for coord in result.coords()]
     expected = temperature_cube.collapsed(["realization"], iris.analysis.MEAN)
     np.testing.assert_allclose(result.data, expected.data)
 
