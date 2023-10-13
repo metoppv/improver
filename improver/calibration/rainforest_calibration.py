@@ -225,7 +225,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             # check all lead times have the same thresholds
             curr_thresholds = np.array([*sorted_model_config_dict[lead_time].keys()])
             if np.any(curr_thresholds != self.model_thresholds):
-                raise ValueError("The same thresholds must be used for all lead times.")
+                raise ValueError(
+                    "The same thresholds must be used for all lead times. "
+                    f"Lead time {self.lead_times[0]} has thresholds: {self.model_thresholds},"
+                    f"lead time {lead_time} has thresholds: {curr_thresholds}"
+                )
             for threshold in self.model_thresholds:
                 model_filename = Path(
                     sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")
