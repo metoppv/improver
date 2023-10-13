@@ -98,12 +98,12 @@ class SnowSplitter(BasePlugin):
 
         The probability of rain and snow at the surfaces should only contain 1's where the
         phase is present at the surface and 0's where the phase is not present
-        at the surface. These cubes need to be consistent with each other such that either
-        rain or snow is always present at the surface (e.g. at no grid square can both
-        diagnostics have a probability of 0).
+        at the surface. These cubes need to be consistent with each other such that both
+        rain and snow can't be present at the surface (e.g. at no grid square can both
+        diagnostics have a probability of 1).
 
         A grid of coefficients is calculated by an arbitrary function that maps
-        (1,1) -> 0.5, (1,0) -> 1, (0,1) -> 0 where the first coordinate is the probability
+        (0,0) -> 0.5, (1,0) -> 1, (0,1) -> 0 where the first coordinate is the probability
         for the variable that will be outputted. This grid of coefficients is then multiplied
         by the precipitation rate/accumulation to split out the contribution of the desired
         variable.
@@ -130,10 +130,10 @@ class SnowSplitter(BasePlugin):
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
         assert_spatial_coords_match([rain_cube, snow_cube, precip_cube])
-        if np.any(np.where((rain_cube + snow_cube).data == 0, True, False)):
+        if np.any((rain_cube.data + snow_cube.data) == 2):
             raise ValueError(
-                """There is atleast 1 grid square where the probability of snow
-                             at the surface and the probability of rain at the surface are both 0"""
+                """There is at least 1 grid square where the probability of snow
+                             at the surface and the probability of rain at the surface are both 1."""
             )
 
         if self.output_is_rain:

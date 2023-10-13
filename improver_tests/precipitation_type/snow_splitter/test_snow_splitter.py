@@ -87,7 +87,7 @@ def precip_rate_cube() -> Cube:
 )
 @pytest.mark.parametrize(
     "rain_value,snow_value,expected",
-    ((1, 1, 0.5), (0, 1, "dependent"), (1, 0, "dependent")),
+    ((0, 0, 0.5), (0, 1, "dependent"), (1, 0, "dependent")),
 )
 def test_basic(
     snow_cube,
@@ -118,12 +118,12 @@ def test_basic(
     assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
 
 
-def test_both_phases_0(snow_cube, rain_cube, precip_rate_cube):
+def test_both_phases_1(snow_cube, rain_cube, precip_rate_cube):
     """Test an error is raised if both snow and rain_cube have a probability of
-    0"""
+    1"""
 
-    rain_cube.data = np.full_like(rain_cube.data, 0)
-    snow_cube.data = np.full_like(snow_cube.data, 0)
+    rain_cube.data = np.full_like(rain_cube.data, 1)
+    snow_cube.data = np.full_like(snow_cube.data, 1)
     with pytest.raises(ValueError, match="1 grid square where the probability of snow"):
         SnowSplitter(output_is_rain=False)(
             CubeList([snow_cube, rain_cube, precip_rate_cube])

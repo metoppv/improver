@@ -1,3 +1,4 @@
+
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -44,12 +45,12 @@ def process(*cubes: cli.inputcube, output_is_rain: bool):
 
     The probability of rain and snow at the surfaces should only contain 1's where the
     precip type is present at the surface and 0's where the precip type is not present
-    at the surface. These cubes need to be consistent with eachother such that either
-    rain or snow is always present at the surface (e.g. at no grid square can both
-    diagnostics have a probability of 0).
+    at the surface. These cubes need to be consistent with each other such that both
+    rain and snow can't be present at the surface (e.g. at no grid square can both
+    diagnostics have a probability of 1).
 
     A grid of coefficients is calculated by an arbitrary function that maps
-    (1,1) -> 0.5, (1,0) -> 1, (0,1) -> 0 where the first coordinate is the probability
+    (0,0) -> 0.5, (1,0) -> 1, (0,1) -> 0 where the first coordinate is the probability
     for the variable that will be outputted. This grid of coefficients is then multiplied
     by the precipitation rate/accumulation to split out the contribution of the desired
     variable.
