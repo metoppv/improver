@@ -87,7 +87,7 @@ def test_invalid_aggregators(temperature_cube):
         collapse_realizations(temperature_cube, method="product")
 
 
-def test_1d_std_dev(temperature_cube):
+def test_1d_std_dev():
     """Test that when std_dev is calculated over a dimension of size 1,
     output is all masked and underlying value is np.nan.
     """
