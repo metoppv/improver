@@ -112,32 +112,16 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             import treelite_runtime  # noqa: F401
 
             # Check that all required files have been specified.
-            treelite_model_filenames = []
-            for lead_time in model_config_dict.keys():
-                for threshold in model_config_dict[lead_time].keys():
-                    treelite_model_filenames.append(
-                        model_config_dict[lead_time][threshold].get("treelite_model")
-                    )
-            if None in treelite_model_filenames:
-                raise ValueError(
-                    "Path to treelite model missing for one or more model thresholds "
-                    "in model_config_dict, defaulting to using lightGBM models."
-                )
+            ApplyRainForestsCalibration.check_filenames(
+                "treelite_model", model_config_dict
+            )
         except (ModuleNotFoundError, ValueError):
             # Default to lightGBM.
             cls = ApplyRainForestsCalibrationLightGBM
             # Ensure all required files have been specified.
-            lightgbm_model_filenames = []
-            for lead_time in model_config_dict.keys():
-                for threshold in model_config_dict[lead_time].keys():
-                    lightgbm_model_filenames.append(
-                        model_config_dict[lead_time][threshold].get("lightgbm_model")
-                    )
-            if None in lightgbm_model_filenames:
-                raise ValueError(
-                    "Path to lightgbm model missing for one or more model thresholds "
-                    "in model_config_dict."
-                )
+            ApplyRainForestsCalibration.check_filenames(
+                "lightgbm_model", model_config_dict
+            )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def process(self) -> None:
@@ -146,6 +130,32 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             "Process function must be called via subclass method."
         )
 
+    @staticmethod
+    def check_filenames(key_name: str, model_config_dict: dict):
+        """Check whether files specificed by model_config_dict exist,
+        and raise an error if any are missing."""
+        model_filenames = []
+        for lead_time in model_config_dict.keys():
+            for threshold in model_config_dict[lead_time].keys():
+                model_filenames.append(
+                    model_config_dict[lead_time][threshold].get(key_name)
+                )
+        if None in model_filenames:
+            if key_name == "lightgbm_model":
+                raise ValueError(
+                    "Path to lightgbm model missing for one or more model thresholds "
+                    "in model_config_dict."
+                )
+            elif key_name == "treelite_model":
+                raise ValueError(
+                    "Path to treelite model missing for one or more model thresholds "
+                    "in model_config_dict, defaulting to using lightGBM models."
+                )
+            else:
+                raise ValueError(
+                    "key_name must be 'lightgbm_model' or 'treelite_model'"
+                )
+
 
 class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     """Class to calibrate input forecast given via RainForests approach using light-GBM
@@ -153,17 +163,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def __new__(cls, model_config_dict: dict, threads: int = 1):
         """Check all model files are available before initialising."""
-        lightgbm_model_filenames = []
-        for lead_time in model_config_dict.keys():
-            for threshold in model_config_dict[lead_time].keys():
-                lightgbm_model_filenames.append(
-                    model_config_dict[lead_time][threshold].get("lightgbm_model")
-                )
-        if None in lightgbm_model_filenames:
-            raise ValueError(
-                "Path to lightgbm model missing for one or more model thresholds "
-                "in model_config_dict."
-            )
+        ApplyRainForestsCalibration.check_filenames("lightgbm_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(self, model_config_dict: dict, threads: int = 1):
@@ -667,17 +667,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         import treelite_runtime  # noqa: F401
 
         # Check that all required files have been specified.
-        treelite_model_filenames = []
-        for lead_time in model_config_dict.keys():
-            for threshold in model_config_dict[lead_time].keys():
-                treelite_model_filenames.append(
-                    model_config_dict[lead_time][threshold].get("treelite_model")
-                )
-        if None in treelite_model_filenames:
-            raise ValueError(
-                "Path to treelite model missing for one or more model thresholds "
-                "in model_config_dict, defaulting to using lightGBM models."
-            )
+        ApplyRainForestsCalibration.check_filenames("treelite_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(self, model_config_dict: dict, threads: int = 1):
