@@ -551,7 +551,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 output_probabilities_2d.transpose(),
                 (len(output_thresholds),) + input_probabilities.shape[1:],
             )
-            # force interpolated probabilties to be monotone (sometimes they
+            # force interpolated probabilities to be monotone (sometimes they
             # are not due to small floating-point errors)
             output_probabilities = self._make_decreasing(output_probabilities)
 
