@@ -61,6 +61,6 @@ def process(wet_bulb_temperature: cli.inputcube):
     wet_bulb_freezing_level = ExtractLevel(
         positive_correlation=False, value_of_level=273.15
     )(wet_bulb_temperature)
-    wet_bulb_freezing_level.rename("wet_bulb_freezing_level")
+    wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
 
     return wet_bulb_freezing_level
