@@ -133,7 +133,8 @@ class SnowSplitter(BasePlugin):
         if np.any((rain_cube.data + snow_cube.data) == 2):
             raise ValueError(
                 """There is at least 1 grid square where the probability of snow
-                             at the surface and the probability of rain at the surface are both 1."""
+                             at the surface and the probability of rain at the surface are both
+                             1."""
             )
 
         if self.output_is_rain:
