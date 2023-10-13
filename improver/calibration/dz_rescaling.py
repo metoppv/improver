@@ -35,6 +35,7 @@ from typing import Union
 
 import iris
 import numpy as np
+import pandas as pd
 from iris.coords import AuxCoord
 from iris.cube import Cube
 from numpy.polynomial import Polynomial as poly1d
@@ -64,9 +65,9 @@ class EstimateDzRescaling(PostProcessingPlugin):
         """Initialise class.
 
         Args:
-            forecast_period: The forecast period that is considered representative of
-                the input forecasts. This is required as the input forecasts could
-                contain multiple forecast periods.
+            forecast_period: The forecast period in hours that is considered
+                representative of the input forecasts. This is required as the input
+                forecasts could contain multiple forecast periods.
             dz_lower_bound: The lowest acceptable value for the difference in
                 altitude between the grid point and the site. Sites with a lower
                 (or more negative) difference in altitude will be excluded.
@@ -115,7 +116,8 @@ class EstimateDzRescaling(PostProcessingPlugin):
             dz: Difference in altitude between the grid point and the site location.
 
         Returns:
-            A scale factor deduced from a polynomial fit.
+            A scale factor deduced from a polynomial fit. This is a single value
+            deduced from the fit between the forecasts and the truths.
         """
         truths_data = np.reshape(truths.data, forecasts.shape)
 
@@ -151,7 +153,7 @@ class EstimateDzRescaling(PostProcessingPlugin):
             dz: The difference in altitude between the grid point and the site.
 
         Returns:
-            Scaled difference in altitude.
+            Scaled difference in altitude at each site.
         """
         # Multiplication by -1 using negative exponent rule, so that this term can
         # be multiplied by the forecast during the application step.
@@ -217,11 +219,17 @@ class EstimateDzRescaling(PostProcessingPlugin):
                 the hour will be extracted.
             target_cube: Cube to which an auxiliary coordinate will be added.
         """
-        coord_name = "forecast_reference_time"
-        # Create forecast_reference_time_hour coordinate.
-        frt_hour = source_cube.coord(coord_name).cell(0).point.hour
+        # Create forecast_reference_time_hour coordinate. Use the time coordinate and
+        # the forecast_period argument provided in case the forecast_reference_time
+        # coordinate is not always the same within all input forecasts.
+        frt_hour = (
+            source_cube.coord("time").cell(0).point
+            - pd.Timedelta(hours=self.forecast_period)
+        ).hour
         hour_coord = AuxCoord(
-            np.array(frt_hour, np.int32), long_name=f"{coord_name}_hour", units="hours",
+            np.array(frt_hour, np.int32),
+            long_name="forecast_reference_time_hour",
+            units="hours",
         )
         hour_coord.convert_units("seconds")
         hour_coord.points = hour_coord.points.astype(np.int32)
@@ -230,7 +238,11 @@ class EstimateDzRescaling(PostProcessingPlugin):
     def process(self, forecasts: Cube, truths: Cube, neighbour_cube: Cube) -> Cube:
         """Fit a polynomial using the forecasts and truths to compute a scaled
         version of the difference of altitude between the grid point and the
-        site location.
+        site location. There is expected to be overlap between the sites provided by
+        the forecasts, truths and neighbour_cube. The polynomial will be fitted using
+        the forecasts and truths and the resulting scale factor will be applied to
+        all sites within the neighbour cube. The output scaled dz will contain sites
+        matching the neighbour cube.
 
         A mathematical summary of the steps within this plugin are:
 
@@ -262,7 +274,8 @@ class EstimateDzRescaling(PostProcessingPlugin):
             forecasts: Forecast cube.
             truths: Truth cube.
             neighbour_cube: A neighbour cube containing the difference in altitude
-                between the grid point and the site location.
+                between the grid point and the site location. Note that the output
+                will have the same sites as found within the neighbour cube.
 
         Returns:
             A scaled difference of altitude between the grid point and the

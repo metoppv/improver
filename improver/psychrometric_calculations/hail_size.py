@@ -48,7 +48,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     saturated_humidity,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
-from improver.utilities.cube_extraction import ExtractPressureLevel
+from improver.utilities.cube_extraction import ExtractLevel
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
@@ -525,8 +525,8 @@ class HailSize(BasePlugin):
             wet_bulb_zero_height_asl,
             orography,
         )
-        extract_pressure = ExtractPressureLevel(
-            value_of_pressure_level=268.15, positive_correlation=True
+        extract_pressure = ExtractLevel(
+            value_of_level=268.15, positive_correlation=True
         )
         pressure_at_268 = extract_pressure(temperature_on_pressure)
 
@@ -534,9 +534,7 @@ class HailSize(BasePlugin):
         temperature_at_268.rename("temperature_of_atmosphere_at_268.15K")
         temperature_at_268.remove_coord("pressure")
         temperature = np.full_like(
-            temperature_at_268.data,
-            extract_pressure.value_of_pressure_level,
-            dtype=np.float32,
+            temperature_at_268.data, extract_pressure.value_of_level, dtype=np.float32,
         )
         temperature = np.ma.masked_where(np.ma.getmask(pressure_at_268), temperature)
         temperature_at_268.data = temperature

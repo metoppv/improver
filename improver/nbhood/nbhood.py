@@ -281,6 +281,7 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             Array containing the smoothed field after the
             neighbourhood method has been applied.
         """
+
         if not self.sum_only:
             min_val = np.nanmin(data)
             max_val = np.nanmax(data)
@@ -294,33 +295,35 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             data_mask = data_mask | data.mask
             data = data.data
 
-        # Working type.
+        # Define working type and output type.
         if issubclass(data.dtype.type, np.complexfloating):
-            data_dtype = np.complex128
+            loc_data_dtype = np.complex128
+            out_data_dtype = np.complex64
         else:
             # Use 64-bit types for enough precision in accumulations.
-            data_dtype = np.float64
-        data = np.array(data, dtype=data_dtype)
+            loc_data_dtype = np.float64
+            out_data_dtype = np.float32
+        data = np.array(data, dtype=loc_data_dtype)
 
         # Replace invalid elements with zeros so they don't count towards
         # neighbourhood sum
-        valid_data_mask = np.ones(data.shape, dtype=np.int64)
+        if self.neighbourhood_method == "circular":
+            mask_type = np.float32
+        else:
+            mask_type = np.int64
+        valid_data_mask = np.ones(data.shape, dtype=mask_type)
         valid_data_mask[data_mask] = 0
         data[data_mask] = 0
-        # Calculate neighbourhood totals for input data.
-        if self.neighbourhood_method == "square":
-            data = boxsum(data, self.nb_size, mode="constant")
-        elif self.neighbourhood_method == "circular":
-            data = correlate(data, self.kernel, mode="nearest")
-        if not self.sum_only:
-            # Calculate neighbourhood totals for valid mask.
-            if self.neighbourhood_method == "square":
-                area_sum = boxsum(valid_data_mask, self.nb_size, mode="constant")
-            elif self.neighbourhood_method == "circular":
-                area_sum = correlate(
-                    valid_data_mask.astype(np.float32), self.kernel, mode="nearest"
-                )
 
+        if self.sum_only:
+            max_extreme_data = None
+        else:
+            area_sum = self._do_nbhood_sum(valid_data_mask)
+            max_extreme_data = area_sum.astype(loc_data_dtype)
+        # Where data are all ones in nbhood, result will be same as area_sum
+        data = self._do_nbhood_sum(data, max_extreme=max_extreme_data)
+
+        if not self.sum_only:
             with np.errstate(divide="ignore", invalid="ignore"):
                 # Calculate neighbourhood mean.
                 data = data / area_sum
@@ -329,16 +332,101 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
             data[area_sum == 0] = np.nan
             data = data.clip(min_val, max_val)
 
-        # Output type.
-        if issubclass(data.dtype.type, np.complexfloating):
-            data_dtype = np.complex64
-        else:
-            data_dtype = np.float32
-        data = data.astype(data_dtype)
-
         if self.re_mask:
             data = np.ma.masked_array(data, data_mask, copy=False)
 
+        return data.astype(out_data_dtype)
+
+    def _do_nbhood_sum(
+        self, data: np.ndarray, max_extreme: Optional[np.ndarray] = None,
+    ) -> np.ndarray:
+        """Calculate the sum-in-area from an array.
+        As this can be expensive, the method first checks for the extreme cases where the data are:
+        All zeros (result will be all zeros too)
+        All ones (result will be max_extreme, if supplied)
+        Contains outer rows / columns that are completely zero or completely one, these
+        rows and columns are trimmed before calculating the area sum and their contents
+        will be as for the appropriate all case above.
+
+        Args:
+            data:
+                Input data array where any masking has already been replaced with zeroes.
+            max_extreme:
+                Used as the result for any large areas of data that are all ones, allowing an
+                optimisation to be used. If not supplied, the optimisation will only be used for
+                large areas of zeroes, where a return of zero can be safely predicted.
+
+        Returns:
+            Array containing the sum of data within the usable neighbourhood of each point.
+        """
+        # Determine the smallest box containing all non-zero or all non-one values with a
+        # neighbourhood-sized buffer and quit if there are none.
+        data_shape = data.shape
+        ystart = xstart = 0
+        ystop, xstop = data.shape
+        size = data.size
+        extreme = 0
+        fill_value = 0
+        half_nb_size = self.nb_size // 2
+        # For the two extreme values, 0 and 1, find the size and position of the smallest array
+        # that includes all other values with a buffer of the neighbourhood radius.
+        # The smallest box from either extreme will be passed to the neighbourhooding method.
+        for _extreme, _fill_value in {0: 0, 1: max_extreme}.items():
+            if _fill_value is None or issubclass(data.dtype.type, np.complexfloating):
+                # We can't take this shortcut if we don't have either a default value/array,
+                # or the data values are complex, as comparisons with non-complex values are
+                # tricky.
+                continue
+            nonextreme_indices = np.argwhere(data != _extreme)
+            if nonextreme_indices.size == 0:
+                # No non-extreme values, so result will be _fill_value if set
+                _ystart = _ystop = _xstart = _xstop = 0
+            else:
+                (_ystart, _xstart), (_ystop, _xstop) = (
+                    nonextreme_indices.min(0),
+                    nonextreme_indices.max(0) + 1,
+                )
+                _ystart = max(0, _ystart - half_nb_size)
+                _ystop = min(data_shape[0], _ystop + half_nb_size)
+                _xstart = max(0, _xstart - half_nb_size)
+                _xstop = min(data_shape[1], _xstop + half_nb_size)
+            _size = (_ystop - _ystart) * (_xstop - _xstart)
+            if _size < size:
+                size, extreme, fill_value, ystart, ystop, xstart, xstop = (
+                    _size,
+                    _extreme,
+                    _fill_value,
+                    _ystart,
+                    _ystop,
+                    _xstart,
+                    _xstop,
+                )
+        if size != data.size:
+            # If our chosen extreme allows us to process a subset of data, define the default array
+            # of neighbourhood sums that we know we will get for regions of extreme data values.
+            if isinstance(fill_value, np.ndarray):
+                untrimmed = fill_value.astype(data.dtype)
+            else:
+                untrimmed = np.full(data_shape, fill_value, dtype=data.dtype)
+        if size:
+            # The subset of data is non-zero in size, so calculate the neighbourhood sums in the
+            # subset.
+            data = data[ystart:ystop, xstart:xstop]
+
+            # Calculate neighbourhood totals for input data.
+            if self.neighbourhood_method == "square":
+                data = boxsum(
+                    data, self.nb_size, mode="constant", constant_values=extreme
+                )
+            elif self.neighbourhood_method == "circular":
+                data = correlate(data, self.kernel, mode="nearest")
+        else:
+            data = untrimmed
+
+        # Expand data to the full size again
+        if data.shape != data_shape:
+            untrimmed[ystart:ystop, xstart:xstop] = data
+            data = untrimmed
         return data
 
     def process(self, cube: Cube, mask_cube: Optional[Cube] = None) -> Cube:
@@ -378,7 +466,8 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         grid_cells = distance_to_number_of_grid_cells(cube, self.radius)
         if self.neighbourhood_method == "circular":
             self.kernel = circular_kernel(grid_cells, self.weighted_mode)
-        elif self.neighbourhood_method == "square":
+            self.nb_size = max(self.kernel.shape)
+        else:
             self.nb_size = 2 * grid_cells + 1
 
         try:
