@@ -161,6 +161,39 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     "in model_config_dict, defaulting to using lightGBM models."
                 )
 
+    def _parse_model_config(
+        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]]
+    ) -> Dict[np.float32, Dict[np.float32, Dict[str, str]]]:
+        """Parse the model config dictionary, set self.lead_times and self.model_thresholds,
+        and return a sorted version of the config dictionary.
+
+        Args:
+            model_config_dict: Nested dictionary. Keys of outer level are lead times, and
+            keys of inner level are thresholds. Convert these to float.
+
+        Returns:
+            Dictionary with the same nested structure as model_config_dict, but
+            the lead time and threshold keys now have type np.float.
+        """
+
+        sorted_model_config_dict = OrderedDict()
+        for key, lead_time_dict in model_config_dict.items():
+            sorted_model_config_dict[np.float32(key)] = OrderedDict(
+                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
+            )
+
+        self.lead_times = np.sort(np.array([*sorted_model_config_dict.keys()]))
+        if len(self.lead_times) > 0:
+            self.model_thresholds = np.sort(
+                np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
+            )
+        else:
+            warnings.warn(
+                "Model config does not match the expected specification; calibration will not work"
+            )
+            self.model_thresholds = np.array([])
+        return sorted_model_config_dict
+
 
 class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     """Class to calibrate input forecast given via RainForests approach using light-GBM
@@ -206,24 +239,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         """
         from lightgbm import Booster
 
-        # Model config is a nested dictionary. Keys of outer level are lead times, and
-        # keys of inner level are thresholds. Convert these to float.
-        sorted_model_config_dict = OrderedDict()
-        for key, lead_time_dict in model_config_dict.items():
-            sorted_model_config_dict[np.float32(key)] = OrderedDict(
-                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
-            )
-
-        self.lead_times = np.sort(np.array([*sorted_model_config_dict.keys()]))
-        if len(self.lead_times) > 0:
-            self.model_thresholds = np.sort(
-                np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
-            )
-        else:
-            warnings.warn(
-                "Model config does not match the expected specification; calibration will not work"
-            )
-            self.model_thresholds = np.array([])
+        sorted_model_config_dict = self._parse_model_config(model_config_dict)
         self.model_input_converter = np.array
         self.tree_models = {}
         for lead_time in self.lead_times:
@@ -713,24 +729,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         """
         from treelite_runtime import DMatrix, Predictor
 
-        # Model config is a nested dictionary. Keys of outer level are lead times, and
-        # keys of inner level are thresholds. Convert these to float.
-        sorted_model_config_dict = OrderedDict()
-        for key, lead_time_dict in model_config_dict.items():
-            sorted_model_config_dict[np.float32(key)] = OrderedDict(
-                sorted({np.float32(k): v for k, v in lead_time_dict.items()}.items())
-            )
-
-        self.lead_times = np.sort(np.array([*sorted_model_config_dict.keys()]))
-        if len(self.lead_times) > 0:
-            self.model_thresholds = np.sort(
-                np.array([*sorted_model_config_dict[self.lead_times[0]].keys()])
-            )
-        else:
-            warnings.warn(
-                "Model config does not match the expected specification; calibration will not work"
-            )
-            self.model_thresholds = np.array([])
+        sorted_model_config_dict = self._parse_model_config(model_config_dict)
         self.model_input_converter = DMatrix
         self.tree_models = {}
         for lead_time in self.lead_times:
