@@ -221,7 +221,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             )
         else:
             warnings.warn(
-                "Model config does not match the expected specification."
+                "Model config does not match the expected specification; calibration will not work"
             )
             self.model_thresholds = np.array([])
         self.model_input_converter = np.array
@@ -728,7 +728,7 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
             )
         else:
             warnings.warn(
-                "Model config does not contain lead time keys; calibration will not work"
+                "Model config does not match the expected specification; calibration will not work"
             )
             self.model_thresholds = np.array([])
         self.model_input_converter = DMatrix
