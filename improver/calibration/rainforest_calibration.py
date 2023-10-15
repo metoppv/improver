@@ -221,7 +221,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             )
         else:
             warnings.warn(
-                "Model config does not contain lead time keys; calibration will not work"
+                "Model config does not match the expected specification."
             )
             self.model_thresholds = np.array([])
         self.model_input_converter = np.array
@@ -452,7 +452,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         input_dataset = self.model_input_converter(input_data)
 
         if np.float32(lead_time_hours) in self.lead_times:
-            model_lead_time = lead_time_hours
+            model_lead_time = np.float32(lead_time_hours)
         else:
             # find closest model lead time
             best_ind = np.argmin(np.abs(self.lead_times - lead_time_hours))
