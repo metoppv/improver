@@ -39,7 +39,7 @@
 import warnings
 from collections import OrderedDict
 from pathlib import Path
-from typing import List, Tuple
+from typing import Dict, List, Tuple
 
 import numpy as np
 from cf_units import Unit
@@ -131,9 +131,18 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         )
 
     @staticmethod
-    def check_filenames(key_name: str, model_config_dict: dict):
-        """Check whether files specificed by model_config_dict exist,
-        and raise an error if any are missing."""
+    def check_filenames(
+        key_name: str, model_config_dict: Dict[str, Dict[str, Dict[str, str]]]
+    ):
+        """Check whether files specified by model_config_dict exist,
+        and raise an error if any are missing.
+
+        Args:
+            key_name: 'treelite_model' or 'lightgbm_model' are the expected names.
+            model_config_dict: Dictionary containing Rainforests model configuration variables.
+        """
+        if key_name not in ["lightgbm_model", "treelite_model"]:
+            raise ValueError("key_name must be 'lightgbm_model' or 'treelite_model'")
         model_filenames = []
         for lead_time in model_config_dict.keys():
             for threshold in model_config_dict[lead_time].keys():
@@ -150,10 +159,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 raise ValueError(
                     "Path to treelite model missing for one or more model thresholds "
                     "in model_config_dict, defaulting to using lightGBM models."
-                )
-            else:
-                raise ValueError(
-                    "key_name must be 'lightgbm_model' or 'treelite_model'"
                 )
 
 
@@ -456,7 +461,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         for threshold_index, threshold in enumerate(self.model_thresholds):
             model = self.tree_models[model_lead_time, threshold]
             prediction = model.predict(input_dataset)
-            prediction = np.maximum(np.minimum(1, prediction), 0)
+            prediction = np.clip(prediction, 0, 1)
             output_data[threshold_index, :] = np.reshape(
                 prediction, output_data.shape[1:]
             )

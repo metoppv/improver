@@ -57,7 +57,6 @@ def test__new__(model_config, monkeypatch):
     # Check that we get the expected subclass
     result = ApplyRainForestsCalibrationLightGBM(model_config)
     assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
-    model_config
     # Test exception raised when file path is missing.
     model_config["24"]["0.0000"].pop("lightgbm_model", None)
     with pytest.raises(ValueError):
@@ -103,7 +102,8 @@ def test__init__(
     # Test error is raised if lead times have different thresholds
     val = model_config["24"].pop("0.0000")
     model_config["24"]["1.0000"] = val
-    with pytest.raises(ValueError):
+    msg = "The same thresholds must be used for all lead times"
+    with pytest.raises(ValueError, match=msg):
         ApplyRainForestsCalibrationLightGBM(model_config, threads=expected_threads)
 
 
@@ -118,7 +118,7 @@ def test__check_num_features(ensemble_features, plugin_and_dummy_models):
 
 
 def test__empty_config_warning(plugin_and_dummy_models):
-    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin_cls, _ = plugin_and_dummy_models
     with pytest.warns(Warning, match="calibration will not work"):
         plugin_cls(model_config_dict={})
 
