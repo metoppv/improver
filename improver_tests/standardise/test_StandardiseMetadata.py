@@ -231,12 +231,12 @@ class Test_process(IrisTest):
         # The target cube has 'NaN' values in its data to denote points below
         # surface altitude.
         result_no_sf = cube.copy()
-        result_no_sf.data[:, 0, ...] = np.nan
+        result_no_sf.data[0, ...] = np.nan
         target = self.plugin.process(result_no_sf)
 
         cube_with_flags = cube.copy()
         flag_status = np.zeros((3, 5, 5), dtype=np.int8)
-        flag_status[:, 0, ...] = 1
+        flag_status[0, ...] = 1
         status_flag_coord = AuxCoord(
             points=flag_status,
             standard_name="air_temperature status_flag",
