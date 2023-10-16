@@ -521,7 +521,7 @@ class Test_weighted_mean(Test_weighted_blend):
         cube.data[0] = 350.0
         cube.data[1] = 30.0
         expected = np.full((2, 2), 10.0)
-        result = self.plugin.weighted_mean(cube, None)
+        result = self.plugin.weighted_mean(cube, weights=None)
         self.assertArrayAlmostEqual(result.data, expected, decimal=4)
 
     def test_collapse_dims_with_weights(self):
