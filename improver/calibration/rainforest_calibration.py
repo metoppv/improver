@@ -170,8 +170,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         and return a sorted version of the config dictionary.
 
         Args:
-            model_config_dict: Nested dictionary. Keys of outer level are lead times, and
-            keys of inner level are thresholds. Convert these to float.
+            model_config_dict: Nested dictionary with string keys. Keys of outer level are
+            lead times, and keys of inner level are thresholds.
 
         Returns:
             Dictionary with the same nested structure as model_config_dict, but
