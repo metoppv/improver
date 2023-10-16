@@ -130,10 +130,10 @@ class SnowSplitter(BasePlugin):
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
         assert_spatial_coords_match([rain_cube, snow_cube, precip_cube])
-        if np.any((rain_cube.data + snow_cube.data) == 2):
+        if np.any((rain_cube.data + snow_cube.data) > 1):
             raise ValueError(
                 """There is at least 1 grid square where the probability of snow
-                             at the surface and the probability of rain at the surface are both
+                             at the surface plus the probability of rain at the surface is greater
                              1."""
             )
 
@@ -151,7 +151,7 @@ class SnowSplitter(BasePlugin):
         coefficient_cube = (required_cube - other_cube + 1) / 2
         coefficient_cube.data = coefficient_cube.data.astype(np.float32)
 
-        new_name = precip_cube.name().replace("precipitation", name)
+        new_name = precip_cube.name().replace("lwe_", "").replace("precipitation", name)
         output_cube = Combine(operation="*", new_name=new_name)(
             [precip_cube, coefficient_cube]
         )

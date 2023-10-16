@@ -75,7 +75,7 @@ def precip_rate_cube() -> Cube:
     data = np.full((2, 2, 2), fill_value=1, dtype=np.float32)
     precip_cube = set_up_variable_cube(
         data,
-        name="precipitation_rate",
+        name="lwe_precipitation_rate",
         units="m/s",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
