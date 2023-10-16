@@ -74,7 +74,13 @@ class StandardiseMetadata(BasePlugin):
                     f"'{coord_name}' coordinate is not of the expected form."
                 )
             ncube = CubeList()
-            for cc in cube.slices_over("realization"):
+
+            try:
+                cube_iterator = cube.slices_over("realization")
+            except CoordinateNotFoundError:
+                cube_iterator = [cube]
+
+            for cc in cube_iterator:
                 coord = cc.coord(coord_name)
                 if np.ma.is_masked(coord.points):
                     raise ValueError(
