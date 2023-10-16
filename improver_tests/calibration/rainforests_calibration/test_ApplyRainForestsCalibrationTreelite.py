@@ -102,5 +102,6 @@ def test__init__(
     # Test error is raised if lead times have different thresholds
     val = model_config["24"].pop("0.0000")
     model_config["24"]["1.0000"] = val
-    with pytest.raises(ValueError):
+    msg = "same thresholds must be used"
+    with pytest.raises(ValueError, match=msg):
         ApplyRainForestsCalibrationTreelite(model_config, threads=expected_threads)
