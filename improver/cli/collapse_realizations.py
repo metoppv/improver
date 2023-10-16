@@ -29,38 +29,43 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to extract wet-bulb freezing level from wet-bulb temperature on height levels"""
+"""Script to collapse the realizations dimension of a cube."""
+
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(wet_bulb_temperature: cli.inputcube):
-    """Module to generate wet-bulb freezing level.
-
-    The height level at which the wet-bulb temperature first drops below 273.15K
-    (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
-    the ground and ascending through height levels.
-
-    In grid squares where the temperature never goes below 273.15K the highest
-    height level on the cube is returned. In grid squares where the temperature
-    starts below 273.15K the lowest height on the cube is returned.
+def process(
+    cube: cli.inputcube, *, method: str = "mean", new_name: str = None,
+):
+    """Collapse the realization dimension of a cube.
 
     Args:
-        wet_bulb_temperature (iris.cube.Cube):
-            Cube of wet-bulb air temperatures over multiple height levels.
+        cube (iris.cube.Cube):
+            Cube to be collapsed.
+        method (str):
+            One of "sum", "mean", "median", "std_dev", "min", "max".
+        new_name (str):
+            New name for output cube; if None use iris default.
 
     Returns:
         iris.cube.Cube:
-            Cube of wet-bulb freezing level.
+            Collapsed cube. Dimensions are the same as input cube,
+            without realization dimension.
 
+    Raises:
+        ValueError: if realization is not a dimension coordinate.
     """
-    from improver.utilities.cube_extraction import ExtractLevel
 
-    wet_bulb_freezing_level = ExtractLevel(
-        positive_correlation=False, value_of_level=273.15
-    )(wet_bulb_temperature)
-    wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
+    from improver.utilities.cube_manipulation import collapse_realizations
 
-    return wet_bulb_freezing_level
+    if not (cube.coords("realization", dim_coords=True)):
+        raise ValueError("realization must be a dimension coordinate.")
+
+    collapsed_cube = collapse_realizations(cube, method=method)
+    if new_name:
+        collapsed_cube.rename(new_name)
+
+    return collapsed_cube

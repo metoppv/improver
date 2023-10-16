@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,38 +28,76 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to extract wet-bulb freezing level from wet-bulb temperature on height levels"""
-
-from improver import cli
+"""Tests for the collapse-realizations CLI"""
 
 
-@cli.clizefy
-@cli.with_output
-def process(wet_bulb_temperature: cli.inputcube):
-    """Module to generate wet-bulb freezing level.
+import pytest
 
-    The height level at which the wet-bulb temperature first drops below 273.15K
-    (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
-    the ground and ascending through height levels.
+from . import acceptance as acc
 
-    In grid squares where the temperature never goes below 273.15K the highest
-    height level on the cube is returned. In grid squares where the temperature
-    starts below 273.15K the lowest height on the cube is returned.
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-    Args:
-        wet_bulb_temperature (iris.cube.Cube):
-            Cube of wet-bulb air temperatures over multiple height levels.
 
-    Returns:
-        iris.cube.Cube:
-            Cube of wet-bulb freezing level.
-
+def test_basic(tmp_path):
     """
-    from improver.utilities.cube_extraction import ExtractLevel
+    Test mean aggregation.
+    """
 
-    wet_bulb_freezing_level = ExtractLevel(
-        positive_correlation=False, value_of_level=273.15
-    )(wet_bulb_temperature)
-    wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
+    kgo_dir = acc.kgo_root() / "collapse-realizations"
+    kgo_path = kgo_dir / "kgo_mean.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--method",
+        "mean",
+        "--new-name",
+        "ensemble_mean_of_air_temperature",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
 
-    return wet_bulb_freezing_level
+
+def test_no_rename(tmp_path):
+    """
+    Test mean aggregation with new-name unspecified.
+    """
+
+    kgo_dir = acc.kgo_root() / "collapse-realizations"
+    kgo_path = kgo_dir / "kgo_no_rename.nc"
+    input_path = kgo_dir / "input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--method",
+        "mean",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_no_realization_coord(tmp_path):
+    """
+    Test that an error is raised if there is no realization dimension.
+    """
+
+    kgo_dir = acc.kgo_root() / "collapse-realizations"
+    input_path = kgo_dir / "input_no_realization.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--method",
+        "mean",
+        "--new-name",
+        "ensemble_mean_of_air_temperature",
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError):
+        run_cli(args)

@@ -81,18 +81,44 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
-def collapse_realizations(cube: Cube) -> Cube:
+def collapse_realizations(cube: Cube, method="mean") -> Cube:
     """Collapses the realization coord of a cube and strips the coord from the cube.
 
     Args:
         cube:
-            Input cube
-
+            Cube to be aggregated.
+        method:
+            One of "sum", "mean", "median", "std_dev", "min", "max";
+            default is "mean".
     Returns:
         Cube with realization coord collapsed and removed.
     """
-    returned_cube = collapsed(cube, "realization", iris.analysis.MEAN)
+
+    aggregator_dict = {
+        "sum": iris.analysis.SUM,
+        "mean": iris.analysis.MEAN,
+        "median": iris.analysis.MEDIAN,
+        "std_dev": iris.analysis.STD_DEV,
+        "min": iris.analysis.MIN,
+        "max": iris.analysis.MAX,
+    }
+
+    aggregator = aggregator_dict.get(method)
+    if aggregator is None:
+        raise ValueError(f"method must be one of {list(aggregator_dict.keys())}")
+
+    returned_cube = collapsed(cube, "realization", aggregator)
     returned_cube.remove_coord("realization")
+
+    if (
+        (method == "std_dev")
+        and (len(cube.coord("realization").points) == 1)
+        and (np.ma.is_masked(returned_cube.data))
+    ):
+        # Standard deviation is undefined. Iris masks the entire output,
+        # but we also set the underlying data to np.nan here.
+        returned_cube.data.data[:] = np.nan
+
     return returned_cube
 
 
