@@ -55,6 +55,7 @@ from improver.utilities.cube_manipulation import (
     get_dim_coord_names,
     sort_coord_in_cube,
 )
+from improver.wind_calculations.wind_direction import WindDirection
 
 
 class MergeCubesForWeightedBlending(BasePlugin):
@@ -640,7 +641,8 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
     def weighted_mean(self, cube: Cube, weights: Optional[Cube]) -> Cube:
         """
-        Blend data using a weighted mean using the weights provided.
+        Blend data using a weighted mean using the weights provided. Circular
+        data identified with a unit of "degrees" are blended appropriately.
 
         Args:
             cube:
@@ -653,6 +655,11 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
             The cube with values blended over self.blend_coord, with
             suitable weightings applied.
         """
+
+        # If units are degrees, convert degrees to complex numbers.
+        if cube.units == "degrees":
+            cube.data = WindDirection.deg_to_complex(cube.data)
+
         weights_array = self.get_weights_array(cube, weights)
 
         slice_dim = 1
@@ -675,6 +682,10 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         )
 
         result = result_slices.merge_cube() if allow_slicing else result_slices[0]
+
+        # If units are degrees, convert complex numbers back to degrees.
+        if cube.units == "degrees":
+            result.data = WindDirection.complex_to_deg(result.data)
 
         return result
 
@@ -732,7 +743,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
         # Check that the time coordinate is single valued if required.
         self.check_compatible_time_points(cube)
 
-        # Do blending and update metadata
+        # Do blending and update metadata.
         if self.check_percentile_coord(cube):
             enforce_coordinate_ordering(cube, [self.blend_coord, "percentile"])
             result = self.percentile_weighted_mean(cube, weights)

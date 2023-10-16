@@ -46,6 +46,7 @@ from improver.utilities.round import round_close
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
+from improver.wind_calculations.wind_direction import WindDirection
 
 
 class TemporalInterpolation(BasePlugin):
@@ -411,10 +412,24 @@ class TemporalInterpolation(BasePlugin):
             )
 
         time_list = self.construct_time_list(initial_time, final_time)
+
+        # If the units of the two cubes are degrees, assume we are dealing with
+        # directions. Convert the directions to complex numbers so
+        # interpolations (esp. the 0/360 wraparound) are handled in a sane
+        # fashion.
+        if cube_t0.units == "degrees" and cube_t1.units == "degrees":
+            cube_t0.data = WindDirection.deg_to_complex(cube_t0.data)
+            cube_t1.data = WindDirection.deg_to_complex(cube_t1.data)
+
         cubes = iris.cube.CubeList([cube_t0, cube_t1])
         cube = MergeCubes()(cubes)
 
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
+        if cube_t0.units == "degrees" and cube_t1.units == "degrees":
+            interpolated_cube.data = WindDirection.complex_to_deg(
+                interpolated_cube.data
+            )
+
         self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
         if self.interpolation_method == "solar":

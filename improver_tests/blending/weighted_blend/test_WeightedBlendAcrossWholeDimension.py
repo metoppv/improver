@@ -474,6 +474,56 @@ class Test_weighted_mean(Test_weighted_blend):
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, expected)
 
+    def test_wind_directions(self):
+        """Test function when a wind direction data cube is provided, and
+        the directions don't cross the 0/360° boundary."""
+        frt_points = [
+            datetime(2015, 11, 19, 0),
+            datetime(2015, 11, 19, 1),
+        ]
+        cube = set_up_variable_cube(
+            np.zeros((2, 2), dtype=np.float32),
+            name="wind_from_direction",
+            units="degrees",
+            time=datetime(2015, 11, 19, 2),
+            frt=datetime(2015, 11, 19, 0),
+            standard_grid_metadata="gl_det",
+            attributes={"title": "Operational ENGL Model Forecast"},
+        )
+        cube = add_coordinate(
+            cube, frt_points, "forecast_reference_time", is_datetime=True
+        )
+        cube.data[0] = 10.0
+        cube.data[1] = 30.0
+        expected = np.full((2, 2), 20.0)
+        result = self.plugin.weighted_mean(cube, weights=None)
+        self.assertArrayAlmostEqual(result.data, expected, decimal=4)
+
+    def test_wind_directions_over_north(self):
+        """Test function when a wind direction data cube is provided, and
+        the directions cross the 0/360° boundary."""
+        frt_points = [
+            datetime(2015, 11, 19, 0),
+            datetime(2015, 11, 19, 1),
+        ]
+        cube = set_up_variable_cube(
+            np.zeros((2, 2), dtype=np.float32),
+            name="wind_direction",
+            units="degrees",
+            time=datetime(2015, 11, 19, 2),
+            frt=datetime(2015, 11, 19, 0),
+            standard_grid_metadata="gl_det",
+            attributes={"title": "Operational ENGL Model Forecast"},
+        )
+        cube = add_coordinate(
+            cube, frt_points, "forecast_reference_time", is_datetime=True
+        )
+        cube.data[0] = 350.0
+        cube.data[1] = 30.0
+        expected = np.full((2, 2), 10.0)
+        result = self.plugin.weighted_mean(cube, None)
+        self.assertArrayAlmostEqual(result.data, expected, decimal=4)
+
     def test_collapse_dims_with_weights(self):
         """Test function matches when the blend coordinate is first or second."""
         # Create a new axis.
