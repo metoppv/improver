@@ -685,6 +685,7 @@ class Test_process(IrisTest):
         domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
         cube_time_0 = set_up_variable_cube(
             data_time_0,
+            name="wind_from_direction",
             units="degrees",
             time=self.time_0,
             frt=self.time_0,
@@ -693,6 +694,7 @@ class Test_process(IrisTest):
         )
         cube_time_1 = set_up_variable_cube(
             data_time_1,
+            name="wind_from_direction",
             units="degrees",
             time=self.time_1,
             frt=self.time_1,
@@ -729,7 +731,9 @@ class Test_process(IrisTest):
             domain_corner=domain_corner,
             grid_spacing=grid_spacing,
         )
-        expected_data = np.ones((self.npoints, self.npoints), dtype=np.float32) * 50
+        expected_data = expected_data = np.full(
+            (self.npoints, self.npoints), 50, dtype=np.float32
+        )
         (result,) = TemporalInterpolation(interval_in_minutes=180).process(
             cube_time_0, cube_time_1
         )

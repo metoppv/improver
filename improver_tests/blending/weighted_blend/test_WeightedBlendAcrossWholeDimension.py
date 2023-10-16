@@ -483,7 +483,7 @@ class Test_weighted_mean(Test_weighted_blend):
         ]
         cube = set_up_variable_cube(
             np.zeros((2, 2), dtype=np.float32),
-            name="wind_direction",
+            name="wind_from_direction",
             units="degrees",
             time=datetime(2015, 11, 19, 2),
             frt=datetime(2015, 11, 19, 0),
@@ -496,7 +496,7 @@ class Test_weighted_mean(Test_weighted_blend):
         cube.data[0] = 10.0
         cube.data[1] = 30.0
         expected = np.full((2, 2), 20.0)
-        result = self.plugin.weighted_mean(cube, None)
+        result = self.plugin.weighted_mean(cube, weights=None)
         self.assertArrayAlmostEqual(result.data, expected, decimal=4)
 
     def test_wind_directions_over_north(self):
@@ -518,8 +518,8 @@ class Test_weighted_mean(Test_weighted_blend):
         cube = add_coordinate(
             cube, frt_points, "forecast_reference_time", is_datetime=True
         )
-        cube.data[0][:][:] = 350.0
-        cube.data[1][:][:] = 30.0
+        cube.data[0] = 350.0
+        cube.data[1] = 30.0
         expected = np.full((2, 2), 10.0)
         result = self.plugin.weighted_mean(cube, None)
         self.assertArrayAlmostEqual(result.data, expected, decimal=4)
