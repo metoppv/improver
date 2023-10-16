@@ -69,7 +69,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     to lightGBM if requirements are missing.
     """
 
-    def __new__(cls, model_config_dict: dict, threads: int = 1):
+    def __new__(
+        cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+    ):
         """Initialise class object based on package and model file availability.
 
         Args:
@@ -199,12 +201,16 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     """Class to calibrate input forecast given via RainForests approach using light-GBM
     tree models"""
 
-    def __new__(cls, model_config_dict: dict, threads: int = 1):
+    def __new__(
+        cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+    ):
         """Check all model files are available before initialising."""
         ApplyRainForestsCalibration.check_filenames("lightgbm_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def __init__(self, model_config_dict: dict, threads: int = 1):
+    def __init__(
+        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+    ):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. LightGBM Boosters are used for tree model predictors.
 
@@ -685,7 +691,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     """Class to calibrate input forecast given via RainForests approach using treelite
     compiled tree models"""
 
-    def __new__(cls, model_config_dict: dict, threads: int = 1):
+    def __new__(
+        cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+    ):
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
         # is available.
@@ -695,7 +703,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         ApplyRainForestsCalibration.check_filenames("treelite_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def __init__(self, model_config_dict: dict, threads: int = 1):
+    def __init__(
+        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+    ):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. Treelite Predictors are used for tree model predictors.
 
