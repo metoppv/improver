@@ -634,7 +634,7 @@ de14038343727a5d47adcfb48adc99643c31e5157b68caef79c1bd02ce150879  ./snow-splitte
 5f6355f94cd8aec10eab94dbafcff1ba5e05d08356d3d61ab617645dda032f4e  ./snow-splitter/rain.nc
 04fe6a5244c2b78998d3cebc96658bec5ecf880beaba3f608042042379f05e63  ./snow-splitter/rain_kgo.nc
 b08f85ab4373c7600157b321eba26169d4ca64c518981c72840c151f052b8f39  ./snow-splitter/snow.nc
-a221feb41001ff3eed71ec8eeb6abfd51c0b373cea64d5822145dee975b201b6  ./snow-splitter/snow_kgo.nc
+5848e2e7acf8f27fc8d0208a2a4c16626ea4b96818998974eea24a34bf2368f6  ./snow-splitter/snow_kgo.nc
 d7d6ff0436c742449cc95a1ebe6a8298fbda2d01fb8a979f660596ef22a33dbb  ./spot-extract/inputs/all_methods_global.nc
 d4dcdeb1ed121db2c9e96db11283d20a80ab5924ee82b750cab8b02342e16249  ./spot-extract/inputs/all_methods_uk.nc
 5a5e97eeaf2fd457f0e2b655e1b5a0e4befc0176fa1d45d04e7c7439ea9ccedb  ./spot-extract/inputs/all_methods_uk_unique_ids.nc

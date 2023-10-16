@@ -83,7 +83,7 @@ def precip_rate_cube() -> Cube:
 
 
 @pytest.mark.parametrize(
-    "output_is_rain,cube_name", ((True, "rain_rate"), (False, "snow_rate"))
+    "output_is_rain,cube_name", ((True, "rain_rate"), (False, "lwe_snow_rate"))
 )
 @pytest.mark.parametrize(
     "rain_value,snow_value,expected",

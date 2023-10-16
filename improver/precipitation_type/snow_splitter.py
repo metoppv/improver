@@ -144,14 +144,14 @@ class SnowSplitter(BasePlugin):
         else:
             required_cube = snow_cube
             other_cube = rain_cube
-            name = "snow"
+            name = "lwe_snow"
 
         # arbitrary function that maps combinations of rain and snow probabilities
         # to an appropriate coefficient
         coefficient_cube = (required_cube - other_cube + 1) / 2
         coefficient_cube.data = coefficient_cube.data.astype(np.float32)
 
-        new_name = precip_cube.name().replace("lwe_", "").replace("precipitation", name)
+        new_name = precip_cube.name().replace("lwe_precipitation", name)
         output_cube = Combine(operation="*", new_name=new_name)(
             [precip_cube, coefficient_cube]
         )
