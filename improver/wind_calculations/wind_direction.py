@@ -185,7 +185,7 @@ class WindDirection(PostProcessingPlugin):
         angle = np.angle(complex_in, deg=True)
 
         # Convert angles so they are in the range [0, 360)
-        angle = np.mod(angle, 360)
+        angle = np.mod(np.float32(angle), 360)
 
         # We don't need 64 bit precision.
         angle = angle.astype(np.float32)
