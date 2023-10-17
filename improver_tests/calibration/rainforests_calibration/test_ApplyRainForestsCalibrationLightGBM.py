@@ -57,7 +57,6 @@ def test__new__(model_config, monkeypatch):
     # Check that we get the expected subclass
     result = ApplyRainForestsCalibrationLightGBM(model_config)
     assert type(result).__name__ == "ApplyRainForestsCalibrationLightGBM"
-    model_config
     # Test exception raised when file path is missing.
     model_config["24"]["0.0000"].pop("lightgbm_model", None)
     with pytest.raises(ValueError):
@@ -100,6 +99,12 @@ def test__init__(
             assert isinstance(model.model_file, str)
             assert f"{lead_time:03d}H" in str(model.model_file)
             assert f"{threshold:06.4f}" in str(model.model_file)
+    # Test error is raised if lead times have different thresholds
+    val = model_config["24"].pop("0.0000")
+    model_config["24"]["1.0000"] = val
+    msg = "The same thresholds must be used for all lead times"
+    with pytest.raises(ValueError, match=msg):
+        ApplyRainForestsCalibrationLightGBM(model_config, threads=expected_threads)
 
 
 def test__check_num_features(ensemble_features, plugin_and_dummy_models):
@@ -112,14 +117,20 @@ def test__check_num_features(ensemble_features, plugin_and_dummy_models):
         plugin._check_num_features(ensemble_features[:-1])
 
 
+def test__empty_config_warning(plugin_and_dummy_models):
+    plugin_cls, _ = plugin_and_dummy_models
+    with pytest.warns(Warning, match="calibration will not work"):
+        plugin_cls(model_config_dict={})
+
+
 def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast):
     """Check cube alignment when using feature and forecast variables when realization
     coordinate present in some cube variables."""
     expected_features = ensemble_features.copy()
     # Drop realization coordinate from one of the ensemble features
-    dervied_field_cube = ensemble_features.pop(-1).extract(Constraint(realization=0))
-    dervied_field_cube.remove_coord("realization")
-    ensemble_features.append(dervied_field_cube)
+    derived_field_cube = ensemble_features.pop(-1).extract(Constraint(realization=0))
+    derived_field_cube.remove_coord("realization")
+    ensemble_features.append(derived_field_cube)
 
     (aligned_features, aligned_forecast,) = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}
@@ -183,7 +194,7 @@ def test__prepare_probability_cube(ensemble_forecast, thresholds, threshold_cube
     forecast cube."""
     plugin = ApplyRainForestsCalibrationLightGBM(model_config_dict={})
     plugin.model_thresholds = thresholds
-    result = plugin._prepare_threshold_probability_cube(ensemble_forecast)
+    result = plugin._prepare_threshold_probability_cube(ensemble_forecast, thresholds)
 
     assert result.long_name == threshold_cube.long_name
     assert result.units == threshold_cube.units
@@ -441,7 +452,6 @@ def test_process_with_bin_data(
     result_bin = plugin.process(
         ensemble_forecast, ensemble_features, output_thresholds,
     )
-
     np.testing.assert_almost_equal(result.data, result_bin.data)
 
 

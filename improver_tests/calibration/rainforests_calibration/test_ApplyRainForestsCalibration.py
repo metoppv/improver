@@ -125,3 +125,13 @@ def test__get_feature_splits(
     model = lightgbm.Booster(model_file=model_path)
     num_features = len(model.feature_name())
     assert all([len(x) == num_features for x in splits.values()])
+
+def test_check_filenames(model_config):
+    """Test that check_filenames raises an error if an invalid
+    key_name is specified."""
+
+    msg = "key_name must be 'lightgbm_model' or 'treelite_model'"
+    with pytest.raises(ValueError, match=msg):
+        ApplyRainForestsCalibration.check_filenames(
+            key_name="tensorflow_models", model_config_dict=model_config
+        )

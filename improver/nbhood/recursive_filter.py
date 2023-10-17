@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to apply a recursive filter to neighbourhooded data."""
-import warnings
+
 from typing import List, Optional, Tuple
 
 import iris
@@ -64,19 +64,11 @@ class RecursiveFilter(PostProcessingPlugin):
         Raises:
             ValueError: If number of iterations is not None and is set such
                         that iterations is less than 1.
-        Warns:
-            UserWarning:
-                If iterations is higher than 2.
         """
         if iterations is not None:
             if iterations < 1:
                 raise ValueError(
                     "Invalid number of iterations: must be >= 1: {}".format(iterations)
-                )
-            if iterations > 2:
-                warnings.warn(
-                    "More than two iterations degrades the conservation"
-                    "of probability assumption."
                 )
         self.iterations = iterations
         self.edge_width = edge_width

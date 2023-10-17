@@ -81,18 +81,44 @@ def collapsed(cube: Cube, *args: Any, **kwargs: Any) -> Cube:
     return new_cube
 
 
-def collapse_realizations(cube: Cube) -> Cube:
+def collapse_realizations(cube: Cube, method="mean") -> Cube:
     """Collapses the realization coord of a cube and strips the coord from the cube.
 
     Args:
         cube:
-            Input cube
-
+            Cube to be aggregated.
+        method:
+            One of "sum", "mean", "median", "std_dev", "min", "max";
+            default is "mean".
     Returns:
         Cube with realization coord collapsed and removed.
     """
-    returned_cube = collapsed(cube, "realization", iris.analysis.MEAN)
+
+    aggregator_dict = {
+        "sum": iris.analysis.SUM,
+        "mean": iris.analysis.MEAN,
+        "median": iris.analysis.MEDIAN,
+        "std_dev": iris.analysis.STD_DEV,
+        "min": iris.analysis.MIN,
+        "max": iris.analysis.MAX,
+    }
+
+    aggregator = aggregator_dict.get(method)
+    if aggregator is None:
+        raise ValueError(f"method must be one of {list(aggregator_dict.keys())}")
+
+    returned_cube = collapsed(cube, "realization", aggregator)
     returned_cube.remove_coord("realization")
+
+    if (
+        (method == "std_dev")
+        and (len(cube.coord("realization").points) == 1)
+        and (np.ma.is_masked(returned_cube.data))
+    ):
+        # Standard deviation is undefined. Iris masks the entire output,
+        # but we also set the underlying data to np.nan here.
+        returned_cube.data.data[:] = np.nan
+
     return returned_cube
 
 
@@ -705,3 +731,61 @@ def add_coordinate_to_cube(
     output_cube.transpose(final_dim_order)
 
     return output_cube
+
+
+def maximum_in_height(
+    cube: Cube, lower_height_bound: float = None, upper_height_bound: float = None
+) -> Cube:
+    """Calculate the maximum value over the height coordinate. If bounds are specified
+    then the maximum value between the lower_height_bound and upper_height_bound is calculated.
+
+    If either the upper or lower bound is None then no bound is applied. For example if no
+    lower bound is provided but an upper bound of 300m is provided then the maximum is
+    calculated for all height levels less than 300m.
+
+    Args:
+        cube:
+            A cube with a height coordinate.
+        lower_height_bound:
+            The lower bound for the height coordinate. This is either a float or None if no
+            lower bound is desired. Any specified bounds should have the same units as the
+            height coordinate of cube.
+        upper_height_bound:
+            The upper bound for the height coordinate. This is either a float or None if no
+            upper bound is desired. Any specified bounds should have the same units as the
+            height coordinate of cube.
+    Returns:
+        A cube of the maximum value over the height coordinate or maximum value between the desired
+        height values. This cube inherits Iris' meta-data updates to the height coordinate and to
+        the cell methods.
+
+    Raises:
+        ValueError:
+            If the cube has no height levels between the lower_height_bound and upper_height_bound
+    """
+    height_levels = cube.coord("height").points
+
+    # replace None in bounds with a numerical value either below or above the range of height
+    # levels in the cube so it can be used as a constraint.
+    if lower_height_bound is None:
+        lower_height_bound = min(height_levels)
+    if upper_height_bound is None:
+        upper_height_bound = max(height_levels)
+
+    height_constraint = iris.Constraint(
+        height=lambda height: lower_height_bound <= height <= upper_height_bound
+    )
+    cube_subsetted = cube.extract(height_constraint)
+
+    if cube_subsetted is None:
+        raise ValueError(
+            f"""The provided cube doesn't have any height levels between the provided bounds.
+                         The provided bounds were {lower_height_bound},{upper_height_bound}."""
+        )
+
+    if len(cube_subsetted.coord("height").points) > 1:
+        max_cube = cube_subsetted.collapsed("height", iris.analysis.MAX)
+    else:
+        max_cube = cube_subsetted
+
+    return max_cube

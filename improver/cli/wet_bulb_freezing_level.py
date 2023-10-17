@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,55 +29,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the estimate-dz-rescaling CLI
-"""
+"""CLI to extract wet-bulb freezing level from wet-bulb temperature on height levels"""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-@pytest.mark.parametrize(
-    "forecast, truth, kgo",
-    (
-        (
-            "T1200Z-PT0006H00M-wind_speed_at_10m.nc",
-            "T1200Z-srfc_wind_sped_spot_truths.nc",
-            "T1200Z_kgo.nc",
-        ),
-        (
-            "T1500Z-PT0132H00M-wind_speed_at_10m.nc",
-            "T1500Z-srfc_wind_sped_spot_truths.nc",
-            "T1500Z_kgo.nc",
-        ),
-    ),
-)
-def test_estimate_dz_rescaling(tmp_path, forecast, truth, kgo):
-    """Test estimate_dz_rescaling CLI."""
-    kgo_dir = acc.kgo_root() / "estimate-dz-rescaling/"
-    kgo_path = kgo_dir / kgo
-    forecast_path = kgo_dir / forecast
-    truth_path = kgo_dir / truth
-    neighbour_path = kgo_dir / "neighbour.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        forecast_path,
-        truth_path,
-        neighbour_path,
-        "--forecast-period",
-        "6",
-        "--dz-lower-bound",
-        "-550",
-        "--dz-upper-bound",
-        "550",
-        "--land-constraint",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+@cli.clizefy
+@cli.with_output
+def process(wet_bulb_temperature: cli.inputcube):
+    """Module to generate wet-bulb freezing level.
+
+    The height level at which the wet-bulb temperature first drops below 273.15K
+    (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
+    the ground and ascending through height levels.
+
+    In grid squares where the temperature never goes below 273.15K the highest
+    height level on the cube is returned. In grid squares where the temperature
+    starts below 273.15K the lowest height on the cube is returned.
+
+    Args:
+        wet_bulb_temperature (iris.cube.Cube):
+            Cube of wet-bulb air temperatures over multiple height levels.
+
+    Returns:
+        iris.cube.Cube:
+            Cube of wet-bulb freezing level.
+
+    """
+    from improver.utilities.cube_extraction import ExtractLevel
+
+    wet_bulb_freezing_level = ExtractLevel(
+        positive_correlation=False, value_of_level=273.15
+    )(wet_bulb_temperature)
+    wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
+
+    return wet_bulb_freezing_level

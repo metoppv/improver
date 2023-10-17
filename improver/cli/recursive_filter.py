@@ -48,6 +48,16 @@ def process(
     Gaussian-like kernel or smooth over short distances. The filter uses a
     smoothing_coefficient (between 0 and 1) to control what proportion of the
     probability is passed onto the next grid-square in the x and y directions.
+
+    Each iteration of the recursive filter applies the smoothing coefficients
+    forwards and backwards in both the x and y directions. Applying 1-10
+    iterations of the filter is typical. Each iteration further smooths the
+    data, meaning the user must make a judgement regarding the number of
+    iterations to apply that preserves real detail whilst removing artefacts
+    in their data.
+
+    The IMPROVER plugin actually limits the maximum smoothing coefficient to
+    a value of 0.5. Above this the smoothing is considered to be too great.
     The smoothing_coefficient can be set on a grid square by grid-square basis
     for the x and y directions separately (using two arrays of
     smoothing_coefficients of the same dimensionality as the domain).
@@ -59,9 +69,7 @@ def process(
             CubeList describing the smoothing_coefficients to be used in the x
             and y directions.
         iterations (int):
-            Number of times to apply the filter. (Typically < 3)
-            Number of iterations should be 2 or less, higher values have been
-            shown to lead to poorer conservation.
+            Number of times to apply the filter.
 
     Returns:
         iris.cube.Cube:

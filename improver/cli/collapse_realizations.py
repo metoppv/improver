@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,55 +29,43 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""
-Tests for the estimate-dz-rescaling CLI
-"""
-
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+"""Script to collapse the realizations dimension of a cube."""
 
 
-@pytest.mark.parametrize(
-    "forecast, truth, kgo",
-    (
-        (
-            "T1200Z-PT0006H00M-wind_speed_at_10m.nc",
-            "T1200Z-srfc_wind_sped_spot_truths.nc",
-            "T1200Z_kgo.nc",
-        ),
-        (
-            "T1500Z-PT0132H00M-wind_speed_at_10m.nc",
-            "T1500Z-srfc_wind_sped_spot_truths.nc",
-            "T1500Z_kgo.nc",
-        ),
-    ),
-)
-def test_estimate_dz_rescaling(tmp_path, forecast, truth, kgo):
-    """Test estimate_dz_rescaling CLI."""
-    kgo_dir = acc.kgo_root() / "estimate-dz-rescaling/"
-    kgo_path = kgo_dir / kgo
-    forecast_path = kgo_dir / forecast
-    truth_path = kgo_dir / truth
-    neighbour_path = kgo_dir / "neighbour.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        forecast_path,
-        truth_path,
-        neighbour_path,
-        "--forecast-period",
-        "6",
-        "--dz-lower-bound",
-        "-550",
-        "--dz-upper-bound",
-        "550",
-        "--land-constraint",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+from improver import cli
+
+
+@cli.clizefy
+@cli.with_output
+def process(
+    cube: cli.inputcube, *, method: str = "mean", new_name: str = None,
+):
+    """Collapse the realization dimension of a cube.
+
+    Args:
+        cube (iris.cube.Cube):
+            Cube to be collapsed.
+        method (str):
+            One of "sum", "mean", "median", "std_dev", "min", "max".
+        new_name (str):
+            New name for output cube; if None use iris default.
+
+    Returns:
+        iris.cube.Cube:
+            Collapsed cube. Dimensions are the same as input cube,
+            without realization dimension.
+
+    Raises:
+        ValueError: if realization is not a dimension coordinate.
+    """
+
+    from improver.utilities.cube_manipulation import collapse_realizations
+
+    if not (cube.coords("realization", dim_coords=True)):
+        raise ValueError("realization must be a dimension coordinate.")
+
+    collapsed_cube = collapse_realizations(cube, method=method)
+    if new_name:
+        collapsed_cube.rename(new_name)
+
+    return collapsed_cube

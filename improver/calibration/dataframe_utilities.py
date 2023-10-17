@@ -226,6 +226,41 @@ def _fill_missing_entries(df, combi_cols, static_cols, site_id_col):
     return df
 
 
+def _ensure_consistent_static_cols(
+    forecast_df: DataFrame, static_cols: List[str], site_id_col: str
+) -> DataFrame:
+    """Ensure that the columns expected to have the same value for a given site,
+    actually have the same values. These "static" columns could change if,
+    for example, the altitude of a site is corrected.
+
+    Args:
+        forecast_df: Forecast DataFrame.
+        static_cols: List of columns that are expected to be "static".
+        site_id_col: The name of the column containing the site ID.
+
+    Returns:
+        Forecast DataFrame with the same value for a given site for the static columns
+        provided.
+    """
+    # Check if any of the assumed static columns are actually not static when
+    # the DataFrame is grouped by the site_id_col.
+    if (forecast_df.groupby(site_id_col)[static_cols].nunique().nunique() > 1).any():
+
+        for static_col in static_cols:
+            # For each static column, find the last value from the list of unique
+            # values for each site. The last value corresponds to the most recent value
+            # present when using pd.unique.
+            temp_df = forecast_df.groupby(site_id_col)[static_col].apply(
+                lambda x: pd.unique(x)[-1]
+            )
+            # Drop the static column and then merge. The merge will recreate the static
+            # column using a constant value for each site.
+            forecast_df = forecast_df.drop(columns=static_col)
+            forecast_df = forecast_df.merge(temp_df, on=site_id_col)
+
+    return forecast_df
+
+
 def _define_time_coord(
     adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None,
 ) -> DimCoord:
@@ -513,8 +548,13 @@ def _prepare_dataframes(
         # Add station_id as a static column, if it is only present in the
         # forecast DataFrame.
         static_cols.append("station_id")
+
     forecast_df = _fill_missing_entries(
         forecast_df, combi_cols, static_cols, site_id_col
+    )
+
+    forecast_df = _ensure_consistent_static_cols(
+        forecast_df, ["altitude", "latitude", "longitude"], site_id_col
     )
 
     combi_cols = [site_id_col, "time"]
