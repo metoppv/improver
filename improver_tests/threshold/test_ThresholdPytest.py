@@ -36,7 +36,7 @@ import pytest
 from iris.coords import CellMethod, DimCoord
 from iris.cube import Cube
 
-from improver.threshold import Threshold as Threshold
+from improver.threshold import Threshold
 
 
 @pytest.mark.parametrize(
@@ -107,12 +107,23 @@ from improver.threshold import Threshold as Threshold
             {"threshold_values": 0.6, "threshold_config": {"0.6"}},
             "threshold_config and threshold_values are mutually exclusive arguments",
         ),
+        # at least one set means of defining the thresholds must be used.
+        ({}, "One of threshold_config or threshold_values must be provided.",),
     ],
 )
 def test_init(kwargs, exception):
     """Test the exceptions raised by the __init__ method."""
     with pytest.raises(ValueError, match=exception):
         Threshold(**kwargs)
+
+
+def test_init_fill_mask():
+    """Test the that a fill_mask argument is made into a float type within
+    the __init__ method."""
+
+    fill_masked = int(5)
+    plugin = Threshold(threshold_values=[0], fill_masked=fill_masked)
+    assert isinstance(plugin.fill_masked, float)
 
 
 @pytest.mark.parametrize(
@@ -261,6 +272,8 @@ def test_vicinity_as_empty_list(default_cube):
         ({"threshold_config": {"0.4": [0.0, 0.6]}}, 0.75, [0.625, 0.875]),
         # asymmetric fuzzy bounds applied, diagnostic value(s) at threshold value
         ({"threshold_config": {"0.5": [0.4, 0.7]}}, 0.5, [0.25, 0.625]),
+        # fuzzy bounds set to "None" in the threshold config
+        ({"threshold_config": {"1.0": ["None", "None"]}}, 0.0, [0.0, 0.0]),
     ],
 )
 def test_expected_values(default_cube, kwargs, collapse, comparator, expected_result):
@@ -561,16 +574,6 @@ def test_nan_handling(custom_cube):
     plugin = Threshold(threshold_values=0.5)
     with pytest.raises(ValueError, match="NaN detected in input cube data"):
         plugin(custom_cube)
-
-
-@pytest.mark.parametrize("n_realizations,data", [(1, np.array([[0, np.inf], [1, 1]]))])
-def test_inf_handling(custom_cube):
-    """Test that an exception is raised if the input data contains an
-    unmasked NaN."""
-
-    plugin = Threshold(threshold_values=1.0e6)
-    result = plugin(custom_cube)
-    print(result.data)
 
 
 @pytest.mark.parametrize(

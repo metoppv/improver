@@ -796,8 +796,7 @@ def test_maximum_within_vicinity(grid, radius, landmask, expected_result):
     """
     reference = grid.copy()
 
-    fill_value = 99999
-    result = maximum_within_vicinity(grid, radius, fill_value, landmask)
+    result = maximum_within_vicinity(grid, radius, landmask)
 
     assert result.data.shape == expected_result.shape
     assert np.allclose(result, expected_result)

@@ -47,6 +47,7 @@ from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
@@ -397,8 +398,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 def maximum_within_vicinity(
     grid: Union[MaskedArray, ndarray],
     grid_point_radius: int,
-    fill_value: float,
-    landmask: ndarray = None,
+    landmask: Optional[ndarray] = None,
 ) -> ndarray:
     """
     Find grid points where a phenomenon occurs within a defined radius.
@@ -415,8 +415,6 @@ def maximum_within_vicinity(
         grid_point_radius:
             The radius in grid points about each point within which to
             determine the maximum value.
-        fill_value:
-            The fill value used for this array for any unset points.
         landmask:
             A binary grid of the same size as grid that differentiates
             between land and sea points to allow the different surface
@@ -427,6 +425,10 @@ def maximum_within_vicinity(
         they're equally likely to have occurred anywhere within the
         vicinity defined using the specified radius.
     """
+    # Value, the negative of which is used to fill masked points, ensuring
+    # that when we take a maximum the masked points do not contribute.
+    fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
+
     # Convert the grid_point_radius into a number of points along an edge
     # length, including the central point, e.g. grid_point_radius = 1,
     # points along the edge = 3
@@ -497,7 +499,7 @@ def create_vicinity_coord(
             "in grid points rather than physical distance"
         }
     else:
-        point = np.array(radius, dtype=np.float32)
+        point = np.array(radius, dtype=FLOAT_DTYPE)
         units = "m"
         attributes = {}
 
@@ -625,14 +627,12 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             crd.name() for crd in cube.coords(dim_coords=True) if not crd.coord_system
         ]
 
-        fill_value = netCDF4.default_fillvals.get(cube.dtype.str[1:], np.inf)
-
         for radius, grid_point_radius in zip(self.radii, grid_point_radii):
             max_cubes = CubeList([])
             for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
                 result = cube_slice.copy(
                     data=maximum_within_vicinity(
-                        cube_slice.data, grid_point_radius, fill_value, self.land_mask
+                        cube_slice.data, grid_point_radius, self.land_mask
                     )
                 )
                 max_cubes.append(result)

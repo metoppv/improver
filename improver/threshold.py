@@ -32,14 +32,12 @@
 
 import numbers
 from collections.abc import Iterable
-from typing import List, Optional, Tuple, Union
+from typing import Dict, List, Optional, Tuple, Union
 
 import iris
-import netCDF4
 import numpy as np
 from cf_units import Unit
 from iris.cube import Cube
-from iris.exceptions import CoordinateNotFoundError
 
 from improver import PostProcessingPlugin
 from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
@@ -75,7 +73,7 @@ class Threshold(PostProcessingPlugin):
     def __init__(
         self,
         threshold_values: Optional[Union[float, List[float]]] = None,
-        threshold_config: Optional[dict] = None,
+        threshold_config: Optional[Dict[str, Union[List[float], str]]] = None,
         fuzzy_factor: Optional[float] = None,
         threshold_units: Optional[str] = None,
         comparison_operator: str = ">",
@@ -114,19 +112,25 @@ class Threshold(PostProcessingPlugin):
 
         Args:
             threshold_values:
-                Threshold value or values about which to calculate the truth
-                values; e.g. 270,300. Will not be used if threshold_config is
-                provided.
+                Threshold value or values (e.g. 270K, 300K) to use when calculating
+                the probability of the input relative to the threshold value(s).
+                The units of these values, e.g. K in the example can be defined
+                using the threshold_units argument or are otherwise assumed to
+                match the units of the diagnostic being thresholded.
+                threshold_values and and threshold_config are mutually exclusive
+                arguments, defining both will lead to an exception.
             threshold_config (dict):
                 Threshold configuration containing threshold values and
                 (optionally) fuzzy bounds. Best used in combination with
-                'threshold_units' It should contain a dictionary of strings that
+                'threshold_units'. It should contain a dictionary of strings that
                 can be interpreted as floats with the structure:
                 "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
                 e.g: {"280.0": [278.0, 282.0], "290.0": [288.0, 292.0]},
                 or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
                 Repeated thresholds with different bounds are ignored; only the
                 last duplicate will be used.
+                threshold_values and and threshold_config are mutually exclusive
+                arguments, defining both will lead to an exception.
             fuzzy_factor:
                 Optional: specifies lower bound for fuzzy membership value when
                 multiplied by each threshold. Upper bound is equivalent linear
@@ -158,17 +162,22 @@ class Threshold(PostProcessingPlugin):
                 collapse.
 
         Raises:
-            ValueError: If using a fuzzy factor with a threshold of 0.0.
+            ValueError: If threshold_config and threshold_values are both set
+            ValueError: If neither threshold_config or threshold_values are set
+            ValueError: If both fuzzy_factor and bounds within the threshold_config are set.
             ValueError: If the fuzzy_factor is not strictly between 0 and 1.
-            ValueError: If both fuzzy_factor and fuzzy_bounds are set.
+            ValueError: If using a fuzzy factor with a threshold of 0.0.
             ValueError: Can only collapse over a realization coordinate or a percentile
                         coordinate that has been rebadged as a realization coordinate.
-            ValueError: If threshold_config and threshold_values are both set
         """
         if threshold_config and threshold_values:
             raise ValueError(
                 "threshold_config and threshold_values are mutually exclusive "
                 "arguments - please provide one or the other, not both"
+            )
+        if threshold_config is None and threshold_values is None:
+            raise ValueError(
+                "One of threshold_config or threshold_values must be provided."
             )
 
         thresholds, fuzzy_bounds = self._set_thresholds(
@@ -197,7 +206,8 @@ class Threshold(PostProcessingPlugin):
             if 0 in self.thresholds:
                 raise ValueError(
                     "Invalid threshold with fuzzy factor: cannot use a "
-                    "multiplicative fuzzy factor with threshold == 0"
+                    "multiplicative fuzzy factor with threshold == 0, use "
+                    "the threshold_config approach instead."
                 )
             fuzzy_factor_loc = fuzzy_factor
 
@@ -228,13 +238,16 @@ class Threshold(PostProcessingPlugin):
             else:
                 self.vicinity = [float(vicinity)]
 
+        if fill_masked is not None:
+            fill_masked = float(fill_masked)
+
         self.fill_masked = fill_masked
 
     @staticmethod
     def _set_thresholds(
         threshold_values: Optional[Union[float, List[float]]],
         threshold_config: Optional[dict],
-    ) -> Tuple[List, List]:
+    ) -> Tuple[List[float], Optional[List[float]]]:
         """
         Interprets a threshold_config dictionary if provided, or ensures that
         a list of thresholds has suitable precision.
@@ -264,7 +277,7 @@ class Threshold(PostProcessingPlugin):
                 thresholds.append(float(key))
                 # If the first threshold has no bounds, fuzzy_bounds is
                 # set to None and subsequent bounds checks are skipped
-                if threshold_config[key] == "None":
+                if "None" in threshold_config[key]:
                     fuzzy_bounds = None
                     continue
                 fuzzy_bounds.append(tuple(threshold_config[key]))
@@ -375,7 +388,7 @@ class Threshold(PostProcessingPlugin):
         cube.units = Unit(1)
 
     def _calculate_truth_value(
-        self, cube: Cube, threshold: float, bounds: tuple
+        self, cube: Cube, threshold: float, bounds: Tuple[float, float]
     ) -> np.ndarray:
         """
         Compares the diagnostic values to the threshold value, converting units
@@ -438,7 +451,6 @@ class Threshold(PostProcessingPlugin):
         landmask: np.ndarray,
         grid_point_radii: List[int],
         index: int,
-        fill_value: float,
     ):
         """
         Apply max in vicinity processing to the thresholded values. The
@@ -463,8 +475,6 @@ class Threshold(PostProcessingPlugin):
             index:
                 Index corresponding to the threshold coordinate to identify
                 which array we are summing the contribution into.
-            fill_value:
-                A fill value used for any unset points in the resulting array.
         """
         for ivic, vicinity in enumerate(grid_point_radii):
             if truth_value.ndim > 2:
@@ -473,14 +483,11 @@ class Threshold(PostProcessingPlugin):
                     slice_max = maximum_within_vicinity(
                         truth_value[yxindex + (slice(None), slice(None))],
                         vicinity,
-                        fill_value,
                         landmask,
                     )
                     maxes[yxindex] = slice_max
             else:
-                maxes = maximum_within_vicinity(
-                    truth_value, vicinity, fill_value, landmask
-                )
+                maxes = maximum_within_vicinity(truth_value, vicinity, landmask)
             thresholded_cube.data[ivic][index][unmasked] += maxes[unmasked]
 
     def _create_threshold_cube(self, cube: Cube) -> Cube:
@@ -517,7 +524,7 @@ class Threshold(PostProcessingPlugin):
             )
 
         if self.vicinity is not None:
-            vicinity_coord = create_vicinity_coord(self.vicinity, False)
+            vicinity_coord = create_vicinity_coord(self.vicinity)
             vicinity_expanded = iris.cube.CubeList()
             for vicinity_coord_slice in vicinity_coord:
                 thresholded_copy = thresholded_cube.copy()
@@ -525,7 +532,7 @@ class Threshold(PostProcessingPlugin):
                 vicinity_expanded.append(thresholded_copy)
             del thresholded_copy
             thresholded_cube = vicinity_expanded.merge_cube()
-            if not thresholded_cube.coords("radius_of_vicinity", dim_coords=True):
+            if not thresholded_cube.coords(vicinity_coord.name(), dim_coords=True):
                 thresholded_cube = iris.util.new_axis(
                     thresholded_cube, vicinity_coord.name()
                 )
@@ -585,8 +592,9 @@ class Threshold(PostProcessingPlugin):
 
         self.original_units = input_cube.units
         self.threshold_coord_name = input_cube.name()
+        # Retain only the landmask array as bools.
         if landmask is not None:
-            landmask = np.where(landmask.data >= 0.5, True, False)
+            landmask = landmask.data.astype(bool)
         if self.vicinity is not None:
             grid_point_radii = [
                 distance_to_number_of_grid_cells(input_cube, radius)
@@ -602,7 +610,7 @@ class Threshold(PostProcessingPlugin):
             )
         else:
             input_slices = [input_cube]
-            thresholded_cube = self._create_threshold_cube(input_slices[0])
+            thresholded_cube = self._create_threshold_cube(input_cube)
 
         # Create a zeroed array for storing contributions (i.e. number of
         # unmasked realization values contributing to calculation).
@@ -623,8 +631,6 @@ class Threshold(PostProcessingPlugin):
             else:
                 unmasked = np.ones(cube.shape, dtype=bool)
 
-            fill_value = netCDF4.default_fillvals.get(cube.dtype.str[1:], np.inf)
-
             # All unmasked points contribute 1 to the numerator for calculating
             # a realization collapsed truth value. Note that if input_slices
             # above includes the realization coordinate (i.e. we are not collapsing
@@ -644,12 +650,9 @@ class Threshold(PostProcessingPlugin):
                         landmask,
                         grid_point_radii,
                         index,
-                        fill_value,
                     )
                 else:
                     thresholded_cube.data[index][unmasked] += truth_value[unmasked]
-
-        enforce_coordinate_ordering(thresholded_cube, self.threshold_coord_name)
 
         # Any x-y position for which there are no valid contributions must be
         # a masked point in every realization, so we can use this array to
@@ -658,6 +661,7 @@ class Threshold(PostProcessingPlugin):
 
         # Slice over the array to avoid ballooning the memory required for the
         # denominators through broadcasting.
+        enforce_coordinate_ordering(thresholded_cube, self.threshold_coord_name)
         for i, dslice in enumerate(thresholded_cube.data):
             result = np.divide(dslice[valid], contribution_total[valid])
             thresholded_cube.data[i, valid] = result
@@ -675,11 +679,10 @@ class Threshold(PostProcessingPlugin):
         # Squeeze any single value dimension coordinates to make them scalar.
         thresholded_cube = iris.util.squeeze(thresholded_cube)
 
-        if self.collapse_coord is not None:
-            try:
-                thresholded_cube.remove_coord(self.collapse_coord)
-            except CoordinateNotFoundError:
-                pass
+        if self.collapse_coord is not None and thresholded_cube.coords(
+            self.collapse_coord
+        ):
+            thresholded_cube.remove_coord(self.collapse_coord)
 
         # Re-cast to 32bit now that any unit conversion has already taken place.
         thresholded_cube.coord(var_name="threshold").points = thresholded_cube.coord(

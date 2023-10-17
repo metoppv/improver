@@ -42,7 +42,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-from improver.threshold import Threshold as Threshold
+from improver.threshold import Threshold
 
 
 class Test__add_threshold_coord(IrisTest):

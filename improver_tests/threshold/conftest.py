@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Fixtures for freezing rain tests"""
+"""Fixtures for threshold tests"""
 
 from typing import List, Optional, Union
 
@@ -280,7 +280,7 @@ def threshold_coord(
 def landmask(mask: np.ndarray) -> Cube:
     """
     Return a landmask cube containing the data provided by the mask
-    argument. Points set to 1 are land, point set to 0 are sea.
+    argument. Points set to 1 are land, points set to 0 are sea.
 
     Args:
         The mask to be included within the cube.

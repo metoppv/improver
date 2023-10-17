@@ -63,9 +63,14 @@ def process(
             Restricts in-vicinity processing to only include points of a
             like mask value.
         threshold_values (list of float):
-            Threshold value or values about which to calculate the truth
-            values; e.g. 270,300. Must be omitted if 'threshold_config'
-            is used.
+            Threshold value or values (e.g. 270K, 300K) to use when calculating
+            the probability of the input relative to the threshold value(s).
+            These are provided as a comma separated list, e.g. 270,300
+            The units of these values, e.g. K in the example can be defined
+            using the threshold_units argument or are otherwise assumed to
+            match the units of the diagnostic being thresholded.
+            threshold_values and and threshold_config are mutually exclusive
+            arguments, defining both will lead to an exception.
         threshold_config (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
@@ -76,6 +81,8 @@ def process(
             or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
+            threshold_values and and threshold_config are mutually exclusive
+            arguments, defining both will lead to an exception.
         threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
@@ -117,9 +124,6 @@ def process(
             Cube of probabilities relative to the given thresholds
     """
     from improver.threshold import Threshold
-
-    if fill_masked is not None:
-        fill_masked = float(fill_masked)
 
     return Threshold(
         threshold_values=threshold_values,
