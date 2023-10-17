@@ -158,7 +158,7 @@ def _create_scaling_factor_cube(
 
 
 @pytest.mark.parametrize("wmo_id", [True, False])
-@pytest.mark.parametrize("forecast_period", [6, 18])
+@pytest.mark.parametrize("forecast_period", [6, 18, 30])
 @pytest.mark.parametrize("frt_hour", [3, 12])
 @pytest.mark.parametrize("scaling_factor", [0.99, 1.01])
 @pytest.mark.parametrize("forecast_period_offset", [0, -1, -5])
@@ -179,7 +179,7 @@ def test_apply_dz_rescaling(
     cube to ensure the plugin always snaps to the next largest forecast_time when the
     precise point is not available.
     frt_hour_offset (hours) alters the forecast reference time hour within the forecast
-    whilst the forececast reference time hour of the scaling factor remains the same.
+    whilst the forecast reference time hour of the scaling factor remains the same.
     This checks that the a mismatch in the forecast reference time hour can still
     result in a match, if a leniency is specified.
     """
@@ -199,8 +199,10 @@ def test_apply_dz_rescaling(
         forecast_period + forecast_period_offset,
         forecast,
     )
+    # Use min(fp, 24) here to ensure that the scaling cube contains
+    # the scaling factor for the last forecast_period if nowhere else.
     scaling_factor = _create_scaling_factor_cube(
-        frt_hour, forecast_period, scaling_factor
+        frt_hour, min(forecast_period, 24), scaling_factor
     )
 
     kwargs = {}
@@ -275,10 +277,7 @@ def test_mismatching_sites():
 
 @pytest.mark.parametrize(
     "forecast_period,frt_hour,exception",
-    [
-        (25, 3, "forecast period greater than or equal to 25"),
-        (7, 1, "forecast reference time hour equal to 1"),
-    ],
+    [(7, 1, "forecast reference time hour equal to 1")],
 )
 def test_no_appropriate_scaled_dz(forecast_period, frt_hour, exception):
     """Test an exception is raised if no appropriate scaled version of the difference
