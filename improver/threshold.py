@@ -179,11 +179,9 @@ class Threshold(PostProcessingPlugin):
             raise ValueError(
                 "One of threshold_config or threshold_values must be provided."
             )
-
         thresholds, fuzzy_bounds = self._set_thresholds(
             threshold_values, threshold_config
         )
-
         self.thresholds = [thresholds] if np.isscalar(thresholds) else thresholds
         self.threshold_units = (
             None if threshold_units is None else Unit(threshold_units)
@@ -277,7 +275,7 @@ class Threshold(PostProcessingPlugin):
                 thresholds.append(float(key))
                 # If the first threshold has no bounds, fuzzy_bounds is
                 # set to None and subsequent bounds checks are skipped
-                if "None" in threshold_config[key]:
+                if threshold_config[key] == "None":
                     fuzzy_bounds = None
                     continue
                 fuzzy_bounds.append(tuple(threshold_config[key]))

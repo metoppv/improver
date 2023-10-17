@@ -273,7 +273,7 @@ def test_vicinity_as_empty_list(default_cube):
         # asymmetric fuzzy bounds applied, diagnostic value(s) at threshold value
         ({"threshold_config": {"0.5": [0.4, 0.7]}}, 0.5, [0.25, 0.625]),
         # fuzzy bounds set to "None" in the threshold config
-        ({"threshold_config": {"1.0": ["None", "None"]}}, 0.0, [0.0, 0.0]),
+        ({"threshold_config": {"1.0": "None"}}, 0.0, [0.0, 0.0]),
     ],
 )
 def test_expected_values(default_cube, kwargs, collapse, comparator, expected_result):
