@@ -364,79 +364,6 @@ def lightgbm_model_files(dummy_lightgbm_models, model_config):
 
 @pytest.fixture
 def dummy_lightgbm_models_deterministic(
-    ensemble_features, ensemble_forecast, thresholds, lead_times
-):
-    """Create sample lightgbm models for evaluating forecast probabilities."""
-    import lightgbm
-
-    training_data, fcst_column, obs_column, train_columns = prepare_dummy_training_data(
-        ensemble_features, ensemble_forecast, lead_times
-    )
-    # train a model for each threshold
-    tree_models = {}
-    params = {"objective": "binary", "num_leaves": 5, "verbose": -1, "seed": 0}
-    training_columns = [c for c in train_columns if "ensemble" not in c]
-    for lead_time in lead_times:
-        for threshold in thresholds:
-            curr_training_data = training_data.loc[
-                training_data["lead_time_hours"] == lead_time
-            ]
-            data = lightgbm.Dataset(
-                curr_training_data[training_columns],
-                label=(curr_training_data[obs_column] >= threshold).astype(int),
-            )
-            booster = lightgbm.train(params, data, num_boost_round=10)
-            tree_models[lead_time, threshold] = booster
-
-    return tree_models, lead_times, thresholds
-
-
-@pytest.fixture
-def dummy_treelite_models_deterministic(dummy_lightgbm_models_deterministic, tmp_path):
-    """Create sample treelite models for evaluating forecast probabilities."""
-    import treelite
-    import treelite_runtime
-
-    lightgbm_models, lead_times, thresholds = dummy_lightgbm_models_deterministic
-    tree_models = {}
-    for lead_time in lead_times:
-        for threshold in thresholds:
-            model = lightgbm_models[lead_time, threshold]
-            treelite_model = treelite.Model.from_lightgbm(model)
-            treelite_model.export_lib(
-                toolchain="gcc",
-                libpath=str(tmp_path / "model.so"),
-                verbose=False,
-                params={"parallel_comp": 8, "quantize": 1},
-            )
-            predictor = treelite_runtime.Predictor(
-                str(tmp_path / "model.so"), verbose=True, nthread=1
-            )
-            tree_models[lead_time, threshold] = predictor
-
-    return tree_models, lead_times, thresholds
-
-
-@pytest.fixture(params=["lightgbm", "treelite"])
-def plugin_and_dummy_models_deterministic(request):
-    if request.param == "lightgbm":
-        _ = pytest.importorskip("lightgbm")
-        return (
-            ApplyRainForestsCalibrationLightGBM,
-            request.getfixturevalue("dummy_lightgbm_models_deterministic"),
-        )
-    elif request.param == "treelite":
-        _ = pytest.importorskip("treelite")
-        return (
-            ApplyRainForestsCalibrationTreelite,
-            request.getfixturevalue("dummy_treelite_models_deterministic"),
-        )
-    else:
-        pytest.fail("unknown plugin type")
-
-
-@pytest.fixture
-def dummy_lightgbm_models_deterministic(
     deterministic_features, deterministic_forecast, thresholds, lead_times
 ):
     """Create sample lightgbm models for evaluating forecast probabilities."""
@@ -474,7 +401,6 @@ def plugin_and_dummy_models_deterministic(request):
         )
     else:
         pytest.fail("unknown plugin type")
-
 
 @pytest.fixture
 def threshold_cube(thresholds):
