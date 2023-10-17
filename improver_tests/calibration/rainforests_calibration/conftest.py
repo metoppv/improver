@@ -402,6 +402,7 @@ def plugin_and_dummy_models_deterministic(request):
     else:
         pytest.fail("unknown plugin type")
 
+
 @pytest.fixture
 def threshold_cube(thresholds):
     """Create sample threshold cube"""

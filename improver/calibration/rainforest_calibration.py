@@ -37,10 +37,6 @@
 """
 
 
-from pathlib import Path
-from typing import Dict, List, Tuple
-
-import iris
 import warnings
 from collections import OrderedDict
 from pathlib import Path
@@ -74,7 +70,12 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     to lightGBM if requirements are missing.
     """
 
-    def __new__(cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1, bin_data: bool = False):
+    def __new__(
+        cls,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
+    ):
 
         """Initialise class object based on package and model file availability.
 
@@ -159,13 +160,13 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
 
     def _get_feature_splits(self, model_config_dict) -> Dict[int, List[ndarray]]:
         """Get the combined feature splits (over all thresholds) for each lead time.
-        
+
         Args:
             model_config_dict: dictionary of the same format expected by __init__
 
         Returns:
             dict where keys are the lead times and the values are lists of lists.
-            The outer list has length equal to the number of model features, and it contains 
+            The outer list has length equal to the number of model features, and it contains
             the lists of feature splits for each feature. Each feature's list of splits is ordered.
         """
         split_feature_string = "split_feature="
@@ -175,9 +176,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             all_splits = [set() for i in range(self._get_num_features())]
             for threshold_str in model_config_dict[lead_time].keys():
                 lgb_model_filename = Path(
-                    model_config_dict[lead_time][threshold_str].get(
-                        "lightgbm_model"
-                    )
+                    model_config_dict[lead_time][threshold_str].get("lightgbm_model")
                 ).expanduser()
                 with open(lgb_model_filename, "r") as f:
                     for line in f:
@@ -193,7 +192,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                             splits = [float(x) for x in line.split(" ")]
                             for feature_ind, threshold in zip(features, splits):
                                 all_splits[feature_ind].add(threshold)
-            combined_feature_splits[np.float32(lead_time)] = [np.sort(list(x)) for x in all_splits]
+            combined_feature_splits[np.float32(lead_time)] = [
+                np.sort(list(x)) for x in all_splits
+            ]
         return combined_feature_splits
 
     @staticmethod
@@ -265,13 +266,21 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     """Class to calibrate input forecast given via RainForests approach using light-GBM
     tree models"""
 
-    def __new__(cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1, bin_data: bool = False):
+    def __new__(
+        cls,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
+    ):
         """Check all model files are available before initialising."""
         ApplyRainForestsCalibration.check_filenames("lightgbm_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
-        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1, bin_data: bool = False
+        self,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. LightGBM Boosters are used for tree model predictors.
@@ -336,7 +345,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
 
     def _get_num_features(self) -> int:
         return next(iter(self.tree_models.values())).num_feature()
-
 
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
@@ -786,7 +794,12 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     """Class to calibrate input forecast given via RainForests approach using treelite
     compiled tree models"""
 
-    def __new__(cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1, bin_data: bool = False):
+    def __new__(
+        cls,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
+    ):
 
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
@@ -798,7 +811,10 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
-        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1, bin_data: bool = False
+        self,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. Treelite Predictors are used for tree model predictors.
@@ -858,4 +874,3 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
 
     def _get_num_features(self) -> int:
         return next(iter(self.tree_models.values())).num_feature
-

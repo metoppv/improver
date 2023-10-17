@@ -126,6 +126,7 @@ def test__get_feature_splits(
     num_features = len(model.feature_name())
     assert all([len(x) == num_features for x in splits.values()])
 
+
 def test_check_filenames(model_config):
     """Test that check_filenames raises an error if an invalid
     key_name is specified."""

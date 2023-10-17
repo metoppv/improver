@@ -100,7 +100,7 @@ def test_basic(tmp_path, create_model_config):
 
 def test_bin_data(tmp_path, create_model_config):
     """
-    Test calibration of a forecast using a rainforests approach.
+    Test that the bin_data option does not affect the output.
     """
     rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
     kgo_path = rainforests_dir / "basic" / "kgo.nc"
