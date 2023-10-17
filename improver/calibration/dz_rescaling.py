@@ -373,7 +373,9 @@ class ApplyDzRescaling(PostProcessingPlugin):
         """Create a forecast period constraint to identify the most appropriate
         forecast period from the scaled_dz to extract. The most appropriate scaled dz
         is selected by choosing the nearest forecast period that is greater than or
-        equal to the forecast period of the forecast.
+        equal to the forecast period of the forecast. If no forecast periods in the
+        scaled fz cube are greater than the forecast period of the forecast, the
+        longest available forecast period is used.
 
         Args:
             forecast: Forecast to be adjusted using dz rescaling.
@@ -391,16 +393,12 @@ class ApplyDzRescaling(PostProcessingPlugin):
             - forecast.coord("forecast_period").points
         )
 
-        if not any(fp_diff >= 0):
-            (fp_hour,) = forecast.coord("forecast_period").points / SECONDS_IN_HOUR
-            msg = (
-                "There is no scaled version of the difference in altitude for "
-                f"a forecast period greater than or equal to {fp_hour}"
-            )
-            raise ValueError(msg)
+        if any(fp_diff >= 0):
+            fp_index = np.argmax(fp_diff >= 0)
+            chosen_fp = scaled_dz.coord("forecast_period").points[fp_index]
+        else:
+            chosen_fp = scaled_dz.coord("forecast_period").points[-1]
 
-        fp_index = np.argmax(fp_diff >= 0)
-        chosen_fp = scaled_dz.coord("forecast_period").points[fp_index]
         return iris.Constraint(forecast_period=chosen_fp)
 
     @staticmethod
