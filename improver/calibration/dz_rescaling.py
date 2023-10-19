@@ -374,7 +374,7 @@ class ApplyDzRescaling(PostProcessingPlugin):
         forecast period from the scaled_dz to extract. The most appropriate scaled dz
         is selected by choosing the nearest forecast period that is greater than or
         equal to the forecast period of the forecast. If no forecast periods in the
-        scaled fz cube are greater than the forecast period of the forecast, the
+        scaled dz cube are greater than the forecast period of the forecast, the
         longest available forecast period is used.
 
         Args:
