@@ -177,7 +177,9 @@ def test_apply_dz_rescaling(
     contains the scaling_factor value.
     forecast_period_offset (hours) adjusts the forecast period coord on the forecast
     cube to ensure the plugin always snaps to the next largest forecast_time when the
-    precise point is not available.
+    precise point is not available except when the forecast period of the forecast
+    exceeds all forecast periods within the scaling factor cube. In this case, the
+    last forecast period within the scaling factor cube will be used.
     frt_hour_offset (hours) alters the forecast reference time hour within the forecast
     whilst the forecast reference time hour of the scaling factor remains the same.
     This checks that the a mismatch in the forecast reference time hour can still
@@ -200,7 +202,8 @@ def test_apply_dz_rescaling(
         forecast,
     )
     # Use min(fp, 24) here to ensure that the scaling cube contains
-    # the scaling factor for the last forecast_period if nowhere else.
+    # the scaling factor for the last forecast_period if the specified
+    # forecast period is beyond the T+24 limit of the scaling cube.
     scaling_factor = _create_scaling_factor_cube(
         frt_hour, min(forecast_period, 24), scaling_factor
     )
