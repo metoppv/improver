@@ -781,10 +781,10 @@ def test_process_cycle_blending_spot_cubes(cycle_blend_spot_cubes, expected):
         n_sites = cubes[0].shape[-1]
         data = np.ones(3 * n_sites).reshape(1, 3, n_sites)
         neighbours = make_neighbour_cube(n_sites, data)
+        cubes.append(neighbours)
 
     result = plugin_cycle.process(
         cubes,
-        reference_site_cube=neighbours,
         cycletime=cycle_time.strftime(DATETIME_FORMAT),
         model_id_attr="mosg__model_configuration",
         record_run_attr="mosg__model_run",
@@ -873,6 +873,7 @@ def test_process_model_blending_spot_cubes(
     if len(set([item.shape for item in model_blend_spot_cubes])) > 1:
         data = np.ones(15).reshape(1, 3, 5)
         neighbours = make_neighbour_cube(5, data)
+        model_blend_spot_cubes.append(neighbours)
 
     expected_model_att = []
     for model, weight in zip(models, expected_weights):
@@ -884,7 +885,6 @@ def test_process_model_blending_spot_cubes(
 
     result = plugin_model.process(
         model_blend_spot_cubes,
-        reference_site_cube=neighbours,
         cycletime=cycle_time.strftime(DATETIME_FORMAT),
         model_id_attr="mosg__model_configuration",
         record_run_attr="mosg__model_run",

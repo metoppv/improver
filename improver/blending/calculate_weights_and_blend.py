@@ -234,7 +234,6 @@ class WeightAndBlend(PostProcessingPlugin):
     def process(
         self,
         cubelist: Union[List[Cube], CubeList],
-        reference_site_cube: Optional[Cube] = None,
         cycletime: Optional[str] = None,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
@@ -250,10 +249,10 @@ class WeightAndBlend(PostProcessingPlugin):
         Args:
             cubelist:
                 List of cubes to be merged and blended
-            reference_site_cube:
-                If blending site forecasts, this cube can optionally be supplied
-                to ensure the target sitelist is produced. At least one of the
-                input cubes must contain sites that match the reference_site_cube.
+                If blending site forecasts, this list can optionally include a
+                neighbour cube ancillary as a reference sitelist. This is used
+                to ensure the reference sitelist is produced. At least one of the
+                input cubes must contain sites that match the reference set.
             cycletime:
                 The forecast reference time to be used after blending has been
                 applied, in the format YYYYMMDDTHHMMZ. If not provided, the
@@ -304,10 +303,27 @@ class WeightAndBlend(PostProcessingPlugin):
                 "has not been provided."
             )
 
-        # If the cubes for blending are site forecasts, check that the sites they
-        # contain match. If not, attempt to construct matching cubes for blending.
-        if reference_site_cube is not None and cubelist[0].coords("spot_index"):
-            cubelist = match_site_forecasts(cubelist, reference_site_cube)
+        if not isinstance(cubelist, CubeList):
+            try:
+                cubelist = CubeList(cubelist)
+            except TypeError:
+                cubelist = CubeList([cubelist])
+
+        # If the cubes for blending are site forecasts and a reference cube
+        # (neighbour cube) has been provided, check that the sites the forecasts
+        # contain match one another. If not, attempt to construct matching cubes
+        # for blending using the reference cube to set the expected sites.
+        try:
+            (reference_site_cube,) = [
+                cube for cube in cubelist if cube.name() == "grid_neighbours"
+            ]
+        except ValueError:
+            # ValueError for attempting to unpack a list with 0 elements.
+            pass
+        else:
+            cubelist.remove(reference_site_cube)
+            if cubelist[0].coords("spot_index"):
+                cubelist = match_site_forecasts(cubelist, reference_site_cube)
 
         # Prepare cubes for weighted blending, including creating custom metadata
         # for multi-model blending. The merged cube has a monotonically ascending

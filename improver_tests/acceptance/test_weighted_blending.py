@@ -295,11 +295,9 @@ def test_mismatch_spot(tmp_path):
     kgo_dir = acc.kgo_root() / "weighted_blending/mismatch_spot"
     kgo_path = kgo_dir / "kgo.nc"
     model_inputs = list(kgo_dir.glob("*rainrate.nc"))
-    sitelist = kgo_dir / "neighbours.nc"
+    model_inputs.append(kgo_dir / "neighbours.nc")
     output_path = tmp_path / "output.nc"
     args = [
-        "--reference-site-cube",
-        sitelist,
         "--coordinate",
         "model_configuration",
         "--cycletime",

@@ -40,7 +40,6 @@ from improver import cli
 def process(
     *cubes: cli.inputcube,
     coordinate,
-    reference_site_cube: cli.inputcube = None,
     weighting_method="linear",
     weighting_coord="forecast_period",
     weighting_config: cli.inputjson = None,
@@ -62,12 +61,12 @@ def process(
     Args:
         cubes (iris.cube.CubeList):
             Cubelist of cubes to be blended.
+            If blending site forecasts, this list can optionally include a
+            neighbour cube ancillary as a reference sitelist. This is used
+            to ensure the reference sitelist is produced. At least one of the
+            input cubes must contain sites that match the reference set.
         coordinate (str):
             The coordinate over which the blending will be applied.
-        reference_site_cube:
-            If blending site forecasts, this cube can optionally be supplied
-            to ensure the target sitelist is produced. At least one of the
-            input cubes must contain sites that match the reference_site_cube.
         weighting_method (str):
             Method to use to calculate weights used in blending.
             "linear" (default): calculate linearly varying blending weights.
@@ -172,7 +171,6 @@ def process(
 
     return plugin(
         cubes,
-        reference_site_cube=reference_site_cube,
         cycletime=cycletime,
         model_id_attr=model_id_attr,
         record_run_attr=record_run_attr,
