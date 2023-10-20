@@ -100,8 +100,9 @@ def test_basic(
     expected,
 ):
     """Check that for all possible combinations of rain and snow probabilities the correct
-    rain/snow rate is returned. The correct output will sometimes depend on whether the out_is_rain
-    is True or False. Also check the name of the returned cube has been updated correctly"""
+    rain/snow rate is returned. The correct output will sometimes depend on whether the
+    output_is_rain is True or False. Also check the name of the returned cube has been
+    updated correctly"""
     rain_cube.data = np.full_like(rain_cube.data, rain_value)
     snow_cube.data = np.full_like(snow_cube.data, snow_value)
 

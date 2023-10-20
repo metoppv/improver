@@ -40,7 +40,7 @@ def process(*cubes: cli.inputcube, output_is_rain: bool):
     Separates the snow/rain contribution from precipitation rate/accumulation.
 
     Whether the output is a rate or accumulation will depend on the precipitation_cube.
-    Variable determines whether the outputted cube is a cube of snow or rain.
+    output_is_rain determines whether the outputted cube is a cube of snow or rain.
 
     The probability of rain and snow at the surfaces should only contain 1's where the
     precip type is present at the surface and 0's where the precip type is not present
@@ -64,7 +64,7 @@ def process(*cubes: cli.inputcube, output_is_rain: bool):
 
     Returns:
         iris.cube.Cube:
-            Cube of rain/snow (depending on self.output_is-rain) rate/accumulation (depending
+            Cube of rain/snow (depending on self.output_is_rain) rate/accumulation (depending
             on precipitation cube)
 
     """
