@@ -42,10 +42,12 @@ from cf_units import Unit
 from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
+from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
@@ -393,6 +395,120 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         return tuple(gradients)
 
 
+def maximum_within_vicinity(
+    grid: Union[MaskedArray, ndarray],
+    grid_point_radius: int,
+    landmask: Optional[ndarray] = None,
+) -> ndarray:
+    """
+    Find grid points where a phenomenon occurs within a defined radius.
+    The occurrences within this vicinity are maximised, such that all
+    grid points within the vicinity are recorded as having an occurrence.
+    For non-binary fields, if the vicinity of two occurrences overlap,
+    the maximum value within the vicinity is chosen.
+    If a land-mask has been supplied, process land and sea points
+    separately.
+
+    Args:
+        grid:
+            An array of values to which the process is applied.
+        grid_point_radius:
+            The radius in grid points about each point within which to
+            determine the maximum value.
+        landmask:
+            A binary grid of the same size as grid that differentiates
+            between land and sea points to allow the different surface
+            types to be processed independently.
+
+    Returns:
+        Array where the occurrences have been spatially spread, so that
+        they're equally likely to have occurred anywhere within the
+        vicinity defined using the specified radius.
+    """
+    # Value, the negative of which is used to fill masked points, ensuring
+    # that when we take a maximum the masked points do not contribute.
+    fill_value = netCDF4.default_fillvals.get(grid.dtype.str[1:], np.inf)
+
+    # Convert the grid_point_radius into a number of points along an edge
+    # length, including the central point, e.g. grid_point_radius = 1,
+    # points along the edge = 3
+    grid_points = (2 * grid_point_radius) + 1
+    processed_grid = grid.copy()
+    if np.ma.is_masked(grid):
+        unmasked_grid = grid.data.copy()
+        unmasked_grid[grid.mask] = -fill_value
+    else:
+        unmasked_grid = grid.copy()
+    if landmask is not None:
+        max_data = np.empty_like(grid)
+        for match in (True, False):
+            matched_data = unmasked_grid.copy()
+            matched_data[landmask != match] = -fill_value
+            matched_max_data = maximum_filter(matched_data, size=grid_points)
+            max_data = np.where(landmask == match, matched_max_data, max_data)
+    else:
+        # The following command finds the maximum value for each grid point
+        # from within a square of length "size"
+        max_data = maximum_filter(unmasked_grid, size=grid_points)
+    if np.ma.is_masked(grid):
+        # Update only the unmasked values
+        processed_grid.data[~grid.mask] = max_data[~grid.mask]
+    else:
+        processed_grid = max_data
+    return processed_grid
+
+
+def rename_vicinity_cube(cube: Cube):
+    """
+    Rename a cube in place to indicate the cube has been vicinity processed.
+
+    Args:
+        cube:
+            Cube to be renamed.
+    """
+    if is_probability(cube):
+        cube.rename(in_vicinity_name_format(cube.name()))
+    else:
+        cube.rename(f"{cube.name()}_in_vicinity")
+
+
+def create_vicinity_coord(
+    radius: Union[float, int], native_grid_point_radius: bool = False
+) -> AuxCoord:
+    """
+    Create a coordinate that records the vicinity radius passed in.
+    This radius may be a distance in physical units, or if
+    native_grid_point_radius is True, it will be a number of grid cells.
+    If the latter an attribute comment is added to note that the radius
+    is in grid cells.
+
+    Args:
+        radius:
+            The radius as a physical distance or number of grid points, the
+            value of which is recorded in the coordinate.
+        native_grid_point_radius:
+            If set to True the radius is provided a a number of grid points
+            and the metadata created will reflect that.
+
+    """
+    if native_grid_point_radius:
+        point = np.array(radius, dtype=np.float32)
+        units = "1"
+        attributes = {
+            "comment": "Units of 1 indicate radius of vicinity is defined "
+            "in grid points rather than physical distance"
+        }
+    else:
+        point = np.array(radius, dtype=FLOAT_DTYPE)
+        units = "m"
+        attributes = {}
+
+    coord = AuxCoord(
+        point, units=units, long_name="radius_of_vicinity", attributes=attributes
+    )
+    return coord
+
+
 class OccurrenceWithinVicinity(PostProcessingPlugin):
 
     """Calculate whether a phenomenon occurs within the specified radii about
@@ -466,59 +582,6 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
             self.land_mask = None
         self.land_mask_cube = land_mask_cube
 
-    def maximum_within_vicinity(self, cube: Cube, grid_point_radius: int) -> Cube:
-        """
-        Find grid points where a phenomenon occurs within a defined radius.
-        The occurrences within this vicinity are maximised, such that all
-        grid points within the vicinity are recorded as having an occurrence.
-        For non-binary fields, if the vicinity of two occurrences overlap,
-        the maximum value within the vicinity is chosen.
-        If a land-mask cube has been supplied, process land and sea points
-        separately.
-
-        Args:
-            cube:
-                Thresholded cube.
-            grid_point_radius:
-                The radius in grid points about each point within which to
-                determine the maximum value.
-
-        Returns:
-            Cube where the occurrences have been spatially spread, so that
-            they're equally likely to have occurred anywhere within the
-            vicinity defined using the specified radius.
-        """
-        # Convert the grid_point_radius into a number of points along an edge
-        # length, including the central point, e.g. grid_point_radius = 1,
-        # points along the edge = 3
-        grid_points = (2 * grid_point_radius) + 1
-
-        cube_dtype = cube.data.dtype
-        cube_fill_value = netCDF4.default_fillvals.get(cube_dtype.str[1:], np.inf)
-
-        max_cube = cube.copy()
-        unmasked_cube_data = cube.data.copy()
-        if np.ma.is_masked(cube.data):
-            unmasked_cube_data = cube.data.data.copy()
-            unmasked_cube_data[cube.data.mask] = -cube_fill_value
-        if self.land_mask_cube:
-            max_data = np.empty_like(cube.data)
-            for match in (True, False):
-                matched_data = unmasked_cube_data.copy()
-                matched_data[self.land_mask != match] = -cube_fill_value
-                matched_max_data = maximum_filter(matched_data, size=grid_points)
-                max_data = np.where(self.land_mask == match, matched_max_data, max_data)
-        else:
-            # The following command finds the maximum value for each grid point
-            # from within a square of length "size"
-            max_data = maximum_filter(unmasked_cube_data, size=grid_points)
-        if np.ma.is_masked(cube.data):
-            # Update only the unmasked values
-            max_cube.data.data[~cube.data.mask] = max_data[~cube.data.mask]
-        else:
-            max_cube.data = max_data
-        return max_cube
-
     def process(self, cube: Cube) -> Cube:
         """
         Produces the vicinity processed data. The input data is sliced to
@@ -567,29 +630,28 @@ class OccurrenceWithinVicinity(PostProcessingPlugin):
         for radius, grid_point_radius in zip(self.radii, grid_point_radii):
             max_cubes = CubeList([])
             for cube_slice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-                max_cubes.append(
-                    self.maximum_within_vicinity(cube_slice, grid_point_radius)
+                result = cube_slice.copy(
+                    data=maximum_within_vicinity(
+                        cube_slice.data, grid_point_radius, self.land_mask
+                    )
                 )
+                max_cubes.append(result)
             result_cube = max_cubes.merge_cube()
 
             # Put dimensions back if they were there before.
             result_cube = check_cube_coordinates(cube, result_cube)
 
             # Add a coordinate recording the vicinity radius applied to the data.
-            add_vicinity_coordinate(result_cube, radius, self.native_grid_point_radius)
-
+            vic_coord = create_vicinity_coord(radius, self.native_grid_point_radius)
+            result_cube.add_aux_coord(vic_coord)
             radii_cubes.append(result_cube)
 
         # Merge cubes produced for each vicinity radius.
         result_cube = radii_cubes.merge_cube()
-
+        # Set cube name to reflect vicinity processing.
+        rename_vicinity_cube(result_cube)
         # Enforce order of leading dimensions on the output to match the input.
         enforce_coordinate_ordering(result_cube, leading_dimensions)
-
-        if is_probability(result_cube):
-            result_cube.rename(in_vicinity_name_format(result_cube.name()))
-        else:
-            result_cube.rename(f"{result_cube.name()}_in_vicinity")
 
         return result_cube
 
