@@ -56,8 +56,10 @@ def process(
             forecast period and forecast reference_time_hour pair within the
             rescaling cube are chosen using the forecast reference time hour from
             the forecast and the nearest forecast period that is greater than or
-            equal to the forecast period of the forecast. This cube is generated
-            using the estimate_dz_rescaling CLI.
+            equal to the forecast period of the forecast. However, if the forecast
+            period of the forecast exceeds all forecast periods within the rescaling
+            cube, the scaling factor from the maximum forecast period is used.
+            This cube is generated using the estimate_dz_rescaling CLI.
         site_id_coord (str):
             The name of the site ID coordinate. This defaults to 'wmo_id'.
 
