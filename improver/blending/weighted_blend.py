@@ -269,8 +269,7 @@ class PercentileBlendingAggregator:
 
        References:
             Combining Probabilities by Caroline Jones, 2017:
-            https://github.com/metoppv/improver/files/1128018/
-            Combining_Probabilities.pdf
+            /improver/doc/files/Combining_Probabilities.pdf
     """
 
     @staticmethod
