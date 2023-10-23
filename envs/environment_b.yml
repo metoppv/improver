@@ -6,6 +6,7 @@
 name: improver_b
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - python=3.8
   # Required

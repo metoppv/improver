@@ -2,6 +2,7 @@
 name: improver_a
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - python=3.7
   # Required

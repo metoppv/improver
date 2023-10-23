@@ -7,6 +7,7 @@
 name: improver_conda_forge
 channels:
   - conda-forge
+  - nodefaults
 dependencies:
   - python>=3.6
   # Included in improver-feedstock requirements
