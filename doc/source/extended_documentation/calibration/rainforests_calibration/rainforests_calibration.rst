@@ -59,7 +59,7 @@ variables are typically diagnostic variables for the ensemble realization (inclu
 but can include static and dynamic ancillary variables, such as local solar time, and whole-of-ensemble
 values for diagnostic variables, such as mean or standard deviation.
 
-We use LightGBM for training the models, and compile the models with Treelite for efficient prediction.
+Here we use LightGBM for training the models, and compile the models with Treelite for efficient prediction.
 
 ================================
 GBDT vs manually constructed DT
@@ -117,7 +117,7 @@ Forecast calibration
 
 Forecast calibration uses the trained GBDT models, along with the forecast cube and associated
 feature cubes. The tree-models are passed in via a model-config json which identifies
-the appropriate tree-model file for each error-threshold.
+the appropriate tree-model file for each threshold.
 
 The decision-tree models are used to construct representative probability distributions for
 each input ensemble member which are then blended to give the calibrated
@@ -128,7 +128,6 @@ The distributions for the individual ensemble members are formed in a two-step p
 1. Evaluate the CDF defined over the specified model thresholds for each ensemble member.
 Each threshold exceedance probability is evaluated using the corresponding
 decision-tree model.
-
 2. Interpolate each ensemble member distribution to the output thresholds.
 
 Deterministic forecasts can also be calibrated using the same approach to produce a calibrated
