@@ -29,8 +29,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to apply a scaling factor to account for a correction linked to the
-difference in altitude between the grid point and the site location."""
+"""Script to collapse the realizations dimension of a cube."""
+
 
 from improver import cli
 
@@ -38,37 +38,34 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast: cli.inputcube,
-    scaling_factor: cli.inputcube,
-    *,
-    site_id_coord: str = "wmo_id",
+    cube: cli.inputcube, *, method: str = "mean", new_name: str = None,
 ):
-    """Apply a scaling factor to account for a correction linked to the difference
-    in altitude between the grid point and the site location.
+    """Collapse the realization dimension of a cube.
 
     Args:
-        forecast (iris.cube.Cube):
-            Percentile forecasts.
-        rescaling_cube (iris.cube.Cube):
-            Multiplicative scaling factor to adjust the percentile forecasts.
-            This cube is expected to contain multiple values for the forecast_period
-            and forecast_reference_time_hour coordinates. The most appropriate
-            forecast period and forecast reference_time_hour pair within the
-            rescaling cube are chosen using the forecast reference time hour from
-            the forecast and the nearest forecast period that is greater than or
-            equal to the forecast period of the forecast. However, if the forecast
-            period of the forecast exceeds all forecast periods within the rescaling
-            cube, the scaling factor from the maximum forecast period is used.
-            This cube is generated using the estimate_dz_rescaling CLI.
-        site_id_coord (str):
-            The name of the site ID coordinate. This defaults to 'wmo_id'.
+        cube (iris.cube.Cube):
+            Cube to be collapsed.
+        method (str):
+            One of "sum", "mean", "median", "std_dev", "min", "max".
+        new_name (str):
+            New name for output cube; if None use iris default.
 
     Returns:
         iris.cube.Cube:
-            Percentile forecasts that have been rescaled to account for a difference
-            in altitude between the grid point and the site location.
+            Collapsed cube. Dimensions are the same as input cube,
+            without realization dimension.
+
+    Raises:
+        ValueError: if realization is not a dimension coordinate.
     """
 
-    from improver.calibration.dz_rescaling import ApplyDzRescaling
+    from improver.utilities.cube_manipulation import collapse_realizations
 
-    return ApplyDzRescaling(site_id_coord=site_id_coord)(forecast, scaling_factor)
+    if not (cube.coords("realization", dim_coords=True)):
+        raise ValueError("realization must be a dimension coordinate.")
+
+    collapsed_cube = collapse_realizations(cube, method=method)
+    if new_name:
+        collapsed_cube.rename(new_name)
+
+    return collapsed_cube

@@ -29,46 +29,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to apply a scaling factor to account for a correction linked to the
-difference in altitude between the grid point and the site location."""
+"""CLI to extract wet-bulb freezing level from wet-bulb temperature on height levels"""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    forecast: cli.inputcube,
-    scaling_factor: cli.inputcube,
-    *,
-    site_id_coord: str = "wmo_id",
-):
-    """Apply a scaling factor to account for a correction linked to the difference
-    in altitude between the grid point and the site location.
+def process(wet_bulb_temperature: cli.inputcube):
+    """Module to generate wet-bulb freezing level.
+
+    The height level at which the wet-bulb temperature first drops below 273.15K
+    (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
+    the ground and ascending through height levels.
+
+    In grid squares where the temperature never goes below 273.15K the highest
+    height level on the cube is returned. In grid squares where the temperature
+    starts below 273.15K the lowest height on the cube is returned.
 
     Args:
-        forecast (iris.cube.Cube):
-            Percentile forecasts.
-        rescaling_cube (iris.cube.Cube):
-            Multiplicative scaling factor to adjust the percentile forecasts.
-            This cube is expected to contain multiple values for the forecast_period
-            and forecast_reference_time_hour coordinates. The most appropriate
-            forecast period and forecast reference_time_hour pair within the
-            rescaling cube are chosen using the forecast reference time hour from
-            the forecast and the nearest forecast period that is greater than or
-            equal to the forecast period of the forecast. However, if the forecast
-            period of the forecast exceeds all forecast periods within the rescaling
-            cube, the scaling factor from the maximum forecast period is used.
-            This cube is generated using the estimate_dz_rescaling CLI.
-        site_id_coord (str):
-            The name of the site ID coordinate. This defaults to 'wmo_id'.
+        wet_bulb_temperature (iris.cube.Cube):
+            Cube of wet-bulb air temperatures over multiple height levels.
 
     Returns:
         iris.cube.Cube:
-            Percentile forecasts that have been rescaled to account for a difference
-            in altitude between the grid point and the site location.
+            Cube of wet-bulb freezing level.
+
     """
+    from improver.utilities.cube_extraction import ExtractLevel
 
-    from improver.calibration.dz_rescaling import ApplyDzRescaling
+    wet_bulb_freezing_level = ExtractLevel(
+        positive_correlation=False, value_of_level=273.15
+    )(wet_bulb_temperature)
+    wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
 
-    return ApplyDzRescaling(site_id_coord=site_id_coord)(forecast, scaling_factor)
+    return wet_bulb_freezing_level

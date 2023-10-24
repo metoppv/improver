@@ -15,7 +15,7 @@ jobs:
         env: [latest]
     if: github.repository_owner == 'metoppv'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: conda env update
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -64,7 +64,7 @@ jobs:
         env: [latest]
     if: github.repository_owner == 'metoppv'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: conda env update
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -95,7 +95,7 @@ jobs:
         env: [latest]
     if: github.repository_owner == 'metoppv'
     steps:
-    - uses: actions/checkout@v3
+    - uses: actions/checkout@v4
     - name: conda env update
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'

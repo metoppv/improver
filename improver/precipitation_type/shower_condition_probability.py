@@ -44,7 +44,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.threshold import BasicThreshold
+from improver.threshold import Threshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
 from .utilities import make_shower_condition_cube
@@ -171,12 +171,12 @@ class ShowerConditionProbability(PostProcessingPlugin):
         cloud, convection = self._extract_inputs(cubes)
 
         # Threshold cubes
-        cloud_thresholded = BasicThreshold(
-            self.cloud_threshold, comparison_operator="<="
+        cloud_thresholded = Threshold(
+            threshold_values=self.cloud_threshold, comparison_operator="<="
         ).process(cloud)
-        convection_thresholded = BasicThreshold(self.convection_threshold).process(
-            convection
-        )
+        convection_thresholded = Threshold(
+            threshold_values=self.convection_threshold
+        ).process(convection)
 
         # Fill any missing data in the convective ratio field with zeroes.
         if np.ma.is_masked(convection_thresholded.data):

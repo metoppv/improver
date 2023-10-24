@@ -29,8 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to apply a scaling factor to account for a correction linked to the
-difference in altitude between the grid point and the site location."""
+"""Script to calculate the maximum over the height coordinate"""
 
 from improver import cli
 
@@ -38,37 +37,33 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast: cli.inputcube,
-    scaling_factor: cli.inputcube,
+    cube: cli.inputcube,
     *,
-    site_id_coord: str = "wmo_id",
+    lower_height_bound: float = None,
+    upper_height_bound: float = None,
 ):
-    """Apply a scaling factor to account for a correction linked to the difference
-    in altitude between the grid point and the site location.
+    """Calculate the maximum value over the height coordinate of a cube. If height bounds are
+    specified then the maximum value between these height levels is calculated.
 
     Args:
-        forecast (iris.cube.Cube):
-            Percentile forecasts.
-        rescaling_cube (iris.cube.Cube):
-            Multiplicative scaling factor to adjust the percentile forecasts.
-            This cube is expected to contain multiple values for the forecast_period
-            and forecast_reference_time_hour coordinates. The most appropriate
-            forecast period and forecast reference_time_hour pair within the
-            rescaling cube are chosen using the forecast reference time hour from
-            the forecast and the nearest forecast period that is greater than or
-            equal to the forecast period of the forecast. However, if the forecast
-            period of the forecast exceeds all forecast periods within the rescaling
-            cube, the scaling factor from the maximum forecast period is used.
-            This cube is generated using the estimate_dz_rescaling CLI.
-        site_id_coord (str):
-            The name of the site ID coordinate. This defaults to 'wmo_id'.
-
+        cube (iris.cube.Cube):
+            A cube with a height coordinate.
+        lower_height_bound (float):
+            The lower bound for the height coordinate. This is either a float or None if no lower
+            bound is desired. Any specified bounds should have the same units as the height
+            coordinate of cube.
+        upper_height_bound (float):
+            The upper bound for the height coordinate. This is either a float or None if no upper
+            bound is desired. Any specified bounds should have the same units as the height
+            coordinate of cube.
     Returns:
-        iris.cube.Cube:
-            Percentile forecasts that have been rescaled to account for a difference
-            in altitude between the grid point and the site location.
-    """
+        A cube of the maximum value over the height coordinate or maximum value between the provided
+        height bounds."""
 
-    from improver.calibration.dz_rescaling import ApplyDzRescaling
+    from improver.utilities.cube_manipulation import maximum_in_height
 
-    return ApplyDzRescaling(site_id_coord=site_id_coord)(forecast, scaling_factor)
+    return maximum_in_height(
+        cube,
+        lower_height_bound=lower_height_bound,
+        upper_height_bound=upper_height_bound,
+    )

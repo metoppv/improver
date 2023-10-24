@@ -46,7 +46,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.nbhood.nbhood import NeighbourhoodProcessing
-from improver.threshold import BasicThreshold
+from improver.threshold import Threshold
 from improver.utilities.cube_manipulation import collapse_realizations
 
 
@@ -258,7 +258,9 @@ class FieldTexture(BasePlugin):
             ratios.append(self._calculate_ratio(cslice, cube_name, self.nbhood_radius))
 
         ratios = ratios.merge_cube()
-        thresholded = BasicThreshold(self.textural_threshold).process(ratios)
+        thresholded = Threshold(threshold_values=self.textural_threshold).process(
+            ratios
+        )
 
         # Squeeze scalar threshold coordinate.
         try:
