@@ -26,12 +26,12 @@ a suitable set of meteorological variables can be used to distinguish different 
 regimes and identify the associated distribution that describes the underlying sub-grid
 variability.
 
-Rainforests processes each ensemble member separately. The output produced from each ensemble member can be 
-considered a pseudo-ensemble which represents a 
-conditional probability distribution that describes the likelihood of observing a given outcome when the 
-realised atmospheric state is consistent with that represented in the input ensemble member forecast. 
+Rainforests (like ECPoint) processes each ensemble member separately to produce a per-realization output that can be
+considered a pseudo-ensemble representing the
+conditional probability distribution that describes the likelihood of observing a given outcome when the
+realised atmospheric state is consistent with that represented in the input ensemble member forecast.
 The predicted distributions for different ensemble members are then blended in probability space to produce 
-the final output.
+the final calibrated probability output.
 
 One advantage of the ECPoint approach is that the calibration is inherently non-local. As the calibration is done by
 identifying distinct weather types, the model bias and scale difference should be independent of any given location and time as 
@@ -53,9 +53,11 @@ forecasts of relevant variables. We define a set of rainfall thresholds, suitabl
 to accurately model the distribution. Then we train a separate GBDT model for each lead time and 
 threshold (note that each GBDT model itself consists of several hundred trees).
 
-The input variables for the calibration are generally the NWP forecasts of the variable of interest, 
-and related variables (for example, when calibrating precipitation, a related variable would 
-be convective precipitation), along with ancillary variables such as solar time.
+The set of variables that feed into the GBDT models are what allows the calibration to distinguish between
+different weather situations and build the appropriate probability distribution accordingly. These input
+variables are typically diagnostic variables for the ensemble realization (including the variable of interest),
+but can include static and dynamic ancillary variables, such as local solar time, and whole-of-ensemble
+values for diagnostic variables, such as mean or standard deviation.
 
 We use LightGBM for training the models, and compile the models with Treelite for efficient prediction.
 
@@ -97,16 +99,17 @@ Model training
 
 The model training process is relatively simple and involves collating a series of
 forecast-observation pairs with the associated feature variables into a single pandas
-dataframe. In general, each ensemble member yields a separate row of the dataframe (although for 
+dataframe. In general, each ensemble member yields a separate row of the dataframe, although for 
 reasons of computational efficiency it may be desirable to only use a subset of members, for example 
-by using only the control realization in each ensemble). 
-Each model predicts the probability that rainfall will exceed a particular threshold, 
-so the output is expected to be a number between 0 and 1. The Improver code will cap model predictions outside 
-this range so they lie between 0 and 1. (This is necessary because we are currently training using the mean 
-squared error loss, there are occasional cases where the LightGBM model predicts vlaues that are slightly more than 1 
-or less than 0.)
+by using only the control realization in each ensemble. 
+As each model predicts the probability that rainfall will exceed a particular threshold, 
+the output is expected to be a number between 0 and 1. However, on occasion the GBDT models may
+predict values slightly outside of this range and so the model predictions are capped to back onto this
+interval; such values are possible due to the current choice of loss function used in training, namely the
+mean squared loss function which is akin to Brier score when working in probability space.
 
-Currently model training is done offline.
+Currently model training is done offline, using a minimum 12-month period to capture the
+full seasonal cycle.
 
 ===========================
 Forecast calibration
@@ -122,7 +125,7 @@ distribution for the full ensemble.
 
 The distributions for the individual ensemble members are formed in a two-step process:
 
-1. Evaluate CDF defined over the specified model thresholds for each ensemble member.
+1. Evaluate the CDF defined over the specified model thresholds for each ensemble member.
 Each threshold exceedance probability is evaluated using the corresponding
 decision-tree model.
 
