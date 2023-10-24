@@ -126,8 +126,8 @@ distribution for the full ensemble.
 The distributions for the individual ensemble members are formed in a two-step process:
 
 1. Evaluate the CDF defined over the specified model thresholds for each ensemble member.
-Each threshold exceedance probability is evaluated using the corresponding
-decision-tree model.
+   Each threshold exceedance probability is evaluated using the corresponding
+   decision-tree model.
 2. Interpolate each ensemble member distribution to the output thresholds.
 
 Deterministic forecasts can also be calibrated using the same approach to produce a calibrated
