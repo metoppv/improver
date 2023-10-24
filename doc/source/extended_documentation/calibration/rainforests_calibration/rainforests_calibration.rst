@@ -44,9 +44,8 @@ sufficient cases to calibrate against.
 The RainForests method
 ****************************
 
-RainForests is an adaptation of the ECPoint method that uses machine learning based
-tree models to replace the manually constructed tree model of ECPoint. Here we use gradient-boosted
-decision tree (GBDT) models.
+RainForests uses machine learning based tree models, namely gradient-boosted decision tree
+(GBDT) models to replace the manually constructed decision tree model of ECPoint.
 
 Our aim is to produce a probability distribution of the expected rainfall, given the NWP 
 forecasts of relevant variables. We define a set of rainfall thresholds, suitably spaced so as 
