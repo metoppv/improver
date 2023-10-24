@@ -22,9 +22,10 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda install -c conda-forge mamba
+        conda update -q -n base -c defaults conda
+        conda install -q -n base -c conda-forge -c nodefaults mamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        mamba env create -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -78,9 +79,10 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda install -c conda-forge mamba
+        conda update -q -n base -c defaults conda
+        conda install -q -n base -c conda-forge -c nodefaults mamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        mamba env create -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
@@ -109,7 +111,7 @@ jobs:
       - name: Checkout
         uses: actions/checkout@v4
         with:
-          fetch-depth: 0 
+          fetch-depth: 0
       - name: Check CONTRIBUTING.md
         uses: cylc/release-actions/check-shortlog@v1
   Safety-Bandit:
@@ -129,9 +131,10 @@ jobs:
       if: steps.cache.outputs.cache-hit != 'true'
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
-        conda install -c conda-forge mamba
+        conda update -q -n base -c defaults conda
+        conda install -q -n base -c conda-forge mamba
         rm -f /usr/share/miniconda/pkgs/cache/*.json # workaround for mamba-org/mamba#488
-        mamba env update -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
+        mamba env create -q --file envs/${{ matrix.env }}.yml --name im${{ matrix.env }}
     - name: conda info
       run: |
         source '/usr/share/miniconda/etc/profile.d/conda.sh'
