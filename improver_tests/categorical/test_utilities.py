@@ -116,42 +116,41 @@ class Test_categorical_attributes(IrisTest):
             cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3],
         )
         self.decision_tree = wxcode_decision_tree()
-        self.wxcode = np.arange(31)
-        self.wxmeaning = " ".join(
-            [
-                "Clear_Night",
-                "Sunny_Day",
-                "Partly_Cloudy_Night",
-                "Partly_Cloudy_Day",
-                "Dust",
-                "Mist",
-                "Fog",
-                "Cloudy",
-                "Overcast",
-                "Light_Shower_Night",
-                "Light_Shower_Day",
-                "Drizzle",
-                "Light_Rain",
-                "Heavy_Shower_Night",
-                "Heavy_Shower_Day",
-                "Heavy_Rain",
-                "Sleet_Shower_Night",
-                "Sleet_Shower_Day",
-                "Sleet",
-                "Hail_Shower_Night",
-                "Hail_Shower_Day",
-                "Hail",
-                "Light_Snow_Shower_Night",
-                "Light_Snow_Shower_Day",
-                "Light_Snow",
-                "Heavy_Snow_Shower_Night",
-                "Heavy_Snow_Shower_Day",
-                "Heavy_Snow",
-                "Thunder_Shower_Night",
-                "Thunder_Shower_Day",
-                "Thunder",
-            ]
-        )
+        wxmeanings = [
+            "Clear_Night",
+            "Sunny_Day",
+            "Partly_Cloudy_Night",
+            "Partly_Cloudy_Day",
+            "Dust",
+            "Mist",
+            "Fog",
+            "Cloudy",
+            "Overcast",
+            "Light_Shower_Night",
+            "Light_Shower_Day",
+            "Drizzle",
+            "Light_Rain",
+            "Heavy_Shower_Night",
+            "Heavy_Shower_Day",
+            "Heavy_Rain",
+            "Sleet_Shower_Night",
+            "Sleet_Shower_Day",
+            "Sleet",
+            "Hail_Shower_Night",
+            "Hail_Shower_Day",
+            "Hail",
+            "Light_Snow_Shower_Night",
+            "Light_Snow_Shower_Day",
+            "Light_Snow",
+            "Heavy_Snow_Shower_Night",
+            "Heavy_Snow_Shower_Day",
+            "Heavy_Snow",
+            "Thunder_Shower_Night",
+            "Thunder_Shower_Day",
+            "Thunder",
+        ]
+        self.wxcode = np.arange(len(wxmeanings))
+        self.wxmeaning = " ".join(wxmeanings)
         self.data_directory = mkdtemp()
         self.nc_file = self.data_directory + "/wxcode.nc"
         pathlib.Path(self.nc_file).touch(exist_ok=True)

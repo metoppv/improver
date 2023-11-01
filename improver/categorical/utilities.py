@@ -31,7 +31,7 @@
 """This module defines the utilities required for decision tree plugin """
 
 from collections import OrderedDict
-from typing import Any, Dict, List, Optional
+from typing import Any, Dict, List, Optional, Union
 
 import iris
 import numpy as np
@@ -169,7 +169,7 @@ def update_daynight(cube: Cube, day_night: Dict) -> Cube:
 
     Args:
         cube:
-            Cube containing only daytime weather symbols.
+            Cube containing only daytime categories.
         day_night:
             Dictionary of day codes (keys) and matching night codes (values)
 
@@ -414,7 +414,7 @@ def check_tree(
                 issues.append(f"Leaf '{node}' has 'is_unreachable' but can be reached.")
 
             # If leaf key is present, check it is an int.
-            leaf_target = items.get("leaf", -1)
+            leaf_target = items["leaf"]
             if not isinstance(leaf_target, int):
                 issues.append(f"Leaf '{node}' has non-int target: {leaf_target}")
 
@@ -548,7 +548,7 @@ def check_tree(
     return "\n".join(issues)
 
 
-def day_night_map(decision_tree) -> Dict:
+def day_night_map(decision_tree: Dict[str, Dict[str, Union[str, List]]]) -> Dict:
     """Returns a dict showing which night values are linked to which day values
 
     Args:

@@ -90,8 +90,9 @@ accessed with this key contains the essentials that make the node function.
     diagnostic threshold value and units being used in the test. An optional
     third value provides a period in seconds that is associated with the
     threshold value. For example, a precipitation accumulation threshold might
-    be given for a 1-hour period (3600 seconds). If instead 3-hour symbols are
-    being produced using 3-hour precipitation accumulations then the threshold
+    be given for a 1-hour period (3600 seconds). If instead the decision tree
+    generates data representing a 3-hour period
+    using 3-hour precipitation accumulations then the threshold
     value will be scaled up by a factor of 3. Only thresholds with an
     associated period will be scaled in this way. A threshold [value, units] pair
     must be provided for each diagnostic field with the same nested list structure;

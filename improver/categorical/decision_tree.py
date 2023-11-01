@@ -165,7 +165,7 @@ class ApplyDecisionTree(BasePlugin):
         return "<ApplyDecisionTree start_node={}>".format(self.start_node)
 
     @staticmethod
-    def _is_decision_node(key: str, query: Dict) -> bool:
+    def _is_decision_node(key: str, query: Dict[str, Dict[str, Union[str, List]]]) -> bool:
         """
         Determine whether a given node is a decision node.
         The meta node has a key of "meta", leaf nodes have a query key of "leaf", everything
@@ -578,7 +578,7 @@ class ApplyDecisionTree(BasePlugin):
         """
         threshold_coord = find_threshold_coordinate(self.template_cube)
         template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
-        # remove coordinates and bounds that do not apply to weather symbols
+        # remove coordinates and bounds that do not apply to a categorical cube
         template_cube.remove_coord(threshold_coord)
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
@@ -594,7 +594,7 @@ class ApplyDecisionTree(BasePlugin):
                 set(cubes), self.record_run_attr, self.model_id_attr
             )
 
-        symbols = create_new_diagnostic_cube(
+        categories = create_new_diagnostic_cube(
             self.meta["name"],
             "1",
             template_cube,
@@ -608,11 +608,11 @@ class ApplyDecisionTree(BasePlugin):
             # slices. Using set here ensures each contributing model/cycle/diagnostic
             # is only considered once when creating the record run coordinate.
             record_run_coord_to_attr(
-                symbols, set(cubes), self.record_run_attr, discard_weights=True
+                categories, set(cubes), self.record_run_attr, discard_weights=True
             )
-        self._set_reference_time(symbols, cubes)
+        self._set_reference_time(categories, cubes)
 
-        return symbols
+        return categories
 
     @staticmethod
     def _set_reference_time(cube: Cube, cubes: CubeList):
@@ -859,7 +859,7 @@ class ApplyDecisionTree(BasePlugin):
                         conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
 
-                # Set grid locations to suitable weather symbol
+                # Set grid locations to suitable category
                 categories.data[
                     np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
                 ] = category_code
