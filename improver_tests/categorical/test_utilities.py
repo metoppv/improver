@@ -725,8 +725,7 @@ def test_day_night_map():
 )
 def test_is_decision_node(name, node, expected):
     """Tests that we can correctly distinguish between decision nodes and other nodes"""
-    result = is_decision_node(name, node)
-    assert result == expected
+    assert is_decision_node(name, node) == expected
 
 
 if __name__ == "__main__":
