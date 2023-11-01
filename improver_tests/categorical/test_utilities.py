@@ -49,6 +49,7 @@ from improver.categorical.utilities import (
     expand_nested_lists,
     get_parameter_names,
     interrogate_decision_tree,
+    is_decision_node,
     update_daynight,
     update_tree_thresholds,
 )
@@ -716,6 +717,16 @@ def test_day_night_map():
     result = day_night_map(tree)
     expected = {1: 5, 6: 7}
     assert expected == result
+
+
+@pytest.mark.parametrize(
+    "name, node, expected",
+    (("anything", {}, True), ("meta", {}, False), ("a_leaf", {"leaf": 0}, False)),
+)
+def test_is_decision_node(name, node, expected):
+    """Tests that we can correctly distinguish between decision nodes and other nodes"""
+    result = is_decision_node(name, node)
+    assert result == expected
 
 
 if __name__ == "__main__":

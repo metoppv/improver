@@ -53,6 +53,7 @@ from improver.categorical.utilities import (
     day_night_map,
     expand_nested_lists,
     get_parameter_names,
+    is_decision_node,
     is_variable,
     update_daynight,
     update_tree_thresholds,
@@ -164,24 +165,6 @@ class ApplyDecisionTree(BasePlugin):
         """Represent the configured plugin instance as a string."""
         return "<ApplyDecisionTree start_node={}>".format(self.start_node)
 
-    @staticmethod
-    def _is_decision_node(key: str, query: Dict[str, Dict[str, Union[str, List]]]) -> bool:
-        """
-        Determine whether a given node is a decision node.
-        The meta node has a key of "meta", leaf nodes have a query key of "leaf", everything
-        else is a decision node.
-
-        Args:
-            key:
-                Decision name ("meta" indicates a non-decision node)
-            query:
-                Dict where key "leaf" indicates a non-decision node
-
-        Returns:
-            True if query represents a decision node
-        """
-        return key != "meta" and "leaf" not in query.keys()
-
     def prepare_input_cubes(
         self, cubes: CubeList
     ) -> Tuple[CubeList, Optional[List[str]]]:
@@ -215,7 +198,7 @@ class ApplyDecisionTree(BasePlugin):
         optional_node_data_missing = []
         missing_data = []
         for key, query in self.queries.items():
-            if not self._is_decision_node(key, query):
+            if not is_decision_node(key, query):
                 continue
             diagnostics = get_parameter_names(
                 expand_nested_lists(query, "diagnostic_fields")

@@ -205,6 +205,24 @@ def update_daynight(cube: Cube, day_night: Dict) -> Cube:
     return cube_day_night
 
 
+def is_decision_node(key: str, query: Dict[str, Any]) -> bool:
+    """
+    Determine whether a given node is a decision node.
+    The meta node has a key of "meta", leaf nodes have a query key of "leaf", everything
+    else is a decision node.
+
+    Args:
+        key:
+            Decision name ("meta" indicates a non-decision node)
+        query:
+            Dict where key "leaf" indicates a non-decision node
+
+    Returns:
+        True if query represents a decision node
+    """
+    return key != "meta" and "leaf" not in query.keys()
+
+
 def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     """
     Obtain a list of necessary inputs from the decision tree as it is currently
@@ -223,8 +241,8 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     """
     # Diagnostic names and threshold values.
     requirements = {}
-    for query in decision_tree.values():
-        if "diagnostic_fields" not in query.keys():
+    for key, query in decision_tree.items():
+        if not is_decision_node(key, query):
             continue
         diagnostics = get_parameter_names(
             expand_nested_lists(query, "diagnostic_fields")
