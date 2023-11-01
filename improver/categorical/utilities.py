@@ -108,7 +108,7 @@ def update_tree_thresholds(
         return iris.coords.AuxCoord(values, units=units)
 
     for key, query in tree.items():
-        if key == "meta" or "leaf" in query.keys():
+        if not is_decision_node(key, query):
             continue
         query["diagnostic_thresholds"] = _make_thresholds_with_units(
             query["diagnostic_thresholds"]
