@@ -57,7 +57,7 @@ class ModalCategory(BasePlugin):
     value. The opposite is desirable in this case as the significance /
     importance of the weather code categories generally increases with the value. To
     achieve this the categories are subtracted from an arbitrarily larger
-    number prior to calculating the mode, and this operation reversed before the
+    number prior to calculating the mode, and this operation is reversed before the
     final output is returned.
 
     If there are many different categories for a single point over the time
