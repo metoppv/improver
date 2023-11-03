@@ -115,6 +115,8 @@ When citing IMPROVER, we recommend using the sources in the first two rows of th
 +---------------------------------------------------------------------------------------------+-----------------------------------+
 |`Topographic neighbourhood processing`_                                                      | Fiona Rust                        |
 +---------------------------------------------------------------------------------------------+-----------------------------------+
+|`Improving the blend of multiple weather forecast sources by Reliability Calibration`_       | Fiona Rust et al.                 |
++---------------------------------------------------------------------------------------------+-----------------------------------+
 
 .. _IMPROVER - The New Probabilistic Postprocessing System at the Met Office (BAMS 2023): https://doi.org/10.1175/BAMS-D-21-0273.1
 .. _Archive of latest released version of IMPROVER (Zenodo): https://doi.org/10.5281/zenodo.8410114
@@ -123,6 +125,7 @@ When citing IMPROVER, we recommend using the sources in the first two rows of th
 .. _Generating probabilistic forecasts from convection permitting ensembles: https://presentations.copernicus.org/EMS2017-277_presentation.pdf
 .. _Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office: https://presentations.copernicus.org/EMS2018-20_presentation.pdf
 .. _Topographic neighbourhood processing: https://presentations.copernicus.org/EMS2018-70_presentation.pdf
+.. _Improving the blend of multiple weather forecast sources by Reliability Calibration: https://doi.org/10.1002/met.2142
 
 
 Contributing
