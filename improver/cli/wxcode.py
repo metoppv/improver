@@ -37,13 +37,14 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *cubes: cli.inputpath,
     wxtree: cli.inputjson = None,
     model_id_attr: str = None,
     record_run_attr: str = None,
     target_period: int = None,
     check_tree: bool = False,
     title: str = None,
+    update_time: int = None,
 ):
     """ Processes cube for Weather symbols.
 
@@ -78,6 +79,9 @@ def process(
             weather symbol output. This will override the title generated from
             the inputs, where this generated title is only set if all of the
             inputs share a common title.
+        update_time (int):
+            Time after which at least one input file must have been created to
+            proceed with regenerating the weather symbol output.
 
     Returns:
         iris.cube.Cube:
@@ -88,7 +92,13 @@ def process(
 
         return check_tree(wxtree, target_period=target_period)
 
-    from iris.cube import CubeList
+    from improver.utilities.load import load_cubelist
+
+    # If no inputs newer than update time don't create a new output.
+    if not any([file.stat().st_mtime > update_time for file in cubes]):
+        return
+
+    cubes = load_cubelist([item.as_posix() for item in cubes])
 
     from improver.wxcode.weather_symbols import WeatherSymbols
 
@@ -101,4 +111,4 @@ def process(
         record_run_attr=record_run_attr,
         target_period=target_period,
         title=title,
-    )(CubeList(cubes))
+    )(cubes)
