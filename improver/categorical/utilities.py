@@ -43,17 +43,16 @@ REQUIRED_KEY_WORDS = [
     "if_true",
     "if_false",
     "probability_thresholds",
+    "thresholds",
     "threshold_condition",
     "condition_combination",
     "diagnostic_fields",
-    "diagnostic_thresholds",
-    "diagnostic_conditions",
 ]
 
 LEAF_REQUIRED_KEY_WORDS = ["leaf"]
 LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group"]
 
-OPTIONAL_KEY_WORDS = ["if_diagnostic_missing"]
+OPTIONAL_KEY_WORDS = ["if_diagnostic_missing", "deterministic","diagnostic_thresholds","diagnostic_conditions",]
 
 THRESHOLD_CONDITIONS = ["<=", "<", ">", ">="]
 CONDITION_COMBINATIONS = ["AND", "OR"]
@@ -108,7 +107,7 @@ def update_tree_thresholds(
         return iris.coords.AuxCoord(values, units=units)
 
     for key, query in tree.items():
-        if not is_decision_node(key, query):
+        if not is_decision_node(key, query) or ("deterministic" in query and query["deterministic"] is True):
             continue
         query["diagnostic_thresholds"] = _make_thresholds_with_units(
             query["diagnostic_thresholds"]
@@ -228,7 +227,8 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     Obtain a list of necessary inputs from the decision tree as it is currently
     defined. Return a formatted string that contains the diagnostic names, the
     thresholds needed, and whether they are thresholded above or below these
-    values. This output is used with the --check-tree option in the CLI, informing
+    values. If the required diagnostic is deterministic then just the diagnostic names are
+    outputted. This output is used with the --check-tree option in the CLI, informing
     the user of the necessary inputs for a provided decision tree.
 
     Args:
@@ -241,19 +241,25 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     """
     # Diagnostic names and threshold values.
     requirements = {}
+    output = []
     for key, query in decision_tree.items():
         if not is_decision_node(key, query):
             continue
         diagnostics = get_parameter_names(
             expand_nested_lists(query, "diagnostic_fields")
         )
-        thresholds = expand_nested_lists(query, "diagnostic_thresholds")
-        for diagnostic, threshold in zip(diagnostics, thresholds):
-            requirements.setdefault(diagnostic, set()).add(threshold)
+        if "deterministic" in query:
+            for diagnostic in diagnostics:
+                output.append(f"\u26C5 {diagnostic} (deterministic)")
+                output.sort()
+        else:
+            thresholds = expand_nested_lists(query, "diagnostic_thresholds")
+            for diagnostic, threshold in zip(diagnostics, thresholds):
+                requirements.setdefault(diagnostic, set()).add(threshold)
 
     # Create a list of formatted strings that will be printed as part of the
     # CLI help.
-    output = []
+
     for requirement, uniq_thresh in sorted(requirements.items()):
         (units,) = {u.units for u in uniq_thresh}  # enforces same units
         thresh_str = ", ".join(map(str, sorted({v.points[0] for v in uniq_thresh})))
@@ -402,7 +408,8 @@ def check_tree(
             for n in decision_tree.values()
         ]
     ).flatten()
-    decision_tree = update_tree_thresholds(decision_tree, target_period)
+    if "deterministic" not in decision_tree or decision_tree["deterministic"] is False:
+        decision_tree = update_tree_thresholds(decision_tree, target_period)
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
     all_leaf_key_words = LEAF_REQUIRED_KEY_WORDS + LEAF_OPTIONAL_KEY_WORDS
@@ -508,18 +515,6 @@ def check_tree(
                     f"Node {node} uses invalid threshold condition {threshold}"
                 )
 
-            # Check diagnostic_conditions are all above or below.
-            diagnostic = items["diagnostic_conditions"]
-            tests_diagnostic = diagnostic
-            if isinstance(diagnostic[0], list):
-                tests_diagnostic = [item for sublist in diagnostic for item in sublist]
-            for value in tests_diagnostic:
-                if value not in DIAGNOSTIC_CONDITIONS:
-                    issues.append(
-                        f"Node {node} uses invalid diagnostic condition "
-                        f"'{value}'; this should be 'above' or 'below'"
-                    )
-
             # Check the succeed and fail destinations are valid; that is a valid
             # category for leaf nodes, and other tree nodes otherwise
             for result in "if_true", "if_false":
@@ -535,29 +530,45 @@ def check_tree(
                         f"Node {node} results in a bare category "
                         f"of {value} for the {result} condition. Should point to a leaf."
                     )
+            if "deterministic" in items and items["deterministic"] is True:
+                threshold_name="thresholds"
+            else:
+                # Check diagnostic_conditions are all above or below.
+                diagnostic = items["diagnostic_conditions"]
+                tests_diagnostic = diagnostic
+                if isinstance(diagnostic[0], list):
+                    tests_diagnostic = [item for sublist in diagnostic for item in sublist]
+                for value in tests_diagnostic:
+                    if value not in DIAGNOSTIC_CONDITIONS:
+                        issues.append(
+                            f"Node {node} uses invalid diagnostic condition "
+                            f"'{value}'; this should be 'above' or 'below'"
+                        )
+            
+                # Check diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds
+                # are all nested equivalently
+                if not _check_diagnostic_lists_consistency(items):
+                    issues.append(
+                        f"Node {node} has inconsistent nesting for the "
+                        "diagnostic_fields, diagnostic_conditions, and "
+                        "diagnostic_thresholds fields"
+                    )
+                threshold_name="probability_thresholds"
+                
 
-            # Check diagnostic_fields, diagnostic_conditions, and diagnostic_thresholds
-            # are all nested equivalently
-            if not _check_diagnostic_lists_consistency(items):
-                issues.append(
-                    f"Node {node} has inconsistent nesting for the "
-                    "diagnostic_fields, diagnostic_conditions, and "
-                    "diagnostic_thresholds fields"
-                )
-
-            # Check probability thresholds are numeric and there are as many of them
+            # Check probability thresholds/thresholds are numeric and there are as many of them
             # as there are diagnostics_fields.
-            prob_thresholds = items["probability_thresholds"]
+            thresholds = items[threshold_name]
             diagnostic_fields = items["diagnostic_fields"]
-            if not all(isinstance(x, (int, float)) for x in prob_thresholds):
+            if not all(isinstance(x, (int, float)) for x in thresholds):
                 issues.append(
                     f"Node {node} has a non-numeric probability threshold "
-                    f"{prob_thresholds}"
+                    f"{thresholds}"
                 )
-            if not len(prob_thresholds) == len(get_parameter_names(diagnostic_fields)):
+            if not len(thresholds) == len(get_parameter_names(diagnostic_fields)):
                 issues.append(
                     f"Node {node} has a different number of probability thresholds "
-                    f"and diagnostic_fields: {prob_thresholds}, {diagnostic_fields}"
+                    f"and diagnostic_fields: {thresholds}, {diagnostic_fields}"
                 )
 
     if not issues:
