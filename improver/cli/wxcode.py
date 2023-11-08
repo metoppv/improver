@@ -49,8 +49,8 @@ def process(
     """ Processes cube for Weather symbols.
 
     Args:
-        cubes (iris.cube.CubeList):
-            A cubelist containing the diagnostics required for the
+        cubes (list of Path objects):
+            A list of filepaths to the diagnostics required for the
             weather symbols decision tree, these at co-incident times.
         wxtree (dict):
             A JSON file containing a weather symbols decision tree definition.
@@ -80,8 +80,9 @@ def process(
             the inputs, where this generated title is only set if all of the
             inputs share a common title.
         update_time (int):
-            Time after which at least one input file must have been created to
-            proceed with regenerating the weather symbol output.
+            Time, as a unix timestamp, after which at least one input file must
+            have been created to proceed with regenerating the weather symbol
+            output.
 
     Returns:
         iris.cube.Cube:
@@ -94,9 +95,10 @@ def process(
 
     from improver.utilities.load import load_cubelist
 
-    # If no inputs newer than update time don't create a new output.
-    if not any([file.stat().st_mtime > update_time for file in cubes]):
-        return
+    if update_time is not None:
+        # If no inputs newer than update time don't create a new output.
+        if not any([file.stat().st_mtime > update_time for file in cubes]):
+            return
 
     cubes = load_cubelist([item.as_posix() for item in cubes])
 
