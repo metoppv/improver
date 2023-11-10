@@ -268,9 +268,8 @@ class PercentileBlendingAggregator:
               original percentiles.
 
        References:
-            Combining Probabilities by Caroline Jones, 2017:
-            https://github.com/metoppv/improver/files/1128018/
-            Combining_Probabilities.pdf
+        :download:`Combining Probabilities by Caroline Jones, 2017
+        <../files/Combining_Probabilities.pdf>`
     """
 
     @staticmethod
