@@ -222,7 +222,9 @@ class ApplyDecisionTree(BasePlugin):
                             missing_data.append([diagnostic, threshold, condition])
                         continue
 
-                    cube_threshold_units = find_threshold_coordinate(matched_cube[0]).units
+                    cube_threshold_units = find_threshold_coordinate(
+                        matched_cube[0]
+                    ).units
                     threshold.convert_units(cube_threshold_units)
 
                     # Then we check if the required threshold is present in the
@@ -271,7 +273,7 @@ class ApplyDecisionTree(BasePlugin):
                         else:
                             missing_data.append([diagnostic, threshold, condition])
                         continue
-                    used_cubes.extend(matched_cube)         
+                    used_cubes.extend(matched_cube)
 
         if missing_data:
             msg = "Decision Tree input cubes are missing the following required input fields:\n"
@@ -391,20 +393,23 @@ class ApplyDecisionTree(BasePlugin):
         """
         conditions = []
         loop = 0
-        if "deterministic" in test_conditions and test_conditions["deterministic"] is True:
-            coord="thresholds"
+        if (
+            "deterministic" in test_conditions
+            and test_conditions["deterministic"] is True
+        ):
+            coord = "thresholds"
         else:
-            coord="probability_thresholds"
+            coord = "probability_thresholds"
 
-        for index, (diagnostic, p_threshold)  in enumerate(zip(
-            test_conditions["diagnostic_fields"],
-            test_conditions[coord])):
-            
+        for index, (diagnostic, p_threshold) in enumerate(
+            zip(test_conditions["diagnostic_fields"], test_conditions[coord])
+        ):
+
             try:
-                d_threshold=test_conditions["diagnostic_thresholds"][index]
+                d_threshold = test_conditions["diagnostic_thresholds"][index]
             except KeyError:
-                d_threshold=None
-            
+                d_threshold = None
+
             loop += 1
             if isinstance(diagnostic, list):
                 # We have a list which could contain variable names, operators and
@@ -435,7 +440,7 @@ class ApplyDecisionTree(BasePlugin):
                         diagnostic, d_threshold, self.coord_named_threshold
                     )
                 else:
-                    extract_constraint=iris.Constraint(diagnostic)
+                    extract_constraint = iris.Constraint(diagnostic)
             conditions.append(
                 [
                     extract_constraint,
@@ -585,11 +590,13 @@ class ApplyDecisionTree(BasePlugin):
         """
         try:
             threshold_coord = find_threshold_coordinate(self.template_cube)
-            template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
+            template_cube = next(
+                self.template_cube.slices_over([threshold_coord])
+            ).copy()
             # remove coordinates and bounds that do not apply to a categorical cube
             template_cube.remove_coord(threshold_coord)
         except CoordinateNotFoundError:
-            template_cube=self.template_cube
+            template_cube = self.template_cube
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         if self.title:

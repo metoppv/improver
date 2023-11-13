@@ -33,13 +33,13 @@
 import unittest
 from datetime import datetime as dt
 from datetime import timedelta
-import pytest
 
 import iris
 import numpy as np
+import pytest
 from cf_units import Unit
-from iris.cube import Cube
 from iris.coords import AuxCoord
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
@@ -48,8 +48,13 @@ from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
 )
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube,set_up_variable_cube
-from . import wxcode_decision_tree, deterministic_diagnostic_tree
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
+
+from . import deterministic_diagnostic_tree, wxcode_decision_tree
+
 
 @pytest.fixture()
 def precip_cube() -> Cube:
@@ -67,6 +72,7 @@ def precip_cube() -> Cube:
     )
     return cube
 
+
 @pytest.fixture()
 def hail_cube() -> Cube:
     """
@@ -83,14 +89,22 @@ def hail_cube() -> Cube:
     )
     return cube
 
-@pytest.mark.parametrize("precip_fill,hail_fill,expected",((1,1,2),(1,0,1),(0,0,0)))
-def test_non_probablistic_tree(precip_cube,hail_cube,precip_fill,hail_fill,expected):
+
+@pytest.mark.parametrize(
+    "precip_fill,hail_fill,expected", ((1, 1, 2), (1, 0, 1), (0, 0, 0))
+)
+def test_non_probablistic_tree(
+    precip_cube, hail_cube, precip_fill, hail_fill, expected
+):
     """Test that ApplyDecisionTree correctly manages a decision tree with deterministic
     inputs"""
     precip_cube.data.fill(precip_fill)
     hail_cube.data.fill(hail_fill)
-    result= ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(iris.cube.CubeList([precip_cube,hail_cube]))
-    assert np.all(result.data==expected)
+    result = ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+        iris.cube.CubeList([precip_cube, hail_cube])
+    )
+    assert np.all(result.data == expected)
+
 
 class Test_WXCode(IrisTest):
 
