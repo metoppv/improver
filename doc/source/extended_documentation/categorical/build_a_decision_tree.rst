@@ -103,6 +103,31 @@ accessed with this key contains the essentials that make the node function.
     against the spp__relative_to_threshold attribute of the threshold coordinate
     in the provided diagnostic.
 
+It is also possible to build a node which uses a deterministic forecast. This
+is not currently used within the weather symbols decision tree but, as an example, the following shows
+how such a node would be encoded:
+
+  {
+    "precip_rate": {
+        "if_true": "rain",
+        "if_false": "dry",
+        "if_diagnostic_missing": "if_false",
+        "thresholds": [0],
+        "threshold_condition": ">",
+        "diagnostic_fields": ["precipitation_rate"],
+        "deterministic": True
+    },
+  }
+
+The keys for this dictionary have the same meaning as for a probabilistic node but with the
+following additional keys:
+
+  - **thresholds** (list(float)): The threshold(s) that must be exceeded or not
+    exceeded (see threshold_condition) for the node to progress to the succeed target.
+    Two values required if condition_combination is being used.
+  - **deterministic** (boolean): Determines whether the node is expecting a deterministic
+    input.
+
 The first leaf node above is encoded as follows::
 
   {
