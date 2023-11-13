@@ -592,7 +592,7 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
         "if_true": "hail_rate",
         "if_false": "dry",
         "thresholds": [0],
-        "threshold_condition": ">=",
+        "threshold_condition": ">",
         "condition_combination": "",
         "diagnostic_fields":["precipitation_rate"],
         "deterministic": True
@@ -601,7 +601,7 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
         "if_true": "hail",
         "if_false": "rain",
         "thresholds": [0],
-        "threshold_condition": ">=",
+        "threshold_condition": ">",
         "condition_combination": "",
         "diagnostic_fields":["hail_rate"],
         "deterministic": True

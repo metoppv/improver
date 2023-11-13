@@ -203,62 +203,75 @@ class ApplyDecisionTree(BasePlugin):
             diagnostics = get_parameter_names(
                 expand_nested_lists(query, "diagnostic_fields")
             )
-            thresholds = expand_nested_lists(query, "diagnostic_thresholds")
-            conditions = expand_nested_lists(query, "diagnostic_conditions")
-            for diagnostic, threshold, condition in zip(
-                diagnostics, thresholds, conditions
-            ):
+            if "deterministic" not in query or query["deterministic"] is False:
 
-                # First we check the diagnostic name and units, performing
-                # a conversion is required and possible.
-                test_condition = iris.Constraint(name=diagnostic)
-                matched_cube = cubes.extract(test_condition)
-                if not matched_cube:
-                    if "if_diagnostic_missing" in query:
-                        optional_node_data_missing.append(key)
+                thresholds = expand_nested_lists(query, "diagnostic_thresholds")
+                conditions = expand_nested_lists(query, "diagnostic_conditions")
+                for diagnostic, threshold, condition in zip(
+                    diagnostics, thresholds, conditions
+                ):
+
+                    # First we check the diagnostic name and units, performing
+                    # a conversion is required and possible.
+                    test_condition = iris.Constraint(name=diagnostic)
+                    matched_cube = cubes.extract(test_condition)
+                    if not matched_cube:
+                        if "if_diagnostic_missing" in query:
+                            optional_node_data_missing.append(key)
+                        else:
+                            missing_data.append([diagnostic, threshold, condition])
+                        continue
+
+                    cube_threshold_units = find_threshold_coordinate(matched_cube[0]).units
+                    threshold.convert_units(cube_threshold_units)
+
+                    # Then we check if the required threshold is present in the
+                    # cube, and that the thresholding is relative to it correctly.
+                    threshold = threshold.points.item()
+                    threshold_name = find_threshold_coordinate(matched_cube[0]).name()
+
+                    # Set flag to check for old threshold coordinate names
+                    if threshold_name == "threshold" and not self.coord_named_threshold:
+                        self.coord_named_threshold = True
+
+                    # Check threshold == 0.0
+                    if abs(threshold) < self.float_abs_tolerance:
+                        coord_constraint = {
+                            threshold_name: lambda cell: np.isclose(
+                                cell.point, 0, rtol=0, atol=self.float_abs_tolerance
+                            )
+                        }
                     else:
+                        coord_constraint = {
+                            threshold_name: lambda cell: np.isclose(
+                                cell.point, threshold, rtol=self.float_tolerance, atol=0
+                            )
+                        }
+
+                    # Checks whether the spp__relative_to_threshold attribute is above
+                    # or below a threshold and and compares to the diagnostic_condition.
+                    test_condition = iris.Constraint(
+                        coord_values=coord_constraint,
+                        cube_func=lambda cube: (
+                            probability_is_above_or_below(cube) == condition
+                        ),
+                    )
+                    matched_threshold = matched_cube.extract(test_condition)
+                    if not matched_threshold:
                         missing_data.append([diagnostic, threshold, condition])
-                    continue
-
-                cube_threshold_units = find_threshold_coordinate(matched_cube[0]).units
-                threshold.convert_units(cube_threshold_units)
-
-                # Then we check if the required threshold is present in the
-                # cube, and that the thresholding is relative to it correctly.
-                threshold = threshold.points.item()
-                threshold_name = find_threshold_coordinate(matched_cube[0]).name()
-
-                # Set flag to check for old threshold coordinate names
-                if threshold_name == "threshold" and not self.coord_named_threshold:
-                    self.coord_named_threshold = True
-
-                # Check threshold == 0.0
-                if abs(threshold) < self.float_abs_tolerance:
-                    coord_constraint = {
-                        threshold_name: lambda cell: np.isclose(
-                            cell.point, 0, rtol=0, atol=self.float_abs_tolerance
-                        )
-                    }
-                else:
-                    coord_constraint = {
-                        threshold_name: lambda cell: np.isclose(
-                            cell.point, threshold, rtol=self.float_tolerance, atol=0
-                        )
-                    }
-
-                # Checks whether the spp__relative_to_threshold attribute is above
-                # or below a threshold and and compares to the diagnostic_condition.
-                test_condition = iris.Constraint(
-                    coord_values=coord_constraint,
-                    cube_func=lambda cube: (
-                        probability_is_above_or_below(cube) == condition
-                    ),
-                )
-                matched_threshold = matched_cube.extract(test_condition)
-                if not matched_threshold:
-                    missing_data.append([diagnostic, threshold, condition])
-                else:
-                    used_cubes.extend(matched_threshold)
+                    else:
+                        used_cubes.extend(matched_threshold)
+            else:
+                for diagnostic in diagnostics:
+                    test_condition = iris.Constraint(name=diagnostic)
+                    matched_cube = cubes.extract(test_condition)
+                    if not matched_cube:
+                        if "if_diagnostic_missing" in query:
+                            optional_node_data_missing.append(key)
+                        else:
+                            missing_data.append([diagnostic, threshold, condition])
+                        continue
+                    used_cubes.extend(matched_cube)         
 
         if missing_data:
             msg = "Decision Tree input cubes are missing the following required input fields:\n"
@@ -378,13 +391,21 @@ class ApplyDecisionTree(BasePlugin):
         """
         conditions = []
         loop = 0
-        for diagnostic, p_threshold, d_threshold in zip(
-            test_conditions["diagnostic_fields"],
-            test_conditions["probability_thresholds"],
-            test_conditions["diagnostic_thresholds"],
-        ):
-            loop += 1
+        if "deterministic" in test_conditions and test_conditions["deterministic"] is True:
+            coord="thresholds"
+        else:
+            coord="probability_thresholds"
 
+        for index, (diagnostic, p_threshold)  in enumerate(zip(
+            test_conditions["diagnostic_fields"],
+            test_conditions[coord])):
+            
+            try:
+                d_threshold=test_conditions["diagnostic_thresholds"][index]
+            except KeyError:
+                d_threshold=None
+            
+            loop += 1
             if isinstance(diagnostic, list):
                 # We have a list which could contain variable names, operators and
                 # numbers. The variable names need converting into Iris Constraint
@@ -394,7 +415,7 @@ class ApplyDecisionTree(BasePlugin):
                 d_threshold_index = -1
                 extract_constraint = []
                 for item in diagnostic:
-                    if is_variable(item):
+                    if is_variable(item) or d_threshold is None:
                         # Add a constraint from the variable name and threshold value
                         d_threshold_index += 1
                         extract_constraint.append(
@@ -409,9 +430,12 @@ class ApplyDecisionTree(BasePlugin):
                         extract_constraint.append(item)
             else:
                 # Non-lists are assumed to be constraints on a single variable.
-                extract_constraint = self.construct_extract_constraint(
-                    diagnostic, d_threshold, self.coord_named_threshold
-                )
+                if d_threshold is not None:
+                    extract_constraint = self.construct_extract_constraint(
+                        diagnostic, d_threshold, self.coord_named_threshold
+                    )
+                else:
+                    extract_constraint=iris.Constraint(diagnostic)
             conditions.append(
                 [
                     extract_constraint,
@@ -559,10 +583,13 @@ class ApplyDecisionTree(BasePlugin):
             that will fill it and data initiated with the value -1 to allow
             any unset points to be readily identified.
         """
-        threshold_coord = find_threshold_coordinate(self.template_cube)
-        template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
-        # remove coordinates and bounds that do not apply to a categorical cube
-        template_cube.remove_coord(threshold_coord)
+        try:
+            threshold_coord = find_threshold_coordinate(self.template_cube)
+            template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
+            # remove coordinates and bounds that do not apply to a categorical cube
+            template_cube.remove_coord(threshold_coord)
+        except CoordinateNotFoundError:
+            template_cube=self.template_cube
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         if self.title:
