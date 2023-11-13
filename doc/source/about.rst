@@ -96,9 +96,15 @@ Publications & Presentations
 
 Below are links to publicly accessible publications & presentations that relate to IMPROVER.
 
+When citing IMPROVER, we recommend using the sources in the first two rows of the table below, which refer to the latest academic publication on IMPROVER and the latest release of the codebase respectively.
+
 +---------------------------------------------------------------------------------------------+-----------------------------------+
 | Title                                                                                       | Authors                           |
 +=============================================================================================+===================================+
+|`IMPROVER - The New Probabilistic Postprocessing System at the Met Office (BAMS 2023)`_      | Nigel Roberts et al.              |
++---------------------------------------------------------------------------------------------+-----------------------------------+
+|`Archive of latest released version of IMPROVER (Zenodo)`_                                   | IMPROVER Collaborators            |
++---------------------------------------------------------------------------------------------+-----------------------------------+
 |`A post-processing and verification strategy for the future (MOSAC 2015)`_                   | Nigel Roberts & Marion Mittermaier|
 +---------------------------------------------------------------------------------------------+-----------------------------------+
 |`IMPROVER - the new post processing and verification system (MOSAC 2019)`_                   | Nigel Roberts et al.              |
@@ -109,12 +115,17 @@ Below are links to publicly accessible publications & presentations that relate 
 +---------------------------------------------------------------------------------------------+-----------------------------------+
 |`Topographic neighbourhood processing`_                                                      | Fiona Rust                        |
 +---------------------------------------------------------------------------------------------+-----------------------------------+
+|`Improving the blend of multiple weather forecast sources by Reliability Calibration`_       | Fiona Rust et al.                 |
++---------------------------------------------------------------------------------------------+-----------------------------------+
 
+.. _IMPROVER - The New Probabilistic Postprocessing System at the Met Office (BAMS 2023): https://doi.org/10.1175/BAMS-D-21-0273.1
+.. _Archive of latest released version of IMPROVER (Zenodo): https://doi.org/10.5281/zenodo.8410114
 .. _A post-processing and verification strategy for the future (MOSAC 2015): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_2015_20.19_Post-processing-verification.pdf
 .. _IMPROVER - the new post processing and verification system (MOSAC 2019): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_23.9_Roberts_Paper_171218.pdf
 .. _Generating probabilistic forecasts from convection permitting ensembles: https://presentations.copernicus.org/EMS2017-277_presentation.pdf
 .. _Creating a probabilistic, multi-model post-processing system (IMPROVER) at the Met Office: https://presentations.copernicus.org/EMS2018-20_presentation.pdf
 .. _Topographic neighbourhood processing: https://presentations.copernicus.org/EMS2018-70_presentation.pdf
+.. _Improving the blend of multiple weather forecast sources by Reliability Calibration: https://doi.org/10.1002/met.2142
 
 
 Contributing

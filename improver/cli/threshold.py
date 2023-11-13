@@ -58,20 +58,31 @@ def process(
     Args:
         cube (iris.cube.Cube):
             A cube to be processed.
+        land_sea_mask (Cube):
+            Binary land-sea mask data. True for land-points, False for sea.
+            Restricts in-vicinity processing to only include points of a
+            like mask value.
         threshold_values (list of float):
-            Threshold value or values about which to calculate the truth
-            values; e.g. 270,300. Must be omitted if 'threshold_config'
-            is used.
+            Threshold value or values (e.g. 270K, 300K) to use when calculating
+            the probability of the input relative to the threshold value(s).
+            These are provided as a comma separated list, e.g. 270,300
+            The units of these values, e.g. K in the example can be defined
+            using the threshold_units argument or are otherwise assumed to
+            match the units of the diagnostic being thresholded.
+            threshold_values and and threshold_config are mutually exclusive
+            arguments, defining both will lead to an exception.
         threshold_config (dict):
             Threshold configuration containing threshold values and
             (optionally) fuzzy bounds. Best used in combination with
-            'threshold_units' It should contain a dictionary of strings that
+            'threshold_units'. It should contain a dictionary of strings that
             can be interpreted as floats with the structure:
             "THRESHOLD_VALUE": [LOWER_BOUND, UPPER_BOUND]
             e.g: {"280.0": [278.0, 282.0], "290.0": [288.0, 292.0]},
             or with structure "THRESHOLD_VALUE": "None" (no fuzzy bounds).
             Repeated thresholds with different bounds are ignored; only the
             last duplicate will be used.
+            threshold_values and and threshold_config are mutually exclusive
+            arguments, defining both will lead to an exception.
         threshold_units (str):
             Units of the threshold values. If not provided the units are
             assumed to be the same as those of the input cube. Specifying
@@ -104,10 +115,6 @@ def process(
             List of distances in metres used to define the vicinities within
             which to search for an occurrence. Each vicinity provided will
             lead to a different gridded field.
-        land_sea_mask (Cube):
-            Binary land-sea mask data. True for land-points, False for sea.
-            Restricts in-vicinity processing to only include points of a
-            like mask value.
         fill_masked (float):
             If provided all masked points in cube will be replaced with the
             provided value before thresholding.
@@ -115,78 +122,16 @@ def process(
     Returns:
         iris.cube.Cube:
             Cube of probabilities relative to the given thresholds
-
-    Raises:
-        ValueError: If threshold_config and threshold_values are both set
-        ValueError: If threshold_config is used for fuzzy thresholding
-        ValueError: Cannot apply land-mask cube without in-vicinity processing.
-        ValueError: Can only collapse over a realization coordinate or a percentile
-            coordinate that has been rebadged as a realization coordinate.
     """
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        RebadgePercentilesAsRealizations,
-    )
-    from improver.threshold import BasicThreshold
-    from improver.utilities.cube_manipulation import collapse_realizations
-    from improver.utilities.spatial import OccurrenceWithinVicinity
+    from improver.threshold import Threshold
 
-    if threshold_config and threshold_values:
-        raise ValueError(
-            "--threshold-config and --threshold-values are mutually exclusive "
-            "- please set one or the other, not both"
-        )
-    if threshold_config and fuzzy_factor:
-        raise ValueError("--threshold-config cannot be used for fuzzy thresholding")
-    if threshold_config:
-        thresholds = []
-        fuzzy_bounds = []
-        for key in threshold_config.keys():
-            # Ensure thresholds are float64 to avoid rounding errors during
-            # possible unit conversion.
-            thresholds.append(float(key))
-            # If the first threshold has no bounds, fuzzy_bounds is
-            # set to None and subsequent bounds checks are skipped
-            if threshold_config[key] == "None":
-                fuzzy_bounds = None
-                continue
-            fuzzy_bounds.append(tuple(threshold_config[key]))
-    else:
-        # Ensure thresholds are float64 to avoid rounding errors during possible
-        # unit conversion.
-        thresholds = [float(x) for x in threshold_values]
-        fuzzy_bounds = None
-
-    each_threshold_func_list = []
-
-    if vicinity is not None:
-        vicinity = [float(x) for x in vicinity]
-        # smooth thresholded occurrences over local vicinity
-        each_threshold_func_list.append(
-            OccurrenceWithinVicinity(radii=vicinity, land_mask_cube=land_sea_mask)
-        )
-    elif land_sea_mask:
-        raise ValueError("Cannot apply land-mask cube without in-vicinity processing")
-
-    if collapse_coord == "realization":
-        each_threshold_func_list.append(collapse_realizations)
-    elif collapse_coord == "percentile":
-        cube = RebadgePercentilesAsRealizations()(cube)
-        each_threshold_func_list.append(collapse_realizations)
-    elif collapse_coord is not None:
-        raise ValueError(
-            "Can only collapse over a realization coordinate or a percentile "
-            "coordinate that has been rebadged as a realization coordinate."
-        )
-
-    if fill_masked is not None:
-        fill_masked = float(fill_masked)
-
-    return BasicThreshold(
-        thresholds,
+    return Threshold(
+        threshold_values=threshold_values,
+        threshold_config=threshold_config,
         fuzzy_factor=fuzzy_factor,
-        fuzzy_bounds=fuzzy_bounds,
         threshold_units=threshold_units,
         comparison_operator=comparison_operator,
-        each_threshold_func=each_threshold_func_list,
+        collapse_coord=collapse_coord,
+        vicinity=vicinity,
         fill_masked=fill_masked,
-    )(cube)
+    )(cube, land_sea_mask)

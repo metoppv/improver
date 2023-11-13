@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,46 +28,48 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to apply a scaling factor to account for a correction linked to the
-difference in altitude between the grid point and the site location."""
+"""CLI for SnowSplitter"""
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    forecast: cli.inputcube,
-    scaling_factor: cli.inputcube,
-    *,
-    site_id_coord: str = "wmo_id",
-):
-    """Apply a scaling factor to account for a correction linked to the difference
-    in altitude between the grid point and the site location.
+def process(*cubes: cli.inputcube, output_is_rain: bool):
+    """
+    Separates the snow/rain contribution from precipitation rate/accumulation.
+
+    Whether the output is a rate or accumulation will depend on the precipitation_cube.
+    output_is_rain determines whether the outputted cube is a cube of snow or rain.
+
+    The probability of rain and snow at the surfaces should only contain 1's where the
+    precip type is present at the surface and 0's where the precip type is not present
+    at the surface. These cubes need to be consistent with each other such that both
+    rain and snow can't be present at the surface (e.g. at no grid square can both
+    diagnostics have a probability of 1).
+
+    A grid of coefficients is calculated by an arbitrary function that maps
+    (0,0) -> 0.5, (1,0) -> 1, (0,1) -> 0 where the first coordinate is the probability
+    for the variable that will be outputted. This grid of coefficients is then multiplied
+    by the precipitation rate/accumulation to split out the contribution of the desired
+    variable.
 
     Args:
-        forecast (iris.cube.Cube):
-            Percentile forecasts.
-        rescaling_cube (iris.cube.Cube):
-            Multiplicative scaling factor to adjust the percentile forecasts.
-            This cube is expected to contain multiple values for the forecast_period
-            and forecast_reference_time_hour coordinates. The most appropriate
-            forecast period and forecast reference_time_hour pair within the
-            rescaling cube are chosen using the forecast reference time hour from
-            the forecast and the nearest forecast period that is greater than or
-            equal to the forecast period of the forecast. However, if the forecast
-            period of the forecast exceeds all forecast periods within the rescaling
-            cube, the scaling factor from the maximum forecast period is used.
-            This cube is generated using the estimate_dz_rescaling CLI.
-        site_id_coord (str):
-            The name of the site ID coordinate. This defaults to 'wmo_id'.
+        cubes (iris.cube.CubeList or list):
+            Contains cubes of probability of rain at surface, probability of snow at
+            surface and precipitation rate/accumulation.
+        output_is_rain (bool):
+            A boolean where True means the plugin will output rain and False means the
+            output is snow.
 
     Returns:
         iris.cube.Cube:
-            Percentile forecasts that have been rescaled to account for a difference
-            in altitude between the grid point and the site location.
+            Cube of rain/snow (depending on self.output_is_rain) rate/accumulation (depending
+            on precipitation cube)
+
     """
+    from iris.cube import CubeList
 
-    from improver.calibration.dz_rescaling import ApplyDzRescaling
+    from improver.precipitation_type.snow_splitter import SnowSplitter
 
-    return ApplyDzRescaling(site_id_coord=site_id_coord)(forecast, scaling_factor)
+    return SnowSplitter(output_is_rain=output_is_rain)(CubeList(cubes))
