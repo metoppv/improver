@@ -158,6 +158,7 @@ def save_netcdf(
         )
 
     # save atomically by writing to a temporary file and then renaming
+    os.makedirs(os.path.dirname(filename), exist_ok=True)
     ftmp = str(filename) + ".tmp"
     iris.fileformats.netcdf.save(
         cubelist,
