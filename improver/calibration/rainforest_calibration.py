@@ -574,7 +574,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             for threshold_index, threshold in enumerate(self.model_thresholds):
                 model = self.tree_models[model_lead_time, threshold]
                 prediction = model.predict(dataset_for_prediction)
-                prediction = np.maximum(np.minimum(1, prediction), 0)
+                prediction = np.clip(prediction, 0, 1)
                 full_prediction[predict_rows] = prediction
                 full_prediction = full_prediction[fill_inds]
                 # restore original order
@@ -587,7 +587,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             for threshold_index, threshold in enumerate(self.model_thresholds):
                 model = self.tree_models[model_lead_time, threshold]
                 prediction = model.predict(dataset_for_prediction)
-                prediction = np.maximum(np.minimum(1, prediction), 0)
+                prediction = np.clip(prediction, 0, 1)
                 output_data[threshold_index, :] = np.reshape(
                     prediction, output_data.shape[1:]
                 )
