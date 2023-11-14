@@ -134,18 +134,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
-    def process(self) -> None:
-        """Subclasses should override this function."""
-        raise NotImplementedError(
-            "process function must be called via subclass method."
-        )
-
-    def _get_num_features(self) -> int:
-        """Subclasses should override this function."""
-        raise NotImplementedError(
-            "_get_num_features function must be called via subclass method."
-        )
-
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
         Args:
