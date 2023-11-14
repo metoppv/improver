@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wxcode-modal CLI"""
+"""Tests for the categorical-modes CLI"""
 
 import pytest
 
@@ -52,8 +52,8 @@ run_cli = acc.run_cli(CLI)
 )
 @pytest.mark.slow
 def test_expected(tmp_path, test_path):
-    """Test wxcode modal calculation returns the expected results. The tests
-    are:
+    """Test categorical modal calculation returns the expected results with weather symbol data.
+    The tests are:
 
         - simple gridded / spot data input
         - gridded / spot data input engineered to provide many ties that are
@@ -62,12 +62,15 @@ def test_expected(tmp_path, test_path):
         - spot data where one input has a different blend-time to the rest
         - a single input file rather than multiple
     """
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
+    kgo_dir = acc.kgo_root() / "categorical-modes" / test_path
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = (kgo_dir).glob("202012*.nc")
+    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
+        "--decision-tree",
+        wxtree,
         "--model-id-attr",
         "mosg__model_configuration",
         "--record-run-attr",
@@ -81,8 +84,11 @@ def test_expected(tmp_path, test_path):
 
 def test_no_input(tmp_path):
     """Test an exceptions is raised by the CLI if no cubes are provided."""
+    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
+        "--decision-tree",
+        wxtree,
         "--output",
         output_path,
     ]
