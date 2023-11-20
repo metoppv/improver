@@ -33,6 +33,7 @@
 from typing import Dict, Optional
 
 import iris
+import numpy as np
 import numpy.ma as ma
 from iris.cube import Cube, CubeList
 from numpy import ndarray
@@ -75,6 +76,13 @@ def evaluate_additive_error(
         An array containing the mean additive forecast error values.
     """
     forecast_errors = forecasts - truths
+    # Set the masks explicitly to inherit the masks from both cubes
+    truths_mask = truths.data.mask if isinstance(truths.data, ma.MaskedArray) else False
+    forecasts_mask = (
+        forecasts.data.mask if isinstance(forecasts.data, ma.MaskedArray) else False
+    )
+    if np.any(truths_mask) or np.any(forecasts_mask):
+        forecast_errors.data.mask = ma.mask_or(forecasts_mask, truths_mask)
     if collapse_dim in get_dim_coord_names(forecast_errors):
         mean_forecast_error = collapsed(
             forecast_errors, collapse_dim, iris.analysis.MEAN
@@ -289,7 +297,7 @@ class ApplyBiasCorrection(BasePlugin):
                 Cubelist containing the input bias cube(s).
 
         Returns:
-            Cube containing the mean bias evaulated from set of bias_values.
+            Cube containing the mean bias evaluated from set of bias_values.
         """
         # Currently only support for cases where the input bias_values are defined
         # over a single forecast_reference_time.
