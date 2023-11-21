@@ -33,7 +33,6 @@
 from typing import Dict, Optional
 
 import iris
-import numpy as np
 import numpy.ma as ma
 from iris.cube import Cube, CubeList
 from numpy import ndarray
@@ -77,12 +76,12 @@ def evaluate_additive_error(
     """
     forecast_errors = forecasts - truths
     # Set the masks explicitly to inherit the masks from both cubes
-    truths_mask = truths.data.mask if isinstance(truths.data, ma.MaskedArray) else False
-    forecasts_mask = (
-        forecasts.data.mask if isinstance(forecasts.data, ma.MaskedArray) else False
-    )
-    if np.any(truths_mask) or np.any(forecasts_mask):
-        forecast_errors.data.mask = ma.mask_or(forecasts_mask, truths_mask)
+    if isinstance(forecasts.data, ma.MaskedArray) or isinstance(
+        truths.data, ma.MaskedArray
+    ):
+        forecast_errors.data.mask = ma.mask_or(
+            ma.asarray(forecasts.data).mask, ma.asarray(truths.data).mask
+        )
     if collapse_dim in get_dim_coord_names(forecast_errors):
         mean_forecast_error = collapsed(
             forecast_errors, collapse_dim, iris.analysis.MEAN
