@@ -91,7 +91,7 @@ def hail_cube() -> Cube:
 
 
 @pytest.mark.parametrize(
-    "precip_fill,hail_fill,expected", ((1, 1, 2), (1, 0, 1), (0, 0, 0))
+    "precip_fill,hail_fill,expected", ((1, 1, 2), (1, 0, 1), (0, 0, 0), (0, 1, 0))
 )
 def test_non_probablistic_tree(
     precip_cube, hail_cube, precip_fill, hail_fill, expected
@@ -104,6 +104,16 @@ def test_non_probablistic_tree(
         iris.cube.CubeList([precip_cube, hail_cube])
     )
     assert np.all(result.data == expected)
+
+
+def test_non_probablistic_tree_missing_data(hail_cube):
+    """Test that ApplyDecisionTree raises an error if an input is missing"""
+
+    msg = "Decision Tree input cubes are missing"
+    with pytest.raises(IOError, match=msg):
+        ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+            iris.cube.CubeList([hail_cube])
+        )
 
 
 class Test_WXCode(IrisTest):

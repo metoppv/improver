@@ -112,9 +112,7 @@ def update_tree_thresholds(
         return iris.coords.AuxCoord(values, units=units)
 
     for key, query in tree.items():
-        if not is_decision_node(key, query) or (
-            "deterministic" in query and query["deterministic"] is True
-        ):
+        if not is_decision_node(key, query) or query.get("deterministic", False):
             continue
         query["diagnostic_thresholds"] = _make_thresholds_with_units(
             query["diagnostic_thresholds"]
@@ -248,6 +246,8 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     """
     # Diagnostic names and threshold values.
     requirements = {}
+    # Create a list of formatted strings that will be printed as part of the
+    # CLI help.
     output = []
     for key, query in decision_tree.items():
         if not is_decision_node(key, query):
@@ -255,7 +255,7 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
         diagnostics = get_parameter_names(
             expand_nested_lists(query, "diagnostic_fields")
         )
-        if "deterministic" in query:
+        if query.get("deterministic", False):
             for diagnostic in diagnostics:
                 output.append(f"\u26C5 {diagnostic} (deterministic)")
                 output.sort()
@@ -263,9 +263,6 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
             thresholds = expand_nested_lists(query, "diagnostic_thresholds")
             for diagnostic, threshold in zip(diagnostics, thresholds):
                 requirements.setdefault(diagnostic, set()).add(threshold)
-
-    # Create a list of formatted strings that will be printed as part of the
-    # CLI help.
 
     for requirement, uniq_thresh in sorted(requirements.items()):
         (units,) = {u.units for u in uniq_thresh}  # enforces same units
@@ -415,7 +412,7 @@ def check_tree(
             for n in decision_tree.values()
         ]
     ).flatten()
-    if "deterministic" not in decision_tree or decision_tree["deterministic"] is False:
+    if not decision_tree.get("deterministic", False):
         decision_tree = update_tree_thresholds(decision_tree, target_period)
 
     all_key_words = REQUIRED_KEY_WORDS + OPTIONAL_KEY_WORDS
@@ -537,7 +534,7 @@ def check_tree(
                         f"Node {node} results in a bare category "
                         f"of {value} for the {result} condition. Should point to a leaf."
                     )
-            if "deterministic" in items and items["deterministic"] is True:
+            if items.get("deterministic", False):
                 threshold_name = "thresholds"
             else:
                 # Check diagnostic_conditions are all above or below.
@@ -564,7 +561,7 @@ def check_tree(
                     )
                 threshold_name = "probability_thresholds"
 
-            # Check probability thresholds/thresholds are numeric and there are as many of them
+            # Check thresholds are numeric and there are as many of them
             # as there are diagnostics_fields.
             thresholds = items[threshold_name]
             diagnostic_fields = items["diagnostic_fields"]

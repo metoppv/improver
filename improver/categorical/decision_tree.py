@@ -203,8 +203,18 @@ class ApplyDecisionTree(BasePlugin):
             diagnostics = get_parameter_names(
                 expand_nested_lists(query, "diagnostic_fields")
             )
-            if "deterministic" not in query or query["deterministic"] is False:
-
+            if query.get("deterministic", False):
+                for diagnostic in diagnostics:
+                    test_condition = iris.Constraint(name=diagnostic)
+                    matched_cube = cubes.extract(test_condition)
+                    if not matched_cube:
+                        if "if_diagnostic_missing" in query:
+                            optional_node_data_missing.append(key)
+                        else:
+                            missing_data.append([diagnostic])
+                        continue
+                    used_cubes.extend(matched_cube)
+            else:
                 thresholds = expand_nested_lists(query, "diagnostic_thresholds")
                 conditions = expand_nested_lists(query, "diagnostic_conditions")
                 for diagnostic, threshold, condition in zip(
@@ -263,22 +273,16 @@ class ApplyDecisionTree(BasePlugin):
                         missing_data.append([diagnostic, threshold, condition])
                     else:
                         used_cubes.extend(matched_threshold)
-            else:
-                for diagnostic in diagnostics:
-                    test_condition = iris.Constraint(name=diagnostic)
-                    matched_cube = cubes.extract(test_condition)
-                    if not matched_cube:
-                        if "if_diagnostic_missing" in query:
-                            optional_node_data_missing.append(key)
-                        else:
-                            missing_data.append([diagnostic, threshold, condition])
-                        continue
-                    used_cubes.extend(matched_cube)
 
         if missing_data:
             msg = "Decision Tree input cubes are missing the following required input fields:\n"
-            dyn_msg = "name: {}, threshold: {}, " "spp__relative_to_threshold: {}\n"
             for item in missing_data:
+                if len(item) == 1:
+                    dyn_msg = "name:{}"
+                else:
+                    dyn_msg = (
+                        "name: {}, threshold: {}, " "spp__relative_to_threshold: {}\n"
+                    )
                 msg = msg + dyn_msg.format(*item)
             raise IOError(msg)
 
@@ -393,10 +397,7 @@ class ApplyDecisionTree(BasePlugin):
         """
         conditions = []
         loop = 0
-        if (
-            "deterministic" in test_conditions
-            and test_conditions["deterministic"] is True
-        ):
+        if test_conditions.get("deterministic", False):
             coord = "thresholds"
         else:
             coord = "probability_thresholds"
@@ -405,11 +406,8 @@ class ApplyDecisionTree(BasePlugin):
             zip(test_conditions["diagnostic_fields"], test_conditions[coord])
         ):
 
-            try:
-                d_threshold = test_conditions["diagnostic_thresholds"][index]
-            except KeyError:
-                d_threshold = None
-
+            d_threshold = test_conditions.get("diagnostic_thresholds")
+            d_threshold = d_threshold[index] if d_threshold else None
             loop += 1
             if isinstance(diagnostic, list):
                 # We have a list which could contain variable names, operators and
@@ -420,7 +418,8 @@ class ApplyDecisionTree(BasePlugin):
                 d_threshold_index = -1
                 extract_constraint = []
                 for item in diagnostic:
-                    if is_variable(item) or d_threshold is None:
+                    if is_variable(item):
+                        print(d_threshold)
                         # Add a constraint from the variable name and threshold value
                         d_threshold_index += 1
                         extract_constraint.append(
@@ -435,7 +434,7 @@ class ApplyDecisionTree(BasePlugin):
                         extract_constraint.append(item)
             else:
                 # Non-lists are assumed to be constraints on a single variable.
-                if d_threshold is not None:
+                if d_threshold:
                     extract_constraint = self.construct_extract_constraint(
                         diagnostic, d_threshold, self.coord_named_threshold
                     )
@@ -590,13 +589,14 @@ class ApplyDecisionTree(BasePlugin):
         """
         try:
             threshold_coord = find_threshold_coordinate(self.template_cube)
+        except CoordinateNotFoundError:
+            template_cube = self.template_cube
+        else:
             template_cube = next(
                 self.template_cube.slices_over([threshold_coord])
             ).copy()
             # remove coordinates and bounds that do not apply to a categorical cube
             template_cube.remove_coord(threshold_coord)
-        except CoordinateNotFoundError:
-            template_cube = self.template_cube
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         if self.title:
