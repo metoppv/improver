@@ -211,7 +211,7 @@ class ApplyDecisionTree(BasePlugin):
                         if "if_diagnostic_missing" in query:
                             optional_node_data_missing.append(key)
                         else:
-                            missing_data.append([diagnostic])
+                            missing_data.append(f"name: {diagnostic} (deterministic)")
                         continue
                     used_cubes.extend(matched_cube)
             else:
@@ -229,7 +229,7 @@ class ApplyDecisionTree(BasePlugin):
                         if "if_diagnostic_missing" in query:
                             optional_node_data_missing.append(key)
                         else:
-                            missing_data.append([diagnostic, threshold, condition])
+                            missing_data.append(f"name: {diagnostic}, threshold: {threshold}, " f"spp__relative_to_threshold: {condition}\n")
                         continue
 
                     cube_threshold_units = find_threshold_coordinate(
@@ -270,20 +270,13 @@ class ApplyDecisionTree(BasePlugin):
                     )
                     matched_threshold = matched_cube.extract(test_condition)
                     if not matched_threshold:
-                        missing_data.append([diagnostic, threshold, condition])
+                        missing_data.append(f"name: {diagnostic}, threshold: {threshold}, " f"spp__relative_to_threshold: {condition}\n")
                     else:
                         used_cubes.extend(matched_threshold)
 
         if missing_data:
             msg = "Decision Tree input cubes are missing the following required input fields:\n"
-            for item in missing_data:
-                if len(item) == 1:
-                    dyn_msg = "name:{}"
-                else:
-                    dyn_msg = (
-                        "name: {}, threshold: {}, " "spp__relative_to_threshold: {}\n"
-                    )
-                msg = msg + dyn_msg.format(*item)
+            for dyn_msg in missing_data: msg += dyn_msg
             raise IOError(msg)
 
         if not optional_node_data_missing:
@@ -419,7 +412,6 @@ class ApplyDecisionTree(BasePlugin):
                 extract_constraint = []
                 for item in diagnostic:
                     if is_variable(item):
-                        print(d_threshold)
                         # Add a constraint from the variable name and threshold value
                         d_threshold_index += 1
                         extract_constraint.append(

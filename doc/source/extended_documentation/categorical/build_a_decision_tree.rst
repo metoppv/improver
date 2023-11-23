@@ -105,7 +105,7 @@ accessed with this key contains the essentials that make the node function.
 
 It is also possible to build a node which uses a deterministic forecast. This
 is not currently used within the weather symbols decision tree but, as an example, the following shows
-how such a node would be encoded:
+how such a node would be encoded::
 
   {
     "precip_rate": {
