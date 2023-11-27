@@ -576,3 +576,40 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
         }
 
     return queries
+
+
+def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
+    """
+    Define an example decision tree with nodes that require deterministic
+    data.
+
+    Returns:
+        A dictionary containing the queries that comprise the decision
+        tree.
+    """
+    queries = {
+        "meta": {"name": "precipitation_type"},
+        "precip_rate": {
+            "if_true": "hail_rate",
+            "if_false": "dry",
+            "thresholds": [0],
+            "threshold_condition": ">",
+            "condition_combination": "",
+            "diagnostic_fields": ["precipitation_rate"],
+            "deterministic": True,
+        },
+        "hail_rate": {
+            "if_true": "hail",
+            "if_false": "rain",
+            "thresholds": [0],
+            "threshold_condition": ">",
+            "condition_combination": "",
+            "diagnostic_fields": ["hail_rate"],
+            "deterministic": True,
+        },
+        "dry": {"leaf": 0},
+        "rain": {"leaf": 1},
+        "hail": {"leaf": 2},
+    }
+
+    return queries

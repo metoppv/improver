@@ -59,7 +59,11 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 from improver.utilities.load import load_cube
 from improver.utilities.save import save_netcdf
-from improver_tests.categorical.decision_tree import set_up_wxcube, wxcode_decision_tree
+from improver_tests.categorical.decision_tree import (
+    deterministic_diagnostic_tree,
+    set_up_wxcube,
+    wxcode_decision_tree,
+)
 
 
 @pytest.mark.parametrize(
@@ -444,6 +448,17 @@ def test_interrogate_decision_tree_accumulation_3h():
     assert result == expected
 
 
+def test_interrogate_decision_tree_deterministic():
+    """Test that the function returns the right strings."""
+    expected = (
+        "\u26C5 hail_rate (deterministic)\n"
+        "\u26C5 precipitation_rate (deterministic)\n"
+    )
+    tree = deterministic_diagnostic_tree()
+    result = interrogate_decision_tree(tree)
+    assert result == expected
+
+
 class Test_get_parameter_names(IrisTest):
     """Test the get_parameter_names method."""
 
@@ -691,14 +706,17 @@ def test_check_tree_non_dictionary():
         check_tree(1.0)
 
 
-def test_check_tree_list_requirements():
+@pytest.mark.parametrize(
+    "decision_tree", (wxcode_decision_tree, deterministic_diagnostic_tree)
+)
+def test_check_tree_list_requirements(decision_tree):
     """
     This test simply checks that the expected wrapper text is returned. The
     listing of the diagnostics is checked in testing the interrogate_decision_tree
     function.
     """
     expected = "Decision tree OK\nRequired inputs are:"
-    tree = wxcode_decision_tree()
+    tree = decision_tree()
     result = check_tree(tree)
     assert expected in result
 
