@@ -57,7 +57,10 @@ VALID_TIME = datetime(2022, 12, 6, 3, 0)
 
 
 def generate_dataset(
-    num_frts: int = 1, truth_dataset: bool = False, data: ndarray = None
+    num_frts: int = 1,
+    truth_dataset: bool = False,
+    data: ndarray = None,
+    masked: bool = False,
 ) -> Cube:
     """Generate sample input datasets.
 
@@ -90,7 +93,15 @@ def generate_dataset(
     else:
         data_shape = data.shape
     # Construct the cubes.
+    if masked:
+        data = np.ma.masked_array(data)
+        data.mask = np.zeros(shape=data_shape, dtype=bool)
+        if truth_dataset:
+            data.mask[:, -1] = True
+        else:
+            data.mask[0, :] = True
     ref_forecast_cubes = CubeList()
+    data_mask = data.mask if isinstance(data, np.ma.MaskedArray) else False
     for time in times:
         if (num_frts > 1) and (not truth_dataset):
             noise = rng.normal(0.0, 0.1, data_shape).astype(np.float32)
@@ -108,11 +119,13 @@ def generate_dataset(
         )
     ref_forecast_cube = ref_forecast_cubes.merge_cube()
 
-    return ref_forecast_cube
+    return ref_forecast_cube, data_mask
 
 
 @pytest.mark.parametrize("num_frt", (1, 30))
-def test_evaluate_additive_error(num_frt):
+@pytest.mark.parametrize("mask_truth", (False, True))
+@pytest.mark.parametrize("mask_forecast", (False, True))  # , True))
+def test_evaluate_additive_error(num_frt, mask_truth, mask_forecast):
     """test additive error evaluation gives expected value (within tolerance)."""
     data = 273.0 + np.array(
         [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [3.0, 3.0, 3.0]], dtype=np.float32
@@ -122,19 +135,26 @@ def test_evaluate_additive_error(num_frt):
     )
     truth_data = data - diff
 
-    historic_forecasts = generate_dataset(num_frt, data=data)
-    truths = generate_dataset(num_frt, truth_dataset=True, data=truth_data)
+    historic_forecasts, forecasts_mask = generate_dataset(
+        num_frt, data=data, masked=mask_forecast
+    )
+    truths, truths_mask = generate_dataset(
+        num_frt, truth_dataset=True, data=truth_data, masked=mask_truth
+    )
     truths.remove_coord("forecast_reference_time")
 
     result = evaluate_additive_error(historic_forecasts, truths, collapse_dim="time")
+
     assert np.allclose(result, diff, atol=0.05)
+    if mask_forecast or mask_truth:
+        assert np.all(result.mask == np.ma.mask_or(truths_mask, forecasts_mask))
 
 
 # Test case where we have a single or multiple reference forecasts.
 @pytest.mark.parametrize("num_frt", (1, 4))
 def test__define_metadata(num_frt):
     """Test the resultant metadata is as expected."""
-    reference_forecast_cube = generate_dataset(num_frt)
+    reference_forecast_cube, _ = generate_dataset(num_frt)
 
     expected = ATTRIBUTES.copy()
     expected["title"] = "Forecast bias data"
@@ -150,7 +170,7 @@ def test__define_metadata(num_frt):
 @pytest.mark.parametrize("num_frt", (1, 4))
 def test__create_bias_cube(num_frt):
     """Test that the bias cube has the expected structure."""
-    reference_forecast_cube = generate_dataset(num_frt)
+    reference_forecast_cube, _ = generate_dataset(num_frt)
     result = CalculateForecastBias()._create_bias_cube(reference_forecast_cube)
 
     # Check all but the time dim coords are consistent
@@ -193,11 +213,17 @@ def test__create_bias_cube(num_frt):
 # truth values including case where num_truth_frt != num_fcst_frt.
 @pytest.mark.parametrize("num_fcst_frt", (1, 50))
 @pytest.mark.parametrize("num_truth_frt", (1, 48, 50))
-def test_process(num_fcst_frt, num_truth_frt):
+@pytest.mark.parametrize("mask_truth", (False, True))
+@pytest.mark.parametrize("mask_forecast", (False, True))  # , True))
+def test_process(num_fcst_frt, num_truth_frt, mask_truth, mask_forecast):
     """Test process function over a variations in number of historical forecasts and
     truth values passed in."""
-    reference_forecast_cube = generate_dataset(num_fcst_frt)
-    truth_cube = generate_dataset(num_truth_frt, truth_dataset=True)
+    reference_forecast_cube, forecasts_mask = generate_dataset(
+        num_fcst_frt, masked=mask_forecast
+    )
+    truth_cube, truth_mask = generate_dataset(
+        num_truth_frt, truth_dataset=True, masked=mask_truth
+    )
 
     result = CalculateForecastBias().process(reference_forecast_cube, truth_cube)
     # Check that the values used in calculate mean bias are expected based on
@@ -225,6 +251,8 @@ def test_process(num_fcst_frt, num_truth_frt):
     # from expected value, so here we use a larger tolerance.
     expected_tol = 0.2 if (num_truth_frt == 1 and num_fcst_frt > 1) else 0.05
     assert np.allclose(result.data, 0.0, atol=expected_tol)
+    if mask_forecast or mask_truth:
+        assert np.all(result.data.mask == np.ma.mask_or(truth_mask, forecasts_mask))
 
 
 @pytest.mark.parametrize("num_fcst_frt", (1, 5))
@@ -236,7 +264,7 @@ def test_ensure_single_valued_forecast(num_fcst_frt, single_value_as_dim_coord):
     # length > 1.
     data = np.ones(shape=(4, 3, 3), dtype=np.float32)
     # Test realization data
-    realization_cube = generate_dataset(num_frts=num_fcst_frt, data=data)
+    realization_cube, _ = generate_dataset(num_frts=num_fcst_frt, data=data)
     with pytest.raises(ValueError, match="Multiple realization values"):
         CalculateForecastBias()._ensure_single_valued_forecast(realization_cube)
     # Test percentile data
@@ -287,7 +315,7 @@ def test_ensure_single_valued_forecast(num_fcst_frt, single_value_as_dim_coord):
     assert result == expected_percentile
 
     # Test the case where the input data does not have an associated ensemble coord.
-    cube_without_ens_coord = generate_dataset(num_frts=num_fcst_frt)
+    cube_without_ens_coord, _ = generate_dataset(num_frts=num_fcst_frt)
     result = CalculateForecastBias()._ensure_single_valued_forecast(
         cube_without_ens_coord
     )
