@@ -550,6 +550,7 @@ a162ff6c31dd3f0d84e1633c0cca28083e731876a69d40b7f14c6ff4a3431f25  ./manipulate-r
 0f35c52998ea93be4d8ed08f0ed1164b68bd6a197557afb95ae466fbec81c22e  ./max-in-height/input.nc
 2856432e02159afc04dadf37a0f8033cba25a9b29dfd73baea10369ccadfb645  ./max-in-height/kgo_with_bounds.nc
 823232b882186fd7b7bd6172f5cedcaf5fb980b86a271553d2e4313e5e9b2b4b  ./max-in-height/kgo_without_bounds.nc
+19df0025503f5c42e07db9a104a14f9cff8d98006b58e5c6ba7bb4a59c9f7f7d  ./max-in-height/kgo_without_bounds_new_name.nc
 a2de3ea5608d30d4ac2759e9ff4c4a6573e2c0e8e655595682a2ec2691c2de74  ./max-in-time-window/input_PT0029H00M.nc
 ac81531fa507a2a3a12d4adb542ed014594eff4a38137f947d3a68a2063fab49  ./max-in-time-window/input_PT0032H00M.nc
 fb02306f960fa36cf9a86921ec6599541e0a0823dfa546856000f810cdd96d73  ./max-in-time-window/kgo.nc
