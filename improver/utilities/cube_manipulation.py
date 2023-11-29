@@ -734,7 +734,10 @@ def add_coordinate_to_cube(
 
 
 def maximum_in_height(
-    cube: Cube, lower_height_bound: float = None, upper_height_bound: float = None, new_name: str =None
+    cube: Cube,
+    lower_height_bound: float = None,
+    upper_height_bound: float = None,
+    new_name: str = None,
 ) -> Cube:
     """Calculate the maximum value over the height coordinate. If bounds are specified
     then the maximum value between the lower_height_bound and upper_height_bound is calculated.

@@ -41,7 +41,7 @@ def process(
     *,
     lower_height_bound: float = None,
     upper_height_bound: float = None,
-    new_name: str =None,
+    new_name: str = None,
 ):
     """Calculate the maximum value over the height coordinate of a cube. If height bounds are
     specified then the maximum value between these height levels is calculated.
