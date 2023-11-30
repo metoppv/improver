@@ -73,14 +73,11 @@ def test_maximum_in_height(
     different combinations of upper and lower bounds. Also checks the name of the
     cube is correctly updated."""
 
+    expected_name = "wet_bulb_temperature"
     if new_name:
         expected_name = new_name
-        result = maximum_in_height(
-            wet_bulb_temperature, lower_bound, upper_bound, new_name
-        )
-    else:
-        expected_name = "wet_bulb_temperature"
-        result = maximum_in_height(wet_bulb_temperature, lower_bound, upper_bound)
+
+    result = maximum_in_height(wet_bulb_temperature, lower_bound, upper_bound, new_name)
 
     assert np.allclose(result.data, [expected] * 2)
     assert expected_name == result.name()
