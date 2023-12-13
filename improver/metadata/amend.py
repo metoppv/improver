@@ -29,6 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
+import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Tuple, Union
 
@@ -76,10 +77,25 @@ def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
             Dictionary containing items of the form {attribute_name: value}.
             The "value" item is either the string "remove" or the new value
             of the attribute required.
+            If the new value contains "{}", the existing value will be
+            inserted at this point (no existing value will result in the
+            "{}" being removed, then applied as the attribute value).
+            If the new value contains "{now:.*}", where the .* is a valid
+            date format, then this string is replaced with the current
+            wall-clock time, formatted as specified.
     """
     for attribute_name, value in attributes_dict.items():
+        re_now = r"({now:.*})"
+        has_now = re.match(rf".*{re_now}.*", value, re.DOTALL)
+        if has_now:
+            now = has_now[1].format(now=datetime.now())
+            value = re.sub(re_now, now, value)
         if value == "remove":
             cube.attributes.pop(attribute_name, None)
+        elif "{}" in value:
+            cube.attributes[attribute_name] = value.format(
+                cube.attributes.get(attribute_name, "")
+            )
         else:
             cube.attributes[attribute_name] = value
 
