@@ -37,7 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *cubes: cli.inputcubelist,
     decision_tree: cli.inputjson = None,
     model_id_attr: str = None,
     record_run_attr: str = None,
@@ -93,10 +93,12 @@ def process(
     from iris.cube import CubeList
 
     from improver.categorical.decision_tree import ApplyDecisionTree
+    from improver.utilities.flatten import flatten
 
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
+    cubes = flatten(cubes)
     return ApplyDecisionTree(
         decision_tree,
         model_id_attr=model_id_attr,

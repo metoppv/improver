@@ -207,6 +207,29 @@ def test_without_optional_input(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
+def test_cubelist_input(tmp_path):
+    """Test categorical decision tree with a cubelist input."""
+    kgo_dir = acc.kgo_root() / "categorical"
+    kgo_path = kgo_dir / "deterministic" / "kgo.nc"
+
+    param_paths = [
+        kgo_dir / "deterministic" / "precipitation_rate.nc",
+        kgo_dir / "deterministic" / "hail_cubelist.nc",
+    ]
+
+    wxtree = kgo_dir / "deterministic_decision_tree.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        *param_paths,
+        "--decision-tree",
+        wxtree,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 @pytest.mark.parametrize(
     "decision_tree,expected",
     (
