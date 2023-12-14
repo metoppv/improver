@@ -86,6 +86,11 @@ def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
     """
     for attribute_name, value in attributes_dict.items():
         re_now = r"({now:.*})"
+        # We use the DOTALL flag below to tell regex that . should match new-line
+        # characters as well as everything else. Therefore, the match below is for
+        # any string that contains the word now inside curly braces, with a colon
+        # and any format specifier. This now section is returned as a group in
+        # position 1 of has_now, which we will use to format the current time.
         has_now = re.match(rf".*{re_now}.*", value, re.DOTALL)
         if has_now:
             now = has_now[1].format(now=datetime.now())
