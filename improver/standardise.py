@@ -211,7 +211,8 @@ class StandardiseMetadata(BasePlugin):
                 Optional list of scalar coordinates to remove from output cube
             attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
-                attribute names, and values are the required value or "remove".
+                attribute names, and values are the required changes.
+                See improver.metadata.amend.amend_attributes for details.
 
         Returns:
             The processed cube
