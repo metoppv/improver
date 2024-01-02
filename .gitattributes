@@ -1,0 +1,5 @@
+# Git LFS tracking
+improver_tests/acceptance/resources/** filter=lfs diff=lfs merge=lfs -text
+# Git LFS exclude
+improver_tests/acceptance/resources/LICENSE -filter=lfs -diff=lfs -merge=lfs diff
+improver_tests/acceptance/resources/README.md -filter=lfs -diff=lfs -merge=lfs diff

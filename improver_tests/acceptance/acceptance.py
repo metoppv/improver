@@ -260,7 +260,7 @@ def kgo_root():
     try:
         test_dir = os.environ[ACC_TEST_DIR_ENVVAR]
     except KeyError:
-        return ACC_TEST_DIR_MISSING
+        test_dir = os.path.join(os.path.dirname(os.path.abspath(__file__)), "resources")
     return pathlib.Path(test_dir)
 
 
