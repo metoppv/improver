@@ -108,6 +108,9 @@ def run_test(
     snow_cube,
     snow_value,
 ):
+    """Used in two tests, this method applies the rain_value and snow_value to the relevant data,
+    runs the SnowSplitter plugin and checks the results are as expected, including data, name,
+    units and attributes."""
     rain_cube.data = np.full_like(rain_cube.data, rain_value)
     snow_cube.data = np.full_like(snow_cube.data, snow_value)
     result = SnowSplitter(output_is_rain=output_is_rain)(
@@ -176,7 +179,7 @@ def test_accumulations(
     expected,
 ):
     """Check that for all possible combinations of rain and snow probabilities the correct
-    rain/snow rate is returned. The correct output will sometimes depend on whether the
+    rain/snow accumulation is returned. The correct output will sometimes depend on whether the
     output_is_rain is True or False. Also check the name of the returned cube has been
     updated correctly"""
     run_test(
