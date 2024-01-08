@@ -121,7 +121,7 @@ class SnowSplitter(BasePlugin):
         Returns:
             Cube of rain/snow (depending on self.output_is_rain) rate/accumulation (depending on
             precipitation cube). The name will be an updated version of precip_cube.name().
-            "precipitation" will be replaced with "rainfall" or "snowfall" and "lwe_" will be
+            "precipitation" will be replaced with "rainfall" or "snowfall" and "lwe\_" will be
             removed for rain output.
 
         Raises:
