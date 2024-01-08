@@ -127,7 +127,7 @@ class SnowSplitter(BasePlugin):
         Raises:
             ValueError: If, at some grid square, both snow_cube and rain_cube have a probability of
             0
-        """
+        """  # noqa: W605  (flake8 objects to \_ in "lwe\_" that is required for Sphinx)
 
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
