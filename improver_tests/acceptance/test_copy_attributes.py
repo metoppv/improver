@@ -41,9 +41,6 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-ATTRIBUTES_PATH = acc.kgo_root() / "standardise/metadata/metadata.json"
-
-
 def test_change_metadata(tmp_path):
     """Test copying attribute values from a template file"""
     kgo_dir = acc.kgo_root() / "copy-attributes"
