@@ -91,7 +91,7 @@ def precip_acc_cube() -> Cube:
     precip_cube = set_up_variable_cube(
         data,
         name="lwe_thickness_of_precipitation_amount",
-        units="m/s",
+        units="m",
         time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0)),
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -120,7 +120,7 @@ def run_test(
         expected = rain_value if output_is_rain else snow_value
     assert np.isclose(result.data, expected).all()
     assert result.name() == cube_name
-    assert result.units == "m/s"
+    assert result.units == precip_cube.units
     assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
 
 
