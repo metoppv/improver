@@ -766,9 +766,9 @@ ef53635982b4269b6292fdc0ea04bee1f64a19304724ef8872bb8e1102a7d3d2  ./snow-fractio
 20b2df1086c9ec6e02b175042b388a8ad76622d5e76860540b28e3b2c482c5fe  ./snow-fraction/basic/snow.nc
 818358071994389472276b451cde63ab8d3da53522ee3a58aa1f375a36babe45  ./snow-splitter/precip_rate.nc
 9931a4fc3fde3daa08137b3f25390837e8ffdd8f8b5052450ed34fb20e217218  ./snow-splitter/rain.nc
-c50cb751a5b99dafc1f524a25e260c4ca200e6e2e4fb933f18329b4e5d23a878  ./snow-splitter/rain_kgo.nc
+11c301c96bd63e43d16826e8dae189f2b7dbbdc30e54fee3dd747ea2746ff54d  ./snow-splitter/rain_kgo.nc
 5bd8889279e32324198c14614173b209bf126a55132c69ff6fa2d706e3dfc529  ./snow-splitter/snow.nc
-84b4d674d7b770f53dfb9f31c025a08921984b7887d2e8ab525211942d091b61  ./snow-splitter/snow_kgo.nc
+56d300196f30b6afd21968ccc70fafcaa096f9a959b19ee42b0e0b4f7c9fce40  ./snow-splitter/snow_kgo.nc
 d7d6ff0436c742449cc95a1ebe6a8298fbda2d01fb8a979f660596ef22a33dbb  ./spot-extract/inputs/all_methods_global.nc
 d4dcdeb1ed121db2c9e96db11283d20a80ab5924ee82b750cab8b02342e16249  ./spot-extract/inputs/all_methods_uk.nc
 5a5e97eeaf2fd457f0e2b655e1b5a0e4befc0176fa1d45d04e7c7439ea9ccedb  ./spot-extract/inputs/all_methods_uk_unique_ids.nc
