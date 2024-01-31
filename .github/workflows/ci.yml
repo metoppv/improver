@@ -58,7 +58,7 @@ jobs:
       env:
         CODACY_PROJECT_TOKEN: ${{ secrets.CODACY_PROJECT_TOKEN }}
     - name: codecov upload
-      uses: codecov/codecov-action@v3
+      uses: codecov/codecov-action@v4
       with:
         name:  ${{ matrix.env }}
       if: matrix.env != 'conda_forge'
