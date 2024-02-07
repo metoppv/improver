@@ -77,7 +77,7 @@ def pad_coord(coord: Coord, width: int, method: str) -> Coord:
     if np.isclose(np.sum(np.diff(increment)), 0):
         increment = increment[0]
     else:
-        msg = "Non-uniform increments between grid points: " "{}.".format(increment)
+        msg = "Non-uniform increments between grid points: {}.".format(increment)
         raise ValueError(msg)
 
     if method == "add":

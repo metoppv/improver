@@ -60,7 +60,7 @@ def radius_by_lead_time(
     if lead_times is None:
         if not len(radii) == 1:
             raise ValueError(
-                "Multiple radii have been supplied but no " "associated lead times."
+                "Multiple radii have been supplied but no associated lead times."
             )
         radius_or_radii = float(radii[0])
     else:

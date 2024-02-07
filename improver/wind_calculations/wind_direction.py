@@ -97,7 +97,7 @@ class WindDirection(PostProcessingPlugin):
         self.backup_methods = ["first_realization", "neighbourhood"]
         self.backup_method = backup_method
         if self.backup_method not in self.backup_methods:
-            msg = "Invalid option for keyword backup_method " "({})".format(
+            msg = "Invalid option for keyword backup_method ({})".format(
                 self.backup_method
             )
             raise ValueError(msg)

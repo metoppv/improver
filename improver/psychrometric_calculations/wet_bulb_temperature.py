@@ -103,7 +103,7 @@ class WetBulbTemperature(BasePlugin):
         else:
             if len(set(vertical_coords)) > 1 or len(vertical_coords) != 3:
                 raise ValueError(
-                    "WetBulbTemperature: Cubes have differing " "vertical coordinates."
+                    "WetBulbTemperature: Cubes have differing vertical coordinates."
                 )
             (level_coord,) = set(vertical_coords)
             temperature_over_levels = temperature.slices_over(level_coord)

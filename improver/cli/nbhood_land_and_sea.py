@@ -150,7 +150,7 @@ def process(
 
     else:
         if weights is not None:
-            raise TypeError("A weights cube has been provided but will not be " "used")
+            raise TypeError("A weights cube has been provided but will not be used")
         land_sea_mask = mask
         # In this case the land is set to 1 and the sea is set to 0 in the
         # input mask.

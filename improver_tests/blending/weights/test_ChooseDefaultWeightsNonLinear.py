@@ -122,7 +122,7 @@ class Test_process(IrisTest):
         """Test it raises a Value Error if not supplied with a cube. """
         plugin = NonLinearWeights(0.85)
         notacube = 0.0
-        msg = "The first argument must be an instance of " "iris.cube.Cube"
+        msg = "The first argument must be an instance of iris.cube.Cube"
         with self.assertRaisesRegex(TypeError, msg):
             plugin.process(notacube, self.coord_name)
 

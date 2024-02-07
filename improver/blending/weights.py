@@ -544,7 +544,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
             )
 
         if y0val < 0.0:
-            msg = "y0val must be a float >= 0.0, " "y0val = {0:s}".format(str(y0val))
+            msg = "y0val must be a float >= 0.0, y0val = {0:s}".format(str(y0val))
             raise ValueError(msg)
 
         self.y0val = float(y0val)
@@ -724,7 +724,7 @@ class ChooseDefaultWeightsNonLinear(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = "<ChooseDefaultWeightsNonLinear " "cval={0:4.1f}>".format(self.cval)
+        desc = "<ChooseDefaultWeightsNonLinear cval={0:4.1f}>".format(self.cval)
         return desc
 
 
@@ -747,7 +747,7 @@ class ChooseDefaultWeightsTriangular(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        msg = "<ChooseDefaultTriangularWeights " "width={}, parameters_units={}>"
+        msg = "<ChooseDefaultTriangularWeights width={}, parameters_units={}>"
         desc = msg.format(self.width, self.parameters_units)
         return desc
 
