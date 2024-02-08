@@ -72,6 +72,8 @@ class TemporalInterpolation(BasePlugin):
         interval_in_minutes: Optional[int] = None,
         times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
+        accumulation: bool = False,
+
     ) -> None:
         """
         Initialise class.
@@ -91,6 +93,12 @@ class TemporalInterpolation(BasePlugin):
             interpolation_method:
                 Method of interpolation to use. Default is linear.
                 Only methods in known_interpolation_methods can be used.
+            accumulation:
+                Set True if the diagnostic being temporally interpolated is a
+                period accumulation. The output will be renormalised to ensure
+                that the total across the period constructed from the shorter
+                intervals matches the total across the period from the coarser
+                intervals.
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
@@ -119,6 +127,7 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interpolation_method = interpolation_method
         self.period_inputs = False
+        self.accumulation = accumulation
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -453,11 +462,24 @@ class TemporalInterpolation(BasePlugin):
                 interpolated_cube.data
             )
 
-        # Add bounds to the time coordinates of the interpolated outputs
-        # if the inputs were period diagnostics.
         if self.period_inputs:
+            # Add bounds to the time coordinates of the interpolated outputs
+            # if the inputs were period diagnostics.
             for crd in ["time", "forecast_period"]:
                 interpolated_cube.coord(crd).guess_bounds(bound_position=1.0)
+
+            # If the input is an accumulation the total must be renormalised
+            # to avoid double counting. The input cube the contains an
+            # accumulation spanning the whole period is adjusted down to
+            # represent only a suitable fraction of the total time. The
+            # use of interpolation, rather than just splitting up the period,
+            # allows for trends in the data to add some variation to the
+            # different periods that are created.
+            if self.accumulation:
+                time_coord, = interpolated_cube.coord_dims("time")
+                interpolated_total = np.sum(interpolated_cube.data, axis=time_coord)
+                renormalisation = cube_t1.data / interpolated_total
+                interpolated_cube.data *= renormalisation
 
         self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
