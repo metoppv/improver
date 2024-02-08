@@ -56,6 +56,15 @@ class TemporalInterpolation(BasePlugin):
     cubes. This can be used to fill in missing data (e.g. for radar fields) or
     to ensure data is available at the required intervals when model data is
     not available at these times.
+
+    The plugin will return the interpolated times and the later of the two
+    input times. This allows us to modify the input diagnostics if they
+    represent periods. The IMPROVER convention is that period diagnostics
+    have their time coordinate point at the end of the period. The later of
+    the two inputs therefore covers the period that has been broken down into
+    shorter periods by the interpolation and must itself be modified. The
+    result of this approach is that in a long run of lead-times, e.g. T+0 to
+    T+120 all the lead-times will be available except T+0.
     """
 
     def __init__(
@@ -176,6 +185,9 @@ class TemporalInterpolation(BasePlugin):
                 if time_entry >= final_time:
                     break
                 time_list.append(time_entry)
+
+        time_list.append(final_time)
+        time_list = sorted(set(time_list))
 
         return [("time", time_list)]
 
@@ -393,7 +405,7 @@ class TemporalInterpolation(BasePlugin):
             (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
         except CoordinateNotFoundError:
             msg = (
-                "Cube provided to TemporalInterpolation contains no time " "coordinate."
+                "Cube provided to TemporalInterpolation contains no time coordinate."
             )
             raise CoordinateNotFoundError(msg)
         except ValueError:
