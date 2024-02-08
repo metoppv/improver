@@ -611,7 +611,7 @@ class ChooseDefaultWeightsLinear(BasePlugin):
 
     def __repr__(self):
         """Represent the configured plugin instance as a string."""
-        desc = "<ChooseDefaultWeightsLinear y0val=" "{:4.1f}, ynval={:4.1f}>".format(
+        desc = "<ChooseDefaultWeightsLinear y0val={:4.1f}, ynval={:4.1f}>".format(
             self.y0val, self.ynval
         )
         return desc

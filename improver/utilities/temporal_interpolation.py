@@ -112,7 +112,7 @@ class TemporalInterpolation(BasePlugin):
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         result = (
-            "<TemporalInterpolation: interval_in_minutes: {}, " "times: {}, method: {}>"
+            "<TemporalInterpolation: interval_in_minutes: {}, times: {}, method: {}>"
         )
         return result.format(
             self.interval_in_minutes, self.times, self.interpolation_method
@@ -393,7 +393,7 @@ class TemporalInterpolation(BasePlugin):
             (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
         except CoordinateNotFoundError:
             msg = (
-                "Cube provided to TemporalInterpolation contains no time " "coordinate."
+                "Cube provided to TemporalInterpolation contains no time coordinate."
             )
             raise CoordinateNotFoundError(msg)
         except ValueError:
