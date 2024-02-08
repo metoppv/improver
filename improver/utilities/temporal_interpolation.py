@@ -111,12 +111,14 @@ class TemporalInterpolation(BasePlugin):
         self.interval_in_minutes = interval_in_minutes
         self.times = times
         known_interpolation_methods = ["linear", "solar", "daynight"]
+        self.period_interpolation_methods = ["linear"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
                 "TemporalInterpolation: Unknown interpolation "
                 "method {}. ".format(interpolation_method)
             )
         self.interpolation_method = interpolation_method
+        self.period_inputs = False
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
@@ -400,6 +402,15 @@ class TemporalInterpolation(BasePlugin):
             )
             raise TypeError(msg)
 
+        if cube_t0.coord("time").bounds is not None:
+            if not self.interpolation_method in self.period_interpolation_methods:
+                raise ValueError(
+                    "Period diagnostics can only be temporally interpolated "
+                    f"using these methods: {self.period_interpolation_methods}.\n"
+                    f"Currently selected method is: {self.interpolation_method}."
+                )
+            self.period_inputs = True
+
         try:
             (initial_time,) = iris_time_to_datetime(cube_t0.coord("time"))
             (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
@@ -441,6 +452,12 @@ class TemporalInterpolation(BasePlugin):
             interpolated_cube.data = WindDirection.complex_to_deg(
                 interpolated_cube.data
             )
+
+        # Add bounds to the time coordinates of the interpolated outputs
+        # if the inputs were period diagnostics.
+        if self.period_inputs:
+            for crd in ["time", "forecast_period"]:
+                interpolated_cube.coord(crd).guess_bounds(bound_position=1.0)
 
         self.enforce_time_coords_dtype(interpolated_cube)
         interpolated_cubes = iris.cube.CubeList()
