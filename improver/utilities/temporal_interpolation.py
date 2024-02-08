@@ -468,6 +468,17 @@ class TemporalInterpolation(BasePlugin):
             for crd in ["time", "forecast_period"]:
                 interpolated_cube.coord(crd).guess_bounds(bound_position=1.0)
 
+                # Check the interpolated output bounds cover the expected period.
+                lowest_bound = interpolated_cube.coord(crd).bounds[0][0]
+                highest_bound = interpolated_cube.coord(crd).bounds[-1][-1]
+                lowest_match = lowest_bound == cube_t1.coord(crd).bounds[0][0]
+                highest_match = highest_bound == cube_t1.coord(crd).bounds[-1][-1]
+                if not lowest_match or not highest_match:
+                    raise ValueError(
+                        "The interpolated periods do not cover the entire "
+                        "period of the input."
+                    )
+
             # If the input is an accumulation the total must be renormalised
             # to avoid double counting. The input cube the contains an
             # accumulation spanning the whole period is adjusted down to
