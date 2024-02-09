@@ -129,15 +129,6 @@ class TemporalInterpolation(BasePlugin):
         self.period_inputs = False
         self.accumulation = accumulation
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<TemporalInterpolation: interval_in_minutes: {}, " "times: {}, method: {}>"
-        )
-        return result.format(
-            self.interval_in_minutes, self.times, self.interpolation_method
-        )
-
     def construct_time_list(
         self, initial_time: datetime, final_time: datetime
     ) -> List[Tuple[str, List[datetime]]]:
