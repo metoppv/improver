@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Unit tests for Weather Symbols class."""
+"""Unit tests for ApplyDecisionTree class."""
 
 import unittest
 from datetime import datetime as dt
@@ -36,20 +36,84 @@ from datetime import timedelta
 
 import iris
 import numpy as np
+import pytest
 from cf_units import Unit
 from iris.coords import AuxCoord
+from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
+from improver.categorical.decision_tree import ApplyDecisionTree
 from improver.metadata.probabilistic import (
     find_threshold_coordinate,
     get_threshold_coord_name_from_probability_name,
 )
-from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
-from improver.wxcode.utilities import WX_DICT
-from improver.wxcode.weather_symbols import WeatherSymbols
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
 
-from . import wxcode_decision_tree
+from . import deterministic_diagnostic_tree, wxcode_decision_tree
+
+
+@pytest.fixture()
+def precip_cube() -> Cube:
+    """
+    Set up a precipitation rate, deterministic cube.
+    """
+
+    data = np.full((7, 3), dtype=np.float32, fill_value=5)
+    cube = set_up_variable_cube(
+        data,
+        name="precipitation_rate",
+        units="mm/s",
+        time=dt(2017, 10, 10, 12, 0),
+        frt=dt(2017, 10, 10, 11, 0),
+    )
+    return cube
+
+
+@pytest.fixture()
+def hail_cube() -> Cube:
+    """
+    Set up a hail rate, deterministic cube.
+    """
+
+    data = np.full((7, 3), dtype=np.float32, fill_value=0)
+    cube = set_up_variable_cube(
+        data,
+        name="hail_rate",
+        units="mm/s",
+        time=dt(2017, 10, 10, 12, 0),
+        frt=dt(2017, 10, 10, 11, 0),
+    )
+    return cube
+
+
+@pytest.mark.parametrize(
+    "precip_fill,hail_fill,expected", ((1, 1, 2), (1, 0, 1), (0, 0, 0), (0, 1, 0))
+)
+def test_non_probablistic_tree(
+    precip_cube, hail_cube, precip_fill, hail_fill, expected
+):
+    """Test that ApplyDecisionTree correctly manages a decision tree with deterministic
+    inputs"""
+    precip_cube.data.fill(precip_fill)
+    hail_cube.data.fill(hail_fill)
+    result = ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+        iris.cube.CubeList([precip_cube, hail_cube])
+    )
+    assert np.all(result.data == expected)
+
+
+def test_non_probablistic_tree_missing_data(hail_cube):
+    """Test that ApplyDecisionTree raises an error if an input is missing"""
+
+    msg = "Decision Tree input cubes are missing"
+    with pytest.raises(IOError, match=msg):
+        ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+            iris.cube.CubeList([hail_cube])
+        )
 
 
 class Test_WXCode(IrisTest):
@@ -258,7 +322,7 @@ class Test_WXCode(IrisTest):
         )
         names = [cube.name() for cube in self.cubes]
         self.missing_diagnostic = [name for name in names if "lightning" not in name]
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        self.plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
 
     def assertArrayAndMaskEqual(self, array_a, array_b, **kwargs):
         """
@@ -301,8 +365,8 @@ class Test__repr__(IrisTest):
 
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
-        result = str(WeatherSymbols(wxtree=wxcode_decision_tree()))
-        msg = "<WeatherSymbols start_node=lightning>"
+        result = str(ApplyDecisionTree(decision_tree=wxcode_decision_tree()))
+        msg = "<ApplyDecisionTree start_node=lightning>"
         self.assertEqual(result, msg)
 
 
@@ -312,7 +376,7 @@ class Test_prepare_input_cubes(Test_WXCode):
 
     def test_basic(self):
         """Test prepare_input_cubes method raises no error if the data is OK"""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         plugin.prepare_input_cubes(self.cubes)
 
     def test_no_lightning(self):
@@ -326,7 +390,7 @@ class Test_prepare_input_cubes(Test_WXCode):
     def test_raises_error_missing_cubes(self):
         """Test prepare_input_cubes method raises error if data is missing"""
         cubes = self.cubes[0:2]
-        msg = "Weather Symbols input cubes are missing"
+        msg = "Decision Tree input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             self.plugin.prepare_input_cubes(cubes)
 
@@ -334,7 +398,7 @@ class Test_prepare_input_cubes(Test_WXCode):
         """Test prepare_input_cubes method raises error if data is missing"""
         cubes = self.cubes
         cubes[0] = cubes[0][0]
-        msg = "Weather Symbols input cubes are missing"
+        msg = "Decision Tree input cubes are missing"
         with self.assertRaisesRegex(IOError, msg):
             self.plugin.prepare_input_cubes(cubes)
 
@@ -390,7 +454,7 @@ class Test_invert_condition(IrisTest):
 
     def test_basic(self):
         """Test that the invert_condition method returns a tuple of strings."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         tree = plugin.queries
         result = plugin.invert_condition(tree[list(tree.keys())[0]])
         self.assertIsInstance(result, tuple)
@@ -400,7 +464,7 @@ class Test_invert_condition(IrisTest):
 
     def test_invert_thresholds_correctly(self):
         """Test invert_condition inverts thresholds correctly."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         node = {"threshold_condition": ">=", "condition_combination": ""}
         possible_inputs = [">=", "<=", "<", ">"]
         inverse_outputs = ["<", ">", ">=", "<="]
@@ -411,7 +475,7 @@ class Test_invert_condition(IrisTest):
 
     def test_invert_combination_correctly(self):
         """Test invert_condition inverts combination correctly."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         node = {"threshold_condition": ">=", "condition_combination": ""}
         possible_inputs = ["AND", "OR", ""]
         inverse_outputs = ["OR", "AND", ""]
@@ -423,7 +487,7 @@ class Test_invert_condition(IrisTest):
     def test_error(self):
         """Test that the _invert_comparator method raises an error when the condition
         cannot be inverted."""
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         possible_inputs = ["==", "!=", "NOT", "XOR"]
         for val in possible_inputs:
             with self.assertRaisesRegex(
@@ -1057,7 +1121,7 @@ class Test_remove_optional_missing(IrisTest):
     def setUp(self):
         """Setup a decision tree for testing."""
         # self.tree = wxcode_decision_tree()
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        self.plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
 
     def test_first_node(self):
         """Test that if the first node, lightning, is missing, the start_node
@@ -1074,11 +1138,11 @@ class Test_remove_optional_missing(IrisTest):
     def test_intermediate_node(self):
         """Test that if a node other than the first node is missing, is gets
         cut out of the possible paths through the decision tree. In this case
-        it means that the hail "if_false" path skips "heavy_precipitation"
+        it means that the hail "if_false" path skips "hail_precip"
         and instead targets its "if_diagnostic_missing" option, which is
-        "heavy_precipitation_cloud"."""
+        "heavy_precipitation"."""
 
-        missing_diagnostics = "heavy_precipitation"
+        missing_diagnostics = "hail_precip"
         target = self.plugin.queries[missing_diagnostics]["if_diagnostic_missing"]
         expected = self.plugin.queries[missing_diagnostics][target]
 
@@ -1154,7 +1218,7 @@ class Test_find_all_routes(IrisTest):
             "fail_1_0": [2, 4],
             "success_0_1": [5, 1],
         }
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        self.plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
 
     def test_basic(self):
         """Test find_all_routes returns a list of expected nodes."""
@@ -1220,7 +1284,7 @@ class Test_check_coincidence(Test_WXCode):
         cubes[-1].coord("time").points = cubes[-1].coord("time").points + 3600
 
         msg = (
-            "Weather symbol input cubes are valid at different times; \n"
+            "Decision Tree input cubes are valid at different times; \n"
             "\\['probability_of_lwe_snowfall_rate_above_threshold: 1507636800', "
             "'probability_of_lwe_sleetfall_rate_above_threshold: 1507636800', "
             "'probability_of_rainfall_rate_above_threshold: 1507636800', "
@@ -1251,7 +1315,7 @@ class Test_check_coincidence(Test_WXCode):
 
         msg = (
             "Period diagnostics with different periods have been provided as "
-            "input to the weather symbols code. Period diagnostics must all "
+            "input to the decision tree code. Period diagnostics must all "
             "describe the same period to be used together.\n"
             "\\['probability_of_shower_condition_above_threshold: 7200', "
             "'probability_of_number_of_lightning_flashes_per_unit_area_in_"
@@ -1267,7 +1331,9 @@ class Test_check_coincidence(Test_WXCode):
         """Test that an exception is raised if the diagnostic periods do not
         match the user specified target_period."""
 
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), target_period=10800)
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(), target_period=10800
+        )
         msg = (
             "Diagnostic periods \\(3600\\) do not match "
             "the user specified target_period \\(10800\\)."
@@ -1285,9 +1351,9 @@ class Test_check_coincidence(Test_WXCode):
         self.assertEqual(self.plugin.template_cube, expected)
 
 
-class Test_create_symbol_cube(IrisTest):
+class Test_create_categorical_cube(IrisTest):
 
-    """Test the create_symbol_cube method ."""
+    """Test the create_categorical_cube method ."""
 
     def setUp(self):
         """Set up cube."""
@@ -1310,18 +1376,17 @@ class Test_create_symbol_cube(IrisTest):
             "mosg__model_run"
         ] = "uk_det:20171109T2300Z:0.500\nuk_ens:20171109T2100Z:0.500"
         self.cube = cube
-        self.wxcode = np.array(list(WX_DICT.keys()))
-        self.wxmeaning = " ".join(WX_DICT.values())
-        self.plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        self.plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
 
     def test_basic(self):
         """Test cube is constructed with appropriate metadata without setting
         the model_id_attr or record_run attributes"""
         self.plugin.template_cube = self.cube
-        result = self.plugin.create_symbol_cube([self.cube])
+        result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
+        self.assertIsInstance(result.attributes["weather_code"], np.ndarray)
+        self.assertTrue(len(result.attributes["weather_code"]), 31)
+        self.assertTrue(len(result.attributes["weather_code_meaning"].split(" ")), 31)
         self.assertNotIn("mosg__model_configuration", result.attributes)
         self.assertNotIn("mosg__model_run", result.attributes)
         self.assertTrue((result.data.mask).all())
@@ -1331,10 +1396,8 @@ class Test_create_symbol_cube(IrisTest):
         model_id_attr attribute set"""
         self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
-        result = self.plugin.create_symbol_cube([self.cube])
+        result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayEqual(
             result.attributes["mosg__model_configuration"], "uk_det uk_ens"
         )
@@ -1348,10 +1411,8 @@ class Test_create_symbol_cube(IrisTest):
         self.plugin.template_cube = self.cube
         self.plugin.model_id_attr = "mosg__model_configuration"
         self.plugin.record_run_attr = "mosg__model_run"
-        result = self.plugin.create_symbol_cube([self.cube])
+        result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayEqual(
             result.attributes["mosg__model_run"],
             "uk_det:20171109T2300Z:\nuk_ens:20171109T2100Z:",
@@ -1371,7 +1432,7 @@ class Test_create_symbol_cube(IrisTest):
         cube1.attributes["mosg__model_run"] = "gl_ens:20171109T1800Z:1.000"
         cube1.attributes["mosg__model_configuration"] = "gl_ens"
 
-        result = self.plugin.create_symbol_cube([self.cube, cube1])
+        result = self.plugin.create_categorical_cube([self.cube, cube1])
 
         self.assertArrayEqual(
             result.attributes["mosg__model_run"],
@@ -1400,7 +1461,7 @@ class Test_create_symbol_cube(IrisTest):
             expected_fp, dtype=np.int32,
         )
         self.plugin.template_cube = self.cube
-        result = self.plugin.create_symbol_cube([self.cube])
+        result = self.plugin.create_categorical_cube([self.cube])
         self.assertTrue((result.coord("time").bounds == expected_time).all())
         self.assertTrue((result.coord("forecast_period").bounds == expected_fp).all())
 
@@ -1409,7 +1470,7 @@ class Test_create_symbol_cube(IrisTest):
         inputs are all instantaneous."""
 
         self.plugin.template_cube = self.cube
-        result = self.plugin.create_symbol_cube([self.cube])
+        result = self.plugin.create_categorical_cube([self.cube])
         self.assertIsNone(result.coord("time").bounds)
         self.assertIsNone(result.coord("forecast_period").bounds)
 
@@ -1418,10 +1479,12 @@ class Test_create_symbol_cube(IrisTest):
         user provided title attribute."""
 
         target_title = "Weather Symbols"
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree(), title=target_title)
+        plugin = ApplyDecisionTree(
+            decision_tree=wxcode_decision_tree(), title=target_title
+        )
         plugin.template_cube = self.cube
 
-        result = plugin.create_symbol_cube([self.cube])
+        result = plugin.create_categorical_cube([self.cube])
         self.assertEqual(result.attributes["title"], target_title)
 
     def test_reference_time_multiple_inputs(self):
@@ -1434,7 +1497,7 @@ class Test_create_symbol_cube(IrisTest):
             new_coord = new_coord.copy(new_coord.points + 3600)
             cube1.replace_coord(new_coord)
 
-        result = self.plugin.create_symbol_cube([self.cube, cube1])
+        result = self.plugin.create_categorical_cube([self.cube, cube1])
 
         for coord_name in ["blend_time", "forecast_reference_time"]:
             self.assertEqual(
@@ -1456,7 +1519,7 @@ class Test_create_symbol_cube(IrisTest):
 
         msg = "Could not find"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            self.plugin.create_symbol_cube([self.cube, cube1])
+            self.plugin.create_categorical_cube([self.cube, cube1])
 
 
 class Test_compare_to_threshold(IrisTest):
@@ -1466,7 +1529,7 @@ class Test_compare_to_threshold(IrisTest):
         """Test that compare_to_threshold produces the correct array of
         booleans."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         test_case_map = {
             "<": [True, False, False],
             "<=": [True, True, False],
@@ -1481,7 +1544,7 @@ class Test_compare_to_threshold(IrisTest):
         """Test that an error is raised if the comparison operator is not
         one of the expected strings."""
         arr = np.array([0, 1, 2], dtype=np.int32)
-        plugin = WeatherSymbols(wxtree=wxcode_decision_tree())
+        plugin = ApplyDecisionTree(decision_tree=wxcode_decision_tree())
         msg = "Invalid comparator: !=. Comparator must be one of '<', '>', '<=', '>='."
 
         with self.assertRaisesRegex(ValueError, msg):
@@ -1495,8 +1558,6 @@ class Test_process(Test_WXCode):
     def setUp(self):
         """ Set up wxcubes for testing. """
         super().setUp()
-        self.wxcode = np.array(list(WX_DICT.keys()))
-        self.wxmeaning = " ".join(WX_DICT.values())
         self.expected_wxcode = np.array([[1, 29, 5], [6, 7, 8], [10, 11, 12]])
         self.expected_wxcode_night = np.array([[0, 28, 5], [6, 7, 8], [9, 11, 12]])
         self.expected_wxcode_no_lightning = np.array(
@@ -1511,8 +1572,6 @@ class Test_process(Test_WXCode):
         """
         result = self.plugin.process(self.cubes)
         self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.attributes["weather_code"], self.wxcode)
-        self.assertEqual(result.attributes["weather_code_meaning"], self.wxmeaning)
         self.assertArrayAndMaskEqual(result.data, self.expected_wxcode)
         self.assertEqual(result.dtype, np.int32)
         self.assertEqual(

@@ -120,12 +120,14 @@ class SnowSplitter(BasePlugin):
 
         Returns:
             Cube of rain/snow (depending on self.output_is_rain) rate/accumulation (depending on
-            precipitation cube)
+            precipitation cube). The name will be an updated version of precip_cube.name().
+            "precipitation" will be replaced with "rainfall" or "snowfall" and "lwe\_" will be
+            removed for rain output.
 
         Raises:
             ValueError: If, at some grid square, both snow_cube and rain_cube have a probability of
             0
-        """
+        """  # noqa: W605  (flake8 objects to \_ in "lwe\_" that is required for Sphinx)
 
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
@@ -140,18 +142,20 @@ class SnowSplitter(BasePlugin):
         if self.output_is_rain:
             required_cube = rain_cube
             other_cube = snow_cube
-            name = "rain"
+            name = "rainfall"
         else:
             required_cube = snow_cube
             other_cube = rain_cube
-            name = "lwe_snow"
+            name = "snowfall"
 
         # arbitrary function that maps combinations of rain and snow probabilities
         # to an appropriate coefficient
         coefficient_cube = (required_cube - other_cube + 1) / 2
         coefficient_cube.data = coefficient_cube.data.astype(np.float32)
 
-        new_name = precip_cube.name().replace("lwe_precipitation", name)
+        new_name = precip_cube.name().replace("precipitation", name)
+        if self.output_is_rain:
+            new_name = new_name.replace("lwe_", "")
         output_cube = Combine(operation="*", new_name=new_name)(
             [precip_cube, coefficient_cube]
         )

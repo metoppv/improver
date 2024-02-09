@@ -1,4 +1,3 @@
-#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -29,46 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Script to calculate the maximum over the height coordinate"""
+"""
+Tests for the copy-attributes CLI
+"""
 
-from improver import cli
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-@cli.clizefy
-@cli.with_output
-def process(
-    cube: cli.inputcube,
-    *,
-    lower_height_bound: float = None,
-    upper_height_bound: float = None,
-    new_name: str = None,
-):
-    """Calculate the maximum value over the height coordinate of a cube. If height bounds are
-    specified then the maximum value between these height levels is calculated.
-
-    Args:
-        cube (iris.cube.Cube):
-            A cube with a height coordinate.
-        lower_height_bound (float):
-            The lower bound for the height coordinate. This is either a float or None if no lower
-            bound is desired. Any specified bounds should have the same units as the height
-            coordinate of cube.
-        upper_height_bound (float):
-            The upper bound for the height coordinate. This is either a float or None if no upper
-            bound is desired. Any specified bounds should have the same units as the height
-            coordinate of cube.
-        new_name (str):
-            The new name to be assigned to the output cube. If unspecified the name of the original
-            cube is used.
-    Returns:
-        A cube of the maximum value over the height coordinate or maximum value between the provided
-        height bounds."""
-
-    from improver.utilities.cube_manipulation import maximum_in_height
-
-    return maximum_in_height(
-        cube,
-        lower_height_bound=lower_height_bound,
-        upper_height_bound=upper_height_bound,
-        new_name=new_name,
-    )
+def test_change_metadata(tmp_path):
+    """Test copying attribute values from a template file"""
+    kgo_dir = acc.kgo_root() / "copy-attributes"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    template_path = kgo_dir / "stage_input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        template_path,
+        "--attributes",
+        "mosg__forecast_run_duration,mosg__grid_version",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

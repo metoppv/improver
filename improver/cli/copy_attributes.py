@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,63 +29,36 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the wxcode-modal CLI"""
+"""Script to copy attributes from template_cube to cube"""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-@pytest.mark.parametrize(
-    "test_path",
-    [
-        "gridded_input",
-        "spot_input",
-        "gridded_ties",
-        "spot_ties",
-        "blend_mismatch_inputs",
-        "single_input",
-    ],
-)
-@pytest.mark.slow
-def test_expected(tmp_path, test_path):
-    """Test wxcode modal calculation returns the expected results. The tests
-    are:
-
-        - simple gridded / spot data input
-        - gridded / spot data input engineered to provide many ties that are
-          solved using grouping
-        - a night-time code test using spot data
-        - spot data where one input has a different blend-time to the rest
-        - a single input file rather than multiple
+@cli.clizefy
+@cli.with_output
+def process(
+    cube: cli.inputcube,
+    template_cube: cli.inputcube,
+    *,
+    attributes: cli.comma_separated_list,
+):
     """
-    kgo_dir = acc.kgo_root() / "wxcode-modal" / test_path
-    kgo_path = kgo_dir / "kgo.nc"
-    input_paths = (kgo_dir).glob("202012*.nc")
-    output_path = tmp_path / "output.nc"
-    args = [
-        *input_paths,
-        "--model-id-attr",
-        "mosg__model_configuration",
-        "--record-run-attr",
-        "mosg__model_run",
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Copy attribute values from template_cube to cube, overwriting any existing values.
 
+    Args:
+        cube (iris.cube.Cube):
+            Source cube to be updated.
+        template_cube (iris.cube.Cube):
+            Source cube to get attribute values from.
+        attributes (list):
+            List of names of attributes to copy. If any are not present on template_cube, a
+            KeyError will be raised.
 
-def test_no_input(tmp_path):
-    """Test an exceptions is raised by the CLI if no cubes are provided."""
-    output_path = tmp_path / "output.nc"
-    args = [
-        "--output",
-        output_path,
-    ]
-    with pytest.raises(RuntimeError, match="Not enough input arguments*"):
-        run_cli(args)
+    Returns:
+        iris.cube.Cube
+    """
+    from improver.metadata.amend import amend_attributes
+
+    new_attributes = {k: template_cube.attributes[k] for k in attributes}
+    amend_attributes(cube, new_attributes)
+    return cube

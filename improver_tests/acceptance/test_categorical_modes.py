@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests the max_in_height CLI"""
+"""Tests for the categorical-modes CLI"""
 
 import pytest
 
@@ -39,39 +39,58 @@ CLI = acc.cli_name_with_dashes(__file__)
 run_cli = acc.run_cli(CLI)
 
 
-def test_with_bounds(tmp_path):
-    """Test max_in_height computation with specified bounds"""
+@pytest.mark.parametrize(
+    "test_path",
+    [
+        "gridded_input",
+        "spot_input",
+        "gridded_ties",
+        "spot_ties",
+        "blend_mismatch_inputs",
+        "single_input",
+    ],
+)
+@pytest.mark.slow
+def test_expected(tmp_path, test_path):
+    """Test categorical modal calculation returns the expected results with weather symbol data.
+    The tests are:
 
-    kgo_dir = acc.kgo_root() / "max-in-height"
-    input_path = kgo_dir / "input.nc"
+        - simple gridded / spot data input
+        - gridded / spot data input engineered to provide many ties that are
+          solved using grouping
+        - a night-time code test using spot data
+        - spot data where one input has a different blend-time to the rest
+        - a single input file rather than multiple
+    """
+    kgo_dir = acc.kgo_root() / "categorical-modes" / test_path
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = (kgo_dir).glob("202012*.nc")
+    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
     args = [
-        input_path,
-        "--upper-height-bound",
-        "3000",
-        "--lower-height-bound",
-        "500",
+        *input_paths,
+        "--decision-tree",
+        wxtree,
+        "--model-id-attr",
+        "mosg__model_configuration",
+        "--record-run-attr",
+        "mosg__model_run",
         "--output",
-        f"{output_path}",
+        output_path,
     ]
-
-    kgo_path = kgo_dir / "kgo_with_bounds.nc"
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
 
-@pytest.mark.parametrize("new_name", (None, "max_relative_humidity"))
-def test_without_bounds(tmp_path, new_name):
-    """Test max_in_height computation without bounds."""
-
-    kgo_dir = acc.kgo_root() / "max-in-height"
-    input_path = kgo_dir / "input.nc"
+def test_no_input(tmp_path):
+    """Test an exceptions is raised by the CLI if no cubes are provided."""
+    wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--output", f"{output_path}"]
-    if new_name:
-        kgo_path = kgo_dir / "kgo_without_bounds_new_name.nc"
-        args.extend(["--new-name", f"{new_name}"])
-    else:
-        kgo_path = kgo_dir / "kgo_without_bounds.nc"
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    args = [
+        "--decision-tree",
+        wxtree,
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(RuntimeError, match="Not enough input arguments*"):
+        run_cli(args)

@@ -28,7 +28,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Module containing weather symbol implementation."""
+"""Module containing categorical decision tree implementation."""
 
 
 import copy
@@ -48,6 +48,16 @@ from improver.blending.utilities import (
     record_run_coord_to_attr,
     store_record_run_as_coord,
 )
+from improver.categorical.utilities import (
+    categorical_attributes,
+    day_night_map,
+    expand_nested_lists,
+    get_parameter_names,
+    is_decision_node,
+    is_variable,
+    update_daynight,
+    update_tree_thresholds,
+)
 from improver.metadata.amend import update_model_id_attr_attribute
 from improver.metadata.forecast_times import forecast_period_coord
 from improver.metadata.probabilistic import (
@@ -58,14 +68,6 @@ from improver.metadata.probabilistic import (
 from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
-)
-from improver.wxcode.utilities import (
-    expand_nested_lists,
-    get_parameter_names,
-    is_variable,
-    update_daynight,
-    update_tree_thresholds,
-    weather_code_attributes,
 )
 
 
@@ -89,43 +91,42 @@ def _define_invertible_conditions() -> Dict[str, str]:
 INVERTIBLE_CONDITIONS = _define_invertible_conditions()
 
 
-class WeatherSymbols(BasePlugin):
+class ApplyDecisionTree(BasePlugin):
     """
-    Definition and implementation of a weather symbol decision tree. This
+    Definition and implementation of a categorical decision tree. This
     plugin uses a variety of diagnostic inputs and the decision tree logic
-    to determine the most representative weather symbol for each site
-    defined in the input cubes.
+    to determine the most representative category for each location
+    defined in the input cubes. This can be used for generating categorical data such
+    as weather symbols.
 
     .. See the documentation for information about building a decision tree.
-    .. include:: extended_documentation/wxcode/build_a_decision_tree.rst
+    .. include:: extended_documentation/categorical/build_a_decision_tree.rst
     """
 
     def __init__(
         self,
-        wxtree: dict,
+        decision_tree: dict,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
     ) -> None:
         """
-        Define a decision tree for determining weather symbols based upon
-        the input diagnostics. Use this decision tree to allocate a weather
-        symbol to each point.
+        Define a decision tree for determining a category based upon
+        the input diagnostics. Use this decision tree to allocate a category to each location.
 
         Args:
-            wxtree:
-                Weather symbols decision tree definition, provided as a
-                dictionary.
+            decision_tree:
+                Decision tree definition, provided as a dictionary.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
                 a space-separated string.
             record_run_attr:
                 Name of attribute used to record models and cycles used in
-                constructing the weather symbols.
+                constructing the output.
             target_period:
-                The period in seconds that the weather symbol being produced should
+                The period in seconds that the category being produced should
                 represent. This should correspond with any period diagnostics, e.g.
                 precipitation accumulation, being used as input. This is used to scale
                 any threshold values that are defined with an associated period in
@@ -133,7 +134,7 @@ class WeatherSymbols(BasePlugin):
                 provided has threshold values defined with an associated period.
             title:
                 An optional title to assign to the title attribute of the resulting
-                weather symbol output. This will override the title generated from
+                output. This will override the title generated from
                 the inputs, where this generated title is only set if all of the
                 inputs share a common title.
 
@@ -146,10 +147,14 @@ class WeatherSymbols(BasePlugin):
 
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
-        self.start_node = list(wxtree.keys())[0]
+        node_names = list(decision_tree.keys())
+        self.start_node = node_names[1] if node_names[0] == "meta" else node_names[0]
         self.target_period = target_period
         self.title = title
-        self.queries = update_tree_thresholds(wxtree, target_period)
+        self.meta = decision_tree["meta"]
+        self.queries = update_tree_thresholds(
+            {k: v for k, v in decision_tree.items() if k != "meta"}, target_period
+        )
         self.float_tolerance = 0.01
         self.float_abs_tolerance = 1e-12
         # flag to indicate whether to expect "threshold" as a coordinate name
@@ -158,7 +163,7 @@ class WeatherSymbols(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        return "<WeatherSymbols start_node={}>".format(self.start_node)
+        return "<ApplyDecisionTree start_node={}>".format(self.start_node)
 
     def prepare_input_cubes(
         self, cubes: CubeList
@@ -193,93 +198,110 @@ class WeatherSymbols(BasePlugin):
         optional_node_data_missing = []
         missing_data = []
         for key, query in self.queries.items():
+            if not is_decision_node(key, query):
+                continue
             diagnostics = get_parameter_names(
                 expand_nested_lists(query, "diagnostic_fields")
             )
-            thresholds = expand_nested_lists(query, "diagnostic_thresholds")
-            conditions = expand_nested_lists(query, "diagnostic_conditions")
-            for diagnostic, threshold, condition in zip(
-                diagnostics, thresholds, conditions
-            ):
+            if query.get("deterministic", False):
+                for diagnostic in diagnostics:
+                    test_condition = iris.Constraint(name=diagnostic)
+                    matched_cube = cubes.extract(test_condition)
+                    if not matched_cube:
+                        if "if_diagnostic_missing" in query:
+                            optional_node_data_missing.append(key)
+                        else:
+                            missing_data.append(f"name: {diagnostic} (deterministic)")
+                        continue
+                    used_cubes.extend(matched_cube)
+            else:
+                thresholds = expand_nested_lists(query, "diagnostic_thresholds")
+                conditions = expand_nested_lists(query, "diagnostic_conditions")
+                for diagnostic, threshold, condition in zip(
+                    diagnostics, thresholds, conditions
+                ):
 
-                # First we check the diagnostic name and units, performing
-                # a conversion is required and possible.
-                test_condition = iris.Constraint(name=diagnostic)
-                matched_cube = cubes.extract(test_condition)
-                if not matched_cube:
-                    if "if_diagnostic_missing" in query:
-                        optional_node_data_missing.append(key)
+                    # First we check the diagnostic name and units, performing
+                    # a conversion is required and possible.
+                    test_condition = iris.Constraint(name=diagnostic)
+                    matched_cube = cubes.extract(test_condition)
+                    if not matched_cube:
+                        if "if_diagnostic_missing" in query:
+                            optional_node_data_missing.append(key)
+                        else:
+                            missing_data.append(
+                                f"name: {diagnostic}, threshold: {threshold}, "
+                                f"spp__relative_to_threshold: {condition}\n"
+                            )
+                        continue
+
+                    cube_threshold_units = find_threshold_coordinate(
+                        matched_cube[0]
+                    ).units
+                    threshold.convert_units(cube_threshold_units)
+
+                    # Then we check if the required threshold is present in the
+                    # cube, and that the thresholding is relative to it correctly.
+                    threshold = threshold.points.item()
+                    threshold_name = find_threshold_coordinate(matched_cube[0]).name()
+
+                    # Set flag to check for old threshold coordinate names
+                    if threshold_name == "threshold" and not self.coord_named_threshold:
+                        self.coord_named_threshold = True
+
+                    # Check threshold == 0.0
+                    if abs(threshold) < self.float_abs_tolerance:
+                        coord_constraint = {
+                            threshold_name: lambda cell: np.isclose(
+                                cell.point, 0, rtol=0, atol=self.float_abs_tolerance
+                            )
+                        }
                     else:
-                        missing_data.append([diagnostic, threshold, condition])
-                    continue
+                        coord_constraint = {
+                            threshold_name: lambda cell: np.isclose(
+                                cell.point, threshold, rtol=self.float_tolerance, atol=0
+                            )
+                        }
 
-                cube_threshold_units = find_threshold_coordinate(matched_cube[0]).units
-                threshold.convert_units(cube_threshold_units)
-
-                # Then we check if the required threshold is present in the
-                # cube, and that the thresholding is relative to it correctly.
-                threshold = threshold.points.item()
-                threshold_name = find_threshold_coordinate(matched_cube[0]).name()
-
-                # Set flag to check for old threshold coordinate names
-                if threshold_name == "threshold" and not self.coord_named_threshold:
-                    self.coord_named_threshold = True
-
-                # Check threshold == 0.0
-                if abs(threshold) < self.float_abs_tolerance:
-                    coord_constraint = {
-                        threshold_name: lambda cell: np.isclose(
-                            cell.point, 0, rtol=0, atol=self.float_abs_tolerance
+                    # Checks whether the spp__relative_to_threshold attribute is above
+                    # or below a threshold and and compares to the diagnostic_condition.
+                    test_condition = iris.Constraint(
+                        coord_values=coord_constraint,
+                        cube_func=lambda cube: (
+                            probability_is_above_or_below(cube) == condition
+                        ),
+                    )
+                    matched_threshold = matched_cube.extract(test_condition)
+                    if not matched_threshold:
+                        missing_data.append(
+                            f"name: {diagnostic}, threshold: {threshold}, "
+                            f"spp__relative_to_threshold: {condition}\n"
                         )
-                    }
-                else:
-                    coord_constraint = {
-                        threshold_name: lambda cell: np.isclose(
-                            cell.point, threshold, rtol=self.float_tolerance, atol=0
-                        )
-                    }
-
-                # Checks whether the spp__relative_to_threshold attribute is above
-                # or below a threshold and and compares to the diagnostic_condition.
-                test_condition = iris.Constraint(
-                    coord_values=coord_constraint,
-                    cube_func=lambda cube: (
-                        probability_is_above_or_below(cube) == condition
-                    ),
-                )
-                matched_threshold = matched_cube.extract(test_condition)
-                if not matched_threshold:
-                    missing_data.append([diagnostic, threshold, condition])
-                else:
-                    used_cubes.extend(matched_threshold)
+                    else:
+                        used_cubes.extend(matched_threshold)
 
         if missing_data:
-            msg = (
-                "Weather Symbols input cubes are missing"
-                " the following required"
-                " input fields:\n"
-            )
-            dyn_msg = "name: {}, threshold: {}, " "spp__relative_to_threshold: {}\n"
-            for item in missing_data:
-                msg = msg + dyn_msg.format(*item)
+            msg = "Decision Tree input cubes are missing the following required input fields:\n"
+            for dyn_msg in missing_data:
+                msg += dyn_msg
             raise IOError(msg)
 
         if not optional_node_data_missing:
             optional_node_data_missing = None
         return used_cubes, optional_node_data_missing
 
-    def check_coincidence(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+    def check_coincidence(self, cubes: Union[List[Cube], CubeList]):
         """
         Check that all the provided cubes are valid at the same time and if any
         of the input cubes have time bounds, these match.
 
         The last input cube with bounds (or first input cube if none have bounds)
-        is selected as a template_cube for later producing the weather symbol
+        is selected as a template_cube for later producing the output
         cube.
 
         Args:
             cubes:
-                List of input cubes used to generate weather symbols
+                List of input cubes used in the decision tree
 
         Raises:
             ValueError: If validity times differ for diagnostics.
@@ -304,7 +326,7 @@ class WeatherSymbols(BasePlugin):
                 f"{diagnostic.name()}: {time}" for diagnostic, time in zip(cubes, times)
             ]
             raise ValueError(
-                "Weather symbol input cubes are valid at different times; "
+                "Decision Tree input cubes are valid at different times; "
                 f"\n{diagnostic_times}"
             )
         # Check that if multiple bounds have been returned, they are all identical.
@@ -315,7 +337,7 @@ class WeatherSymbols(BasePlugin):
             ]
             raise ValueError(
                 "Period diagnostics with different periods have been provided "
-                "as input to the weather symbols code. Period diagnostics must "
+                "as input to the decision tree code. Period diagnostics must "
                 "all describe the same period to be used together."
                 f"\n{diagnostic_bounds}"
             )
@@ -375,13 +397,18 @@ class WeatherSymbols(BasePlugin):
         """
         conditions = []
         loop = 0
-        for diagnostic, p_threshold, d_threshold in zip(
-            test_conditions["diagnostic_fields"],
-            test_conditions["probability_thresholds"],
-            test_conditions["diagnostic_thresholds"],
-        ):
-            loop += 1
+        if test_conditions.get("deterministic", False):
+            coord = "thresholds"
+        else:
+            coord = "probability_thresholds"
 
+        for index, (diagnostic, p_threshold) in enumerate(
+            zip(test_conditions["diagnostic_fields"], test_conditions[coord])
+        ):
+
+            d_threshold = test_conditions.get("diagnostic_thresholds")
+            d_threshold = d_threshold[index] if d_threshold else None
+            loop += 1
             if isinstance(diagnostic, list):
                 # We have a list which could contain variable names, operators and
                 # numbers. The variable names need converting into Iris Constraint
@@ -406,9 +433,12 @@ class WeatherSymbols(BasePlugin):
                         extract_constraint.append(item)
             else:
                 # Non-lists are assumed to be constraints on a single variable.
-                extract_constraint = self.construct_extract_constraint(
-                    diagnostic, d_threshold, self.coord_named_threshold
-                )
+                if d_threshold:
+                    extract_constraint = self.construct_extract_constraint(
+                        diagnostic, d_threshold, self.coord_named_threshold
+                    )
+                else:
+                    extract_constraint = iris.Constraint(diagnostic)
             conditions.append(
                 [
                     extract_constraint,
@@ -484,10 +514,10 @@ class WeatherSymbols(BasePlugin):
             target = self.queries[missing]["if_diagnostic_missing"]
             alternative = self.queries[missing][target]
 
-            for node, query in self.queries.items():
-                if query["if_true"] == missing:
+            for query in self.queries.values():
+                if query.get("if_true", None) == missing:
                     query["if_true"] = alternative
-                if query["if_false"] == missing:
+                if query.get("if_false", None) == missing:
                     query["if_false"] = alternative
 
             if self.start_node == missing:
@@ -508,13 +538,13 @@ class WeatherSymbols(BasePlugin):
                 The node name of the tree root (currently always
                 lightning).
             end:
-                The weather symbol code to which we are tracing all routes.
+                The category code to which we are tracing all routes.
             route:
                 A list of node names found so far.
 
         Returns:
             A list of node names that defines the route from the tree root
-            to the weather symbol leaf (end of chain).
+            to the category leaf (end of chain).
 
         References:
             Method based upon Python Patterns - Implementing Graphs essay
@@ -532,34 +562,45 @@ class WeatherSymbols(BasePlugin):
         routes = []
         for node in graph[start]:
             if node not in route:
-                newroutes = WeatherSymbols.find_all_routes(
+                newroutes = ApplyDecisionTree.find_all_routes(
                     graph, node, end, route=route
                 )
                 routes.extend(newroutes)
         return routes
 
-    def create_symbol_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+    def create_categorical_cube(self, cubes: Union[List[Cube], CubeList]) -> Cube:
         """
-        Create an empty weather symbol cube
+        Create an empty categorical cube taking the cube name and categorical attribute names
+        from the meta node, and categorical attribute values from the leaf nodes.
+        The reference time is the latest from the set of input cubes and the optional record
+        run attribute is a combination from all source cubes. Everything else comes from the
+        template cube, which is the first cube with time bounds, or the first cube if none
+        have time bounds.
 
         Args:
             cubes:
-                List of input cubes used to generate weather symbols
+                List of input cubes used in the decision tree
 
         Returns:
-            A cube with suitable metadata to describe the weather symbols
+            A cube with suitable metadata to describe the categories
             that will fill it and data initiated with the value -1 to allow
             any unset points to be readily identified.
         """
-        threshold_coord = find_threshold_coordinate(self.template_cube)
-        template_cube = next(self.template_cube.slices_over([threshold_coord])).copy()
-        # remove coordinates and bounds that do not apply to weather symbols
-        template_cube.remove_coord(threshold_coord)
+        try:
+            threshold_coord = find_threshold_coordinate(self.template_cube)
+        except CoordinateNotFoundError:
+            template_cube = self.template_cube
+        else:
+            template_cube = next(
+                self.template_cube.slices_over([threshold_coord])
+            ).copy()
+            # remove coordinates and bounds that do not apply to a categorical cube
+            template_cube.remove_coord(threshold_coord)
 
         mandatory_attributes = generate_mandatory_attributes(cubes)
         if self.title:
             mandatory_attributes.update({"title": self.title})
-        optional_attributes = weather_code_attributes()
+        optional_attributes = categorical_attributes(self.queries, self.meta["name"])
         if self.model_id_attr:
             optional_attributes.update(
                 update_model_id_attr_attribute(cubes, self.model_id_attr)
@@ -569,8 +610,8 @@ class WeatherSymbols(BasePlugin):
                 set(cubes), self.record_run_attr, self.model_id_attr
             )
 
-        symbols = create_new_diagnostic_cube(
-            "weather_code",
+        categories = create_new_diagnostic_cube(
+            self.meta["name"],
             "1",
             template_cube,
             mandatory_attributes,
@@ -583,11 +624,11 @@ class WeatherSymbols(BasePlugin):
             # slices. Using set here ensures each contributing model/cycle/diagnostic
             # is only considered once when creating the record run coordinate.
             record_run_coord_to_attr(
-                symbols, set(cubes), self.record_run_attr, discard_weights=True
+                categories, set(cubes), self.record_run_attr, discard_weights=True
             )
-        self._set_reference_time(symbols, cubes)
+        self._set_reference_time(categories, cubes)
 
-        return symbols
+        return categories
 
     @staticmethod
     def _set_reference_time(cube: Cube, cubes: CubeList):
@@ -652,7 +693,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             cubes:
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
+                decision tree, these at co-incident times.
             expression:
                 Defined recursively:
                 A list consisting of an iris.Constraint or a list of
@@ -721,7 +762,7 @@ class WeatherSymbols(BasePlugin):
         Args:
             cubes:
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
+                decision tree, these at co-incident times.
             condition_chain:
                 A valid condition chain is defined recursively:
                 (1) If each a_1, ..., a_n is an extract expression (i.e. a
@@ -779,16 +820,15 @@ class WeatherSymbols(BasePlugin):
         return res
 
     def process(self, cubes: CubeList) -> Cube:
-        """Apply the decision tree to the input cubes to produce weather
-        symbol output.
+        """Apply the decision tree to the input cubes to produce categorical output.
 
         Args:
             cubes:
                 A cubelist containing the diagnostics required for the
-                weather symbols decision tree, these at co-incident times.
+                decision tree, these at co-incident times.
 
         Returns:
-            A cube of weather symbols.
+            A cube of categorical data.
         """
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
@@ -800,49 +840,46 @@ class WeatherSymbols(BasePlugin):
 
         # Construct graph nodes dictionary
         graph = {
-            key: [self.queries[key]["if_true"], self.queries[key]["if_false"]]
+            key: [self.queries[key]["leaf"]]
+            if "leaf" in self.queries[key].keys()
+            else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
             for key in self.queries
         }
-        # Search through tree for all leaves (weather code end points)
-        defined_symbols = []
+        # Search through tree for all leaves (category end points)
+        defined_categories = []
         for item in self.queries.values():
             for value in item.values():
                 if isinstance(value, int):
-                    defined_symbols.append(value)
-        # Create symbol cube
-        symbols = self.create_symbol_cube(cubes)
-        # Loop over possible symbols
+                    defined_categories.append(value)
+        # Create categorical cube
+        categories = self.create_categorical_cube(cubes)
+        # Loop over possible categories
 
-        for symbol_code in defined_symbols:
-            # In current decision tree
-            # start node is lightning
-            routes = self.find_all_routes(graph, self.start_node, symbol_code,)
+        for category_code in defined_categories:
+            routes = self.find_all_routes(graph, self.start_node, category_code,)
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
                 for i_node in range(len(route) - 1):
                     current_node = route[i_node]
                     current = copy.copy(self.queries[current_node])
-                    try:
-                        next_node = route[i_node + 1]
-                    except KeyError:
-                        next_node = symbol_code
+                    next_node = route[i_node + 1]
 
-                    if current["if_false"] == next_node:
+                    if current.get("if_false") == next_node:
 
                         (
                             current["threshold_condition"],
                             current["condition_combination"],
                         ) = self.invert_condition(current)
-
-                    conditions.append(self.create_condition_chain(current))
+                    if "leaf" not in current.keys():
+                        conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
 
-                # Set grid locations to suitable weather symbol
-                symbols.data[
+                # Set grid locations to suitable category
+                categories.data[
                     np.ma.where(self.evaluate_condition_chain(cubes, test_chain))
-                ] = symbol_code
+                ] = category_code
 
-        # Update symbols for day or night.
-        symbols = update_daynight(symbols)
-        return symbols
+        # Update categories for day or night where appropriate.
+        categories = update_daynight(categories, day_night_map(self.queries))
+        return categories
