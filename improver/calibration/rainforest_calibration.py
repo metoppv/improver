@@ -819,7 +819,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 Number of threads to use during prediction with tree-model objects.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
-                if there are many data points which fall into the same bins for all models.
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
