@@ -135,7 +135,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "lightgbm_model", model_config_dict
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
-
+    def process(self) -> None:
+        """Subclasses should override this function."""
+        raise NotImplementedError(
+            "Process function must be called via subclass method."
+        )
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
         Args:
@@ -159,6 +163,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             The outer list has length equal to the number of model features, and it contains
             the lists of feature splits for each feature. Each feature's list of splits is ordered.
         """
+# These string patterns are defined by light-gbm and are used for finding the feature and
+# threshold information in the model .txt files.
         split_feature_string = "split_feature="
         feature_threshold_string = "threshold="
         combined_feature_splits = {}
@@ -818,7 +824,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 Number of threads to use during prediction with tree-model objects.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
-                if there are many data points which fall into the same bins for all models.
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
