@@ -549,7 +549,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 )
             # sort so rows in the same bins are grouped
             sort_ind = np.lexsort(
-                tuple([binned_data[:, i] for i in range(input_data.shape[1])])
+                tuple([binned_data[:, i] for i in range(n_features)])
             )
             sorted_data = binned_data[sort_ind]
             reverse_sort_ind = np.argsort(sort_ind)
