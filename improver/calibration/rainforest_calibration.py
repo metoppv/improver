@@ -135,7 +135,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "lightgbm_model", model_config_dict
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
-
+    def process(self) -> None:
+        """Subclasses should override this function."""
+        raise NotImplementedError(
+            "Process function must be called via subclass method."
+        )
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
         Args:
