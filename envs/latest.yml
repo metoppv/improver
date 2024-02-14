@@ -24,10 +24,10 @@ dependencies:
   # Optional
   - python-stratify
   - statsmodels
-  - lightgbm=2.3.0
+  - lightgbm
   - numba
   - pysteps
-  - treelite
+  - treelite=2.3.0
   # Development
   - astroid
   - bandit
