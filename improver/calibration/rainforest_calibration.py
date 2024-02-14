@@ -172,7 +172,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     for line in f:
                         if line.startswith(split_feature_string):
                             line = line[len(split_feature_string) : -1]
-                            if len(line) == 0:
+# This deals with the common situation where there is no splits on this line.
                                 continue
                             features = [int(x) for x in line.split(" ")]
                         elif line.startswith(feature_threshold_string):
