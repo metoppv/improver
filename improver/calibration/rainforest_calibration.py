@@ -86,7 +86,9 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 Number of threads to use during prediction with tree-model objects.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
-                if there are many data points which fall into the same bins for all models.
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
@@ -158,7 +160,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             the lists of feature splits for each feature. Each feature's list of splits is ordered.
         """
         split_feature_string = "split_feature="
-        threshold_string = "threshold="
+        feature_threshold_string = "threshold="
         combined_feature_splits = {}
         for lead_time in model_config_dict.keys():
             all_splits = [set() for i in range(self._get_num_features())]
@@ -170,11 +172,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     for line in f:
                         if line.startswith(split_feature_string):
                             line = line[len(split_feature_string) : -1]
-                            if len(line) == 0:
+# This deals with the common situation where there is no splits on this line.
                                 continue
                             features = [int(x) for x in line.split(" ")]
-                        elif line.startswith(threshold_string):
-                            line = line[len(threshold_string) : -1]
+                        elif line.startswith(feature_threshold_string):
+                            line = line[len(feature_threshold_string) : -1]
                             if len(line) == 0:
                                 continue
                             splits = [float(x) for x in line.split(" ")]
@@ -280,7 +282,9 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Number of threads to use during prediction with tree-model objects.
             bin_data:
                 Bin data according to splits used in models. This speeds up prediction
-                if there are many data points which fall into the same bins for all models.
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
@@ -538,13 +542,14 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             # bin by feature splits
             feature_splits = self.combined_feature_splits[model_lead_time]
             binned_data = np.empty(input_data.shape, dtype=np.int32)
-            for i in range(len(feature_splits)):
+            n_features = len(feature_splits)
+            for i in range(n_features):
                 binned_data[:, i] = np.digitize(
                     input_data[:, i], bins=feature_splits[i]
                 )
             # sort so rows in the same bins are grouped
             sort_ind = np.lexsort(
-                tuple([binned_data[:, i] for i in range(input_data.shape[1])])
+                tuple([binned_data[:, i] for i in range(n_features)])
             )
             sorted_data = binned_data[sort_ind]
             reverse_sort_ind = np.argsort(sort_ind)
