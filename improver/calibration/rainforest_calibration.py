@@ -175,8 +175,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                             if len(line) == 0:
                                 continue
                             features = [int(x) for x in line.split(" ")]
-                        elif line.startswith(threshold_string):
-                            line = line[len(threshold_string) : -1]
+                        elif line.startswith(feature_threshold_string):
+                            line = line[len(feature_threshold_string) : -1]
                             if len(line) == 0:
                                 continue
                             splits = [float(x) for x in line.split(" ")]
