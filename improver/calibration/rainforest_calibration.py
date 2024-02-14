@@ -160,7 +160,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             the lists of feature splits for each feature. Each feature's list of splits is ordered.
         """
         split_feature_string = "split_feature="
-        threshold_string = "threshold="
+        feature_threshold_string = "threshold="
         combined_feature_splits = {}
         for lead_time in model_config_dict.keys():
             all_splits = [set() for i in range(self._get_num_features())]
