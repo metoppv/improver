@@ -118,7 +118,7 @@ def test__get_feature_splits(
 
     splits = plugin._get_feature_splits(model_config)
 
-    lead_times = sorted([int(x) for x in model_config.keys()])
+    lead_times = sorted([np.float32(x) for x in model_config.keys()])
     assert sorted(list(splits.keys())) == lead_times
 
     model_path = model_config["24"]["0.0000"].get("lightgbm_model")
