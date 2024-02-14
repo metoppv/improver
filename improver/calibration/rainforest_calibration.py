@@ -135,11 +135,13 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 "lightgbm_model", model_config_dict
             )
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
+
     def process(self) -> None:
         """Subclasses should override this function."""
         raise NotImplementedError(
             "Process function must be called via subclass method."
         )
+
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
         Args:
@@ -163,8 +165,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             The outer list has length equal to the number of model features, and it contains
             the lists of feature splits for each feature. Each feature's list of splits is ordered.
         """
-# These string patterns are defined by light-gbm and are used for finding the feature and
-# threshold information in the model .txt files.
+        # These string patterns are defined by light-gbm and are used for finding the feature and
+        # threshold information in the model .txt files.
         split_feature_string = "split_feature="
         feature_threshold_string = "threshold="
         combined_feature_splits = {}
@@ -179,7 +181,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                         if line.startswith(split_feature_string):
                             line = line[len(split_feature_string) : -1]
                             if len(line) == 0:
-                                # This deals with the common situation where there is no splits on this line.
+                                # This deals with the situation where the tree has no splits 
                                 continue
                             features = [int(x) for x in line.split(" ")]
                         elif line.startswith(feature_threshold_string):
