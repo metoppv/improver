@@ -24,7 +24,7 @@ dependencies:
   # Optional
   - python-stratify
   - statsmodels
-  - lightgbm
+  - lightgbm=2.3.0
   - numba
   - pysteps
   - treelite
