@@ -172,7 +172,8 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                     for line in f:
                         if line.startswith(split_feature_string):
                             line = line[len(split_feature_string) : -1]
-# This deals with the common situation where there is no splits on this line.
+                            if len(line) == 0:
+                                # This deals with the common situation where there is no splits on this line.
                                 continue
                             features = [int(x) for x in line.split(" ")]
                         elif line.startswith(feature_threshold_string):
@@ -548,9 +549,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                     input_data[:, i], bins=feature_splits[i]
                 )
             # sort so rows in the same bins are grouped
-            sort_ind = np.lexsort(
-                tuple([binned_data[:, i] for i in range(n_features)])
-            )
+            sort_ind = np.lexsort(tuple([binned_data[:, i] for i in range(n_features)]))
             sorted_data = binned_data[sort_ind]
             reverse_sort_ind = np.argsort(sort_ind)
             # we only need to predict for rows which are different from the previous row

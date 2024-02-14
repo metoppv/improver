@@ -31,6 +31,7 @@
 """Unit tests for the ApplyRainForestsCalibration class."""
 import sys
 
+import numpy as np
 import pytest
 
 from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
