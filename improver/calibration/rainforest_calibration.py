@@ -141,6 +141,12 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         raise NotImplementedError(
             "Process function must be called via subclass method."
         )
+    
+    def _get_num_features(self) -> int:
+        """Subclasses should override this function."""
+        raise NotImplementedError(
+            "_get_num_features must be called via subclass method."
+        )
 
     def _check_num_features(self, features: CubeList) -> None:
         """Check that the correct number of features has been passed into the model.
