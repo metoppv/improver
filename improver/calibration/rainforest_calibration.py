@@ -542,7 +542,8 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             # bin by feature splits
             feature_splits = self.combined_feature_splits[model_lead_time]
             binned_data = np.empty(input_data.shape, dtype=np.int32)
-            for i in range(len(feature_splits)):
+            n_features = len(feature_splits)
+            for i in range(n_features):
                 binned_data[:, i] = np.digitize(
                     input_data[:, i], bins=feature_splits[i]
                 )
