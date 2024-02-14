@@ -141,7 +141,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         raise NotImplementedError(
             "Process function must be called via subclass method."
         )
-    
+
     def _get_num_features(self) -> int:
         """Subclasses should override this function."""
         raise NotImplementedError(
@@ -187,7 +187,7 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                         if line.startswith(split_feature_string):
                             line = line[len(split_feature_string) : -1]
                             if len(line) == 0:
-                                # This deals with the situation where the tree has no splits 
+                                # This deals with the situation where the tree has no splits
                                 continue
                             features = [int(x) for x in line.split(" ")]
                         elif line.startswith(feature_threshold_string):
