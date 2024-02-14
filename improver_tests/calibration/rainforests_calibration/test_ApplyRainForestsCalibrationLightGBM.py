@@ -443,7 +443,7 @@ def test_process_with_bin_data(
     result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
 
     # check that there are duplicated rows in result (so that binning will actually
-    # have an affect)
+    # have an effect)
     assert len(np.unique(result.data)) < result.data.size
 
     plugin = plugin_cls(model_config_dict={}, bin_data=True)
