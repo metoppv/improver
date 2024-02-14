@@ -452,7 +452,7 @@ def test_process_with_bin_data(
     result_bin = plugin.process(
         ensemble_forecast, ensemble_features, output_thresholds,
     )
-    np.testing.assert_almost_equal(result.data, result_bin.data)
+    np.testing.assert_equal(result.data, result_bin.data)
 
 
 def test_process_deterministic(
