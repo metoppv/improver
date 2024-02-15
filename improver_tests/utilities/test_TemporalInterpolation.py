@@ -53,7 +53,17 @@ from improver.utilities.temporal_interpolation import TemporalInterpolation
 
 def _grid_params(spatial_grid: str, npoints: int) -> Tuple[Tuple[float, float], float]:
     """Set domain corner and grid spacing for lat-lon or equal area
-    projections."""
+    projections.
+
+    Args:
+        spatial_grid:
+            "latlon" or "equalarea" to determine the type of projection.
+        npoints:
+            The number of grid points to use in both x and y.
+    Returns:
+        A tuple containing a further tuple that includes the grid corner
+        coordinates, and a single value specifying the grid spacing.
+    """
 
     domain_corner = None
     grid_spacing = None
@@ -78,6 +88,9 @@ def diagnostic_cube(time: dt, frt: dt, data: np.ndarray, spatial_grid: str, real
             The data to be contained in the cube.
         spatial_grid:
             Whether this is a lat-lon or equal areas projection.
+        realizations:
+            An optional list of realizations identifiers. The length of this
+            list will determine how many realizations are created.
     Returns:
         A diagnostic cube for use in testing.
     """
@@ -113,6 +126,9 @@ def multi_time_cube(times: List, data: np.ndarray, spatial_grid: str, bounds: bo
             Whether this is a lat-lon or equal areas projection.
         bounds:
             If True return time coordinates with time bounds.
+        realizations:
+            An optional list of realizations identifiers. The length of this
+            list will determine how many realizations are created.
     Returns:
         A diagnostic cube for use in testing.
     """
@@ -178,8 +194,7 @@ def solar_expected():
     )
 
 
-@pytest.fixture
-def daynight_mask():
+def mask_values():
     """The mask matching the terminator position for the daynight
     interpolation tests."""
     return np.array(
@@ -196,6 +211,12 @@ def daynight_mask():
             [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
         ]
     )
+
+
+@pytest.fixture
+def daynight_mask():
+    """Fixture to return mask values."""
+    return mask_values()
 
 
 @pytest.mark.parametrize(
@@ -291,7 +312,9 @@ def test_enforce_time_coords_dtype(bounds):
 
 
 def test_sin_phi():
-    """Test that the function returns the values expected."""
+    """Test that the function returns the values expected for solar
+    elevation."""
+
     latitudes = np.array([50.0, 50.0, 50.0])
     longitudes = np.array([-5.0, 0.0, 5.0])
     dtval = datetime.datetime(2017, 1, 11, 8)
@@ -412,268 +435,134 @@ def test_daynight_interpolation(daynight_mask, realizations):
             np.testing.assert_almost_equal(dslice, expected)
 
 
-class Test_process(IrisTest):
+@pytest.mark.parametrize("bearings,expected_value", [
+    ([350, 20], 5),
+    ([40, 60], 50),
+    ]
+)
+def test_process_wind_direction(bearings, expected_value):
+    """Test that wind directions are interpolated properly at the 0/360
+    circular cross-over and away from this cross-over. The interpolated
+    values are returned, along with the cube corresponding to the later
+    input time. This later cube should be the same as the input."""
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 10
+    data = np.stack(
+        [
+            np.ones((npoints, npoints), dtype=np.float32) * bearings[0],
+            np.ones((npoints, npoints), dtype=np.float32) * bearings[1],
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon")
+    cube.rename("wind_from_direction")
+    cube.units = "degrees"
 
-    """Test interpolation of cubes to intermediate times using the plugin."""
+    expected = np.full((npoints, npoints), expected_value, dtype=np.float32)
+    result = TemporalInterpolation(interval_in_minutes=180).process(
+        cube[0], cube[1]
+    )
 
-    def setUp(self):
-        """Set up the test inputs."""
-        self.time_0 = datetime.datetime(2017, 11, 1, 3)
-        self.time_extra = datetime.datetime(2017, 11, 1, 6)
-        self.time_1 = datetime.datetime(2017, 11, 1, 9)
-        self.npoints = 10
-
-        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
-
-        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32)
-        data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 7
-        self.cube_time_0 = set_up_variable_cube(
-            data_time_0,
-            time=self.time_0,
-            frt=self.time_0,
-            domain_corner=domain_corner,
-            grid_spacing=grid_spacing,
-        )
-        self.cube_time_1 = set_up_variable_cube(
-            data_time_1,
-            time=self.time_1,
-            frt=self.time_0,
-            domain_corner=domain_corner,
-            grid_spacing=grid_spacing,
-        )
-
-    def test_return_type(self):
-        """Test that an iris cubelist is returned."""
-
-        result = TemporalInterpolation(interval_in_minutes=180).process(
-            self.cube_time_0, self.cube_time_1
-        )
-        self.assertIsInstance(result, iris.cube.CubeList)
-
-    def test_wind_direction_interpolation_over_north(self):
-        """Test that wind directions are interpolated properly at the 0/360
-        circular cross-over."""
-
-        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 350
-        data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 20
-        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
-        cube_time_0 = set_up_variable_cube(
-            data_time_0,
-            name="wind_from_direction",
-            units="degrees",
-            time=self.time_0,
-            frt=self.time_0,
-            domain_corner=domain_corner,
-            grid_spacing=grid_spacing,
-        )
-        cube_time_1 = set_up_variable_cube(
-            data_time_1,
-            name="wind_from_direction",
-            units="degrees",
-            time=self.time_1,
-            frt=self.time_1,
-            domain_corner=domain_corner,
-            grid_spacing=grid_spacing,
-        )
-        expected_data = np.full((self.npoints, self.npoints), 5, dtype=np.float32)
-        (result,) = TemporalInterpolation(interval_in_minutes=180).process(
-            cube_time_0, cube_time_1
-        )
-
-        self.assertArrayAlmostEqual(expected_data, result.data, decimal=4)
-
-    def test_wind_direction_interpolation(self):
-        """Test that wind directions are interpolated properly when the interpolation
-        doesn't cross the 0/360 boundary."""
-
-        data_time_0 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 40
-        data_time_1 = np.ones((self.npoints, self.npoints), dtype=np.float32) * 60
-        domain_corner, grid_spacing = _grid_params("latlon", self.npoints)
-        cube_time_0 = set_up_variable_cube(
-            data_time_0,
-            units="degrees",
-            time=self.time_0,
-            frt=self.time_0,
-            domain_corner=domain_corner,
-            grid_spacing=grid_spacing,
-        )
-        cube_time_1 = set_up_variable_cube(
-            data_time_1,
-            units="degrees",
-            time=self.time_1,
-            frt=self.time_1,
-            domain_corner=domain_corner,
-            grid_spacing=grid_spacing,
-        )
-        expected_data = expected_data = np.full(
-            (self.npoints, self.npoints), 50, dtype=np.float32
-        )
-        (result,) = TemporalInterpolation(interval_in_minutes=180).process(
-            cube_time_0, cube_time_1
-        )
-
-        self.assertArrayAlmostEqual(expected_data, result.data, decimal=4)
-
-    def test_valid_single_interpolation(self):
-        """Test interpolating to the mid point of the time range. Expect the
-        data to be half way between, and the time coordinate should be at
-        06Z November 11th 2017."""
-
-        expected_data = np.ones((self.npoints, self.npoints)) * 4
-        expected_time = [1509516000]
-        expected_fp = 3 * 3600
-        (result,) = TemporalInterpolation(interval_in_minutes=180).process(
-            self.cube_time_0, self.cube_time_1
-        )
-
-        self.assertArrayAlmostEqual(expected_data, result.data)
-        self.assertArrayAlmostEqual(result.coord("time").points, expected_time)
-        self.assertAlmostEqual(result.coord("forecast_period").points[0], expected_fp)
-
-    def test_valid_multiple_interpolations(self):
-        """Test interpolating to every hour between the two input cubes.
-        Check the data increments as expected and the time coordinates are also
-        set correctly.
-
-        NB Interpolation in iris is prone to float precision errors of order
-        10E-6, hence the need to use AlmostEqual below."""
-
-        result = TemporalInterpolation(interval_in_minutes=60).process(
-            self.cube_time_0, self.cube_time_1
-        )
-        for i, cube in enumerate(result):
-            expected_data = np.ones((self.npoints, self.npoints)) * i + 2
-            expected_time = [1509508800 + i * 3600]
-
-            self.assertArrayAlmostEqual(expected_data, cube.data)
-            self.assertArrayAlmostEqual(
-                cube.coord("time").points, expected_time, decimal=5
-            )
-            self.assertAlmostEqual(
-                cube.coord("forecast_period").points[0], (i + 1) * 3600
-            )
-
-    def test_valid_interpolation_from_given_list(self):
-        """Test interpolating to a point defined in a list between the two
-        input cube validity times. Check the data increments as expected and
-        the time coordinates are also set correctly.
-
-        NB Interpolation in iris is prone to float precision errors of order
-        10E-6, hence the need to use AlmostEqual below."""
-
-        (result,) = TemporalInterpolation(times=[self.time_extra]).process(
-            self.cube_time_0, self.cube_time_1
-        )
-        expected_data = np.ones((self.npoints, self.npoints)) * 4
-        expected_time = [1509516000]
-        expected_fp = 3 * 3600
-
-        self.assertArrayAlmostEqual(expected_data, result.data)
-        self.assertArrayAlmostEqual(
-            result.coord("time").points, expected_time, decimal=5
-        )
-        self.assertAlmostEqual(result.coord("forecast_period").points[0], expected_fp)
-        self.assertEqual(result.data.dtype, np.float32)
-        self.assertEqual(str(result.coord("time").points.dtype), "int64")
-        self.assertEqual(str(result.coord("forecast_period").points.dtype), "int32")
-
-    def test_solar_interpolation_from_given_list(self):
-        """Test solar interpolating to a point defined in a list
-        between the two input cube validity times.
-        Check the data increments as expected and
-        the time coordinates are also set correctly."""
-
-        plugin = TemporalInterpolation(
-            times=[self.time_extra], interpolation_method="solar"
-        )
-        (result,) = plugin.process(self.cube_time_0, self.cube_time_1)
-        expected_time = [1509516000]
-        expected_fp = 3 * 3600
-
-        self.assertArrayAlmostEqual(
-            result.coord("time").points, expected_time, decimal=5
-        )
-        self.assertAlmostEqual(result.coord("forecast_period").points[0], expected_fp)
-        self.assertEqual(result.data.dtype, np.float32)
-        self.assertEqual(str(result.coord("time").points.dtype), "int64")
-        self.assertEqual(str(result.coord("forecast_period").points.dtype), "int32")
-
-    def test_daynight_interpolation_from_given_list(self):
-        """Test daynight interpolating to a point defined in a list
-        between the two input cube validity times.
-        Check the data increments as expected and
-        the time coordinates are also set correctly."""
-
-        plugin = TemporalInterpolation(
-            times=[self.time_extra], interpolation_method="daynight"
-        )
-        (result,) = plugin.process(self.cube_time_0, self.cube_time_1)
-        expected_data = np.zeros((self.npoints, self.npoints))
-        expected_data[:2, 7:] = 4.0
-        expected_data[2, 8:] = 4.0
-        expected_data[3, 9] = 4.0
-        expected_time = [1509516000]
-        expected_fp = 3 * 3600
-
-        self.assertArrayAlmostEqual(expected_data, result.data)
-        self.assertArrayAlmostEqual(
-            result.coord("time").points, expected_time, decimal=5
-        )
-        self.assertAlmostEqual(result.coord("forecast_period").points[0], expected_fp)
-        self.assertEqual(result.data.dtype, np.float32)
-        self.assertEqual(str(result.coord("time").points.dtype), "int64")
-        self.assertEqual(str(result.coord("forecast_period").points.dtype), "int32")
-
-    def test_input_cube_without_time_coordinate(self):
-        """Test that an exception is raised if a cube is provided without a
-        time coordiate."""
-
-        self.cube_time_0.remove_coord("time")
-
-        msg = "Cube provided to TemporalInterpolation " "contains no time coordinate"
-        with self.assertRaisesRegex(CoordinateNotFoundError, msg):
-            TemporalInterpolation(interval_in_minutes=180).process(
-                self.cube_time_0, self.cube_time_1
-            )
-
-    def test_input_cubes_in_incorrect_time_order(self):
-        """Test that an exception is raised if the cube representing the
-        initial time has a validity time that is after the cube representing
-        the final time."""
-
-        msg = "TemporalInterpolation input cubes ordered incorrectly"
-        with self.assertRaisesRegex(ValueError, msg):
-            TemporalInterpolation(interval_in_minutes=180).process(
-                self.cube_time_1, self.cube_time_0
-            )
-
-    def test_input_cube_with_multiple_times(self):
-        """Test that an exception is raised if a cube is provided that has
-        multiple validity times, e.g. a multi-entried time dimension."""
-
-        second_time = self.cube_time_0.copy()
-        second_time.coord("time").points = self.time_extra.timestamp()
-        cube = iris.cube.CubeList([self.cube_time_0, second_time])
-        cube = cube.merge_cube()
-
-        msg = "Cube provided to TemporalInterpolation contains multiple"
-        with self.assertRaisesRegex(ValueError, msg):
-            TemporalInterpolation(interval_in_minutes=180).process(
-                cube, self.cube_time_1
-            )
-
-    def test_input_cubelists_raises_exception(self):
-        """Test that providing cubelists instead of cubes raises an
-        exception."""
-
-        cubes = iris.cube.CubeList([self.cube_time_1])
-
-        msg = "Inputs to TemporalInterpolation are not of type "
-        with self.assertRaisesRegex(TypeError, msg):
-            TemporalInterpolation(interval_in_minutes=180).process(
-                cubes, self.cube_time_0
-            )
+    assert isinstance(result, CubeList)
+    np.testing.assert_almost_equal(result[0].data, expected, decimal=4)
+    # Ideally the data at the later of the input cube times would be
+    # completely unchanged by the interpolation, but there are some small
+    # precision level changes.
+    np.testing.assert_almost_equal(result[1].data, cube[1].data, decimal=5)
 
 
-if __name__ == "__main__":
-    unittest.main()
+
+@pytest.mark.parametrize(
+    "kwargs,offsets,expected",
+    [
+        ({"interval_in_minutes": 180}, [3, 6], [4, 7]),
+        ({"interval_in_minutes": 60}, [1, 2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7]),
+        ({"times": [datetime.datetime(2017, 11, 1, 6)]}, [3, 6], [4, 7]),
+        ({"times": [datetime.datetime(2017, 11, 1, 8)], "interpolation_method": "daynight"}, [5], [6 * mask_values()]),
+        ({"times": [datetime.datetime(2017, 11, 1, 8)], "interpolation_method": "solar"}, [5], [None])
+    ]
+)
+def test_process_interpolation(kwargs, offsets, expected):
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 10
+    data = np.stack(
+        [
+            np.ones((npoints, npoints), dtype=np.float32),
+            np.ones((npoints, npoints), dtype=np.float32) * 7,
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon")
+
+    result = TemporalInterpolation(**kwargs).process(cube[0], cube[1])
+
+    for i, (offset, value) in enumerate(zip(offsets, expected)):
+        expected_data = np.full((npoints, npoints), value)
+        expected_time = 1509505200 + (offset * 3600)
+        expected_fp = (6 + offset) * 3600
+
+        assert result[i].coord("time").points[0] == expected_time
+        assert result[i].coord("forecast_period").points[0] == expected_fp
+        assert result[i].coord("time").points.dtype == "int64"
+        assert result[i].coord("forecast_period").points.dtype == "int32"
+        if value is not None:
+            np.testing.assert_almost_equal(result[i].data, expected_data)
+
+
+def test_input_cube_without_time_coordinate():
+    """Test that an exception is raised if a cube is provided without a
+    time coordiate."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon")
+    cube_0 = cube[0]
+    cube_1 = cube[1]
+    cube_1.remove_coord("time")
+
+    msg = "Cube provided to TemporalInterpolation contains no time coordinate"
+    with pytest.raises(CoordinateNotFoundError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180).process(cube_0, cube_1)
+
+
+def test_input_cubes_in_incorrect_time_order():
+    """Test that an exception is raised if the cube representing the
+    initial time has a validity time that is after the cube representing
+    the final time."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon")
+    cube_0 = cube[0]
+    cube_1 = cube[1]
+
+    msg = "TemporalInterpolation input cubes ordered incorrectly"
+    with pytest.raises(ValueError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180).process(cube_1, cube_0)
+
+
+def test_input_cube_with_multiple_times():
+    """Test that an exception is raised if a cube is provided that has
+    multiple validity times, e.g. a multi-entried time dimension."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 6, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon")
+    cube_0 = cube[0:2]
+    cube_1 = cube[2]
+
+    msg = "Cube provided to TemporalInterpolation contains multiple"
+    with pytest.raises(ValueError, match=msg):
+        TemporalInterpolation(interval_in_minutes=60).process(cube_0, cube_1)
+
+
+def test_input_cubelists_raises_exception():
+    """Test that providing cubelists instead of cubes raises an
+    exception."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon")
+    cubes = CubeList([cube[0], cube[1]])
+
+    msg = "Inputs to TemporalInterpolation are not of type "
+    with pytest.raises(TypeError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180).process(cubes, cube[1])
