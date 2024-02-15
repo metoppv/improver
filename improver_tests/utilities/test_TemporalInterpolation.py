@@ -32,22 +32,15 @@
 
 import datetime
 from datetime import datetime as dt
-import unittest
-
-from typing import List, Tuple, Optional
+from typing import List, Optional, Tuple
 
 import iris
 import numpy as np
 import pytest
-
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
-from iris.tests import IrisTest
 
-from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
+from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.temporal_interpolation import TemporalInterpolation
 
 
@@ -76,7 +69,13 @@ def _grid_params(spatial_grid: str, npoints: int) -> Tuple[Tuple[float, float], 
     return domain_corner, grid_spacing
 
 
-def diagnostic_cube(time: dt, frt: dt, data: np.ndarray, spatial_grid: str, realizations: Optional[List] = None) -> Cube:
+def diagnostic_cube(
+    time: dt,
+    frt: dt,
+    data: np.ndarray,
+    spatial_grid: str,
+    realizations: Optional[List] = None,
+) -> Cube:
     """Return a diagnostic cube containing the provided data.
 
     Args:
@@ -111,7 +110,13 @@ def diagnostic_cube(time: dt, frt: dt, data: np.ndarray, spatial_grid: str, real
     )
 
 
-def multi_time_cube(times: List, data: np.ndarray, spatial_grid: str, bounds: bool = False, realizations: Optional[List] = None) -> Cube:
+def multi_time_cube(
+    times: List,
+    data: np.ndarray,
+    spatial_grid: str,
+    bounds: bool = False,
+    realizations: Optional[List] = None,
+) -> Cube:
     """Return a multi-time diagnostic cube containing the provided data.
 
     Args:
@@ -138,7 +143,11 @@ def multi_time_cube(times: List, data: np.ndarray, spatial_grid: str, bounds: bo
 
     frt = sorted(times)[0] - (times[1] - times[0])  # Such that guess bounds is +ve
     for time, data_slice in zip(times, data):
-        cubes.append(diagnostic_cube(time, frt, data_slice, spatial_grid, realizations=realizations))
+        cubes.append(
+            diagnostic_cube(
+                time, frt, data_slice, spatial_grid, realizations=realizations
+            )
+        )
 
     cube = cubes.merge_cube()
 
@@ -148,7 +157,9 @@ def multi_time_cube(times: List, data: np.ndarray, spatial_grid: str, bounds: bo
     return cube
 
 
-def non_standard_times(times: List, data: np.ndarray, spatial_grid: str, bounds: bool = False) -> Cube:
+def non_standard_times(
+    times: List, data: np.ndarray, spatial_grid: str, bounds: bool = False
+) -> Cube:
     """Return a multi-time diagnostic cube containing the provided data.
     The units of the time dimensions are made non-standards compliant.
 
@@ -223,9 +234,15 @@ def daynight_mask():
     "kwargs,exception",
     [
         ({}, "TemporalInterpolation: One of"),  # No target times defined
-        ({"interval_in_minutes":60, "times":[datetime.datetime(2017, 11, 1, 9)]}, "TemporalInterpolation: Only one of"),  # Two methods of defining targets used
-        ({"interval_in_minutes":60, "interpolation_method":"invalid"}, "TemporalInterpolation: Unknown interpolation method"),  # Invalid interpolation method requested
-    ]
+        (
+            {"interval_in_minutes": 60, "times": [datetime.datetime(2017, 11, 1, 9)]},
+            "TemporalInterpolation: Only one of",
+        ),  # Two methods of defining targets used
+        (
+            {"interval_in_minutes": 60, "interpolation_method": "invalid"},
+            "TemporalInterpolation: Unknown interpolation method",
+        ),  # Invalid interpolation method requested
+    ],
 )
 def test__init__(kwargs, exception):
     """Test exceptions raised by the __init__ method."""
@@ -236,11 +253,20 @@ def test__init__(kwargs, exception):
 @pytest.mark.parametrize(
     "kwargs,exception",
     [
-        ({"interval_in_minutes": 60}, None),  # Generate times between bounds using interval
+        (
+            {"interval_in_minutes": 60},
+            None,
+        ),  # Generate times between bounds using interval
         ({"times": None}, None),  # Use the expected times as the input
-        ({"times": datetime.datetime(2017, 11, 1, 10)}, "List of times falls outside the range given by"),  # Use the expected times, plus another outside the range as the input
-        ({"interval_in_minutes":61}, "interval_in_minutes of"),  # Use an invalid interval
-    ]
+        (
+            {"times": datetime.datetime(2017, 11, 1, 10)},
+            "List of times falls outside the range given by",
+        ),  # Use the expected times, plus another outside the range as the input
+        (
+            {"interval_in_minutes": 61},
+            "interval_in_minutes of",
+        ),  # Use an invalid interval
+    ],
 )
 def test_construct_time_list(kwargs, exception):
     """Test construction of target times using various inputs and testing
@@ -258,7 +284,9 @@ def test_construct_time_list(kwargs, exception):
     # times plus any others specified in the kwarg.
     try:
         target_times = times.copy()
-        target_times.append(kwargs["times"]) if kwargs["times"] is not None else target_times
+        target_times.append(kwargs["times"]) if kwargs[
+            "times"
+        ] is not None else target_times
     except KeyError:
         pass
     else:
@@ -319,15 +347,14 @@ def test_sin_phi():
     longitudes = np.array([-5.0, 0.0, 5.0])
     dtval = datetime.datetime(2017, 1, 11, 8)
     expected_array = np.array([-0.05481607, -0.00803911, 0.03659632])
-    plugin = TemporalInterpolation(
-        interval_in_minutes=60, interpolation_method="solar"
-    )
+    plugin = TemporalInterpolation(interval_in_minutes=60, interpolation_method="solar")
     result = plugin.calc_sin_phi(dtval, latitudes, longitudes)
     assert isinstance(result, np.ndarray)
     np.testing.assert_almost_equal(result, expected_array)
 
 
-@pytest.mark.parametrize("spatial_grid,expected_lats,expected_lons",
+@pytest.mark.parametrize(
+    "spatial_grid,expected_lats,expected_lons",
     [
         (
             "latlon",
@@ -349,9 +376,9 @@ def test_sin_phi():
                     [-9.06131306, -3.59656346, 1.88105082],
                     [-9.63368459, -3.69298822, 2.26497216],
                 ]
-            )
+            ),
         ),
-    ]
+    ],
 )
 def test_calc_lats_lons(spatial_grid, expected_lats, expected_lons):
     """Test that the function returns the lats and lons expected for a native
@@ -361,9 +388,7 @@ def test_calc_lats_lons(spatial_grid, expected_lats, expected_lons):
     data = np.ones((3, 3), dtype=np.float32)
     cube = multi_time_cube(times, data, spatial_grid)
 
-    plugin = TemporalInterpolation(
-        interval_in_minutes=60, interpolation_method="solar"
-    )
+    plugin = TemporalInterpolation(interval_in_minutes=60, interpolation_method="solar")
     result_lats, result_lons = plugin.calc_lats_lons(cube)
     assert isinstance(result_lats, np.ndarray)
     assert result_lats.shape == (3, 3)
@@ -396,7 +421,7 @@ def test_solar_interpolation(solar_expected, realizations):
 
     result = plugin.solar_interpolate(cube, interpolated_cube)
     assert isinstance(result, CubeList)
-    result, = result
+    (result,) = result
     assert result.coord("time").points == 1509523200
     assert result.coord("forecast_period").points[0] == 3600 * 4
     if result.ndim == 2:
@@ -416,7 +441,9 @@ def test_daynight_interpolation(daynight_mask, realizations):
     frt = datetime.datetime(2017, 11, 1, 6)
     time = datetime.datetime(2017, 11, 1, 8)
     data = np.ones((10, 10), dtype=np.float32) * 4
-    interpolated_cube = diagnostic_cube(time, frt, data, "latlon", realizations=realizations)
+    interpolated_cube = diagnostic_cube(
+        time, frt, data, "latlon", realizations=realizations
+    )
 
     expected = np.where(daynight_mask == 0, 0, data)
 
@@ -424,7 +451,7 @@ def test_daynight_interpolation(daynight_mask, realizations):
     result = plugin.daynight_interpolate(interpolated_cube)
     assert isinstance(result, CubeList)
 
-    result, = result
+    (result,) = result
     assert result.coord("time").points == 1509523200
     assert result.coord("forecast_period").points[0] == 7200
 
@@ -435,11 +462,7 @@ def test_daynight_interpolation(daynight_mask, realizations):
             np.testing.assert_almost_equal(dslice, expected)
 
 
-@pytest.mark.parametrize("bearings,expected_value", [
-    ([350, 20], 5),
-    ([40, 60], 50),
-    ]
-)
+@pytest.mark.parametrize("bearings,expected_value", [([350, 20], 5), ([40, 60], 50)])
 def test_process_wind_direction(bearings, expected_value):
     """Test that wind directions are interpolated properly at the 0/360
     circular cross-over and away from this cross-over. The interpolated
@@ -458,9 +481,7 @@ def test_process_wind_direction(bearings, expected_value):
     cube.units = "degrees"
 
     expected = np.full((npoints, npoints), expected_value, dtype=np.float32)
-    result = TemporalInterpolation(interval_in_minutes=180).process(
-        cube[0], cube[1]
-    )
+    result = TemporalInterpolation(interval_in_minutes=180).process(cube[0], cube[1])
 
     assert isinstance(result, CubeList)
     np.testing.assert_almost_equal(result[0].data, expected, decimal=4)
@@ -470,16 +491,29 @@ def test_process_wind_direction(bearings, expected_value):
     np.testing.assert_almost_equal(result[1].data, cube[1].data, decimal=5)
 
 
-
 @pytest.mark.parametrize(
     "kwargs,offsets,expected",
     [
         ({"interval_in_minutes": 180}, [3, 6], [4, 7]),
         ({"interval_in_minutes": 60}, [1, 2, 3, 4, 5, 6], [2, 3, 4, 5, 6, 7]),
         ({"times": [datetime.datetime(2017, 11, 1, 6)]}, [3, 6], [4, 7]),
-        ({"times": [datetime.datetime(2017, 11, 1, 8)], "interpolation_method": "daynight"}, [5], [6 * mask_values()]),
-        ({"times": [datetime.datetime(2017, 11, 1, 8)], "interpolation_method": "solar"}, [5], [None])
-    ]
+        (
+            {
+                "times": [datetime.datetime(2017, 11, 1, 8)],
+                "interpolation_method": "daynight",
+            },
+            [5],
+            [6 * mask_values()],
+        ),
+        (
+            {
+                "times": [datetime.datetime(2017, 11, 1, 8)],
+                "interpolation_method": "solar",
+            },
+            [5],
+            [None],
+        ),
+    ],
 )
 def test_process_interpolation(kwargs, offsets, expected):
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]

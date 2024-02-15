@@ -73,7 +73,6 @@ class TemporalInterpolation(BasePlugin):
         times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
         accumulation: bool = False,
-
     ) -> None:
         """
         Initialise class.
@@ -403,7 +402,7 @@ class TemporalInterpolation(BasePlugin):
             raise TypeError(msg)
 
         if cube_t0.coord("time").bounds is not None:
-            if not self.interpolation_method in self.period_interpolation_methods:
+            if self.interpolation_method not in self.period_interpolation_methods:
                 raise ValueError(
                     "Period diagnostics can only be temporally interpolated "
                     f"using these methods: {self.period_interpolation_methods}.\n"
@@ -415,9 +414,7 @@ class TemporalInterpolation(BasePlugin):
             (initial_time,) = iris_time_to_datetime(cube_t0.coord("time"))
             (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
         except CoordinateNotFoundError:
-            msg = (
-                "Cube provided to TemporalInterpolation contains no time coordinate."
-            )
+            msg = "Cube provided to TemporalInterpolation contains no time coordinate."
             raise CoordinateNotFoundError(msg)
         except ValueError:
             msg = (
@@ -478,7 +475,7 @@ class TemporalInterpolation(BasePlugin):
             # allows for trends in the data to add some variation to the
             # different periods that are created.
             if self.accumulation:
-                time_coord, = interpolated_cube.coord_dims("time")
+                (time_coord,) = interpolated_cube.coord_dims("time")
                 interpolated_total = np.sum(interpolated_cube.data, axis=time_coord)
                 renormalisation = cube_t1.data / interpolated_total
                 interpolated_cube.data *= renormalisation
