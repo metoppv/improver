@@ -40,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.round import round_close
@@ -511,6 +512,7 @@ class TemporalInterpolation(BasePlugin):
         interpolated_total = np.sum(interpolated_cube.data, axis=time_coord)
         renormalisation = period_reference.data / interpolated_total
         interpolated_cube.data *= renormalisation
+        interpolated_cube.data = interpolated_cube.data.astype(FLOAT_DTYPE)
 
     def process(self, cube_t0: Cube, cube_t1: Cube) -> CubeList:
         """
