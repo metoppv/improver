@@ -141,7 +141,7 @@ def multi_time_cube(
     if data.ndim == 2:
         data = np.stack([data] * len(times))
 
-    frt = sorted(times)[0] - (times[1] - times[0])  # Such that guess bounds is +ve
+    frt = sorted(times)[0] - (times[1] - times[0])  # Such that guess bounds are +ve
     for time, data_slice in zip(times, data):
         cubes.append(
             diagnostic_cube(
@@ -210,16 +210,30 @@ def mask_values():
     interpolation tests."""
     return np.array(
         [
-            [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
-            [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ],
+            [
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [1, 1, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 1, 1, 1, 1, 1, 1, 1, 1],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+                [0, 0, 0, 0, 0, 0, 0, 0, 0, 0],
+            ],
         ]
     )
 
@@ -241,6 +255,10 @@ def daynight_mask():
         (
             {"interval_in_minutes": 60, "interpolation_method": "invalid"},
             "TemporalInterpolation: Unknown interpolation method",
+        ),  # Invalid interpolation method requested
+        (
+            {"interval_in_minutes": 60, "maximum": True, "minimum": True},
+            "Only one type of period diagnostics may be specified:",
         ),  # Invalid interpolation method requested
     ],
 )
@@ -432,34 +450,49 @@ def test_solar_interpolation(solar_expected, realizations):
 
 
 @pytest.mark.parametrize("realizations", (None, [0, 1, 2]))
-def test_daynight_interpolation(daynight_mask, realizations):
+@pytest.mark.parametrize(
+    "interp_times,expected_times,expected_fps",
+    [
+        ([8], [1509523200], [7200]),  # Interpolate to a single time.
+        ([8, 10], [1509523200, 1509530400], [7200, 14400]),  # Interpolate to two times.
+    ],
+)
+def test_daynight_interpolation(
+    daynight_mask, realizations, interp_times, expected_times, expected_fps
+):
     """Test daynight function applies a suitable mask to interpolated
     data. In this test the day-night terminator crosses the domain to
     ensure the impact is captured. A deterministic and ensemble input
     are tested."""
 
-    frt = datetime.datetime(2017, 11, 1, 6)
-    time = datetime.datetime(2017, 11, 1, 8)
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in interp_times]
     data = np.ones((10, 10), dtype=np.float32) * 4
-    interpolated_cube = diagnostic_cube(
-        time, frt, data, "latlon", realizations=realizations
-    )
-
-    expected = np.where(daynight_mask == 0, 0, data)
-
-    plugin = TemporalInterpolation(interpolation_method="daynight", times=[time])
-    result = plugin.daynight_interpolate(interpolated_cube)
-    assert isinstance(result, CubeList)
-
-    (result,) = result
-    assert result.coord("time").points == 1509523200
-    assert result.coord("forecast_period").points[0] == 7200
-
-    if result.ndim == 2:
-        np.testing.assert_almost_equal(result.data, expected)
+    if len(times) > 1:
+        interpolated_cube = multi_time_cube(
+            times, data, "latlon", realizations=realizations
+        )
     else:
-        for dslice in result.data:
-            np.testing.assert_almost_equal(dslice, expected)
+        frt = datetime.datetime(2017, 11, 1, 6)
+        interpolated_cube = diagnostic_cube(
+            times, frt, data, "latlon", realizations=realizations
+        )
+
+    plugin = TemporalInterpolation(interpolation_method="daynight", times=[times])
+    result = plugin.daynight_interpolate(interpolated_cube)
+
+    assert isinstance(result, CubeList)
+    for index, cube in enumerate(result):
+        expected = np.where(daynight_mask[index] == 0, 0, data)
+
+        assert cube.coord("time").points == expected_times[index]
+        assert cube.coord("forecast_period").points[0] == expected_fps[index]
+
+        if cube.coords("realization"):
+            cslices = cube.slices_over("realization")
+        else:
+            cslices = [cube]
+        for cslice in cslices:
+            np.testing.assert_almost_equal(cslice.data, expected)
 
 
 @pytest.mark.parametrize("bearings,expected_value", [([350, 20], 5), ([40, 60], 50)])
@@ -503,7 +536,7 @@ def test_process_wind_direction(bearings, expected_value):
                 "interpolation_method": "daynight",
             },
             [5],
-            [6 * mask_values()],
+            [6 * mask_values()[0]],
         ),
         (
             {
@@ -516,6 +549,10 @@ def test_process_wind_direction(bearings, expected_value):
     ],
 )
 def test_process_interpolation(kwargs, offsets, expected):
+    """Test the process method with a variety of kwargs, selecting different
+    interpolation methods and output times. Check that the returned times and
+    data are as expected."""
+
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     npoints = 10
     data = np.stack(
@@ -600,3 +637,204 @@ def test_input_cubelists_raises_exception():
     msg = "Inputs to TemporalInterpolation are not of type "
     with pytest.raises(TypeError, match=msg):
         TemporalInterpolation(interval_in_minutes=180).process(cubes, cube[1])
+
+
+def test_invalid_method_for_period_exception():
+    """Test that providing a period diagnostic and attempting to apply an
+    unsuitable interpolation method raises an exception."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    msg = "Period diagnostics can only be temporally interpolated"
+    with pytest.raises(ValueError, match=msg):
+        TemporalInterpolation(
+            interval_in_minutes=180, interpolation_method="solar"
+        ).process(cube[0], cube[1])
+
+
+def test_period_without_chosen_type_exception():
+    """Test that providing a period diagnostic but not specifying a type from
+    the available minimum, maximum, or accumulation raises an exception."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    msg = "A type of period must be specified when interpolating"
+    with pytest.raises(ValueError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180).process(cube[0], cube[1])
+
+
+@pytest.mark.parametrize(
+    "input_times,expected_time_bounds,expected_fp_bounds",
+    [
+        (
+            [3, 6, 9],  # Forecast reference time ends up as 0 AM.
+            [[1509505200, 1509516000], [1509516000, 1509526800]],  # 3-6, 6-9 AM
+            [[10800, 21600], [21600, 32400]],  # T+3 - T+6, T+6 - T+9
+        ),
+        (
+            [3, 4, 6, 9],  # Forecast reference time ends up as 2 AM.
+            [
+                [1509505200, 1509508800],
+                [1509508800, 1509516000],
+                [1509516000, 1509526800],
+            ],  # 3-4, 4-6, 6-9 AM
+            [
+                [3600, 7200],
+                [7200, 14400],
+                [14400, 25200],
+            ],  # T+1 - T+2, T+2 - T+4, T+4 - T+7
+        ),
+        (
+            [3, 4, 9],  # Forecast reference time ends up as 2 AM.
+            [[1509505200, 1509508800], [1509508800, 1509526800]],  # 3-4, 4-9 AM
+            [[3600, 7200], [7200, 25200]],  # T+1 - T+2, T+2 - T+7
+        ),
+    ],
+)
+def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
+    """Test the add bounds method creates the expected bounds for interpolated
+    data with different interpolated time intervals."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in input_times]
+
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon")
+    # The first of the input times is used to represent the earlier of the
+    # input cubes. The other input time represent the interpolated times.
+    cube_t0 = cube[0]
+    interpolated_cube = cube[1:].copy()
+
+    # Note the interval_in_minutes defined here is not used but required.
+    TemporalInterpolation(interval_in_minutes=60).add_bounds(cube_t0, interpolated_cube)
+
+    assert (interpolated_cube.coord("time").bounds == expected_time_bounds).all()
+    assert (
+        interpolated_cube.coord("forecast_period").bounds == expected_fp_bounds
+    ).all()
+
+
+@pytest.mark.parametrize(
+    "kwargs,values,offsets,expected",
+    [
+        # Equal adjacent accumulations, divided into equal shorter periods.
+        (
+            {"interval_in_minutes": 180, "accumulation": True},
+            [5, 5],
+            [3, 6],
+            [2.5, 2.5],
+        ),
+        # Equal adjacent e.g. period maxes, shorter periods have the same max.
+        ({"interval_in_minutes": 180, "maximum": True}, [5, 5], [3, 6], [5, 5],),
+        # Equal adjacent e.g. period minimums, shorter periods have the same
+        # min.
+        ({"interval_in_minutes": 180, "minimum": True}, [5, 5], [3, 6], [5, 5],),
+        # Trend of increasing accumulations with time, which is reflected
+        # in the shorter periods generated.
+        (
+            {"interval_in_minutes": 180, "accumulation": True},
+            [3, 9],
+            [3, 6],
+            [3.375, 5.625],
+        ),
+        # Trend of increasing maxes with time, which is reflected in the
+        # shorter periods generated.
+        ({"interval_in_minutes": 180, "maximum": True}, [3, 9], [3, 6], [6, 9],),
+        # Later input period minimum is 9, expect all new periods to be >= 9
+        ({"interval_in_minutes": 180, "minimum": True}, [3, 9], [3, 6], [9, 9],),
+        # Trend of increasing accumulations with time, which is reflected
+        # in the shorter periods generated.
+        (
+            {"interval_in_minutes": 120, "accumulation": True},
+            [0, 9],
+            [2, 4, 6],
+            [1, 3, 5],
+        ),
+        # Trend of increasing maxes with time, which is reflected in the
+        # shorter periods generated.
+        ({"interval_in_minutes": 120, "maximum": True}, [0, 9], [2, 4, 6], [3, 6, 9],),
+        # Trend of increasing maxes with time, which is reflected in the
+        # shorter periods generated.
+        ({"interval_in_minutes": 120, "minimum": True}, [0, 9], [2, 4, 6], [9, 9, 9],),
+        # Later input period is 0, expect all new periods to be 0
+        (
+            {"interval_in_minutes": 120, "accumulation": True},
+            [9, 0],
+            [2, 4, 6],
+            [0, 0, 0],
+        ),
+        # Later input period max is 0, expect all new periods to be 0
+        ({"interval_in_minutes": 120, "maximum": True}, [9, 0], [2, 4, 6], [0, 0, 0],),
+        # Later input period minimum is 0, expect all new periods to be >= 0
+        ({"interval_in_minutes": 120, "minimum": True}, [9, 0], [2, 4, 6], [6, 3, 0],),
+        # Equal adjacent accumulations, divided into unequal shorter periods.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+            [6, 6],
+            [1, 6],
+            [1, 5],
+        ),
+        # Equal adjacent e.g. period maxes, unequal shorter periods have the
+        # same max.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "maximum": True},
+            [6, 6],
+            [1, 6],
+            [6, 6],
+        ),
+        # Equal adjacent e.g. period minimums, unequal shorter periods have
+        # the same min.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "minimum": True},
+            [6, 6],
+            [1, 6],
+            [6, 6],
+        ),
+        # Trend of increasing accumulations with time, which is reflected
+        # in the unequal shorter periods generated.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+            [0, 9],
+            [1, 6],
+            [0.25, 8.75],
+        ),
+        # Trend of decreasing accumulations with time, which is reflected
+        # in the unequal shorter periods generated.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+            [12, 3],
+            [1, 6],
+            [0.75, 2.25],
+        ),
+    ],
+)
+def test_process_periods(kwargs, values, offsets, expected):
+    """Test the process method when applied to period diagnostics, some
+    accumlations and some not."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 10
+    data = np.stack(
+        [
+            np.full((npoints, npoints), values[0], dtype=np.float32),
+            np.full((npoints, npoints), values[1], dtype=np.float32),
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    result = TemporalInterpolation(**kwargs).process(cube[0], cube[1])
+
+    for i, (offset, value) in enumerate(zip(offsets, expected)):
+        expected_data = np.full((npoints, npoints), value)
+        expected_time = 1509505200 + (offset * 3600)
+        expected_fp = (6 + offset) * 3600
+
+        assert result[i].coord("time").points[0] == expected_time
+        assert result[i].coord("forecast_period").points[0] == expected_fp
+        assert result[i].coord("time").points.dtype == "int64"
+        assert result[i].coord("forecast_period").points.dtype == "int32"
+        if value is not None:
+            np.testing.assert_almost_equal(result[i].data, expected_data)
