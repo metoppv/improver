@@ -857,3 +857,37 @@ def test_process_periods(kwargs, values, offsets, expected):
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:
             np.testing.assert_almost_equal(result[i].data, expected_data)
+
+
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        [
+            {"interval_in_minutes": 360, "accumulation": True},
+            {"times": [datetime.datetime(2017, 11, 1, 9)], "accumulation": True},
+        ]
+    ),
+)
+def test_process_return_input(kwargs):
+    """Test the process method returns an unmodified cube when the
+    target time is identical to that of the trailing input."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 5
+    data = np.stack(
+        [
+            np.full((npoints, npoints), 3, dtype=np.float32),
+            np.full((npoints, npoints), 4, dtype=np.float32),
+        ]
+    )
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    # Slice here to keep memory addresses consistent when passed in to
+    # plugin.
+    cube_0 = cube[0]
+    cube_1 = cube[1]
+    result = TemporalInterpolation(**kwargs).process(cube_0, cube_1)
+
+    # assert that the object returned is the same one in memory that was
+    # passed in.
+    assert result[0] is cube_1

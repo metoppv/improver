@@ -342,7 +342,7 @@ class TemporalInterpolation(BasePlugin):
             A list of cubes interpolated to the desired times.
         """
 
-        interpolated_cubes = iris.cube.CubeList()
+        interpolated_cubes = CubeList()
         (lats, lons) = self.calc_lats_lons(diag_cube)
         prev_data = diag_cube[0].data
         next_data = diag_cube[1].data
@@ -430,7 +430,7 @@ class TemporalInterpolation(BasePlugin):
         else:
             interpolated_cube.data[index] = 0.0
 
-        return iris.cube.CubeList(list(interpolated_cube.slices_over("time")))
+        return CubeList(list(interpolated_cube.slices_over("time")))
 
     @staticmethod
     def add_bounds(cube_t0: Cube, interpolated_cube: Cube):
@@ -606,6 +606,14 @@ class TemporalInterpolation(BasePlugin):
 
         time_list = self.construct_time_list(initial_time, final_time)
 
+        # If the target output time is the same as time at which the
+        # trailing input is valid, just return it unchanged.
+        if (
+            len(time_list[0][1]) == 1
+            and time_list[0][1][0] == cube_t1.coord("time").cell(0).point
+        ):
+            return CubeList([cube_t1])
+
         # If the units of the two cubes are degrees, assume we are dealing with
         # directions. Convert the directions to complex numbers so
         # interpolations (esp. the 0/360 wraparound) are handled in a sane
@@ -621,7 +629,7 @@ class TemporalInterpolation(BasePlugin):
             period_reference = cube_t1.copy()
             cube_t1.data /= np.diff(cube_t1.coord("forecast_period").bounds[0])[0]
 
-        cubes = iris.cube.CubeList([cube_t0, cube_t1])
+        cubes = CubeList([cube_t0, cube_t1])
         cube = MergeCubes()(cubes)
 
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
@@ -650,7 +658,7 @@ class TemporalInterpolation(BasePlugin):
                 )
 
         self.enforce_time_coords_dtype(interpolated_cube)
-        interpolated_cubes = iris.cube.CubeList()
+        interpolated_cubes = CubeList()
         if self.interpolation_method == "solar":
             interpolated_cubes = self.solar_interpolate(cube, interpolated_cube)
         elif self.interpolation_method == "daynight":
