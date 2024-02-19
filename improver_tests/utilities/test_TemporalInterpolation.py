@@ -736,6 +736,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
     ).all()
 
 
+@pytest.mark.parametrize("realizations", (None, [0, 1, 2]))
 @pytest.mark.parametrize(
     "kwargs,values,offsets,expected",
     [
@@ -830,24 +831,29 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         ),
     ],
 )
-def test_process_periods(kwargs, values, offsets, expected):
+def test_process_periods(kwargs, values, offsets, expected, realizations):
     """Test the process method when applied to period diagnostics, some
-    accumlations and some not."""
+    accumlations and some not. Test with and without multiple realizations."""
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
-    npoints = 10
+    npoints = 5
     data = np.stack(
         [
             np.full((npoints, npoints), values[0], dtype=np.float32),
             np.full((npoints, npoints), values[1], dtype=np.float32),
         ]
     )
-    cube = multi_time_cube(times, data, "latlon", bounds=True)
+    cube = multi_time_cube(
+        times, data, "latlon", bounds=True, realizations=realizations
+    )
 
     result = TemporalInterpolation(**kwargs).process(cube[0], cube[1])
 
     for i, (offset, value) in enumerate(zip(offsets, expected)):
-        expected_data = np.full((npoints, npoints), value)
+        if realizations:
+            expected_data = np.full((len(realizations), npoints, npoints), value)
+        else:
+            expected_data = np.full((npoints, npoints), value)
         expected_time = 1509505200 + (offset * 3600)
         expected_fp = (6 + offset) * 3600
 

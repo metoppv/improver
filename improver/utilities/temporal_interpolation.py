@@ -500,10 +500,11 @@ class TemporalInterpolation(BasePlugin):
         )
         interpolated_cube.data = period_rates
 
-        # Multiply the averate rate by the length of each period to get a new
+        # Multiply the average rate by the length of each period to get a new
         # accumulation.
         new_periods = np.diff(interpolated_cube.coord("forecast_period").bounds)
-        new_periods = new_periods[:, np.newaxis]
+        for _ in range(interpolated_cube.ndim - new_periods.ndim):
+            new_periods = np.expand_dims(new_periods, axis=1)
         interpolated_cube.data = np.multiply(new_periods, interpolated_cube.data)
 
         # Renormalise the total of the new periods to ensure it matches the
