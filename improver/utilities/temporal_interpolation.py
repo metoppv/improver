@@ -536,6 +536,7 @@ class TemporalInterpolation(BasePlugin):
                         not found in the period_interpolation_methods list.
             ValueError: A period diagnostic is being processed without the
                         type of period being specified.
+            ValueError: Period diagnostics with overlapping periods.
             CoordinateNotFoundError: The input cubes contain no time
                                      coordinate.
             ValueError: Cubes contain multiple validity times.
@@ -565,6 +566,21 @@ class TemporalInterpolation(BasePlugin):
                     "period diagnostic. This may be a period maximum, minimum"
                     " or an accumulation."
                 )
+            cube_interval = (
+                cube_t1.coord("time").points[0] - cube_t0.coord("time").points[0]
+            )
+            (period,) = np.diff(cube_t1.coord("time").bounds[0])
+            if not cube_interval == period:
+                raise ValueError(
+                    "The diagnostic provided represents the period "
+                    f"{period / 3600} hours. The interval between the "
+                    f"diagnostics is {cube_interval / 3600} hours. Temporal "
+                    "interpolation can only be applied to a period "
+                    "diagnostic provided at intervals that match the "
+                    "diagnostic period such that all points in time are "
+                    "captured by only one of the inputs and do not overlap."
+                )
+
             self.period_inputs = True
 
         try:

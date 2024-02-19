@@ -667,6 +667,25 @@ def test_period_without_chosen_type_exception():
         TemporalInterpolation(interval_in_minutes=180).process(cube[0], cube[1])
 
 
+def test_period_unequal_to_interval_exception():
+    """Test that providing a period diagnostic where the represented
+    periods overlap raises an exception."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+    for crd in ["time", "forecast_period"]:
+        bounds = cube.coord(crd).bounds
+        bounds = [[lower, upper + 3600] for lower, upper in bounds]
+        cube.coord(crd).bounds = bounds
+
+    msg = "The diagnostic provided represents the period"
+    with pytest.raises(ValueError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180, accumulation=True).process(
+            cube[0], cube[1]
+        )
+
+
 @pytest.mark.parametrize(
     "input_times,expected_time_bounds,expected_fp_bounds",
     [
