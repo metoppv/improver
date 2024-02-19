@@ -392,9 +392,7 @@ class TemporalInterpolation(BasePlugin):
             (initial_time,) = iris_time_to_datetime(cube_t0.coord("time"))
             (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
         except CoordinateNotFoundError:
-            msg = (
-                "Cube provided to TemporalInterpolation contains no time coordinate."
-            )
+            msg = "Cube provided to TemporalInterpolation contains no time coordinate."
             raise CoordinateNotFoundError(msg)
         except ValueError:
             msg = (
