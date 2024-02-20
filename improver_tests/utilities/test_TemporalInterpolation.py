@@ -897,3 +897,91 @@ def test_process_return_input(kwargs):
     # assert that the object returned is the same one in memory that was
     # passed in.
     assert result[0] is cube_1
+
+
+@pytest.mark.parametrize("realizations", (None, [0, 1, 2]))
+@pytest.mark.parametrize(
+    "kwargs,values,offsets,expected",
+    [
+        # Unequal input periods and accumulations give effective rates of
+        # 1 mm/hr and 2 mm/hr at the start and end of the period. This gives
+        # a gradient of 1/6 mm/hr across the period which results in the
+        # expected 3-hour accumulations returned across the period.
+        ({"interval_in_minutes": 180, "accumulation": True}, [3, 12], [3, 6], [5, 7],),
+        # Unequal input periods and accumulations give effective rates of
+        # 2 mm/hr and 1 mm/hr at the start and end of the period. This gives
+        # a gradient of -1/6 mm/hr across the period which results in the
+        # expected 3-hour accumulations returned across the period.
+        (
+            {"interval_in_minutes": 180, "accumulation": True},
+            [6, 6],
+            [3, 6],
+            [3.5, 2.5],
+        ),
+        # Unequal input periods and accumulations give a consistent effective
+        # rate of 1 mm/hr across the the period. This results in equal
+        # accumulations across the two returned 3-hour periods.
+        ({"interval_in_minutes": 180, "accumulation": True}, [3, 6], [3, 6], [3, 3],),
+        # Unequal input periods and accumulations give a consistent effective
+        # rate of 1 mm/hr across the the period. The unequal output periods
+        # split the total accumulation as expected.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
+            [3, 6],
+            [1, 6],
+            [1, 5],
+        ),
+        # Unequal input periods and accumulations give effective rates of
+        # 1 mm/hr and 1.5 mm/hr at the start and end of the period. This gives
+        # a gradient of 1/12 mm/hr across the period. The unequal output periods
+        # divide up the total accumulation in line with this as expected.
+        (
+            {"times": [datetime.datetime(2017, 11, 1, 5)], "accumulation": True},
+            [3, 9],
+            [2, 6],
+            [2.6, 6.4],
+        ),
+    ],
+)
+def test_process_accumulation_unequal_inputs(
+    kwargs, values, offsets, expected, realizations
+):
+    """Test that the expected values are returned when the accumulation inputs
+    are of different periods. The accumulations are converted to rates using
+    each input cube's period prior to interpolation which allos for this."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    npoints = 5
+    data = np.stack(
+        [
+            np.full((npoints, npoints), values[0], dtype=np.float32),
+            np.full((npoints, npoints), values[1], dtype=np.float32),
+        ]
+    )
+    cube = multi_time_cube(
+        times, data, "latlon", bounds=True, realizations=realizations
+    )
+    cube_0 = cube[0]
+    cube_1 = cube[1]
+
+    for crd in ["time", "forecast_period"]:
+        bounds = cube_0.coord(crd).bounds
+        bounds = [[lower + 10800, upper] for lower, upper in bounds]
+        cube_0.coord(crd).bounds = bounds
+
+    result = TemporalInterpolation(**kwargs).process(cube_0, cube_1)
+
+    for i, (offset, value) in enumerate(zip(offsets, expected)):
+        if realizations:
+            expected_data = np.full((len(realizations), npoints, npoints), value)
+        else:
+            expected_data = np.full((npoints, npoints), value)
+        expected_time = 1509505200 + (offset * 3600)
+        expected_fp = (6 + offset) * 3600
+
+        assert result[i].coord("time").points[0] == expected_time
+        assert result[i].coord("forecast_period").points[0] == expected_fp
+        assert result[i].coord("time").points.dtype == "int64"
+        assert result[i].coord("forecast_period").points.dtype == "int32"
+        if value is not None:
+            np.testing.assert_almost_equal(result[i].data, expected_data)
