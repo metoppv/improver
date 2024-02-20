@@ -624,7 +624,10 @@ class TemporalInterpolation(BasePlugin):
             cube_t1.data = WindDirection.deg_to_complex(cube_t1.data)
 
         # Convert accumulations into rates to allow interpolation using trends
-        # in the data and to accommodate non-uniform output intervals.
+        # in the data and to accommodate non-uniform output intervals. This also
+        # accommodates cube_t0 and cube_t1 representing different periods of
+        # accumulation, for example where the forecast period interval changes
+        # in an NWP model's output.
         if self.accumulation:
             cube_t0.data /= np.diff(cube_t0.coord("forecast_period").bounds[0])[0]
             period_reference = cube_t1.copy()
