@@ -129,7 +129,7 @@ def test_period_max(tmp_path):
         "20240217T0430Z",
         "--interpolation-method",
         "linear",
-        "--maximum",
+        "--max",
         "--output",
         output_path,
     ]

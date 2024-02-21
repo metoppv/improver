@@ -257,7 +257,7 @@ def daynight_mask():
             "TemporalInterpolation: Unknown interpolation method",
         ),  # Invalid interpolation method requested
         (
-            {"interval_in_minutes": 60, "maximum": True, "minimum": True},
+            {"interval_in_minutes": 60, "max": True, "min": True},
             "Only one type of period diagnostics may be specified:",
         ),  # Invalid interpolation method requested
     ],
@@ -656,7 +656,7 @@ def test_invalid_method_for_period_exception():
 
 def test_period_without_chosen_type_exception():
     """Test that providing a period diagnostic but not specifying a type from
-    the available minimum, maximum, or accumulation raises an exception."""
+    the available min, max, or accumulation raises an exception."""
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     data = np.ones((5, 5), dtype=np.float32)
@@ -748,10 +748,10 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [2.5, 2.5],
         ),
         # Equal adjacent e.g. period maxes, shorter periods have the same max.
-        ({"interval_in_minutes": 180, "maximum": True}, [5, 5], [3, 6], [5, 5],),
+        ({"interval_in_minutes": 180, "max": True}, [5, 5], [3, 6], [5, 5],),
         # Equal adjacent e.g. period minimums, shorter periods have the same
         # min.
-        ({"interval_in_minutes": 180, "minimum": True}, [5, 5], [3, 6], [5, 5],),
+        ({"interval_in_minutes": 180, "min": True}, [5, 5], [3, 6], [5, 5],),
         # Trend of increasing accumulations with time, which is reflected
         # in the shorter periods generated.
         (
@@ -762,9 +762,9 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
-        ({"interval_in_minutes": 180, "maximum": True}, [3, 9], [3, 6], [6, 9],),
+        ({"interval_in_minutes": 180, "max": True}, [3, 9], [3, 6], [6, 9],),
         # Later input period minimum is 9, expect all new periods to be >= 9
-        ({"interval_in_minutes": 180, "minimum": True}, [3, 9], [3, 6], [9, 9],),
+        ({"interval_in_minutes": 180, "min": True}, [3, 9], [3, 6], [9, 9],),
         # Trend of increasing accumulations with time, which is reflected
         # in the shorter periods generated.
         (
@@ -775,10 +775,10 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         ),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
-        ({"interval_in_minutes": 120, "maximum": True}, [0, 9], [2, 4, 6], [3, 6, 9],),
+        ({"interval_in_minutes": 120, "max": True}, [0, 9], [2, 4, 6], [3, 6, 9],),
         # Trend of increasing maxes with time, which is reflected in the
         # shorter periods generated.
-        ({"interval_in_minutes": 120, "minimum": True}, [0, 9], [2, 4, 6], [9, 9, 9],),
+        ({"interval_in_minutes": 120, "min": True}, [0, 9], [2, 4, 6], [9, 9, 9],),
         # Later input period is 0, expect all new periods to be 0
         (
             {"interval_in_minutes": 120, "accumulation": True},
@@ -787,9 +787,9 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [0, 0, 0],
         ),
         # Later input period max is 0, expect all new periods to be 0
-        ({"interval_in_minutes": 120, "maximum": True}, [9, 0], [2, 4, 6], [0, 0, 0],),
+        ({"interval_in_minutes": 120, "max": True}, [9, 0], [2, 4, 6], [0, 0, 0],),
         # Later input period minimum is 0, expect all new periods to be >= 0
-        ({"interval_in_minutes": 120, "minimum": True}, [9, 0], [2, 4, 6], [6, 3, 0],),
+        ({"interval_in_minutes": 120, "min": True}, [9, 0], [2, 4, 6], [6, 3, 0],),
         # Equal adjacent accumulations, divided into unequal shorter periods.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "accumulation": True},
@@ -800,7 +800,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # Equal adjacent e.g. period maxes, unequal shorter periods have the
         # same max.
         (
-            {"times": [datetime.datetime(2017, 11, 1, 4)], "maximum": True},
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "max": True},
             [6, 6],
             [1, 6],
             [6, 6],
@@ -808,7 +808,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
         # Equal adjacent e.g. period minimums, unequal shorter periods have
         # the same min.
         (
-            {"times": [datetime.datetime(2017, 11, 1, 4)], "minimum": True},
+            {"times": [datetime.datetime(2017, 11, 1, 4)], "min": True},
             [6, 6],
             [1, 6],
             [6, 6],

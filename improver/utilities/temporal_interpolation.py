@@ -99,8 +99,8 @@ class TemporalInterpolation(BasePlugin):
         times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
         accumulation: bool = False,
-        maximum: bool = False,
-        minimum: bool = False,
+        max: bool = False,
+        min: bool = False,
     ) -> None:
         """
         Initialise class.
@@ -126,12 +126,12 @@ class TemporalInterpolation(BasePlugin):
                 that the total across the period constructed from the shorter
                 intervals matches the total across the period from the coarser
                 intervals.
-            maximum:
+            max:
                 Set True if the diagnostic being temporally interpolated is a
                 period maximum. Trends between adjacent input periods will be used
                 to provide variation across the interpolated periods where these
                 are consistent with the inputs.
-            minimum:
+            min:
                 Set True if the diagnostic being temporally interpolated is a
                 period minimum. Trends between adjacent input periods will be used
                 to provide variation across the interpolated periods where these
@@ -166,15 +166,15 @@ class TemporalInterpolation(BasePlugin):
             )
         self.interpolation_method = interpolation_method
         self.period_inputs = False
-        if np.sum([accumulation, maximum, minimum]) > 1:
+        if np.sum([accumulation, max, min]) > 1:
             raise ValueError(
                 "Only one type of period diagnostics may be specified: "
-                f"accumulation = {accumulation}, maximum = {maximum}, "
-                f"minimum = {minimum}"
+                f"accumulation = {accumulation}, max = {max}, "
+                f"min = {min}"
             )
         self.accumulation = accumulation
-        self.maximum = maximum
-        self.minimum = minimum
+        self.max = max
+        self.min = min
 
     def construct_time_list(
         self, initial_time: datetime, final_time: datetime
@@ -561,10 +561,10 @@ class TemporalInterpolation(BasePlugin):
                     f"using these methods: {self.period_interpolation_methods}.\n"
                     f"Currently selected method is: {self.interpolation_method}."
                 )
-            if not any([self.accumulation, self.maximum, self.minimum]):
+            if not any([self.accumulation, self.max, self.min]):
                 raise ValueError(
                     "A type of period must be specified when interpolating a "
-                    "period diagnostic. This may be a period maximum, minimum"
+                    "period diagnostic. This may be a period max, min"
                     " or an accumulation."
                 )
             cube_interval = (
@@ -652,11 +652,11 @@ class TemporalInterpolation(BasePlugin):
                 self._calculate_accumulation(
                     cube_t0, period_reference, interpolated_cube
                 )
-            elif self.maximum:
+            elif self.max:
                 interpolated_cube.data = np.minimum(
                     cube_t1.data, interpolated_cube.data
                 )
-            elif self.minimum:
+            elif self.min:
                 interpolated_cube.data = np.maximum(
                     cube_t1.data, interpolated_cube.data
                 )

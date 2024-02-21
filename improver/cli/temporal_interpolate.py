@@ -44,8 +44,8 @@ def process(
     times: cli.comma_separated_list = None,
     interpolation_method="linear",
     accumulation: bool = False,
-    maximum: bool = False,
-    minimum: bool = False,
+    max: bool = False,
+    min: bool = False,
 ):
     """Interpolate data between validity times.
 
@@ -85,12 +85,12 @@ def process(
             intervals matches the total across the period from the coarser
             intervals. Trends between adjacent input periods will be used
             to provide variation across the interpolated periods.
-        maximum:
+        max:
             Set True if the diagnostic being temporally interpolated is a
             period maximum. Trends between adjacent input periods will be used
             to provide variation across the interpolated periods where these
             are consistent with the inputs.
-        minimum:
+        min:
             Set True if the diagnostic being temporally interpolated is a
             period minimum. Trends between adjacent input periods will be used
             to provide variation across the interpolated periods where these
@@ -119,7 +119,7 @@ def process(
         times=times,
         interpolation_method=interpolation_method,
         accumulation=accumulation,
-        maximum=maximum,
-        minimum=minimum,
+        max=max,
+        min=min,
     )(start_cube, end_cube)
     return MergeCubes()(result)
