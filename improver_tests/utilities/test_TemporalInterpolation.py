@@ -856,7 +856,7 @@ class Test_process(IrisTest):
 
         self.cube_time_0.remove_coord("time")
 
-        msg = "Cube provided to TemporalInterpolation " "contains no time coordinate"
+        msg = "Cube provided to TemporalInterpolation contains no time coordinate"
         with self.assertRaisesRegex(CoordinateNotFoundError, msg):
             TemporalInterpolation(interval_in_minutes=180).process(
                 self.cube_time_0, self.cube_time_1

@@ -86,7 +86,7 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        return "<SpotLapseRateAdjust: neighbour_selection_method: {}" ">".format(
+        return "<SpotLapseRateAdjust: neighbour_selection_method: {}>".format(
             self.neighbour_selection_method
         )
 

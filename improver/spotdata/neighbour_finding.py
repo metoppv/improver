@@ -503,7 +503,7 @@ class NeighbourSelection(BasePlugin):
 
         # Ensure land_mask and orography are on the same grid.
         if not orography.dim_coords == land_mask.dim_coords:
-            msg = "Orography and land_mask cubes are not on the same " "grid."
+            msg = "Orography and land_mask cubes are not on the same grid."
             raise ValueError(msg)
 
         # Enforce x-y coordinate order for input cubes.

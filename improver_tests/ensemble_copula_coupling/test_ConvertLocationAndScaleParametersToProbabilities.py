@@ -92,7 +92,7 @@ class Test__check_template_cube(IrisTest):
         """Pass in a cube with an additional dimensional coordinate. This will
         raise an exception."""
         cube = iris.util.new_axis(self.cube, "time")
-        msg = "ConvertLocationAndScaleParametersToProbabilities expects a " "cube with"
+        msg = "ConvertLocationAndScaleParametersToProbabilities expects a cube with"
         with self.assertRaisesRegex(ValueError, msg):
             Plugin()._check_template_cube(cube)
 

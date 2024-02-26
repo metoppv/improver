@@ -238,7 +238,7 @@ class Test_complex_to_deg(IrisTest):
     def test_fails_if_data_is_not_array(self):
         """Test code raises a Type Error if input data not an array."""
         input_data = 0 - 1j
-        msg = "Input data is not a numpy array, but" " {}".format(type(input_data))
+        msg = "Input data is not a numpy array, but {}".format(type(input_data))
         with self.assertRaisesRegex(TypeError, msg):
             WindDirection().complex_to_deg(input_data)
 
@@ -449,7 +449,7 @@ class Test_process(IrisTest):
     def test_fails_if_data_is_not_cube(self):
         """Test code raises a Type Error if input cube is not a cube."""
         input_data = 50.0
-        msg = "Wind direction input is not a cube, but" " {0}".format(type(input_data))
+        msg = "Wind direction input is not a cube, but {0}".format(type(input_data))
         with self.assertRaisesRegex(TypeError, msg):
             WindDirection().process(input_data)
 

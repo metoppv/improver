@@ -59,9 +59,7 @@ def process(*cubes: cli.inputcube):
     from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
 
     if len(cubes) == 1:
-        warnings.warn(
-            "Only a single cube input, so time lagging will have " "no effect."
-        )
+        warnings.warn("Only a single cube input, so time lagging will have no effect.")
         return cubes[0]
 
     # raise error if validity times are not all equal
