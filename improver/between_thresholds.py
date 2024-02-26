@@ -216,7 +216,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
             self.thresh_coord = find_threshold_coordinate(cube)
         except CoordinateNotFoundError:
             raise ValueError(
-                "Input is not a probability cube " "(has no threshold-type coordinate)"
+                "Input is not a probability cube (has no threshold-type coordinate)"
             )
         self.cube = cube.copy()
 

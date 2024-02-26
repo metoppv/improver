@@ -675,7 +675,7 @@ class Test__init__(IrisTest):
         """Test when fuzzy_bounds contains one value (invalid)."""
         threshold_config = {"0.6": [0.4]}
         # Regexp matches .* with any string.
-        msg = "Invalid bounds for one threshold: .*. " "Expected 2 floats."
+        msg = "Invalid bounds for one threshold: .*. Expected 2 floats."
         with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold_config=threshold_config)
 
@@ -683,7 +683,7 @@ class Test__init__(IrisTest):
         """Test when fuzzy_bounds contains three values (invalid)."""
         threshold_config = {"0.6": [0.4, 0.8, 1.2]}
         # Regexp matches .* with any string.
-        msg = "Invalid bounds for one threshold: .*. " "Expected 2 floats."
+        msg = "Invalid bounds for one threshold: .*. Expected 2 floats."
         with self.assertRaisesRegex(ValueError, msg):
             Threshold(threshold_config=threshold_config)
 

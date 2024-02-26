@@ -328,7 +328,7 @@ class Test__modify_first_guess(IrisTest):
         """Test that the method raises an error if the first-guess cube doesn't
         match the meta-data cube time coordinate."""
         self.fg_cube.coord("time").points = [1.0]
-        msg = "is not available within the input cube within the " "allowed difference"
+        msg = "is not available within the input cube within the allowed difference"
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin._modify_first_guess(
                 self.cube, self.fg_cube, self.ltng_cube, self.precip_cube, None

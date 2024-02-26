@@ -86,7 +86,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WindGustDiagnostic(50.0, 95.0))
-        msg = "<WindGustDiagnostic: wind-gust perc=50.0, " "wind-speed perc=95.0>"
+        msg = "<WindGustDiagnostic: wind-gust perc=50.0, wind-speed perc=95.0>"
         self.assertEqual(result, msg)
 
 
@@ -109,7 +109,7 @@ class Test_add_metadata(IrisTest):
         plugin = WindGustDiagnostic(50.0, 80.0)
         result = plugin.add_metadata(self.cube_wg)
         self.assertEqual(result.standard_name, "wind_speed_of_gust")
-        msg = "<WindGustDiagnostic: wind-gust perc=50.0, " "wind-speed perc=80.0>"
+        msg = "<WindGustDiagnostic: wind-gust perc=50.0, wind-speed perc=80.0>"
         self.assertEqual(result.attributes["wind_gust_diagnostic"], msg)
 
     def test_diagnostic_typical_txt(self):

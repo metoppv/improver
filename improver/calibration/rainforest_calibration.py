@@ -36,6 +36,7 @@
 
 """
 
+
 import warnings
 from collections import OrderedDict
 from pathlib import Path
@@ -70,8 +71,12 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
     """
 
     def __new__(
-        cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+        cls,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
+
         """Initialise class object based on package and model file availability.
 
         Args:
@@ -79,6 +84,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
+            bin_data:
+                Bin data according to splits used in models. This speeds up prediction
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
@@ -131,6 +141,66 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         raise NotImplementedError(
             "Process function must be called via subclass method."
         )
+
+    def _get_num_features(self) -> int:
+        """Subclasses should override this function."""
+        raise NotImplementedError(
+            "_get_num_features must be called via subclass method."
+        )
+
+    def _check_num_features(self, features: CubeList) -> None:
+        """Check that the correct number of features has been passed into the model.
+        Args:
+            features:
+                Cubelist containing feature variables.
+        """
+        expected_num_features = self._get_num_features()
+        if expected_num_features != len(features):
+            raise ValueError(
+                "Number of expected features does not match number of feature cubes."
+            )
+
+    def _get_feature_splits(self, model_config_dict) -> Dict[int, List[ndarray]]:
+        """Get the combined feature splits (over all thresholds) for each lead time.
+
+        Args:
+            model_config_dict: dictionary of the same format expected by __init__
+
+        Returns:
+            dict where keys are the lead times and the values are lists of lists.
+            The outer list has length equal to the number of model features, and it contains
+            the lists of feature splits for each feature. Each feature's list of splits is ordered.
+        """
+        # These string patterns are defined by light-gbm and are used for finding the feature and
+        # threshold information in the model .txt files.
+        split_feature_string = "split_feature="
+        feature_threshold_string = "threshold="
+        combined_feature_splits = {}
+        for lead_time in model_config_dict.keys():
+            all_splits = [set() for i in range(self._get_num_features())]
+            for threshold_str in model_config_dict[lead_time].keys():
+                lgb_model_filename = Path(
+                    model_config_dict[lead_time][threshold_str].get("lightgbm_model")
+                ).expanduser()
+                with open(lgb_model_filename, "r") as f:
+                    for line in f:
+                        if line.startswith(split_feature_string):
+                            line = line[len(split_feature_string) : -1]
+                            if len(line) == 0:
+                                # This deals with the situation where the tree has no splits
+                                continue
+                            features = [int(x) for x in line.split(" ")]
+                        elif line.startswith(feature_threshold_string):
+                            line = line[len(feature_threshold_string) : -1]
+                            if len(line) == 0:
+                                continue
+                            splits = [float(x) for x in line.split(" ")]
+                            for feature_ind, threshold in zip(features, splits):
+                                all_splits[feature_ind].add(threshold)
+            combined_feature_splits[np.float32(lead_time)] = [
+                np.sort(list(x)) for x in all_splits
+            ]
+        return combined_feature_splits
 
     @staticmethod
     def check_filenames(
@@ -202,14 +272,20 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
     tree models"""
 
     def __new__(
-        cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+        cls,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
         """Check all model files are available before initialising."""
         ApplyRainForestsCalibration.check_filenames("lightgbm_model", model_config_dict)
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
-        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+        self,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. LightGBM Boosters are used for tree model predictors.
@@ -219,6 +295,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
+            bin_data:
+                Bin data according to splits used in models. This speeds up prediction
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
@@ -265,18 +346,12 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                     model_file=str(model_filename)
                 ).reset_parameter({"num_threads": threads})
 
-    def _check_num_features(self, features: CubeList) -> None:
-        """Check that the correct number of features has been passed into the model.
+        self.bin_data = bin_data
+        if self.bin_data:
+            self.combined_feature_splits = self._get_feature_splits(model_config_dict)
 
-        Args:
-            features:
-                Cubelist containing feature variables.
-        """
-        expected_num_features = list(self.tree_models.values())[0].num_feature()
-        if expected_num_features != len(features):
-            raise ValueError(
-                "Number of expected features does not match number of feature cubes."
-            )
+    def _get_num_features(self) -> int:
+        return next(iter(self.tree_models.values())).num_feature()
 
     def _align_feature_variables(
         self, feature_cubes: CubeList, forecast_cube: Cube
@@ -471,8 +546,6 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 array to populate with output; will be modified in place
         """
 
-        input_dataset = self.model_input_converter(input_data)
-
         if np.float32(lead_time_hours) in self.lead_times:
             model_lead_time = np.float32(lead_time_hours)
         else:
@@ -480,14 +553,50 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             best_ind = np.argmin(np.abs(self.lead_times - lead_time_hours))
             model_lead_time = self.lead_times[best_ind]
 
-        for threshold_index, threshold in enumerate(self.model_thresholds):
-            model = self.tree_models[model_lead_time, threshold]
-            prediction = model.predict(input_dataset)
-            prediction = np.clip(prediction, 0, 1)
-            output_data[threshold_index, :] = np.reshape(
-                prediction, output_data.shape[1:]
-            )
-        return
+        if self.bin_data:
+            # bin by feature splits
+            feature_splits = self.combined_feature_splits[model_lead_time]
+            binned_data = np.empty(input_data.shape, dtype=np.int32)
+            n_features = len(feature_splits)
+            for i in range(n_features):
+                binned_data[:, i] = np.digitize(
+                    input_data[:, i], bins=feature_splits[i]
+                )
+            # sort so rows in the same bins are grouped
+            sort_ind = np.lexsort(tuple([binned_data[:, i] for i in range(n_features)]))
+            sorted_data = binned_data[sort_ind]
+            reverse_sort_ind = np.argsort(sort_ind)
+            # we only need to predict for rows which are different from the previous row
+            diff = np.any(np.diff(sorted_data, axis=0) != 0, axis=1)
+            predict_rows = np.concatenate([[0], np.nonzero(diff)[0] + 1])
+            data_for_prediction = input_data[sort_ind][predict_rows]
+            full_prediction = np.empty((input_data.shape[0],))
+            # forward fill code inspired by this: https://stackoverflow.com/a/41191127
+            fill_inds = np.zeros(len(full_prediction), dtype=np.int32)
+            fill_inds[predict_rows] = predict_rows
+            fill_inds = np.maximum.accumulate(fill_inds)
+            dataset_for_prediction = self.model_input_converter(data_for_prediction)
+
+            for threshold_index, threshold in enumerate(self.model_thresholds):
+                model = self.tree_models[model_lead_time, threshold]
+                prediction = model.predict(dataset_for_prediction)
+                prediction = np.clip(prediction, 0, 1)
+                full_prediction[predict_rows] = prediction
+                full_prediction = full_prediction[fill_inds]
+                # restore original order
+                full_prediction = full_prediction[reverse_sort_ind]
+                output_data[threshold_index, :] = np.reshape(
+                    full_prediction, output_data.shape[1:]
+                )
+        else:
+            dataset_for_prediction = self.model_input_converter(input_data)
+            for threshold_index, threshold in enumerate(self.model_thresholds):
+                model = self.tree_models[model_lead_time, threshold]
+                prediction = model.predict(dataset_for_prediction)
+                prediction = np.clip(prediction, 0, 1)
+                output_data[threshold_index, :] = np.reshape(
+                    prediction, output_data.shape[1:]
+                )
 
     def _calculate_threshold_probabilities(
         self, forecast_cube: Cube, feature_cubes: CubeList,
@@ -692,8 +801,12 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
     compiled tree models"""
 
     def __new__(
-        cls, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+        cls,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
+
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
         # is available.
@@ -704,7 +817,10 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         return super(ApplyRainForestsCalibration, cls).__new__(cls)
 
     def __init__(
-        self, model_config_dict: Dict[str, Dict[str, Dict[str, str]]], threads: int = 1
+        self,
+        model_config_dict: Dict[str, Dict[str, Dict[str, str]]],
+        threads: int = 1,
+        bin_data: bool = False,
     ):
         """Initialise the tree model variables used in the application of RainForests
         Calibration. Treelite Predictors are used for tree model predictors.
@@ -714,6 +830,11 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 Dictionary containing Rainforests model configuration variables.
             threads:
                 Number of threads to use during prediction with tree-model objects.
+            bin_data:
+                Bin data according to splits used in models. This speeds up prediction
+                if there are many data points which fall into the same bins for all threshold
+                models. Limits the calculation of common feature values by only calculating
+                them once.
 
         Dictionary is of format::
 
@@ -755,14 +876,9 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                     libpath=str(model_filename), verbose=False, nthread=threads
                 )
 
-    def _check_num_features(self, features: CubeList) -> None:
-        """Check that the correct number of features has been passed into the model.
-        Args:
-            features:
-                Cubelist containing feature variables.
-        """
-        expected_num_features = list(self.tree_models.values())[0].num_feature
-        if expected_num_features != len(features):
-            raise ValueError(
-                "Number of expected features does not match number of feature cubes."
-            )
+        self.bin_data = bin_data
+        if self.bin_data:
+            self.combined_feature_splits = self._get_feature_splits(model_config_dict)
+
+    def _get_num_features(self) -> int:
+        return next(iter(self.tree_models.values())).num_feature

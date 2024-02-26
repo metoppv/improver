@@ -45,6 +45,7 @@ def process(
     output_threshold_config: cli.inputjson = None,
     threshold_units: str = None,
     threads: int = 1,
+    bin_data: bool = False,
 ):
     """
     Calibrate a forecast cube using the Rainforests method.
@@ -88,6 +89,10 @@ def process(
             will allow a suitable conversion to match the input units of forecast_cube.
         threads (int):
             Number of threads to use during prediction with tree-model objects.
+        bin_data:
+            Bin data according to splits used in models. This speeds up prediction
+            if there are many data points which fall into the same bins for all threshold models.
+            Limits the calculation of common feature values by only calculating them once.
 
     Returns:
         iris.cube.Cube:
@@ -114,7 +119,9 @@ def process(
         thresholds = [float(key) for key in output_threshold_config.keys()]
     else:
         thresholds = [float(x) for x in output_thresholds]
-    return ApplyRainForestsCalibration(model_config, threads).process(
+    return ApplyRainForestsCalibration(
+        model_config_dict=model_config, threads=threads, bin_data=bin_data
+    ).process(
         forecast,
         CubeList(features),
         output_thresholds=thresholds,

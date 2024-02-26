@@ -31,6 +31,7 @@
 """Unit tests for the ApplyRainForestsCalibration class."""
 import sys
 
+import numpy as np
 import pytest
 
 from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
@@ -98,6 +99,33 @@ def test__new__(
 
     result = ApplyRainForestsCalibration(model_config)
     assert type(result).__name__ == expected_class
+
+
+@pytest.mark.parametrize("treelite_file", (True, False))
+def test__get_feature_splits(
+    treelite_file, model_config, plugin_and_dummy_models, lightgbm_model_files
+):
+    """Test that _get_feature_splits returns a dict in the expected format.
+    The lightgbm_model_files parameter is not used explicitly, but it is
+    required in order to make the files available."""
+    if not treelite_file:
+        # Model type should default to lightgbm if there are any treelite models
+        # missing across any thresholds
+        model_config["24"]["0.0000"].pop("treelite_model", None)
+
+    plugin_cls, dummy_models = plugin_and_dummy_models
+    plugin = plugin_cls(model_config_dict={})
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
+
+    splits = plugin._get_feature_splits(model_config)
+
+    lead_times = sorted([np.float32(x) for x in model_config.keys()])
+    assert sorted(list(splits.keys())) == lead_times
+
+    model_path = model_config["24"]["0.0000"].get("lightgbm_model")
+    model = lightgbm.Booster(model_file=model_path)
+    num_features = len(model.feature_name())
+    assert all([len(x) == num_features for x in splits.values()])
 
 
 def test_check_filenames(model_config):

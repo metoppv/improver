@@ -145,9 +145,7 @@ def process(
     if (weighting_method == "linear") and cval:
         raise RuntimeError("Method: linear does not accept arguments: cval")
     if (weighting_method == "nonlinear") and any([y0val, ynval]):
-        raise RuntimeError(
-            "Method: non-linear does not accept arguments:" " y0val, ynval"
-        )
+        raise RuntimeError("Method: non-linear does not accept arguments: y0val, ynval")
     if (weighting_method == "dict") and weighting_config is None:
         raise RuntimeError('Dictionary is required if wts_calc_method="dict"')
     if "model" in coordinate and model_id_attr is None:

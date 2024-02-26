@@ -104,7 +104,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         bin_values = ", ".join(
             ["[{:1.2f} --> {:1.2f}]".format(*item) for item in self.probability_bins]
         )
-        result = "<ConstructReliabilityCalibrationTables: " "probability_bins: {}>"
+        result = "<ConstructReliabilityCalibrationTables: probability_bins: {}>"
         return result.format(bin_values)
 
     def _define_probability_bins(

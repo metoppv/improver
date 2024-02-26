@@ -111,7 +111,7 @@ class AdvectField(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the plugin instance as a string."""
-        result = "<AdvectField: vel_x={}, vel_y={}, " "attributes_dict={}>".format(
+        result = "<AdvectField: vel_x={}, vel_y={}, attributes_dict={}>".format(
             repr(self.vel_x), repr(self.vel_y), self.attributes_dict
         )
         return result
@@ -364,7 +364,7 @@ class AdvectField(BasePlugin):
         # check spatial coordinates match those of plugin velocities
         if cube.coord(axis="x") != self.x_coord or cube.coord(axis="y") != self.y_coord:
             raise InvalidCubeError(
-                "Input data grid does not match advection " "velocities"
+                "Input data grid does not match advection velocities"
             )
 
         # derive velocities in "grid squares per second"
