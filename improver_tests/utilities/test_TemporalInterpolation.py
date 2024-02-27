@@ -125,7 +125,7 @@ def multi_time_cube(
             the cube.
         data:
             The data to be contained in the cube. If the cube is 3-D the
-            leading dimension should be the same size and the list of times
+            leading dimension should be the same size as the list of times
             and will be sliced to associate each slice with each time.
         spatial_grid:
             Whether this is a lat-lon or equal areas projection.
@@ -612,7 +612,7 @@ def test_input_cubes_in_incorrect_time_order():
 
 def test_input_cube_with_multiple_times():
     """Test that an exception is raised if a cube is provided that has
-    multiple validity times, e.g. a multi-entried time dimension."""
+    multiple validity times (a multi-entried time dimension)."""
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 6, 9]]
     data = np.ones((5, 5), dtype=np.float32)
@@ -747,9 +747,9 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [3, 6],
             [2.5, 2.5],
         ),
-        # Equal adjacent e.g. period maxes, shorter periods have the same max.
+        # Equal adjacent period maxes, shorter periods have the same max.
         ({"interval_in_minutes": 180, "max": True}, [5, 5], [3, 6], [5, 5],),
-        # Equal adjacent e.g. period minimums, shorter periods have the same
+        # Equal adjacent period minimums, shorter periods have the same
         # min.
         ({"interval_in_minutes": 180, "min": True}, [5, 5], [3, 6], [5, 5],),
         # Trend of increasing accumulations with time, which is reflected
@@ -797,7 +797,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [1, 6],
             [1, 5],
         ),
-        # Equal adjacent e.g. period maxes, unequal shorter periods have the
+        # Equal adjacent period maxes, unequal shorter periods have the
         # same max.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "max": True},
@@ -805,7 +805,7 @@ def test_add_bounds(input_times, expected_time_bounds, expected_fp_bounds):
             [1, 6],
             [6, 6],
         ),
-        # Equal adjacent e.g. period minimums, unequal shorter periods have
+        # Equal adjacent period minimums, unequal shorter periods have
         # the same min.
         (
             {"times": [datetime.datetime(2017, 11, 1, 4)], "min": True},
@@ -948,7 +948,7 @@ def test_process_accumulation_unequal_inputs(
 ):
     """Test that the expected values are returned when the accumulation inputs
     are of different periods. The accumulations are converted to rates using
-    each input cube's period prior to interpolation which allos for this."""
+    each input cube's period prior to interpolation which allows for this."""
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     npoints = 5

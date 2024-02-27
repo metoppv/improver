@@ -461,10 +461,9 @@ class TemporalInterpolation(BasePlugin):
                 raise CoordinateNotFoundError(
                     f"Period diagnostic cube is missing expected coordinate: {crd}"
                 )
-            bounds = np.diff(interpolated_times)
             all_bounds = []
-            for bound, time in zip(bounds, interpolated_times[1:]):
-                all_bounds.append([time - bound, time])
+            for start, end in zip(interpolated_times[:-1], interpolated_times[1:]):
+                all_bounds.append([start, end])
             interpolated_cube.coord(crd).bounds = all_bounds
 
     @staticmethod
@@ -482,7 +481,7 @@ class TemporalInterpolation(BasePlugin):
         Args:
             cube_t0:
                 The input cube corresponding to the earlier time.
-            period_refrence:
+            period_reference:
                 The input cube corresponding to the later time, with the
                 values prior to conversion to rates.
             interpolated_cube:
@@ -607,7 +606,7 @@ class TemporalInterpolation(BasePlugin):
 
         time_list = self.construct_time_list(initial_time, final_time)
 
-        # If the target output time is the same as time at which the
+        # If the target output time is the same as the time at which the
         # trailing input is valid, just return it unchanged.
         if (
             len(time_list[0][1]) == 1
@@ -647,7 +646,13 @@ class TemporalInterpolation(BasePlugin):
             # if the inputs were period diagnostics.
             self.add_bounds(cube_t0, interpolated_cube)
 
-            # Apply suitable
+            # Apply suitable constraints to the returned values.
+            # - accumulations are renormalised to ensure the period total is
+            #   unchanged when broken into shorter periods.
+            # - period maximums are enforced to not exceed the original
+            #   maximum that occurred across the whole longer period.
+            # - period minimums are enforced to not be below the original
+            #   minimum that occurred across the whole longer period.
             if self.accumulation:
                 self._calculate_accumulation(
                     cube_t0, period_reference, interpolated_cube
