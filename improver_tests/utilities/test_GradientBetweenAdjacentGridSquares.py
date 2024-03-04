@@ -39,16 +39,24 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
-@pytest.fixture(name="wind_speed")
-def wind_speed_fixture() -> Cube:
-    """Wind speed in m/s"""
-    data = np.array([[0, 1, 2], [2, 3, 4], [4, 5, 6]], dtype=np.float32)
-    cube = set_up_variable_cube(
-        data, name="wind_speed", units="m s^-1", spatial_grid="equalarea"
-    )
-    for axis in ["x", "y"]:
-        cube.coord(axis=axis).points = np.array([0, 1, 2], dtype=np.float32)
-    return cube
+EQUAL_AREA_GRID_SPACING = 1000  # Meters
+
+
+@pytest.fixture(name="make_input")
+def make_wind_speed_fixture() -> callable:
+    """Factory as fixture for generating a wind speed cube as test input."""
+
+    def _make_input() -> Cube:
+        """Wind speed in m/s"""
+        data = np.array([[0, 1, 2], [2, 3, 4], [4, 5, 6]], dtype=np.float32)
+        cube = set_up_variable_cube(
+            data, name="wind_speed", units="m s^-1", spatial_grid="equalarea", grid_spacing=EQUAL_AREA_GRID_SPACING,
+        )
+        # for axis in ["x", "y"]:
+        #     print(cube.coord(axis=axis).points)
+        return cube
+
+    return _make_input
 
 
 @pytest.fixture(name="make_expected")
@@ -63,6 +71,7 @@ def make_expected_fixture() -> callable:
             name="gradient_of_wind_speed",
             units="s^-1",
             spatial_grid="equalarea",
+            grid_spacing=EQUAL_AREA_GRID_SPACING,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         )
         for index, axis in enumerate(["y", "x"]):
@@ -81,10 +90,13 @@ def make_expected_fixture() -> callable:
         {"regrid": True, "xshape": (3, 3), "yshape": (3, 3)},
     ),
 )
-def test_gradient(wind_speed, make_expected, grid):
+def test_gradient(make_input, make_expected, grid):
     """Check calculating the gradient with and without regridding"""
-    expected_x = make_expected(grid["xshape"], 1)
-    expected_y = make_expected(grid["yshape"], 2)
+    # print(wind_speed)
+    # print("\n\n\n")
+    wind_speed = make_input()
+    expected_x = make_expected(grid["xshape"], 1 / EQUAL_AREA_GRID_SPACING)
+    expected_y = make_expected(grid["yshape"], 2 / EQUAL_AREA_GRID_SPACING)
     gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=grid["regrid"])(
         wind_speed
     )
@@ -93,3 +105,5 @@ def test_gradient(wind_speed, make_expected, grid):
         assert result.attributes == expected.attributes
         assert result.units == expected.units
         np.testing.assert_allclose(result.data, expected.data, rtol=1e-5, atol=1e-8)
+
+# TODO: needs to also work with lat/long grids.

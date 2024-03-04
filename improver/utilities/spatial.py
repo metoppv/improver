@@ -363,7 +363,9 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Returns:
             Array of the gradients in the coordinate direction specified.
         """
-        grid_spacing = np.diff(diff.coord(axis=axis).points)[0]
+        space_diff = diff.coord(axis=axis)
+        points = space_diff.points
+        grid_spacing = np.diff(points)[0]
         gradient = diff.data / grid_spacing
         return gradient
 
