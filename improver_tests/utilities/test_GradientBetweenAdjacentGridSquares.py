@@ -46,11 +46,11 @@ EQUAL_AREA_GRID_SPACING = 1000  # Meters
 def make_wind_speed_fixture() -> callable:
     """Factory as fixture for generating a wind speed cube as test input."""
 
-    def _make_input() -> Cube:
+    def _make_input(spatial_grid, grid_spacing) -> Cube:
         """Wind speed in m/s"""
         data = np.array([[0, 1, 2], [2, 3, 4], [4, 5, 6]], dtype=np.float32)
         cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s^-1", spatial_grid="equalarea", grid_spacing=EQUAL_AREA_GRID_SPACING,
+            data, name="wind_speed", units="m s^-1", spatial_grid=spatial_grid, grid_spacing=grid_spacing,
         )
         # for axis in ["x", "y"]:
         #     print(cube.coord(axis=axis).points)
@@ -94,7 +94,7 @@ def test_gradient(make_input, make_expected, grid):
     """Check calculating the gradient with and without regridding"""
     # print(wind_speed)
     # print("\n\n\n")
-    wind_speed = make_input()
+    wind_speed = make_input("equalarea", EQUAL_AREA_GRID_SPACING)
     expected_x = make_expected(grid["xshape"], 1 / EQUAL_AREA_GRID_SPACING)
     expected_y = make_expected(grid["yshape"], 2 / EQUAL_AREA_GRID_SPACING)
     gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=grid["regrid"])(
