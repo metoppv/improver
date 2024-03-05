@@ -34,6 +34,7 @@ from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
 from pkg_resources import DistributionNotFound, get_distribution
+from pp_plugin_framework import Plugin
 
 try:
     __version__ = get_distribution("improver").version
@@ -42,60 +43,52 @@ except DistributionNotFound:
     pass
 
 
-class BasePlugin(ABC):
+class BasePlugin(Plugin, ABC):
     """An abstract class for IMPROVER plugins.
     Subclasses must be callable. We preserve the process
     method by redirecting to __call__.
     """
-
-    def __call__(self, *args, **kwargs):
-        """Makes subclasses callable to use process
+    def __call__(self, *args, filepath=None, verbose=False, dry_run=False, **kwargs):
+        """
+        Makes subclasses callable to use process
         Args:
             *args:
-                Positional arguments.
+                Positional arguments, each a filepath, cube or CubeList.
             **kwargs:
                 Keyword arguments.
         Returns:
             Output of self.process()
         """
-        return self.process(*args, **kwargs)
+        res = self.process(*args, verbose=verbose, dry_run=dry_run, **kwargs)
+        if hasattr(self, "post_process_result"):
+            res = self.post_process_result(res)
+        return res
 
     @abstractmethod
-    def process(self, *args, **kwargs):
+    def process(self, *args, verbose=False, dry_run=False, **kwargs):
         """Abstract class for rest to implement."""
         pass
 
 
 class PostProcessingPlugin(BasePlugin):
-    """An abstract class for IMPROVER post-processing plugins.
+    """
+    An abstract class for IMPROVER post-processing plugins.
     Makes generalised changes to metadata relating to post-processing.
     """
-
-    def __call__(self, *args, **kwargs):
-        """Makes subclasses callable to use process
-        Args:
-            *args:
-                Positional arguments.
-            **kwargs:
-                Keyword arguments.
-
-        Returns:
-            Output of self.process() with updated title attribute
-        """
+    @classmethod
+    def post_process_result(cls, result):
         from iris.cube import Cube
-
-        result = super().__call__(*args, **kwargs)
         if isinstance(result, Cube):
-            self.post_processed_title(result)
+            cls.post_processed_title(result)
         elif isinstance(result, Iterable) and not isinstance(result, str):
             for item in result:
-                if isinstance(item, Cube):
-                    self.post_processed_title(item)
-        return result
+                if isinstance(item, result):
+                    cls.post_processed_title(item)
 
     @staticmethod
-    def post_processed_title(cube):
-        """Updates title attribute on output cube to include
+    def post_processed_cube_title(cube):
+        """
+        Updates title attribute on output cube to include
         "Post-Processed"
         """
         from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS

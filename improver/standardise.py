@@ -37,8 +37,8 @@ from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from numpy import dtype, ndarray
-from pp_plugin_framework import Plugin, PluginFactory
 
+from improver import BasePlugin
 from improver.metadata.amend import amend_attributes, update_stage_v110_metadata
 from improver.metadata.check_datatypes import (
     check_units,
@@ -49,7 +49,7 @@ from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.round import round_close
 
 
-class StandardiseMetadata(Plugin):
+class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
 
     @staticmethod
