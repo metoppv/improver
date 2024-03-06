@@ -44,6 +44,7 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
+from shapely.geometry import MultiPoint
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
@@ -149,7 +150,6 @@ def distance_to_number_of_grid_cells(
     d_error = f"Distance of {distance}m"
     if distance <= 0:
         raise ValueError(f"Please specify a positive distance in metres. {d_error}")
-
     # calculate grid spacing along chosen axis
     grid_spacing_metres = calculate_grid_spacing(cube, "metres", axis=axis)
     grid_cells = distance / abs(grid_spacing_metres)
@@ -181,6 +181,17 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
     spacing = calculate_grid_spacing(cube, "metres")
     radius_in_metres = spacing * grid_points
     return radius_in_metres
+
+
+class DistanceBetweenGridSquares(BasePlugin):
+    """
+    Calculates the distances between adjacent grid squares within
+    a cube. The difference is calculated along the x and y axis
+    individually.
+    """
+    # TODO: Make it work for equal area (TDD!) and get original equal area tests working.
+    # TODO: Make it work for latlon. TDD!
+    pass
 
 
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
@@ -319,7 +330,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
     @staticmethod
     def _create_output_cube(
-        gradient: ndarray, diff: Cube, cube: Cube, axis: str
+        gradient: Cube, diff: Cube, cube: Cube, axis: str
     ) -> Cube:
         """
         Create the output gradient cube.
@@ -340,15 +351,43 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         grad_cube = create_new_diagnostic_cube(
             "gradient_of_" + cube.name(),
-            cube.units / diff.coord(axis=axis).units,
-            diff,
+            gradient.units,
+            gradient,
             MANDATORY_ATTRIBUTE_DEFAULTS,
-            data=gradient,
+            data=gradient.data,
         )
         return grad_cube
 
     @staticmethod
-    def _gradient_from_diff(diff: Cube, axis: str) -> ndarray:
+    def _get_distances_between_points_of_latlon_cube(cube: Cube, diffs: Cube): # TODO: this should probably be it's own class so that I can write tests for it properly.
+        EARTH_RADIUS = 6371e3
+        # Todo: check we're getting degrees?
+        longs = cube.coord(axis='x').points
+        lats = cube.coord(axis='y').points
+
+        lat_diffs = np.diff(lats)
+        y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
+        lon_diffs = np.diff(longs)
+        x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
+
+        y_distances_meters = EARTH_RADIUS * np.deg2rad(y_distances_degrees)
+        moo = diff.coords()
+        # baa = [(coord, i) for coord, i in zip(diff.coords(), range(len(diff.coords())))]
+        baa = [(diff.coord('longitude'), 0), (diff.coord('latitude'), 1)]
+        y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
+                               dim_coords_and_dims=baa)
+
+        lats_full = np.tile((np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1]))
+        x_distances_meters = EARTH_RADIUS * np.cos(np.deg2rad(lats_full)) * np.deg2rad(x_distances_degrees)
+        x_distance_cube = Cube(x_distances_meters, long_name="y_distance_between_grid_points", units='meters',
+                               dim_coords_and_dims=baa)
+
+        return x_distance_cube, y_distance_cube
+        # TODO: does altitude matter enough to consider it?
+
+
+    @classmethod
+    def _gradient_from_diff(cls, diff: Cube, original_cube: Cube, axis: str, distances: tuple[Cube, Cube]) -> ndarray:
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
@@ -363,11 +402,16 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Returns:
             Array of the gradients in the coordinate direction specified.
         """
-        space_diff = diff.coord(axis=axis)
-        points = space_diff.points
-        grid_spacing = np.diff(points)[0]
-        gradient = diff.data / grid_spacing
+
+        x_distances, y_distances = cls._get_distances_between_points_of_latlon_cube(original_cube, diff) # Todo: calcuate once and pass in rather than calcualting both x and y here but only using one.
+        if axis == 'y':
+            grid_spacing = y_distances
+        elif axis == 'x':
+            grid_spacing = x_distances
+        gradient = diff / grid_spacing
         return gradient
+
+    # TODO: Does altitude make enough difference to need to worry about??
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
@@ -387,8 +431,10 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
+        distances = self._get_distances_between_points_of_latlon_cube(cube, diffs)
         for axis, diff in zip(["x", "y"], diffs):
-            gradient = self._gradient_from_diff(diff, axis)
+            # x_dists, y_dists = self.get_distances(cube)
+            gradient = self._gradient_from_diff(diff, cube, axis)
             grad_cube = self._create_output_cube(gradient, diff, cube, axis)
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
