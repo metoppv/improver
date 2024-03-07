@@ -36,37 +36,70 @@ import iris
 import numpy as np
 # from iris.coords import CellMethod
 from iris.cube import Cube
-from iris.tests import IrisTest
+from iris.coords import DimCoord
+from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
+# from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
 
 
+# Distances covered when travelling 10 degrees east/west at different latitudes:
+X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
+X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Meters
+X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Meters
+Y_GRID_SPACING = 1111949  # Meters
 
-def make_test_cube(spatial_grid, grid_spacing):
-    EXAMPLE_DATA = np.array([[0, 1, 10], [2, 3, 10], [4, 5, 10]], dtype=np.float32)
-    cube = set_up_variable_cube(
-        EXAMPLE_DATA, name="wind_speed", units="m s^-1", spatial_grid=spatial_grid, grid_spacing=grid_spacing,
-        domain_corner=(0.0, 0.0)
-    )
+
+def make_latlon_test_cube(shape, latitudes, longitudes):
+    example_data = np.ones(shape, dtype=np.float32)
+    dimcoords = [(DimCoord(latitudes, standard_name="latitude", units="degrees", coord_system=GeogCS), 0),
+                 (DimCoord(longitudes, standard_name="longitude", units="degrees", coord_system=GeogCS), 1)]
+    cube = Cube(example_data, standard_name="wind_speed", units="m s^-1",
+                dim_coords_and_dims=dimcoords)  # TODO: Do I need a domain corner?
     return cube
 
 
 def test_latlon_cube():
-    input_cube = make_test_cube("latlon", 10)
-    expected_x_distances = np.array([[1111949, 1111949],
-                                     [1095014, 1095014],
-                                     [1044735, 1044735]])
-    expected_y_distances = np.full((2,3), 1111949)
+    input_cube = make_latlon_test_cube((3,3), latitudes=[0, 10, 20], longitudes=[0, 10, 20])
+    expected_x_distances = np.array([
+        [   X_GRID_SPACING_AT_EQUATOR,          X_GRID_SPACING_AT_EQUATOR           ],
+        [   X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH  ],
+        [   X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH  ]
+    ])
+    expected_y_distances = np.full((2,3), Y_GRID_SPACING)
     calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in reversed(list(zip((calculated_x_distances_cube, calculated_y_distances_cube), (expected_x_distances, expected_y_distances)))):
-        assert result.units == "meters" # TODO: is this correct?
+    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
+                                (expected_x_distances, expected_y_distances)):
+        assert result.units == "meters"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
 
-
-
-
 def test_latlon_cube_unequal_xy_dims():
-    raise NotImplementedError
+    input_cube = make_latlon_test_cube((3, 2), latitudes=[0, 10, 20], longitudes=[0, 10])
+    expected_x_distances = np.array([
+        [X_GRID_SPACING_AT_EQUATOR],
+        [X_GRID_SPACING_AT_10_DEGREES_NORTH],
+        [X_GRID_SPACING_AT_20_DEGREES_NORTH]
+    ])
+    expected_y_distances = np.full((2, 2), Y_GRID_SPACING)
+    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
+                                (expected_x_distances, expected_y_distances)):
+        assert result.units == "meters"
+        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3,
+                                   atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
+
+
 def test_latlon_cube_nonuniform_spacing():
-    raise NotImplementedError
+    input_cube = make_latlon_test_cube((2, 3), latitudes=[0, 20], longitudes=[0, 10, 20])
+    expected_x_distances = np.array([
+        [X_GRID_SPACING_AT_EQUATOR,         X_GRID_SPACING_AT_EQUATOR],
+        [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH]
+    ])
+    expected_y_distances = np.full((1, 3), 2 * Y_GRID_SPACING)
+    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
+                                (expected_x_distances, expected_y_distances)):
+        assert result.units == "meters"
+        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3,
+                                   atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
