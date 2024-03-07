@@ -191,7 +191,11 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
     # TODO: Make it work for equal area (TDD!) and get original equal area tests working.
     # TODO: Make it work for latlon. TDD!
-    pass
+
+    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
+        pass
+
+
 
 
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
@@ -387,7 +391,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
 
     @classmethod
-    def _gradient_from_diff(cls, diff: Cube, original_cube: Cube, axis: str, distances: tuple[Cube, Cube]) -> ndarray:
+    def _gradient_from_diff(cls, diff: Cube, original_cube: Cube, axis: str, distances: tuple) -> ndarray:
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
