@@ -189,12 +189,47 @@ class DistanceBetweenGridSquares(BasePlugin):
     a cube. The difference is calculated along the x and y axis
     individually.
     """
+    EARTH_RADIUS = 6371e3  # meters
     # TODO: Make it work for equal area (TDD!) and get original equal area tests working.
     # TODO: Make it work for latlon. TDD!
 
-    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
-        pass
+    @classmethod
+    def _get_y_distances(cls, cube: Cube, y_diff: Cube):
+        # Todo: check we're getting degrees?
+        longs = cube.coord(axis='x').points
+        lats = cube.coord(axis='y').points
 
+        lat_diffs = np.diff(lats)
+        y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
+        y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
+        # Todo: can I assume (as below) that it's okay to have latitude and longitude on axes 0 and 1??
+        dims = [(y_diff.coord('latitude'), 0), (y_diff.coord('longitude'), 1)]  # TODO: what other coords do I need? Can I keep the original coords from cube except overwrite the lat and long from dims and the units as meters? Seems like I can.
+        test_cube = Cube(y_distances_meters)
+        y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
+                               dim_coords_and_dims=dims)
+        return y_distance_cube
+
+    @classmethod
+    def _get_x_distances(cls, cube: Cube, x_diff: Cube):
+        # Todo: check we're getting degrees?
+        longs = cube.coord(axis='x').points
+        lats = cube.coord(axis='y').points
+
+        lon_diffs = np.diff(longs)
+        x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
+        lats_full = np.tile((np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1]))
+        x_distances_meters = cls.EARTH_RADIUS * np.cos(np.deg2rad(lats_full)) * np.deg2rad(x_distances_degrees)
+
+        dims = [(x_diff.coord('latitude'), 0), (x_diff.coord('longitude'), 1)]
+        x_distance_cube = Cube(x_distances_meters, long_name="y_distance_between_grid_points", units='meters',
+                               dim_coords_and_dims=dims)
+        return x_distance_cube
+
+    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
+        x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
+        x_distances_cube = self._get_x_distances(cube, x_diff)
+        y_distances_cube = self._get_y_distances(cube, y_diff)
+        return x_distances_cube, y_distances_cube
 
 
 
