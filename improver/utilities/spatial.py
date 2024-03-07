@@ -397,34 +397,6 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         )
         return grad_cube
 
-    @staticmethod
-    def _get_distances_between_points_of_latlon_cube(cube: Cube, diffs: Cube): # TODO: this should probably be it's own class so that I can write tests for it properly.
-        EARTH_RADIUS = 6371e3
-        # Todo: check we're getting degrees?
-        longs = cube.coord(axis='x').points
-        lats = cube.coord(axis='y').points
-
-        lat_diffs = np.diff(lats)
-        y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
-        lon_diffs = np.diff(longs)
-        x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
-
-        y_distances_meters = EARTH_RADIUS * np.deg2rad(y_distances_degrees)
-        moo = diff.coords()
-        # baa = [(coord, i) for coord, i in zip(diff.coords(), range(len(diff.coords())))]
-        baa = [(diff.coord('longitude'), 0), (diff.coord('latitude'), 1)]
-        y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
-                               dim_coords_and_dims=baa)
-
-        lats_full = np.tile((np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1]))
-        x_distances_meters = EARTH_RADIUS * np.cos(np.deg2rad(lats_full)) * np.deg2rad(x_distances_degrees)
-        x_distance_cube = Cube(x_distances_meters, long_name="y_distance_between_grid_points", units='meters',
-                               dim_coords_and_dims=baa)
-
-        return x_distance_cube, y_distance_cube
-        # TODO: does altitude matter enough to consider it?
-
-
     @classmethod
     def _gradient_from_diff(cls, diff: Cube, original_cube: Cube, axis: str, distances: tuple) -> ndarray:
         """
@@ -449,8 +421,6 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
             grid_spacing = x_distances
         gradient = diff / grid_spacing
         return gradient
-
-    # TODO: Does altitude make enough difference to need to worry about??
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
