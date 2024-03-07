@@ -44,7 +44,7 @@ from improver.utilities.spatial import DistanceBetweenGridSquares
 
 
 def make_test_cube(spatial_grid, grid_spacing):
-    EXAMPLE_DATA = np.array([[0, 1, 2], [2, 3, 4], [4, 5, 6]], dtype=np.float32)
+    EXAMPLE_DATA = np.array([[0, 1, 10], [2, 3, 10], [4, 5, 10]], dtype=np.float32)
     cube = set_up_variable_cube(
         EXAMPLE_DATA, name="wind_speed", units="m s^-1", spatial_grid=spatial_grid, grid_spacing=grid_spacing,
         domain_corner=(0.0, 0.0)
@@ -54,18 +54,19 @@ def make_test_cube(spatial_grid, grid_spacing):
 
 def test_latlon_cube():
     input_cube = make_test_cube("latlon", 10)
-    expected_x_distances = np.array([[1044735, 1044735],
+    expected_x_distances = np.array([[1111949, 1111949],
                                      [1095014, 1095014],
-                                     [1111949, 1111949]])
-    expected_y_distances = np.full((3,2), 1111949)
+                                     [1044735, 1044735]])
+    expected_y_distances = np.full((2,3), 1111949)
     calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube), (expected_x_distances, expected_y_distances)):
-        assert result.units == "meters"
-        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=0)  # Using rtol = 0.002 as calculation uses spherical earth assumption, which should have a maximum error of ~0.15%
+    for result, expected in reversed(list(zip((calculated_x_distances_cube, calculated_y_distances_cube), (expected_x_distances, expected_y_distances)))):
+        assert result.units == "meters" # TODO: is this correct?
+        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
 
 
 
 
-
-def test_latlon_cube_unequal_spacing():
-    pass
+def test_latlon_cube_unequal_xy_dims():
+    raise NotImplementedError
+def test_latlon_cube_nonuniform_spacing():
+    raise NotImplementedError
