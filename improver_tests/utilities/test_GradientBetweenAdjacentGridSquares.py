@@ -146,9 +146,9 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid):
     # expected_data_values = [1 / X_GRID_SPACING_AT_EQUATOR, 1 / X_GRID_SPACING_AT_10_DEGREES, 1 / X_GRID_SPACING_AT_20_DEGREES]  # Todo: Check if this is right.
     x_separations = np.array(
         [
-            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
+            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
             [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
-            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR]
+            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
         ]
     )
     y_separations = np.full((EXAMPLE_DATA.shape[0] - 1, EXAMPLE_DATA.shape[1]), Y_GRID_SPACING)

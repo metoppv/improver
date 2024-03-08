@@ -427,8 +427,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         )
         return grad_cube
 
-    @classmethod
-    def _gradient_from_diff(cls, diff: Cube, original_cube: Cube, axis: str, distances: tuple) -> ndarray:
+    @staticmethod
+    def _gradient_from_diff(diff: Cube, distance: Cube, axis: str) -> ndarray:
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
@@ -443,13 +443,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Returns:
             Array of the gradients in the coordinate direction specified.
         """
-
-        x_distances, y_distances = cls._get_distances_between_points_of_latlon_cube(original_cube, diff) # Todo: calcuate once and pass in rather than calcualting both x and y here but only using one.
-        if axis == 'y':
-            grid_spacing = y_distances
-        elif axis == 'x':
-            grid_spacing = x_distances
-        gradient = diff / grid_spacing
+        # Todo: avoid calculating diff twice with optional parameter.
+        gradient = diff / distance
         return gradient
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
@@ -470,10 +465,9 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
-        distances = self._get_distances_between_points_of_latlon_cube(cube, diffs)
-        for axis, diff in zip(["x", "y"], diffs):
-            # x_dists, y_dists = self.get_distances(cube)
-            gradient = self._gradient_from_diff(diff, cube, axis)
+        distances = DistanceBetweenGridSquares()(cube)
+        for axis, diff, distance in zip(["x", "y"], diffs, distances):
+            gradient = self._gradient_from_diff(diff, distance, axis)
             grad_cube = self._create_output_cube(gradient, diff, cube, axis)
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
