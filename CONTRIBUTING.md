@@ -38,6 +38,7 @@ below:
  - Benjamin Ayliffe (Met Office, UK)
  - Mark Baker (Met Office, UK)
  - Laurence Beard (Met Office, UK)
+ - Tim Bonin (MIT Lincoln Laboratory, USA)
  - Anna Booton (Met Office, UK)
  - Prajwal Borkar
  - James Canvin (Bureau of Meteorology, Australia)
@@ -71,6 +72,7 @@ below:
  - Victoria Smart (Met Office, UK)
  - Eleanor Smith (Met Office, UK)
  - Marcus Spelman (Met Office, UK)
+ - Phil Stepanian (MIT Lincoln Laboratory, USA)
  - Belinda Trotta (Bureau of Meteorology, Australia)
  - Tomasz Trzeciak (Met Office, UK)
  - Mark Worsfold (Met Office, UK)
