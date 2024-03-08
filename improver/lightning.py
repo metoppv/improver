@@ -224,7 +224,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
     Outputs:
     20 km lightning probability over the valid time of the accumulated precipitation
 
-    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+   ---------------------------+------------+----------------------------------------
 
     Regression equation when CAPE and APCP are greater than zero:
     lprob= cape*APCP
