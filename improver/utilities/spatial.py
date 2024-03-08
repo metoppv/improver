@@ -222,7 +222,6 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube):
-        # Todo: check we're getting degrees?
         longs = cube.coord(axis='x').points
         lats = cube.coord(axis='y').points
 

@@ -48,34 +48,9 @@ from improver.utilities.spatial import DistanceBetweenGridSquares
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
 X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Meters
 X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Meters
+
 Y_GRID_SPACING = 1111949  # Meters
 
-
-
-
-#Todo: Need to think about how to handle equalarea cubes. Considerations are:
-'''
-Calculation already exists for equalarea cube (spatial.calculate_grid_spacing()) but this returns a float, whereas I need a cube.
-Options are:
-1. Use this function in my Distance class... seems hacky.
-2. Copy the logic from this function into my class :'(
-3. Make my class just handle the latlon projection and have the gradient class call the function for equalarea then boost the float up to a cube.
-4. Move the function logic into the class and then have the function use the class for backwards compatibility.   - Maybe the best option. Function logic could be in a public static method so that both function and class can use it.
-
-ToDo:
-Move function logic into static method on class. Make sure the function's tests all still pass.
-Add logic for class to check which projection we're using and route accordingly.
-Make sure latlong tests still pass.
-Write test for equal area projection.
-Implement logic in class to make this test pass.
-Add edge case tests and bugfix as needed.
-
-Cup of tea.
-
-Go back to gradient class and make it use the distance class. Existing test should give a good starting point.
-Edge case tests for gradient.
-Tidying up.
-'''
 
 def make_equalarea_test_cube(shape, grid_spacing):
     data = np.ones(shape, dtype=np.float32)
