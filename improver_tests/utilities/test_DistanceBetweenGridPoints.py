@@ -77,7 +77,7 @@ Edge case tests for gradient.
 Tidying up.
 '''
 
-def make_equalarea_cube(shape, grid_spacing):
+def make_equalarea_test_cube(shape, grid_spacing):
     data = np.ones(shape, dtype=np.float32)
     cube = set_up_variable_cube(data, spatial_grid="equalarea", grid_spacing=grid_spacing)
     return cube
@@ -137,8 +137,8 @@ def test_latlon_cube_nonuniform_spacing():
 
 
 def test_equalarea_cube():
-    input_cube = make_equalarea_cube((3, 3), grid_spacing=1000)
-    expected_x_distances = np.full((3,2), 1000)
+    input_cube = make_equalarea_test_cube((3, 3), grid_spacing=1000)
+    expected_x_distances = np.full((3, 2), 1000)
     expected_y_distances = np.full((2, 3), 1000)
     calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
     for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),

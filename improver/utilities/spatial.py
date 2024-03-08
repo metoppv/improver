@@ -176,11 +176,19 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
 class DistanceBetweenGridSquares(BasePlugin):
     """
     Calculates the distances between adjacent grid squares within
-    a cube. The difference is calculated along the x and y axis
+    a cube. The difference is calculated along the x and y axes
     individually.
     """
     EARTH_RADIUS = 6371e3  # meters
-    # TODO: Make it work for equal area (TDD!) and get original equal area tests working.
+
+    @staticmethod
+    def _get_cube_spatial_type(cube: Cube) -> str: #Todo: make return enumerable
+        try:
+            assert cube.coords(name_or_coord="latitude")[0].units == "degrees" and cube.coords(name_or_coord="latitude")[0].units == "degrees"
+        except (IndexError, AssertionError):
+            # Could not find latitude and longitude coordinates. Assuming cube is equal area.
+            return "equalarea"
+        return "latlon"
 
     @staticmethod
     def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters", axis: str = "x", rtol: float = 1.0e-5):
@@ -228,22 +236,31 @@ class DistanceBetweenGridSquares(BasePlugin):
                                dim_coords_and_dims=dims)
         return y_distance_cube
 
-    @staticmethod
-    def _get_cube_spatial_type(cube: Cube) -> str: #Todo: make return enumerable
-        try:
-            assert cube.coords(name_or_coord="latitude")[0].units == "degrees" and cube.coords(name_or_coord="latitude")[0].units == "degrees"
-        except (IndexError, AssertionError):
-            # Could not find latitude and longitude coordinates. Assuming cube is equal area.
-            return "equalarea"
-        return "latlon"
+    @classmethod
+    def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> (Cube, Cube):
+        x_distances = cls.get_equal_area_distance(cube, axis="x", units="meters")
+        data = np.full(x_diff.data.shape, x_distances)
+        dims = [(x_diff.coord('projection_y_coordinate'), 0), (x_diff.coord('projection_x_coordinate'), 1)]  # TODO: what other coords do I need?
+        cube = Cube(data, long_name="x_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
+        return cube
 
+    @classmethod
+    def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> (Cube, Cube):
+        y_distances = cls.get_equal_area_distance(cube, axis="y", units="meters")
+        data = np.full(y_diff.data.shape, y_distances)
+        dims = [(y_diff.coord('projection_y_coordinate'), 0), (y_diff.coord('projection_x_coordinate'), 1)]  # TODO: what other coords do I need?
+        cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
+        return cube
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
-        cube_type = self._get_cube_spatial_type(cube)
-        if cube_type == "latlon":
+            cube_type = self._get_cube_spatial_type(cube)
             x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
-            x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
-            y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
+            if cube_type == "latlon":
+                x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
+                y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
+            else:
+                x_distances_cube = self._get_x_equalarea_distances(cube, x_diff)
+                y_distances_cube = self._get_y_equalarea_distances(cube, y_diff)
             return x_distances_cube, y_distances_cube
 
 
