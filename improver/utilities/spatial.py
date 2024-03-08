@@ -106,17 +106,7 @@ def calculate_grid_spacing(
     Raises:
         ValueError: If points are not equally spaced
     """
-    coord = cube.coord(axis=axis).copy()
-    coord.convert_units(units)
-    diffs = np.abs(np.diff(coord.points))
-    diffs_mean = np.mean(diffs)
-
-    if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
-        raise ValueError(
-            "Coordinate {} points are not equally spaced".format(coord.name())
-        )
-    else:
-        return diffs_mean
+    return DistanceBetweenGridSquares.get_equal_area_distance(cube, units, axis, rtol)
 
 
 def distance_to_number_of_grid_cells(
@@ -191,26 +181,23 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
     EARTH_RADIUS = 6371e3  # meters
     # TODO: Make it work for equal area (TDD!) and get original equal area tests working.
-    # TODO: Make it work for latlon. TDD!
+
+    @staticmethod
+    def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters", axis: str = "x", rtol: float = 1.0e-5):
+        coord = cube.coord(axis=axis).copy()
+        coord.convert_units(units)
+        diffs = np.abs(np.diff(coord.points))
+        diffs_mean = np.mean(diffs)
+
+        if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
+            raise ValueError(
+                "Coordinate {} points are not equally spaced".format(coord.name())
+            )
+        else:
+            return diffs_mean
 
     @classmethod
-    def _get_y_distances(cls, cube: Cube, y_diff: Cube):
-        # Todo: check we're getting degrees?
-        longs = cube.coord(axis='x').points
-        lats = cube.coord(axis='y').points
-
-        lat_diffs = np.diff(lats)
-        y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
-        y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
-        # Todo: can I assume (as below) that it's okay to have latitude and longitude on axes 0 and 1??
-        dims = [(y_diff.coord('latitude'), 0), (y_diff.coord('longitude'), 1)]  # TODO: what other coords do I need? Can I keep the original coords from cube except overwrite the lat and long from dims and the units as meters? Seems like I can.
-        test_cube = Cube(y_distances_meters)
-        y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
-                               dim_coords_and_dims=dims)
-        return y_distance_cube
-
-    @classmethod
-    def _get_x_distances(cls, cube: Cube, x_diff: Cube):
+    def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube):
         # Todo: check we're getting degrees?
         longs = cube.coord(axis='x').points
         lats = cube.coord(axis='y').points
@@ -225,18 +212,45 @@ class DistanceBetweenGridSquares(BasePlugin):
                                dim_coords_and_dims=dims)
         return x_distance_cube
 
-    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
-        x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
-        x_distances_cube = self._get_x_distances(cube, x_diff)
-        y_distances_cube = self._get_y_distances(cube, y_diff)
-        return x_distances_cube, y_distances_cube
+    @classmethod
+    def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube):
+        # Todo: check we're getting degrees?
+        longs = cube.coord(axis='x').points
+        lats = cube.coord(axis='y').points
 
+        lat_diffs = np.diff(lats)
+        y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
+        y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
+        # Todo: can I assume (as below) that it's okay to have latitude and longitude on axes 0 and 1??
+        dims = [(y_diff.coord('latitude'), 0), (y_diff.coord('longitude'), 1)]  # TODO: what other coords do I need? Can I keep the original coords from cube except overwrite the lat and long from dims and the units as meters? Seems like I can.
+        test_cube = Cube(y_distances_meters)
+        y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
+                               dim_coords_and_dims=dims)
+        return y_distance_cube
+
+    @staticmethod
+    def _get_cube_spatial_type(cube: Cube) -> str: #Todo: make return enumerable
+        try:
+            assert cube.coords(name_or_coord="latitude")[0].units == "degrees" and cube.coords(name_or_coord="latitude")[0].units == "degrees"
+        except (IndexError, AssertionError):
+            # Could not find latitude and longitude coordinates. Assuming cube is equal area.
+            return "equalarea"
+        return "latlon"
+
+
+    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
+        cube_type = self._get_cube_spatial_type(cube)
+        if cube_type == "latlon":
+            x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
+            x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
+            y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
+            return x_distances_cube, y_distances_cube
 
 
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
     Calculate the difference between adjacent grid squares within
-    a cube. The difference is calculated along the x and y axis
+    a cube. The difference is calculated along the x and y axes
     individually.
     """
 
