@@ -72,7 +72,6 @@ below:
  - Victoria Smart (Met Office, UK)
  - Eleanor Smith (Met Office, UK)
  - Marcus Spelman (Met Office, UK)
- - Phil Stepanian (MIT Lincoln Laboratory, USA)
  - Belinda Trotta (Bureau of Meteorology, Australia)
  - Tomasz Trzeciak (Met Office, UK)
  - Mark Worsfold (Met Office, UK)
