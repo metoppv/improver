@@ -177,11 +177,13 @@ def test_basic(cape_cube, liftidx_cube, pwat_cube, cin_cube, apcp_cube, expected
     )
     assert np.allclose(result.data, expected_cube.data)
 
+
 def break_cape_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies cape_cube name to be changed to appear missing and
     returns the error message this will trigger"""
     cape_cube.rename("CAPE")
     return r"No cube named atmosphere_specific_convective_available_potential_energy found in .*"
+
 
 def break_precip_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies precip_cube name to be changed to appear missing and
@@ -189,11 +191,13 @@ def break_precip_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     precip_cube.rename("precip")
     return r"No cube named precipitation_amount found in .*"
 
+
 def break_cin_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies cin_cube name to be changed to appear missing and
     returns the error message this will trigger"""
     cin_cube.rename("CIN")
     return r"No cube named atmosphere_specific_convective_inhibition found in .*"
+
 
 def break_li_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies li_cube name to be changed to appear missing and
@@ -201,11 +205,13 @@ def break_li_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     li_cube.rename("LI")
     return r"No cube named temperature_difference_between_ambient_air_and_air_lifted_adiabatic.*"
 
+
 def break_pw_name(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies pw_cube name to be changed to appear missing and
     returns the error message this will trigger"""
     pw_cube.rename("PW")
     return r"No cube named precipitable_water found in .*"
+
 
 def break_cape_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies cape_cube time points to be incremented by 1 second and
@@ -213,12 +219,14 @@ def break_cape_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     cape_cube.coord("time").points = cape_cube.coord("time").points + 1
     return r"CAPE cube time .* should be valid at the precipitation_accumulation cube lower .*"
 
+
 def break_precip_window(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies upper bound on precip_cube time coord to be incremented by 1 second and
     returns the error message this will trigger"""
     bounds = precip_cube.coord("time").bounds
     precip_cube.coord("time").bounds = (bounds[0][0], bounds[0][1] + 1)
     return r"Precipitation_accumulation cube time window must be three hours, not .*"
+
 
 def break_reference_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies cape_cube time points to be incremented by 1 second and
@@ -228,6 +236,7 @@ def break_reference_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     )
     return r"Supplied cubes must have the same forecast reference times"
 
+
 def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies the first latitude point on the precip_cube (adds one degree)
     and returns the error message this will trigger"""
@@ -235,6 +244,7 @@ def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     points[0] = points[0] + 1
     precip_cube.coord("latitude").points = points
     return "Supplied cubes do not have the same spatial coordinates"
+
 
 @pytest.mark.parametrize(
     "breaking_function",
@@ -250,10 +260,15 @@ def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
         break_coordinates,
     ),
 )
-def test_exceptions(cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube, breaking_function):
+def test_exceptions(
+    cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube, breaking_function
+):
     """Tests that a suitable exception is raised when the  cube meta-data does
     not match what is expected"""
-    error_msg = breaking_function(cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube)
+    error_msg = breaking_function(
+        cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube
+    )
     with pytest.raises(ValueError, match=error_msg):
-        LightningMultivariateProbability()(CubeList([cape_cube, apcp_cube, cin_cube, liftidx_cube, 
-            pwat_cube]))
+        LightningMultivariateProbability()(
+            CubeList([cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube])
+        )
