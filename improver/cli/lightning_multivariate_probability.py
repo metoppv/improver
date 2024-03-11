@@ -37,8 +37,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
-    model_id_attr: str = None,
+    *cubes: cli.inputcube, model_id_attr: str = None,
 ):
     """
     From the supplied CAPE, LIFTIDX, PWAT, CIN, APCP cubes, calculate a probability
@@ -60,8 +59,6 @@ def process(
 
     from improver.lightning import LightningMultivariateProbability
 
-    result = LightningMultivariateProbability()(
-        CubeList(cubes), model_id_attr=model_id_attr
-    )
+    result = LightningMultivariateProbability()(CubeList(cubes), model_id_attr=model_id_attr)
 
     return result
