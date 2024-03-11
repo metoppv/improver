@@ -210,51 +210,51 @@ def latitude_to_threshold(
 
 class LightningMultivariateProbability(PostProcessingPlugin):
     """
-     The algorithm outputs the probability of at least one lightning strike within
-     20 km of the location in a three hour period. The probabilities are calculated
-     for each individual ensemble member, and then they are averaged for the ensemble
-     probability forecast.
+    The algorithm outputs the probability of at least one lightning strike within
+    20 km of the location in a three hour period. The probabilities are calculated
+    for each individual ensemble member, and then they are averaged for the ensemble
+    probability forecast.
 
-     Inputs:
-     CAPE (cape; calculated with water loading and latent heat of freezing estimated)
-     Lifted Index (liftidx)
-     Precipitable Water (pwat in mm)
-     CIN (cin)
-     3-hour Accumulated Precipitation (apcp in inches)
-     Outputs:
-     20 km lightning probability over the valid time of the accumulated precipitation
+    Inputs:
+    CAPE (cape; calculated with water loading and latent heat of freezing estimated)
+    Lifted Index (liftidx)
+    Precipitable Water (pwat in mm)
+    CIN (cin)
+    3-hour Accumulated Precipitation (apcp in inches)
+    Outputs:
+    20 km lightning probability over the valid time of the accumulated precipitation
 
     ---------------------------+------------+----------------------------------------
 
-     Regression equation when CAPE and APCP are greater than zero:
-     lprob= cape*APCP
-     lprob=0.13*alog(lprob+0.7)+0.05
+    Regression equation when CAPE and APCP are greater than zero:
+    lprob= cape*APCP
+    lprob=0.13*alog(lprob+0.7)+0.05
 
-     If APCP is very low, a separate regression equation is used to predict lightning probability.
-     The definition of “very low” is raised slightly when PWAT values are high. This is because
-     the model often produces showery precipitation that doesn’t access the actual instability in
-     very moist environments:
-     lprob_noprecip=CAPE/(CIN+100.0)
-     lprob_noprecip=0.025*alog(lprob_noprecip+0.31)+0.03
-     APCP=APCP-(PWAT/1000)
+    If APCP is very low, a separate regression equation is used to predict lightning probability.
+    The definition of “very low” is raised slightly when PWAT values are high. This is because
+    the model often produces showery precipitation that doesn’t access the actual instability in
+    very moist environments:
+    lprob_noprecip=CAPE/(CIN+100.0)
+    lprob_noprecip=0.025*alog(lprob_noprecip+0.31)+0.03
+    APCP=APCP-(PWAT/1000)
 
-     IF APCP is less than 0.01 THEN lprob=lprob_noprecip
-     If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes occur,
-     especially when heavy precipitation may have stabilized the atmosphere in the model. Unstable
-     values of lifted index are positive here:
-     LIFTIDX=LIFTIDX+4.0
-     IF LIFTIDX is less than 0 THEN LIFTIDX=0.0
-     IF CAPE is less than 0 THEN lprob =0.2*(LIFTIDX*APCP)^0.5
+    IF APCP is less than 0.01 THEN lprob=lprob_noprecip
+    If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes occur,
+    especially when heavy precipitation may have stabilized the atmosphere in the model. Unstable
+    values of lifted index are positive here:
+    LIFTIDX=LIFTIDX+4.0
+    IF LIFTIDX is less than 0 THEN LIFTIDX=0.0
+    IF CAPE is less than 0 THEN lprob =0.2*(LIFTIDX*APCP)^0.5
 
-     Finally, the probability of lightning is reduced when there is not much PW, because graupel
-     cannot form and start the whole charging process. Therefore we reduce the probability:
-     IF PWAT is less than 20 THEN lprob=lprob*(PWAT/20.0)
+    Finally, the probability of lightning is reduced when there is not much PW, because graupel
+    cannot form and start the whole charging process. Therefore we reduce the probability:
+    IF PWAT is less than 20 THEN lprob=lprob*(PWAT/20.0)
 
-     Limit final probabilities to 95% as that is as skillful as the regression equations could get:
-     IF lprob is greater than 0.95 THEN lprob=0.95
+    Limit final probabilities to 95% as that is as skillful as the regression equations could get:
+    IF lprob is greater than 0.95 THEN lprob=0.95
 
-     Make percentage:
-     lprob=lprob*100.0
+    Make percentage:
+    lprob=lprob*100.0
     """
 
     @staticmethod
