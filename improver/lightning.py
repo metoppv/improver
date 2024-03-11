@@ -279,8 +279,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             )
         liftidx = cubes.extract(
             iris.Constraint(
-                cube_func=lambda cube: 
-                "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
+                cube_func=lambda cube: "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
                 in cube.name()
             )
         )
@@ -367,7 +366,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         """
         cape, liftidx, pwat, cin, apcp = self._get_inputs(cubes)
 
-        # Regression equations require math on cubes with incompatible units, so strip data 
+        # Regression equations require math on cubes with incompatible units, so strip data
         templ = apcp.copy()
         cape = cape.data
         liftidx = liftidx.data
@@ -380,8 +379,8 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         lprob = 0.13 * np.log(lprob + 0.7) + 0.05
 
         # If APCP is very low, a separate regression equation is used to predict lightning
-        # probability. The definition of “very low” is raised slightly when PWAT values are 
-        # high. This is because the model often produces showery precipitation that doesn’t 
+        # probability. The definition of “very low” is raised slightly when PWAT values are
+        # high. This is because the model often produces showery precipitation that doesn’t
         # access the actual instability in very moist environments:
         lprob_noprecip = cape / (cin + 100.0)
         lprob_noprecip = 0.025 * np.log(lprob_noprecip + 0.31) + 0.03
@@ -389,8 +388,8 @@ class LightningMultivariateProbability(PostProcessingPlugin):
 
         lprob[np.where(apcp < 0.01)] = lprob_noprecip[np.where(apcp < 0.01)]
 
-        # If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes 
-        # occur, especially when heavy precipitation may have stabilized the atmosphere in the 
+        # If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes
+        # occur, especially when heavy precipitation may have stabilized the atmosphere in the
         # model. Unstable values of lifted index are positive here:
         liftidx = liftidx + 4.0
 
@@ -400,7 +399,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             0.2 * (liftidx[np.where(cape <= 0)] * apcp[np.where(cape <= 0)]) ** 0.5
         )
 
-        # Finally, the probability of lightning is reduced when there is not much PWAT, since  
+        # Finally, the probability of lightning is reduced when there is not much PWAT, since
         # graupel cannot form required for the charging process. The probability is reduced as:
         lprob[np.where(pwat < 20)] = lprob[np.where(pwat < 20)] * (
             pwat[np.where(pwat < 20)] / 20.0
