@@ -279,7 +279,8 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             )
         liftidx = cubes.extract(
             iris.Constraint(
-                cube_func=lambda cube: "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
+                cube_func=lambda cube: 
+                "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
                 in cube.name()
             )
         )
@@ -287,8 +288,9 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             liftidx = liftidx.merge_cube()
         else:
             raise ValueError(
-                f"No cube named temperature_difference_between_ambient_air_and_air_lifted_adiabatically found "
-                f"in {cubes}"
+                f"No cube named: 
+                f"temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
+                f" found in {cubes}"
             )
         pwat = cubes.extract(
             iris.Constraint(cube_func=lambda cube: "precipitable_water" in cube.name())
@@ -365,7 +367,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         """
         cape, liftidx, pwat, cin, apcp = self._get_inputs(cubes)
 
-        # Regression equations require math on cubes with incompatible units, so strip data from cubes
+        # Regression equations require math on cubes with incompatible units, so strip data 
         templ = apcp.copy()
         cape = cape.data
         liftidx = liftidx.data
@@ -377,19 +379,19 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         lprob = cape * apcp
         lprob = 0.13 * np.log(lprob + 0.7) + 0.05
 
-        # If APCP is very low, a separate regression equation is used to predict lightning probability.
-        # The definition of “very low” is raised slightly when PWAT values are high. This is because
-        # the model often produces showery precipitation that doesn’t access the actual instability in
-        # very moist environments:
+        # If APCP is very low, a separate regression equation is used to predict lightning
+        # probability. The definition of “very low” is raised slightly when PWAT values are 
+        # high. This is because the model often produces showery precipitation that doesn’t 
+        # access the actual instability in very moist environments:
         lprob_noprecip = cape / (cin + 100.0)
         lprob_noprecip = 0.025 * np.log(lprob_noprecip + 0.31) + 0.03
         apcp = apcp - (pwat / 1000)
 
         lprob[np.where(apcp < 0.01)] = lprob_noprecip[np.where(apcp < 0.01)]
 
-        # If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes occur,
-        # especially when heavy precipitation may have stabilized the atmosphere in the model. Unstable
-        # values of lifted index are positive here:
+        # If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes 
+        # occur, especially when heavy precipitation may have stabilized the atmosphere in the 
+        # model. Unstable values of lifted index are positive here:
         liftidx = liftidx + 4.0
 
         liftidx[liftidx < 0] = 0
@@ -398,20 +400,21 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             0.2 * (liftidx[np.where(cape <= 0)] * apcp[np.where(cape <= 0)]) ** 0.5
         )
 
-        # Finally, the probability of lightning is reduced when there is not much PWAT, because graupel
-        # cannot form and start the whole charging process. Therefore we reduce the probability:
+        # Finally, the probability of lightning is reduced when there is not much PWAT, since  
+        # graupel cannot form required for the charging process. The probability is reduced as:
         lprob[np.where(pwat < 20)] = lprob[np.where(pwat < 20)] * (
             pwat[np.where(pwat < 20)] / 20.0
         )
 
-        # Limit final probabilities to 95% as that is as skillful as the regression equations could get:
+        # Limit probabilities to 95% as that is as skillful as the regression equations could get:
         lprob[lprob > 0.95] = 0.95
 
         # Make percentage:
         data = lprob * 100.0
 
         cube = create_new_diagnostic_cube(
-            name="20_km_lightning_probability_over_the_valid_time_of_the_accumulated_precipitation",
+            name="""20_km_lightning_probability_over_the_valid_time_of_the_accumulated_
+                precipitation""",
             units="1",
             template_cube=templ,
             data=data.astype(FLOAT_DTYPE),
