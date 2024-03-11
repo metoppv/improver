@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-
+"""Script to create lightning probabilities from multi-parameter datasets."""
 
 from improver import cli
 
@@ -40,6 +40,22 @@ def process(
     *cubes: cli.inputcube,
     model_id_attr: str = None,
 ):
+    """
+    From the supplied CAPE, LIFTIDX, PWAT, CIN, APCP cubes, calculate a probability
+    of lightning cube using relationships developed using regression statistics.
+    Does not collapse a realization coordinate.
+
+    Args:
+        cubes (list of iris.cube.Cube):
+            Cubes to be processed.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
+
+    Returns:
+        iris.cube.Cube:
+            Cube of probabilities of lightning
+    """
     from iris.cube import CubeList
 
     from improver.lightning import LightningMultivariateProbability
