@@ -179,9 +179,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
 
 def latitude_to_threshold(
-    latitude: np.ndarray,
-    midlatitude: float,
-    tropics: float,
+    latitude: np.ndarray, midlatitude: float, tropics: float,
 ) -> np.ndarray:
     """
     Rescale a latitude range into a range of threshold values suitable for
@@ -279,8 +277,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             )
         liftidx = cubes.extract(
             iris.Constraint(
-                cube_func=lambda cube: 
-                    "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
+                cube_func=lambda cube: "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
                 in cube.name()
             )
         )
