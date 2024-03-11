@@ -59,6 +59,8 @@ def process(
 
     from improver.lightning import LightningMultivariateProbability
 
-    result = LightningMultivariateProbability()(CubeList(cubes), model_id_attr=model_id_attr)
+    result = LightningMultivariateProbability()(
+        CubeList(cubes), model_id_attr=model_id_attr
+    )
 
     return result
