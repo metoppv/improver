@@ -37,12 +37,7 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.lightning import LightningMultivariateProbability
-from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
-    set_up_probability_cube,
     set_up_variable_cube,
 )
 
