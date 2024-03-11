@@ -285,7 +285,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             liftidx = liftidx.merge_cube()
         else:
             raise ValueError(
-                f"No cube named: "
+                f"No cube named "
                 f"temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
                 f" found in {cubes}"
             )
