@@ -275,11 +275,11 @@ class LightningMultivariateProbability(PostProcessingPlugin):
                 f"No cube named atmosphere_specific_convective_available_potential_energy found "
                 f"in {cubes}"
             )
+        lifted_ind_str = (
+            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
+        )
         liftidx = cubes.extract(
-            iris.Constraint(
-                cube_func=lambda cube: "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
-                in cube.name()
-            )
+            iris.Constraint(cube_func=lambda cube: lifted_ind_str in cube.name())
         )
         if liftidx:
             liftidx = liftidx.merge_cube()
