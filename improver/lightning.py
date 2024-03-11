@@ -279,8 +279,8 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             )
         liftidx = cubes.extract(
             iris.Constraint(
-                cube_func=lambda cube: """temperature_difference_between_ambient_air_and_air
-                    _lifted_adiabatically"""
+                cube_func=lambda cube: 
+                    "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
                 in cube.name()
             )
         )
