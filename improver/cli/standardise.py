@@ -42,6 +42,7 @@ def process(
     *,
     attributes_config: cli.inputjson = None,
     coords_to_remove: cli.comma_separated_list = None,
+    coord_modification: cli.inputjson = None,
     new_name: str = None,
     new_units: str = None,
 ):
@@ -64,6 +65,15 @@ def process(
             the attributes.
         coords_to_remove (list):
             List of names of scalar coordinates to remove.
+        coord_modification (dict):
+            A dictionary allowing the direct modification of scalar coordinate
+            values in the original units of the coordinate. To be used with
+            extreme caution. For example this might be: {"height": 1.5} to set
+            the height coordinate to have a value of 1.5m (assuming original
+            units of m). Type is inferred, so providing a value of 2 will result
+            in an integer type, whilst a value of 2.0 will result in a float
+            type (where this is not modified by type enforcement, e.g. for a
+            time coordinate).
         new_name (str):
             Name of output cube.
         new_units (str):
@@ -84,5 +94,6 @@ def process(
         new_name=new_name,
         new_units=new_units,
         coords_to_remove=coords_to_remove,
+        coord_modification=coord_modification,
         attributes_dict=attributes_config,
     )
