@@ -131,7 +131,7 @@ class Test_process(IrisTest):
         # Add scalar height coordinate
         self.cube.add_aux_coord(DimCoord([1.5], standard_name="height", units="m"))
         # Modifier for scalar height coordinate
-        coord_modification = {"height": 2.}
+        coord_modification = {"height": 2.0}
 
         result = self.plugin.process(
             self.cube,
@@ -144,7 +144,7 @@ class Test_process(IrisTest):
         self.assertEqual(result.name(), new_name)
         self.assertEqual(result.units, "degC")
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
-        self.assertEqual(result.coord("height").points, 2.)
+        self.assertEqual(result.coord("height").points, 2.0)
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
 
@@ -157,8 +157,7 @@ class Test_process(IrisTest):
 
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.process(
-                self.cube,
-                coord_modification=coord_modification,
+                self.cube, coord_modification=coord_modification,
             )
 
     def test_attempt_modify_time_coord(self):
@@ -171,8 +170,7 @@ class Test_process(IrisTest):
 
             with self.assertRaisesRegex(ValueError, msg):
                 self.plugin.process(
-                    self.cube,
-                    coord_modification=coord_modification,
+                    self.cube, coord_modification=coord_modification,
                 )
 
     def test_discard_cellmethod(self):

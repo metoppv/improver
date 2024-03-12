@@ -124,7 +124,9 @@ class StandardiseMetadata(BasePlugin):
                 continue
 
     @staticmethod
-    def _modify_scalar_coord_value(cube: Cube, coord_modification: Dict[str, float]) -> None:
+    def _modify_scalar_coord_value(
+        cube: Cube, coord_modification: Dict[str, float]
+    ) -> None:
         """Modifies the value of each specified scalar coord (dictionary key)
         to the provided value (dictionary value). Note that data types are not
         enforced here as the subsequent enforcement step will fulfil this
@@ -152,9 +154,7 @@ class StandardiseMetadata(BasePlugin):
                         "due to the risk of introducing errors."
                     )
                 if _is_time_coord(cube.coord(coord)):
-                    raise ValueError(
-                        "Modifying time coordinates it not allowed."
-                    )
+                    raise ValueError("Modifying time coordinates it not allowed.")
                 cube.coord(coord).points = np.array([value])
 
     @staticmethod
