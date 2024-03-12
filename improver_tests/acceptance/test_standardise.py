@@ -122,3 +122,21 @@ def test_nimrod_radarcoverage_basic(tmp_path):
     args = [input_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_change_scalar_coord(tmp_path):
+    """Test applying a JSON coord_modification file"""
+    kgo_dir = acc.kgo_root() / "standardise/modification"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = acc.kgo_root() / "standardise/metadata" / "input.nc"
+    modification_path = kgo_dir / "scalar_change.json"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        "--output",
+        output_path,
+        "--coord-modification",
+        modification_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
