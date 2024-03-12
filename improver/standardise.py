@@ -127,12 +127,15 @@ class StandardiseMetadata(BasePlugin):
     def _modify_scalar_coord_value(cube: Cube, coord_modification: Dict[str, float]) -> None:
         """Modifies the value of each specified scalar coord (dictionary key)
         to the provided value (dictionary value). Note that data types are not
-        enforced here as the subsequent enforcment step will fulfil this
+        enforced here as the subsequent enforcement step will fulfil this
         requirement. Units are assumed to be the same as the original
         coordinate value. Modifying multi-valued coordinates or time
         coordinates is specifically prevented as there is greater scope to
         harm data integrity (i.e. the description of the data and the data
-        becoming unaligned).
+        becoming misaligned).
+
+        If the coordinate does not exist the modification request is silently
+        skipped.
 
         Args:
             cube:

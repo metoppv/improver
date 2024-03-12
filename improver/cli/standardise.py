@@ -72,8 +72,7 @@ def process(
             the height coordinate to have a value of 1.5m (assuming original
             units of m). Type is inferred, so providing a value of 2 will result
             in an integer type, whilst a value of 2.0 will result in a float
-            type (where this is not modified by type enforcement, e.g. for a
-            time coordinate).
+            type (where this is not modified by type enforcement).
         new_name (str):
             Name of output cube.
         new_units (str):
