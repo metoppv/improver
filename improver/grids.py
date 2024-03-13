@@ -48,8 +48,6 @@ STANDARD_GRID_CCRS = LambertAzimuthalEqualArea(
 )
 
 # Metadata for different spatial grids
-
-
 GRID_COORD_ATTRIBUTES = {
     "latlon": {
         "xname": "longitude",
