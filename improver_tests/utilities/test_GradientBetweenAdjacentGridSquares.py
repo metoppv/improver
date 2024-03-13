@@ -72,29 +72,53 @@ EXAMPLE_INPUT_DATA_4 = np.array(
 
 EQUAL_AREA_GRID_SPACING = 1000  # Meters
 LATLON_GRID_SPACING = 10  # Degrees
+# Distances covered when travelling 10 degrees north-south or east-west:
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
 X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Meters
 X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Meters
 Y_GRID_SPACING = 1111949  # Meters
 
 
-@pytest.fixture(name="make_input")
-def make_wind_speed_fixture() -> callable:
-    """Factory as fixture for generating a wind speed cube as test input."""
+def regrid_x(data: np.ndarray) -> np.ndarray:
+    """
+    Regrids a 3 x 2 array to a 3 x 3 array using linear interpolation/extrapolation.
+    """
+    x_diff = np.diff(data, axis=1)
+    first_col = data[:, [0]]
+    second_col = data[:, [1]]
+    regridded_first_col = first_col - x_diff / 2
+    regridded_second_col = (first_col + second_col) / 2
+    regridded_third_col = second_col + x_diff / 2
+    return np.hstack((regridded_first_col, regridded_second_col, regridded_third_col))
 
-    def _make_input(data, spatial_grid, grid_spacing) -> Cube:
-        """Wind speed in m/s"""
-        cube = set_up_variable_cube(
-            data,
-            name="wind_speed",
-            units="m s^-1",
-            spatial_grid=spatial_grid,
-            grid_spacing=grid_spacing,
-            domain_corner=(0.0, 0.0),
-        )
-        return cube
 
-    return _make_input
+def regrid_y(data: np.ndarray) -> np.ndarray:
+    """
+    Regrids a 2 x 3 array to a 3 x 3 array using linear interpolation/extrapolation.
+    """
+    y_diff = np.diff(data, axis=0)
+    first_row = data[0]
+    second_row = data[1]
+    regridded_first_row = first_row - y_diff / 2
+    regridded_second_row = (first_row + second_row) / 2
+    regridded_third_row = second_row + y_diff / 2
+    return np.vstack((regridded_first_row, regridded_second_row, regridded_third_row))
+
+
+def get_expected_gradient_between_points(param_array, x_separations, y_separations, regrid=False):
+    """
+    Calculates the gradient of a 2d numpy array along the x and y axes, accounting for distance between the points.
+    Gradients are calculated between grid points, meaning that the resulting arrays will be smaller by one dimension
+    along the axis of differentiation.
+    """
+    x_diff = np.diff(param_array, axis=1)
+    x_grad = x_diff / x_separations
+    y_diff = np.diff(param_array, axis=0)
+    y_grad = y_diff / y_separations
+    if regrid:
+        x_grad = regrid_x(x_grad)
+        y_grad = regrid_y(y_grad)
+    return x_grad, y_grad
 
 
 @pytest.fixture(name="make_expected")
@@ -118,34 +142,23 @@ def make_expected_fixture() -> callable:
     return _make_expected
 
 
-def get_expected_gradient_between_points(param_array, x_separations, y_separations, regrid=False):
-    """
-    Calculates the gradient of a 2d numpy array along the x and y axes, accounting for distance between the points.
-    Gradients are calculated between grid points, meaning that the resulting arrays will be smaller by one dimension
-    along the axis of differentiation.
-    """
-    x_diff = np.diff(param_array, axis=1)
-    x_grad = x_diff / x_separations
-    y_diff = np.diff(param_array, axis=0)
-    y_grad = y_diff / y_separations
-    if regrid:
-        # Use linear interpolation to regrid expected data
-        x_diff = np.diff(x_grad, axis=1)
-        first_col = x_grad[:, [0]]
-        second_col = x_grad[:, [1]]
-        regridded_first_col = first_col - x_diff / 2
-        regridded_second_col = (first_col + second_col) / 2
-        regridded_third_col = second_col + x_diff / 2
-        x_grad = np.hstack((regridded_first_col, regridded_second_col, regridded_third_col))
+@pytest.fixture(name="make_input")
+def make_wind_speed_fixture() -> callable:
+    """Factory as fixture for generating a wind speed cube as test input."""
 
-        y_diff = np.diff(y_grad, axis=0)
-        first_row = y_grad[0]
-        second_row = y_grad[1]
-        regridded_first_row = first_row - y_diff / 2
-        regridded_second_row = (first_row + second_row) / 2
-        regridded_third_row = second_row + y_diff / 2
-        y_grad = np.vstack((regridded_first_row, regridded_second_row, regridded_third_row))
-    return x_grad, y_grad
+    def _make_input(data, spatial_grid, grid_spacing) -> Cube:
+        """Wind speed in m/s"""
+        cube = set_up_variable_cube(
+            data,
+            name="wind_speed",
+            units="m s^-1",
+            spatial_grid=spatial_grid,
+            grid_spacing=grid_spacing,
+            domain_corner=(0.0, 0.0),
+        )
+        return cube
+
+    return _make_input
 
 
 @pytest.mark.parametrize(
@@ -181,7 +194,7 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
     "grid",
     (
         {"regrid": False, "xshape": (3, 2), "yshape": (2, 3)},
-        {"regrid": True, "xshape": (3, 3), "yshape": (3, 3)}, # ToDo
+        {"regrid": True, "xshape": (3, 3), "yshape": (3, 3)},
     ),
 )
 @pytest.mark.parametrize(
@@ -198,7 +211,7 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
         ]
     )
     y_separations = np.full((input_data.shape[0] - 1, input_data.shape[1]), Y_GRID_SPACING)
-    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(input_data, x_separations, y_separations, regrid=grid["regrid"]) # TODO: consider moving this into _make_expected()
+    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(input_data, x_separations, y_separations, regrid=grid["regrid"])
 
     expected_x = make_expected(expected_x_gradients, "latlon", LATLON_GRID_SPACING)
     expected_y = make_expected(expected_y_gradients, "latlon", LATLON_GRID_SPACING)
