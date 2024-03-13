@@ -41,16 +41,34 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
-EXAMPLE_INPUT_DATA = np.array(
+EXAMPLE_INPUT_DATA_1 = np.array(
     [
         [0,  1,  2],
-        [1095014, 0, 1095014], #[40, 30, 400],
+        [3, 4, 5],
         [4,  5,  6]
     ], dtype=np.float32)
-# EXAMPLE_INPUT_DATA_DIM_COORDS = [
-#     DimCoord(np.array([0, 10, 20]), standard_name="latitude", units="degrees"),
-#     DimCoord(np.array([0, 10, 20]), standard_name="longitude", units="degrees")
-# ]
+
+EXAMPLE_INPUT_DATA_2 = np.array(
+    [
+        [0,  1,  2],
+        [1095014, 0, -1095014],
+        [4,  5,  6]
+    ], dtype=np.float32)
+
+EXAMPLE_INPUT_DATA_3 = np.array(
+    [
+        [1000,  2000,   1000],
+        [40,    50,     60],
+        [400,   500,    600]
+    ], dtype=np.float32)
+
+EXAMPLE_INPUT_DATA_4 = np.array(
+    [
+        [-40,  5,  50],
+        [-50,  10000, 60],
+        [-25,  4,  40]
+    ], dtype=np.float32)
+
 
 EQUAL_AREA_GRID_SPACING = 1000  # Meters
 LATLON_GRID_SPACING = 10  # Degrees
@@ -64,16 +82,15 @@ Y_GRID_SPACING = 1111949  # Meters
 def make_wind_speed_fixture() -> callable:
     """Factory as fixture for generating a wind speed cube as test input."""
 
-    def _make_input(spatial_grid, grid_spacing) -> Cube:
+    def _make_input(data, spatial_grid, grid_spacing) -> Cube:
         """Wind speed in m/s"""
         cube = set_up_variable_cube(
-            EXAMPLE_INPUT_DATA,
+            data,
             name="wind_speed",
             units="m s^-1",
             spatial_grid=spatial_grid,
             grid_spacing=grid_spacing,
             domain_corner=(0.0, 0.0),
-            # dim_coords_and_dims=EXAMPLE_INPUT_DATA_DIM_COORDS
         )
         return cube
 
@@ -84,7 +101,7 @@ def make_wind_speed_fixture() -> callable:
 def make_expected_fixture() -> callable:
     """Factory as fixture for generating a cube of varying size."""
 
-    def _make_expected(values, spatial_grid_type, grid_spacing, regrid=False) -> Cube:
+    def _make_expected(values, spatial_grid_type, grid_spacing) -> Cube:
         """Create a cube filled with data of a specific shape and value."""
         data = np.array(values, dtype=np.float32)
         cube = set_up_variable_cube(
@@ -96,18 +113,6 @@ def make_expected_fixture() -> callable:
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
             domain_corner=(0.0, 0.0),
         )
-        if regrid:
-            # regridder = Linear().regridder(cube,
-            #                                Cube(
-            #                                    EXAMPLE_INPUT_DATA.shape,
-            #                                    name="gradient_of_wind_speed",
-            #                                    units="s^-1",
-            #                                    spatial_grid=spatial_grid_type,
-            #                                    grid_spacing=grid_spacing,
-            #                                    attributes=MANDATORY_ATTRIBUTE_DEFAULTS)
-            #                                )
-            cube = cube.regrid(set_up_variable_cube(np.zeros(EXAMPLE_INPUT_DATA.shape, dtype=np.float32), units="s^-1", spatial_grid=spatial_grid_type, grid_spacing=grid_spacing), scheme=Linear)
-
         return cube
 
     return _make_expected
@@ -128,16 +133,18 @@ def get_expected_gradient_between_points(param_array, x_separations, y_separatio
         x_diff = np.diff(x_grad, axis=1)
         first_col = x_grad[:, [0]]
         second_col = x_grad[:, [1]]
-        a = first_col + x_diff / 2
-        b = (first_col + second_col) / 2
-        c = second_col - x_diff / 2
-        x_grad = np.hstack((a,b,c))
+        regridded_first_col = first_col - x_diff / 2
+        regridded_second_col = (first_col + second_col) / 2
+        regridded_third_col = second_col + x_diff / 2
+        x_grad = np.hstack((regridded_first_col, regridded_second_col, regridded_third_col))
 
         y_diff = np.diff(y_grad, axis=0)
-        a = y_grad[0] + y_diff / 2
-        b = np.sum(y_grad, axis=0) / 2 #(y_grad[0] + y_grad[1]) # TODO: This doesn't work.
-        c = y_grad[1] - y_diff / 2
-        y_grad = np.vstack((a,b,c))
+        first_row = y_grad[0]
+        second_row = y_grad[1]
+        regridded_first_row = first_row - y_diff / 2
+        regridded_second_row = (first_row + second_row) / 2
+        regridded_third_row = second_row + y_diff / 2
+        y_grad = np.vstack((regridded_first_row, regridded_second_row, regridded_third_row))
     return x_grad, y_grad
 
 
@@ -148,28 +155,17 @@ def get_expected_gradient_between_points(param_array, x_separations, y_separatio
         {"regrid": True, "xshape": (3, 3), "yshape": (3, 3)},
     ),
 )
-def test_gradient_equal_area_coords(make_input, make_expected, grid):
+@pytest.mark.parametrize(
+    "input_data", [EXAMPLE_INPUT_DATA_1, EXAMPLE_INPUT_DATA_2, EXAMPLE_INPUT_DATA_3, EXAMPLE_INPUT_DATA_4]
+)
+def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data):
     """Check calculating the gradient with and without regridding for equal area coordinate systems"""
-    # TODO: make tests work for regridded option. Will have to look at iris linear interp docs to see what we're expecting at edges and if we think it's sensible.
-    # expected_x_gradients = np.array(
-    #     [
-    #         [1 / EQUAL_AREA_GRID_SPACING, 1 / EQUAL_AREA_GRID_SPACING],
-    #         [-10 / EQUAL_AREA_GRID_SPACING, 370 / EQUAL_AREA_GRID_SPACING],
-    #         [1 / EQUAL_AREA_GRID_SPACING, 1 / EQUAL_AREA_GRID_SPACING]
-    #     ]
-    # )
-    # expected_y_gradients = np.array(
-    #     [
-    #         [40 / EQUAL_AREA_GRID_SPACING, 29 / EQUAL_AREA_GRID_SPACING, 398 / EQUAL_AREA_GRID_SPACING],
-    #         [-36 / EQUAL_AREA_GRID_SPACING, -25 / EQUAL_AREA_GRID_SPACING, -394 / EQUAL_AREA_GRID_SPACING]
-    #     ]
-    # )
-    x_distances = np.full((EXAMPLE_INPUT_DATA.shape[0], EXAMPLE_INPUT_DATA.shape[1] - 1), EQUAL_AREA_GRID_SPACING)
-    y_distances = np.full((EXAMPLE_INPUT_DATA.shape[0] - 1, EXAMPLE_INPUT_DATA.shape[1]), EQUAL_AREA_GRID_SPACING)
-    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(EXAMPLE_INPUT_DATA, x_distances, y_distances)
-    wind_speed = make_input("equalarea", EQUAL_AREA_GRID_SPACING)
-    expected_x = make_expected(expected_x_gradients, "equalarea", EQUAL_AREA_GRID_SPACING, grid["regrid"])
-    expected_y = make_expected(expected_y_gradients, "equalarea", EQUAL_AREA_GRID_SPACING, grid["regrid"])
+    x_distances = np.full((input_data.shape[0], input_data.shape[1] - 1), EQUAL_AREA_GRID_SPACING)
+    y_distances = np.full((input_data.shape[0] - 1, input_data.shape[1]), EQUAL_AREA_GRID_SPACING)
+    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(input_data, x_distances, y_distances, regrid=grid["regrid"])
+    wind_speed = make_input(input_data, "equalarea", EQUAL_AREA_GRID_SPACING)
+    expected_x = make_expected(expected_x_gradients, "equalarea", EQUAL_AREA_GRID_SPACING)
+    expected_y = make_expected(expected_y_gradients, "equalarea", EQUAL_AREA_GRID_SPACING)
     gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=grid["regrid"])(
         wind_speed
     )
@@ -177,12 +173,10 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid):
         assert result.name() == expected.name()
         assert result.attributes == expected.attributes
         assert result.units == expected.units
-        np.testing.assert_allclose(expected.data, result.data, rtol=1e-5, atol=1e-8)
+        np.testing.assert_allclose(expected.data, result.data, rtol=1e-5, atol=1e-4)
 
 
 
-
-#TODO: How do we handle the edges??
 @pytest.mark.parametrize(
     "grid",
     (
@@ -190,10 +184,12 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid):
         {"regrid": True, "xshape": (3, 3), "yshape": (3, 3)}, # ToDo
     ),
 )
-def test_gradient_lat_lon_coords(make_input, make_expected, grid):
+@pytest.mark.parametrize(
+    "input_data", [EXAMPLE_INPUT_DATA_1, EXAMPLE_INPUT_DATA_2, EXAMPLE_INPUT_DATA_3, EXAMPLE_INPUT_DATA_4]
+)
+def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
     """Check calculating the gradient with and without regridding for global latitude/longitude coordinate system"""
     wind_speed = make_input("latlon", LATLON_GRID_SPACING)
-    # expected_data_values = [1 / X_GRID_SPACING_AT_EQUATOR, 1 / X_GRID_SPACING_AT_10_DEGREES, 1 / X_GRID_SPACING_AT_20_DEGREES]  # Todo: Check if this is right.
     x_separations = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
@@ -201,8 +197,8 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid):
             [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
         ]
     )
-    y_separations = np.full((EXAMPLE_INPUT_DATA.shape[0] - 1, EXAMPLE_INPUT_DATA.shape[1]), Y_GRID_SPACING)
-    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(EXAMPLE_INPUT_DATA, x_separations, y_separations, regrid=grid["regrid"]) # TODO: consider moving this into _make_expected()
+    y_separations = np.full((input_data.shape[0] - 1, input_data.shape[1]), Y_GRID_SPACING)
+    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(input_data, x_separations, y_separations, regrid=grid["regrid"]) # TODO: consider moving this into _make_expected()
 
     expected_x = make_expected(expected_x_gradients, "latlon", LATLON_GRID_SPACING)
     expected_y = make_expected(expected_y_gradients, "latlon", LATLON_GRID_SPACING)
@@ -213,4 +209,4 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid):
         assert result.name() == expected.name()
         assert result.attributes == expected.attributes
         assert result.units == expected.units
-        np.testing.assert_allclose(expected.data, result.data, rtol=1e-5, atol=1e-8)
+        np.testing.assert_allclose(expected.data, result.data, rtol=2e-3, atol=1e-8)

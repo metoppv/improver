@@ -251,16 +251,21 @@ class DistanceBetweenGridSquares(BasePlugin):
         cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
 
-    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
-            cube_type = self._get_cube_spatial_type(cube)
+    def process(self, cube: Cube, diffs: (Cube, Cube) = None) -> Tuple[Cube, Cube]:
+
+        if diffs is None:
             x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
-            if cube_type == "latlon":
-                x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
-                y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
-            else:
-                x_distances_cube = self._get_x_equalarea_distances(cube, x_diff)
-                y_distances_cube = self._get_y_equalarea_distances(cube, y_diff)
-            return x_distances_cube, y_distances_cube
+        else:
+            x_diff, y_diff = diffs
+
+        cube_type = self._get_cube_spatial_type(cube)
+        if cube_type == "latlon":
+            x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
+            y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
+        else:
+            x_distances_cube = self._get_x_equalarea_distances(cube, x_diff)
+            y_distances_cube = self._get_y_equalarea_distances(cube, y_diff)
+        return x_distances_cube, y_distances_cube
 
 
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
@@ -465,7 +470,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
-        distances = DistanceBetweenGridSquares()(cube)
+        distances = DistanceBetweenGridSquares()(cube, diffs)
         for axis, diff, distance in zip(["x", "y"], diffs, distances):
             gradient = self._gradient_from_diff(diff, distance, axis)
             grad_cube = self._create_output_cube(gradient, diff, cube, axis)
