@@ -148,23 +148,40 @@ class Test_process(IrisTest):
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
 
-    def test_attempt_modify_non_scalar_coord(self):
+    def test_attempt_modify_dimension_coord(self):
         """Test that an exception is raised if the coord_modification targets
         a dimension coordinate."""
 
         coord_modification = {"latitude": [0.1, 1.2, 3.4, 5.6, 7]}
-        msg = "Modifying dimension coordinate values it not allowed "
+        msg = "Modifying dimension coordinate values is not allowed "
 
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.process(
                 self.cube, coord_modification=coord_modification,
             )
 
+    def test_attempt_modify_multi_valued_coord(self):
+        """Test that an exception is raised if the coord_modification is used
+        to modify a multi-valued coordinate which is not a dimension
+        coordinate and is therefore missed by the previous test."""
+
+        cube = self.cube.copy()
+        kitten_coord = AuxCoord([1, 2, 3, 4, 5], long_name="kittens", units=1)
+        cube.add_aux_coord(kitten_coord, 0)
+
+        coord_modification = {"kittens": [2, 3, 4, 5, 6]}
+        msg = "Modifying multi-valued coordinates is not allowed."
+
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(
+                cube, coord_modification=coord_modification,
+            )
+
     def test_attempt_modify_time_coord(self):
         """Test that an exception is raised if the coord_modification targets
         time coordinates."""
 
-        msg = "Modifying time coordinates it not allowed."
+        msg = "Modifying time coordinates is not allowed."
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
             coord_modification = {coord: 100}
 

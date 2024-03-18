@@ -150,11 +150,17 @@ class StandardiseMetadata(BasePlugin):
             if cube.coords(coord):
                 if cube.coords(coord, dim_coords=True):
                     raise ValueError(
-                        "Modifying dimension coordinate values it not allowed "
+                        "Modifying dimension coordinate values is not allowed "
                         "due to the risk of introducing errors."
                     )
+                if hasattr(value, "__len__") and len(value) > 1:
+                    raise ValueError(
+                        "Modifying multi-valued coordinates is not allowed. "
+                        "This functionality should be used only for very "
+                        "modest changes to scalar coordinates."
+                    )
                 if _is_time_coord(cube.coord(coord)):
-                    raise ValueError("Modifying time coordinates it not allowed.")
+                    raise ValueError("Modifying time coordinates is not allowed.")
                 cube.coord(coord).points = np.array([value])
 
     @staticmethod
@@ -253,7 +259,7 @@ class StandardiseMetadata(BasePlugin):
                 of 1.5m (assuming original units of m).
                 This can be used to align e.g. temperatures defined at slightly
                 different heights where this difference is considered small
-                enough to ignore. Type is inferred, so provide a value of 2
+                enough to ignore. Type is inferred, so providing a value of 2
                 will result in an integer type, whilst a value of 2.0 will
                 result in a float type.
             attributes_dict:
