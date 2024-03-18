@@ -72,25 +72,40 @@ class TemporalInterpolation(BasePlugin):
 
     If working with period maximums and minimums we cannot return values in
     the new periods that do not adhere to the inputs. For example, we might
-    have a 3-hour maximum of 5 ms-1. The period before it might have a
-    maximum of 10 ms-1. However, on splitting the 3-hour period into 1-hour
-    periods, we cannot use the gradient between the two original period
-    maximums to produce a wind speed maximum in any of the interpolated
-    e.g. 1-hour periods that is above 5 ms-1 as we already know this to be the
-    maximum over the full 3-hours. We could use the trend to produce a lower
-    maximum in the interpolated 1-hour periods as this is not an unreasonable
-    interpretation of the gradient information and is consistent with the
-    original period maximum. A similar argument can be made about modifying
-    the minimums.
+    have a 3-hour maximum of 5 ms-1 between 03-06Z. The period before it might
+    have a maximum of 11 ms-1. Upon splitting the 3-hour period into 1-hour
+    periods the gradient might give us the following results:
+
+    Inputs: 00-03Z: 11 ms-1, 03-06Z: 5 ms-1
+    Outputs: 03-04Z: 9 ms-1, 04-05Z: 7 ms-1, 05-06Z: 5ms-1
+
+    However these outputs are not in agreement with the original 3-hour period
+    maximum of 5 ms-1 over the period 03-06Z. We enforce the maximum from the
+    original period which results in:
+
+    Inputs: 00-03Z: 10 ms-1, 03-06Z: 5 ms-1
+    Outputs: 03-04Z: 5 ms-1, 04-05Z: 5 ms-1, 05-06Z: 5ms-1
+
+    If instead the preceding period maximum was 2 ms-1 we would use the trend
+    to produce lower maximums in the interpolated 1-hour periods, becoming:
+
+    Inputs: 00-03Z: 2 ms-1, 03-06Z: 5 ms-1
+    Outputs: 03-04Z: 3 ms-1, 04-05Z: 4 ms-1, 05-06Z: 5ms-1
+
+    This interpretation of the gradient information is retained in the output
+    as it is consistent with the original period maximum of 5 ms-1 between
+    03-06Z. As such we can impart increasing trends into maximums over periods
+    but not decreasing trends. The counter argument can be made when
+    interpolating minimums in periods, allowing us only to introduce
+    decreasing trends for these.
 
     We could use the cell methods to determine whether we are working with
     accumulations, maximums, or minimums. This should be denoted as a cell
     method associated with the time coordinate, e.g. for an accumulation it
     would be `time: sum`, whilst a maximum would have `time: max`. However
-    we cannot guarantee these cell methods are present and not assumed. As
-    such the interpolation of periods here relies on the user supplying a
-    suitable keyword argument that denotes the type of period being
-    processed.
+    we cannot guarantee these cell methods are present. As such the
+    interpolation of periods here relies on the user supplying a suitable
+    keyword argument that denotes the type of period being processed.
     """
 
     def __init__(
@@ -142,6 +157,8 @@ class TemporalInterpolation(BasePlugin):
             ValueError: If both interval_in_minutes and times are both set.
             ValueError: If interpolation method not in known list.
             ValueError: If multiple period diagnostic kwargs are set True.
+            ValueError: A period diagnostic is being interpolated with a method
+                        not found in the period_interpolation_methods list.
         """
         if interval_in_minutes is None and times is None:
             raise ValueError(
@@ -158,7 +175,6 @@ class TemporalInterpolation(BasePlugin):
         self.interval_in_minutes = interval_in_minutes
         self.times = times
         known_interpolation_methods = ["linear", "solar", "daynight"]
-        self.period_interpolation_methods = ["linear"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
                 "TemporalInterpolation: Unknown interpolation "
@@ -175,6 +191,16 @@ class TemporalInterpolation(BasePlugin):
         self.accumulation = accumulation
         self.max = max
         self.min = min
+        if any([accumulation, max, min]):
+            self.period_inputs = True
+
+            period_interpolation_methods = ["linear"]
+            if self.interpolation_method not in period_interpolation_methods:
+                raise ValueError(
+                    "Period diagnostics can only be temporally interpolated "
+                    f"using these methods: {period_interpolation_methods}.\n"
+                    f"Currently selected method is: {self.interpolation_method}."
+                )
 
     def construct_time_list(
         self, initial_time: datetime, final_time: datetime
@@ -532,10 +558,10 @@ class TemporalInterpolation(BasePlugin):
 
         Raises:
             TypeError: If cube_t0 and cube_t1 are not of type iris.cube.Cube.
-            ValueError: A period diagnostic is being interpolated with a method
-                        not found in the period_interpolation_methods list.
-            ValueError: A period diagnostic is being processed without the
-                        type of period being specified.
+            ValueError: A mix of instantaneous and period diagnostics have
+                        been used as inputs.
+            ValueError: A period type has been declared but inputs are not
+                        period diagnostics.
             ValueError: Period diagnostics with overlapping periods.
             CoordinateNotFoundError: The input cubes contain no time
                                      coordinate.
@@ -552,36 +578,6 @@ class TemporalInterpolation(BasePlugin):
                 "{}, second input is type {}".format(type(cube_t0), type(cube_t1))
             )
             raise TypeError(msg)
-
-        if cube_t0.coord("time").bounds is not None:
-            if self.interpolation_method not in self.period_interpolation_methods:
-                raise ValueError(
-                    "Period diagnostics can only be temporally interpolated "
-                    f"using these methods: {self.period_interpolation_methods}.\n"
-                    f"Currently selected method is: {self.interpolation_method}."
-                )
-            if not any([self.accumulation, self.max, self.min]):
-                raise ValueError(
-                    "A type of period must be specified when interpolating a "
-                    "period diagnostic. This may be a period max, min"
-                    " or an accumulation."
-                )
-            cube_interval = (
-                cube_t1.coord("time").points[0] - cube_t0.coord("time").points[0]
-            )
-            (period,) = np.diff(cube_t1.coord("time").bounds[0])
-            if not cube_interval == period:
-                raise ValueError(
-                    "The diagnostic provided represents the period "
-                    f"{period / 3600} hours. The interval between the "
-                    f"diagnostics is {cube_interval / 3600} hours. Temporal "
-                    "interpolation can only be applied to a period "
-                    "diagnostic provided at intervals that match the "
-                    "diagnostic period such that all points in time are "
-                    "captured by only one of the inputs and do not overlap."
-                )
-
-            self.period_inputs = True
 
         try:
             (initial_time,) = iris_time_to_datetime(cube_t0.coord("time"))
@@ -603,6 +599,39 @@ class TemporalInterpolation(BasePlugin):
                 ", with the final time being before the initial "
                 "time."
             )
+
+        cube_t0_bounds = cube_t0.coord("time").has_bounds()
+        cube_t1_bounds = cube_t1.coord("time").has_bounds()
+        if cube_t0_bounds + cube_t1_bounds == 1:
+            raise ValueError(
+                "Period and non-period diagnostics cannot be combined for"
+                " temporal interpolation."
+            )
+
+        if self.period_inputs:
+            # Declaring period type requires the inputs be period diagnostics.
+            if not cube_t0_bounds:
+                raise ValueError(
+                    "A period method has been declared for temporal "
+                    "interpolation (max, min, or accumulation). Period "
+                    "diagnostics must be provided. The input cubes have no "
+                    "time bounds."
+                )
+
+            cube_interval = (
+                cube_t1.coord("time").points[0] - cube_t0.coord("time").points[0]
+            )
+            (period,) = np.diff(cube_t1.coord("time").bounds[0])
+            if not cube_interval == period:
+                raise ValueError(
+                    "The diagnostic provided represents the period "
+                    f"{period / 3600} hours. The interval between the "
+                    f"diagnostics is {cube_interval / 3600} hours. Temporal "
+                    "interpolation can only be applied to a period "
+                    "diagnostic provided at intervals that match the "
+                    "diagnostic period such that all points in time are "
+                    "captured by only one of the inputs and do not overlap."
+                )
 
         time_list = self.construct_time_list(initial_time, final_time)
 

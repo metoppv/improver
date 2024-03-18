@@ -260,6 +260,10 @@ def daynight_mask():
             {"interval_in_minutes": 60, "max": True, "min": True},
             "Only one type of period diagnostics may be specified:",
         ),  # Invalid interpolation method requested
+        (
+            {"interval_in_minutes": 60, "max": True, "interpolation_method": "solar"},
+            "Period diagnostics can only be temporally interpolated",
+        ),  # Invalid interpolation method requested
     ],
 )
 def test__init__(kwargs, exception):
@@ -639,32 +643,45 @@ def test_input_cubelists_raises_exception():
         TemporalInterpolation(interval_in_minutes=180).process(cubes, cube[1])
 
 
-def test_invalid_method_for_period_exception():
-    """Test that providing a period diagnostic and attempting to apply an
-    unsuitable interpolation method raises an exception."""
+def test_mix_instantaneous_and_period():
+    """Test that providing one instantaneous and one period diagnostic raises
+    an exception."""
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     data = np.ones((5, 5), dtype=np.float32)
     cube = multi_time_cube(times, data, "latlon", bounds=True)
 
-    msg = "Period diagnostics can only be temporally interpolated"
+    cube_0 = cube[0]
+    cube_1 = cube[1]
+    for crd in ["time", "forecast_period"]:
+        cube_0.coord(crd).bounds = None
+
+    msg = "Period and non-period diagnostics cannot be combined"
     with pytest.raises(ValueError, match=msg):
-        TemporalInterpolation(
-            interval_in_minutes=180, interpolation_method="solar"
-        ).process(cube[0], cube[1])
+        TemporalInterpolation(interval_in_minutes=180).process(cube_0, cube_1)
 
 
-def test_period_without_chosen_type_exception():
-    """Test that providing a period diagnostic but not specifying a type from
-    the available min, max, or accumulation raises an exception."""
+@pytest.mark.parametrize(
+    "kwargs",
+    (
+        [
+            {"interval_in_minutes": 180, "accumulation": True},
+            {"interval_in_minutes": 180, "max": True},
+            {"interval_in_minutes": 180, "min": True},
+        ]
+    ),
+)
+def test_period_method_non_period_diagnostics(kwargs):
+    """Test that declaring a period type for the interpolation and then
+    passing in non-period diagnostics raises an exception."""
 
     times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
     data = np.ones((5, 5), dtype=np.float32)
-    cube = multi_time_cube(times, data, "latlon", bounds=True)
+    cube = multi_time_cube(times, data, "latlon")
 
-    msg = "A type of period must be specified when interpolating"
+    msg = "A period method has been declared for temporal"
     with pytest.raises(ValueError, match=msg):
-        TemporalInterpolation(interval_in_minutes=180).process(cube[0], cube[1])
+        TemporalInterpolation(**kwargs).process(cube[0], cube[1])
 
 
 def test_period_unequal_to_interval_exception():
