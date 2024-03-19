@@ -661,6 +661,19 @@ def test_mix_instantaneous_and_period():
         TemporalInterpolation(interval_in_minutes=180).process(cube_0, cube_1)
 
 
+def test_period_diagnostic_no_period_type():
+    """Test that providing a period diagnostic without declaring the type of
+    period to be processed raises an exception."""
+
+    times = [datetime.datetime(2017, 11, 1, hour) for hour in [3, 9]]
+    data = np.ones((5, 5), dtype=np.float32)
+    cube = multi_time_cube(times, data, "latlon", bounds=True)
+
+    msg = "Interpolation of period diagnostics should be done using"
+    with pytest.raises(ValueError, match=msg):
+        TemporalInterpolation(interval_in_minutes=180).process(cube[0], cube[1])
+
+
 @pytest.mark.parametrize(
     "kwargs",
     (
@@ -872,10 +885,22 @@ def test_process_periods(kwargs, values, offsets, expected, realizations):
         else:
             expected_data = np.full((npoints, npoints), value)
         expected_time = 1509505200 + (offset * 3600)
+        expected_lower_bound_time = 1509505200 + [0, *offsets][i] * 3600
+        expected_upper_bound_time = expected_time
         expected_fp = (6 + offset) * 3600
+        expected_lower_bound_fp = (6 + [0, *offsets][i]) * 3600
+        expected_upper_bound_fp = expected_fp
 
         assert result[i].coord("time").points[0] == expected_time
+        np.testing.assert_array_equal(
+            result[i].coord("time").bounds,
+            [[expected_lower_bound_time, expected_upper_bound_time]],
+        )
         assert result[i].coord("forecast_period").points[0] == expected_fp
+        np.testing.assert_array_equal(
+            result[i].coord("forecast_period").bounds,
+            [[expected_lower_bound_fp, expected_upper_bound_fp]],
+        )
         assert result[i].coord("time").points.dtype == "int64"
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:
@@ -994,10 +1019,22 @@ def test_process_accumulation_unequal_inputs(
         else:
             expected_data = np.full((npoints, npoints), value)
         expected_time = 1509505200 + (offset * 3600)
+        expected_lower_bound_time = 1509505200 + [0, *offsets][i] * 3600
+        expected_upper_bound_time = expected_time
         expected_fp = (6 + offset) * 3600
+        expected_lower_bound_fp = (6 + [0, *offsets][i]) * 3600
+        expected_upper_bound_fp = expected_fp
 
         assert result[i].coord("time").points[0] == expected_time
+        np.testing.assert_array_equal(
+            result[i].coord("time").bounds,
+            [[expected_lower_bound_time, expected_upper_bound_time]],
+        )
         assert result[i].coord("forecast_period").points[0] == expected_fp
+        np.testing.assert_array_equal(
+            result[i].coord("forecast_period").bounds,
+            [[expected_lower_bound_fp, expected_upper_bound_fp]],
+        )
         assert result[i].coord("time").points.dtype == "int64"
         assert result[i].coord("forecast_period").points.dtype == "int32"
         if value is not None:

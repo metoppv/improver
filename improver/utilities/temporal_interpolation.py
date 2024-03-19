@@ -608,6 +608,12 @@ class TemporalInterpolation(BasePlugin):
                 " temporal interpolation."
             )
 
+        if cube_t0_bounds and not self.period_inputs:
+            raise ValueError(
+                "Interpolation of period diagnostics should be done using "
+                "the appropriate period specifier (accumulation, min or max)."
+            )
+
         if self.period_inputs:
             # Declaring period type requires the inputs be period diagnostics.
             if not cube_t0_bounds:
