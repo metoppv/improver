@@ -214,11 +214,11 @@ class LightningMultivariateProbability(PostProcessingPlugin):
     probability forecast.
 
     Inputs:
-    CAPE (cape; calculated with water loading and latent heat of freezing estimated)
-    Lifted Index (liftidx)
-    Precipitable Water (pwat in mm)
-    CIN (cin)
-    3-hour Accumulated Precipitation (apcp in inches)
+    Convective Available Potential Energy (CAPE in J/kg)
+    Lifted Index (liftind in K)
+    Precipitable Water (pwat in kg m-2 or mm. This is used as mm in the regression equations)
+    Convective Inhibition (CIN in J/kg)
+    3-hour Accumulated Precipitation (apcp in kg m-2 or millimetres)
     Outputs:
     20 km lightning probability over the valid time of the accumulated precipitation
 
