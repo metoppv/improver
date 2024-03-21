@@ -188,22 +188,14 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_cube_spatial_type(cls, cube: Cube) -> CubeSpatialType:
-        # coord_system = cube.coord_system() # TODO: this is a better approach, except it raises an exception when I run it.
-        # coord_system_class = type(coord_system)
-        # if coord_system_class == GeogCS:
-        #     return cls.CubeSpatialType.LATLON
-        # elif coord_system_class == LambertAzimuthalEqualArea:
-        #     return cls.CubeSpatialType.EQUALAREA
-        # else:
-        #     raise ValueError("Unsupported cube projection. Only Georgraphic and Equal Area projections are supported.")
-
-        # Todo: below is very dependent on what the dim coords are named and what units are used. Also it can't properly catch and raise if an unsupported coord system is given. Open to suggestions for a better approach.
-        try:
-            assert cube.coords(name_or_coord="latitude")[0].units == "degrees" and cube.coords(name_or_coord="latitude")[0].units == "degrees"
+        coord_system = cube.coord_system()
+        coord_system_class = type(coord_system)
+        if coord_system_class == GeogCS:
             return cls.CubeSpatialType.LATLON
-        except (IndexError, AssertionError):
-            # Could not find latitude and longitude coordinates. Assuming cube is equal area. # Todo: is this a good idea? Ideally I'd check both and raise if given an unsupported type... try to work out how to check for equalarea... can I somehow use the projection metadata param?
+        elif coord_system_class == LambertAzimuthalEqualArea:
             return cls.CubeSpatialType.EQUALAREA
+        else:
+            raise ValueError("Unsupported cube projection. Only Georgraphic (GeogCS) and Lambert Azimutahl Equal Area projections are supported.")
 
     @staticmethod
     def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters", axis: str = "x", rtol: float = 1.0e-5):

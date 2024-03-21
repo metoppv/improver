@@ -29,20 +29,16 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """ Tests of DifferenceBetweenAdjacentGridSquares plugin."""
-
-import unittest
-
-import iris
 import numpy as np
-# from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.coords import DimCoord
-from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
-# from iris.tests import IrisTest
+from iris.coord_systems import GeogCS
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
 
+
+EARTH_RADIUS = 6.378e6  # meters
 
 # Distances covered when travelling 10 degrees east/west at different latitudes:
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
@@ -61,8 +57,8 @@ def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
 
 def make_latlon_test_cube(shape, latitudes, longitudes, units="degrees"):
     example_data = np.ones(shape, dtype=np.float32)
-    dimcoords = [(DimCoord(latitudes, standard_name="latitude", units=units, coord_system=GeogCS), 0),
-                 (DimCoord(longitudes, standard_name="longitude", units=units, coord_system=GeogCS), 1)]
+    dimcoords = [(DimCoord(latitudes, standard_name="latitude", units=units, coord_system=GeogCS(EARTH_RADIUS)), 0),
+                 (DimCoord(longitudes, standard_name="longitude", units=units, coord_system=GeogCS(EARTH_RADIUS)), 1)]
     cube = Cube(example_data, standard_name="wind_speed", units="m s^-1",
                 dim_coords_and_dims=dimcoords)
     return cube
