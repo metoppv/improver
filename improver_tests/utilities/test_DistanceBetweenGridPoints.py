@@ -38,7 +38,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
 
 
-EARTH_RADIUS = 6.378e6  # meters
+EARTH_RADIUS = 6.6371e3  # meters
 
 # Distances covered when travelling 10 degrees east/west at different latitudes:
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
