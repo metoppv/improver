@@ -50,73 +50,118 @@ Y_GRID_SPACING = 1111949  # Meters
 
 def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
     data = np.ones(shape, dtype=np.float32)
-    cube = set_up_variable_cube(data, spatial_grid="equalarea", grid_spacing=grid_spacing)
-    cube.coord('projection_x_coordinate').convert_units(units)
-    cube.coord('projection_y_coordinate').convert_units(units)
+    cube = set_up_variable_cube(
+        data, spatial_grid="equalarea", grid_spacing=grid_spacing
+    )
+    cube.coord("projection_x_coordinate").convert_units(units)
+    cube.coord("projection_y_coordinate").convert_units(units)
     return cube
+
 
 def make_latlon_test_cube(shape, latitudes, longitudes, units="degrees"):
     example_data = np.ones(shape, dtype=np.float32)
-    dimcoords = [(DimCoord(latitudes, standard_name="latitude", units=units, coord_system=GeogCS(EARTH_RADIUS)), 0),
-                 (DimCoord(longitudes, standard_name="longitude", units=units, coord_system=GeogCS(EARTH_RADIUS)), 1)]
-    cube = Cube(example_data, standard_name="wind_speed", units="m s^-1",
-                dim_coords_and_dims=dimcoords)
+    dimcoords = [
+        (DimCoord(latitudes, standard_name="latitude", units=units, coord_system=GeogCS(EARTH_RADIUS)), 0),
+        (DimCoord(longitudes, standard_name="longitude", units=units, coord_system=GeogCS(EARTH_RADIUS)), 1)
+    ]
+    cube = Cube(
+        example_data,
+        standard_name="wind_speed",
+        units="m s^-1",
+        dim_coords_and_dims=dimcoords,
+    )
     return cube
 
 
 def test_latlon_cube():
-    input_cube = make_latlon_test_cube((3,3), latitudes=[0, 10, 20], longitudes=[0, 10, 20])
-    expected_x_distances = np.array([
-        [   X_GRID_SPACING_AT_EQUATOR,          X_GRID_SPACING_AT_EQUATOR           ],
-        [   X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH  ],
-        [   X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH  ]
-    ])
-    expected_y_distances = np.full((2,3), Y_GRID_SPACING)
-    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
-                                (expected_x_distances, expected_y_distances)):
+    input_cube = make_latlon_test_cube(
+        (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
+    )
+    expected_x_distances = np.array(
+        [
+            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
+            [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
+            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
+        ]
+    )
+    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
         assert result.units == "meters"
-        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
 
 
 def test_latlon_cube_unequal_xy_dims():
-    input_cube = make_latlon_test_cube((3, 2), latitudes=[0, 10, 20], longitudes=[0, 10])
-    expected_x_distances = np.array([
-        [X_GRID_SPACING_AT_EQUATOR],
-        [X_GRID_SPACING_AT_10_DEGREES_NORTH],
-        [X_GRID_SPACING_AT_20_DEGREES_NORTH]
-    ])
+    input_cube = make_latlon_test_cube(
+        (3, 2), latitudes=[0, 10, 20], longitudes=[0, 10]
+    )
+    expected_x_distances = np.array(
+        [
+            [X_GRID_SPACING_AT_EQUATOR],
+            [X_GRID_SPACING_AT_10_DEGREES_NORTH],
+            [X_GRID_SPACING_AT_20_DEGREES_NORTH],
+        ]
+    )
     expected_y_distances = np.full((2, 2), Y_GRID_SPACING)
-    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
-                                (expected_x_distances, expected_y_distances)):
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
         assert result.units == "meters"
-        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3,
-                                   atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
 
 
 def test_latlon_cube_nonuniform_spacing():
-    input_cube = make_latlon_test_cube((2, 3), latitudes=[0, 20], longitudes=[0, 10, 20])
-    expected_x_distances = np.array([
-        [X_GRID_SPACING_AT_EQUATOR,         X_GRID_SPACING_AT_EQUATOR],
-        [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH]
-    ])
+    input_cube = make_latlon_test_cube(
+        (2, 3), latitudes=[0, 20], longitudes=[0, 10, 20]
+    )
+    expected_x_distances = np.array(
+        [
+            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
+            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
+        ]
+    )
     expected_y_distances = np.full((1, 3), 2 * Y_GRID_SPACING)
-    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
-                                (expected_x_distances, expected_y_distances)):
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
         assert result.units == "meters"
-        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3,
-                                   atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
 
 
 def test_equalarea_cube():
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=1000)
     expected_x_distances = np.full((3, 2), 1000)
     expected_y_distances = np.full((2, 3), 1000)
-    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
-                                (expected_x_distances, expected_y_distances)):
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
         assert result.units == "meters"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
@@ -125,8 +170,13 @@ def test_equalarea_cube_nonstandard_units():
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=10, units="km")
     expected_x_distances = np.full((3, 2), 10)
     expected_y_distances = np.full((2, 3), 10)
-    calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
-                                (expected_x_distances, expected_y_distances)):
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
         assert result.units == "meters"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)

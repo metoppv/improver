@@ -244,11 +244,4 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
         assert result.name() == expected.name()
         assert result.attributes == expected.attributes
         assert result.units == expected.units
-        try:
-            np.testing.assert_allclose(expected.data, result.data, rtol=2e-3, atol=1e-5)
-        except:
-            print("\n")
-            print(input_data)
-            print(expected.data)
-            print(result.data)
-            raise Exception
+        np.testing.assert_allclose(expected.data, result.data, rtol=2e-3, atol=1e-5)
