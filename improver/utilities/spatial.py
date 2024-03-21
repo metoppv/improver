@@ -219,15 +219,22 @@ class DistanceBetweenGridSquares(BasePlugin):
         else:
             return diffs_mean
 
+    @staticmethod
+    def _get_latlon_cube_points(cube: Cube) -> (ndarray, ndarray):
+        cube_spatial_parsing_exception = ValueError("Cannot parse spatial axes of the cube provided. Expected equal area cube or lat-long cube with coordinates named 'x' and 'y' with units of degrees.")
+        if cube.coord(axis='x').units == "degrees" and cube.coord(axis='y').units == "degrees":
+            try:
+                longs = cube.coord(axis='x').points
+                lats = cube.coord(axis='y').points
+            except iris.exceptions.CoordinateNotFoundError:
+                raise cube_spatial_parsing_exception
+        else:
+            raise cube_spatial_parsing_exception
+        return lats, longs
+
     @classmethod
     def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube):
-        # Todo: check we're getting degrees?
-        # cube.coord(axis="x").convert_units("degrees")
-        if cube.coord(axis='x').units == "degrees" and cube.coord(axis='y').units == "degrees":
-            longs = cube.coord(axis='x').points
-            lats = cube.coord(axis='y').points
-        else:
-            raise Exception("TODO: HCF")
+        lats, longs = cls._get_latlon_cube_points(cube)
 
         lon_diffs = np.diff(longs)
         x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
@@ -241,15 +248,12 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube):
-        longs = cube.coord(axis='x').points
-        lats = cube.coord(axis='y').points
+        lats, longs = cls._get_latlon_cube_points(cube)
 
         lat_diffs = np.diff(lats)
         y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
         y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
-        # Todo: can I assume (as below) that it's okay to have latitude and longitude on axes 0 and 1??
-        dims = [(y_diff.coord('latitude'), 0), (y_diff.coord('longitude'), 1)]  # TODO: what other coords do I need? Can I keep the original coords from cube except overwrite the lat and long from dims and the units as meters? Seems like I can.
-        test_cube = Cube(y_distances_meters)
+        dims = [(y_diff.coord('latitude'), 0), (y_diff.coord('longitude'), 1)]
         y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
                                dim_coords_and_dims=dims)
         return y_distance_cube
@@ -269,19 +273,6 @@ class DistanceBetweenGridSquares(BasePlugin):
         dims = [(y_diff.coord('projection_y_coordinate'), 0), (y_diff.coord('projection_x_coordinate'), 1)]  # TODO: what other coords do I need?
         cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
-
-    @staticmethod
-    def standardise_cube_xy_units(cube, standard_units: Union[Unit, str], cube_operator: Callable, cube_operator_args: tuple):
-        """
-        Wrapper function for standardising cube units, performing a given operation and then resetting back to the original units.
-        """
-        original_cube_x_units, original_cube_y_units = cube.coord(axis='x').units, cube.coord(axis='y').units
-        cube.coord('x').convert_units(standard_units)
-        cube.coord('y').convert_units(standard_units)
-        operator_output = cube_operator(*cube_operator_args)
-        cube.coord('x').convert_units(original_cube_x_units)
-        cube.coord('y').convert_units(original_cube_y_units)
-        return operator_output
 
     def process(self, cube: Cube, diffs: (Cube, Cube) = None) -> Tuple[Cube, Cube]:
 
