@@ -16,7 +16,7 @@ from cartopy.crs import CRS
 from cf_units import Unit
 from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
-from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
+from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea, CoordSystem
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
@@ -157,7 +157,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     EARTH_RADIUS = 6371e3  # meters
 
     @classmethod
-    def _get_cube_spatial_type(cls, cube: Cube):
+    def _get_cube_spatial_type(cls, cube: Cube) -> CoordSystem:
         coord_system = cube.coord_system()
         return type(coord_system)
 
