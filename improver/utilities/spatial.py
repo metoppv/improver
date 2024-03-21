@@ -31,7 +31,8 @@
 """ Provides support utilities."""
 
 import copy
-from typing import List, Optional, Tuple, Union
+from typing import List, Optional, Tuple, Union, Callable
+from enum import Enum
 
 import cartopy.crs as ccrs
 import iris
@@ -41,10 +42,10 @@ from cartopy.crs import CRS
 from cf_units import Unit
 from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
+from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
-from shapely.geometry import MultiPoint
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
@@ -177,18 +178,32 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
     Calculates the distances between adjacent grid squares within
     a cube. The difference is calculated along the x and y axes
-    individually.
+    individually. Returned distances are in meters.
     """
     EARTH_RADIUS = 6371e3  # meters
 
-    @staticmethod
-    def _get_cube_spatial_type(cube: Cube) -> str: #Todo: make return enumerable
+    class CubeSpatialType(Enum):
+        LATLON = 1,
+        EQUALAREA = 2
+
+    @classmethod
+    def _get_cube_spatial_type(cls, cube: Cube) -> CubeSpatialType:
+        # coord_system = cube.coord_system() # TODO: this is a better approach, except it raises an exception when I run it.
+        # coord_system_class = type(coord_system)
+        # if coord_system_class == GeogCS:
+        #     return cls.CubeSpatialType.LATLON
+        # elif coord_system_class == LambertAzimuthalEqualArea:
+        #     return cls.CubeSpatialType.EQUALAREA
+        # else:
+        #     raise ValueError("Unsupported cube projection. Only Georgraphic and Equal Area projections are supported.")
+
+        # Todo: below is very dependent on what the dim coords are named and what units are used. Also it can't properly catch and raise if an unsupported coord system is given. Open to suggestions for a better approach.
         try:
             assert cube.coords(name_or_coord="latitude")[0].units == "degrees" and cube.coords(name_or_coord="latitude")[0].units == "degrees"
+            return cls.CubeSpatialType.LATLON
         except (IndexError, AssertionError):
-            # Could not find latitude and longitude coordinates. Assuming cube is equal area.
-            return "equalarea"
-        return "latlon"
+            # Could not find latitude and longitude coordinates. Assuming cube is equal area. # Todo: is this a good idea? Ideally I'd check both and raise if given an unsupported type... try to work out how to check for equalarea... can I somehow use the projection metadata param?
+            return cls.CubeSpatialType.EQUALAREA
 
     @staticmethod
     def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters", axis: str = "x", rtol: float = 1.0e-5):
@@ -207,8 +222,12 @@ class DistanceBetweenGridSquares(BasePlugin):
     @classmethod
     def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube):
         # Todo: check we're getting degrees?
-        longs = cube.coord(axis='x').points
-        lats = cube.coord(axis='y').points
+        # cube.coord(axis="x").convert_units("degrees")
+        if cube.coord(axis='x').units == "degrees" and cube.coord(axis='y').units == "degrees":
+            longs = cube.coord(axis='x').points
+            lats = cube.coord(axis='y').points
+        else:
+            raise Exception("TODO: HCF")
 
         lon_diffs = np.diff(longs)
         x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
@@ -251,6 +270,19 @@ class DistanceBetweenGridSquares(BasePlugin):
         cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
 
+    @staticmethod
+    def standardise_cube_xy_units(cube, standard_units: Union[Unit, str], cube_operator: Callable, cube_operator_args: tuple):
+        """
+        Wrapper function for standardising cube units, performing a given operation and then resetting back to the original units.
+        """
+        original_cube_x_units, original_cube_y_units = cube.coord(axis='x').units, cube.coord(axis='y').units
+        cube.coord('x').convert_units(standard_units)
+        cube.coord('y').convert_units(standard_units)
+        operator_output = cube_operator(*cube_operator_args)
+        cube.coord('x').convert_units(original_cube_x_units)
+        cube.coord('y').convert_units(original_cube_y_units)
+        return operator_output
+
     def process(self, cube: Cube, diffs: (Cube, Cube) = None) -> Tuple[Cube, Cube]:
 
         if diffs is None:
@@ -259,7 +291,7 @@ class DistanceBetweenGridSquares(BasePlugin):
             x_diff, y_diff = diffs
 
         cube_type = self._get_cube_spatial_type(cube)
-        if cube_type == "latlon":
+        if cube_type == self.CubeSpatialType.LATLON:
             x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
             y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
         else:
@@ -448,7 +480,6 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Returns:
             Array of the gradients in the coordinate direction specified.
         """
-        # Todo: avoid calculating diff twice with optional parameter.
         gradient = diff / distance
         return gradient
 

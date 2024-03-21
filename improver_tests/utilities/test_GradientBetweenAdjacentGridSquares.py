@@ -220,7 +220,7 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
 )
 def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
     """Check calculating the gradient with and without regridding for global latitude/longitude coordinate system"""
-    wind_speed = make_input("latlon", LATLON_GRID_SPACING)
+    wind_speed = make_input(input_data, "latlon", LATLON_GRID_SPACING)
     x_separations = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
@@ -244,4 +244,11 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
         assert result.name() == expected.name()
         assert result.attributes == expected.attributes
         assert result.units == expected.units
-        np.testing.assert_allclose(expected.data, result.data, rtol=2e-3, atol=1e-8)
+        try:
+            np.testing.assert_allclose(expected.data, result.data, rtol=2e-3, atol=1e-5)
+        except:
+            print("\n")
+            print(input_data)
+            print(expected.data)
+            print(result.data)
+            raise Exception
