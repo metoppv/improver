@@ -82,20 +82,6 @@ def test_latlon_cube():
         assert result.units == "meters"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
 
-# def test_latlon_cube_non_standard_units():
-#     TEN_DEGREES_IN_RADIANS = 0.174533
-#     input_cube = make_latlon_test_cube((3,3), latitudes=[0, TEN_DEGREES_IN_RADIANS, 2 * TEN_DEGREES_IN_RADIANS], longitudes=[0, TEN_DEGREES_IN_RADIANS, 2 * TEN_DEGREES_IN_RADIANS], units="radians")
-#     expected_x_distances = np.array([
-#         [   X_GRID_SPACING_AT_EQUATOR,          X_GRID_SPACING_AT_EQUATOR           ],
-#         [   X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH  ],
-#         [   X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH  ]
-#     ])
-#     expected_y_distances = np.full((2,3), Y_GRID_SPACING)
-#     calculated_x_distances_cube, calculated_y_distances_cube = DistanceBetweenGridSquares()(input_cube)
-#     for result, expected in zip((calculated_x_distances_cube, calculated_y_distances_cube),
-#                                 (expected_x_distances, expected_y_distances)):
-#         assert result.units == "meters"
-#         np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=0)  # Allowing 0.2% error for difference between the spherical earth assumption used by the implementation and the full haversine equation used to generate the test data.
 
 def test_latlon_cube_unequal_xy_dims():
     input_cube = make_latlon_test_cube((3, 2), latitudes=[0, 10, 20], longitudes=[0, 10])
