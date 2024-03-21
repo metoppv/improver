@@ -198,20 +198,6 @@ class DistanceBetweenGridSquares(BasePlugin):
             raise ValueError("Unsupported cube projection. Only Georgraphic (GeogCS) and Lambert Azimutahl Equal Area projections are supported.")
 
     @staticmethod
-    def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters", axis: str = "x", rtol: float = 1.0e-5):
-        coord = cube.coord(axis=axis).copy()
-        coord.convert_units(units)
-        diffs = np.abs(np.diff(coord.points))
-        diffs_mean = np.mean(diffs)
-
-        if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
-            raise ValueError(
-                "Coordinate {} points are not equally spaced".format(coord.name())
-            )
-        else:
-            return diffs_mean
-
-    @staticmethod
     def _get_latlon_cube_points(cube: Cube) -> (ndarray, ndarray):
         cube_spatial_parsing_exception = ValueError("Cannot parse spatial axes of the cube provided. Expected equal area cube or lat-long cube with coordinates named 'x' and 'y' with units of degrees.")
         if cube.coord(axis='x').units == "degrees" and cube.coord(axis='y').units == "degrees":
@@ -225,7 +211,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return lats, longs
 
     @classmethod
-    def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube):
+    def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
         lats, longs = cls._get_latlon_cube_points(cube)
 
         lon_diffs = np.diff(longs)
@@ -239,7 +225,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return x_distance_cube
 
     @classmethod
-    def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube):
+    def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
         lats, longs = cls._get_latlon_cube_points(cube)
 
         lat_diffs = np.diff(lats)
@@ -250,8 +236,23 @@ class DistanceBetweenGridSquares(BasePlugin):
                                dim_coords_and_dims=dims)
         return y_distance_cube
 
+    @staticmethod
+    def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters",
+                                axis: str = "x", rtol: float = 1.0e-5) -> float:
+        coord = cube.coord(axis=axis).copy()
+        coord.convert_units(units)
+        diffs = np.abs(np.diff(coord.points))
+        diffs_mean = np.mean(diffs)
+
+        if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
+            raise ValueError(
+                "Coordinate {} points are not equally spaced".format(coord.name())
+            )
+        else:
+            return diffs_mean
+
     @classmethod
-    def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> (Cube, Cube):
+    def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
         x_distances = cls.get_equal_area_distance(cube, axis="x", units="meters")
         data = np.full(x_diff.data.shape, x_distances)
         dims = [(x_diff.coord('projection_y_coordinate'), 0), (x_diff.coord('projection_x_coordinate'), 1)]
@@ -259,14 +260,14 @@ class DistanceBetweenGridSquares(BasePlugin):
         return cube
 
     @classmethod
-    def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> (Cube, Cube):
+    def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
         y_distances = cls.get_equal_area_distance(cube, axis="y", units="meters")
         data = np.full(y_diff.data.shape, y_distances)
         dims = [(y_diff.coord('projection_y_coordinate'), 0), (y_diff.coord('projection_x_coordinate'), 1)]
         cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
 
-    def process(self, cube: Cube, diffs: (Cube, Cube) = None) -> Tuple[Cube, Cube]:
+    def process(self, cube: Cube, diffs: (Cube, Cube) = None) -> (Cube, Cube):
 
         if diffs is None:
             x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
