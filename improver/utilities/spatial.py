@@ -254,7 +254,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> (Cube, Cube):
         x_distances = cls.get_equal_area_distance(cube, axis="x", units="meters")
         data = np.full(x_diff.data.shape, x_distances)
-        dims = [(x_diff.coord('projection_y_coordinate'), 0), (x_diff.coord('projection_x_coordinate'), 1)]  # TODO: what other coords do I need?
+        dims = [(x_diff.coord('projection_y_coordinate'), 0), (x_diff.coord('projection_x_coordinate'), 1)]
         cube = Cube(data, long_name="x_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
 
@@ -262,7 +262,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> (Cube, Cube):
         y_distances = cls.get_equal_area_distance(cube, axis="y", units="meters")
         data = np.full(y_diff.data.shape, y_distances)
-        dims = [(y_diff.coord('projection_y_coordinate'), 0), (y_diff.coord('projection_x_coordinate'), 1)]  # TODO: what other coords do I need?
+        dims = [(y_diff.coord('projection_y_coordinate'), 0), (y_diff.coord('projection_x_coordinate'), 1)]
         cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
 
