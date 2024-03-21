@@ -40,7 +40,8 @@ def process(
     *cubes: cli.inputcube, model_id_attr: str = None,
 ):
     """
-    From the supplied CAPE, LIFTIDX, PWAT, CIN, APCP cubes, calculate a probability
+    From the supplied CAPE, lifted index (LIFTIDX), precipitable water (PWAT),
+    CIN, and 3-hr accumulated precipitation (APCP) cubes, calculate a probability
     of lightning cube using relationships developed using regression statistics.
     Does not collapse a realization coordinate.
 
