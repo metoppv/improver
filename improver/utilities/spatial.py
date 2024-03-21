@@ -182,20 +182,10 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
     EARTH_RADIUS = 6371e3  # meters
 
-    class CubeSpatialType(Enum):
-        LATLON = 1,
-        EQUALAREA = 2
-
     @classmethod
-    def _get_cube_spatial_type(cls, cube: Cube) -> CubeSpatialType:
+    def _get_cube_spatial_type(cls, cube: Cube):
         coord_system = cube.coord_system()
-        coord_system_class = type(coord_system)
-        if coord_system_class == GeogCS:
-            return cls.CubeSpatialType.LATLON
-        elif coord_system_class == LambertAzimuthalEqualArea:
-            return cls.CubeSpatialType.EQUALAREA
-        else:
-            raise ValueError("Unsupported cube projection. Only Georgraphic (GeogCS) and Lambert Azimutahl Equal Area projections are supported.")
+        return type(coord_system)
 
     @staticmethod
     def _get_latlon_cube_points(cube: Cube) -> (ndarray, ndarray):
@@ -275,12 +265,15 @@ class DistanceBetweenGridSquares(BasePlugin):
             x_diff, y_diff = diffs
 
         cube_type = self._get_cube_spatial_type(cube)
-        if cube_type == self.CubeSpatialType.LATLON:
+        if cube_type == GeogCS:
             x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
             y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
-        else:
+        elif cube_type == LambertAzimuthalEqualArea:
             x_distances_cube = self._get_x_equalarea_distances(cube, x_diff)
             y_distances_cube = self._get_y_equalarea_distances(cube, y_diff)
+        else:
+            raise ValueError("Unsupported cube coordinate system."
+                             " Only Georgraphic (GeogCS) and Lambert Azimutahl Equal Area projections are supported.")
         return x_distances_cube, y_distances_cube
 
 
