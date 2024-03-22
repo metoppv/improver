@@ -295,36 +295,43 @@ class LightningMultivariateProbability(PostProcessingPlugin):
 
         (cape_time,) = list(cape.coord("time").cells())
         (apcp_time,) = list(apcp.coord("time").cells())
-        if cape_time.point != apcp_time.bound[0]:
-            raise ValueError(
-                f"CAPE cube time ({cape_time.point}) should be valid at the "
-                f"precipitation_accumulation cube lower bound ({apcp_time.bound[0]})."
-            )
+        for cube in [cape, liftidx, pwat, cin]:
+            (cube_time,) = list(cube.coord("time").cells())
+            (apcp_time,) = list(apcp.coord("time").cells())
+            if cube_time.point != apcp_time.bound[0]:
+                raise ValueError(
+                    f"The {cube.name} time point ({cube_time.point}) should be valid at the "
+                    f"precipitation_accumulation cube lower bound ({apcp_time.bound[0]})."
+                )
         if np.diff(apcp_time.bound) not in [timedelta(hours=3)]:
             raise ValueError(
                 f"Precipitation_accumulation cube time window must be three hours, "
                 f"not {np.diff(apcp_time.bound)}."
             )
         # Following time/space checks should be made for all diagnostics
-        if cape.coord("forecast_reference_time") != apcp.coord(
-            "forecast_reference_time"
-        ):
-            raise ValueError(
-                "Supplied cubes must have the same forecast reference times"
-            )
-        if not spatial_coords_match([cape, apcp]):
-            raise ValueError("Supplied cubes do not have the same spatial coordinates")
+        for cube in [cape, liftidx, pwat, cin]:
+            if cube.coord("forecast_reference_time") != apcp.coord(
+                "forecast_reference_time"
+            ):
+                raise ValueError(
+                    f"{cube.name} and {apcp.name} do not have the same forecast reference time"
+                )
+        for cube in [cape, liftidx, pwat, cin]:
+            if not spatial_coords_match([cube, apcp]):
+                raise ValueError(f"{cube.name} and {apcp.name} do not have the same spatial "
+                    f"coordinates")
 
         return cape, liftidx, pwat, cin, apcp
 
     def process(self, cubes: CubeList, model_id_attr: str = None) -> Cube:
         """
-        From the supplied CAPE, LIFTIDX, PWAT, CIN, APCP cubes, calculate a probability
-        of lightning cube.
+        From the supplied CAPE, Lifted Index, Precipitable Water, CIN, and 3-hr Accumulated
+        Precipitation cubes, calculate a probability of lightning cube.
 
         Args:
             cubes:
-                Cubes of CAPE, LIFTIDX, PWAT, CIN, APCP.
+                Cubes of CAPE, Lifted Index, Precipitable Water, CIN, and 3-hr Accumulated
+                Precipitation cubes.
             model_id_attr:
                 The name of the dataset attribute to be used to identify the source
                 model when blending data from different models.
