@@ -183,6 +183,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     For lat-lon cubes, the distances are calculated assuming a spherical earth.
     This causes a < 0.15% error compared with the full haversine equation.
     """
+
     EARTH_RADIUS = 6371e3  # meters
 
     @classmethod
@@ -192,11 +193,17 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @staticmethod
     def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
-        cube_spatial_parsing_exception = ValueError("Cannot parse spatial axes of the cube provided. Expected equal area cube or lat-long cube with coordinates named 'x' and 'y' with units of degrees.")
-        if cube.coord(axis='x').units == "degrees" and cube.coord(axis='y').units == "degrees":
+        cube_spatial_parsing_exception = ValueError(
+            "Cannot parse spatial axes of the cube provided. Expected equal area cube or "
+            "lat-long cube with coordinates named 'x' and 'y' with units of degrees."
+        )
+        if (
+            cube.coord(axis="x").units == "degrees"
+            and cube.coord(axis="y").units == "degrees"
+        ):
             try:
-                longs = cube.coord(axis='x').points
-                lats = cube.coord(axis='y').points
+                longs = cube.coord(axis="x").points
+                lats = cube.coord(axis="y").points
             except iris.exceptions.CoordinateNotFoundError:
                 raise cube_spatial_parsing_exception
         else:
@@ -209,12 +216,22 @@ class DistanceBetweenGridSquares(BasePlugin):
 
         lon_diffs = np.diff(longs)
         x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
-        lats_full = np.tile((np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1]))
-        x_distances_meters = cls.EARTH_RADIUS * np.cos(np.deg2rad(lats_full)) * np.deg2rad(x_distances_degrees)
+        lats_full = np.tile(
+            (np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1])
+        )
+        x_distances_meters = (
+            cls.EARTH_RADIUS
+            * np.cos(np.deg2rad(lats_full))
+            * np.deg2rad(x_distances_degrees)
+        )
 
-        dims = [(x_diff.coord('latitude'), 0), (x_diff.coord('longitude'), 1)]
-        x_distance_cube = Cube(x_distances_meters, long_name="y_distance_between_grid_points", units='meters',
-                               dim_coords_and_dims=dims)
+        dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
+        x_distance_cube = Cube(
+            x_distances_meters,
+            long_name="y_distance_between_grid_points",
+            units="meters",
+            dim_coords_and_dims=dims,
+        )
         return x_distance_cube
 
     @classmethod
@@ -222,16 +239,26 @@ class DistanceBetweenGridSquares(BasePlugin):
         lats, longs = cls._get_latlon_cube_points(cube)
 
         lat_diffs = np.diff(lats)
-        y_distances_degrees = np.array([lat_diffs for _ in range(len(longs))]).transpose()
+        y_distances_degrees = np.array(
+            [lat_diffs for _ in range(len(longs))]
+        ).transpose()
         y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
-        dims = [(y_diff.coord('latitude'), 0), (y_diff.coord('longitude'), 1)]
-        y_distance_cube = Cube(y_distances_meters, long_name="y_distance_between_grid_points", units='meters',
-                               dim_coords_and_dims=dims)
+        dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
+        y_distance_cube = Cube(
+            y_distances_meters,
+            long_name="y_distance_between_grid_points",
+            units="meters",
+            dim_coords_and_dims=dims,
+        )
         return y_distance_cube
 
     @staticmethod
-    def get_equal_area_distance(cube: Cube, units: Union[Unit, str] = "meters",
-                                axis: str = "x", rtol: float = 1.0e-5) -> float:
+    def get_equal_area_distance(
+        cube: Cube,
+        units: Union[Unit, str] = "meters",
+        axis: str = "x",
+        rtol: float = 1.0e-5,
+    ) -> float:
         coord = cube.coord(axis=axis).copy()
         coord.convert_units(units)
         diffs = np.abs(np.diff(coord.points))
@@ -248,16 +275,32 @@ class DistanceBetweenGridSquares(BasePlugin):
     def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
         x_distances = cls.get_equal_area_distance(cube, axis="x", units="meters")
         data = np.full(x_diff.data.shape, x_distances)
-        dims = [(x_diff.coord('projection_y_coordinate'), 0), (x_diff.coord('projection_x_coordinate'), 1)]
-        cube = Cube(data, long_name="x_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
+        dims = [
+            (x_diff.coord("projection_y_coordinate"), 0),
+            (x_diff.coord("projection_x_coordinate"), 1),
+        ]
+        cube = Cube(
+            data,
+            long_name="x_distance_between_grid_points",
+            units="meters",
+            dim_coords_and_dims=dims,
+        )
         return cube
 
     @classmethod
     def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
         y_distances = cls.get_equal_area_distance(cube, axis="y", units="meters")
         data = np.full(y_diff.data.shape, y_distances)
-        dims = [(y_diff.coord('projection_y_coordinate'), 0), (y_diff.coord('projection_x_coordinate'), 1)]
-        cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
+        dims = [
+            (y_diff.coord("projection_y_coordinate"), 0),
+            (y_diff.coord("projection_x_coordinate"), 1),
+        ]
+        cube = Cube(
+            data,
+            long_name="y_distance_between_grid_points",
+            units="meters",
+            dim_coords_and_dims=dims,
+        )
         return cube
 
     def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
@@ -275,8 +318,10 @@ class DistanceBetweenGridSquares(BasePlugin):
             x_distances_cube = self._get_x_equalarea_distances(cube, x_diff)
             y_distances_cube = self._get_y_equalarea_distances(cube, y_diff)
         else:
-            raise ValueError("Unsupported cube coordinate system."
-                             " Only Georgraphic (GeogCS) and Lambert Azimutahl Equal Area projections are supported.")
+            raise ValueError(
+                "Unsupported cube coordinate system. Only Georgraphic (GeogCS) and "
+                "Lambert Azimutahl Equal Area projections are supported."
+            )
         return x_distances_cube, y_distances_cube
 
 
@@ -415,9 +460,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         self.regrid = regrid
 
     @staticmethod
-    def _create_output_cube(
-        gradient: Cube, diff: Cube, cube: Cube, axis: str
-    ) -> Cube:
+    def _create_output_cube(gradient: Cube, diff: Cube, cube: Cube, axis: str) -> Cube:
         """
         Create the output gradient cube.
 

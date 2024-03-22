@@ -33,35 +33,24 @@
 import numpy as np
 import pytest
 from iris.cube import Cube
-from iris.analysis import Linear
-from iris.coords import DimCoord
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
-EXAMPLE_INPUT_DATA_1 = np.array(
-    [[0, 1, 2],
-     [3, 4, 5],
-     [4, 5, 6]], dtype=np.float32)
+EXAMPLE_INPUT_DATA_1 = np.array([[0, 1, 2], [3, 4, 5], [4, 5, 6]], dtype=np.float32)
 
 EXAMPLE_INPUT_DATA_2 = np.array(
-    [[0,        1,      2],
-     [1095014,  0,      -1095014],
-     [4,        5,      6]], dtype=np.float32
+    [[0, 1, 2], [1095014, 0, -1095014], [4, 5, 6]], dtype=np.float32
 )
 
 EXAMPLE_INPUT_DATA_3 = np.array(
-    [[1000,     2000,   1000],
-     [40,       50,     60],
-     [400,      500,    600]], dtype=np.float32
+    [[1000, 2000, 1000], [40, 50, 60], [400, 500, 600]], dtype=np.float32
 )
 
 EXAMPLE_INPUT_DATA_4 = np.array(
-    [[-40,      5,      50],
-     [-50,      10000,  60],
-     [-25,      4,      40]], dtype=np.float32
+    [[-40, 5, 50], [-50, 10000, 60], [-25, 4, 40]], dtype=np.float32
 )
 
 
@@ -104,9 +93,10 @@ def get_expected_gradient_between_points(
     param_array, x_separations, y_separations, regrid=False
 ):
     """
-    Calculates the gradient of a 2d numpy array along the x and y axes, accounting for distance between the points.
-    Gradients are calculated between grid points, meaning that the resulting arrays will be smaller by one dimension
-    along the axis of differentiation.
+    Calculates the gradient of a 2d numpy array along the x and y axes, accounting for distance
+    between the points.
+    Gradients are calculated between grid points, meaning that the resulting arrays will be smaller
+    by one dimension along the axis of differentiation.
     """
     x_diff = np.diff(param_array, axis=1)
     x_grad = x_diff / x_separations
@@ -175,7 +165,9 @@ def make_wind_speed_fixture() -> callable:
     ],
 )
 def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data):
-    """Check calculating the gradient with and without regridding for equal area coordinate systems"""
+    """
+    Check calculating the gradient with and without regridding for equal area coordinate systems
+    """
     x_distances = np.full(
         (input_data.shape[0], input_data.shape[1] - 1), EQUAL_AREA_GRID_SPACING
     )
@@ -219,7 +211,10 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
     ],
 )
 def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
-    """Check calculating the gradient with and without regridding for global latitude/longitude coordinate system"""
+    """
+    Check calculating the gradient with and without regridding
+    for global latitude/longitude coordinate system
+    """
     wind_speed = make_input(input_data, "latlon", LATLON_GRID_SPACING)
     x_separations = np.array(
         [
