@@ -256,68 +256,42 @@ class LightningMultivariateProbability(PostProcessingPlugin):
     """
 
     @staticmethod
+     def _extract_input(cubes, cube_name):
+            """Extract the relevant cube based on the cube name.
+
+            Args:
+                cubes: Cubes from which to extract required input.
+                cube_name: Name of cube to extract.
+
+            Returns:
+                The extracted cube.
+            """
+            try:
+                cube = cubes.extract_cube(iris.Constraint(cube_name))
+            except iris.exceptions.ConstraintMismatchError:
+                raise ValueError(f"No cube named {cube_name} found in {cubes}")
+            return cube
+
     def _get_inputs(cubes: CubeList) -> Tuple[Cube, Cube]:
         """
         Separates CAPE, LI, PW, CIN, and APCP cubes and checks that the following
         match: forecast_reference_time, spatial coords, time-bound interval and
         that CAPE time is at the lower bound of precipitation accumulation time.
         """
-        cape = cubes.extract(
-            iris.Constraint(
-                cube_func=lambda cube: "atmosphere_specific_convective_available_potential_energy"
-                in cube.name()
-            )
-        )
-        if cape:
-            cape = cape.merge_cube()
-        else:
-            raise ValueError(
-                f"No cube named atmosphere_specific_convective_available_potential_energy found "
-                f"in {cubes}"
-            )
-        lifted_ind_str = (
-            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
-        )
-        liftidx = cubes.extract(
-            iris.Constraint(cube_func=lambda cube: lifted_ind_str in cube.name())
-        )
-        if liftidx:
-            liftidx = liftidx.merge_cube()
-        else:
-            raise ValueError(
-                f"No cube named "
-                f"temperature_difference_between_ambient_air_and_air_lifted_adiabatically"
-                f" found in {cubes}"
-            )
-        pwat = cubes.extract(
-            iris.Constraint(cube_func=lambda cube: "precipitable_water" in cube.name())
-        )
-        if pwat:
-            pwat = pwat.merge_cube()
-        else:
-            raise ValueError(f"No cube named precipitable_water found " f"in {cubes}")
-        cin = cubes.extract(
-            iris.Constraint(
-                cube_func=lambda cube: "atmosphere_specific_convective_inhibition"
-                in cube.name()
-            )
-        )
-        if cin:
-            cin = cin.merge_cube()
-        else:
-            raise ValueError(
-                f"No cube named atmosphere_specific_convective_inhibition found "
-                f"in {cubes}"
-            )
-        apcp = cubes.extract(
-            iris.Constraint(
-                cube_func=lambda cube: "precipitation_amount" in cube.name()
-            )
-        )
-        if apcp:
-            apcp = apcp.merge_cube()
-        else:
-            raise ValueError(f"No cube named precipitation_amount found in {cubes}")
+
+        output_cubes = iris.cube.CubeList()
+        input_names = [
+            "atmosphere_specific_convective_available_potential_energy",
+            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically",
+            "precipitable_water",
+            "atmosphere_specific_convective_inhibition",
+            "precipitation_amount",
+        ]
+
+        for input_name in input_names:
+            output_cubes.append(self._extract_input(cubes, input_name))
+
+        cape, liftidx, pwat, cin, apcp = output_cubes
 
         (cape_time,) = list(cape.coord("time").cells())
         (apcp_time,) = list(apcp.coord("time").cells())
@@ -421,3 +395,19 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         )
 
         return cube
+
+def _extract_input(cubes, cube_name):
+    """Extract the relevant cube based on the cube name.
+
+    Args:
+        cubes: Cubes from which to extract required input.
+        cube_name: Name of cube to extract.
+
+    Returns:
+        The extracted cube.
+    """
+    try:
+        cube = cubes.extract_cube(iris.Constraint(cube_name))
+    except iris.exceptions.ConstraintMismatchError:
+        raise ValueError(f"No cube named {cube_name} found in {cubes}")
+    return cube
