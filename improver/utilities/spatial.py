@@ -176,9 +176,12 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
 
 class DistanceBetweenGridSquares(BasePlugin):
     """
-    Calculates the distances between adjacent grid squares within
-    a cube. The difference is calculated along the x and y axes
-    individually. Returned distances are in meters.
+    Calculates the distances between adjacent grid squares within a cube.
+    The distances are calculated along the x and y axes individually.
+    Returned distances are in meters.
+    The class can handle cubes with either Geographic (lat-long) or Equal Area projections.
+    For lat-lon cubes, the distances are calculated assuming a spherical earth.
+    This causes a < 0.15% error compared with the full haversine equation.
     """
     EARTH_RADIUS = 6371e3  # meters
 
@@ -188,7 +191,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return type(coord_system)
 
     @staticmethod
-    def _get_latlon_cube_points(cube: Cube) -> (ndarray, ndarray):
+    def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
         cube_spatial_parsing_exception = ValueError("Cannot parse spatial axes of the cube provided. Expected equal area cube or lat-long cube with coordinates named 'x' and 'y' with units of degrees.")
         if cube.coord(axis='x').units == "degrees" and cube.coord(axis='y').units == "degrees":
             try:
@@ -257,7 +260,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         cube = Cube(data, long_name="y_distance_between_grid_points", units="meters", dim_coords_and_dims=dims)
         return cube
 
-    def process(self, cube: Cube, diffs: (Cube, Cube) = None) -> (Cube, Cube):
+    def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
 
         if diffs is None:
             x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
