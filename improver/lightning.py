@@ -351,7 +351,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         liftidx = liftidx.data
         pwat = pwat.data
         cin = cin.data
-        apcp = apcp.data / 1000 * 39.3701  # convert (kg m-3) to (inches)
+        apcp = apcp.data / 1000 * 39.3701  # convert kg m-2 to inches
 
         # Regression equation when CAPE and APCP are greater than zero:
         lprob = cape * apcp
