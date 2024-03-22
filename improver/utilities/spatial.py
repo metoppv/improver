@@ -31,20 +31,20 @@
 """ Provides support utilities."""
 
 import copy
-from typing import List, Optional, Tuple, Union, Callable
-from enum import Enum
+from typing import List, Optional, Tuple, Union
 
 import cartopy.crs as ccrs
-import iris
+from cartopy.crs import CRS
 import netCDF4
 import numpy as np
-from cartopy.crs import CRS
+from numpy import ndarray
+from numpy.ma import MaskedArray
 from cf_units import Unit
+import iris
 from iris.coords import AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea, CoordSystem
-from numpy import ndarray
-from numpy.ma import MaskedArray
+
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
