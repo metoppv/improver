@@ -48,6 +48,10 @@ def process(
     3-hour Accumulated Precipitation (apcp in kg m-2 or millimetres),
     calculate a probability of lightning cube using relationships developed using regression
     statistics.
+
+    The cubes for CAPE, lifted index, precipitable water, and CIN must be valid for the beginning
+    of the 3-hr accumulated precipitation window.
+
     Does not collapse a realization coordinate.
 
     Args:
