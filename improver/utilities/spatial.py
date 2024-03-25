@@ -107,7 +107,17 @@ def calculate_grid_spacing(
     Raises:
         ValueError: If points are not equally spaced
     """
-    return DistanceBetweenGridSquares.get_equal_area_distance(cube, units, axis, rtol)
+    coord = cube.coord(axis=axis).copy()
+    coord.convert_units(units)
+    diffs = np.abs(np.diff(coord.points))
+    diffs_mean = np.mean(diffs)
+
+    if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
+        raise ValueError(
+            "Coordinate {} points are not equally spaced".format(coord.name())
+        )
+    else:
+        return diffs_mean
 
 
 def distance_to_number_of_grid_cells(
@@ -282,28 +292,9 @@ class DistanceBetweenGridSquares(BasePlugin):
         )
         return y_distance_cube
 
-    @staticmethod
-    def get_equal_area_distance(
-        cube: Cube,
-        units: Union[Unit, str] = "meters",
-        axis: str = "x",
-        rtol: float = 1.0e-5,
-    ) -> float:
-        coord = cube.coord(axis=axis).copy()
-        coord.convert_units(units)
-        diffs = np.abs(np.diff(coord.points))
-        diffs_mean = np.mean(diffs)
-
-        if not np.allclose(diffs, diffs_mean, rtol=rtol, atol=0.0):
-            raise ValueError(
-                "Coordinate {} points are not equally spaced".format(coord.name())
-            )
-        else:
-            return diffs_mean
-
     @classmethod
     def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
-        x_distances = cls.get_equal_area_distance(cube, axis="x", units="meters")
+        x_distances = calculate_grid_spacing(cube, axis="x", units="meters")
         data = np.full(x_diff.data.shape, x_distances)
         dims = [
             (x_diff.coord("projection_y_coordinate"), 0),
@@ -319,7 +310,7 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
-        y_distances = cls.get_equal_area_distance(cube, axis="y", units="meters")
+        y_distances = calculate_grid_spacing(cube, axis="y", units="meters")
         data = np.full(y_diff.data.shape, y_distances)
         dims = [
             (y_diff.coord("projection_y_coordinate"), 0),
