@@ -212,6 +212,21 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+        """
+        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Geographic coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the horizontal distances between the grid points of the input
+            cube in meters.
+        """
         lats, longs = cls._get_latlon_cube_points(cube)
 
         lon_diffs = np.diff(longs)
@@ -236,6 +251,21 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+        """
+        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Geographic coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the vertical distances between the grid points of the input
+            cube in meters.
+        """
         lats, longs = cls._get_latlon_cube_points(cube)
 
         lat_diffs = np.diff(lats)
