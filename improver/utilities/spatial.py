@@ -596,7 +596,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         Calculate the gradient along the x and y axes and return
         the result in separate cubes. The difference along each axis is
-        calculated using numpy.diff.
+        calculated using numpy.diff. This is then divided by the distance
+        between grid points along the same axis to get the gradient.
 
         Args:
             cube:

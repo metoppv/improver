@@ -50,6 +50,7 @@ Y_GRID_SPACING = 1111949  # Meters
 
 
 def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
+    """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
     data = np.ones(shape, dtype=np.float32)
     cube = set_up_variable_cube(
         data, spatial_grid="equalarea", grid_spacing=grid_spacing
@@ -60,6 +61,7 @@ def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
 
 
 def make_latlon_test_cube(shape, latitudes, longitudes, units="degrees"):
+    """Creates a cube using the Geographic projection for testing"""
     example_data = np.ones(shape, dtype=np.float32)
     dimcoords = [
         (
