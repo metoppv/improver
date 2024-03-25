@@ -198,18 +198,42 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_cube_spatial_type(cls, cube: Cube) -> CoordSystem:
+        """
+        Finds the coordinate system used by a cube.
+
+        Args:
+            cube:
+                Cube to find the coordinate system of.
+
+        Returns:
+            The coordinate system of the cube as an Iris Coordinate System.
+        """
         coord_system = cube.coord_system()
         return type(coord_system)
 
     @staticmethod
     def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
+        """
+        Extracts the vertical and horizontal grid points used by a cube
+        with a geographic coordinate system.
+
+        Args:
+            cube:
+                The cube to extract grid points from.
+        Returns:
+            - latitude points used by the cube's grid (in degrees).
+            - longitude points used by the cube's grid (in degrees).
+        Raises:
+            ValueError: Input cube does not use geographic coordinates, and/or
+            uses units other than degrees.
+        """
         cube_spatial_parsing_exception = ValueError(
             "Cannot parse spatial axes of the cube provided. Expected equal area cube or "
             "lat-long cube with coordinates named 'x' and 'y' with units of degrees."
         )
         if (
-            cube.coord(axis="x").units == "degrees"
-            and cube.coord(axis="y").units == "degrees"
+                cube.coord(axis="x").units == "degrees"
+                and cube.coord(axis="y").units == "degrees"
         ):
             try:
                 longs = cube.coord(axis="x").points
@@ -245,9 +269,9 @@ class DistanceBetweenGridSquares(BasePlugin):
             (np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1])
         )
         x_distances_meters = (
-            cls.EARTH_RADIUS
-            * np.cos(np.deg2rad(lats_full))
-            * np.deg2rad(x_distances_degrees)
+                cls.EARTH_RADIUS
+                * np.cos(np.deg2rad(lats_full))
+                * np.deg2rad(x_distances_degrees)
         )
 
         dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
@@ -294,6 +318,21 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+        """
+        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Equal Area coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the horizontal distances between the grid points of the input
+            cube in meters.
+        """
         x_distances = calculate_grid_spacing(cube, axis="x", units="meters")
         data = np.full(x_diff.data.shape, x_distances)
         dims = [
@@ -310,6 +349,21 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     @classmethod
     def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+        """
+        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Equal Area coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the vertical distances between the grid points of the input
+            cube in meters.
+        """
         y_distances = calculate_grid_spacing(cube, axis="y", units="meters")
         data = np.full(y_diff.data.shape, y_distances)
         dims = [
@@ -325,7 +379,18 @@ class DistanceBetweenGridSquares(BasePlugin):
         return cube
 
     def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
+        """
+        Calculate the distances between grid points along the x and y axes
+        and return the result in separate cubes.
 
+        Args:
+            cube:
+                Cube for which the distances will be calculated.
+
+        Returns:
+            - Cube of horizontal distances.
+            - Cube of vertical distances.
+        """
         if diffs is None:
             x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
         else:
