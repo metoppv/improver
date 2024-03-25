@@ -259,11 +259,11 @@ class DistanceBetweenGridSquares(BasePlugin):
         """
         lats, longs = cls._get_latlon_cube_points(cube)
 
+        lats_as_col = np.expand_dims(lats, axis=1)
         lon_diffs = np.diff(longs)
-        x_distances_degrees = np.array([lon_diffs for _ in range(len(lats))])
-        lats_full = np.tile(
-            (np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1])
-        )
+        x_distances_degrees = np.tile(lon_diffs, (lats_as_col.shape[0], 1))
+        lats_full = np.tile(lats_as_col, (1, x_distances_degrees.shape[1]))
+
         x_distances_meters = (
             cls.EARTH_RADIUS
             * np.cos(np.deg2rad(lats_full))
@@ -382,6 +382,11 @@ class DistanceBetweenGridSquares(BasePlugin):
         Args:
             cube:
                 Cube for which the distances will be calculated.
+            diffs:
+                Tuple of cubes representing the differences between cube values along the x and
+                y axes. Optional parameter to avoid repeating the calculation if differences are
+                already available. If not provided, the differences will be calculated from the
+                cube.
 
         Returns:
             - Cube of horizontal distances.
