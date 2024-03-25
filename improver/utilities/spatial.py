@@ -227,21 +227,17 @@ class DistanceBetweenGridSquares(BasePlugin):
             ValueError: Input cube does not use geographic coordinates, and/or
             uses units other than degrees.
         """
-        cube_spatial_parsing_exception = ValueError(
-            "Cannot parse spatial axes of the cube provided. Expected equal area cube or "
-            "lat-long cube with coordinates named 'x' and 'y' with units of degrees."
-        )
         if (
-                cube.coord(axis="x").units == "degrees"
-                and cube.coord(axis="y").units == "degrees"
+            cube.coord(axis="x").units == "degrees"
+            and cube.coord(axis="y").units == "degrees"
         ):
-            try:
-                longs = cube.coord(axis="x").points
-                lats = cube.coord(axis="y").points
-            except iris.exceptions.CoordinateNotFoundError:
-                raise cube_spatial_parsing_exception
+            longs = cube.coord(axis="x").points
+            lats = cube.coord(axis="y").points
         else:
-            raise cube_spatial_parsing_exception
+            raise ValueError(
+                "Cannot parse spatial axes of the cube provided. "
+                "Expected lat-long cube with units of degrees."
+            )
         return lats, longs
 
     @classmethod
@@ -269,9 +265,9 @@ class DistanceBetweenGridSquares(BasePlugin):
             (np.expand_dims(lats, axis=1)), (1, x_distances_degrees.shape[1])
         )
         x_distances_meters = (
-                cls.EARTH_RADIUS
-                * np.cos(np.deg2rad(lats_full))
-                * np.deg2rad(x_distances_degrees)
+            cls.EARTH_RADIUS
+            * np.cos(np.deg2rad(lats_full))
+            * np.deg2rad(x_distances_degrees)
         )
 
         dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
