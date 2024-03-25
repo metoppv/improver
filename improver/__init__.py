@@ -48,7 +48,7 @@ class BasePlugin(Plugin, ABC):
     Subclasses must be callable. We preserve the process
     method by redirecting to __call__.
     """
-    def __call__(self, *args, filepath=None, verbose=False, dry_run=False, **kwargs):
+    def __call__(self, *args, filepath=None, verbose=False, **kwargs):
         """
         Makes subclasses callable to use process
         Args:
@@ -59,13 +59,13 @@ class BasePlugin(Plugin, ABC):
         Returns:
             Output of self.process()
         """
-        res = self.process(*args, verbose=verbose, dry_run=dry_run, **kwargs)
+        res = self.process(*args, verbose=verbose, **kwargs)
         if hasattr(self, "post_process_result"):
             res = self.post_process_result(res)
         return res
 
     @abstractmethod
-    def process(self, *args, verbose=False, dry_run=False, **kwargs):
+    def process(self, *args, verbose=False, **kwargs):
         """Abstract class for rest to implement."""
         pass
 
@@ -75,6 +75,20 @@ class PostProcessingPlugin(BasePlugin):
     An abstract class for IMPROVER post-processing plugins.
     Makes generalised changes to metadata relating to post-processing.
     """
+    def __call__(self, *args, filepath=None, verbose=False, **kwargs):
+        """
+        Makes subclasses callable to use process
+        Args:
+            *args:
+                Positional arguments, each a filepath, cube or CubeList.
+            **kwargs:
+                Keyword arguments.
+        Returns:
+            Output of self.process()
+        """
+        res = super().__call__(*args, verbose=verbose, **kwargs)
+        return self.post_process_result(res)
+
     @classmethod
     def post_process_result(cls, result):
         from iris.cube import Cube

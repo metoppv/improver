@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
+import json
+import os
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Tuple, Union
 
@@ -65,6 +67,22 @@ def update_stage_v110_metadata(cube: Cube) -> None:
     cube.attributes["mosg__grid_version"] = "1.1.0"
 
 
+def _load_json(json_path: str) -> Dict:
+    """Load a JSON file into a dictionary.
+
+    Args:
+        json_path:
+            Path to the JSON file to load.
+
+    Returns:
+        Dictionary containing the JSON data.
+    """
+    if not isinstance(json_path, str):
+        return json_path
+    json_path = os.path.expanduser(os.path.expandvars(json_path))
+    return json.load(open(json_path, "r"))
+
+
 def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
     """
     Add, update or remove attributes from a cube.  Modifies cube in place.
@@ -77,6 +95,7 @@ def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
             The "value" item is either the string "remove" or the new value
             of the attribute required.
     """
+    attributes_dict = _load_json(attributes_dict)
     for attribute_name, value in attributes_dict.items():
         if value == "remove":
             cube.attributes.pop(attribute_name, None)
