@@ -233,12 +233,12 @@ class DistanceBetweenGridSquares(BasePlugin):
         ):
             longs = cube.coord(axis="x").points
             lats = cube.coord(axis="y").points
-        else:
-            raise ValueError(
-                "Cannot parse spatial axes of the cube provided. "
-                "Expected lat-long cube with units of degrees."
-            )
-        return lats, longs
+            return lats, longs
+
+        raise ValueError(
+            "Cannot parse spatial axes of the cube provided. "
+            "Expected lat-long cube with units of degrees."
+        )
 
     @classmethod
     def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
@@ -575,7 +575,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         return grad_cube
 
     @staticmethod
-    def _gradient_from_diff(diff: Cube, distance: Cube, axis: str) -> ndarray:
+    def _gradient_from_diff(diff: Cube, distance: Cube) -> ndarray:
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
@@ -583,12 +583,11 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Args:
             diff:
                 Cube containing differences along the x or y axis
-            axis:
-                Short-hand reference for the x or y coordinate, as allowed by
-                iris.util.guess_coord_axis.
+            distance:
+                Cube containing distances between points in meters along the same axis as diff.
 
         Returns:
-            Array of the gradients in the coordinate direction specified.
+            Cube of the gradients in the coordinate direction specified.
         """
         gradient = diff / distance
         return gradient
@@ -613,9 +612,9 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
         distances = DistanceBetweenGridSquares()(cube, diffs)
-        for axis, diff, distance in zip(["x", "y"], diffs, distances):
-            gradient = self._gradient_from_diff(diff, distance, axis)
-            grad_cube = self._create_output_cube(gradient, diff, cube, axis)
+        for diff, distance in zip(diffs, distances):
+            gradient = self._gradient_from_diff(diff, distance)
+            grad_cube = self._create_output_cube(gradient, diff, cube)
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
             gradients.append(grad_cube)
