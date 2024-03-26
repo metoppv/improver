@@ -33,8 +33,8 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
+from dagrunner import Plugin
 from pkg_resources import DistributionNotFound, get_distribution
-from pp_plugin_framework import Plugin
 
 try:
     __version__ = get_distribution("improver").version
