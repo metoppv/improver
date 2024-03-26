@@ -41,7 +41,7 @@ from numpy import ndarray
 from numpy.ma import MaskedArray
 from cf_units import Unit
 import iris
-from iris.coords import AuxCoord, CellMethod
+from iris.coords import Coord, AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea, CoordSystem
 
@@ -240,6 +240,15 @@ class DistanceBetweenGridSquares(BasePlugin):
             "Expected lat-long cube with units of degrees."
         )
 
+    @staticmethod
+    def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
+        return Cube(
+            distances,
+            long_name=f"{axis}_distance_between_grid_points",
+            units="meters",
+            dim_coords_and_dims=dims,
+        )
+
     @classmethod
     def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
         """
@@ -269,15 +278,8 @@ class DistanceBetweenGridSquares(BasePlugin):
             * np.cos(np.deg2rad(lats_full))
             * np.deg2rad(x_distances_degrees)
         )
-
         dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
-        x_distance_cube = Cube(
-            x_distances_meters,
-            long_name="y_distance_between_grid_points",
-            units="meters",
-            dim_coords_and_dims=dims,
-        )
-        return x_distance_cube
+        return cls.build_distances_cube(x_distances_meters, dims, "x")
 
     @classmethod
     def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
@@ -304,13 +306,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         ).transpose()
         y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
         dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
-        y_distance_cube = Cube(
-            y_distances_meters,
-            long_name="y_distance_between_grid_points",
-            units="meters",
-            dim_coords_and_dims=dims,
-        )
-        return y_distance_cube
+        return cls.build_distances_cube(y_distances_meters, dims, "y")
 
     @classmethod
     def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
@@ -335,13 +331,7 @@ class DistanceBetweenGridSquares(BasePlugin):
             (x_diff.coord("projection_y_coordinate"), 0),
             (x_diff.coord("projection_x_coordinate"), 1),
         ]
-        cube = Cube(
-            data,
-            long_name="x_distance_between_grid_points",
-            units="meters",
-            dim_coords_and_dims=dims,
-        )
-        return cube
+        return cls.build_distances_cube(data, dims, "x")
 
     @classmethod
     def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
@@ -366,13 +356,7 @@ class DistanceBetweenGridSquares(BasePlugin):
             (y_diff.coord("projection_y_coordinate"), 0),
             (y_diff.coord("projection_x_coordinate"), 1),
         ]
-        cube = Cube(
-            data,
-            long_name="y_distance_between_grid_points",
-            units="meters",
-            dim_coords_and_dims=dims,
-        )
-        return cube
+        return cls.build_distances_cube(data, dims, "y")
 
     def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
         """
@@ -547,26 +531,19 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         self.regrid = regrid
 
     @staticmethod
-    def _create_output_cube(gradient: Cube, diff: Cube, cube: Cube, axis: str) -> Cube:
+    def _create_output_cube(gradient: Cube, name: str) -> Cube:
         """
         Create the output gradient cube.
 
         Args:
             gradient:
                 Gradient values used in the data array of the resulting cube.
-            diff:
-                Cube containing differences along the x or y axis
-            cube:
-                Cube with correct output dimensions
-            axis:
-                Short-hand reference for the x or y coordinate, as allowed by
-                iris.util.guess_coord_axis.
 
         Returns:
             A cube of the gradients in the coordinate direction specified.
         """
         grad_cube = create_new_diagnostic_cube(
-            "gradient_of_" + cube.name(),
+            name,
             gradient.units,
             gradient,
             MANDATORY_ATTRIBUTE_DEFAULTS,
@@ -583,8 +560,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Args:
             diff:
                 Cube containing differences along the x or y axis
-            distance:
-                Cube containing distances between points in meters along the same axis as diff.
+            name:
+                Name of the cube to be created.
 
         Returns:
             Cube of the gradients in the coordinate direction specified.
@@ -614,7 +591,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         distances = DistanceBetweenGridSquares()(cube, diffs)
         for diff, distance in zip(diffs, distances):
             gradient = self._gradient_from_diff(diff, distance)
-            grad_cube = self._create_output_cube(gradient, diff, cube)
+            grad_cube = self._create_output_cube(gradient, "gradient_of_" + cube.name())
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
             gradients.append(grad_cube)
