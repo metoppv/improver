@@ -34,15 +34,20 @@ import copy
 from typing import List, Optional, Tuple, Union
 
 import cartopy.crs as ccrs
-import iris
+from cartopy.crs import CRS
 import netCDF4
 import numpy as np
-from cartopy.crs import CRS
-from cf_units import Unit
-from iris.coords import AuxCoord, CellMethod
-from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
+from cf_units import Unit
+import iris
+from iris.coords import Coord, AuxCoord, CellMethod
+from iris.cube import Cube, CubeList
+from iris.coord_systems import (
+    CoordSystem,
+    GeogCS,
+)
+
 from scipy.ndimage.filters import maximum_filter
 
 from improver import BasePlugin, PostProcessingPlugin
@@ -149,7 +154,6 @@ def distance_to_number_of_grid_cells(
     d_error = f"Distance of {distance}m"
     if distance <= 0:
         raise ValueError(f"Please specify a positive distance in metres. {d_error}")
-
     # calculate grid spacing along chosen axis
     grid_spacing_metres = calculate_grid_spacing(cube, "metres", axis=axis)
     grid_cells = distance / abs(grid_spacing_metres)
@@ -183,10 +187,248 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
     return radius_in_metres
 
 
+class DistanceBetweenGridSquares(BasePlugin):
+    """
+    Calculates the distances between adjacent grid squares within a cube.
+    The distances are calculated along the x and y axes individually.
+    Returned distances are in meters.
+    The class can handle cubes with either Geographic (lat-long) or Equal Area projections.
+    For lat-lon cubes, the distances are calculated assuming a spherical earth.
+    This causes a < 0.15% error compared with the full haversine equation.
+    """
+
+    EARTH_RADIUS = 6371e3  # meters
+
+    @staticmethod
+    def _get_cube_spatial_type(cube: Cube) -> CoordSystem:
+        """
+        Finds the coordinate system used by a cube.
+
+        Args:
+            cube:
+                Cube to find the coordinate system of.
+
+        Returns:
+            The coordinate system of the cube as an Iris Coordinate System.
+        """
+        coord_system = cube.coord_system()
+        return type(coord_system)
+
+    @staticmethod
+    def _cube_xy_dimensions_are_distances(cube: Cube) -> bool:
+        """
+        Returns true if the given cube has coordinates mapping to the x and y axes with units
+        measuring distance (as opposed to angular separation) and false otherwise.
+        Args:
+            cube:
+                The iris cube to evaluate.
+
+        Returns:
+            Boolean representing whether the cube has x and y axes defined in a distance unit.
+        """
+        try:
+            cube.coord(axis="x").convert_units("meters")
+            cube.coord(axis="y").convert_units("meters")
+            return True
+        except (
+            TypeError,
+            ValueError,
+            iris.exceptions.UnitConversionError,
+            iris.exceptions.CoordinateNotFoundError,
+        ):
+            return False
+
+    @staticmethod
+    def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
+        """
+        Extracts the vertical and horizontal grid points used by a cube
+        with a geographic coordinate system.
+
+        Args:
+            cube:
+                The cube to extract grid points from.
+        Returns:
+            - latitude points used by the cube's grid (in degrees).
+            - longitude points used by the cube's grid (in degrees).
+        Raises:
+            ValueError: Input cube does not use geographic coordinates, and/or
+            uses units other than degrees.
+        """
+        if (
+            cube.coord(axis="x").units == "degrees"
+            and cube.coord(axis="y").units == "degrees"
+        ):
+            longs = cube.coord(axis="x").points
+            lats = cube.coord(axis="y").points
+            return lats, longs
+
+        raise ValueError(
+            "Cannot parse spatial axes of the cube provided. "
+            "Expected lat-long cube with units of degrees."
+        )
+
+    @staticmethod
+    def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
+        return Cube(
+            distances,
+            long_name=f"{axis}_distance_between_grid_points",
+            units="meters",
+            dim_coords_and_dims=dims,
+        )
+
+    @classmethod
+    def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+        """
+        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Geographic coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the horizontal distances between the grid points of the input
+            cube in meters.
+        """
+        lats, longs = cls._get_latlon_cube_points(cube)
+
+        lats_as_col = np.expand_dims(lats, axis=1)
+        lon_diffs = np.diff(longs)
+        x_distances_degrees = np.tile(lon_diffs, (lats_as_col.shape[0], 1))
+        lats_full = np.tile(lats_as_col, (1, x_distances_degrees.shape[1]))
+
+        x_distances_meters = (
+            cls.EARTH_RADIUS
+            * np.cos(np.deg2rad(lats_full))
+            * np.deg2rad(x_distances_degrees)
+        )
+        dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
+        return cls.build_distances_cube(x_distances_meters, dims, "x")
+
+    @classmethod
+    def _get_latlon_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+        """
+        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Geographic coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the vertical distances between the grid points of the input
+            cube in meters.
+        """
+        lats, longs = cls._get_latlon_cube_points(cube)
+
+        lat_diffs = np.diff(lats)
+        y_distances_degrees = np.array(
+            [lat_diffs for _ in range(len(longs))]
+        ).transpose()
+        y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
+        dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
+        return cls.build_distances_cube(y_distances_meters, dims, "y")
+
+    @classmethod
+    def _get_distance_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+        """
+        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Equal Area coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the horizontal distances between the grid points of the input
+            cube in meters.
+        """
+        x_distances = calculate_grid_spacing(cube, axis="x", units="meters")
+        data = np.full(x_diff.data.shape, x_distances)
+        dims = [
+            (x_diff.coord("projection_y_coordinate"), 0),
+            (x_diff.coord("projection_x_coordinate"), 1),
+        ]
+        return cls.build_distances_cube(data, dims, "x")
+
+    @classmethod
+    def _get_distance_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+        """
+        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Equal Area coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the vertical distances between the grid points of the input
+            cube in meters.
+        """
+        y_distances = calculate_grid_spacing(cube, axis="y", units="meters")
+        data = np.full(y_diff.data.shape, y_distances)
+        dims = [
+            (y_diff.coord("projection_y_coordinate"), 0),
+            (y_diff.coord("projection_x_coordinate"), 1),
+        ]
+        return cls.build_distances_cube(data, dims, "y")
+
+    def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
+        """
+        Calculate the distances between grid points along the x and y axes
+        and return the result in separate cubes.
+
+        Args:
+            cube:
+                Cube for which the distances will be calculated.
+            diffs:
+                Tuple of cubes representing the differences between cube values along the x and
+                y axes. Optional parameter to avoid repeating the calculation if differences are
+                already available. If not provided, the differences will be calculated from the
+                cube.
+
+        Returns:
+            - Cube of horizontal distances.
+            - Cube of vertical distances.
+        """
+        if diffs is None:
+            x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
+        else:
+            x_diff, y_diff = diffs
+
+        if self._cube_xy_dimensions_are_distances(cube):
+            x_distances_cube = self._get_distance_cube_x_distances(cube, x_diff)
+            y_distances_cube = self._get_distance_cube_y_distances(cube, y_diff)
+        elif self._get_cube_spatial_type(cube) == GeogCS:
+            x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
+            y_distances_cube = self._get_latlon_cube_y_distances(cube, y_diff)
+        else:
+            raise ValueError(
+                "Unsupported cube coordinate system or insufficent information to "
+                "calculate cube distances. Cube must either have coordinates for the "
+                "x and y axis with distance units, or use the Geographic (GeogCS) "
+                "coordinate system. For cubes with x and y dimensions expressed as angles, "
+                "distance between points cannot be calculated without a coordinate system."
+            )
+        return x_distances_cube, y_distances_cube
+
+
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
     Calculate the difference between adjacent grid squares within
-    a cube. The difference is calculated along the x and y axis
+    a cube. The difference is calculated along the x and y axes
     individually.
     """
 
@@ -318,37 +560,28 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         self.regrid = regrid
 
     @staticmethod
-    def _create_output_cube(
-        gradient: ndarray, diff: Cube, cube: Cube, axis: str
-    ) -> Cube:
+    def _create_output_cube(gradient: Cube, name: str) -> Cube:
         """
         Create the output gradient cube.
 
         Args:
             gradient:
                 Gradient values used in the data array of the resulting cube.
-            diff:
-                Cube containing differences along the x or y axis
-            cube:
-                Cube with correct output dimensions
-            axis:
-                Short-hand reference for the x or y coordinate, as allowed by
-                iris.util.guess_coord_axis.
 
         Returns:
             A cube of the gradients in the coordinate direction specified.
         """
         grad_cube = create_new_diagnostic_cube(
-            "gradient_of_" + cube.name(),
-            cube.units / diff.coord(axis=axis).units,
-            diff,
+            name,
+            gradient.units,
+            gradient,
             MANDATORY_ATTRIBUTE_DEFAULTS,
-            data=gradient,
+            data=gradient.data,
         )
         return grad_cube
 
     @staticmethod
-    def _gradient_from_diff(diff: Cube, axis: str) -> ndarray:
+    def _gradient_from_diff(diff: Cube, distance: Cube) -> ndarray:
         """
         Calculate the gradient along the x or y axis from differences between
         adjacent grid squares.
@@ -356,22 +589,21 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Args:
             diff:
                 Cube containing differences along the x or y axis
-            axis:
-                Short-hand reference for the x or y coordinate, as allowed by
-                iris.util.guess_coord_axis.
+            name:
+                Name of the cube to be created.
 
         Returns:
-            Array of the gradients in the coordinate direction specified.
+            Cube of the gradients in the coordinate direction specified.
         """
-        grid_spacing = np.diff(diff.coord(axis=axis).points)[0]
-        gradient = diff.data / grid_spacing
+        gradient = diff / distance
         return gradient
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
         Calculate the gradient along the x and y axes and return
         the result in separate cubes. The difference along each axis is
-        calculated using numpy.diff.
+        calculated using numpy.diff. This is then divided by the distance
+        between grid points along the same axis to get the gradient.
 
         Args:
             cube:
@@ -385,9 +617,10 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
-        for axis, diff in zip(["x", "y"], diffs):
-            gradient = self._gradient_from_diff(diff, axis)
-            grad_cube = self._create_output_cube(gradient, diff, cube, axis)
+        distances = DistanceBetweenGridSquares()(cube, diffs)
+        for diff, distance in zip(diffs, distances):
+            gradient = self._gradient_from_diff(diff, distance)
+            grad_cube = self._create_output_cube(gradient, "gradient_of_" + cube.name())
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
             gradients.append(grad_cube)
