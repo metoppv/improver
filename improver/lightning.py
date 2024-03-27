@@ -256,7 +256,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
     """
 
     @staticmethod
-     def _extract_input(cubes, cube_name):
+    def _extract_input(cubes, cube_name):
             """Extract the relevant cube based on the cube name.
 
             Args:
@@ -272,7 +272,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
                 raise ValueError(f"No cube named {cube_name} found in {cubes}")
             return cube
 
-    def _get_inputs(cubes: CubeList) -> Tuple[Cube, Cube]:
+    def _get_inputs(self, cubes: CubeList) -> Tuple[Cube, Cube]:
         """
         Separates CAPE, LI, PW, CIN, and APCP cubes and checks that the following
         match: forecast_reference_time, spatial coords, time-bound interval and
@@ -300,7 +300,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             (apcp_time,) = list(apcp.coord("time").cells())
             if cube_time.point != apcp_time.bound[0]:
                 raise ValueError(
-                    f"The {cube.name} time point ({cube_time.point}) should be valid at the "
+                    f"The {cube.name()} time point ({cube_time.point}) should be valid at the "
                     f"precipitation_accumulation cube lower bound ({apcp_time.bound[0]})."
                 )
         if np.diff(apcp_time.bound) not in [timedelta(hours=3)]:
@@ -314,11 +314,11 @@ class LightningMultivariateProbability(PostProcessingPlugin):
                 "forecast_reference_time"
             ):
                 raise ValueError(
-                    f"{cube.name} and {apcp.name} do not have the same forecast reference time"
+                    f"{cube.name()} and {apcp.name()} do not have the same forecast reference time"
                 )
         for cube in [cape, liftidx, pwat, cin]:
             if not spatial_coords_match([cube, apcp]):
-                raise ValueError(f"{cube.name} and {apcp.name} do not have the same spatial "
+                raise ValueError(f"{cube.name()} and {apcp.name()} do not have the same spatial "
                     f"coordinates")
 
         return cape, liftidx, pwat, cin, apcp
@@ -391,8 +391,7 @@ class LightningMultivariateProbability(PostProcessingPlugin):
         data = lprob * 100.0
 
         cube = create_new_diagnostic_cube(
-            name="""20_km_lightning_probability_over_the_valid_time_of_the_accumulated_
-                precipitation""",
+            name="probability_of_lightning_in_vicinity_above_threshold",
             units="1",
             template_cube=templ,
             data=data.astype(FLOAT_DTYPE),
