@@ -43,11 +43,10 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 @pytest.fixture(name="cape_cube")
 def cape_cube_fixture() -> Cube:
     """
-    Set up a CAPE cube for use in tests.
-    Has 2 realizations, 7 latitudes spanning from 60S to 60N and 3 longitudes.
+    Set up a CAPE cube for use in tests over a variety of conditions.
     """
 
-    data = np.full((2, 7, 3), dtype=np.float32, fill_value=4000)
+    data = np.array([[4000, 0], [0, 4000]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="atmosphere_specific_convective_available_potential_energy",
@@ -56,7 +55,7 @@ def cape_cube_fixture() -> Cube:
         time_bounds=None,
         attributes=None,
         standard_grid_metadata="gl_ens",
-        domain_corner=(-60, 0),
+        domain_corner=(-20, 0),
         grid_spacing=20,
     )
     return cube
@@ -65,10 +64,10 @@ def cape_cube_fixture() -> Cube:
 @pytest.fixture(name="cin_cube")
 def cin_cube_fixture() -> Cube:
     """
-    Set up a liftidx cube for use in tests.
-    Has 2 realizations, 7 latitudes spanning from 60S to 60N and 3 longitudes.
+    Set up a liftidx cube for use in tests over a variety of conditions.
     """
-    data = np.full((2, 7, 3), dtype=np.float32, fill_value=-0.25)
+
+    data = np.array([[0.25, 0], [0, 0.25]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="atmosphere_specific_convective_inhibition",
@@ -77,7 +76,7 @@ def cin_cube_fixture() -> Cube:
         time_bounds=None,
         attributes=None,
         standard_grid_metadata="gl_ens",
-        domain_corner=(-60, 0),
+        domain_corner=(-20, 0),
         grid_spacing=20,
     )
     return cube
@@ -86,11 +85,10 @@ def cin_cube_fixture() -> Cube:
 @pytest.fixture(name="liftidx_cube")
 def liftidx_cube_fixture() -> Cube:
     """
-    Set up a liftidx cube for use in tests.
-    Has 2 realizations, 7 latitudes spanning from 60S to 60N and 3 longitudes.
+    Set up a liftidx cube for use in tests over a variety of conditions.
     """
 
-    data = np.full((2, 7, 3), dtype=np.float32, fill_value=10)
+    data = np.array([[10, -5], [2, 10]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="temperature_difference_between_ambient_air_and_air_lifted_adiabatically",
@@ -99,7 +97,7 @@ def liftidx_cube_fixture() -> Cube:
         time_bounds=None,
         attributes=None,
         standard_grid_metadata="gl_ens",
-        domain_corner=(-60, 0),
+        domain_corner=(-20, 0),
         grid_spacing=20,
     )
     return cube
@@ -108,11 +106,10 @@ def liftidx_cube_fixture() -> Cube:
 @pytest.fixture(name="pwat_cube")
 def pwat_cube_fixture() -> Cube:
     """
-    Set up a pwat cube for use in tests.
-    Has 2 realizations, 7 latitudes spanning from 60S to 60N and 3 longitudes.
+    Set up a pwat cube for use in tests over a variety of conditions.
     """
 
-    data = np.full((2, 7, 3), dtype=np.float32, fill_value=3)
+    data = np.array([[3, 20], [20, 40]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="precipitable_water",
@@ -121,7 +118,7 @@ def pwat_cube_fixture() -> Cube:
         time_bounds=None,
         attributes=None,
         standard_grid_metadata="gl_ens",
-        domain_corner=(-60, 0),
+        domain_corner=(-20, 0),
         grid_spacing=20,
     )
     return cube
@@ -130,11 +127,10 @@ def pwat_cube_fixture() -> Cube:
 @pytest.fixture(name="apcp_cube")
 def apcp_cube_fixture() -> Cube:
     """
-    Set up a apcp cube for use in tests.
-    Has 2 realizations, 7 latitudes spanning from 60S to 60N and 3 longitudes.
+    Set up a apcp cube for use in testsover a variety of conditions.
     """
 
-    data = np.full((2, 7, 3), dtype=np.float32, fill_value=6)
+    data = np.array([[6, 0], [1, 10]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
         name="precipitation_amount",
@@ -143,7 +139,7 @@ def apcp_cube_fixture() -> Cube:
         time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 6, 0)),
         attributes=None,
         standard_grid_metadata="gl_ens",
-        domain_corner=(-60, 0),
+        domain_corner=(-20, 0),
         grid_spacing=20,
     )
     return cube
@@ -152,19 +148,19 @@ def apcp_cube_fixture() -> Cube:
 @pytest.fixture(name="expected_cube")
 def expected_cube_fixture() -> Cube:
     """
-    Set up the Lightning cube that we expect to get from the plugin
+    Set up the Lightning cube that we expect to get from the plugin.
     """
 
-    data = np.full((2, 7, 3), dtype=np.float32, fill_value=14.111012)
+    data = np.array([[14.111012, 0], [6.8182287, 95.0]], dtype=np.float32)
     cube = set_up_variable_cube(
         data,
-        name="20_km_lightning_probability_over_the_valid_time_of_the_accumulated_precipitation",
+        name="probability_of_lightning_in_vicinity_above_threshold",
         units="1",
         time=datetime(2017, 11, 10, 4, 30),
         time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 6, 0)),
         attributes=None,
         standard_grid_metadata="gl_ens",
-        domain_corner=(-60, 0),
+        domain_corner=(-20, 0),
         grid_spacing=20,
     )
     return cube
@@ -217,8 +213,7 @@ def break_cape_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies cape_cube time points to be incremented by 1 second and
     returns the error message this will trigger"""
     cape_cube.coord("time").points = cape_cube.coord("time").points + 1
-    return r"CAPE cube time .* should be valid at the precipitation_accumulation cube lower .*"
-
+    return r"The .*energy time .* should be valid at the precipitation_accumulation cube lower .*"
 
 def break_precip_window(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies upper bound on precip_cube time coord to be incremented by 1 second and
@@ -234,7 +229,7 @@ def break_reference_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     precip_cube.coord("forecast_reference_time").points = (
         precip_cube.coord("forecast_reference_time").points + 1
     )
-    return r"Supplied cubes must have the same forecast reference times"
+    return r".* and .* do not have the same forecast reference time"
 
 
 def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
@@ -243,7 +238,7 @@ def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     points = list(precip_cube.coord("latitude").points)
     points[0] = points[0] + 1
     precip_cube.coord("latitude").points = points
-    return "Supplied cubes do not have the same spatial coordinates"
+    return ".* and .* do not have the same spatial coordinates"
 
 
 @pytest.mark.parametrize(
@@ -260,6 +255,7 @@ def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
         break_coordinates,
     ),
 )
+
 def test_exceptions(
     cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube, breaking_function
 ):
