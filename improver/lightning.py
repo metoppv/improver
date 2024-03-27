@@ -419,20 +419,3 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         cube.add_aux_coord(vic_coord)
 
         return cube
-
-
-def _extract_input(cubes, cube_name):
-    """Extract the relevant cube based on the cube name.
-
-    Args:
-        cubes: Cubes from which to extract required input.
-        cube_name: Name of cube to extract.
-
-    Returns:
-        The extracted cube.
-    """
-    try:
-        cube = cubes.extract_cube(iris.Constraint(cube_name))
-    except iris.exceptions.ConstraintMismatchError:
-        raise ValueError(f"No cube named {cube_name} found in {cubes}")
-    return cube
