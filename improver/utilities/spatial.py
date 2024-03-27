@@ -43,7 +43,7 @@ from cf_units import Unit
 import iris
 from iris.coords import Coord, AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
-from iris.coord_systems import GeogCS, LambertAzimuthalEqualArea, CoordSystem
+from iris.coord_systems import CoordSystem, GeogCS, LambertAzimuthalEqualArea, TransverseMercator
 
 from scipy.ndimage.filters import maximum_filter
 
@@ -196,8 +196,8 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     EARTH_RADIUS = 6371e3  # meters
 
-    @classmethod
-    def _get_cube_spatial_type(cls, cube: Cube) -> CoordSystem:
+    @staticmethod
+    def _get_cube_spatial_type(cube: Cube) -> CoordSystem:
         """
         Finds the coordinate system used by a cube.
 
@@ -211,6 +211,27 @@ class DistanceBetweenGridSquares(BasePlugin):
         coord_system = cube.coord_system()
         return type(coord_system)
 
+
+    @staticmethod
+    def _cube_xy_dimensions_are_distances(cube: Cube) -> bool:
+        """
+        Returns true if the given cube has coordinates mapping to the x and y axes with units
+        measuring distance (as opposed to angular separation) and false otherwise.
+        Args:
+            cube:
+                The iris cube to evaluate.
+
+        Returns:
+            Boolean representing whether the cube has x and y axes defined in a distance unit.
+        """
+        try:
+            cube.coord(axis="x").convert_units("meters")
+            cube.coord(axis="y").convert_units("meters")
+            return True
+        except (TypeError, ValueError,
+                iris.exceptions.UnitConversionError, iris.exceptions.CoordinateNotFoundError):
+            return False
+            
     @staticmethod
     def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
         """
@@ -282,7 +303,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return cls.build_distances_cube(x_distances_meters, dims, "x")
 
     @classmethod
-    def _get_y_latlon_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+    def _get_latlon_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
         """
         Calculates the vertical distances between adjacent grid points of a cube which uses
         Geographic coordinates.
@@ -309,7 +330,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return cls.build_distances_cube(y_distances_meters, dims, "y")
 
     @classmethod
-    def _get_x_equalarea_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+    def _get_distance_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
         """
         Calculates the horizontal distances between adjacent grid points of a cube which uses
         Equal Area coordinates.
@@ -334,7 +355,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return cls.build_distances_cube(data, dims, "x")
 
     @classmethod
-    def _get_y_equalarea_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+    def _get_distance_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
         """
         Calculates the vertical distances between adjacent grid points of a cube which uses
         Equal Area coordinates.
@@ -381,17 +402,19 @@ class DistanceBetweenGridSquares(BasePlugin):
         else:
             x_diff, y_diff = diffs
 
-        cube_type = self._get_cube_spatial_type(cube)
-        if cube_type == GeogCS:
+        if self._cube_xy_dimensions_are_distances(cube):
+            x_distances_cube = self._get_distance_cube_x_distances(cube, x_diff)
+            y_distances_cube = self._get_distance_cube_y_distances(cube, y_diff)
+        elif self._get_cube_spatial_type(cube) == GeogCS:
             x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
-            y_distances_cube = self._get_y_latlon_distances(cube, y_diff)
-        elif cube_type == LambertAzimuthalEqualArea:
-            x_distances_cube = self._get_x_equalarea_distances(cube, x_diff)
-            y_distances_cube = self._get_y_equalarea_distances(cube, y_diff)
+            y_distances_cube = self._get_latlon_cube_y_distances(cube, y_diff)
         else:
             raise ValueError(
-                "Unsupported cube coordinate system. Only Georgraphic (GeogCS) and "
-                "Lambert Azimutahl Equal Area projections are supported."
+                "Unsupported cube coordinate system or insufficent information to "
+                "calculate cube distances. Cube must either have coordinates for the "
+                "x and y axis with distance units, or use the Geographic (GeogCS) "
+                "coordinate system. For cubes with x and y dimensions expressed as angles, "
+                "distance between points cannot be calculated without a coordinate system."
             )
         return x_distances_cube, y_distances_cube
 
