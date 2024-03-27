@@ -46,6 +46,7 @@ from improver.metadata.utilities import (
 from improver.threshold import LatitudeDependentThreshold
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.rescale import rescale
+from improver.utilities.spatial import create_vicinity_coord
 
 
 class LightningFromCapePrecip(PostProcessingPlugin):
@@ -179,7 +180,9 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
 
 def latitude_to_threshold(
-    latitude: np.ndarray, midlatitude: float, tropics: float,
+    latitude: np.ndarray,
+    midlatitude: float,
+    tropics: float,
 ) -> np.ndarray:
     """
     Rescale a latitude range into a range of threshold values suitable for
@@ -257,20 +260,20 @@ class LightningMultivariateProbability(PostProcessingPlugin):
 
     @staticmethod
     def _extract_input(cubes, cube_name):
-            """Extract the relevant cube based on the cube name.
+        """Extract the relevant cube based on the cube name.
 
-            Args:
-                cubes: Cubes from which to extract required input.
-                cube_name: Name of cube to extract.
+        Args:
+            cubes: Cubes from which to extract required input.
+            cube_name: Name of cube to extract.
 
-            Returns:
-                The extracted cube.
-            """
-            try:
-                cube = cubes.extract_cube(iris.Constraint(cube_name))
-            except iris.exceptions.ConstraintMismatchError:
-                raise ValueError(f"No cube named {cube_name} found in {cubes}")
-            return cube
+        Returns:
+            The extracted cube.
+        """
+        try:
+            cube = cubes.extract_cube(iris.Constraint(cube_name))
+        except iris.exceptions.ConstraintMismatchError:
+            raise ValueError(f"No cube named {cube_name} found in {cubes}")
+        return cube
 
     def _get_inputs(self, cubes: CubeList) -> Tuple[Cube, Cube]:
         """
@@ -318,8 +321,10 @@ class LightningMultivariateProbability(PostProcessingPlugin):
                 )
         for cube in [cape, liftidx, pwat, cin]:
             if not spatial_coords_match([cube, apcp]):
-                raise ValueError(f"{cube.name()} and {apcp.name()} do not have the same spatial "
-                    f"coordinates")
+                raise ValueError(
+                    f"{cube.name()} and {apcp.name()} do not have the same spatial "
+                    f"coordinates"
+                )
 
         return cape, liftidx, pwat, cin, apcp
 
@@ -400,7 +405,22 @@ class LightningMultivariateProbability(PostProcessingPlugin):
             ),
         )
 
+        # Add auxiliary coordinate for threshold of any lightning occurring (above 0 flashes)
+        coord = DimCoord(
+            np.array([0], dtype=FLOAT_DTYPE),
+            units="m-2",
+            long_name="number_of_lightning_flashes_per_unit_area",
+            var_name="threshold",
+            attributes={"spp__relative_to_threshold": "greater_than"},
+        )
+        cube.add_aux_coord(coord)
+
+        # Add auxiliary coordinate for vicinity of 20 km
+        vic_coord = create_vicinity_coord(20000)
+        cube.add_aux_coord(vic_coord)
+
         return cube
+
 
 def _extract_input(cubes, cube_name):
     """Extract the relevant cube based on the cube name.
