@@ -43,7 +43,10 @@ from cf_units import Unit
 import iris
 from iris.coords import Coord, AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
-from iris.coord_systems import CoordSystem, GeogCS, LambertAzimuthalEqualArea, TransverseMercator
+from iris.coord_systems import (
+    CoordSystem,
+    GeogCS,
+)
 
 from scipy.ndimage.filters import maximum_filter
 
@@ -211,7 +214,6 @@ class DistanceBetweenGridSquares(BasePlugin):
         coord_system = cube.coord_system()
         return type(coord_system)
 
-
     @staticmethod
     def _cube_xy_dimensions_are_distances(cube: Cube) -> bool:
         """
@@ -228,10 +230,14 @@ class DistanceBetweenGridSquares(BasePlugin):
             cube.coord(axis="x").convert_units("meters")
             cube.coord(axis="y").convert_units("meters")
             return True
-        except (TypeError, ValueError,
-                iris.exceptions.UnitConversionError, iris.exceptions.CoordinateNotFoundError):
+        except (
+            TypeError,
+            ValueError,
+            iris.exceptions.UnitConversionError,
+            iris.exceptions.CoordinateNotFoundError,
+        ):
             return False
-            
+
     @staticmethod
     def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
         """
