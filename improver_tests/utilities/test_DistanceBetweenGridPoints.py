@@ -33,7 +33,8 @@
 import numpy as np
 from iris.cube import Cube
 from iris.coords import DimCoord
-from iris.coord_systems import GeogCS
+from iris.coord_systems import GeogCS, TransverseMercator
+from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
@@ -45,9 +46,10 @@ EARTH_RADIUS = 6.6371e3  # meters
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
 X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Meters
 X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Meters
-
+# Distance covered when travelling 10 degrees north/south:
 Y_GRID_SPACING = 1111949  # Meters
 
+TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0 # Meters
 
 def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
     """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
@@ -60,25 +62,25 @@ def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
     return cube
 
 
-def make_latlon_test_cube(shape, latitudes, longitudes, units="degrees"):
-    """Creates a cube using the Geographic projection for testing"""
+def make_test_cube(shape, coordinate_system, x_axis_name, x_axis_values,
+                   y_axis_name, y_axis_values, units):
     example_data = np.ones(shape, dtype=np.float32)
     dimcoords = [
         (
             DimCoord(
-                latitudes,
-                standard_name="latitude",
+                y_axis_values,
+                standard_name=y_axis_name,
                 units=units,
-                coord_system=GeogCS(EARTH_RADIUS),
+                coord_system=coordinate_system,
             ),
             0,
         ),
         (
             DimCoord(
-                longitudes,
-                standard_name="longitude",
+                x_axis_values,
+                standard_name=x_axis_name,
                 units=units,
-                coord_system=GeogCS(EARTH_RADIUS),
+                coord_system=coordinate_system,
             ),
             1,
         ),
@@ -92,18 +94,43 @@ def make_latlon_test_cube(shape, latitudes, longitudes, units="degrees"):
     return cube
 
 
-def test_latlon_cube():
+def make_transverse_mercator_test_cube(shape):
+    """
+    Data are on a 2 km Transverse Mercator grid with an inverted y-axis,
+    located in the UK.
+    """
+    # UKPP projection
+    TMercCS = TransverseMercator(
+        latitude_of_projection_origin=49.0,
+        longitude_of_central_meridian=-2.0,
+        false_easting=400000.0,
+        false_northing=-100000.0,
+        scale_factor_at_central_meridian=0.9996013045310974,
+        ellipsoid=GeogCS(semi_major_axis=6377563.396, semi_minor_axis=6356256.91),
+    )
+    xo = 400000.0
+    yo = 0.0
+    y_points = TRANSVERSE_MERCATOR_GRID_SPACING * (shape[0] - np.arange(shape[0])) + yo
+    x_points = TRANSVERSE_MERCATOR_GRID_SPACING * np.arange(shape[1]) + xo
+    return make_test_cube(shape, TMercCS, "projection_x_coordinate", x_points, "projection_y_coordinate", y_points, "meters")
+
+
+def make_latlon_test_cube(shape, latitudes, longitudes):
+    """Creates a cube using the Geographic projection for testing"""
+    return make_test_cube(shape, GeogCS(EARTH_RADIUS), "longitude", longitudes, "latitude", latitudes, "degrees")
+
+
+def test_latlon_cube_nonuniform_spacing():
     input_cube = make_latlon_test_cube(
-        (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
+        (2, 3), latitudes=[0, 20], longitudes=[0, 10, 20]
     )
     expected_x_distances = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
-            [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
             [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
         ]
     )
-    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
+    expected_y_distances = np.full((1, 3), 2 * Y_GRID_SPACING)
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
@@ -144,17 +171,18 @@ def test_latlon_cube_unequal_xy_dims():
         )  # Allowing 0.2% error for spherical earth approximation.
 
 
-def test_latlon_cube_nonuniform_spacing():
+def test_latlon_cube():
     input_cube = make_latlon_test_cube(
-        (2, 3), latitudes=[0, 20], longitudes=[0, 10, 20]
+        (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
     )
     expected_x_distances = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
+            [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
             [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
         ]
     )
-    expected_y_distances = np.full((1, 3), 2 * Y_GRID_SPACING)
+    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
@@ -199,3 +227,65 @@ def test_equalarea_cube_nonstandard_units():
     ):
         assert result.units == "meters"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
+
+
+def test_transverse_mercator_cube():
+    input_cube = make_transverse_mercator_test_cube((3, 2))
+    expected_x_distances = np.array(
+        [
+            [TRANSVERSE_MERCATOR_GRID_SPACING],
+            [TRANSVERSE_MERCATOR_GRID_SPACING],
+            [TRANSVERSE_MERCATOR_GRID_SPACING],
+        ]
+    )
+    expected_y_distances = np.full((2, 2), TRANSVERSE_MERCATOR_GRID_SPACING)
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
+        assert result.units == "meters"
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
+
+
+def test_distance_cube_with_no_coordinate_system():
+    data = np.ones((3, 3))
+    x_coord = DimCoord(np.arange(3), "projection_x_coordinate", units="km")
+    y_coord = DimCoord(np.arange(3), "projection_y_coordinate", units="km")
+    input_cube = Cube(
+        data,
+        long_name="topography",
+        units="m",
+        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+    )
+    expected_x_distances = np.full((3, 2), 1000)
+    expected_y_distances = np.full((2, 3), 1000)
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
+        assert result.units == "meters"
+        np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
+
+
+def test_degrees_cube_with_no_coordinate_system_information():
+    data = np.ones((3, 3))
+    x_coord = DimCoord(np.arange(3), "projection_x_coordinate", units="degrees")
+    y_coord = DimCoord(np.arange(3), "projection_y_coordinate", units="degrees")
+    input_cube = Cube(
+        data,
+        long_name="temperature",
+        units="Kelvin",
+        dim_coords_and_dims=[(y_coord, 0), (x_coord, 1)],
+    )
+    with IrisTest().assertRaisesRegex(expected_exception=ValueError, expected_regex="Unsupported cube coordinate system.*"):
+        _, _ = DistanceBetweenGridSquares()(input_cube)
