@@ -156,7 +156,7 @@ def expected_cube_fixture() -> Cube:
         data,
         name="probability_of_lightning_in_vicinity_above_threshold",
         units="1",
-        time=datetime(2017, 11, 10, 4, 30),
+        time=datetime(2017, 11, 10, 6, 0),
         time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 6, 0)),
         attributes=None,
         standard_grid_metadata="gl_ens",
@@ -215,6 +215,7 @@ def break_cape_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     cape_cube.coord("time").points = cape_cube.coord("time").points + 1
     return r"The .*energy time .* should be valid at the precipitation_accumulation cube lower .*"
 
+
 def break_precip_window(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies upper bound on precip_cube time coord to be incremented by 1 second and
     returns the error message this will trigger"""
@@ -255,7 +256,6 @@ def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
         break_coordinates,
     ),
 )
-
 def test_exceptions(
     cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube, breaking_function
 ):
