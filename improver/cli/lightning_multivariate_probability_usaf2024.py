@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,38 +29,49 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Tests for the lightning_usaf"""
+"""Script to create lightning probabilities from multi-parameter datasets."""
 
-import pytest
-
-from . import acceptance as acc
-
-pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
-CLI = acc.cli_name_with_dashes(__file__)
-run_cli = acc.run_cli(CLI)
+from improver import cli
 
 
-@pytest.mark.parametrize("with_model_attr", (True, False))
-def test_basic(tmp_path, with_model_attr):
-    """Test basic invocation"""
-    kgo_dir = acc.kgo_root() / "lightning-multivariate-probability"
-    kgo_path = kgo_dir / "kgo.nc"
-    cape_path = kgo_dir / "cape.nc"
-    liftidx_path = kgo_dir / "liftidx.nc"
-    pwat_path = kgo_dir / "pwat.nc"
-    cin_path = kgo_dir / "cin.nc"
-    apcp_path = kgo_dir / "apcp.nc"
+@cli.clizefy
+@cli.with_output
+def process(
+    *cubes: cli.inputcube,
+    model_id_attr: str = None,
+):
+    """
+    From the supplied following cubes:
+    Convective Available Potential Energy (CAPE in J/kg),
+    Lifted Index (liftind in K),
+    Precipitable Water (pwat in kg m-2 or mm. This is used as mm in the regression equations),
+    Convective Inhibition (CIN in J/kg),
+    3-hour Accumulated Precipitation (apcp in kg m-2 or millimetres),
+    calculate a probability of lightning cube using relationships developed using regression
+    statistics.
 
-    output_path = tmp_path / "output.nc"
-    args = [
-        cape_path,
-        liftidx_path,
-        pwat_path,
-        cin_path,
-        apcp_path,
-        "--output",
-        f"{output_path}",
-    ]
+    The cubes for CAPE, lifted index, precipitable water, and CIN must be valid for the beginning
+    of the 3-hr accumulated precipitation window.
 
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
+    Does not collapse a realization coordinate.
+
+    Args:
+        cubes (list of iris.cube.Cube):
+            Cubes to be processed.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
+
+    Returns:
+        iris.cube.Cube:
+            Cube of probabilities of lightning
+    """
+    from iris.cube import CubeList
+
+    from improver.lightning import LightningMultivariateProbability_USAF2024
+
+    result = LightningMultivariateProbability_USAF2024()(
+        CubeList(cubes), model_id_attr=model_id_attr
+    )
+
+    return result

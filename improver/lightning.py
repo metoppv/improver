@@ -209,7 +209,7 @@ def latitude_to_threshold(
     )
 
 
-class LightningMultivariateProbability(PostProcessingPlugin):
+class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
     """
     The algorithm outputs the probability of at least one lightning strike within
     20 km of the location in a three hour period. The probabilities are calculated
@@ -225,7 +225,8 @@ class LightningMultivariateProbability(PostProcessingPlugin):
     Outputs:
     20 km lightning probability over the valid time of the accumulated precipitation
 
-    ---------------------------------------------------------------------------------
+
+    Description of the algorithm:
 
     Regression equation when CAPE and APCP are greater than zero:
     lprob= cape*APCP

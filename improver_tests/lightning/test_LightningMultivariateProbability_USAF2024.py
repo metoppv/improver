@@ -36,7 +36,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
 
-from improver.lightning import LightningMultivariateProbability
+from improver.lightning import LightningMultivariateProbability_USAF2024
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
@@ -168,7 +168,7 @@ def expected_cube_fixture() -> Cube:
 
 def test_basic(cape_cube, liftidx_cube, pwat_cube, cin_cube, apcp_cube, expected_cube):
     """Run the plugin and check the result cube matches the expected_cube"""
-    result = LightningMultivariateProbability()(
+    result = LightningMultivariateProbability_USAF2024()(
         CubeList([cape_cube, liftidx_cube, pwat_cube, cin_cube, apcp_cube]), None
     )
     assert np.allclose(result.data, expected_cube.data)
@@ -265,6 +265,6 @@ def test_exceptions(
         cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube
     )
     with pytest.raises(ValueError, match=error_msg):
-        LightningMultivariateProbability()(
+        LightningMultivariateProbability_USAF2024()(
             CubeList([cape_cube, apcp_cube, cin_cube, liftidx_cube, pwat_cube])
         )
