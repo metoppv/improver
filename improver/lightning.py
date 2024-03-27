@@ -180,9 +180,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
 
 def latitude_to_threshold(
-    latitude: np.ndarray,
-    midlatitude: float,
-    tropics: float,
+    latitude: np.ndarray, midlatitude: float, tropics: float,
 ) -> np.ndarray:
     """
     Rescale a latitude range into a range of threshold values suitable for
