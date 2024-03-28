@@ -33,7 +33,6 @@
 from abc import ABC, abstractmethod
 from collections.abc import Iterable
 
-from dagrunner import Plugin
 from pkg_resources import DistributionNotFound, get_distribution
 
 try:
@@ -43,12 +42,12 @@ except DistributionNotFound:
     pass
 
 
-class BasePlugin(Plugin, ABC):
+class BasePlugin(ABC):
     """An abstract class for IMPROVER plugins.
     Subclasses must be callable. We preserve the process
     method by redirecting to __call__.
     """
-    def __call__(self, *args, filepath=None, verbose=False, **kwargs):
+    def __call__(self, *args, verbose=False, **kwargs):
         """
         Makes subclasses callable to use process
         Args:
@@ -75,7 +74,7 @@ class PostProcessingPlugin(BasePlugin):
     An abstract class for IMPROVER post-processing plugins.
     Makes generalised changes to metadata relating to post-processing.
     """
-    def __call__(self, *args, filepath=None, verbose=False, **kwargs):
+    def __call__(self, *args, verbose=False, **kwargs):
         """
         Makes subclasses callable to use process
         Args:
