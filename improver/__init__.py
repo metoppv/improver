@@ -58,10 +58,7 @@ class BasePlugin(ABC):
         Returns:
             Output of self.process()
         """
-        res = self.process(*args, verbose=verbose, **kwargs)
-        if hasattr(self, "post_process_result"):
-            res = self.post_process_result(res)
-        return res
+        return self.process(*args, verbose=verbose, **kwargs)
 
     @abstractmethod
     def process(self, *args, verbose=False, **kwargs):
