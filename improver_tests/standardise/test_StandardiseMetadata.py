@@ -35,7 +35,7 @@ from datetime import datetime
 
 import iris
 import numpy as np
-from iris.coords import AuxCoord
+from iris.coords import AuxCoord, DimCoord
 from iris.tests import IrisTest
 
 from improver.standardise import StandardiseMetadata
@@ -128,18 +128,67 @@ class Test_process(IrisTest):
             "institution": "Met Office",
         }
         expected_data = self.cube.data.copy() - 273.15
+        # Add scalar height coordinate
+        self.cube.add_aux_coord(DimCoord([1.5], standard_name="height", units="m"))
+        # Modifier for scalar height coordinate
+        coord_modification = {"height": 2.0}
+
         result = self.plugin.process(
             self.cube,
             new_name=new_name,
             new_units="degC",
             coords_to_remove=["forecast_period"],
+            coord_modification=coord_modification,
             attributes_dict=attribute_changes,
         )
         self.assertEqual(result.name(), new_name)
         self.assertEqual(result.units, "degC")
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
+        self.assertEqual(result.coord("height").points, 2.0)
         self.assertDictEqual(result.attributes, expected_attributes)
         self.assertNotIn("forecast_period", [coord.name() for coord in result.coords()])
+
+    def test_attempt_modify_dimension_coord(self):
+        """Test that an exception is raised if the coord_modification targets
+        a dimension coordinate."""
+
+        coord_modification = {"latitude": [0.1, 1.2, 3.4, 5.6, 7]}
+        msg = "Modifying dimension coordinate values is not allowed "
+
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(
+                self.cube, coord_modification=coord_modification,
+            )
+
+    def test_attempt_modify_multi_valued_coord(self):
+        """Test that an exception is raised if the coord_modification is used
+        to modify a multi-valued coordinate which is not a dimension
+        coordinate and is therefore missed by the previous test."""
+
+        cube = self.cube.copy()
+        kitten_coord = AuxCoord([1, 2, 3, 4, 5], long_name="kittens", units=1)
+        cube.add_aux_coord(kitten_coord, 0)
+
+        coord_modification = {"kittens": [2, 3, 4, 5, 6]}
+        msg = "Modifying multi-valued coordinates is not allowed."
+
+        with self.assertRaisesRegex(ValueError, msg):
+            self.plugin.process(
+                cube, coord_modification=coord_modification,
+            )
+
+    def test_attempt_modify_time_coord(self):
+        """Test that an exception is raised if the coord_modification targets
+        time coordinates."""
+
+        msg = "Modifying time coordinates is not allowed."
+        for coord in ["time", "forecast_period", "forecast_reference_time"]:
+            coord_modification = {coord: 100}
+
+            with self.assertRaisesRegex(ValueError, msg):
+                self.plugin.process(
+                    self.cube, coord_modification=coord_modification,
+                )
 
     def test_discard_cellmethod(self):
         """Test changes to cell_methods"""

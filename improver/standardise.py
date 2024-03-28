@@ -41,6 +41,7 @@ from numpy import dtype, ndarray
 from improver import BasePlugin
 from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
+    _is_time_coord,
     check_units,
     get_required_dtype,
     get_required_units,
@@ -123,6 +124,46 @@ class StandardiseMetadata(BasePlugin):
                 continue
 
     @staticmethod
+    def _modify_scalar_coord_value(
+        cube: Cube, coord_modification: Dict[str, float]
+    ) -> None:
+        """Modifies the value of each specified scalar coord (dictionary key)
+        to the provided value (dictionary value). Note that data types are not
+        enforced here as the subsequent enforcement step will fulfil this
+        requirement. Units are assumed to be the same as the original
+        coordinate value. Modifying multi-valued coordinates or time
+        coordinates is specifically prevented as there is greater scope to
+        harm data integrity (i.e. the description of the data and the data
+        becoming misaligned).
+
+        If the coordinate does not exist the modification request is silently
+        skipped.
+
+        Args:
+            cube:
+                Cube to be updated in place
+            coord_modification:
+                Dictionary defining the coordinates (keys) to be modified
+                and the values (values) to which they should be set.
+        """
+        for coord, value in coord_modification.items():
+            if cube.coords(coord):
+                if cube.coords(coord, dim_coords=True):
+                    raise ValueError(
+                        "Modifying dimension coordinate values is not allowed "
+                        "due to the risk of introducing errors."
+                    )
+                if hasattr(value, "__len__") and len(value) > 1:
+                    raise ValueError(
+                        "Modifying multi-valued coordinates is not allowed. "
+                        "This functionality should be used only for very "
+                        "modest changes to scalar coordinates."
+                    )
+                if _is_time_coord(cube.coord(coord)):
+                    raise ValueError("Modifying time coordinates is not allowed.")
+                cube.coord(coord).points = np.array([value])
+
+    @staticmethod
     def _standardise_dtypes_and_units(cube: Cube) -> None:
         """
         Modify input cube in place to conform to mandatory dtype and unit
@@ -188,6 +229,7 @@ class StandardiseMetadata(BasePlugin):
         new_name: Optional[str] = None,
         new_units: Optional[str] = None,
         coords_to_remove: Optional[List[str]] = None,
+        coord_modification: Optional[Dict[str, float]] = None,
         attributes_dict: Optional[Dict[str, Any]] = None,
     ) -> Cube:
         """
@@ -209,6 +251,17 @@ class StandardiseMetadata(BasePlugin):
                 Optional unit conversion for output cube
             coords_to_remove:
                 Optional list of scalar coordinates to remove from output cube
+            coord_modification:
+                Optional dictionary used to directly modify the values of
+                scalar coordinates. To be used with extreme caution.
+                For example this dictionary might take the form:
+                {"height": 1.5} to set the height coordinate to have a value
+                of 1.5m (assuming original units of m).
+                This can be used to align e.g. temperatures defined at slightly
+                different heights where this difference is considered small
+                enough to ignore. Type is inferred, so providing a value of 2
+                will result in an integer type, whilst a value of 2.0 will
+                result in a float type.
             attributes_dict:
                 Optional dictionary of required attribute updates. Keys are
                 attribute names, and values are the required changes.
@@ -226,6 +279,8 @@ class StandardiseMetadata(BasePlugin):
             cube.convert_units(new_units)
         if coords_to_remove:
             self._remove_scalar_coords(cube, coords_to_remove)
+        if coord_modification:
+            self._modify_scalar_coord_value(cube, coord_modification)
         if attributes_dict:
             amend_attributes(cube, attributes_dict)
         self._discard_redundant_cell_methods(cube)

@@ -112,3 +112,49 @@ def test_daynight(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_period_max(tmp_path):
+    """Test interpolation of an period maximum."""
+    kgo_dir = acc.kgo_root() / "temporal-interpolate/period"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = [
+        kgo_dir / f"20240217T{v:04}Z-PT{l:04}H00M-wind_gust_at_10m_max-PT03H.nc"
+        for v, l in ((300, 16), (600, 19))
+    ]
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--times",
+        "20240217T0430Z",
+        "--interpolation-method",
+        "linear",
+        "--max",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
+def test_accumulation(tmp_path):
+    """Test interpolation of an accumulation."""
+    kgo_dir = acc.kgo_root() / "temporal-interpolate/accumulation"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_paths = [
+        kgo_dir / f"20240217T{v:04}Z-PT{l:04}H00M-precipitation_accumulation-PT03H.nc"
+        for v, l in ((1900, 33), (2200, 36))
+    ]
+    output_path = tmp_path / "output.nc"
+    args = [
+        *input_paths,
+        "--times",
+        "20240217T2000Z,20240217T2100Z",
+        "--interpolation-method",
+        "linear",
+        "--accumulation",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
