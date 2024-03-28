@@ -348,7 +348,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
                                     np.array([self.probability_bins[-1, 1] + self.single_value_tolerance]),
                                     np.array([2])]).astype(self.probability_bins.dtype)
 
-        bin_index = np.searchsorted(bin_edges, forecast, side="left")
+        bin_index = np.searchsorted(bin_edges, forecast, side="right")
         forecast_probabilities = np.zeros((len(self.probability_bins) + 1, ) + forecast.shape, dtype=forecast.dtype)
         np.put_along_axis(forecast_probabilities, np.expand_dims(bin_index, 0), forecast, axis=0)
         forecast_counts = np.zeros_like(forecast_probabilities)
