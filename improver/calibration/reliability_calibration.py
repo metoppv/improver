@@ -343,23 +343,38 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         forecast_probabilities = []
         forecast_counts = []
 
-        for bin_min, bin_max in self.probability_bins:
-            observation_mask = (
-                ((forecast >= bin_min) & (forecast <= bin_max)) & (np.isclose(truth, 1))
-            ).astype(int)
-            forecast_mask = ((forecast >= bin_min) & (forecast <= bin_max)).astype(int)
-            forecasts_probability_values = forecast * forecast_mask
+        # last bin is for nan values
+        bin_edges = np.concatenate([np.array(self.probability_bins[:, 0]),
+                                    np.array([self.probability_bins[-1, 1] + self.single_value_tolerance]),
+                                    np.array([2])]).astype(self.probability_bins.dtype)
 
-            observation_counts.append(observation_mask)
-            forecast_probabilities.append(forecasts_probability_values)
-            forecast_counts.append(forecast_mask)
-        reliability_table = np.ma.stack(
-            [
-                np.ma.stack(observation_counts),
-                np.ma.stack(forecast_probabilities),
-                np.ma.stack(forecast_counts),
-            ]
-        )
+        bin_index = np.searchsorted(bin_edges, forecast, side="left")
+        forecast_probabilities = np.zeros((len(self.probability_bins) + 1, ) + forecast.shape, dtype=forecast.dtype)
+        np.put_along_axis(forecast_probabilities, np.expand_dims(bin_index, 0), forecast, axis=0)
+        forecast_counts = np.zeros_like(forecast_probabilities)
+        np.put_along_axis(forecast_counts, np.expand_dims(bin_index, 0), 1, axis=0)
+        observation_counts = (np.expand_dims(np.isclose(truth, 1), 0) & forecast_counts.astype(bool)).astype(int)
+
+#        for bin_min, bin_max in self.probability_bins:
+#            observation_mask = (
+#                ((forecast >= bin_min) & (forecast <= bin_max)) & (np.isclose(truth, 1))
+#            ).astype(int)
+#            forecast_mask = ((forecast >= bin_min) & (forecast <= bin_max)).astype(int)
+#            forecasts_probability_values = forecast * forecast_mask
+#
+#            observation_counts.append(observation_mask)
+#            forecast_probabilities.append(forecasts_probability_values)
+#            forecast_counts.append(forecast_mask)
+#        reliability_table = np.ma.stack(
+#            [
+#                np.ma.stack(observation_counts),
+#                np.ma.stack(forecast_probabilities),
+#                np.ma.stack(forecast_counts),
+#            ]
+#        )
+#
+        
+        reliability_table = np.ma.stack([observation_counts[:-1, :], forecast_probabilities[:-1, :], forecast_counts[:-1, :]])
 
         return reliability_table.astype(np.float32)
 
