@@ -343,16 +343,18 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
         forecast_probabilities = []
         forecast_counts = []
 
-        # last bin is for nan values
         bin_edges = np.concatenate([np.array(self.probability_bins[:, 0]),
-                                    np.array([self.probability_bins[-1, 1] + self.single_value_tolerance]),
-                                    np.array([2])]).astype(self.probability_bins.dtype)
-
-        bin_index = np.searchsorted(bin_edges, forecast, side="right")
-        forecast_probabilities = np.zeros((len(self.probability_bins) + 1, ) + forecast.shape, dtype=forecast.dtype)
+                                    np.array([self.probability_bins[-1, 1] + self.single_value_tolerance])]).astype(self.probability_bins.dtype)
+        bin_index = np.searchsorted(bin_edges, forecast, side="right") - 1
+        # nan values have index equal to len(bin_edges) - 1
+        new_shape = (len(bin_edges), ) + forecast.shape
+        forecast_mask = np.broadcast_to(np.expand_dims(np.ma.getmask(forecast), 0), new_shape)
+        forecast_probabilities = np.zeros(new_shape, dtype=forecast.dtype)
         np.put_along_axis(forecast_probabilities, np.expand_dims(bin_index, 0), forecast, axis=0)
+        forecast_probabilities = np.ma.array(forecast_probabilities, mask=forecast_mask, copy=False)
         forecast_counts = np.zeros_like(forecast_probabilities)
         np.put_along_axis(forecast_counts, np.expand_dims(bin_index, 0), 1, axis=0)
+        forecast_counts = np.ma.array(forecast_counts, mask=forecast_mask, copy=False)
         observation_counts = (np.expand_dims(np.isclose(truth, 1), 0) & forecast_counts.astype(bool)).astype(int)
 
 #        for bin_min, bin_max in self.probability_bins:
