@@ -265,7 +265,7 @@ class DistanceBetweenGridSquares(BasePlugin):
 
         Returns:
             A cube containing the horizontal distances between the grid points of the input
-            cube in meters.
+            cube in metres.
         """
         lats, longs = cls._get_latlon_cube_points(cube)
 
