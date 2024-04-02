@@ -272,7 +272,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
-            units="meters",
+            units="metres",
             dim_coords_and_dims=dims,
         )
 
