@@ -197,8 +197,6 @@ class DistanceBetweenGridSquares(BasePlugin):
     This causes a < 0.15% error compared with the full haversine equation.
     """
 
-    EARTH_RADIUS = 6371e3  # meters
-
     @staticmethod
     def _get_cube_spatial_type(cube: Cube) -> CoordSystem:
         """
@@ -300,8 +298,10 @@ class DistanceBetweenGridSquares(BasePlugin):
         x_distances_degrees = np.tile(lon_diffs, (lats_as_col.shape[0], 1))
         lats_full = np.tile(lats_as_col, (1, x_distances_degrees.shape[1]))
 
+        sphere_radius = cube.coord(axis="x").coord_system.semi_minor_axis
+
         x_distances_meters = (
-            cls.EARTH_RADIUS
+            sphere_radius
             * np.cos(np.deg2rad(lats_full))
             * np.deg2rad(x_distances_degrees)
         )
@@ -331,7 +331,10 @@ class DistanceBetweenGridSquares(BasePlugin):
         y_distances_degrees = np.array(
             [lat_diffs for _ in range(len(longs))] # TODO: use np.tile()... Or better still, use broadcasting in the final calculation rather than creating two cubic arrays first. More efficient!
         ).transpose()
-        y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
+
+        sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
+
+        y_distances_meters = sphere_radius * np.deg2rad(y_distances_degrees)
         dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
         return cls.build_distances_cube(y_distances_meters, dims, "y")
 

@@ -42,7 +42,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
 
 
-EARTH_RADIUS = 6.6371e3  # meters
+EARTH_RADIUS = 6371229.0  # metres
 
 # Distances covered when travelling 10 degrees east/west at different latitudes:
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Metres
@@ -54,7 +54,7 @@ Y_GRID_SPACING = 1111949  # Metres
 TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Metres
 
 
-def make_equalarea_test_cube(shape, grid_spacing, units="meters"):
+def make_equalarea_test_cube(shape, grid_spacing, units="metres"):
     """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
     data = np.ones(shape, dtype=np.float32)
     cube = set_up_variable_cube(
@@ -111,7 +111,7 @@ def make_transverse_mercator_test_cube(shape: Tuple[int, int]) -> Cube:
     located in the UK.
     """
     # UKPP projection
-    TMercCS = TransverseMercator(
+    transvers_mercator_coord_system = TransverseMercator(
         latitude_of_projection_origin=49.0,
         longitude_of_central_meridian=-2.0,
         false_easting=400000.0,
@@ -125,12 +125,12 @@ def make_transverse_mercator_test_cube(shape: Tuple[int, int]) -> Cube:
     x_points = TRANSVERSE_MERCATOR_GRID_SPACING * np.arange(shape[1]) + xo
     return make_test_cube(
         shape,
-        TMercCS,
+        transvers_mercator_coord_system,
         "projection_x_coordinate",
         x_points,
         "projection_y_coordinate",
         y_points,
-        "meters",
+        "metres",
     )
 
 
@@ -147,6 +147,32 @@ def make_latlon_test_cube(
         latitudes,
         "degrees",
     )
+
+
+def test_latlon_cube():
+    input_cube = make_latlon_test_cube(
+        (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
+    )
+    expected_x_distances = np.array(
+        [
+            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
+            [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
+            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
+        ]
+    )
+    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
+        assert result.units == "metres"
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
 
 
 def test_latlon_cube_nonuniform_spacing():
@@ -168,7 +194,7 @@ def test_latlon_cube_nonuniform_spacing():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "meters"
+        assert result.units == "metres"
         np.testing.assert_allclose(
             result.data, expected.data, rtol=2e-3, atol=0
         )  # Allowing 0.2% error for spherical earth approximation.
@@ -194,33 +220,7 @@ def test_latlon_cube_unequal_xy_dims():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "meters"
-        np.testing.assert_allclose(
-            result.data, expected.data, rtol=2e-3, atol=0
-        )  # Allowing 0.2% error for spherical earth approximation.
-
-
-def test_latlon_cube():
-    input_cube = make_latlon_test_cube(
-        (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
-    )
-    expected_x_distances = np.array(
-        [
-            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
-            [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
-            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
-        ]
-    )
-    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip(
-        (calculated_x_distances_cube, calculated_y_distances_cube),
-        (expected_x_distances, expected_y_distances),
-    ):
-        assert result.units == "meters"
+        assert result.units == "metres"
         np.testing.assert_allclose(
             result.data, expected.data, rtol=2e-3, atol=0
         )  # Allowing 0.2% error for spherical earth approximation.
@@ -238,7 +238,7 @@ def test_equalarea_cube():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "meters"
+        assert result.units == "metres"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
 
@@ -254,7 +254,7 @@ def test_equalarea_cube_nonstandard_units():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "meters"
+        assert result.units == "metres"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
 
@@ -276,7 +276,7 @@ def test_transverse_mercator_cube():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "meters"
+        assert result.units == "metres"
         np.testing.assert_allclose(
             result.data, expected.data, rtol=2e-3, atol=0
         )  # Allowing 0.2% error for spherical earth approximation.
@@ -302,7 +302,7 @@ def test_distance_cube_with_no_coordinate_system():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "meters"
+        assert result.units == "metres"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
 
