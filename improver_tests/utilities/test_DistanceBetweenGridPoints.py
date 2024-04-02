@@ -137,7 +137,8 @@ def make_transverse_mercator_test_cube(shape: Tuple[int, int]) -> Cube:
 def make_latlon_test_cube(
     shape: Tuple[int, int], latitudes: np.ndarray, longitudes: np.ndarray
 ) -> Cube:
-    """Creates a cube using the Geographic projection for testing"""
+    """Creates a cube using the Geographic coordinate system with its origin at the
+    intersecton of the equator and the prime meridian."""
     return make_test_cube(
         shape,
         GeogCS(EARTH_RADIUS),
@@ -150,6 +151,7 @@ def make_latlon_test_cube(
 
 
 def test_latlon_cube():
+    """Basic test for a cube using a geographic coordinate system."""
     input_cube = make_latlon_test_cube(
         (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
     )
@@ -175,32 +177,11 @@ def test_latlon_cube():
         )  # Allowing 0.2% error for spherical earth approximation.
 
 
-def test_latlon_cube_nonuniform_spacing():
-    input_cube = make_latlon_test_cube(
-        (2, 3), latitudes=[0, 20], longitudes=[0, 10, 20]
-    )
-    expected_x_distances = np.array(
-        [
-            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
-            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
-        ]
-    )
-    expected_y_distances = np.full((1, 3), 2 * Y_GRID_SPACING)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares()(input_cube)
-    for result, expected in zip(
-        (calculated_x_distances_cube, calculated_y_distances_cube),
-        (expected_x_distances, expected_y_distances),
-    ):
-        assert result.units == "metres"
-        np.testing.assert_allclose(
-            result.data, expected.data, rtol=2e-3, atol=0
-        )  # Allowing 0.2% error for spherical earth approximation.
-
-
 def test_latlon_cube_unequal_xy_dims():
+    """
+    Test for a cube using a geographic coordinate system with different number of points
+    along its x and y axes.
+    """
     input_cube = make_latlon_test_cube(
         (3, 2), latitudes=[0, 10, 20], longitudes=[0, 10]
     )
@@ -226,7 +207,37 @@ def test_latlon_cube_unequal_xy_dims():
         )  # Allowing 0.2% error for spherical earth approximation.
 
 
+def test_latlon_cube_nonuniform_spacing():
+    """
+    Test for a cube using a geographic coordinate system with different angular spacing
+    along its x and y axes.
+    """
+    input_cube = make_latlon_test_cube(
+        (2, 3), latitudes=[0, 20], longitudes=[0, 10, 20]
+    )
+    expected_x_distances = np.array(
+        [
+            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
+            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
+        ]
+    )
+    expected_y_distances = np.full((1, 3), 2 * Y_GRID_SPACING)
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares()(input_cube)
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
+        assert result.units == "metres"
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
+
+
 def test_equalarea_cube():
+    """Basic test for a cube using a Lambert Azumutal Equal Area projection"""
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=1000)
     expected_x_distances = np.full((3, 2), 1000)
     expected_y_distances = np.full((2, 3), 1000)
@@ -243,6 +254,10 @@ def test_equalarea_cube():
 
 
 def test_equalarea_cube_nonstandard_units():
+    """
+    Test for a cube using a Lambert Azumutal Equal Area projection with units of
+    kilometers for its x and y axes.
+    """
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=10, units="km")
     expected_x_distances = np.full((3, 2), 10)
     expected_y_distances = np.full((2, 3), 10)
@@ -259,6 +274,7 @@ def test_equalarea_cube_nonstandard_units():
 
 
 def test_transverse_mercator_cube():
+    """Test for a cube using a Transverse Mercator projection"""
     input_cube = make_transverse_mercator_test_cube((3, 2))
     expected_x_distances = np.array(
         [
@@ -283,6 +299,10 @@ def test_transverse_mercator_cube():
 
 
 def test_distance_cube_with_no_coordinate_system():
+    """
+    Test for a cube with no specified coordinate system but known distances between
+    adjacent grid points
+    """
     data = np.ones((3, 3))
     x_coord = DimCoord(np.arange(3), "projection_x_coordinate", units="km")
     y_coord = DimCoord(np.arange(3), "projection_y_coordinate", units="km")
@@ -307,6 +327,10 @@ def test_distance_cube_with_no_coordinate_system():
 
 
 def test_degrees_cube_with_no_coordinate_system_information():
+    """
+    Tests that a cube which does not contain enough information to determine distances
+    between grid points is handled appropriately.
+    """
     input_cube = make_test_cube(
         shape=(3, 3),
         coordinate_system=None,
