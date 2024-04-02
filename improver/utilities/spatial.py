@@ -329,7 +329,7 @@ class DistanceBetweenGridSquares(BasePlugin):
 
         lat_diffs = np.diff(lats)
         y_distances_degrees = np.array(
-            [lat_diffs for _ in range(len(longs))]
+            [lat_diffs for _ in range(len(longs))] # TODO: use np.tile()... Or better still, use broadcasting in the final calculation rather than creating two cubic arrays first. More efficient!
         ).transpose()
         y_distances_meters = cls.EARTH_RADIUS * np.deg2rad(y_distances_degrees)
         dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
