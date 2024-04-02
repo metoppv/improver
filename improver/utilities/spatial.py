@@ -227,8 +227,8 @@ class DistanceBetweenGridSquares(BasePlugin):
             Boolean representing whether the cube has x and y axes defined in a distance unit.
         """
         try:
-            cube.coord(axis="x").convert_units("meters")
-            cube.coord(axis="y").convert_units("meters")
+            cube.coord(axis="x").convert_units("metres")
+            cube.coord(axis="y").convert_units("metres")
             return True
         except (
             TypeError,
