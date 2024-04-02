@@ -332,7 +332,10 @@ def test_process_table_values_nan_forecast(create_rel_table_inputs, expected_tab
     # split the forecast into 2 parts, which have inverse patterns of nans
     forecast_1 = forecast.copy(data=np.where(nan_ind_bool, np.nan, forecast.data))
     forecast_2 = forecast.copy(data=np.where(nan_ind_bool, forecast.data, np.nan))
-    expected = np.reshape(np.sum([expected_table, expected_table], axis=0), create_rel_table_inputs.expected_shape)
+    expected = np.reshape(
+        np.sum([expected_table, expected_table], axis=0),
+        create_rel_table_inputs.expected_shape,
+    )
     plugin = Plugin(single_value_lower_limit=True, single_value_upper_limit=True)
     result_1 = plugin.process(forecast_1, truth)[0]
     result_2 = plugin.process(forecast_2, truth)[0]

@@ -347,8 +347,8 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             ]
         ).astype(self.probability_bins.dtype)
         bin_index = np.searchsorted(bin_edges, forecast, side="right") - 1
-        # nan values have index equal to len(bin_edges) - 1, which is one more than the number of bins
-        # Therefore, to make put_along_axis work, we also make the first dimension of the new shape 
+        # nan values have index len(bin_edges) - 1, which is one more than the number of bins.
+        # Therefore, to make put_along_axis work, we also make the first dimension of the new shape
         # one more than the number of bins, and discard the last slice of the first dimension later.
         new_shape = (len(bin_edges),) + forecast.shape
         forecast_mask = np.broadcast_to(
