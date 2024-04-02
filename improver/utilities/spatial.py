@@ -191,7 +191,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
     Calculates the distances between adjacent grid squares within a cube.
     The distances are calculated along the x and y axes individually.
-    Returned distances are in meters.
+    Returned distances are in metres.
     The class can handle cubes with either Geographic (lat-long) or Equal Area projections.
     For lat-lon cubes, the distances are calculated assuming a spherical earth.
     This causes a < 0.15% error compared with the full haversine equation.
@@ -227,8 +227,8 @@ class DistanceBetweenGridSquares(BasePlugin):
             Boolean representing whether the cube has x and y axes defined in a distance unit.
         """
         try:
-            cube.coord(axis="x").convert_units("meters")
-            cube.coord(axis="y").convert_units("meters")
+            cube.coord(axis="x").convert_units("metres")
+            cube.coord(axis="y").convert_units("metres")
             return True
         except (
             TypeError,
@@ -272,7 +272,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
-            units="meters",
+            units="metres",
             dim_coords_and_dims=dims,
         )
 
@@ -291,7 +291,7 @@ class DistanceBetweenGridSquares(BasePlugin):
 
         Returns:
             A cube containing the horizontal distances between the grid points of the input
-            cube in meters.
+            cube in metres.
         """
         lats, longs = cls._get_latlon_cube_points(cube)
 
