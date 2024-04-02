@@ -191,7 +191,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
     Calculates the distances between adjacent grid squares within a cube.
     The distances are calculated along the x and y axes individually.
-    Returned distances are in meters.
+    Returned distances are in metres.
     The class can handle cubes with either Geographic (lat-long) or Equal Area projections.
     For lat-lon cubes, the distances are calculated assuming a spherical earth.
     This causes a < 0.15% error compared with the full haversine equation.
