@@ -45,13 +45,13 @@ from improver.utilities.spatial import DistanceBetweenGridSquares
 EARTH_RADIUS = 6.6371e3  # meters
 
 # Distances covered when travelling 10 degrees east/west at different latitudes:
-X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
-X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Meters
-X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Meters
+X_GRID_SPACING_AT_EQUATOR = 1111949  # Metres
+X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Metres
+X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Metres
 # Distance covered when travelling 10 degrees north/south:
-Y_GRID_SPACING = 1111949  # Meters
+Y_GRID_SPACING = 1111949  # Metres
 
-TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Meters
+TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Metres
 
 
 def make_equalarea_test_cube(shape, grid_spacing, units="meters"):

@@ -54,13 +54,13 @@ EXAMPLE_INPUT_DATA_4 = np.array(
 )
 
 
-EQUAL_AREA_GRID_SPACING = 1000  # Meters
+EQUAL_AREA_GRID_SPACING = 1000  # Metres
 LATLON_GRID_SPACING = 10  # Degrees
 # Distances covered when travelling 10 degrees north-south or east-west:
-X_GRID_SPACING_AT_EQUATOR = 1111949  # Meters
-X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Meters
-X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Meters
-Y_GRID_SPACING = 1111949  # Meters
+X_GRID_SPACING_AT_EQUATOR = 1111949  # Metres
+X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Metres
+X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Metres
+Y_GRID_SPACING = 1111949  # Metres
 
 
 def regrid_x(data: np.ndarray) -> np.ndarray:
