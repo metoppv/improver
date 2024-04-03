@@ -295,18 +295,12 @@ class DistanceBetweenGridSquares(BasePlugin):
 
         lats_as_col = np.expand_dims(lats, axis=1)
         lon_diffs = np.diff(longs)
-        x_distances_degrees = np.tile(lon_diffs, (lats_as_col.shape[0], 1))
-        lats_full = np.tile(lats_as_col, (1, x_distances_degrees.shape[1]))
+        sphere_radius = cube.coord(axis="x").coord_system.semi_minor_axis # Todo: do I need to convert this to meters??
 
-        sphere_radius = cube.coord(axis="x").coord_system.semi_minor_axis
+        x_distances = sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
 
-        x_distances_meters = (
-            sphere_radius
-            * np.cos(np.deg2rad(lats_full))
-            * np.deg2rad(x_distances_degrees)
-        )
         dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
-        return cls.build_distances_cube(x_distances_meters, dims, "x")
+        return cls.build_distances_cube(x_distances, dims, "x")
 
     @classmethod
     def _get_latlon_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
@@ -332,10 +326,10 @@ class DistanceBetweenGridSquares(BasePlugin):
 
         y_distances = sphere_radius * np.deg2rad(lat_diffs)
 
-        data = np.tile(np.expand_dims(y_distances, axis=1), len(longs))
+        y_distances_grid = np.tile(np.expand_dims(y_distances, axis=1), len(longs))
         dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
 
-        return cls.build_distances_cube(data, dims, "y")
+        return cls.build_distances_cube(y_distances_grid, dims, "y")
 
     @classmethod
     def _get_distance_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
