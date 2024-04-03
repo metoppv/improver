@@ -244,6 +244,16 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
     """
 
     def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
+        """
+        Args:
+            cube:
+                Cube for which the distances will be calculated.
+            diffs:
+                Tuple of cubes representing the differences between cube values along the x and
+                y axes. Optional parameter to avoid repeating the calculation if differences are
+                already available. If not provided, the differences will be calculated from the
+                cube.
+        """
         super().__init__(cube, diffs)
         self.lats, self.longs = self._get_cube_latlon_points()
         self.sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
@@ -356,6 +366,20 @@ class DistanceBetweenGridSquares(BasePlugin):
     """
 
     def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube] = None):
+        """
+        Args:
+            cube:
+                Cube for which the distances will be calculated.
+            diffs:
+                Tuple of cubes representing the differences between cube values along the x and
+                y axes. Optional parameter to avoid repeating the calculation if differences are
+                already available. If not provided, the differences will be calculated from the
+                cube.
+
+        Raises:
+            ValueError: Cube does not have enough information from which to calculate distances
+            or uses an unsupported coordinate system.
+        """
         if diffs is None:
             diffs = DifferenceBetweenAdjacentGridSquares()(cube)
 
