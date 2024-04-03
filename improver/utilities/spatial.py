@@ -197,7 +197,9 @@ class BaseDistanceCalculator:
                 Cube for which the distances will be calculated.
             diffs:
                 Tuple of cubes representing the differences between cube values along the x and
-                y axes. Optional parameter to avoid repeating the calculation if differences are
+                y axes. This is used as a convenient way to provide appropriate dimensions for the
+                x and y distances cubes.
+                Parameter is optional to avoid repeating the calculation if differences are
                 already available. If not provided, the differences will be calculated from the
                 cube.
         """
@@ -244,16 +246,6 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
     """
 
     def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
-        """
-        Args:
-            cube:
-                Cube for which the distances will be calculated.
-            diffs:
-                Tuple of cubes representing the differences between cube values along the x and
-                y axes. Optional parameter to avoid repeating the calculation if differences are
-                already available. If not provided, the differences will be calculated from the
-                cube.
-        """
         super().__init__(cube, diffs)
         self.lats, self.longs = self._get_cube_latlon_points()
         self.sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
@@ -329,8 +321,8 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the horizontal distances between the grid points of the input
             cube in meters.
         """
-        x_grid_spacing = calculate_grid_spacing(self.cube, axis="x", units="meters")
-        data = np.full(self.x_diff.data.shape, x_grid_spacing)
+        x_distances = calculate_grid_spacing(self.cube, axis="x", units="meters")
+        data = np.full(self.x_diff.data.shape, x_distances)
         dims = [
             (self.x_diff.coord("projection_y_coordinate"), 0),
             (self.x_diff.coord("projection_x_coordinate"), 1),
@@ -346,8 +338,8 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the vertical distances between the grid points of the input
             cube in meters.
         """
-        y_distances = calculate_grid_spacing(self.cube, axis="y", units="meters")
-        data = np.full(self.y_diff.data.shape, y_distances)
+        y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="meters")
+        data = np.full(self.y_diff.data.shape, y_grid_spacing)
         dims = [
             (self.y_diff.coord("projection_y_coordinate"), 0),
             (self.y_diff.coord("projection_x_coordinate"), 1),
