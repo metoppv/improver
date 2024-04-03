@@ -187,6 +187,395 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
     return radius_in_metres
 
 
+# class DistanceBetweenGridSquares(BasePlugin):
+#     """
+#     Calculates the distances between adjacent grid squares within a cube.
+#     The distances are calculated along the x and y axes individually.
+#     Returned distances are in metres.
+#     The class can handle cubes with either Geographic (lat-long) or Equal Area projections.
+#     For lat-lon cubes, the distances are calculated assuming a spherical earth.
+#     This causes a < 0.15% error compared with the full haversine equation.
+#     """
+#
+#     @staticmethod
+#     def _get_cube_spatial_type(cube: Cube) -> CoordSystem:
+#         """
+#         Finds the coordinate system used by a cube.
+#
+#         Args:
+#             cube:
+#                 Cube to find the coordinate system of.
+#
+#         Returns:
+#             The coordinate system of the cube as an Iris Coordinate System.
+#         """
+#         coord_system = cube.coord_system()
+#         return type(coord_system)
+#
+#     @staticmethod
+#     def _cube_xy_dimensions_are_distances(cube: Cube) -> bool:
+#         """
+#         Returns true if the given cube has coordinates mapping to the x and y axes with units
+#         measuring distance (as opposed to angular separation) and false otherwise.
+#         Args:
+#             cube:
+#                 The iris cube to evaluate.
+#
+#         Returns:
+#             Boolean representing whether the cube has x and y axes defined in a distance unit.
+#         """
+#         try:
+#             cube.coord(axis="x").convert_units("metres")
+#             cube.coord(axis="y").convert_units("metres")
+#             return True
+#         except (
+#             TypeError,
+#             ValueError,
+#             iris.exceptions.UnitConversionError,
+#             iris.exceptions.CoordinateNotFoundError,
+#         ):
+#             return False
+#
+#     @staticmethod
+#     def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
+#         """
+#         Extracts the vertical and horizontal grid points used by a cube
+#         with a geographic coordinate system.
+#
+#         Args:
+#             cube:
+#                 The cube to extract grid points from.
+#         Returns:
+#             - latitude points used by the cube's grid (in degrees).
+#             - longitude points used by the cube's grid (in degrees).
+#         Raises:
+#             ValueError: Input cube does not use geographic coordinates, and/or
+#             uses units other than degrees.
+#         """
+#         if (
+#             cube.coord(axis="x").units == "degrees"
+#             and cube.coord(axis="y").units == "degrees"
+#         ):
+#             longs = cube.coord(axis="x").points
+#             lats = cube.coord(axis="y").points
+#             return lats, longs
+#
+#         raise ValueError(
+#             "Cannot parse spatial axes of the cube provided. "
+#             "Expected lat-long cube with units of degrees."
+#         )
+#
+#     @staticmethod
+#     def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
+#         return Cube(
+#             distances,
+#             long_name=f"{axis}_distance_between_grid_points",
+#             units="metres",
+#             dim_coords_and_dims=dims,
+#         )
+#
+#     @classmethod
+#     def _get_latlon_cube_x_distances(cls, lats, longs, sphere_radius, x_diff: Cube) -> Cube:
+#         """
+#         Calculates the horizontal distances between adjacent grid points of a cube which uses
+#         Geographic coordinates.
+#
+#         Args:
+#             cube:
+#                 Cube for which the distances are to be calculated.
+#             x_diff:
+#                 Cube whose latitude and longitude dim coords match those of the cube to be output
+#                 by this method.
+#
+#         Returns:
+#             A cube containing the horizontal distances between the grid points of the input
+#             cube in metres.
+#         """
+#         lats_as_col = np.expand_dims(lats, axis=1)
+#         lon_diffs = np.diff(longs)
+#
+#         x_distances = sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
+#
+#         dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
+#         return cls.build_distances_cube(x_distances, dims, "x")
+#
+#     @classmethod
+#     def _get_latlon_cube_y_distances(cls, lats: np.ndarray, longs: np.ndarray, sphere_radius: float, y_diff: Cube) -> Cube:
+#         """
+#         Calculates the vertical distances between adjacent grid points of a cube which uses
+#         Geographic coordinates.
+#
+#         Args:
+#             cube:
+#                 Cube for which the distances are to be calculated.
+#             x_diff:
+#                 Cube whose latitude and longitude dim coords match those of the cube to be output
+#                 by this method.
+#
+#         Returns:
+#             A cube containing the vertical distances between the grid points of the input
+#             cube in meters.
+#         """
+#         lat_diffs = np.diff(lats)
+#
+#         y_distances = sphere_radius * np.deg2rad(lat_diffs)
+#
+#         y_distances_grid = np.tile(np.expand_dims(y_distances, axis=1), len(longs))
+#         dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
+#
+#         return cls.build_distances_cube(y_distances_grid, dims, "y")
+#
+#     @classmethod
+#     def _get_distance_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+#         """
+#         Calculates the horizontal distances between adjacent grid points of a cube which uses
+#         Equal Area coordinates.
+#
+#         Args:
+#             cube:
+#                 Cube for which the distances are to be calculated.
+#             x_diff:
+#                 Cube whose latitude and longitude dim coords match those of the cube to be output
+#                 by this method.
+#
+#         Returns:
+#             A cube containing the horizontal distances between the grid points of the input
+#             cube in meters.
+#         """
+#         x_distances = calculate_grid_spacing(cube, axis="x", units="meters")
+#         data = np.full(x_diff.data.shape, x_distances)
+#         dims = [
+#             (x_diff.coord("projection_y_coordinate"), 0),
+#             (x_diff.coord("projection_x_coordinate"), 1),
+#         ]
+#         return cls.build_distances_cube(data, dims, "x")
+#
+#     @classmethod
+#     def _get_distance_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+#         """
+#         Calculates the vertical distances between adjacent grid points of a cube which uses
+#         Equal Area coordinates.
+#
+#         Args:
+#             cube:
+#                 Cube for which the distances are to be calculated.
+#             x_diff:
+#                 Cube whose latitude and longitude dim coords match those of the cube to be output
+#                 by this method.
+#
+#         Returns:
+#             A cube containing the vertical distances between the grid points of the input
+#             cube in meters.
+#         """
+#         y_distances = calculate_grid_spacing(cube, axis="y", units="meters")
+#         data = np.full(y_diff.data.shape, y_distances)
+#         dims = [
+#             (y_diff.coord("projection_y_coordinate"), 0),
+#             (y_diff.coord("projection_x_coordinate"), 1),
+#         ]
+#         return cls.build_distances_cube(data, dims, "y")
+#
+#     def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
+#         """
+#         Calculate the distances between grid points along the x and y axes
+#         and return the result in separate cubes.
+#
+#         Args:
+#             cube:
+#                 Cube for which the distances will be calculated.
+#             diffs:
+#                 Tuple of cubes representing the differences between cube values along the x and
+#                 y axes. Optional parameter to avoid repeating the calculation if differences are
+#                 already available. If not provided, the differences will be calculated from the
+#                 cube.
+#
+#         Returns:
+#             - Cube of horizontal distances.
+#             - Cube of vertical distances.
+#         """
+#         if diffs is None:
+#             x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
+#         else:
+#             x_diff, y_diff = diffs
+#
+#         if self._cube_xy_dimensions_are_distances(cube):
+#             x_distances_cube = self._get_distance_cube_x_distances(cube, x_diff)
+#             y_distances_cube = self._get_distance_cube_y_distances(cube, y_diff)
+#         elif self._get_cube_spatial_type(cube) == GeogCS:
+#             lats, longs = self._get_latlon_cube_points(cube)
+#             sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
+#             x_distances_cube = self._get_latlon_cube_x_distances(lats, longs, sphere_radius, x_diff)
+#             y_distances_cube = self._get_latlon_cube_y_distances(lats, longs, sphere_radius, y_diff)
+#         else:
+#             raise ValueError(
+#                 "Unsupported cube coordinate system or insufficent information to "
+#                 "calculate cube distances. Cube must either have coordinates for the "
+#                 "x and y axis with distance units, or use the Geographic (GeogCS) "
+#                 "coordinate system. For cubes with x and y dimensions expressed as angles, "
+#                 "distance between points cannot be calculated without a coordinate system."
+#             )
+#         return x_distances_cube, y_distances_cube
+
+class BaseDistanceCalculator:
+
+    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
+        self.cube = cube
+        self.x_diff, self.y_diff = diffs
+
+    @staticmethod
+    def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
+        return Cube(
+            distances,
+            long_name=f"{axis}_distance_between_grid_points",
+            units="metres",
+            dim_coords_and_dims=dims,
+        )
+
+    def _get_x_distances(self, cube: Cube, x_diff: Cube) -> Cube:
+        pass
+
+    def _get_y_distances(self, cube: Cube, x_diff: Cube) -> Cube:
+        pass
+
+    def get_distances(self) -> Tuple[Cube, Cube]:
+        return self._get_x_distances(), self._get_y_distances()
+
+
+class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
+
+    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
+        super().__init__(cube, diffs)
+        self.lats, self.longs = self._get_cube_latlon_points()
+        self.sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
+
+    def _get_cube_latlon_points(self) -> Tuple[ndarray, ndarray]:
+        """
+        Extracts the vertical and horizontal grid points used by a cube
+        with a geographic coordinate system.
+
+        Args:
+            cube:
+                The cube to extract grid points from.
+        Returns:
+            - latitude points used by the cube's grid (in degrees).
+            - longitude points used by the cube's grid (in degrees).
+        Raises:
+            ValueError: Input cube does not use geographic coordinates, and/or
+            uses units other than degrees.
+        """
+        if (
+                self.cube.coord(axis="x").units == "degrees"
+                and self.cube.coord(axis="y").units == "degrees"
+        ):
+            longs = self.cube.coord(axis="x").points
+            lats = self.cube.coord(axis="y").points
+            return lats, longs
+
+        raise ValueError(
+            "Cannot parse spatial axes of the cube provided. "
+            "Expected lat-long cube with units of degrees."
+        )
+
+    def _get_x_distances(self) -> Cube:
+        """
+        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Geographic coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the horizontal distances between the grid points of the input
+            cube in metres.
+        """
+        lats_as_col = np.expand_dims(self.lats, axis=1)
+        lon_diffs = np.diff(self.longs)
+
+        x_distances = self.sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
+
+        dims = [(self.x_diff.coord("latitude"), 0), (self.x_diff.coord("longitude"), 1)]
+        return self.build_distances_cube(x_distances, dims, "x")
+
+    def _get_y_distances(self) -> Cube:
+        """
+        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Geographic coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the vertical distances between the grid points of the input
+            cube in meters.
+        """
+        lat_diffs = np.diff(self.lats)
+
+        y_distances = self.sphere_radius * np.deg2rad(lat_diffs)
+
+        y_distances_grid = np.tile(np.expand_dims(y_distances, axis=1), len(self.longs))
+        dims = [(self.y_diff.coord("latitude"), 0), (self.y_diff.coord("longitude"), 1)]
+        return self.build_distances_cube(y_distances_grid, dims, "y")
+
+
+class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
+
+    def _get_x_distances(self) -> Cube:
+        """
+        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Equal Area coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the horizontal distances between the grid points of the input
+            cube in meters.
+        """
+        x_distances = calculate_grid_spacing(self.cube, axis="x", units="meters")
+        data = np.full(self.x_diff.data.shape, x_distances)
+        dims = [
+            (self.x_diff.coord("projection_y_coordinate"), 0),
+            (self.x_diff.coord("projection_x_coordinate"), 1),
+        ]
+        return self.build_distances_cube(data, dims, "x")
+
+    def _get_y_distances(self) -> Cube:
+        """
+        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Equal Area coordinates.
+
+        Args:
+            cube:
+                Cube for which the distances are to be calculated.
+            x_diff:
+                Cube whose latitude and longitude dim coords match those of the cube to be output
+                by this method.
+
+        Returns:
+            A cube containing the vertical distances between the grid points of the input
+            cube in meters.
+        """
+        y_distances = calculate_grid_spacing(self.cube, axis="y", units="meters")
+        data = np.full(self.y_diff.data.shape, y_distances)
+        dims = [
+            (self.y_diff.coord("projection_y_coordinate"), 0),
+            (self.y_diff.coord("projection_x_coordinate"), 1),
+        ]
+        return self.build_distances_cube(data, dims, "y")
+
+
 class DistanceBetweenGridSquares(BasePlugin):
     """
     Calculates the distances between adjacent grid squares within a cube.
@@ -196,6 +585,23 @@ class DistanceBetweenGridSquares(BasePlugin):
     For lat-lon cubes, the distances are calculated assuming a spherical earth.
     This causes a < 0.15% error compared with the full haversine equation.
     """
+
+    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube] = None):
+        if diffs is None:
+            diffs = DifferenceBetweenAdjacentGridSquares()(cube)
+
+        if self._cube_xy_dimensions_are_distances(cube):
+            self.distance_calculator = ProjectionCubeDistanceCalculator(cube, diffs)
+        elif self._get_cube_spatial_type(cube) == GeogCS:
+            self.distance_calculator = LatLonCubeDistanceCalculator(cube, diffs)
+        else:
+            raise ValueError(
+                "Unsupported cube coordinate system or insufficent information to "
+                "calculate cube distances. Cube must either have coordinates for the "
+                "x and y axis with distance units, or use the Geographic (GeogCS) "
+                "coordinate system. For cubes with x and y dimensions expressed as angles, "
+                "distance between points cannot be calculated without a coordinate system."
+            )
 
     @staticmethod
     def _get_cube_spatial_type(cube: Cube) -> CoordSystem:
@@ -229,192 +635,15 @@ class DistanceBetweenGridSquares(BasePlugin):
             cube.coord(axis="y").convert_units("metres")
             return True
         except (
-            TypeError,
-            ValueError,
-            iris.exceptions.UnitConversionError,
-            iris.exceptions.CoordinateNotFoundError,
+                TypeError,
+                ValueError,
+                iris.exceptions.UnitConversionError,
+                iris.exceptions.CoordinateNotFoundError,
         ):
             return False
 
-    @staticmethod
-    def _get_latlon_cube_points(cube: Cube) -> Tuple[ndarray, ndarray]:
-        """
-        Extracts the vertical and horizontal grid points used by a cube
-        with a geographic coordinate system.
-
-        Args:
-            cube:
-                The cube to extract grid points from.
-        Returns:
-            - latitude points used by the cube's grid (in degrees).
-            - longitude points used by the cube's grid (in degrees).
-        Raises:
-            ValueError: Input cube does not use geographic coordinates, and/or
-            uses units other than degrees.
-        """
-        if (
-            cube.coord(axis="x").units == "degrees"
-            and cube.coord(axis="y").units == "degrees"
-        ):
-            longs = cube.coord(axis="x").points
-            lats = cube.coord(axis="y").points
-            return lats, longs
-
-        raise ValueError(
-            "Cannot parse spatial axes of the cube provided. "
-            "Expected lat-long cube with units of degrees."
-        )
-
-    @staticmethod
-    def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
-        return Cube(
-            distances,
-            long_name=f"{axis}_distance_between_grid_points",
-            units="metres",
-            dim_coords_and_dims=dims,
-        )
-
-    @classmethod
-    def _get_latlon_cube_x_distances(cls, lats, longs, sphere_radius, x_diff: Cube) -> Cube:
-        """
-        Calculates the horizontal distances between adjacent grid points of a cube which uses
-        Geographic coordinates.
-
-        Args:
-            cube:
-                Cube for which the distances are to be calculated.
-            x_diff:
-                Cube whose latitude and longitude dim coords match those of the cube to be output
-                by this method.
-
-        Returns:
-            A cube containing the horizontal distances between the grid points of the input
-            cube in metres.
-        """
-        lats_as_col = np.expand_dims(lats, axis=1)
-        lon_diffs = np.diff(longs)
-
-        x_distances = sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
-
-        dims = [(x_diff.coord("latitude"), 0), (x_diff.coord("longitude"), 1)]
-        return cls.build_distances_cube(x_distances, dims, "x")
-
-    @classmethod
-    def _get_latlon_cube_y_distances(cls, lats: np.ndarray, longs: np.ndarray, sphere_radius: float, y_diff: Cube) -> Cube:
-        """
-        Calculates the vertical distances between adjacent grid points of a cube which uses
-        Geographic coordinates.
-
-        Args:
-            cube:
-                Cube for which the distances are to be calculated.
-            x_diff:
-                Cube whose latitude and longitude dim coords match those of the cube to be output
-                by this method.
-
-        Returns:
-            A cube containing the vertical distances between the grid points of the input
-            cube in meters.
-        """
-        lat_diffs = np.diff(lats)
-
-        y_distances = sphere_radius * np.deg2rad(lat_diffs)
-
-        y_distances_grid = np.tile(np.expand_dims(y_distances, axis=1), len(longs))
-        dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
-
-        return cls.build_distances_cube(y_distances_grid, dims, "y")
-
-    @classmethod
-    def _get_distance_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
-        """
-        Calculates the horizontal distances between adjacent grid points of a cube which uses
-        Equal Area coordinates.
-
-        Args:
-            cube:
-                Cube for which the distances are to be calculated.
-            x_diff:
-                Cube whose latitude and longitude dim coords match those of the cube to be output
-                by this method.
-
-        Returns:
-            A cube containing the horizontal distances between the grid points of the input
-            cube in meters.
-        """
-        x_distances = calculate_grid_spacing(cube, axis="x", units="meters")
-        data = np.full(x_diff.data.shape, x_distances)
-        dims = [
-            (x_diff.coord("projection_y_coordinate"), 0),
-            (x_diff.coord("projection_x_coordinate"), 1),
-        ]
-        return cls.build_distances_cube(data, dims, "x")
-
-    @classmethod
-    def _get_distance_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
-        """
-        Calculates the vertical distances between adjacent grid points of a cube which uses
-        Equal Area coordinates.
-
-        Args:
-            cube:
-                Cube for which the distances are to be calculated.
-            x_diff:
-                Cube whose latitude and longitude dim coords match those of the cube to be output
-                by this method.
-
-        Returns:
-            A cube containing the vertical distances between the grid points of the input
-            cube in meters.
-        """
-        y_distances = calculate_grid_spacing(cube, axis="y", units="meters")
-        data = np.full(y_diff.data.shape, y_distances)
-        dims = [
-            (y_diff.coord("projection_y_coordinate"), 0),
-            (y_diff.coord("projection_x_coordinate"), 1),
-        ]
-        return cls.build_distances_cube(data, dims, "y")
-
-    def process(self, cube: Cube, diffs: Tuple[Cube, Cube] = None) -> Tuple[Cube, Cube]:
-        """
-        Calculate the distances between grid points along the x and y axes
-        and return the result in separate cubes.
-
-        Args:
-            cube:
-                Cube for which the distances will be calculated.
-            diffs:
-                Tuple of cubes representing the differences between cube values along the x and
-                y axes. Optional parameter to avoid repeating the calculation if differences are
-                already available. If not provided, the differences will be calculated from the
-                cube.
-
-        Returns:
-            - Cube of horizontal distances.
-            - Cube of vertical distances.
-        """
-        if diffs is None:
-            x_diff, y_diff = DifferenceBetweenAdjacentGridSquares()(cube)
-        else:
-            x_diff, y_diff = diffs
-
-        if self._cube_xy_dimensions_are_distances(cube):
-            x_distances_cube = self._get_distance_cube_x_distances(cube, x_diff)
-            y_distances_cube = self._get_distance_cube_y_distances(cube, y_diff)
-        elif self._get_cube_spatial_type(cube) == GeogCS:
-            lats, longs = self._get_latlon_cube_points(cube)
-            sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
-            x_distances_cube = self._get_latlon_cube_x_distances(lats, longs, sphere_radius, x_diff)
-            y_distances_cube = self._get_latlon_cube_y_distances(lats, longs, sphere_radius, y_diff)
-        else:
-            raise ValueError(
-                "Unsupported cube coordinate system or insufficent information to "
-                "calculate cube distances. Cube must either have coordinates for the "
-                "x and y axis with distance units, or use the Geographic (GeogCS) "
-                "coordinate system. For cubes with x and y dimensions expressed as angles, "
-                "distance between points cannot be calculated without a coordinate system."
-            )
-        return x_distances_cube, y_distances_cube
+    def process(self) -> Tuple[Cube, Cube]:
+        return self.distance_calculator.get_distances()
 
 
 class DifferenceBetweenAdjacentGridSquares(BasePlugin):
