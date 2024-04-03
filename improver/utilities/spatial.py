@@ -275,7 +275,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         )
 
     @classmethod
-    def _get_latlon_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+    def _get_latlon_cube_x_distances(cls, lats, longs, sphere_radius, x_diff: Cube) -> Cube:
         """
         Calculates the horizontal distances between adjacent grid points of a cube which uses
         Geographic coordinates.
@@ -291,11 +291,8 @@ class DistanceBetweenGridSquares(BasePlugin):
             A cube containing the horizontal distances between the grid points of the input
             cube in metres.
         """
-        lats, longs = cls._get_latlon_cube_points(cube)
-
         lats_as_col = np.expand_dims(lats, axis=1)
         lon_diffs = np.diff(longs)
-        sphere_radius = cube.coord(axis="x").coord_system.semi_minor_axis # Todo: do I need to convert this to meters??
 
         x_distances = sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
 
@@ -303,7 +300,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         return cls.build_distances_cube(x_distances, dims, "x")
 
     @classmethod
-    def _get_latlon_cube_y_distances(cls, cube: Cube, y_diff: Cube) -> Cube:
+    def _get_latlon_cube_y_distances(cls, lats: np.ndarray, longs: np.ndarray, sphere_radius: float, y_diff: Cube) -> Cube:
         """
         Calculates the vertical distances between adjacent grid points of a cube which uses
         Geographic coordinates.
@@ -319,10 +316,7 @@ class DistanceBetweenGridSquares(BasePlugin):
             A cube containing the vertical distances between the grid points of the input
             cube in meters.
         """
-        lats, longs = cls._get_latlon_cube_points(cube) # TODO: maybe I can extract lats, longs and sphere radius once in process rather than having it done twice in the x and y methods.
-
         lat_diffs = np.diff(lats)
-        sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
 
         y_distances = sphere_radius * np.deg2rad(lat_diffs)
 
@@ -408,8 +402,10 @@ class DistanceBetweenGridSquares(BasePlugin):
             x_distances_cube = self._get_distance_cube_x_distances(cube, x_diff)
             y_distances_cube = self._get_distance_cube_y_distances(cube, y_diff)
         elif self._get_cube_spatial_type(cube) == GeogCS:
-            x_distances_cube = self._get_latlon_cube_x_distances(cube, x_diff)
-            y_distances_cube = self._get_latlon_cube_y_distances(cube, y_diff)
+            lats, longs = self._get_latlon_cube_points(cube)
+            sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
+            x_distances_cube = self._get_latlon_cube_x_distances(lats, longs, sphere_radius, x_diff)
+            y_distances_cube = self._get_latlon_cube_y_distances(lats, longs, sphere_radius, y_diff)
         else:
             raise ValueError(
                 "Unsupported cube coordinate system or insufficent information to "
