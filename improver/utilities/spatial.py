@@ -581,6 +581,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Args:
             gradient:
                 Gradient values used in the data array of the resulting cube.
+            name:
+                Name to apply to the output cube.
 
         Returns:
             A cube of the gradients in the coordinate direction specified.
