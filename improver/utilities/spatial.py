@@ -275,7 +275,7 @@ class DistanceBetweenGridSquares(BasePlugin):
         )
 
     @classmethod
-    def _get_x_latlon_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
+    def _get_latlon_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
         """
         Calculates the horizontal distances between adjacent grid points of a cube which uses
         Geographic coordinates.
@@ -325,18 +325,17 @@ class DistanceBetweenGridSquares(BasePlugin):
             A cube containing the vertical distances between the grid points of the input
             cube in meters.
         """
-        lats, longs = cls._get_latlon_cube_points(cube)
+        lats, longs = cls._get_latlon_cube_points(cube) # TODO: maybe I can extract lats, longs and sphere radius once in process rather than having it done twice in the x and y methods.
 
         lat_diffs = np.diff(lats)
-        y_distances_degrees = np.array(
-            [lat_diffs for _ in range(len(longs))] # TODO: use np.tile()... Or better still, use broadcasting in the final calculation rather than creating two cubic arrays first. More efficient!
-        ).transpose()
-
         sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
 
-        y_distances_meters = sphere_radius * np.deg2rad(y_distances_degrees)
+        y_distances = sphere_radius * np.deg2rad(lat_diffs)
+
+        data = np.tile(np.expand_dims(y_distances, axis=1), len(longs))
         dims = [(y_diff.coord("latitude"), 0), (y_diff.coord("longitude"), 1)]
-        return cls.build_distances_cube(y_distances_meters, dims, "y")
+
+        return cls.build_distances_cube(data, dims, "y")
 
     @classmethod
     def _get_distance_cube_x_distances(cls, cube: Cube, x_diff: Cube) -> Cube:
@@ -415,7 +414,7 @@ class DistanceBetweenGridSquares(BasePlugin):
             x_distances_cube = self._get_distance_cube_x_distances(cube, x_diff)
             y_distances_cube = self._get_distance_cube_y_distances(cube, y_diff)
         elif self._get_cube_spatial_type(cube) == GeogCS:
-            x_distances_cube = self._get_x_latlon_distances(cube, x_diff)
+            x_distances_cube = self._get_latlon_cube_x_distances(cube, x_diff)
             y_distances_cube = self._get_latlon_cube_y_distances(cube, y_diff)
         else:
             raise ValueError(
