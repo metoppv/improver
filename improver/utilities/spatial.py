@@ -329,8 +329,8 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the horizontal distances between the grid points of the input
             cube in meters.
         """
-        x_distances = calculate_grid_spacing(self.cube, axis="x", units="meters")
-        data = np.full(self.x_diff.data.shape, x_distances)
+        x_grid_spacing = calculate_grid_spacing(self.cube, axis="x", units="meters")
+        data = np.full(self.x_diff.data.shape, x_grid_spacing)
         dims = [
             (self.x_diff.coord("projection_y_coordinate"), 0),
             (self.x_diff.coord("projection_x_coordinate"), 1),
