@@ -258,7 +258,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
     """
 
     @staticmethod
-    def _extract_input(cubes, cube_name):
+    def _extract_input(cubes: CubeList, cube_name: str) -> Cube:
         """Extract the relevant cube based on the cube name.
 
         Args:
