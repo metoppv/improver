@@ -127,7 +127,7 @@ def pwat_cube_fixture() -> Cube:
 @pytest.fixture(name="apcp_cube")
 def apcp_cube_fixture() -> Cube:
     """
-    Set up a apcp cube for use in testsover a variety of conditions.
+    Set up a apcp cube for use in tests over a variety of conditions.
     """
 
     data = np.array([[6, 0], [1, 10]], dtype=np.float32)
