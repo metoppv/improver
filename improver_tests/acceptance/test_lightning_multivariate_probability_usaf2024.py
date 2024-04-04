@@ -42,7 +42,7 @@ run_cli = acc.run_cli(CLI)
 @pytest.mark.parametrize("with_model_attr", (True, False))
 def test_basic(tmp_path, with_model_attr):
     """Test basic invocation"""
-    kgo_dir = acc.kgo_root() / " lightning-multivariate-probability-usaf2024"
+    kgo_dir = acc.kgo_root() / "lightning-multivariate-probability-usaf2024"
     kgo_path = kgo_dir / "kgo.nc"
     cape_path = kgo_dir / "cape.nc"
     liftidx_path = kgo_dir / "liftidx.nc"
