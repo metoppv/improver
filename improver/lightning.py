@@ -252,9 +252,6 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
     Limit final probabilities to 95% as that is as skillful as the regression equations could get:
     IF lprob is greater than 0.95 THEN lprob=0.95
-
-    Make percentage:
-    lprob=lprob*100.0
     """
 
     @staticmethod
@@ -390,9 +387,6 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
         # Limit probabilities to 95% as that is as skillful as the regression equations could get:
         lprob[lprob > 0.95] = 0.95
-
-        # Make percentage:
-        data = lprob * 100.0
 
         cube = create_new_diagnostic_cube(
             name="probability_of_lightning_in_vicinity_above_threshold",
