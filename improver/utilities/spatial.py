@@ -263,8 +263,8 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
             uses units other than degrees.
         """
         if (
-                self.cube.coord(axis="x").units == "degrees"
-                and self.cube.coord(axis="y").units == "degrees"
+            self.cube.coord(axis="x").units == "degrees"
+            and self.cube.coord(axis="y").units == "degrees"
         ):
             longs = self.cube.coord(axis="x").points
             lats = self.cube.coord(axis="y").points
@@ -287,7 +287,9 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         lats_as_col = np.expand_dims(self.lats, axis=1)
         lon_diffs = np.diff(self.longs)
 
-        x_distances = self.sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
+        x_distances = (
+            self.sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
+        )
 
         dims = [(self.x_diff.coord("latitude"), 0), (self.x_diff.coord("longitude"), 1)]
         return self.build_distances_cube(x_distances, dims, "x")
@@ -311,7 +313,6 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
 
 
 class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
-
     def _get_x_distances(self) -> Cube:
         """
         Calculates the horizontal distances between adjacent grid points of a cube which uses
@@ -420,10 +421,10 @@ class DistanceBetweenGridSquares(BasePlugin):
             cube.coord(axis="y").convert_units("metres")
             return True
         except (
-                TypeError,
-                ValueError,
-                iris.exceptions.UnitConversionError,
-                iris.exceptions.CoordinateNotFoundError,
+            TypeError,
+            ValueError,
+            iris.exceptions.UnitConversionError,
+            iris.exceptions.CoordinateNotFoundError,
         ):
             return False
 
