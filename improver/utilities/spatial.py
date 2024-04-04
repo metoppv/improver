@@ -32,6 +32,7 @@
 
 import copy
 from typing import List, Optional, Tuple, Union
+from abc import ABC, abstractmethod
 
 import cartopy.crs as ccrs
 from cartopy.crs import CRS
@@ -187,7 +188,7 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
     return radius_in_metres
 
 
-class BaseDistanceCalculator:
+class BaseDistanceCalculator(ABC):
     """Base class for distance calculators for cubes with different coordinate systems/axis types"""
 
     def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
@@ -216,10 +217,12 @@ class BaseDistanceCalculator:
             dim_coords_and_dims=dims,
         )
 
+    @abstractmethod
     def _get_x_distances(self) -> Cube:
         """Abstract method for calculating distances along the x axis of the input cube"""
         pass
 
+    @abstractmethod
     def _get_y_distances(self) -> Cube:
         """Abstract method for calculating distances along the y axis of the input cube"""
         pass
