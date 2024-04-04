@@ -33,6 +33,8 @@
 import numpy as np
 import pytest
 from iris.cube import Cube
+from iris.coords import DimCoord
+from iris.coord_systems import CoordSystem
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
@@ -55,7 +57,8 @@ EXAMPLE_INPUT_DATA_4 = np.array(
 
 
 EQUAL_AREA_GRID_SPACING = 1000  # Metres
-LATLON_GRID_SPACING = 10  # Degrees
+LATITUDE_GRID_SPACING = 10  # Degrees
+LONGITUDE_GRID_SPACING = 10  # Degrees
 # Distances covered when travelling 10 degrees north-south or east-west:
 X_GRID_SPACING_AT_EQUATOR = 1111949  # Metres
 X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Metres
@@ -63,10 +66,17 @@ X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Metres
 Y_GRID_SPACING = 1111949  # Metres
 
 
-def regrid_x(data: np.ndarray) -> np.ndarray:
-    """
-    Regrids a 3 x 2 array to a 3 x 3 array using linear interpolation/extrapolation.
-    """
+def regrid_x_with_wrap_around_interpolation_for_edge_points(data):
+    first_col = data[:, [0]]
+    second_col = data[:, [1]]
+    third_col = data[:, [2]]
+    regridded_first_col = (first_col + third_col) / 2
+    regridded_second_col = (first_col + second_col) / 2
+    regridded_third_col = (second_col + third_col) / 2
+    return np.hstack((regridded_first_col, regridded_second_col, regridded_third_col))
+
+
+def regrid_x_with_extrapolation_for_edge_points(data):
     x_diff = np.diff(data, axis=1)
     first_col = data[:, [0]]
     second_col = data[:, [1]]
@@ -74,6 +84,21 @@ def regrid_x(data: np.ndarray) -> np.ndarray:
     regridded_second_col = (first_col + second_col) / 2
     regridded_third_col = second_col + x_diff / 2
     return np.hstack((regridded_first_col, regridded_second_col, regridded_third_col))
+
+
+def regrid_x(data: np.ndarray, wrap_around_meridian) -> np.ndarray:
+    """
+    Regrids an array using linear interpolation/extrapolation.
+    If wrap_around_meridian is false, function expects a  3 x 2 array which it regrids to a
+    3 x 3 array using linear interpolation/extrapolation.
+    If wrap_around_meridian is true, expects a 3 x 3 array, which is regridded to another 3 x 3
+    array using linear interpolaton only, with the first column of the output array interpolated
+    between the first and last columns of the input array.
+    """
+    if wrap_around_meridian:
+        return regrid_x_with_wrap_around_interpolation_for_edge_points(data)
+    else:
+        return regrid_x_with_extrapolation_for_edge_points(data)
 
 
 def regrid_y(data: np.ndarray) -> np.ndarray:
@@ -89,8 +114,8 @@ def regrid_y(data: np.ndarray) -> np.ndarray:
     return np.vstack((regridded_first_row, regridded_second_row, regridded_third_row))
 
 
-def get_expected_gradient_between_points(
-    param_array, x_separations, y_separations, regrid=False
+def get_expected_gradients(
+    param_array, x_separations, y_separations, regrid=False, wrap_around_meridian=False
 ):
     """
     Calculates the gradient of a 2d numpy array along the x and y axes, accounting for distance
@@ -103,9 +128,56 @@ def get_expected_gradient_between_points(
     y_diff = np.diff(param_array, axis=0)
     y_grad = y_diff / y_separations
     if regrid:
-        x_grad = regrid_x(x_grad)
+        x_grad = regrid_x(x_grad, wrap_around_meridian)
         y_grad = regrid_y(y_grad)
     return x_grad, y_grad
+
+
+#  Todo: the below is a copypasta from test_DistanceBetweenGridPoints. Need to make the code shared instead.
+#  Options:
+#       - Make the one in test_Distance slightly more generic (take either data or shape) and copy from there.
+#       - Make the one in test_Distance take data only and have the tests themselves hand in the np.ones.
+#       - Extract the function to a common test utils place... this is probably the correct approach, but it means I'm competing with the existing helper, which doesn't work for me because I need different x and y coords.
+#       - Amend the existing one to meet my needs (and update everything this breaks :'(   )
+def make_test_cube(
+        data: np.ndarray,
+        coordinate_system: CoordSystem,
+        x_axis_name: str,
+        x_axis_values: np.ndarray,
+        y_axis_name: str,
+        y_axis_values: np.ndarray,
+        xy_axis_units: str,
+) -> Cube:
+    """Creates an example cube for use as test input."""
+
+    dimcoords = [
+            (
+                DimCoord(
+                    y_axis_values,
+                    standard_name=y_axis_name,
+                    units=xy_axis_units,
+                    coord_system=coordinate_system,
+                ),
+                0,
+            ),
+            (
+                DimCoord(
+                    x_axis_values,
+                    standard_name=x_axis_name,
+                    units=xy_axis_units,
+                    coord_system=coordinate_system,
+                ),
+                1,
+            ),
+        ]
+        cube = Cube(
+            example_data,
+            standard_name="land_ice_basal_temperature",
+            units="kelvin",
+            dim_coords_and_dims=dimcoords,
+        )
+        return cube
+
 
 
 @pytest.fixture(name="make_expected")
@@ -133,16 +205,20 @@ def make_expected_fixture() -> callable:
 def make_wind_speed_fixture() -> callable:
     """Factory as fixture for generating a wind speed cube as test input."""
 
-    def _make_input(data, spatial_grid, grid_spacing) -> Cube:
+    def _make_input(data, spatial_grid, latitude_grid_spacing, longitude_grid_spacing, wrap_around_meridian=False) -> Cube:
         """Wind speed in m/s"""
-        cube = set_up_variable_cube(
-            data,
-            name="wind_speed",
-            units="m s^-1",
-            spatial_grid=spatial_grid,
-            grid_spacing=grid_spacing,
-            domain_corner=(0.0, 0.0),
-        )
+
+        cube = Cube(data, name="wind_speed", units="m s^-1", dim_coords_and_dims=)
+        #     set_up_variable_cube(
+        #     data,
+        #     name="wind_speed",
+        #     units="m s^-1",
+        #     spatial_grid=spatial_grid,
+        #     grid_spacing=grid_spacing,
+        #     domain_corner=(0.0, 0.0),
+        # )
+        if wrap_around_meridian:
+            cube.coord(axis="x").circular = True
         return cube
 
     return _make_input
@@ -174,10 +250,12 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
     y_distances = np.full(
         (input_data.shape[0] - 1, input_data.shape[1]), EQUAL_AREA_GRID_SPACING
     )
-    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(
+    expected_x_gradients, expected_y_gradients = get_expected_gradients(
         input_data, x_distances, y_distances, regrid=grid["regrid"]
     )
-    wind_speed = make_input(input_data, "equalarea", EQUAL_AREA_GRID_SPACING)
+    wind_speed = make_input(
+        input_data, "equalarea", EQUAL_AREA_GRID_SPACING
+    )
     expected_x = make_expected(
         expected_x_gradients, "equalarea", EQUAL_AREA_GRID_SPACING
     )
@@ -210,12 +288,13 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
         EXAMPLE_INPUT_DATA_4,
     ],
 )
-def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
+@pytest.mark.parametrize("wrap_around_meridian", [True, False])
+def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data, wrap_around_meridian):
     """
     Check calculating the gradient with and without regridding
     for global latitude/longitude coordinate system
     """
-    wind_speed = make_input(input_data, "latlon", LATLON_GRID_SPACING)
+    wind_speed = make_input(input_data, "latlon", LATITUDE_GRID_SPACING, LONGITUDE_GRID_SPACING, wrap_around_meridian)
     x_separations = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
@@ -226,8 +305,8 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data):
     y_separations = np.full(
         (input_data.shape[0] - 1, input_data.shape[1]), Y_GRID_SPACING
     )
-    expected_x_gradients, expected_y_gradients = get_expected_gradient_between_points(
-        input_data, x_separations, y_separations, regrid=grid["regrid"]
+    expected_x_gradients, expected_y_gradients = get_expected_gradients(
+        input_data, x_separations, y_separations, grid["regrid"], wrap_around_meridian
     )
 
     expected_x = make_expected(expected_x_gradients, "latlon", LATLON_GRID_SPACING)

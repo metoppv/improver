@@ -528,6 +528,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             Array after the differences have been calculated along the
             specified axis.
         """
+        cube.coord(axis="x")
         diff_axis = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis)
         return diff_along_axis
