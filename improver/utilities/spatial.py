@@ -335,7 +335,7 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
 
     def _get_y_distances(self) -> Cube:
         """
-        Calculates the vertical distances between adjacent grid points of a cube which uses
+        Calculates the y-axis distances between adjacent grid points of a cube which uses
         Equal Area coordinates.
 
         Returns:
