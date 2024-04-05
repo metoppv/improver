@@ -254,7 +254,7 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data, wr
     Check calculating the gradient with and without regridding
     for global latitude/longitude coordinate system
     """
-    wind_speed = make_input(input_data, "latlon", LATITUDE_GRID_SPACING, LONGITUDE_GRID_SPACING, wrap_around_meridian)
+    wind_speed = make_input(input_data, "latlon", LONGITUDE_GRID_SPACING, LATITUDE_GRID_SPACING, wrap_around_meridian)
     x_separations = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
