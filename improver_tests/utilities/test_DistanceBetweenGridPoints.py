@@ -58,13 +58,13 @@ def make_equalarea_test_cube(shape, grid_spacing, units="metres"):
     """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
     data = np.ones(shape, dtype=np.float32)
     cube = set_up_variable_cube(
-        data, spatial_grid="equalarea", grid_spacing=grid_spacing
+        data, spatial_grid="equalarea", x_grid_spacing=grid_spacing, y_grid_spacing=grid_spacing
     )
     cube.coord("projection_x_coordinate").convert_units(units)
     cube.coord("projection_y_coordinate").convert_units(units)
     return cube
 
-
+#TODO: do I still need this now that set_up_variable_cube supports different x and y grid spacing?
 def make_test_cube(
     shape: Tuple[int, int],
     coordinate_system: CoordSystem,
