@@ -318,7 +318,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
 class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
     def _get_x_distances(self) -> Cube:
         """
-        Calculates the horizontal distances between adjacent grid points of a cube which uses
+        Calculates the x-axis distances between adjacent grid points of a cube which uses
         Equal Area coordinates.
 
         Returns:
