@@ -233,8 +233,8 @@ class BaseDistanceCalculator(ABC):
         x and y axis.
 
         Returns:
-            - Cube of horizontal distances.
-            - Cube of vertical distances.
+            - Cube of x-axis distances.
+            - Cube of y-axis distances.
         """
         return self._get_x_distances(), self._get_y_distances()
 
@@ -255,7 +255,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
 
     def _get_cube_latlon_points(self) -> Tuple[ndarray, ndarray]:
         """
-        Extracts the vertical and horizontal grid points used by a cube
+        Extracts the y-axis and x-axis grid points used by a cube
         with a geographic coordinate system.
 
         Returns:
@@ -322,7 +322,7 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
         Equal Area coordinates.
 
         Returns:
-            A cube containing the horizontal distances between the grid points of the input
+            A cube containing the x-axis distances between the grid points of the input
             cube in meters.
         """
         x_distances = calculate_grid_spacing(self.cube, axis="x", units="meters")
