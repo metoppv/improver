@@ -209,7 +209,7 @@ class BaseDistanceCalculator(ABC):
 
     @staticmethod
     def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
-        """Constructs an output cube with units of meters."""
+        """Constructs an output cube with units of metres."""
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
@@ -304,7 +304,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
 
         Returns:
             A cube containing the vertical distances between the grid points of the input
-            cube in meters.
+            cube in metres.
         """
         lat_diffs = np.diff(self.lats)
 
@@ -323,9 +323,9 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
 
         Returns:
             A cube containing the x-axis distances between the grid points of the input
-            cube in meters.
+            cube in metres.
         """
-        x_distances = calculate_grid_spacing(self.cube, axis="x", units="meters")
+        x_distances = calculate_grid_spacing(self.cube, axis="x", units="metres")
         data = np.full(self.x_diff.data.shape, x_distances)
         dims = [
             (self.x_diff.coord("projection_y_coordinate"), 0),
@@ -340,9 +340,9 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
 
         Returns:
             A cube containing the vertical distances between the grid points of the input
-            cube in meters.
+            cube in metres.
         """
-        y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="meters")
+        y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="metres")
         data = np.full(self.y_diff.data.shape, y_grid_spacing)
         dims = [
             (self.y_diff.coord("projection_y_coordinate"), 0),
