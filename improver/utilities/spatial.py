@@ -284,7 +284,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         Geographic coordinates.
 
         Returns:
-            A cube containing the horizontal distances between the grid points of the input
+            A cube containing the x-axis distances between the grid points of the input
             cube in metres.
         """
         lats_as_col = np.expand_dims(self.lats, axis=1)
