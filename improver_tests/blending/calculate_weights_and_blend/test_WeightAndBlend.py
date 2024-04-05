@@ -79,7 +79,8 @@ def set_up_masked_cubes():
     base_data = np.ones((5, 5), dtype=np.float32)
 
     # Calculate grid spacing
-    grid_spacing = np.around(1000000.0 / 5)
+    x_grid_spacing = np.around(1000000.0 / 5)
+    y_grid_spacing = np.around(1000000.0 / 5)
 
     # set up a UKV cube with some rain
     rain_data = np.array([0.9 * base_data, 0.5 * base_data, 0 * base_data])
@@ -92,7 +93,8 @@ def set_up_masked_cubes():
         frt=cycletime,
         spatial_grid="equalarea",
         standard_grid_metadata="uk_det",
-        grid_spacing=grid_spacing,
+        x_grid_spacing=x_grid_spacing,
+        y_grid_spacing=y_grid_spacing,
     )
 
     # set up a masked nowcast cube with more rain
@@ -108,7 +110,8 @@ def set_up_masked_cubes():
         frt=cycletime,
         spatial_grid="equalarea",
         attributes={"mosg__model_configuration": "nc_det"},
-        grid_spacing=grid_spacing,
+        x_grid_spacing=x_grid_spacing,
+        y_grid_spacing=y_grid_spacing,
     )
 
     return iris.cube.CubeList([ukv_cube, nowcast_cube]), cycletime_string

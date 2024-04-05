@@ -194,7 +194,7 @@ def test_name_unknown_with_units():
 def test_set_spatial_grid(spatial_grid):
     """ Tests different spatial grids generates cubes with default values for that
     spatial grid """
-    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, spatial_grid=spatial_grid,)
+    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, spatial_grid=spatial_grid)
 
     expected_spatial_grid_attributes = SPATIAL_GRID_ATTRIBUTE_DEFAULTS[spatial_grid]
 
@@ -449,7 +449,11 @@ def test_set_grid_spacing():
     """ Tests cube generated with specified grid_spacing and the rest of the values set
     as default values """
     grid_spacing = 5
-    cube = generate_metadata(MANDATORY_ATTRIBUTE_DEFAULTS, grid_spacing=grid_spacing)
+    cube = generate_metadata(
+        MANDATORY_ATTRIBUTE_DEFAULTS,
+        x_grid_spacing=grid_spacing,
+        y_grid_spacing=grid_spacing,
+    )
 
     assert np.diff(cube.coord(axis="y").points)[0] == grid_spacing
     assert np.diff(cube.coord(axis="x").points)[0] == grid_spacing

@@ -105,7 +105,8 @@ def diagnostic_cube(
         frt=frt,
         spatial_grid=spatial_grid,
         domain_corner=domain_corner,
-        grid_spacing=grid_spacing,
+        x_grid_spacing=grid_spacing,
+        y_grid_spacing=grid_spacing,
         realizations=realizations,
     )
 
