@@ -209,7 +209,16 @@ class BaseDistanceCalculator(ABC):
 
     @staticmethod
     def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
-        """Constructs an output cube with units of metres."""
+        """
+        Constructs an output cube with units of metres.
+        Args:
+            distances:
+                Data array containing calculated distances with which to populate the output cube.
+            dims:
+                Coordinate axes for the output cube. Must match the shape of distances.
+            axis:
+                The axis along which distances have been calculated.
+        """
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
