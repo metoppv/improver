@@ -529,7 +529,8 @@ class Test_get_grid_y_x_values(IrisTest):
             "precipitation_amount",
             "kg m^-2",
             "equalarea",
-            grid_spacing=2000,
+            x_grid_spacing=2000,
+            y_grid_spacing=2000,
             domain_corner=(-1000, -1000),
         )
         self.expected_proj_x = np.array(
@@ -568,7 +569,8 @@ class Test_transform_grid_to_lat_lon(IrisTest):
             "precipitation_amount",
             "kg m^-2",
             "equalarea",
-            grid_spacing=2000000,
+            x_grid_spacing=2000000,
+            y_grid_spacing=2000000,
             domain_corner=(-1000000, -1000000),
         )
         self.expected_lons = np.array(

@@ -63,7 +63,8 @@ def construct_yx_coords(
     ypoints: int,
     xpoints: int,
     spatial_grid: str,
-    grid_spacing: Optional[float] = None,
+    x_grid_spacing: Optional[float] = None,
+    y_grid_spacing: Optional[float] = None,
     domain_corner: Optional[Tuple[float, float]] = None,
 ) -> Tuple[DimCoord, DimCoord]:
     """
@@ -76,9 +77,14 @@ def construct_yx_coords(
             Number of grid points required along the x-axis
         spatial_grid:
             Specifier to produce either a "latlon" or "equalarea" grid
-        grid_spacing:
-            Grid resolution (degrees for latlon or metres for equalarea). If not provided,
-            defaults to 10 degrees for "latlon" grid or 2000 metres for "equalarea" grid
+        x_grid_spacing:
+            Grid resolution along the x axis. Degrees for latlon or metres for equalarea.
+             If not provided, defaults to 10 degrees for "latlon" grid or 2000 metres for
+             "equalarea" grid
+         y_grid_spacing:
+            Grid resolution along the y axis. Degrees for latlon or metres for equalarea.
+             If not provided, defaults to 10 degrees for "latlon" grid or 2000 metres for
+             "equalarea" grid
         domain_corner:
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
             If not provided, a grid is created centred around (0,0).
@@ -89,12 +95,15 @@ def construct_yx_coords(
     if spatial_grid not in GRID_COORD_ATTRIBUTES.keys():
         raise ValueError("Grid type {} not recognised".format(spatial_grid))
 
-    if grid_spacing is None:
-        grid_spacing = GRID_COORD_ATTRIBUTES[spatial_grid]["default_grid_spacing"]
+    if x_grid_spacing is None:
+        x_grid_spacing = GRID_COORD_ATTRIBUTES[spatial_grid]["default_grid_spacing"]
+    if y_grid_spacing is None:
+        y_grid_spacing = GRID_COORD_ATTRIBUTES[spatial_grid]["default_grid_spacing"]
+
 
     if domain_corner is None:
-        domain_corner = _set_domain_corner(ypoints, xpoints, grid_spacing)
-    y_array, x_array = _create_yx_arrays(ypoints, xpoints, domain_corner, grid_spacing)
+        domain_corner = _set_domain_corner(ypoints, xpoints, x_grid_spacing, y_grid_spacing)
+    y_array, x_array = _create_yx_arrays(ypoints, xpoints, domain_corner, x_grid_spacing, y_grid_spacing)
 
     y_coord = DimCoord(
         y_array,
@@ -119,7 +128,7 @@ def construct_yx_coords(
 
 
 def _create_yx_arrays(
-    ypoints: int, xpoints: int, domain_corner: Tuple[float, float], grid_spacing: float,
+    ypoints: int, xpoints: int, domain_corner: Tuple[float, float], x_grid_spacing: float, y_grid_spacing: float
 ) -> Tuple[ndarray, ndarray]:
     """
     Creates arrays for constructing y and x DimCoords.
@@ -128,13 +137,14 @@ def _create_yx_arrays(
         ypoints
         xpoints
         domain_corner
-        grid_spacing
+        x_grid_spacing
+        y_grid_spacing
 
     Returns:
         Tuple containing arrays of y and x coordinate values
     """
-    y_stop = domain_corner[0] + (grid_spacing * (ypoints - 1))
-    x_stop = domain_corner[1] + (grid_spacing * (xpoints - 1))
+    y_stop = domain_corner[0] + (y_grid_spacing * (ypoints - 1))
+    x_stop = domain_corner[1] + (x_grid_spacing * (xpoints - 1))
 
     y_array = np.linspace(domain_corner[0], y_stop, ypoints, dtype=np.float32)
     x_array = np.linspace(domain_corner[1], x_stop, xpoints, dtype=np.float32)
@@ -143,7 +153,7 @@ def _create_yx_arrays(
 
 
 def _set_domain_corner(
-    ypoints: int, xpoints: int, grid_spacing: float
+    ypoints: int, xpoints: int, x_grid_spacing: float, y_grid_spacing: float
 ) -> Tuple[float, float]:
     """
     Set domain corner to create a grid around 0,0.
@@ -151,13 +161,14 @@ def _set_domain_corner(
     Args:
         ypoints
         xpoints
-        grid_spacing
+        x_grid_spacing
+        y_grid_spacing
 
     Returns:
         (y,x) values of the bottom left corner of the domain
     """
-    y_start = 0 - ((ypoints - 1) * grid_spacing) / 2
-    x_start = 0 - ((xpoints - 1) * grid_spacing) / 2
+    y_start = 0 - ((ypoints - 1) * y_grid_spacing) / 2
+    x_start = 0 - ((xpoints - 1) * x_grid_spacing) / 2
 
     return y_start, x_start
 
@@ -387,7 +398,8 @@ def set_up_variable_cube(
     include_scalar_coords: Optional[List[Coord]] = None,
     attributes: Optional[Dict[str, str]] = None,
     standard_grid_metadata: Optional[str] = None,
-    grid_spacing: Optional[float] = None,
+    x_grid_spacing: Optional[float] = None,
+    y_grid_spacing: Optional[float] = None,
     domain_corner: Optional[Tuple[float, float]] = None,
     height_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
@@ -431,8 +443,10 @@ def set_up_variable_cube(
             Recognised mosg__model_configuration for which to set up Met
             Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
             'gl_det' or 'gl_ens'.
-        grid_spacing:
-            Grid resolution (degrees for latlon or metres for equalarea).
+        x_grid_spacing:
+            Grid resolution along the x axis (degrees for latlon or metres for equalarea).
+        y_grid_spacing:
+            Grid resolution along the y axis (degrees for latlon or metres for equalarea).
         domain_corner:
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
         height_levels:
@@ -453,7 +467,8 @@ def set_up_variable_cube(
         ypoints,
         xpoints,
         spatial_grid,
-        grid_spacing=grid_spacing,
+        x_grid_spacing=x_grid_spacing,
+        y_grid_spacing=y_grid_spacing,
         domain_corner=domain_corner,
     )
 

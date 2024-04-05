@@ -255,7 +255,8 @@ class Test_process(IrisTest):
             "precipitation_amount",
             "kg m^-2",
             "equalarea",
-            grid_spacing=2000,
+            x_grid_spacing=2000,
+            y_grid_spacing=2000,
             domain_corner=(0, -50000),
         )
 

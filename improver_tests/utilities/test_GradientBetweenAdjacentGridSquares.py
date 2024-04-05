@@ -139,44 +139,46 @@ def get_expected_gradients(
 #       - Make the one in test_Distance take data only and have the tests themselves hand in the np.ones.
 #       - Extract the function to a common test utils place... this is probably the correct approach, but it means I'm competing with the existing helper, which doesn't work for me because I need different x and y coords.
 #       - Amend the existing one to meet my needs (and update everything this breaks :'(   )
-def make_test_cube(
-        data: np.ndarray,
-        coordinate_system: CoordSystem,
-        x_axis_name: str,
-        x_axis_values: np.ndarray,
-        y_axis_name: str,
-        y_axis_values: np.ndarray,
-        xy_axis_units: str,
-) -> Cube:
-    """Creates an example cube for use as test input."""
 
-    dimcoords = [
-            (
-                DimCoord(
-                    y_axis_values,
-                    standard_name=y_axis_name,
-                    units=xy_axis_units,
-                    coord_system=coordinate_system,
-                ),
-                0,
-            ),
-            (
-                DimCoord(
-                    x_axis_values,
-                    standard_name=x_axis_name,
-                    units=xy_axis_units,
-                    coord_system=coordinate_system,
-                ),
-                1,
-            ),
-        ]
-        cube = Cube(
-            example_data,
-            standard_name="land_ice_basal_temperature",
-            units="kelvin",
-            dim_coords_and_dims=dimcoords,
-        )
-        return cube
+
+# def make_test_cube(
+#         data: np.ndarray,
+#         coordinate_system: CoordSystem,
+#         x_axis_name: str,
+#         x_axis_values: np.ndarray,
+#         y_axis_name: str,
+#         y_axis_values: np.ndarray,
+#         xy_axis_units: str,
+# ) -> Cube:
+#     """Creates an example cube for use as test input."""
+#
+#     dimcoords = [
+#             (
+#                 DimCoord(
+#                     y_axis_values,
+#                     standard_name=y_axis_name,
+#                     units=xy_axis_units,
+#                     coord_system=coordinate_system,
+#                 ),
+#                 0,
+#             ),
+#             (
+#                 DimCoord(
+#                     x_axis_values,
+#                     standard_name=x_axis_name,
+#                     units=xy_axis_units,
+#                     coord_system=coordinate_system,
+#                 ),
+#                 1,
+#             ),
+#         ]
+#         cube = Cube(
+#             example_data,
+#             standard_name="land_ice_basal_temperature",
+#             units="kelvin",
+#             dim_coords_and_dims=dimcoords,
+#         )
+#         return cube
 
 
 
@@ -192,7 +194,8 @@ def make_expected_fixture() -> callable:
             name="gradient_of_wind_speed",
             units="s^-1",
             spatial_grid=spatial_grid_type,
-            grid_spacing=grid_spacing,
+            x_grid_spacing=grid_spacing,
+            y_grid_spacing=grid_spacing,
             attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
             domain_corner=(0.0, 0.0),
         )
@@ -208,15 +211,15 @@ def make_wind_speed_fixture() -> callable:
     def _make_input(data, spatial_grid, latitude_grid_spacing, longitude_grid_spacing, wrap_around_meridian=False) -> Cube:
         """Wind speed in m/s"""
 
-        cube = Cube(data, name="wind_speed", units="m s^-1", dim_coords_and_dims=)
-        #     set_up_variable_cube(
-        #     data,
-        #     name="wind_speed",
-        #     units="m s^-1",
-        #     spatial_grid=spatial_grid,
-        #     grid_spacing=grid_spacing,
-        #     domain_corner=(0.0, 0.0),
-        # )
+        cube = set_up_variable_cube(
+            data,
+            name="wind_speed",
+            units="m s^-1",
+            spatial_grid=spatial_grid,
+            x_grid_spacing=grid_spacing,
+            y_grid_spacing=grid_spacing,
+            domain_corner=(0.0, 0.0),
+        )
         if wrap_around_meridian:
             cube.coord(axis="x").circular = True
         return cube

@@ -55,7 +55,8 @@ def orography_fixture() -> Cube:
         name="surface_altitude",
         units="m",
         spatial_grid="equalarea",
-        grid_spacing=1000,
+        x_grid_spacing=1000,
+        y_grid_spacing=1000,
         domain_corner=(-1000, -1000),
     )
     return cube
@@ -102,7 +103,8 @@ def mask_fixture() -> Cube:
         name="land_binary_mask",
         units="1",
         spatial_grid="equalarea",
-        grid_spacing=1000,
+        x_grid_spacing=1000,
+        y_grid_spacing=1000,
         domain_corner=(-2000, -2000),
     )
     return mask

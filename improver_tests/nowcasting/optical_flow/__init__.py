@@ -53,6 +53,7 @@ def set_up_test_cube(data, name, units, time):
         spatial_grid="equalarea",
         time=time,
         frt=time,
-        grid_spacing=2000,
+        x_grid_spacing=2000,
+        y_grid_spacing=2000,
         domain_corner=(0, 0),
     )

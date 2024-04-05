@@ -62,7 +62,8 @@ def input_cubes():
             data.copy(),
             name="lwe_convective_precipitation_rate",
             units="m s-1",
-            grid_spacing=10,
+            x_grid_spacing=10,
+            y_grid_spacing=10,
             domain_corner=(-90, -180),
             attributes=GLOBAL_ATTRIBUTES,
         )
@@ -72,7 +73,8 @@ def input_cubes():
             data.copy(),
             name="lwe_stratiform_precipitation_rate",
             units="m s-1",
-            grid_spacing=10,
+            x_grid_spacing=10,
+            y_grid_spacing=10,
             domain_corner=(-90, -180),
             attributes=GLOBAL_ATTRIBUTES,
         )

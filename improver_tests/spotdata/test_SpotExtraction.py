@@ -85,7 +85,8 @@ class Test_SpotExtraction(IrisTest):
             units="K",
             attributes=attributes,
             domain_corner=(0, 0),
-            grid_spacing=10,
+            x_grid_spacing=10,
+            y_grid_spacing=10,
             time=time,
             frt=frt,
         )

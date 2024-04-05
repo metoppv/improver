@@ -88,7 +88,8 @@ def set_up_precip_probability_cube():
         variable_name="precipitation_rate",
         threshold_units="m s-1",
         spatial_grid="equalarea",
-        grid_spacing=1,
+        x_grid_spacing=1,
+        y_grid_spacing=1,
         domain_corner=(0, 0),
     )
 
@@ -106,7 +107,8 @@ def set_up_global_gridded_cube():
         units="degC",
         spatial_grid="latlon",
         domain_corner=(45, -2),
-        grid_spacing=2,
+        x_grid_spacing=2,
+        y_grid_spacing=2,
     )
 
 
@@ -117,7 +119,8 @@ def set_up_uk_gridded_cube():
         units="degC",
         spatial_grid="equalarea",
         domain_corner=(-5000, -5000),
-        grid_spacing=2000,
+        x_grid_spacing=2000,
+        y_grid_spacing=2000,
     )
 
 
@@ -460,7 +463,8 @@ class Test_apply_extraction(IrisTest):
             units="degC",
             spatial_grid="latlon",
             domain_corner=(0, 175),
-            grid_spacing=2,
+            x_grid_spacing=2,
+            y_grid_spacing=2,
         )
         lower_bound = -1.0e-7
         upper_bound = 4 + 1.0e-7

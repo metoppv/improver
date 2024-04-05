@@ -79,22 +79,22 @@ class Test_construct_yx_coords(IrisTest):
     def test_lat_lon_grid_spacing(self):
         """Test latitude and longitude point values created around 0,0 with
         provided grid spacing"""
-        y_coord, x_coord = construct_yx_coords(3, 3, "latlon", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(3, 3, "latlon", x_grid_spacing=1, y_grid_spacing=2)
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
-        self.assertArrayEqual(y_coord.points, [-1.0, 0.0, 1.0])
+        self.assertArrayEqual(y_coord.points, [-2.0, 0.0, 2.0])
 
-        y_coord, x_coord = construct_yx_coords(4, 4, "latlon", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(4, 4, "latlon", x_grid_spacing=1, y_grid_spacing=3)
         self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
-        self.assertArrayEqual(y_coord.points, [-1.5, -0.5, 0.5, 1.5])
+        self.assertArrayEqual(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
 
     def test_lat_lon_grid_spacing_domain_corner(self):
         """Test latitude and longitude point values start at domain corner
         with provided grid spacing"""
         y_coord, x_coord = construct_yx_coords(
-            3, 3, "latlon", grid_spacing=2, domain_corner=(15, 12)
+            3, 3, "latlon", x_grid_spacing=2, y_grid_spacing=3, domain_corner=(15, 12)
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
-        self.assertArrayEqual(y_coord.points, [15.0, 17.0, 19.0])
+        self.assertArrayEqual(y_coord.points, [15.0, 18.0, 21.0])
 
     def test_lat_lon_domain_corner(self):
         """Test grid points generated with default grid spacing if domain corner
@@ -118,22 +118,22 @@ class Test_construct_yx_coords(IrisTest):
     def test_equal_area_grid_spacing(self):
         """Test projection_y_coordinate and projection_x_coordinate point
         values created around 0,0 with provided grid spacing"""
-        y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", x_grid_spacing=1, y_grid_spacing=2)
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
-        self.assertArrayEqual(y_coord.points, [-1.0, 0.0, 1.0])
+        self.assertArrayEqual(y_coord.points, [-2.0, 0.0, 2.0])
 
-        y_coord, x_coord = construct_yx_coords(4, 4, "equalarea", grid_spacing=1)
+        y_coord, x_coord = construct_yx_coords(4, 4, "equalarea", x_grid_spacing=1, y_grid_spacing=3)
         self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
-        self.assertArrayEqual(y_coord.points, [-1.5, -0.5, 0.5, 1.5])
+        self.assertArrayEqual(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
 
     def test_equal_area_grid_spacing_domain_corner(self):
         """Test projection_y_coordinate and projection_x_coordinate point values
         start at domain corner with provided grid spacing"""
         y_coord, x_coord = construct_yx_coords(
-            3, 3, "equalarea", grid_spacing=2, domain_corner=(15, 12)
+            3, 3, "equalarea", x_grid_spacing=2, y_grid_spacing=3, domain_corner=(15, 12)
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
-        self.assertArrayEqual(y_coord.points, [15.0, 17.0, 19.0])
+        self.assertArrayEqual(y_coord.points, [15.0, 18.0, 21.0])
 
     def test_equal_area_domain_corner(self):
         """Test grid points generated with default grid spacing if domain
@@ -516,9 +516,10 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_latlon_grid_spacing(self):
         """Test ability to set up lat-lon grid around 0,0 with specified grid spacing"""
-        grid_spacing = 1
+        x_grid_spacing = 1
+        y_grid_spacing = 2
         result = set_up_variable_cube(
-            self.data, spatial_grid="latlon", grid_spacing=grid_spacing
+            self.data, spatial_grid="latlon", x_grid_spacing=x_grid_spacing, y_grid_spacing=y_grid_spacing
         )
 
         self.assertEqual(result.coord_dims("latitude"), (0,))
@@ -530,8 +531,8 @@ class Test_set_up_variable_cube(IrisTest):
         lon_spacing = abs(
             result.coord("longitude").points[0] - result.coord("longitude").points[1]
         )
-        self.assertEqual(lat_spacing, grid_spacing)
-        self.assertEqual(lon_spacing, grid_spacing)
+        self.assertEqual(lat_spacing, y_grid_spacing)
+        self.assertEqual(lon_spacing, x_grid_spacing)
         self.assertEqual(
             abs(result.coord("latitude").points[0]),
             abs(result.coord("latitude").points[-1]),
@@ -543,9 +544,10 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_equalarea_grid_spacing(self):
         """Test ability to set up equalarea grid around 0,0 with specified grid spacing"""
-        grid_spacing = 1
+        x_grid_spacing = 1
+        y_grid_spacing = 2
         result = set_up_variable_cube(
-            self.data, spatial_grid="equalarea", grid_spacing=grid_spacing
+            self.data, spatial_grid="equalarea", x_grid_spacing=x_grid_spacing, y_grid_spacing=y_grid_spacing
         )
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (0,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (1,))
@@ -558,8 +560,8 @@ class Test_set_up_variable_cube(IrisTest):
             result.coord("projection_x_coordinate").points[0]
             - result.coord("projection_x_coordinate").points[1]
         )
-        self.assertEqual(y_spacing, grid_spacing)
-        self.assertEqual(x_spacing, grid_spacing)
+        self.assertEqual(y_spacing, y_grid_spacing)
+        self.assertEqual(x_spacing, x_grid_spacing)
         self.assertEqual(
             abs(result.coord("projection_y_coordinate").points[0]),
             abs(result.coord("projection_y_coordinate").points[-1]),
@@ -571,12 +573,14 @@ class Test_set_up_variable_cube(IrisTest):
 
     def test_latlon_domain_corner_grid_spacing(self):
         """Test ability to set up lat-lon grid from domain corner with grid spacing"""
-        grid_spacing = 1
+        x_grid_spacing = 1
+        y_grid_spacing = 2
         domain_corner = (-17, -10)
         result = set_up_variable_cube(
             self.data,
             spatial_grid="latlon",
-            grid_spacing=grid_spacing,
+            x_grid_spacing=x_grid_spacing,
+            y_grid_spacing=y_grid_spacing,
             domain_corner=domain_corner,
         )
 
@@ -589,19 +593,21 @@ class Test_set_up_variable_cube(IrisTest):
         lon_spacing = abs(
             result.coord("longitude").points[0] - result.coord("longitude").points[1]
         )
-        self.assertEqual(lat_spacing, grid_spacing)
-        self.assertEqual(lon_spacing, grid_spacing)
+        self.assertEqual(lat_spacing, y_grid_spacing)
+        self.assertEqual(lon_spacing, x_grid_spacing)
         self.assertEqual(result.coord("latitude").points[0], domain_corner[0])
         self.assertEqual(result.coord("longitude").points[0], domain_corner[1])
 
     def test_equalarea_domain_corner_grid_spacing(self):
         """Test ability to set up equalarea grid from domain corner with grid spacing"""
-        grid_spacing = 1
+        x_grid_spacing = 1
+        y_grid_spacing = 2
         domain_corner = (1100, 300)
         result = set_up_variable_cube(
             self.data,
             spatial_grid="equalarea",
-            grid_spacing=grid_spacing,
+            x_grid_spacing=x_grid_spacing,
+            y_grid_spacing=y_grid_spacing,
             domain_corner=domain_corner,
         )
 
@@ -616,8 +622,8 @@ class Test_set_up_variable_cube(IrisTest):
             result.coord("projection_x_coordinate").points[0]
             - result.coord("projection_x_coordinate").points[1]
         )
-        self.assertEqual(y_spacing, grid_spacing)
-        self.assertEqual(x_spacing, grid_spacing)
+        self.assertEqual(y_spacing, y_grid_spacing)
+        self.assertEqual(x_spacing, x_grid_spacing)
         self.assertEqual(
             result.coord("projection_y_coordinate").points[0], domain_corner[0]
         )
