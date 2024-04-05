@@ -44,7 +44,7 @@ from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 EXAMPLE_INPUT_DATA_1 = np.array([[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32)
 
 EXAMPLE_INPUT_DATA_2 = np.array(
-    [[0, 1, 2], [1095014, 0, -1095014], [4, 5, 6]], dtype=np.float32
+        [[0, 1, 2], [1095014, 0, -1095014], [4, 5, 6]], dtype=np.float32
 )
 
 EXAMPLE_INPUT_DATA_3 = np.array(
@@ -58,11 +58,11 @@ EXAMPLE_INPUT_DATA_4 = np.array(
 
 EQUAL_AREA_GRID_SPACING = 1000  # Metres
 LATITUDE_GRID_SPACING = 10  # Degrees
-LONGITUDE_GRID_SPACING = 11 # 10 # 120  # Degrees
+LONGITUDE_GRID_SPACING = 120  # Degrees
 # Distances covered when travelling 10 degrees north-south or east-west:
-X_GRID_SPACING_AT_EQUATOR = 1223144 # 1111949 # 13343391 # Metres/10 degrees * 12 = meters/120 degrees
-X_GRID_SPACING_AT_10_DEGREES_NORTH = 1204506 # 1095014 #  13015378  # Metres/10 degrees * 12 = meters/120 degrees
-X_GRID_SPACING_AT_20_DEGREES_NORTH = 1149172 # 1044735 # 12113276   # Metres/10 degrees * 12 = meters/120 degrees # TODO: the * 12 is probaly unneccesarily confusing.
+X_GRID_SPACING_AT_EQUATOR = 13343391  # Metres/10 degrees * 12 = meters/120 degrees
+X_GRID_SPACING_AT_10_DEGREES_NORTH = 13015378  # Metres/10 degrees * 12 = meters/120 degrees
+X_GRID_SPACING_AT_20_DEGREES_NORTH = 12113276  # Metres/10 degrees * 12 = meters/120 degrees # TODO: the * 12 is probaly unneccesarily confusing.
 Y_GRID_SPACING = 1111949  # Metres/10 degrees
 
 
