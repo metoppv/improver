@@ -437,8 +437,8 @@ class DistanceBetweenGridSquares(BasePlugin):
         and return the result in separate cubes.
 
         Returns:
-            - Cube of horizontal distances.
-            - Cube of vertical distances.
+            - Cube of x-axis distances.
+            - Cube of y-axis distances.
         """
         return self.distance_calculator.get_distances()
 
