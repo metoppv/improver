@@ -41,7 +41,7 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
-EXAMPLE_INPUT_DATA_1 = np.array([[0, 1, 2], [3, 4, 5], [4, 5, 6]], dtype=np.float32)
+EXAMPLE_INPUT_DATA_1 = np.array([[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32)
 
 EXAMPLE_INPUT_DATA_2 = np.array(
     [[0, 1, 2], [1095014, 0, -1095014], [4, 5, 6]], dtype=np.float32
