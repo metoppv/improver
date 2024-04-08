@@ -180,7 +180,9 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
 
 def latitude_to_threshold(
-    latitude: np.ndarray, midlatitude: float, tropics: float,
+    latitude: np.ndarray,
+    midlatitude: float,
+    tropics: float,
 ) -> np.ndarray:
     """
     Rescale a latitude range into a range of threshold values suitable for
@@ -292,7 +294,6 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
         cape, liftidx, pwat, cin, apcp = output_cubes
 
-        (cape_time,) = list(cape.coord("time").cells())
         (apcp_time,) = list(apcp.coord("time").cells())
         for cube in [cape, liftidx, pwat, cin]:
             (cube_time,) = list(cube.coord("time").cells())
@@ -351,7 +352,9 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         cape = cape.data
         liftidx = liftidx.data
         pwat = pwat.data
-        cin = cin.data
+        cin = (
+            -1 * cin.data
+        )  # use inverse convention where CIN is positive instead of negative
         apcp = apcp.data / 1000 * 39.3701  # convert kg m-2 to inches
 
         # Regression equation when CAPE and APCP are greater than zero:
@@ -364,9 +367,9 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         # access the actual instability in very moist environments:
         lprob_noprecip = cape / (cin + 100.0)
         lprob_noprecip = 0.025 * np.log(lprob_noprecip + 0.31) + 0.03
-        apcp = apcp - (pwat / 1000)
+        apcp_temp = apcp - (pwat / 1000)
 
-        lprob[np.where(apcp < 0.01)] = lprob_noprecip[np.where(apcp < 0.01)]
+        lprob[np.where(apcp_temp < 0.01)] = lprob_noprecip[np.where(apcp_temp < 0.01)]
 
         # If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes
         # occur, especially when heavy precipitation may have stabilized the atmosphere in the
@@ -389,10 +392,13 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         lprob[lprob > 0.95] = 0.95
 
         cube = create_new_diagnostic_cube(
-            name="probability_of_lightning_in_vicinity_above_threshold",
+            name=(
+                "probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_"
+                "threshold"
+            ),
             units="1",
             template_cube=templ,
-            data=data.astype(FLOAT_DTYPE),
+            data=lprob.astype(FLOAT_DTYPE),
             mandatory_attributes=generate_mandatory_attributes(
                 cubes, model_id_attr=model_id_attr
             ),

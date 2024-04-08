@@ -37,7 +37,13 @@ import pytest
 from iris.cube import Cube, CubeList
 
 from improver.lightning import LightningMultivariateProbability_USAF2024
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.synthetic_data.set_up_test_cubes import (
+    add_coordinate,
+    set_up_probability_cube,
+    set_up_variable_cube,
+)
+from improver.utilities.spatial import create_vicinity_coord
 
 
 @pytest.fixture(name="cape_cube")
@@ -47,6 +53,7 @@ def cape_cube_fixture() -> Cube:
     """
 
     data = np.array([[4000, 0], [0, 4000]], dtype=np.float32)
+    data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
         name="atmosphere_specific_convective_available_potential_energy",
@@ -68,6 +75,7 @@ def cin_cube_fixture() -> Cube:
     """
 
     data = np.array([[0.25, 0], [0, 0.25]], dtype=np.float32)
+    data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
         name="atmosphere_specific_convective_inhibition",
@@ -89,6 +97,7 @@ def liftidx_cube_fixture() -> Cube:
     """
 
     data = np.array([[10, -5], [2, 10]], dtype=np.float32)
+    data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
         name="temperature_difference_between_ambient_air_and_air_lifted_adiabatically",
@@ -110,6 +119,7 @@ def pwat_cube_fixture() -> Cube:
     """
 
     data = np.array([[3, 20], [20, 40]], dtype=np.float32)
+    data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
         name="precipitable_water",
@@ -131,6 +141,7 @@ def apcp_cube_fixture() -> Cube:
     """
 
     data = np.array([[6, 0], [1, 10]], dtype=np.float32)
+    data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
         name="precipitation_amount",
@@ -151,18 +162,31 @@ def expected_cube_fixture() -> Cube:
     Set up the Lightning cube that we expect to get from the plugin.
     """
 
-    data = np.array([[14.111012, 0], [6.8182287, 95.0]], dtype=np.float32)
-    cube = set_up_variable_cube(
+    data = np.array([[0.14111012, 0], [0.09720507, 0.95]], dtype=np.float32)
+    data.resize(1, 2, 2)
+    cube = set_up_probability_cube(
         data,
-        name="probability_of_lightning_in_vicinity_above_threshold",
-        units="1",
+        thresholds=[0.0],
+        variable_name="number_of_lightning_flashes_per_unit_area_in_vicinity",
+        threshold_units="m-2",
         time=datetime(2017, 11, 10, 6, 0),
         time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 6, 0)),
-        attributes=None,
-        standard_grid_metadata="gl_ens",
+        attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         domain_corner=(-20, 0),
         grid_spacing=20,
     )
+
+    cube = add_coordinate(
+        cube,
+        coord_name="realization",
+        coord_points=[0, 1],
+        coord_units="1",
+        dtype=np.int32,
+    )
+
+    vic_coord = create_vicinity_coord(20000)
+    cube.add_aux_coord(vic_coord)
+
     return cube
 
 
@@ -170,6 +194,9 @@ def test_basic(cape_cube, liftidx_cube, pwat_cube, cin_cube, apcp_cube, expected
     """Run the plugin and check the result cube matches the expected_cube"""
     result = LightningMultivariateProbability_USAF2024()(
         CubeList([cape_cube, liftidx_cube, pwat_cube, cin_cube, apcp_cube]), None
+    )
+    assert result.xml().splitlines(keepends=True) == expected_cube.xml().splitlines(
+        keepends=True
     )
     assert np.allclose(result.data, expected_cube.data)
 
