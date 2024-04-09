@@ -58,11 +58,16 @@ EXAMPLE_INPUT_DATA_4 = np.array(
 
 EQUAL_AREA_GRID_SPACING = 1000  # Metres
 LATITUDE_GRID_SPACING = 10  # Degrees
-LONGITUDE_GRID_SPACING = 15 # 5 # 10 # 120  # Degrees
-# Distances covered when travelling 10 degrees north-south or east-west:
-X_GRID_SPACING_AT_EQUATOR = 13343391 / 8 # 1223144 # 555975 # 1111949 # 13343391  # Metres/10 degrees * 12 = meters/120 degrees
-X_GRID_SPACING_AT_10_DEGREES_NORTH = 13015378  / 8 # 1204506 # 547523 # 1095014 # 13015378  # Metres/10 degrees * 12 = meters/120 degrees
-X_GRID_SPACING_AT_20_DEGREES_NORTH = 12113276 / 8 # 1149172 # 522426 # 1044735 # 12113276  # Metres/10 degrees * 12 = meters/120 degrees # TODO: the * 12 is probaly unneccesarily confusing.
+LONGITUDE_GRID_SPACING = 120 # 5 # 10 # 120  # Degrees
+# Distances covered when travelling degrees north-south or east-west:
+DISTANCE_PER_DEGREE_AT_EQUATOR = 111319.49079327357
+DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH = 109639.32210546243
+DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH = 104646.93093328059
+
+X_GRID_SPACING_AT_EQUATOR = DISTANCE_PER_DEGREE_AT_EQUATOR * LONGITUDE_GRID_SPACING
+X_GRID_SPACING_AT_10_DEGREES_NORTH = DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH * LONGITUDE_GRID_SPACING
+X_GRID_SPACING_AT_20_DEGREES_NORTH = DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH * LONGITUDE_GRID_SPACING
+
 Y_GRID_SPACING = 1111949  # Metres/10 degrees
 
 
@@ -248,7 +253,7 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
         EXAMPLE_INPUT_DATA_4,
     ],
 )
-@pytest.mark.parametrize("wrap_around_meridian", [False])  # TODO: Also True!
+@pytest.mark.parametrize("wrap_around_meridian", [False, True])
 def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data, wrap_around_meridian):
     """
     Check calculating the gradient with and without regridding
@@ -278,4 +283,4 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data, wr
         assert result.name() == expected.name()
         assert result.attributes == expected.attributes
         assert result.units == expected.units
-        np.testing.assert_allclose(expected.data, result.data, rtol=2e-3, atol=1e-5)
+        np.testing.assert_allclose(result.data, expected.data, rtol=2e-3, atol=1e-5)
