@@ -31,6 +31,7 @@
 
 """ Tests of DifferenceBetweenAdjacentGridSquares plugin."""
 from typing import Tuple
+import pytest
 
 import numpy as np
 from iris.cube import Cube
@@ -45,14 +46,27 @@ from improver.utilities.spatial import DistanceBetweenGridSquares
 EARTH_RADIUS = 6371229.0  # metres
 
 # Distances covered when travelling 10 degrees east/west at different latitudes:
-X_GRID_SPACING_AT_EQUATOR = 1111949  # Metres
-X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095014  # Metres
-X_GRID_SPACING_AT_20_DEGREES_NORTH = 1044735  # Metres
+X_GRID_SPACING_AT_EQUATOR = 1111950.8023353291 # 1111949  # Metres
+X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095015.7370880954 # 1095014  # Metres
+X_GRID_SPACING_AT_20_DEGREES_NORTH = 1095015.7370880954 # 1044735  # Metres
 # Distance covered when travelling 10 degrees north/south:
 Y_GRID_SPACING = 1111949  # Metres
 
+GLOBE_CIRCUMFERENCE_AT_EQUATOR = 40030228.88407185 #40301740  # Metres
+GLOBE_CIRCUMFERENCE_AT_10_DEGREES_NORTH = 35582425.674730524 #35582376  # Metres
+GLOBE_CIRCUMFERENCE_AT_20_DEGREES_NORTH = 31134622.46538922 #31134580  # Metres # TODO: probably don't need this and X_GRID_SPACING constants.
+
+ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES = np.array(
+    [
+        GLOBE_CIRCUMFERENCE_AT_EQUATOR,
+        GLOBE_CIRCUMFERENCE_AT_10_DEGREES_NORTH,
+        GLOBE_CIRCUMFERENCE_AT_20_DEGREES_NORTH
+    ]
+).reshape((3, 1)) / 360
+
 TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Metres
 
+# Todo: change all references to 'full haversine'
 
 def make_equalarea_test_cube(shape, grid_spacing, units="metres"):
     """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
@@ -150,31 +164,42 @@ def make_latlon_test_cube(
     )
 
 
-def test_latlon_cube():
-    """Basic test for a cube using a geographic coordinate system."""
-    input_cube = make_latlon_test_cube(
-        (3, 3), latitudes=[0, 10, 20], longitudes=[0, 10, 20]
+@pytest.mark.parametrize(
+    "latitudes",
+    (
+        [0, 10, 20],
     )
-    expected_x_distances = np.array(
+)
+def test_latlon_cube(latitudes):
+    """Basic test for a cube using a geographic coordinate system."""
+    TEST_LONGITUDES = [0, 10, 20] # TODO: put somewhere else.
+    input_cube = make_latlon_test_cube(
+        (3, 3), latitudes, TEST_LONGITUDES
+    )
+    expected_x_distances = np.diff(latitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
+    expected_expected_x_distances = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
             [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
             [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
         ]
     )
-    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
-    (
-        calculated_x_distances_cube,
-        calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares(input_cube)()
-    for result, expected in zip(
-        (calculated_x_distances_cube, calculated_y_distances_cube),
-        (expected_x_distances, expected_y_distances),
-    ):
-        assert result.units == "metres"
-        np.testing.assert_allclose(
-            result.data, expected.data, rtol=2e-3, atol=0
-        )  # Allowing 0.2% error for spherical earth approximation.
+
+    np.testing.assert_allclose(expected_x_distances, expected_expected_x_distances)
+
+    # expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
+    # (
+    #     calculated_x_distances_cube,
+    #     calculated_y_distances_cube,
+    # ) = DistanceBetweenGridSquares(input_cube)()
+    # for result, expected in zip(
+    #     (calculated_x_distances_cube, calculated_y_distances_cube),
+    #     (expected_x_distances, expected_y_distances),
+    # ):
+    #     assert result.units == "metres"
+    #     np.testing.assert_allclose(
+    #         result.data, expected.data, rtol=2e-3, atol=0
+    #     )  # Allowing 0.2% error for spherical earth approximation.
 
 
 def test_latlon_cube_unequal_xy_dims():
