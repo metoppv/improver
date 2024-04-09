@@ -52,7 +52,7 @@ def cape_cube_fixture() -> Cube:
     Set up a CAPE cube for use in tests over a variety of conditions.
     """
 
-    data = np.array([[4000, 0], [0, 4000]], dtype=np.float32)
+    data = np.array([[4000, 100], [0, 4000]], dtype=np.float32)
     data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
@@ -74,7 +74,7 @@ def cin_cube_fixture() -> Cube:
     Set up a liftidx cube for use in tests over a variety of conditions.
     """
 
-    data = np.array([[0.25, 0], [0, 0.25]], dtype=np.float32)
+    data = np.array([[0, -50], [-100, 0]], dtype=np.float32)
     data = np.repeat(data[np.newaxis, :, :], 2, axis=0)
     cube = set_up_variable_cube(
         data,
@@ -162,7 +162,7 @@ def expected_cube_fixture() -> Cube:
     Set up the Lightning cube that we expect to get from the plugin.
     """
 
-    data = np.array([[0.14111012, 0], [0.09720507, 0.95]], dtype=np.float32)
+    data = np.array([[0.14111012, 0.02940975], [0.09720507, 0.95]], dtype=np.float32)
     data.resize(1, 2, 2)
     cube = set_up_probability_cube(
         data,
