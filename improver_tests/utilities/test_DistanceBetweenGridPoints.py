@@ -56,13 +56,17 @@ GLOBE_CIRCUMFERENCE_AT_EQUATOR = 40030228.88407185 #40301740  # Metres
 GLOBE_CIRCUMFERENCE_AT_10_DEGREES_NORTH = 35582425.674730524 #35582376  # Metres
 GLOBE_CIRCUMFERENCE_AT_20_DEGREES_NORTH = 31134622.46538922 #31134580  # Metres # TODO: probably don't need this and X_GRID_SPACING constants.
 
+DISTANCE_PER_DEGREE_AT_EQUATOR = 111319.49079327357
+DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH = 109639.32210546243
+DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH = 104646.93093328059
+
 ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES = np.array(
     [
-        GLOBE_CIRCUMFERENCE_AT_EQUATOR,
-        GLOBE_CIRCUMFERENCE_AT_10_DEGREES_NORTH,
-        GLOBE_CIRCUMFERENCE_AT_20_DEGREES_NORTH
+        DISTANCE_PER_DEGREE_AT_EQUATOR,
+        DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH,
+        DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH
     ]
-).reshape((3, 1)) / 360
+).reshape((3, 1))
 
 TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Metres
 
@@ -165,41 +169,49 @@ def make_latlon_test_cube(
 
 
 @pytest.mark.parametrize(
-    "latitudes",
+    "longitudes",
     (
         [0, 10, 20],
+        [0, 5, 10],
+        [0, 11, 22],
+        [0, 60, 120],
+        [-60, 0, 60],
+        [0, 120, 240],
     )
 )
-def test_latlon_cube(latitudes):
+def test_latlon_cube(longitudes):
     """Basic test for a cube using a geographic coordinate system."""
-    TEST_LONGITUDES = [0, 10, 20] # TODO: put somewhere else.
+    TEST_LATITUDES = [0, 10, 20] # TODO: put somewhere else.
     input_cube = make_latlon_test_cube(
-        (3, 3), latitudes, TEST_LONGITUDES
+        (3, 3), TEST_LATITUDES, longitudes
     )
-    expected_x_distances = np.diff(latitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
-    expected_expected_x_distances = np.array(
-        [
-            [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
-            [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
-            [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
-        ]
-    )
+    expected_x_distances = np.diff(longitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
+    # expected_expected_x_distances = np.array(
+    #     [
+    #         [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
+    #         [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
+    #         [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
+    #     ]
+    # )
+    # np.testing.assert_allclose(expected_x_distances, expected_expected_x_distances)
 
-    np.testing.assert_allclose(expected_x_distances, expected_expected_x_distances)
+    print("\n\n\n\n")
+    print(expected_x_distances)
+    print("\n\n\n\n")
 
-    # expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
-    # (
-    #     calculated_x_distances_cube,
-    #     calculated_y_distances_cube,
-    # ) = DistanceBetweenGridSquares(input_cube)()
-    # for result, expected in zip(
-    #     (calculated_x_distances_cube, calculated_y_distances_cube),
-    #     (expected_x_distances, expected_y_distances),
-    # ):
-    #     assert result.units == "metres"
-    #     np.testing.assert_allclose(
-    #         result.data, expected.data, rtol=2e-3, atol=0
-    #     )  # Allowing 0.2% error for spherical earth approximation.
+    expected_y_distances = np.full((2, 3), Y_GRID_SPACING)
+    (
+        calculated_x_distances_cube,
+        calculated_y_distances_cube,
+    ) = DistanceBetweenGridSquares(input_cube)()
+    for result, expected in zip(
+        (calculated_x_distances_cube, calculated_y_distances_cube),
+        (expected_x_distances, expected_y_distances),
+    ):
+        assert result.units == "metres"
+        np.testing.assert_allclose(
+            result.data, expected.data, rtol=2e-3, atol=0
+        )  # Allowing 0.2% error for spherical earth approximation.
 
 
 def test_latlon_cube_unequal_xy_dims():
