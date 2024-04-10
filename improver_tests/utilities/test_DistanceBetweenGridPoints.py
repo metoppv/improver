@@ -178,7 +178,7 @@ def make_latlon_test_cube(
         [-60, 0, 60],
         [0, 120, 240],
     )
-)
+)  # Todo: I think I can specify whether or not a cube axis is circular (cube.coord(axis='x').circular). From this, I can work out whether I'm expecting 2 or 3 distances along the x axis. Might need to check that latitude isn't always considered cirular. Seems unlikely, UKV is done in lat/longs.
 def test_latlon_cube(longitudes):
     """Basic test for a cube using a geographic coordinate system."""
     TEST_LATITUDES = [0, 10, 20] # TODO: put somewhere else.
@@ -186,14 +186,6 @@ def test_latlon_cube(longitudes):
         (3, 3), TEST_LATITUDES, longitudes
     )
     expected_x_distances = np.diff(longitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
-    # expected_expected_x_distances = np.array(
-    #     [
-    #         [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
-    #         [X_GRID_SPACING_AT_10_DEGREES_NORTH, X_GRID_SPACING_AT_10_DEGREES_NORTH],
-    #         [X_GRID_SPACING_AT_20_DEGREES_NORTH, X_GRID_SPACING_AT_20_DEGREES_NORTH],
-    #     ]
-    # )
-    # np.testing.assert_allclose(expected_x_distances, expected_expected_x_distances)
 
     print("\n\n\n\n")
     print(expected_x_distances)
