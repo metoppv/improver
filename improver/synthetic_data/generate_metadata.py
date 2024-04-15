@@ -198,6 +198,7 @@ def generate_metadata(
                 kwargs["spatial_grid"] = DEFAULT_SPATIAL_GRID
 
             kwargs[spacing_axis] = DEFAULT_GRID_SPACING[kwargs["spatial_grid"]]
+            print("\n\n\n\n\n\n\nSpatial Grid Set\n\n")
 
     # Create ndimensional array of zeros
     if "height_levels" not in kwargs:

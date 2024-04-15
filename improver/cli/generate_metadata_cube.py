@@ -45,7 +45,8 @@ def process(
     time_period: int = None,
     json_input: cli.inputjson = None,
     ensemble_members: int = 8,
-    grid_spacing: float = None,
+    x_grid_spacing: float = None,
+    y_grid_spacing: float = None,
     domain_corner: cli.comma_separated_list_of_float = None,
     npoints: int = 71,
 ):
