@@ -45,16 +45,9 @@ from improver.utilities.spatial import DistanceBetweenGridSquares
 
 EARTH_RADIUS = 6371229.0  # metres
 
-# Distances covered when travelling 10 degrees east/west at different latitudes:
-X_GRID_SPACING_AT_EQUATOR = 1111950.8023353291 # 1111949  # Metres
-X_GRID_SPACING_AT_10_DEGREES_NORTH = 1095015.7370880954 # 1095014  # Metres
-X_GRID_SPACING_AT_20_DEGREES_NORTH = 1095015.7370880954 # 1044735  # Metres
+TEST_LATITUDES = [0, 10, 20]
 # Distance covered when travelling 10 degrees north/south:
 Y_GRID_SPACING = 1111949  # Metres
-
-GLOBE_CIRCUMFERENCE_AT_EQUATOR = 40030228.88407185 #40301740  # Metres
-GLOBE_CIRCUMFERENCE_AT_10_DEGREES_NORTH = 35582425.674730524 #35582376  # Metres
-GLOBE_CIRCUMFERENCE_AT_20_DEGREES_NORTH = 31134622.46538922 #31134580  # Metres # TODO: probably don't need this and X_GRID_SPACING constants.
 
 DISTANCE_PER_DEGREE_AT_EQUATOR = 111319.49079327357
 DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH = 109639.32210546243
@@ -169,23 +162,24 @@ def make_latlon_test_cube(
 
 
 @pytest.mark.parametrize(
-    "longitudes",
+    "longs",
     (
-        [0, 10, 20],
-        [0, 5, 10],
-        [0, 11, 22],
-        [0, 60, 120],
-        [-60, 0, 60],
-        [0, 120, 240],
-        [0, 10],
-        [0, 20],
-        [-20, 20],
-        [-60, -30, 0, 30, 60]
+        #Longitudes, Cube_is_circular
+        ([0, 10, 20], False),
+        ([0, 5, 10], False),
+        ([0, 11, 22], False),
+        ([0, 60, 120], False),
+        ([-60, 0, 60], False),
+        ([0, 120, 240], False),
+        ([0, 10], False),
+        ([0, 20], False),
+        ([-20, 20], False),
+        ([-60, -30, 0, 30, 60], False)
     )
 )  # Todo: I think I can specify whether or not a cube axis is circular (cube.coord(axis='x').circular). From this, I can work out whether I'm expecting 2 or 3 distances along the x axis. Might need to check that latitude isn't always considered cirular. Seems unlikely, UKV is done in lat/longs.
-def test_latlon_cube(longitudes):
+def test_latlon_cube(longs):
     """Basic test for a cube using a geographic coordinate system."""
-    TEST_LATITUDES = [0, 10, 20] # TODO: put somewhere else.
+    longitudes, is_circular = longs
     input_cube = make_latlon_test_cube(
         (len(TEST_LATITUDES), len(longitudes)), TEST_LATITUDES, longitudes
     )
