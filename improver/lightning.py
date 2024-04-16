@@ -295,7 +295,6 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         (apcp_time,) = list(apcp.coord("time").cells())
         for cube in [cape, liftidx, pwat, cin]:
             (cube_time,) = list(cube.coord("time").cells())
-            (apcp_time,) = list(apcp.coord("time").cells())
             if cube_time.point != apcp_time.bound[0]:
                 raise ValueError(
                     f"The {cube.name()} time point ({cube_time.point}) should be valid at the "
