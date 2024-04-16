@@ -300,7 +300,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
                     f"The {cube.name()} time point ({cube_time.point}) should be valid at the "
                     f"precipitation_accumulation cube lower bound ({apcp_time.bound[0]})."
                 )
-        if np.diff(apcp_time.bound) not in [timedelta(hours=3)]:
+        if not np.diff(apcp_time.bound) == timedelta(hours=3):
             raise ValueError(
                 f"Precipitation_accumulation cube time window must be three hours, "
                 f"not {np.diff(apcp_time.bound)}."
