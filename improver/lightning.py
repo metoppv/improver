@@ -383,9 +383,8 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
         # Finally, the probability of lightning is reduced when there is not much PWAT, since
         # graupel cannot form required for the charging process. The probability is reduced as:
-        lprob[np.where(pwat < 20)] = lprob[np.where(pwat < 20)] * (
-            pwat[np.where(pwat < 20)] / 20.0
-        )
+        low_pwat = np.where(pwat < 20)
+        lprob[low_pwat] = lprob[low_pwat] * (pwat[low_pwat] / 20.0)
 
         # Limit probabilities to 95% as that is as skillful as the regression equations could get:
         lprob[lprob > 0.95] = 0.95
