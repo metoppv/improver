@@ -345,7 +345,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         cape, liftidx, pwat, cin, apcp = self._get_inputs(cubes)
 
         # Regression equations require math on cubes with incompatible units, so strip data
-        templ = apcp.copy()
+        template = apcp.copy()
         cape = cape.data
         liftidx = liftidx.data
         pwat = pwat.data
