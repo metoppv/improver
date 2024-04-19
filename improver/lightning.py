@@ -279,16 +279,18 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         """
 
         output_cubes = iris.cube.CubeList()
-        input_names = [
-            "atmosphere_specific_convective_available_potential_energy",
-            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically",
-            "precipitable_water",
-            "atmosphere_specific_convective_inhibition",
-            "precipitation_amount",
-        ]
+        input_names = {
+            "atmosphere_specific_convective_available_potential_energy": ["J kg-1"],
+            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically": ["K"],
+            "precipitable_water": ["kg m-2", "mm"],
+            "atmosphere_specific_convective_inhibition": ["J kg-1"],
+            "precipitation_amount": ["kg m-2", "mm"],
+        }
 
-        for input_name in input_names:
+        for input_name, units in input_names.items():
             output_cubes.append(self._extract_input(cubes, input_name))
+            if not output_cubes[-1].units in units:
+                raise ValueError("Input diagnostic units are incorrect")
 
         cape, liftidx, pwat, cin, apcp = output_cubes
 
