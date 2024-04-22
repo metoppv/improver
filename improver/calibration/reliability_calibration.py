@@ -1268,19 +1268,10 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         forecast_probabilities = np.ma.getdata(forecast_threshold).flatten()
 
-        # interpolate using scipy first to get extrapolated values at endpoints
         interpolation_function = scipy.interpolate.interp1d(
             reliability_probabilities, observation_frequencies, fill_value="extrapolate"
         )
-        y_0, y_1 = interpolation_function([0, 1])
-        xp = np.copy(reliability_probabilities)
-        xp[0] = 0
-        xp[-1] = 1
-        fp = np.copy(observation_frequencies)
-        fp[0] = y_0
-        fp[-1] = y_1
-
-        interpolated = np.interp(forecast_probabilities.data, xp, fp)
+        interpolated = interpolation_function(forecast_probabilities.data)
 
         interpolated = interpolated.reshape(shape).astype(np.float32)
 
