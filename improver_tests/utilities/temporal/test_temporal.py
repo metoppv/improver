@@ -421,7 +421,7 @@ class Test_extract_nearest_time_point(IrisTest):
         """Test that an exception is raised, if an invalid time name
         is specified."""
         time_point = datetime(2017, 11, 23, 6, 0)
-        msg = "The time_name must be either " "'time' or 'forecast_reference_time'"
+        msg = "The time_name must be either 'time' or 'forecast_reference_time'"
         with self.assertRaisesRegex(ValueError, msg):
             extract_nearest_time_point(
                 self.cube, time_point, time_name="forecast_period"

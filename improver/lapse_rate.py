@@ -192,7 +192,7 @@ class ApplyGriddedLapseRate(PostProcessingPlugin):
 
         if not spatial_coords_match([temperature, source_orog]):
             raise ValueError(
-                "Source orography spatial coordinates do not match " "temperature grid"
+                "Source orography spatial coordinates do not match temperature grid"
             )
 
         if not spatial_coords_match([temperature, dest_orog]):

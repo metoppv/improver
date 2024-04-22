@@ -419,7 +419,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         description = (
-            "<WeightedBlendAcrossWholeDimension: coord = {}, " "timeblending: {}>"
+            "<WeightedBlendAcrossWholeDimension: coord = {}, timeblending: {}>"
         )
         return description.format(self.blend_coord, self.timeblending)
 

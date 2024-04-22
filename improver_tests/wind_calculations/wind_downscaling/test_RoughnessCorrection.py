@@ -731,7 +731,7 @@ class Test2D(IrisTest):
         """
         landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
         landpointtests_rc.z0_cube.units = Unit("s")
-        msg = "z0 ancil has unexpected unit: should be {} " "is {}"
+        msg = "z0 ancil has unexpected unit: should be {} is {}"
         with self.assertRaisesRegex(
             ValueError, msg.format(Unit("m"), landpointtests_rc.z0_cube.units)
         ):

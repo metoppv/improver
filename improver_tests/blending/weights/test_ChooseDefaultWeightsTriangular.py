@@ -55,9 +55,7 @@ class Test___repr__(IrisTest):
             width, units="hours"
         )
         result = str(triangular_weights_instance)
-        expected = (
-            "<ChooseDefaultTriangularWeights " "width=3.0, parameters_units=hours>"
-        )
+        expected = "<ChooseDefaultTriangularWeights width=3.0, parameters_units=hours>"
         self.assertEqual(result, expected)
 
     def test_basic_no_units(self):
@@ -66,7 +64,7 @@ class Test___repr__(IrisTest):
         triangular_weights_instance = ChooseDefaultWeightsTriangular(width)
         result = str(triangular_weights_instance)
         expected = (
-            "<ChooseDefaultTriangularWeights " "width=3.0, parameters_units=no_unit>"
+            "<ChooseDefaultTriangularWeights width=3.0, parameters_units=no_unit>"
         )
         self.assertEqual(result, expected)
 

@@ -238,13 +238,13 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test without the predictor."""
         result = str(Plugin())
-        msg = "<CalibratedForecastDistributionParameters: " "predictor: mean>"
+        msg = "<CalibratedForecastDistributionParameters: predictor: mean>"
         self.assertEqual(result, msg)
 
     def test_with_predictor(self):
         """Test specifying the predictor."""
         result = str(Plugin(predictor="realizations"))
-        msg = "<CalibratedForecastDistributionParameters: " "predictor: realizations>"
+        msg = "<CalibratedForecastDistributionParameters: predictor: realizations>"
         self.assertEqual(result, msg)
 
 

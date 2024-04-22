@@ -121,7 +121,7 @@ class Test_check_mandatory_standards(IrisTest):
     def test_float64_cube_data(self):
         """Test a failure of a cube with 64-bit float data."""
         self.cube.data = self.cube.data.astype(np.float64)
-        msg = "does not have required dtype.\n" "Expected: float32, Actual: float64"
+        msg = "does not have required dtype.\nExpected: float32, Actual: float64"
         with self.assertRaisesRegex(ValueError, msg):
             check_mandatory_standards(self.cube)
 

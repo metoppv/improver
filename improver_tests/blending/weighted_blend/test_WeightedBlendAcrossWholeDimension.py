@@ -104,9 +104,7 @@ class Test__repr__(IrisTest):
     def test_basic(self):
         """Test that the __repr__ returns the expected string."""
         result = str(WeightedBlendAcrossWholeDimension("time"))
-        msg = (
-            "<WeightedBlendAcrossWholeDimension: coord = time, " "timeblending: False>"
-        )
+        msg = "<WeightedBlendAcrossWholeDimension: coord = time, timeblending: False>"
         self.assertEqual(result, msg)
 
 
@@ -210,7 +208,7 @@ class Test_check_percentile_coord(Test_weighted_blend):
         """Test it raises a Value Error if percentile coord not a dim."""
         new_cube = self.cube.copy()
         new_cube.add_aux_coord(AuxCoord([10.0], long_name="percentile"))
-        msg = "The percentile coord must be a dimension " "of the cube."
+        msg = "The percentile coord must be a dimension of the cube."
         with self.assertRaisesRegex(ValueError, msg):
             self.plugin.check_percentile_coord(new_cube)
 

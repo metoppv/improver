@@ -290,7 +290,7 @@ class DayNightMask(BasePlugin):
 
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
-        result = "<DayNightMask : " "Day = {}, Night = {}>".format(self.day, self.night)
+        result = "<DayNightMask : Day = {}, Night = {}>".format(self.day, self.night)
         return result
 
     def _create_daynight_mask(self, cube: Cube) -> Cube:
