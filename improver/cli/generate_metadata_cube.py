@@ -45,7 +45,8 @@ def process(
     time_period: int = None,
     json_input: cli.inputjson = None,
     ensemble_members: int = 8,
-    grid_spacing: float = None,
+    x_grid_spacing: float = None,
+    y_grid_spacing: float = None,
     domain_corner: cli.comma_separated_list_of_float = None,
     npoints: int = 71,
 ):
@@ -78,8 +79,10 @@ def process(
         ensemble_members (Optional[int]):
             Number of ensemble members. Default 8. Will not be used if "realizations",
             "percentiles" or "thresholds" provided in json_input.
-        grid_spacing (Optional[float]):
-            Resolution of grid (metres or degrees).
+        x_grid_spacing (Optional[float]):
+            Resolution of grid along the x-axis (metres or degrees).
+        y_grid_spacing (Optional[float]):
+            Resolution of grid along the y-axis (metres or degrees).
         domain_corner (Optional[Tuple[float, float]]):
             Bottom left corner of grid domain (y,x) (degrees for latlon or metres for
             equalarea).

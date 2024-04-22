@@ -81,8 +81,8 @@ def construct_yx_coords(
             Grid resolution along the x axis. Degrees for latlon or metres for equalarea.
              If not provided, defaults to 10 degrees for "latlon" grid or 2000 metres for
              "equalarea" grid
-         y_grid_spacing:
-            Grid resolution along the y axis. Degrees for latlon or metres for equalarea.
+        y_grid_spacing:
+             Grid resolution along the y axis. Degrees for latlon or metres for equalarea.
              If not provided, defaults to 10 degrees for "latlon" grid or 2000 metres for
              "equalarea" grid
         domain_corner:
@@ -100,10 +100,13 @@ def construct_yx_coords(
     if y_grid_spacing is None:
         y_grid_spacing = GRID_COORD_ATTRIBUTES[spatial_grid]["default_grid_spacing"]
 
-
     if domain_corner is None:
-        domain_corner = _set_domain_corner(ypoints, xpoints, x_grid_spacing, y_grid_spacing)
-    y_array, x_array = _create_yx_arrays(ypoints, xpoints, domain_corner, x_grid_spacing, y_grid_spacing)
+        domain_corner = _set_domain_corner(
+            ypoints, xpoints, x_grid_spacing, y_grid_spacing
+        )
+    y_array, x_array = _create_yx_arrays(
+        ypoints, xpoints, domain_corner, x_grid_spacing, y_grid_spacing
+    )
 
     y_coord = DimCoord(
         y_array,
@@ -128,7 +131,11 @@ def construct_yx_coords(
 
 
 def _create_yx_arrays(
-    ypoints: int, xpoints: int, domain_corner: Tuple[float, float], x_grid_spacing: float, y_grid_spacing: float
+    ypoints: int,
+    xpoints: int,
+    domain_corner: Tuple[float, float],
+    x_grid_spacing: float,
+    y_grid_spacing: float,
 ) -> Tuple[ndarray, ndarray]:
     """
     Creates arrays for constructing y and x DimCoords.

@@ -79,11 +79,21 @@ class Test_construct_yx_coords(IrisTest):
     def test_lat_lon_grid_spacing(self):
         """Test latitude and longitude point values created around 0,0 with
         provided grid spacing"""
-        y_coord, x_coord = construct_yx_coords(3, 3, "latlon", x_grid_spacing=1, y_grid_spacing=2)
+        y_coord, x_coord = construct_yx_coords(
+            3, 3, "latlon", x_grid_spacing=10, y_grid_spacing=10
+        )
+        self.assertArrayEqual(x_coord.points, [-10.0, 0.0, 10.0])
+        self.assertArrayEqual(y_coord.points, [-10.0, 0.0, 10.0])
+
+        y_coord, x_coord = construct_yx_coords(
+            3, 3, "latlon", x_grid_spacing=1, y_grid_spacing=2
+        )
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
         self.assertArrayEqual(y_coord.points, [-2.0, 0.0, 2.0])
 
-        y_coord, x_coord = construct_yx_coords(4, 4, "latlon", x_grid_spacing=1, y_grid_spacing=3)
+        y_coord, x_coord = construct_yx_coords(
+            4, 4, "latlon", x_grid_spacing=1, y_grid_spacing=3
+        )
         self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
         self.assertArrayEqual(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
 
@@ -118,11 +128,21 @@ class Test_construct_yx_coords(IrisTest):
     def test_equal_area_grid_spacing(self):
         """Test projection_y_coordinate and projection_x_coordinate point
         values created around 0,0 with provided grid spacing"""
-        y_coord, x_coord = construct_yx_coords(3, 3, "equalarea", x_grid_spacing=1, y_grid_spacing=2)
+        y_coord, x_coord = construct_yx_coords(
+            3, 3, "equalarea", x_grid_spacing=10, y_grid_spacing=10
+        )
+        self.assertArrayEqual(x_coord.points, [-10.0, 0.0, 10.0])
+        self.assertArrayEqual(y_coord.points, [-10.0, 0.0, 10.0])
+
+        y_coord, x_coord = construct_yx_coords(
+            3, 3, "equalarea", x_grid_spacing=1, y_grid_spacing=2
+        )
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
         self.assertArrayEqual(y_coord.points, [-2.0, 0.0, 2.0])
 
-        y_coord, x_coord = construct_yx_coords(4, 4, "equalarea", x_grid_spacing=1, y_grid_spacing=3)
+        y_coord, x_coord = construct_yx_coords(
+            4, 4, "equalarea", x_grid_spacing=1, y_grid_spacing=3
+        )
         self.assertArrayEqual(x_coord.points, [-1.5, -0.5, 0.5, 1.5])
         self.assertArrayEqual(y_coord.points, [-4.5, -1.5, 1.5, 4.5])
 
@@ -130,7 +150,12 @@ class Test_construct_yx_coords(IrisTest):
         """Test projection_y_coordinate and projection_x_coordinate point values
         start at domain corner with provided grid spacing"""
         y_coord, x_coord = construct_yx_coords(
-            3, 3, "equalarea", x_grid_spacing=2, y_grid_spacing=3, domain_corner=(15, 12)
+            3,
+            3,
+            "equalarea",
+            x_grid_spacing=2,
+            y_grid_spacing=3,
+            domain_corner=(15, 12),
         )
         self.assertArrayEqual(x_coord.points, [12.0, 14.0, 16.0])
         self.assertArrayEqual(y_coord.points, [15.0, 18.0, 21.0])
@@ -519,7 +544,10 @@ class Test_set_up_variable_cube(IrisTest):
         x_grid_spacing = 1
         y_grid_spacing = 2
         result = set_up_variable_cube(
-            self.data, spatial_grid="latlon", x_grid_spacing=x_grid_spacing, y_grid_spacing=y_grid_spacing
+            self.data,
+            spatial_grid="latlon",
+            x_grid_spacing=x_grid_spacing,
+            y_grid_spacing=y_grid_spacing,
         )
 
         self.assertEqual(result.coord_dims("latitude"), (0,))
@@ -547,7 +575,10 @@ class Test_set_up_variable_cube(IrisTest):
         x_grid_spacing = 1
         y_grid_spacing = 2
         result = set_up_variable_cube(
-            self.data, spatial_grid="equalarea", x_grid_spacing=x_grid_spacing, y_grid_spacing=y_grid_spacing
+            self.data,
+            spatial_grid="equalarea",
+            x_grid_spacing=x_grid_spacing,
+            y_grid_spacing=y_grid_spacing,
         )
         self.assertEqual(result.coord_dims("projection_y_coordinate"), (0,))
         self.assertEqual(result.coord_dims("projection_x_coordinate"), (1,))
