@@ -107,6 +107,16 @@ class Test_calculate_difference(IrisTest):
         self.assertIsInstance(result, np.ndarray)
         self.assertArrayEqual(result, expected)
 
+    def test_x_dimension_wraps_around_meridian(self):
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
+        self.cube.coord(axis="x").circular = True
+        expected = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
+        result = self.plugin.calculate_difference(
+            self.cube, self.cube.coord(axis="x").name()
+        )
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayEqual(result, expected)
+
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
         expected = np.array([[1, 2, 3], [3, 6, 9]])
