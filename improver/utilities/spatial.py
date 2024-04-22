@@ -231,7 +231,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             specified axis.
         """
         points = cube.coord(coord_name).points
-        mean_points = (points[1:] + points[:-1]) / 2
+        mean_points = (points[1:] + points[:-1]) / 2 # Todo: fails for circular cubes because we don't provide a coord point for the wrap around datapoint. Need to write a test for this and then fix it.
 
         # Copy cube metadata and coordinates into a new cube.
         # Create a new coordinate for the coordinate along which the
@@ -297,8 +297,9 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diffs = []
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()
+            difference = self.calculate_difference(cube, coord_name)
             diff_cube = self.create_difference_cube(
-                cube, coord_name, self.calculate_difference(cube, coord_name)
+                cube, coord_name, difference
             )
             self._update_metadata(diff_cube, coord_name, cube.name())
             diffs.append(diff_cube)
