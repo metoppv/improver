@@ -55,6 +55,7 @@ below:
  - Katharine Hurst (Met Office, UK)
  - Simon Jackson (Met Office, UK)
  - Caroline Jones (Met Office, UK)
+ - Peter Jordan (Met Office, UK)
  - Bruno P. Kinoshita (NIWA, NZ)
  - Lucy Liu (Bureau of Meteorology, Australia)
  - Daniel Mentiplay (Bureau of Meteorology, Australia)

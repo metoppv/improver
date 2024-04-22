@@ -58,7 +58,8 @@ def land_mask_cube_generator(shape: Tuple[int, int] = (5, 5)) -> Cube:
         name="land_binary_mask",
         units="1",
         spatial_grid="equalarea",
-        grid_spacing=2000.0,
+        x_grid_spacing=2000.0,
+        y_grid_spacing=2000.0,
         domain_corner=(0.0, 0.0),
     )
 
@@ -95,7 +96,8 @@ def cube() -> Cube:
     return set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
         spatial_grid="equalarea",
-        grid_spacing=2000.0,
+        x_grid_spacing=2000.0,
+        y_grid_spacing=2000.0,
         domain_corner=(0.0, 0.0),
     )
 
@@ -106,7 +108,8 @@ def latlon_cube() -> Cube:
     return set_up_variable_cube(
         np.zeros((5, 5), dtype=np.float32),
         spatial_grid="latlon",
-        grid_spacing=1.0,
+        x_grid_spacing=1.0,
+        y_grid_spacing=1.0,
         domain_corner=(0.0, 0.0),
     )
 
@@ -328,7 +331,8 @@ def cube_with_realizations_fixture() -> Cube:
         "lwe_precipitation_rate",
         "m s-1",
         "equalarea",
-        grid_spacing=2000.0,
+        x_grid_spacing=2000.0,
+        y_grid_spacing=2000.0,
         domain_corner=(0.0, 0.0),
     )
 

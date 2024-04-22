@@ -92,7 +92,8 @@ def set_up_masked_cubes():
         frt=cycletime,
         spatial_grid="equalarea",
         standard_grid_metadata="uk_det",
-        grid_spacing=grid_spacing,
+        x_grid_spacing=grid_spacing,
+        y_grid_spacing=grid_spacing,
     )
 
     # set up a masked nowcast cube with more rain
@@ -108,7 +109,8 @@ def set_up_masked_cubes():
         frt=cycletime,
         spatial_grid="equalarea",
         attributes={"mosg__model_configuration": "nc_det"},
-        grid_spacing=grid_spacing,
+        x_grid_spacing=grid_spacing,
+        y_grid_spacing=grid_spacing,
     )
 
     return iris.cube.CubeList([ukv_cube, nowcast_cube]), cycletime_string

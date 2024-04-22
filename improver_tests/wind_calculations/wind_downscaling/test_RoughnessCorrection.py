@@ -56,7 +56,8 @@ def _make_flat_cube(data, name, unit):
         units=unit,
         spatial_grid="equalarea",
         domain_corner=(-1036000, -1158000),
-        grid_spacing=2000,
+        x_grid_spacing=2000,
+        y_grid_spacing=2000,
     )
     for axis in ["x", "y"]:
         points = flat_cube.coord(axis=axis).points

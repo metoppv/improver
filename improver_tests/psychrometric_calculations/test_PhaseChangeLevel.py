@@ -410,7 +410,8 @@ class Test_find_max_in_nbhood_orography(IrisTest):
             name="orographic_height",
             units="m",
             spatial_grid="equalarea",
-            grid_spacing=2000.0,
+            x_grid_spacing=2000.0,
+            y_grid_spacing=2000.0,
         )
         self.expected_data = [
             [50, 50, 50, 20, 5],
@@ -424,7 +425,8 @@ class Test_find_max_in_nbhood_orography(IrisTest):
             name="orographic_height",
             units="m",
             spatial_grid="latlon",
-            grid_spacing=0.01,
+            x_grid_spacing=0.01,
+            y_grid_spacing=0.01,
         )
 
     def test_basic(self):
