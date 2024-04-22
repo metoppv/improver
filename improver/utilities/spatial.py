@@ -639,7 +639,7 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
-        distances = DistanceBetweenGridSquares(cube, diffs=diffs)()
+        distances = DistanceBetweenGridSquares(cube)()
         for diff, distance in zip(diffs, distances):
             gradient = diff / distance
             grad_cube = self._create_output_cube(gradient, "gradient_of_" + cube.name())
