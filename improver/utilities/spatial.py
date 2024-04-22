@@ -42,7 +42,7 @@ from numpy import ndarray
 from numpy.ma import MaskedArray
 from cf_units import Unit
 import iris
-from iris.coords import Coord, AuxCoord, CellMethod
+from iris.coords import Coord, DimCoord, AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from iris.coord_systems import (
     CoordSystem,
@@ -205,7 +205,8 @@ class BaseDistanceCalculator(ABC):
                 cube.
         """
         self.cube = cube
-        self.x_diff, self.y_diff = diffs
+        # self.x_diff, self.y_diff = diffs # Todo: yes this breaks the distance child class. Plan to fix.
+        self.x_separations_axis, self.y_separation_axis = self.get_difference_axes()
 
     @staticmethod
     def build_distances_cube(distances: ndarray, dims: List[Coord], axis: str) -> Cube:
@@ -219,12 +220,41 @@ class BaseDistanceCalculator(ABC):
             axis:
                 The axis along which distances have been calculated.
         """
+        moo = Cube(
+            distances,
+            long_name=f"{axis}_distance_between_grid_points",
+            units="metres",
+            dim_coords_and_dims=dims,
+        )  # Todo: remove cow references.
+        
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
             units="metres",
             dim_coords_and_dims=dims,
         )
+
+    def cube_wraps_around_x_axis(self):
+        return self.cube.coord(axis="x").circular
+
+    @staticmethod
+    def get_midpoints(axis: Coord) -> np.ndarray:
+        midpoints = (axis.points[:-1] + axis.points[1:]) / 2
+
+        if axis.circular:
+            endpoints_mean = np.deg2rad((axis.points[0] + axis.points[-1]) / 2)
+            extra_point = np.arctan(np.sin(endpoints_mean) / np.cos(endpoints_mean))  # Forces angle to sit on the upper quadrant so that eg. for endpoints of 10 degrees, and 350 degrees, midpoint is zero degrees rather than 180.
+            midpoints = np.sort(np.hstack((np.array(extra_point), midpoints)), kind='stable')  # Stable sort fasted in this case, where list is already nearly sorted with only the one out-of-order element.
+
+        return midpoints
+
+    def get_difference_axes(self):
+        input_cube_x_axis = self.cube.coord(axis="x")
+        input_cube_y_axis = self.cube.coord(axis="y")
+        pts = self.get_midpoints(input_cube_x_axis)
+        distance_cube_x_axis = input_cube_x_axis.copy(points=pts)
+        distance_cube_y_axis = input_cube_y_axis.copy(points=self.get_midpoints(input_cube_y_axis))
+        return distance_cube_x_axis, distance_cube_y_axis
 
     @abstractmethod
     def _get_x_distances(self) -> Cube:
@@ -257,7 +287,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
     with the full haversine formula.
     """
 
-    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
+    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]): # TODO: Can we stop taking diffs?
         super().__init__(cube, diffs)
         self.lats, self.longs = self._get_cube_latlon_points()
         self.sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
@@ -299,11 +329,15 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         lats_as_col = np.expand_dims(self.lats, axis=1)
         lon_diffs = np.diff(self.longs)
 
+        if self.cube_wraps_around_x_axis():
+            lon_diffs = np.hstack([lon_diffs, np.array(self.longs[0] + (360 - self.longs[-1]))])
+
         x_distances = (
-            self.sphere_radius * np.cos(np.deg2rad(lats_as_col.astype(np.float64))) * np.deg2rad(lon_diffs.astype(np.float64))
+            self.sphere_radius * np.cos(np.deg2rad(lats_as_col.astype(np.float64)))
+            * np.deg2rad(lon_diffs.astype(np.float64))
         )  # Using 64 bit floats for this calculation improves precision by 0.1% TODO: check this.
 
-        dims = [(self.x_diff.coord("latitude"), 0), (self.x_diff.coord("longitude"), 1)]
+        dims = [(self.cube.coord(axis='y'), 0), (self.x_separations_axis, 1)]
         return self.build_distances_cube(x_distances, dims, "x")
 
     def _get_y_distances(self) -> Cube:
@@ -320,7 +354,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         y_distances = self.sphere_radius * np.deg2rad(lat_diffs)
 
         y_distances_grid = np.tile(np.expand_dims(y_distances, axis=1), len(self.longs))
-        dims = [(self.y_diff.coord("latitude"), 0), (self.y_diff.coord("longitude"), 1)]
+        dims = [(self.y_separation_axis, 0), (self.cube.coord(axis='x'), 1)]
         return self.build_distances_cube(y_distances_grid, dims, "y")
 
 
@@ -623,9 +657,9 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
 
         Returns:
             - Cube after the gradients have been calculated along the
-              x axis.
+              x-axis.
             - Cube after the gradients have been calculated along the
-              y axis.
+              y-axis.
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)

@@ -177,7 +177,7 @@ def make_latlon_test_cube(
         ([0, 10], False),
         ([0, 20], False),
         ([-20, 20], False),
-        ([-60, -30, 0, 30, 60], False)
+        ([-60, -30, 0, 30, 60], False) # Todo: dim coords are not correct. Think it's a floating point error? Probably need a test for this.
     )
 )  # Todo: I think I can specify whether or not a cube axis is circular (cube.coord(axis='x').circular). From this, I can work out whether I'm expecting 2 or 3 distances along the x axis. Might need to check that latitude isn't always considered cirular. Seems unlikely, UKV is done in lat/longs.
 # tODO: Should I test for non-uniform grids here too? Probably.
