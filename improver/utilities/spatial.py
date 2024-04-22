@@ -191,18 +191,11 @@ def number_of_grid_cells_to_distance(cube: Cube, grid_points: int) -> float:
 class BaseDistanceCalculator(ABC):
     """Base class for distance calculators for cubes with different coordinate systems/axis types"""
 
-    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]):
+    def __init__(self, cube: Cube):
         """
         Args:
             cube:
                 Cube for which the distances will be calculated.
-            diffs:
-                Tuple of cubes representing the differences between cube values along the x and
-                y axes. This is used as a convenient way to provide appropriate dimensions for the
-                x and y distances cubes.
-                Parameter is optional to avoid repeating the calculation if differences are
-                already available. If not provided, the differences will be calculated from the
-                cube.
         """
         self.cube = cube
         # self.x_diff, self.y_diff = diffs # Todo: yes this breaks the distance child class. Plan to fix.
@@ -220,13 +213,6 @@ class BaseDistanceCalculator(ABC):
             axis:
                 The axis along which distances have been calculated.
         """
-        moo = Cube(
-            distances,
-            long_name=f"{axis}_distance_between_grid_points",
-            units="metres",
-            dim_coords_and_dims=dims,
-        )  # Todo: remove cow references.
-        
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
@@ -251,8 +237,7 @@ class BaseDistanceCalculator(ABC):
     def get_difference_axes(self):
         input_cube_x_axis = self.cube.coord(axis="x")
         input_cube_y_axis = self.cube.coord(axis="y")
-        pts = self.get_midpoints(input_cube_x_axis)
-        distance_cube_x_axis = input_cube_x_axis.copy(points=pts)
+        distance_cube_x_axis = input_cube_x_axis.copy(points=self.get_midpoints(input_cube_x_axis))
         distance_cube_y_axis = input_cube_y_axis.copy(points=self.get_midpoints(input_cube_y_axis))
         return distance_cube_x_axis, distance_cube_y_axis
 
@@ -287,8 +272,8 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
     with the full haversine formula.
     """
 
-    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube]): # TODO: Can we stop taking diffs?
-        super().__init__(cube, diffs)
+    def __init__(self, cube: Cube):
+        super().__init__(cube)
         self.lats, self.longs = self._get_cube_latlon_points()
         self.sphere_radius = cube.coord(axis="x").coord_system.semi_major_axis
 
@@ -369,10 +354,10 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             cube in metres.
         """
         x_distances = calculate_grid_spacing(self.cube, axis="x", units="metres")
-        data = np.full(self.x_diff.data.shape, x_distances)
+        data = np.full((self.cube.shape[0], len(self.x_separations_axis.points)), x_distances)
         dims = [
-            (self.x_diff.coord("projection_y_coordinate"), 0),
-            (self.x_diff.coord("projection_x_coordinate"), 1),
+            (self.cube.coord("projection_y_coordinate"), 0),
+            (self.x_separations_axis, 1),
         ]
         return self.build_distances_cube(data, dims, "x")
 
@@ -386,10 +371,10 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             cube in metres.
         """
         y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="metres")
-        data = np.full(self.y_diff.data.shape, y_grid_spacing)
+        data = np.full((len(self.y_separation_axis.points), self.cube.data.shape[1]), y_grid_spacing)
         dims = [
-            (self.y_diff.coord("projection_y_coordinate"), 0),
-            (self.y_diff.coord("projection_x_coordinate"), 1),
+            (self.y_separation_axis, 0),
+            (self.cube.coord("projection_x_coordinate"), 1),
         ]
         return self.build_distances_cube(data, dims, "y")
 
@@ -404,28 +389,19 @@ class DistanceBetweenGridSquares(BasePlugin):
     This causes a < 0.15% error compared with the full haversine formula.
     """
 
-    def __init__(self, cube: Cube, diffs: Tuple[Cube, Cube] = None):
+    def __init__(self, cube: Cube):
         """
         Args:
             cube:
                 Cube for which the distances will be calculated.
-            diffs:
-                Tuple of cubes representing the differences between cube values along the x and
-                y axes. Optional parameter to avoid repeating the calculation if differences are
-                already available. If not provided, the differences will be calculated from the
-                cube.
-
         Raises:
             ValueError: Cube does not have enough information from which to calculate distances
             or uses an unsupported coordinate system.
         """
-        if diffs is None:
-            diffs = DifferenceBetweenAdjacentGridSquares()(cube)
-
         if self._cube_xy_dimensions_are_distances(cube):
-            self.distance_calculator = ProjectionCubeDistanceCalculator(cube, diffs)
+            self.distance_calculator = ProjectionCubeDistanceCalculator(cube)
         elif self._get_cube_spatial_type(cube) == GeogCS:
-            self.distance_calculator = LatLonCubeDistanceCalculator(cube, diffs)
+            self.distance_calculator = LatLonCubeDistanceCalculator(cube)
         else:
             raise ValueError(
                 "Unsupported cube coordinate system or insufficent information to "
