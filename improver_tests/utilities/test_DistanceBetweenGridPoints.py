@@ -206,11 +206,26 @@ def test_latlon_cube(longs):
         )  # Allowing 0.33% error for spherical earth approximation.
 
 
-def test_equalarea_cube():
+@pytest.mark.parametrize(
+    "test_case",
+    (
+        # Distances, Cube_is_circular
+        (1000, False),
+        (13358333, True),  # 13358333 ~= 1/3 of the Earths' circumference
+    )
+)
+def test_equalarea_cube(test_case):
     """Basic test for a cube using a Lambert Azumutal Equal Area projection"""
-    input_cube = make_equalarea_test_cube((3, 3), grid_spacing=1000)
-    expected_x_distances = np.full((3, 2), 1000)
-    expected_y_distances = np.full((2, 3), 1000)
+    spacing, circular = test_case
+    input_cube = make_equalarea_test_cube((3, 3), grid_spacing=spacing)
+    if circular:
+        input_cube.coord(axis="x").circular = True
+        expected_x_distances_cube_shape = (3, 3)
+    else:
+        expected_x_distances_cube_shape = (3, 2)
+
+    expected_x_distances = np.full(expected_x_distances_cube_shape, spacing)
+    expected_y_distances = np.full((2, 3), spacing)
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
