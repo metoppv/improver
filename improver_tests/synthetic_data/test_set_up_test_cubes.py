@@ -80,6 +80,12 @@ class Test_construct_yx_coords(IrisTest):
         """Test latitude and longitude point values created around 0,0 with
         provided grid spacing"""
         y_coord, x_coord = construct_yx_coords(
+            3, 3, "latlon", x_grid_spacing=10, y_grid_spacing=10
+        )
+        self.assertArrayEqual(x_coord.points, [-10.0, 0.0, 10.0])
+        self.assertArrayEqual(y_coord.points, [-10.0, 0.0, 10.0])
+
+        y_coord, x_coord = construct_yx_coords(
             3, 3, "latlon", x_grid_spacing=1, y_grid_spacing=2
         )
         self.assertArrayEqual(x_coord.points, [-1.0, 0.0, 1.0])
@@ -122,6 +128,12 @@ class Test_construct_yx_coords(IrisTest):
     def test_equal_area_grid_spacing(self):
         """Test projection_y_coordinate and projection_x_coordinate point
         values created around 0,0 with provided grid spacing"""
+        y_coord, x_coord = construct_yx_coords(
+            3, 3, "equalarea", x_grid_spacing=10, y_grid_spacing=10
+        )
+        self.assertArrayEqual(x_coord.points, [-10.0, 0.0, 10.0])
+        self.assertArrayEqual(y_coord.points, [-10.0, 0.0, 10.0])
+
         y_coord, x_coord = construct_yx_coords(
             3, 3, "equalarea", x_grid_spacing=1, y_grid_spacing=2
         )
