@@ -31,28 +31,30 @@
 """ Provides support utilities."""
 
 import copy
-from typing import List, Optional, Tuple, Union
 
-import cartopy.crs as ccrs
-import iris
 import netCDF4
 import numpy as np
-from cartopy.crs import CRS
-from cf_units import Unit
-from iris.coords import Coord, AuxCoord, CellMethod
-from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
 
+import cartopy.crs as ccrs
+import iris
+from cartopy.crs import CRS
+from cf_units import Unit
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
+from improver.metadata.probabilistic import (in_vicinity_name_format,
+                                             is_probability)
 from improver.metadata.utilities import create_new_diagnostic_cube
-from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
+from improver.utilities.cube_checker import (check_cube_coordinates,
+                                             spatial_coords_match)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from iris.coords import AuxCoord, CellMethod, Coord
+from iris.cube import Cube, CubeList
+from typing import List, Optional, Tuple, Union
 
 
 def check_if_grid_is_equal_area(
