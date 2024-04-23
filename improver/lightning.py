@@ -238,17 +238,17 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
     lprob_noprecip=0.025*alog(lprob_noprecip+0.31)+0.03
     APCP=APCP-(PWAT/1000)
 
-    IF APCP is less than 0.01 THEN lprob=lprob_noprecip
+    IF APCP is less than 0.01 inches THEN lprob=lprob_noprecip
     If there is no CAPE but the atmosphere is “close” to unstable, lightning does sometimes occur,
     especially when heavy precipitation may have stabilized the atmosphere in the model. Unstable
     values of lifted index are positive here:
     LIFTIDX=LIFTIDX+4.0
-    IF LIFTIDX is less than 0 THEN LIFTIDX=0.0
-    IF CAPE is less than 0 THEN lprob =0.2*(LIFTIDX*APCP)^0.5
+    IF LIFTIDX is less than 0 K THEN LIFTIDX=0.0
+    IF CAPE is less than 0 J/kg THEN lprob =0.2*(LIFTIDX*APCP)^0.5
 
     Finally, the probability of lightning is reduced when there is not much PW, because graupel
     cannot form and start the whole charging process. Therefore we reduce the probability:
-    IF PWAT is less than 20 THEN lprob=lprob*(PWAT/20.0)
+    IF PWAT is less than 20 mm THEN lprob=lprob*(PWAT/20.0)
 
     Limit final probabilities to 95% as that is as skillful as the regression equations could get:
     IF lprob is greater than 0.95 THEN lprob=0.95
