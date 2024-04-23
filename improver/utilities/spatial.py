@@ -46,14 +46,13 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.probabilistic import (in_vicinity_name_format,
-                                             is_probability)
+from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
-from improver.utilities.cube_checker import (check_cube_coordinates,
-                                             spatial_coords_match)
+from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from iris.coords import AuxCoord, CellMethod, Coord
 from iris.cube import Cube, CubeList
+from iris.coord_systems import GeogCS
 from typing import List, Optional, Tuple, Union
 
 
@@ -193,15 +192,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
 
     @staticmethod
-    def _get_max_x_axis_value(cube):
-        axis = cube.coord(axis="x")
-        units = axis.units
-        if axis.units == "Degrees":
-            return 360
-        else:
-            return 2 * np.pi * axis.coord_system.semi_major_axis  # Planet circumference
-
-    @staticmethod
     def _axis_wraps_around_meridian(axis: Coord, cube: Cube):
         return axis.circular and axis == cube.coord(axis="x")
 
@@ -248,7 +238,12 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         points = axis.points
         mean_points = (points[1:] + points[:-1]) / 2
         if self._axis_wraps_around_meridian(axis, cube):
-            max_value = self._get_max_x_axis_value(cube)
+            if type(axis.coord_system) != GeogCS:
+                raise ValueError(
+                    "DifferenceBetweenAdjacentGridSquares does not currently support cubes with "
+                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
+                )
+            max_value = 360
             extra_mean_point = (
                 np.mean([points[-1], (points[0] + max_value)]) % max_value
             )

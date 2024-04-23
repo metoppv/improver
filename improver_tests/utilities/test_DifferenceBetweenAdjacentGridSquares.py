@@ -112,7 +112,6 @@ class Test_create_difference_cube(IrisTest):
 
 
 class Test_calculate_difference(IrisTest):
-
     """Test the calculate_difference method."""
 
     def setUp(self):
@@ -176,7 +175,6 @@ class Test_calculate_difference(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process method."""
 
     def setUp(self):
@@ -231,6 +229,11 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result[0].data, expected_x)
         self.assertIsInstance(result[1], iris.cube.Cube)
         self.assertArrayEqual(result[1].data, expected_y)
+
+    def test_circular_non_geographic_cube_raises_approprate_exception(self):
+        self.cube.coord(axis="x").circular = True
+        with self.assertRaises(ValueError):
+            result = self.plugin.process(self.cube)
 
 
 if __name__ == "__main__":
