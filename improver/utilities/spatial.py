@@ -46,13 +46,15 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
+from improver.metadata.probabilistic import (in_vicinity_name_format,
+                                             is_probability)
 from improver.metadata.utilities import create_new_diagnostic_cube
-from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
+from improver.utilities.cube_checker import (check_cube_coordinates,
+                                             spatial_coords_match)
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+from iris.coord_systems import GeogCS
 from iris.coords import AuxCoord, CellMethod, Coord
 from iris.cube import Cube, CubeList
-from iris.coord_systems import GeogCS
 from typing import List, Optional, Tuple, Union
 
 
