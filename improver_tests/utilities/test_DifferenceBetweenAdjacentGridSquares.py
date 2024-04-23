@@ -92,13 +92,11 @@ class Test_create_difference_cube(IrisTest):
         diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
         expected_x_coords = np.array(
             [-60, 60, 180]
-        )  # Original data at [-120, 0, 120], therefore differences are at [-60, 60, 180].
+        )  # Original data are at [-120, 0, 120], therefore differences are at [-60, 60, 180].
         result = self.plugin.create_difference_cube(test_cube, "longitude", diff_array)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, diff_array)
-
-        # TOdo: FAILS FOR equal area cubes. Is this a problem? Which projections is it worth coding against?
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""

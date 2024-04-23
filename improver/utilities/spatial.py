@@ -294,7 +294,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             )
             diff_along_axis = np.hstack(
                 [diff_along_axis, wrap_around_diff]
-            )  # Todo: order is wrong.
+            )
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
