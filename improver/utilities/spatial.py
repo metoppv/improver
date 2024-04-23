@@ -222,8 +222,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_cube.attributes["form_of_difference"] = "forward_difference"
         diff_cube.rename("difference_of_" + cube_name)
 
-    def create_difference_cube(self,
-        cube: Cube, coord_name: str, diff_along_axis: ndarray
+    def create_difference_cube(
+        self, cube: Cube, coord_name: str, diff_along_axis: ndarray
     ) -> Cube:
         """
         Put the difference array into a cube with the appropriate
@@ -247,7 +247,9 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         mean_points = (points[1:] + points[:-1]) / 2
         if self._axis_wraps_around_meridian(axis, cube):
             max_value = self._get_max_x_axis_value(cube)
-            extra_mean_point = np.mean([points[-1], (points[0] + max_value)]) % max_value
+            extra_mean_point = (
+                np.mean([points[-1], (points[0] + max_value)]) % max_value
+            )
             mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
@@ -289,9 +291,13 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_along_axis = np.diff(cube.data, axis=diff_axis_number)
         if self._axis_wraps_around_meridian(diff_axis, cube):
             first_column = cube.data[:, :1]
-            last_column = cube.data[:,- 1:]
-            wrap_around_diff = np.diff(np.hstack([last_column, first_column]), axis=diff_axis_number)
-            diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff])  # Todo: order is wrong.
+            last_column = cube.data[:, -1:]
+            wrap_around_diff = np.diff(
+                np.hstack([last_column, first_column]), axis=diff_axis_number
+            )
+            diff_along_axis = np.hstack(
+                [diff_along_axis, wrap_around_diff]
+            )  # Todo: order is wrong.
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
@@ -314,9 +320,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()
             difference = self.calculate_difference(cube, coord_name)
-            diff_cube = self.create_difference_cube(
-                cube, coord_name, difference
-            )
+            diff_cube = self.create_difference_cube(cube, coord_name, difference)
             self._update_metadata(diff_cube, coord_name, cube.name())
             diffs.append(diff_cube)
         return tuple(diffs)

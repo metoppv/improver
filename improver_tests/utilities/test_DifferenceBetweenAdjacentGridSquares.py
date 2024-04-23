@@ -81,13 +81,19 @@ class Test_create_difference_cube(IrisTest):
         """Test differences calculated along the x dimension."""
         test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         test_cube_x_grid_spacing = 120
-        test_cube = set_up_variable_cube(test_cube_data, "wind_speed", "m s-1", "latlon", x_grid_spacing=test_cube_x_grid_spacing)
+        test_cube = set_up_variable_cube(
+            test_cube_data,
+            "wind_speed",
+            "m s-1",
+            "latlon",
+            x_grid_spacing=test_cube_x_grid_spacing,
+        )
         test_cube.coord(axis="x").circular = True
         diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
-        expected_x_coords = np.array([-60, 60, 180])  # Original data at [-120, 0, 120], therefore differences are at [-60, 60, 180].
-        result = self.plugin.create_difference_cube(
-            test_cube, "longitude", diff_array
-        )
+        expected_x_coords = np.array(
+            [-60, 60, 180]
+        )  # Original data at [-120, 0, 120], therefore differences are at [-60, 60, 180].
+        result = self.plugin.create_difference_cube(test_cube, "longitude", diff_array)
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, diff_array)
