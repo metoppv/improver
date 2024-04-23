@@ -191,6 +191,19 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
 
     @staticmethod
+    def _get_max_x_axis_value(cube):
+        axis = cube.coord(axis="x")
+        units = axis.units
+        if axis.units == "Degrees":
+            return 360
+        else:
+            return 2 * np.pi * axis.coord_system.semi_major_axis  # Planet circumference
+
+    @staticmethod
+    def _axis_wraps_around_meridian(axis: Coord, cube: Cube):
+        return axis.circular and axis == cube.coord(axis="x")
+
+    @staticmethod
     def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str) -> None:
         """Rename cube, add attribute and cell method to describe difference.
 
@@ -209,8 +222,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_cube.attributes["form_of_difference"] = "forward_difference"
         diff_cube.rename("difference_of_" + cube_name)
 
-    @staticmethod
-    def create_difference_cube(
+    def create_difference_cube(self,
         cube: Cube, coord_name: str, diff_along_axis: ndarray
     ) -> Cube:
         """
@@ -230,8 +242,13 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             Cube containing the differences calculated along the
             specified axis.
         """
-        points = cube.coord(coord_name).points
-        mean_points = (points[1:] + points[:-1]) / 2 # Todo: fails for circular cubes because we don't provide a coord point for the wrap around datapoint. Need to write a test for this and then fix it.
+        axis = cube.coord(coord_name)
+        points = axis.points
+        mean_points = (points[1:] + points[:-1]) / 2
+        if self._axis_wraps_around_meridian(axis, cube):
+            max_value = self._get_max_x_axis_value(cube)
+            extra_mean_point = np.mean([points[-1], (points[0] + max_value)]) % max_value
+            mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
         # Create a new coordinate for the coordinate along which the
@@ -252,8 +269,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             diff_cube.add_aux_coord(coord.copy(), dims)
         return diff_cube
 
-    @staticmethod
-    def calculate_difference(cube: Cube, coord_name: str) -> ndarray:
+    def calculate_difference(self, cube: Cube, coord_name: str) -> ndarray:
         """
         Calculate the difference along the axis specified by the
         coordinate.
@@ -271,11 +287,11 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_axis = cube.coord(name_or_coord=coord_name)
         diff_axis_number = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis_number)
-        if diff_axis.circular and diff_axis == cube.coord(axis="x"):
+        if self._axis_wraps_around_meridian(diff_axis, cube):
             first_column = cube.data[:, :1]
             last_column = cube.data[:,- 1:]
             wrap_around_diff = np.diff(np.hstack([last_column, first_column]), axis=diff_axis_number)
-            diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff])
+            diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff])  # Todo: order is wrong.
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
