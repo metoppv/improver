@@ -279,7 +279,7 @@ class OrographicSmoothingCoefficients(BasePlugin):
         """
         This creates the smoothing_coefficient cubes. It returns one for the x
         direction and one for the y direction. It uses the
-        DifferenceBetweenAdjacentGridSquares plugin to calculate an average
+        GradientBetweenAdjacentGridSquares plugin to calculate an average
         gradient across each grid square. These gradients are then used to
         calculate "smoothing_coefficient" arrays that are normalised between a
         user-specified max and min.
