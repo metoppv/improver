@@ -77,18 +77,22 @@ class Test_create_difference_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, diff_array)
 
-    def test_x_dimension_when_cube_wraps_meridian(self):
+    def test_x_dimension_for_circular_latlon_cube(self):
         """Test differences calculated along the x dimension."""
-        self.cube.coord(axis="x").circular = True
+        test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
+        test_cube_x_grid_spacing = 120
+        test_cube = set_up_variable_cube(test_cube_data, "wind_speed", "m s-1", "latlon", x_grid_spacing=test_cube_x_grid_spacing)
+        test_cube.coord(axis="x").circular = True
         diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
-        points = self.cube.coord(axis="x").points
-        expected_x_coords = np.hstack([(points[1:] + points[:-1]) / 2, np.array([0])])  # Todo: this is kind of non-obvious. I should probably change the distances to 1/3 earth radiuses + make code more intuititve.
+        expected_x_coords = np.array([-60, 60, 180])  # Original data at [-120, 0, 120], therefore differences are at [-60, 60, 180].
         result = self.plugin.create_difference_cube(
-            self.cube, "projection_x_coordinate", diff_array
+            test_cube, "longitude", diff_array
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, diff_array)
+
+        # TOdo: FAILS FOR equal area cubes. Is this a problem? Which projections is it worth coding against?
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""

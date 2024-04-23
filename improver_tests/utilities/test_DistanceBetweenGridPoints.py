@@ -215,7 +215,7 @@ def test_latlon_cube(longs):
     )
 )
 def test_equalarea_cube(test_case):
-    """Basic test for a cube using a Lambert Azumutal Equal Area projection"""
+    """Basic test for a cube using a Lambert Azumutal Equal Area projection"""  # Todo: I think this only works by chance. The get_midpoints method on the distances base class only works with angular coordinates. Probably just need to move this to the latlong subclass and have the projections subclass raise a not-implemented error for circular coords, which this class can capture. Logic for getting the x axis for differences will be the same as for distances.
     spacing, circular = test_case
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=spacing)
     if circular:
