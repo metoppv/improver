@@ -39,7 +39,7 @@ import netCDF4
 import numpy as np
 from cartopy.crs import CRS
 from cf_units import Unit
-from iris.coords import AuxCoord, CellMethod
+from iris.coords import Coord, AuxCoord, CellMethod
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
