@@ -179,7 +179,6 @@ def make_latlon_test_cube(
         ([-20, 20], False),
         ([-60, -30, 0, 30, 60], False) # Todo: dim coords are not correct. Think it's a floating point error? Probably need a test for this.
         # Todo: try a non-uniform grid.
-        # Todo: dim coords need to align with the relevant diffs.
     )
 )
 def test_latlon_cube(longs):
