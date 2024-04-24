@@ -37,15 +37,14 @@ import cartopy.crs as ccrs
 import iris
 import netCDF4
 import numpy as np
+from cartopy.crs import CRS
+from cf_units import Unit
 from iris.coords import AuxCoord, CellMethod, Coord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
 
-
-from cartopy.crs import CRS
-from cf_units import Unit
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
@@ -56,8 +55,6 @@ from improver.utilities.cube_checker import check_cube_coordinates, spatial_coor
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 from iris.coord_systems import GeogCS
-
-
 
 
 def check_if_grid_is_equal_area(
