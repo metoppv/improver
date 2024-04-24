@@ -39,6 +39,7 @@ import netCDF4
 import numpy as np
 from cartopy.crs import CRS
 from cf_units import Unit
+from iris.coord_systems import GeogCS
 from iris.coords import AuxCoord, CellMethod, Coord
 from iris.cube import Cube, CubeList
 from numpy import ndarray
@@ -53,8 +54,6 @@ from improver.metadata.probabilistic import in_vicinity_name_format, is_probabil
 from improver.metadata.utilities import create_new_diagnostic_cube
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
-
-from iris.coord_systems import GeogCS
 
 
 def check_if_grid_is_equal_area(
