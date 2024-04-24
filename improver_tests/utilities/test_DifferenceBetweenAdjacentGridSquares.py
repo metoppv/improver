@@ -231,7 +231,7 @@ class Test_process(IrisTest):
     def test_circular_non_geographic_cube_raises_approprate_exception(self):
         self.cube.coord(axis="x").circular = True
         with self.assertRaises(ValueError):
-            result = self.plugin.process(self.cube)
+            self.plugin.process(self.cube)
 
 
 if __name__ == "__main__":
