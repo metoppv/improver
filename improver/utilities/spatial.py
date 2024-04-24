@@ -243,9 +243,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     "DifferenceBetweenAdjacentGridSquares does not currently support cubes with "
                     "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
                 )
-            max_value = 360
             extra_mean_point = (
-                np.mean([points[-1], (points[0] + max_value)]) % max_value
+                np.mean([points[-1], (points[0] + 360)]) % 360
             )
             mean_points = np.hstack([mean_points, extra_mean_point])
 
