@@ -243,9 +243,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     "DifferenceBetweenAdjacentGridSquares does not currently support cubes with "
                     "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
                 )
-            extra_mean_point = (
-                np.mean([points[-1], (points[0] + 360)]) % 360
-            )
+            extra_mean_point = np.mean([points[-1], (points[0] + 360)]) % 360
             mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
@@ -291,9 +289,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             wrap_around_diff = np.diff(
                 np.hstack([last_column, first_column]), axis=diff_axis_number
             )
-            diff_along_axis = np.hstack(
-                [diff_along_axis, wrap_around_diff]
-            )
+            diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff])
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
