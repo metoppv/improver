@@ -290,7 +290,12 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         for input_name, units in input_names.items():
             output_cubes.append(self._extract_input(cubes, input_name))
             if not output_cubes[-1].units in units:
-                raise ValueError("Input diagnostic units are incorrect")
+                expected_unit_string = ' or '.join(map(str, units))
+                received_unit_string = str(output_cubes[-1].units)
+                raise ValueError(
+                    f"The {output_cubes[-1].name()} units are incorrect, expected "
+                    f"units as {expected_unit_string} but received {received_unit_string})."
+                )
 
         cape, liftidx, pwat, cin, apcp = output_cubes
 
@@ -395,7 +400,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
                 "threshold"
             ),
             units="1",
-            template_cube=templ,
+            template_cube=template,
             data=lprob.astype(FLOAT_DTYPE),
             mandatory_attributes=generate_mandatory_attributes(
                 cubes, model_id_attr=model_id_attr

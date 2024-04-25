@@ -252,13 +252,18 @@ def break_precip_window(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
 
 
 def break_reference_time(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
-    """Modifies cape_cube time points to be incremented by 1 second and
+    """Modifies precip_cube time points to be incremented by 1 second and
     returns the error message this will trigger"""
     precip_cube.coord("forecast_reference_time").points = (
         precip_cube.coord("forecast_reference_time").points + 1
     )
     return r".* and .* do not have the same forecast reference time"
 
+def break_units(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
+    """Modifies cape_cube units to be incorrect as K and
+    returns the error message this will trigger"""
+    cape_cube.units = 'K'
+    return r"The .* units are incorrect, expected units as .* but received .*"
 
 def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
     """Modifies the first latitude point on the precip_cube (adds one degree)
@@ -280,6 +285,7 @@ def break_coordinates(cape_cube, precip_cube, cin_cube, li_cube, pw_cube):
         break_cape_time,
         break_precip_window,
         break_reference_time,
+        break_units,
         break_coordinates,
     ),
 )
