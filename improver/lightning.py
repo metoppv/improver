@@ -283,7 +283,9 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         output_cubes = iris.cube.CubeList()
         input_names = {
             "atmosphere_specific_convective_available_potential_energy": ["J kg-1"],
-            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically": ["K"],
+            "temperature_difference_between_ambient_air_and_air_lifted_adiabatically": [
+                "K"
+            ],
             "precipitable_water": ["kg m-2", "mm"],
             "atmosphere_specific_convective_inhibition": ["J kg-1"],
             "precipitation_amount": ["kg m-2", "mm"],
@@ -292,7 +294,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
         for input_name, units in input_names.items():
             output_cubes.append(self._extract_input(cubes, input_name))
             if not output_cubes[-1].units in units:
-                expected_unit_string = ' or '.join(map(str, units))
+                expected_unit_string = " or ".join(map(str, units))
                 received_unit_string = str(output_cubes[-1].units)
                 raise ValueError(
                     f"The {output_cubes[-1].name()} units are incorrect, expected "
