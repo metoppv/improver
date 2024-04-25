@@ -215,7 +215,9 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
     probability forecast.
 
     Inputs:
-    Convective Available Potential Energy (CAPE in J/kg)
+    Convective Available Potential Energy (CAPE in J/kg. Most Unstable CAPE is ideal and was used
+    to determine the regression statistics, but surface-based CAPE is supported and yields similar 
+    results but will not forecast elevated convection.)
     Lifted Index (liftind in K)
     Precipitable Water (pwat in kg m-2 or mm. This is used as mm in the regression equations)
     Convective Inhibition (CIN in J/kg)
@@ -228,14 +230,14 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
     Regression equation when CAPE and APCP are greater than zero:
     lprob= cape*APCP
-    lprob=0.13*alog(lprob+0.7)+0.05
+    lprob=0.13*ln(lprob+0.7)+0.05
 
     If APCP is very low, a separate regression equation is used to predict lightning probability.
     The definition of “very low” is raised slightly when PWAT values are high. This is because
     the model often produces showery precipitation that doesn’t access the actual instability in
     very moist environments:
     lprob_noprecip=CAPE/(CIN+100.0)
-    lprob_noprecip=0.025*alog(lprob_noprecip+0.31)+0.03
+    lprob_noprecip=0.025*ln(lprob_noprecip+0.31)+0.03
     APCP=APCP-(PWAT/1000)
 
     IF APCP is less than 0.01 inches THEN lprob=lprob_noprecip
@@ -244,7 +246,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
     values of lifted index are positive here:
     LIFTIDX=LIFTIDX+4.0
     IF LIFTIDX is less than 0 K THEN LIFTIDX=0.0
-    IF CAPE is less than 0 J/kg THEN lprob =0.2*(LIFTIDX*APCP)^0.5
+    IF CAPE<=0 J/kg THEN lprob=0.2*(LIFTIDX*APCP)^0.5
 
     Finally, the probability of lightning is reduced when there is not much PW, because graupel
     cannot form and start the whole charging process. Therefore we reduce the probability:
@@ -347,7 +349,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
         Raises:
             ValueError:
-                If one of the cubes is not found or doesn't match the other
+                If one of the cubes is not found, doesn't match the others, or has incorrect units
         """
         cape, liftidx, pwat, cin, apcp = self._get_inputs(cubes)
 
