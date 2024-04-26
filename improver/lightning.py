@@ -216,7 +216,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
     Inputs:
     Convective Available Potential Energy (CAPE in J/kg. Most Unstable CAPE is ideal and was used
-    to determine the regression statistics, but surface-based CAPE is supported and yields similar 
+    to determine the regression statistics, but surface-based CAPE is supported and yields similar
     results but will not forecast elevated convection.)
     Lifted Index (liftind in K)
     Precipitable Water (pwat in kg m-2 or mm. This is used as mm in the regression equations)
