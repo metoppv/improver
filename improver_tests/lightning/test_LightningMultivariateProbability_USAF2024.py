@@ -63,7 +63,8 @@ def cape_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-20, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -85,7 +86,8 @@ def cin_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-20, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -107,7 +109,8 @@ def liftidx_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-20, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -129,7 +132,8 @@ def pwat_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-20, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -151,7 +155,8 @@ def apcp_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-20, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -173,7 +178,8 @@ def expected_cube_fixture() -> Cube:
         time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 6, 0)),
         attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         domain_corner=(-20, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
 
     cube = add_coordinate(
