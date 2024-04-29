@@ -56,6 +56,7 @@ def wet_bulb_temperature() -> Cube:
     return cube
 
 
+@pytest.mark.parametrize("new_name", (None, "max_wet_bulb_temperature"))
 @pytest.mark.parametrize(
     "lower_bound,upper_bound,expected",
     (
@@ -65,18 +66,21 @@ def wet_bulb_temperature() -> Cube:
         (50, 1000, [300, 400, 300]),
     ),
 )
-def test_maximum_in_height(lower_bound, upper_bound, expected, wet_bulb_temperature):
+def test_maximum_in_height(
+    lower_bound, upper_bound, expected, wet_bulb_temperature, new_name
+):
     """Test that the maximum over the height coordinate is correctly calculated for
-    different combinations of upper and lower bounds."""
+    different combinations of upper and lower bounds. Also checks the name of the
+    cube is correctly updated."""
 
-    result = maximum_in_height(
-        wet_bulb_temperature,
-        lower_height_bound=lower_bound,
-        upper_height_bound=upper_bound,
-    )
+    expected_name = "wet_bulb_temperature"
+    if new_name:
+        expected_name = new_name
+
+    result = maximum_in_height(wet_bulb_temperature, lower_bound, upper_bound, new_name)
 
     assert np.allclose(result.data, [expected] * 2)
-    assert "wet_bulb_temperature" == result.name()
+    assert expected_name == result.name()
 
 
 def test_height_bounds_error(wet_bulb_temperature):

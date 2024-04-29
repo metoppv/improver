@@ -116,7 +116,8 @@ class Test_process(IrisTest):
             attributes=attributes,
             standard_grid_metadata="uk_det",
             domain_corner=(-60, 0),
-            grid_spacing=20,
+            x_grid_spacing=20,
+            y_grid_spacing=20,
         )
 
         self.masked_cube = self.cube.copy()

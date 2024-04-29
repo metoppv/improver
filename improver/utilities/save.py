@@ -131,7 +131,7 @@ def save_netcdf(
             xy_chunksizes = [cube.shape[-2], cube.shape[-1]]
             chunksizes = tuple([1] * (cube.ndim - 2) + xy_chunksizes)
     else:
-        msg = "Chunksize not set as cubelist " "contains cubes of varying dimensions"
+        msg = "Chunksize not set as cubelist contains cubes of varying dimensions"
         warnings.warn(msg)
 
     global_keys = [

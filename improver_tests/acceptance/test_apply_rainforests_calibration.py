@@ -98,6 +98,35 @@ def test_basic(tmp_path, create_model_config):
     acc.compare(output_path, kgo_path)
 
 
+def test_bin_data(tmp_path, create_model_config):
+    """
+    Test that the bin_data option does not affect the output.
+    """
+    rainforests_dir = acc.kgo_root() / "apply-rainforests-calibration"
+    kgo_path = rainforests_dir / "basic" / "kgo.nc"
+    forecast_path = (
+        rainforests_dir
+        / "features"
+        / "20200802T0000Z-PT0024H00M-precipitation_accumulation-PT24H.nc"
+    )
+    feature_paths = (rainforests_dir / "features").glob("20200802T0000Z-PT00*-PT24H.nc")
+    model_config = create_model_config
+    output_path = tmp_path / "output.nc"
+    args = [
+        forecast_path,
+        *feature_paths,
+        "--model-config",
+        model_config,
+        "--output-thresholds",
+        "0.0,0.0005,0.001",
+        "--bin-data",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
+
+
 def test_json_threshold_config(tmp_path, create_model_config):
     """
     Test calibration of a forecast using a rainforests approach where

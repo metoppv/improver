@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the improver.metadata.amend module"""
-
+import re
 import unittest
 from datetime import datetime as dt
 
@@ -128,22 +128,28 @@ class Test_amend_attributes(IrisTest):
             attributes={
                 "mosg__grid_version": "1.3.0",
                 "mosg__model_configuration": "uk_det",
+                "history": "20231213T09:04:23Z: StaGE Decoupler",
             },
         )
         self.metadata_dict = {
             "mosg__grid_version": "remove",
             "source": "IMPROVER unit tests",
             "mosg__model_configuration": "other_model",
+            "history": "{}\n{now:%Y%m%dT%H:%M:%SZ}: IMPROVER",
         }
 
     def test_basic(self):
-        """Test function adds, removes and modifies attributes as expected"""
+        """Test function adds, removes, updates and modifies attributes as expected,
+        including the presence of a formatted now string."""
         expected_attributes = {
             "source": "IMPROVER unit tests",
             "mosg__model_configuration": "other_model",
+            "history": "20231213T09:04:23Z: StaGE Decoupler\n.*Z: IMPROVER",
         }
         amend_attributes(self.cube, self.metadata_dict)
-        self.assertDictEqual(self.cube.attributes, expected_attributes)
+        self.assertTrue(self.cube.attributes.keys() == expected_attributes.keys())
+        for k, v in expected_attributes.items():
+            self.assertTrue(re.match(v, self.cube.attributes[k]))
 
 
 class Test_set_history_attribute(IrisTest):

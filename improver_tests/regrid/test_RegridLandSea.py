@@ -74,7 +74,8 @@ class Test_process(IrisTest):
             spatial_grid="latlon",
             standard_grid_metadata="gl_det",
             domain_corner=domain_corner,
-            grid_spacing=2,
+            x_grid_spacing=2,
+            y_grid_spacing=2,
         )
 
         # set up dummy landmask on source grid

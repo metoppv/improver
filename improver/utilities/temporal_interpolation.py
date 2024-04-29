@@ -40,6 +40,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
 
 from improver import BasePlugin
+from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.round import round_close
@@ -56,6 +57,55 @@ class TemporalInterpolation(BasePlugin):
     cubes. This can be used to fill in missing data (e.g. for radar fields) or
     to ensure data is available at the required intervals when model data is
     not available at these times.
+
+    The plugin will return the interpolated times and the later of the two
+    input times. This allows us to modify the input diagnostics if they
+    represent accumulations.
+
+    The IMPROVER convention is that period diagnostics have their time
+    coordinate point at the end of the period. The later of the two inputs
+    therefore covers the period that has been broken down into shorter periods
+    by the interpolation and, if working with accumulations, must itself be
+    modified. The result of this approach is that in a long run of
+    lead-times, e.g. T+0 to T+120 all the lead-times will be available except
+    T+0.
+
+    If working with period maximums and minimums we cannot return values in
+    the new periods that do not adhere to the inputs. For example, we might
+    have a 3-hour maximum of 5 ms-1 between 03-06Z. The period before it might
+    have a maximum of 11 ms-1. Upon splitting the 3-hour period into 1-hour
+    periods the gradient might give us the following results:
+
+    Inputs: 00-03Z: 11 ms-1, 03-06Z: 5 ms-1
+    Outputs: 03-04Z: 9 ms-1, 04-05Z: 7 ms-1, 05-06Z: 5ms-1
+
+    However these outputs are not in agreement with the original 3-hour period
+    maximum of 5 ms-1 over the period 03-06Z. We enforce the maximum from the
+    original period which results in:
+
+    Inputs: 00-03Z: 10 ms-1, 03-06Z: 5 ms-1
+    Outputs: 03-04Z: 5 ms-1, 04-05Z: 5 ms-1, 05-06Z: 5ms-1
+
+    If instead the preceding period maximum was 2 ms-1 we would use the trend
+    to produce lower maximums in the interpolated 1-hour periods, becoming:
+
+    Inputs: 00-03Z: 2 ms-1, 03-06Z: 5 ms-1
+    Outputs: 03-04Z: 3 ms-1, 04-05Z: 4 ms-1, 05-06Z: 5ms-1
+
+    This interpretation of the gradient information is retained in the output
+    as it is consistent with the original period maximum of 5 ms-1 between
+    03-06Z. As such we can impart increasing trends into maximums over periods
+    but not decreasing trends. The counter argument can be made when
+    interpolating minimums in periods, allowing us only to introduce
+    decreasing trends for these.
+
+    We could use the cell methods to determine whether we are working with
+    accumulations, maximums, or minimums. This should be denoted as a cell
+    method associated with the time coordinate, e.g. for an accumulation it
+    would be `time: sum`, whilst a maximum would have `time: max`. However
+    we cannot guarantee these cell methods are present. As such the
+    interpolation of periods here relies on the user supplying a suitable
+    keyword argument that denotes the type of period being processed.
     """
 
     def __init__(
@@ -63,6 +113,9 @@ class TemporalInterpolation(BasePlugin):
         interval_in_minutes: Optional[int] = None,
         times: Optional[List[datetime]] = None,
         interpolation_method: str = "linear",
+        accumulation: bool = False,
+        max: bool = False,
+        min: bool = False,
     ) -> None:
         """
         Initialise class.
@@ -82,10 +135,30 @@ class TemporalInterpolation(BasePlugin):
             interpolation_method:
                 Method of interpolation to use. Default is linear.
                 Only methods in known_interpolation_methods can be used.
+            accumulation:
+                Set True if the diagnostic being temporally interpolated is a
+                period accumulation. The output will be renormalised to ensure
+                that the total across the period constructed from the shorter
+                intervals matches the total across the period from the coarser
+                intervals.
+            max:
+                Set True if the diagnostic being temporally interpolated is a
+                period maximum. Trends between adjacent input periods will be used
+                to provide variation across the interpolated periods where these
+                are consistent with the inputs.
+            min:
+                Set True if the diagnostic being temporally interpolated is a
+                period minimum. Trends between adjacent input periods will be used
+                to provide variation across the interpolated periods where these
+                are consistent with the inputs.
 
         Raises:
             ValueError: If neither interval_in_minutes nor times are set.
+            ValueError: If both interval_in_minutes and times are both set.
             ValueError: If interpolation method not in known list.
+            ValueError: If multiple period diagnostic kwargs are set True.
+            ValueError: A period diagnostic is being interpolated with a method
+                        not found in the period_interpolation_methods list.
         """
         if interval_in_minutes is None and times is None:
             raise ValueError(
@@ -108,15 +181,26 @@ class TemporalInterpolation(BasePlugin):
                 "method {}. ".format(interpolation_method)
             )
         self.interpolation_method = interpolation_method
+        self.period_inputs = False
+        if np.sum([accumulation, max, min]) > 1:
+            raise ValueError(
+                "Only one type of period diagnostics may be specified: "
+                f"accumulation = {accumulation}, max = {max}, "
+                f"min = {min}"
+            )
+        self.accumulation = accumulation
+        self.max = max
+        self.min = min
+        if any([accumulation, max, min]):
+            self.period_inputs = True
 
-    def __repr__(self) -> str:
-        """Represent the configured plugin instance as a string."""
-        result = (
-            "<TemporalInterpolation: interval_in_minutes: {}, " "times: {}, method: {}>"
-        )
-        return result.format(
-            self.interval_in_minutes, self.times, self.interpolation_method
-        )
+            period_interpolation_methods = ["linear"]
+            if self.interpolation_method not in period_interpolation_methods:
+                raise ValueError(
+                    "Period diagnostics can only be temporally interpolated "
+                    f"using these methods: {period_interpolation_methods}.\n"
+                    f"Currently selected method is: {self.interpolation_method}."
+                )
 
     def construct_time_list(
         self, initial_time: datetime, final_time: datetime
@@ -176,6 +260,9 @@ class TemporalInterpolation(BasePlugin):
                 if time_entry >= final_time:
                     break
                 time_list.append(time_entry)
+
+        time_list.append(final_time)
+        time_list = sorted(set(time_list))
 
         return [("time", time_list)]
 
@@ -281,7 +368,7 @@ class TemporalInterpolation(BasePlugin):
             A list of cubes interpolated to the desired times.
         """
 
-        interpolated_cubes = iris.cube.CubeList()
+        interpolated_cubes = CubeList()
         (lats, lons) = self.calc_lats_lons(diag_cube)
         prev_data = diag_cube[0].data
         next_data = diag_cube[1].data
@@ -351,8 +438,107 @@ class TemporalInterpolation(BasePlugin):
         daynightplugin = DayNightMask()
         daynight_mask = daynightplugin(interpolated_cube)
         index = daynight_mask.data == daynightplugin.night
-        interpolated_cube.data[..., index] = 0.0
-        return iris.cube.CubeList(list(interpolated_cube.slices_over("time")))
+
+        # Reshape the time, y, x mask to match the input which may include addtional
+        # dimensions, such as realization.
+        dropped_crds = [
+            crd
+            for crd in interpolated_cube.coords(dim_coords=True)
+            if crd not in daynight_mask.coords(dim_coords=True)
+        ]
+        if dropped_crds:
+            cslices = interpolated_cube.slices_over(dropped_crds)
+            masked_data = CubeList()
+            for cslice in cslices:
+                cslice.data[index] = 0.0
+                masked_data.append(cslice)
+            interpolated_cube = masked_data.merge_cube()
+        else:
+            interpolated_cube.data[index] = 0.0
+
+        return CubeList(list(interpolated_cube.slices_over("time")))
+
+    @staticmethod
+    def add_bounds(cube_t0: Cube, interpolated_cube: Cube):
+        """Calcualte bounds using the interpolated times and the time
+        taken from cube_t0. This function is used rather than iris's guess
+        bounds method as we want to use the earlier time cube to inform
+        the lowest bound. The interpolated_cube `crd` is modified in
+        place.
+
+        Args:
+            cube_t0:
+                The input cube corresponding to the earlier time.
+            interpolated_cube:
+                The cube containing the interpolated times, which includes
+                the data corresponding to the time of the later of the two
+                input cubes.
+
+        Raises:
+            CoordinateNotFoundError: if time or forecast_period coordinates
+                                     are not present on the input cubes.
+        """
+        for crd in ["time", "forecast_period"]:
+            try:
+                interpolated_times = np.concatenate(
+                    [cube_t0.coord(crd).points, interpolated_cube.coord(crd).points]
+                )
+            except CoordinateNotFoundError:
+                raise CoordinateNotFoundError(
+                    f"Period diagnostic cube is missing expected coordinate: {crd}"
+                )
+            all_bounds = []
+            for start, end in zip(interpolated_times[:-1], interpolated_times[1:]):
+                all_bounds.append([start, end])
+            interpolated_cube.coord(crd).bounds = all_bounds
+
+    @staticmethod
+    def _calculate_accumulation(
+        cube_t0: Cube, period_reference: Cube, interpolated_cube: Cube
+    ):
+        """If the input is an accumulation we use the trapezium rule to
+        calculate a new accumulation for each output period from the rates
+        we converted the accumulations to prior to interpolating. We then
+        renormalise to ensure the total accumulation across the period is
+        unchanged by expressing it as a series of shorter periods.
+
+        The interpolated cube is modified in place.
+
+        Args:
+            cube_t0:
+                The input cube corresponding to the earlier time.
+            period_reference:
+                The input cube corresponding to the later time, with the
+                values prior to conversion to rates.
+            interpolated_cube:
+                The cube containing the interpolated times, which includes
+                the data corresponding to the time of the later of the two
+                input cubes.
+        """
+        # Calculate an average rate for the period from the edges
+        accumulation_edges = [cube_t0, *interpolated_cube.slices_over("time")]
+        period_rates = np.array(
+            [
+                (a.data + b.data) / 2
+                for a, b in zip(accumulation_edges[:-1], accumulation_edges[1:])
+            ]
+        )
+        interpolated_cube.data = period_rates
+
+        # Multiply the average rate by the length of each period to get a new
+        # accumulation.
+        new_periods = np.diff(interpolated_cube.coord("forecast_period").bounds)
+        for _ in range(interpolated_cube.ndim - new_periods.ndim):
+            new_periods = np.expand_dims(new_periods, axis=1)
+        interpolated_cube.data = np.multiply(new_periods, interpolated_cube.data)
+
+        # Renormalise the total of the new periods to ensure it matches the
+        # total expressed in the longer original period.
+        (time_coord,) = interpolated_cube.coord_dims("time")
+        interpolated_total = np.sum(interpolated_cube.data, axis=time_coord)
+        renormalisation = period_reference.data / interpolated_total
+        interpolated_cube.data *= renormalisation
+        interpolated_cube.data = interpolated_cube.data.astype(FLOAT_DTYPE)
 
     def process(self, cube_t0: Cube, cube_t1: Cube) -> CubeList:
         """
@@ -372,6 +558,11 @@ class TemporalInterpolation(BasePlugin):
 
         Raises:
             TypeError: If cube_t0 and cube_t1 are not of type iris.cube.Cube.
+            ValueError: A mix of instantaneous and period diagnostics have
+                        been used as inputs.
+            ValueError: A period type has been declared but inputs are not
+                        period diagnostics.
+            ValueError: Period diagnostics with overlapping periods.
             CoordinateNotFoundError: The input cubes contain no time
                                      coordinate.
             ValueError: Cubes contain multiple validity times.
@@ -392,9 +583,7 @@ class TemporalInterpolation(BasePlugin):
             (initial_time,) = iris_time_to_datetime(cube_t0.coord("time"))
             (final_time,) = iris_time_to_datetime(cube_t1.coord("time"))
         except CoordinateNotFoundError:
-            msg = (
-                "Cube provided to TemporalInterpolation contains no time " "coordinate."
-            )
+            msg = "Cube provided to TemporalInterpolation contains no time coordinate."
             raise CoordinateNotFoundError(msg)
         except ValueError:
             msg = (
@@ -411,7 +600,54 @@ class TemporalInterpolation(BasePlugin):
                 "time."
             )
 
+        cube_t0_bounds = cube_t0.coord("time").has_bounds()
+        cube_t1_bounds = cube_t1.coord("time").has_bounds()
+        if cube_t0_bounds + cube_t1_bounds == 1:
+            raise ValueError(
+                "Period and non-period diagnostics cannot be combined for"
+                " temporal interpolation."
+            )
+
+        if cube_t0_bounds and not self.period_inputs:
+            raise ValueError(
+                "Interpolation of period diagnostics should be done using "
+                "the appropriate period specifier (accumulation, min or max)."
+            )
+
+        if self.period_inputs:
+            # Declaring period type requires the inputs be period diagnostics.
+            if not cube_t0_bounds:
+                raise ValueError(
+                    "A period method has been declared for temporal "
+                    "interpolation (max, min, or accumulation). Period "
+                    "diagnostics must be provided. The input cubes have no "
+                    "time bounds."
+                )
+
+            cube_interval = (
+                cube_t1.coord("time").points[0] - cube_t0.coord("time").points[0]
+            )
+            (period,) = np.diff(cube_t1.coord("time").bounds[0])
+            if not cube_interval == period:
+                raise ValueError(
+                    "The diagnostic provided represents the period "
+                    f"{period / 3600} hours. The interval between the "
+                    f"diagnostics is {cube_interval / 3600} hours. Temporal "
+                    "interpolation can only be applied to a period "
+                    "diagnostic provided at intervals that match the "
+                    "diagnostic period such that all points in time are "
+                    "captured by only one of the inputs and do not overlap."
+                )
+
         time_list = self.construct_time_list(initial_time, final_time)
+
+        # If the target output time is the same as the time at which the
+        # trailing input is valid, just return it unchanged.
+        if (
+            len(time_list[0][1]) == 1
+            and time_list[0][1][0] == cube_t1.coord("time").cell(0).point
+        ):
+            return CubeList([cube_t1])
 
         # If the units of the two cubes are degrees, assume we are dealing with
         # directions. Convert the directions to complex numbers so
@@ -421,7 +657,17 @@ class TemporalInterpolation(BasePlugin):
             cube_t0.data = WindDirection.deg_to_complex(cube_t0.data)
             cube_t1.data = WindDirection.deg_to_complex(cube_t1.data)
 
-        cubes = iris.cube.CubeList([cube_t0, cube_t1])
+        # Convert accumulations into rates to allow interpolation using trends
+        # in the data and to accommodate non-uniform output intervals. This also
+        # accommodates cube_t0 and cube_t1 representing different periods of
+        # accumulation, for example where the forecast period interval changes
+        # in an NWP model's output.
+        if self.accumulation:
+            cube_t0.data /= np.diff(cube_t0.coord("forecast_period").bounds[0])[0]
+            period_reference = cube_t1.copy()
+            cube_t1.data /= np.diff(cube_t1.coord("forecast_period").bounds[0])[0]
+
+        cubes = CubeList([cube_t0, cube_t1])
         cube = MergeCubes()(cubes)
 
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
@@ -430,8 +676,33 @@ class TemporalInterpolation(BasePlugin):
                 interpolated_cube.data
             )
 
+        if self.period_inputs:
+            # Add bounds to the time coordinates of the interpolated outputs
+            # if the inputs were period diagnostics.
+            self.add_bounds(cube_t0, interpolated_cube)
+
+            # Apply suitable constraints to the returned values.
+            # - accumulations are renormalised to ensure the period total is
+            #   unchanged when broken into shorter periods.
+            # - period maximums are enforced to not exceed the original
+            #   maximum that occurred across the whole longer period.
+            # - period minimums are enforced to not be below the original
+            #   minimum that occurred across the whole longer period.
+            if self.accumulation:
+                self._calculate_accumulation(
+                    cube_t0, period_reference, interpolated_cube
+                )
+            elif self.max:
+                interpolated_cube.data = np.minimum(
+                    cube_t1.data, interpolated_cube.data
+                )
+            elif self.min:
+                interpolated_cube.data = np.maximum(
+                    cube_t1.data, interpolated_cube.data
+                )
+
         self.enforce_time_coords_dtype(interpolated_cube)
-        interpolated_cubes = iris.cube.CubeList()
+        interpolated_cubes = CubeList()
         if self.interpolation_method == "solar":
             interpolated_cubes = self.solar_interpolate(cube, interpolated_cube)
         elif self.interpolation_method == "daynight":

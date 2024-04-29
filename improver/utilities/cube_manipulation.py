@@ -734,7 +734,10 @@ def add_coordinate_to_cube(
 
 
 def maximum_in_height(
-    cube: Cube, lower_height_bound: float = None, upper_height_bound: float = None
+    cube: Cube,
+    lower_height_bound: float = None,
+    upper_height_bound: float = None,
+    new_name: str = None,
 ) -> Cube:
     """Calculate the maximum value over the height coordinate. If bounds are specified
     then the maximum value between the lower_height_bound and upper_height_bound is calculated.
@@ -754,6 +757,9 @@ def maximum_in_height(
             The upper bound for the height coordinate. This is either a float or None if no
             upper bound is desired. Any specified bounds should have the same units as the
             height coordinate of cube.
+        new_name:
+            The new name to be assigned to the output cube. If unspecified the name of the original
+            cube is used.
     Returns:
         A cube of the maximum value over the height coordinate or maximum value between the desired
         height values. This cube inherits Iris' meta-data updates to the height coordinate and to
@@ -787,5 +793,8 @@ def maximum_in_height(
         max_cube = cube_subsetted.collapsed("height", iris.analysis.MAX)
     else:
         max_cube = cube_subsetted
+
+    if new_name:
+        max_cube.rename(new_name)
 
     return max_cube

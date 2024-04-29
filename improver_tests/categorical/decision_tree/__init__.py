@@ -28,15 +28,15 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Utilities for Unit tests for Weather Symbols"""
+"""Utilities for Unit tests for ApplyDecisionTree"""
 
 import datetime
 from typing import Any, Dict
 
 import numpy as np
 
+from improver.categorical.utilities import categorical_attributes
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.wxcode.utilities import weather_code_attributes
 
 
 def set_up_wxcube(
@@ -68,20 +68,28 @@ def set_up_wxcube(
             cube of weather codes set to 1
             data shape (time_points, 16, 16)
     """
+    decision_tree = wxcode_decision_tree()
     kwargs = {
         "name": "weather_code",
         "units": 1,
         "time": time,
         "time_bounds": time_bounds,
         "frt": frt,
-        "attributes": weather_code_attributes(),
+        "attributes": categorical_attributes(
+            decision_tree, decision_tree["meta"]["name"]
+        ),
         "spatial_grid": "equalarea",
         "domain_corner": (0, -30000),
     }
 
     if lat_lon:
         kwargs.update(
-            {"spatial_grid": "latlon", "domain_corner": (49, -8), "grid_spacing": 1}
+            {
+                "spatial_grid": "latlon",
+                "domain_corner": (49, -8),
+                "x_grid_spacing": 1,
+                "y_grid_spacing": 1,
+            }
         )
     cube = set_up_variable_cube(data, **kwargs)
 
@@ -102,6 +110,7 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
         tree.
     """
     queries = {
+        "meta": {"name": "weather_code"},
         "lightning": {
             "if_true": "lightning_shower",
             "if_false": "hail",
@@ -116,8 +125,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "lightning_shower": {
-            "if_true": 29,
-            "if_false": 30,
+            "if_true": "Thunder_Shower_Day",
+            "if_false": "Thunder",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -152,8 +161,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "hail_shower": {
-            "if_true": 20,
-            "if_false": 21,
+            "if_true": "Hail_Shower_Day",
+            "if_false": "Hail",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -164,7 +173,6 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
         "heavy_precipitation": {
             "if_true": "heavy_precipitation_cloud",
             "if_false": "precipitation_in_vicinity",
-            "if_diagnostic_missing": "if_false",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -186,7 +194,7 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "heavy_snow_shower": {
-            "if_true": 26,
+            "if_true": "Heavy_Snow_Shower_Day",
             "if_false": "heavy_rain_or_sleet_shower",
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
@@ -206,8 +214,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": [["above", "above", "above"]],
         },
         "heavy_rain_or_sleet_shower": {
-            "if_true": 14,
-            "if_false": 17,
+            "if_true": "Heavy_Shower_Day",
+            "if_false": "Sleet_Shower_Day",
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
             "condition_combination": "",
@@ -226,7 +234,7 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": [["above", "above", "above"]],
         },
         "heavy_snow_continuous": {
-            "if_true": 27,
+            "if_true": "Heavy_Snow",
             "if_false": "heavy_rain_or_sleet_continuous",
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
@@ -246,8 +254,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": [["above", "above", "above"]],
         },
         "heavy_rain_or_sleet_continuous": {
-            "if_true": 15,
-            "if_false": 18,
+            "if_true": "Heavy_Rain",
+            "if_false": "Sleet",
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
             "condition_combination": "",
@@ -308,8 +316,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "heavy_snow_shower_in_vicinity": {
-            "if_true": 26,
-            "if_false": 23,
+            "if_true": "Heavy_Snow_Shower_Day",
+            "if_false": "Light_Snow_Shower_Day",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -320,8 +328,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "heavy_snow_continuous_in_vicinity": {
-            "if_true": 27,
-            "if_false": 24,
+            "if_true": "Heavy_Snow",
+            "if_false": "Light_Snow",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -362,8 +370,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "heavy_rain_shower_in_vicinity": {
-            "if_true": 14,
-            "if_false": 10,
+            "if_true": "Heavy_Shower_Day",
+            "if_false": "Light_Shower_Day",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -374,8 +382,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "heavy_rain_continuous_in_vicinity": {
-            "if_true": 15,
-            "if_false": 12,
+            "if_true": "Heavy_Rain",
+            "if_false": "Light_Rain",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -386,8 +394,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "sleet_in_vicinity_cloud": {
-            "if_true": 17,
-            "if_false": 18,
+            "if_true": "Sleet_Shower_Day",
+            "if_false": "Sleet",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -422,7 +430,7 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above", "above"],
         },
         "drizzle_is_rain": {
-            "if_true": 11,
+            "if_true": "Drizzle",
             "if_false": "mist_conditions",
             "probability_thresholds": [0.0],
             "threshold_condition": "<",
@@ -452,8 +460,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["below"],
         },
         "fog_conditions": {
-            "if_true": 6,
-            "if_false": 5,
+            "if_true": "Fog",
+            "if_false": "Mist",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -474,8 +482,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "overcast_cloud": {
-            "if_true": 8,
-            "if_false": 7,
+            "if_true": "Overcast",
+            "if_false": "Cloudy",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -486,8 +494,8 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_conditions": ["above"],
         },
         "partly_cloudy": {
-            "if_true": 3,
-            "if_false": 1,
+            "if_true": "Partly_Cloudy_Day",
+            "if_false": "Sunny_Day",
             "probability_thresholds": [0.5],
             "threshold_condition": ">=",
             "condition_combination": "",
@@ -497,6 +505,65 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_thresholds": [[0.1875, 1]],
             "diagnostic_conditions": ["above"],
         },
+        "Clear_Night": {"leaf": 0},
+        "Sunny_Day": {"leaf": 1, "if_night": "Clear_Night"},
+        "Partly_Cloudy_Night": {"leaf": 2},
+        "Partly_Cloudy_Day": {"leaf": 3, "if_night": "Partly_Cloudy_Night"},
+        "Dust": {"leaf": 4, "is_unreachable": True},
+        "Mist": {"leaf": 5, "group": "visibility"},
+        "Fog": {"leaf": 6, "group": "visibility"},
+        "Cloudy": {"leaf": 7},
+        "Overcast": {"leaf": 8},
+        "Light_Shower_Night": {"leaf": 9},
+        "Light_Shower_Day": {
+            "leaf": 10,
+            "if_night": "Light_Shower_Night",
+            "group": "rain",
+        },
+        "Drizzle": {"leaf": 11, "group": "rain"},
+        "Light_Rain": {"leaf": 12, "group": "rain"},
+        "Heavy_Shower_Night": {"leaf": 13},
+        "Heavy_Shower_Day": {
+            "leaf": 14,
+            "if_night": "Heavy_Shower_Night",
+            "group": "rain",
+        },
+        "Heavy_Rain": {"leaf": 15, "group": "rain"},
+        "Sleet_Shower_Night": {"leaf": 16},
+        "Sleet_Shower_Day": {
+            "leaf": 17,
+            "if_night": "Sleet_Shower_Night",
+            "group": "sleet",
+        },
+        "Sleet": {"leaf": 18, "group": "sleet"},
+        "Hail_Shower_Night": {"leaf": 19},
+        "Hail_Shower_Day": {
+            "leaf": 20,
+            "if_night": "Hail_Shower_Night",
+            "group": "convection",
+        },
+        "Hail": {"leaf": 21, "group": "convection"},
+        "Light_Snow_Shower_Night": {"leaf": 22},
+        "Light_Snow_Shower_Day": {
+            "leaf": 23,
+            "if_night": "Light_Snow_Shower_Night",
+            "group": "snow",
+        },
+        "Light_Snow": {"leaf": 24, "group": "snow"},
+        "Heavy_Snow_Shower_Night": {"leaf": 25},
+        "Heavy_Snow_Shower_Day": {
+            "leaf": 26,
+            "if_night": "Heavy_Snow_Shower_Night",
+            "group": "snow",
+        },
+        "Heavy_Snow": {"leaf": 27, "group": "snow"},
+        "Thunder_Shower_Night": {"leaf": 28},
+        "Thunder_Shower_Day": {
+            "leaf": 29,
+            "if_night": "Thunder_Shower_Night",
+            "group": "convection",
+        },
+        "Thunder": {"leaf": 30, "group": "convection"},
     }
 
     if accumulation:
@@ -512,5 +579,42 @@ def wxcode_decision_tree(accumulation: bool = False) -> Dict[str, Dict[str, Any]
             "diagnostic_thresholds": [[1.0, "mm", 3600]],
             "diagnostic_conditions": ["above"],
         }
+
+    return queries
+
+
+def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
+    """
+    Define an example decision tree with nodes that require deterministic
+    data.
+
+    Returns:
+        A dictionary containing the queries that comprise the decision
+        tree.
+    """
+    queries = {
+        "meta": {"name": "precipitation_type"},
+        "precip_rate": {
+            "if_true": "hail_rate",
+            "if_false": "dry",
+            "thresholds": [0],
+            "threshold_condition": ">",
+            "condition_combination": "",
+            "diagnostic_fields": ["precipitation_rate"],
+            "deterministic": True,
+        },
+        "hail_rate": {
+            "if_true": "hail",
+            "if_false": "rain",
+            "thresholds": [0],
+            "threshold_condition": ">",
+            "condition_combination": "",
+            "diagnostic_fields": ["hail_rate"],
+            "deterministic": True,
+        },
+        "dry": {"leaf": 0},
+        "rain": {"leaf": 1},
+        "hail": {"leaf": 2},
+    }
 
     return queries

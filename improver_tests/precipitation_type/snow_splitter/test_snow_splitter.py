@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the SnowSplitter plugin"""
+from datetime import datetime
+
 import numpy as np
 import pytest
 from iris.cube import Cube, CubeList
@@ -82,14 +84,54 @@ def precip_rate_cube() -> Cube:
     return precip_cube
 
 
+@pytest.fixture()
+def precip_acc_cube() -> Cube:
+    """Set up a r, y, x cube of precipitation accumulation"""
+    data = np.full((2, 2, 2), fill_value=1, dtype=np.float32)
+    precip_cube = set_up_variable_cube(
+        data,
+        name="lwe_thickness_of_precipitation_amount",
+        units="m",
+        time_bounds=(datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0)),
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+    )
+    return precip_cube
+
+
+def run_test(
+    cube_name,
+    expected,
+    output_is_rain,
+    precip_cube,
+    rain_cube,
+    rain_value,
+    snow_cube,
+    snow_value,
+):
+    """Used in two tests, this method applies the rain_value and snow_value to the relevant data,
+    runs the SnowSplitter plugin and checks the results are as expected, including data, name,
+    units and attributes."""
+    rain_cube.data = np.full_like(rain_cube.data, rain_value)
+    snow_cube.data = np.full_like(snow_cube.data, snow_value)
+    result = SnowSplitter(output_is_rain=output_is_rain)(
+        CubeList([snow_cube, rain_cube, precip_cube])
+    )
+    if expected == "dependent":
+        expected = rain_value if output_is_rain else snow_value
+    assert np.isclose(result.data, expected).all()
+    assert result.name() == cube_name
+    assert result.units == precip_cube.units
+    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
+
+
 @pytest.mark.parametrize(
-    "output_is_rain,cube_name", ((True, "rain_rate"), (False, "lwe_snow_rate"))
+    "output_is_rain,cube_name", ((True, "rainfall_rate"), (False, "lwe_snowfall_rate"))
 )
 @pytest.mark.parametrize(
     "rain_value,snow_value,expected",
     ((0, 0, 0.5), (0, 1, "dependent"), (1, 0, "dependent")),
 )
-def test_basic(
+def test_rates(
     snow_cube,
     rain_cube,
     precip_rate_cube,
@@ -103,20 +145,53 @@ def test_basic(
     rain/snow rate is returned. The correct output will sometimes depend on whether the
     output_is_rain is True or False. Also check the name of the returned cube has been
     updated correctly"""
-    rain_cube.data = np.full_like(rain_cube.data, rain_value)
-    snow_cube.data = np.full_like(snow_cube.data, snow_value)
-
-    result = SnowSplitter(output_is_rain=output_is_rain)(
-        CubeList([snow_cube, rain_cube, precip_rate_cube])
+    run_test(
+        cube_name,
+        expected,
+        output_is_rain,
+        precip_rate_cube,
+        rain_cube,
+        rain_value,
+        snow_cube,
+        snow_value,
     )
 
-    if expected == "dependent":
-        expected = rain_value if output_is_rain else snow_value
 
-    assert np.isclose(result.data, expected).all()
-    assert result.name() == cube_name
-    assert result.units == "m/s"
-    assert result.attributes == LOCAL_MANDATORY_ATTRIBUTES
+@pytest.mark.parametrize(
+    "output_is_rain,cube_name",
+    (
+        (True, "thickness_of_rainfall_amount"),
+        (False, "lwe_thickness_of_snowfall_amount"),
+    ),
+)
+@pytest.mark.parametrize(
+    "rain_value,snow_value,expected",
+    ((0, 0, 0.5), (0, 1, "dependent"), (1, 0, "dependent")),
+)
+def test_accumulations(
+    snow_cube,
+    rain_cube,
+    precip_acc_cube,
+    snow_value,
+    rain_value,
+    output_is_rain,
+    cube_name,
+    expected,
+):
+    """Check that for all possible combinations of rain and snow probabilities the correct
+    rain/snow accumulation is returned. The correct output will sometimes depend on whether the
+    output_is_rain is True or False. Also check the name of the returned cube has been
+    updated correctly"""
+    run_test(
+        cube_name,
+        expected,
+        output_is_rain,
+        precip_acc_cube,
+        rain_cube,
+        rain_value,
+        snow_cube,
+        snow_value,
+    )
 
 
 def test_both_phases_1(snow_cube, rain_cube, precip_rate_cube):

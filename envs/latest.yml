@@ -27,7 +27,7 @@ dependencies:
   - lightgbm
   - numba
   - pysteps
-  - treelite
+  - treelite=2.3.0
   # Development
   - astroid
   - bandit

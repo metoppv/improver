@@ -1,16 +1,17 @@
-**Weather symbol decision trees**
+**Decision trees**
 
-Weather symbol decision trees use diagnostic fields to diagnose a suitable
-symbol to represent the weather conditions. The tree is comprised of a series
-of interconnected decision nodes. At each node one or multiple forecast
-diagnostics are compared to predefined threshold values. The node has an if_true
-and if_false path on to the next node, or on to a resulting weather symbol. By
-traversing the nodes it should be possible, given the right weather conditions,
-to arrive at any of the weather symbols.
+Decision trees use diagnostic fields to diagnose a suitable category to represent
+the weather conditions, such as a weather symbol. The tree is comprised
+of a series of interconnected decision nodes, leaf nodes and a stand-alone meta node.
+At each decision node one or multiple forecast diagnostics are compared to
+predefined threshold values. The decision node has an if_true and if_false path on
+to the next node. By traversing the nodes it should be possible, given the right
+weather conditions, to arrive at any of the leaf nodes, which describe the leaf
+name, code, and optional information for night-time and modal grouping.
 
 The first few nodes of a decision tree are represented in the schematic below.
 
-.. figure:: extended_documentation/wxcode/thunder_nodes.png
+.. figure:: extended_documentation/categorical/thunder_nodes.png
      :align: center
      :scale: 80 %
      :alt: Schematic of thundery nodes in a decision tree
@@ -26,7 +27,19 @@ forecast, proceed to the if_true node, else move to the if_false node.
 
 **Encoding a decision tree**
 
-The first node above is encoded as follows::
+The meta node provides the name to use for the metadata of the resulting cube and
+can be anywhere in the decision tree, but must have "meta" as its key.
+This becomes the cube name and is also used for two attributes that describe the
+categorical data: **<name>** and **<name>_meaning**::
+
+  {
+    "meta": {
+        "name": "weather_code",
+    },
+  }
+
+
+The first decision node in the thundery nodes shown above is encoded as follows::
 
   {
     "lightning": {
@@ -48,14 +61,10 @@ The key at the first level, "lightning" in this case, names the node so that it
 can be targeted as an if_true or if_false destination from other nodes. The dictionary
 accessed with this key contains the essentials that make the node function.
 
-  - **if_true** (str or int): The next node to test if the condition in this
-    node is true. Alternatively this may be an integer number that identifies
-    which weather symbol has been reached; this is for the leaf (or final)
-    nodes in the tree.
-  - **if_false** (str or int): The next node to test if the condition in this node
-    is false. Alternatively this may be an integer number that identifies which
-    weather symbol has been reached; this is for the leaf (or final) nodes in
-    the tree.
+  - **if_true** (str): The next node if the condition in this
+    node is true.
+  - **if_false** (str): The next node if the condition in this node
+    is false.
   - **if_diagnostic_missing** (str, optional): If the expected
     diagnostic is not provided, should the tree proceed to the if_true or if_false
     node. This can be useful if the tree is to be applied to output from
@@ -81,8 +90,9 @@ accessed with this key contains the essentials that make the node function.
     diagnostic threshold value and units being used in the test. An optional
     third value provides a period in seconds that is associated with the
     threshold value. For example, a precipitation accumulation threshold might
-    be given for a 1-hour period (3600 seconds). If instead 3-hour symbols are
-    being produced using 3-hour precipitation accumulations then the threshold
+    be given for a 1-hour period (3600 seconds). If instead the decision tree
+    generates data representing a 3-hour period
+    using 3-hour precipitation accumulations then the threshold
     value will be scaled up by a factor of 3. Only thresholds with an
     associated period will be scaled in this way. A threshold [value, units] pair
     must be provided for each diagnostic field with the same nested list structure;
@@ -93,8 +103,60 @@ accessed with this key contains the essentials that make the node function.
     against the spp__relative_to_threshold attribute of the threshold coordinate
     in the provided diagnostic.
 
+It is also possible to build a node which uses a deterministic forecast. This
+is not currently used within the weather symbols decision tree but, as an example, the following shows
+how such a node would be encoded::
+
+  {
+    "precip_rate": {
+        "if_true": "rain",
+        "if_false": "dry",
+        "if_diagnostic_missing": "if_false",
+        "thresholds": [0],
+        "threshold_condition": ">",
+        "diagnostic_fields": ["precipitation_rate"],
+        "deterministic": True
+    },
+  }
+
+The keys for this dictionary have the same meaning as for a probabilistic node but with the
+following additional keys:
+
+  - **thresholds** (list(float)): The threshold(s) that must be exceeded or not
+    exceeded (see threshold_condition) for the node to progress to the succeed target.
+    Two values required if condition_combination is being used.
+  - **deterministic** (boolean): Determines whether the node is expecting a deterministic
+    input.
+
+The first leaf node above is encoded as follows::
+
+  {
+    "Thunder_Shower_Day": {
+        "leaf": 29,
+        "if_night": "Thunder_Shower_Night",
+        "group": "convection",
+        "is_unreachable": True,
+    },
+  }
+
+The key at the first level, "Thunder_Shower_Day" in this case, names the node so that it
+can be targeted as an if_true or if_false destination from decision nodes. The key
+also forms part of the metadata attribute defining the category meanings. The dictionary
+accessed with this key contains the following.
+
+  - **leaf** (int): The category code associated with this leaf
+  - **if_night** (str, optional): The alternate leaf node to be used when a night
+    time symbol is required.
+  - **group** (str, optional): Indicates which group this leaf belongs to when
+    determining the modal category.
+  - **is_unreachable** (bool): True for a leaf which needs including in the meta data but
+    cannot be reached.
+
+The modal category also relies on the severity of symbols generally increasing with
+the category value, so that in the case of ties, the more severe category is selected.
+
 Every decision tree must have a starting node, and this is taken as the first
-node defined in the dictionary.
+node defined in the dictionary, or second if the first node is the meta node.
 
 Manipulation of the diagnostics is possible using the decision tree configuration
 to enable more complex comparisons. For example::

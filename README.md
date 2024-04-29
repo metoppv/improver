@@ -7,6 +7,38 @@
 [![codecov](https://codecov.io/gh/metoppv/improver/branch/master/graph/badge.svg)](https://codecov.io/gh/metoppv/improver)
 [![Documentation Status](https://readthedocs.org/projects/improver/badge/?version=latest)](http://improver.readthedocs.io/en/latest/?badge=latest)
 [![Python 3.6](https://img.shields.io/badge/python-3.6-blue.svg)](https://www.python.org/downloads/release/python-360/)
+[![Python 3.7](https://img.shields.io/badge/python-3.7-blue.svg)](https://www.python.org/downloads/release/python-370/)
 [![DOI](https://zenodo.org/badge/85334761.svg)](https://zenodo.org/badge/latestdoi/85334761)
 
 IMPROVER is a library of algorithms for meteorological post-processing and verification.
+
+## Installing improver
+
+### Conda installation
+
+Here we demonstrate the installation of improver via conda with aid of the [mamba](https://mamba.readthedocs.io/en/latest/index.html) package manager to speedup the process.
+
+install a mamba environment
+```
+conda create -c conda-forge --override-channels mamba -n mamba
+```
+ 
+activate this mamba environment
+```
+conda activate mamba
+```
+ 
+install the improver environment using mamba
+```
+mamba create -c conda-forge python=3.7 improver -n improver
+```
+ 
+deactivate your mamba environment
+```
+conda deactivate
+```
+ 
+activate your new improver environment
+```
+conda activate improver
+```

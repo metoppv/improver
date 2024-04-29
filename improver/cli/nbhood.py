@@ -136,7 +136,7 @@ def process(
                 "weighted_mode cannot be used with" 'neighbourhood_output="percentiles"'
             )
         if degrees_as_complex:
-            raise RuntimeError("Cannot generate percentiles from complex " "numbers")
+            raise RuntimeError("Cannot generate percentiles from complex numbers")
 
     if neighbourhood_shape == "circular":
         if degrees_as_complex:

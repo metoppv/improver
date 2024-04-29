@@ -192,11 +192,12 @@ def generate_metadata(
         kwargs["time_bounds"] = time_bounds
 
     # If grid_spacing not specified, use default for requested spatial grid
-    if "grid_spacing" not in kwargs or kwargs["grid_spacing"] is None:
-        if "spatial_grid" not in kwargs:
-            kwargs["spatial_grid"] = DEFAULT_SPATIAL_GRID
+    for spacing_axis in ["x_grid_spacing", "y_grid_spacing"]:
+        if spacing_axis not in kwargs or kwargs[spacing_axis] is None:
+            if "spatial_grid" not in kwargs:
+                kwargs["spatial_grid"] = DEFAULT_SPATIAL_GRID
 
-        kwargs["grid_spacing"] = DEFAULT_GRID_SPACING[kwargs["spatial_grid"]]
+            kwargs[spacing_axis] = DEFAULT_GRID_SPACING[kwargs["spatial_grid"]]
 
     # Create ndimensional array of zeros
     if "height_levels" not in kwargs:

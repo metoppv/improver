@@ -192,7 +192,7 @@ class InterpolateUsingDifference(BasePlugin):
         """
         if not np.ma.is_masked(cube.data):
             warnings.warn(
-                "Input cube unmasked, no data to fill in, returning " "unchanged."
+                "Input cube unmasked, no data to fill in, returning unchanged."
             )
             return cube
 

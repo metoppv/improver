@@ -28,32 +28,33 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Set up function for dummy cube with correct metadata"""
+"""
+Tests for the copy-attributes CLI
+"""
 
-from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+import pytest
+
+from . import acceptance as acc
+
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
 
-def set_up_test_cube(data, name, units, time):
-    """Template for cube metadata with 2 km coordinate spacing and zero
-    forecast period
-
-    Args:
-        data (numpy.ndarray)
-        name (str)
-        units (str)
-        time (datetime.datetime)
-
-    Returns:
-        iris.cube.Cube
-    """
-    return set_up_variable_cube(
-        data,
-        name=name,
-        units=units,
-        spatial_grid="equalarea",
-        time=time,
-        frt=time,
-        x_grid_spacing=2000,
-        y_grid_spacing=2000,
-        domain_corner=(0, 0),
-    )
+def test_change_metadata(tmp_path):
+    """Test copying attribute values from a template file"""
+    kgo_dir = acc.kgo_root() / "copy-attributes"
+    kgo_path = kgo_dir / "kgo.nc"
+    input_path = kgo_dir / "input.nc"
+    template_path = kgo_dir / "stage_input.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        template_path,
+        "--attributes",
+        "mosg__forecast_run_duration,mosg__grid_version",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

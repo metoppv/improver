@@ -192,9 +192,7 @@ class Test_build_weights_cube(IrisTest):
 
         weights = np.array([0.4, 0.4, 0.2])
         blending_coord = "time"
-        msg = (
-            "Weights array provided is not the same size as the " "blending coordinate"
-        )
+        msg = "Weights array provided is not the same size as the blending coordinate"
         plugin = WeightsUtilities.build_weights_cube
         with self.assertRaisesRegex(ValueError, msg):
             plugin(self.cube, weights, blending_coord)

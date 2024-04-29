@@ -29,7 +29,7 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""CLI to generate modal weather symbols over periods."""
+"""CLI to generate modal categories over periods."""
 
 from improver import cli
 
@@ -37,34 +37,40 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, model_id_attr: str = None, record_run_attr: str = None
+    *cubes: cli.inputcube,
+    decision_tree: cli.inputjson = None,
+    model_id_attr: str = None,
+    record_run_attr: str = None,
 ):
-    """Generates a modal weather symbol for the period covered by the input
-    weather symbol cubes. Where there are different weather codes available
+    """Generates a modal category for the period covered by the input
+    categorical cubes. Where there are different categories available
     for night and day, the modal code returned is always a day code, regardless
     of the times covered by the input files.
+    Designed for use with weather symbol data.
 
     Args:
         cubes (iris.cube.CubeList):
-            A cubelist containing weather symbols cubes that cover the period
-            over which a modal symbol is desired.
+            A cubelist containing categorical cubes that cover the period
+            over which a modal category is desired.
+        decision_tree (dict):
+            A JSON file containing a decision tree definition.
         model_id_attr (str):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as
             a space-separated string.
         record_run_attr:
             Name of attribute used to record models and cycles used in
-            constructing the weather symbols.
+            constructing the categorical data.
 
     Returns:
         iris.cube.Cube:
-            A cube of modal weather symbols over a period.
+            A cube of modal categories over a period.
     """
-    from improver.wxcode.modal_code import ModalWeatherCode
+    from improver.categorical.modal_code import ModalCategory
 
     if not cubes:
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
-    return ModalWeatherCode(
-        model_id_attr=model_id_attr, record_run_attr=record_run_attr,
+    return ModalCategory(
+        decision_tree, model_id_attr=model_id_attr, record_run_attr=record_run_attr,
     )(cubes)

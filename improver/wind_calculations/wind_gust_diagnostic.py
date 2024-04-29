@@ -146,7 +146,7 @@ class WindGustDiagnostic(PostProcessingPlugin):
         constraint = iris.Constraint(coord_values={perc_coord.name(): req_percentile})
         result = cube.extract(constraint)
         if result is None:
-            msg = "Could not find required percentile " "{0:3.1f} in cube".format(
+            msg = "Could not find required percentile {0:3.1f} in cube".format(
                 req_percentile
             )
             raise ValueError(msg)

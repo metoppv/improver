@@ -56,7 +56,8 @@ def _make_flat_cube(data, name, unit):
         units=unit,
         spatial_grid="equalarea",
         domain_corner=(-1036000, -1158000),
-        grid_spacing=2000,
+        x_grid_spacing=2000,
+        y_grid_spacing=2000,
     )
     for axis in ["x", "y"]:
         points = flat_cube.coord(axis=axis).points
@@ -730,7 +731,7 @@ class Test2D(IrisTest):
         """
         landpointtests_rc = TestSinglePoint(z_0=0.2, pporog=250.0, modelorog=250.0)
         landpointtests_rc.z0_cube.units = Unit("s")
-        msg = "z0 ancil has unexpected unit: should be {} " "is {}"
+        msg = "z0 ancil has unexpected unit: should be {} is {}"
         with self.assertRaisesRegex(
             ValueError, msg.format(Unit("m"), landpointtests_rc.z0_cube.units)
         ):

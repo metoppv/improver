@@ -95,7 +95,7 @@ class FrictionVelocity(BasePlugin):
         array_sizes = [np.size(u_href), np.size(h_ref), np.size(z_0), np.size(mask)]
 
         if not all(x == array_sizes[0] for x in array_sizes):
-            raise ValueError("Different size input arrays u_href, h_ref, z_0, " "mask")
+            raise ValueError("Different size input arrays u_href, h_ref, z_0, mask")
 
     def process(self) -> ndarray:
         """Function to calculate the friction velocity.
@@ -823,7 +823,7 @@ class RoughnessCorrection(PostProcessingPlugin):
                 except CoordinateNotFoundError:
                     pass
             if z0_cube.units != Unit("m"):
-                msg = "z0 ancil has unexpected unit: should be {} " "is {}"
+                msg = "z0 ancil has unexpected unit: should be {} is {}"
                 raise ValueError(msg.format(Unit("m"), z0_cube.units))
         permutated_ancil_list = list(itertools.permutations(ancil_list, 2))
         oklist = []

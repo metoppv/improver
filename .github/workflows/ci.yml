@@ -13,7 +13,7 @@ jobs:
         env: [environment_a, environment_b, conda-forge]
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       id: cache
       with:
         path: /usr/share/miniconda/envs/im${{ matrix.env }}
@@ -70,7 +70,7 @@ jobs:
         env: [environment_a]
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       id: cache
       with:
         path: /usr/share/miniconda/envs/im${{ matrix.env }}
@@ -122,7 +122,7 @@ jobs:
         env: [environment_a, environment_b, conda-forge]
     steps:
     - uses: actions/checkout@v4
-    - uses: actions/cache@v3
+    - uses: actions/cache@v4
       id: cache
       with:
         path: /usr/share/miniconda/envs/im${{ matrix.env }}
