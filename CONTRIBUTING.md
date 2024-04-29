@@ -38,6 +38,7 @@ below:
  - Benjamin Ayliffe (Met Office, UK)
  - Mark Baker (Met Office, UK)
  - Laurence Beard (Met Office, UK)
+ - Tim Bonin (MIT Lincoln Laboratory, USA)
  - Anna Booton (Met Office, UK)
  - Prajwal Borkar
  - James Canvin (Bureau of Meteorology, Australia)
