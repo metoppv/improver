@@ -45,6 +45,7 @@ from improver.utilities.cube_manipulation import (
     MergeCubes,
     enforce_coordinate_ordering,
     get_dim_coord_names,
+    manipulate_realization_dimension,
 )
 from improver.utilities.indexing_operations import choose
 
@@ -1338,29 +1339,8 @@ class EnsembleReordering(BasePlugin):
         if plen == mlen:
             pass
         else:
-            raw_forecast_realizations_extended = iris.cube.CubeList()
-            realization_list = []
-            mpoints = raw_forecast_realizations.coord("realization").points
-            # Loop over the number of percentiles and finding the
-            # corresponding ensemble realization number. The ensemble
-            # realization numbers are recycled e.g. 1, 2, 3, 1, 2, 3, etc.
-            for index in range(plen):
-                realization_list.append(mpoints[index % len(mpoints)])
-
-            # Assume that the ensemble realizations are ascending linearly.
-            new_realization_numbers = realization_list[0] + list(range(plen))
-
-            # Extract the realizations required in the realization_list from
-            # the raw_forecast_realizations. Edit the realization number as
-            # appropriate and append to a cubelist containing rebadged
-            # raw ensemble realizations.
-            for realization, index in zip(realization_list, new_realization_numbers):
-                constr = iris.Constraint(realization=realization)
-                raw_forecast_realization = raw_forecast_realizations.extract(constr)
-                raw_forecast_realization.coord("realization").points = index
-                raw_forecast_realizations_extended.append(raw_forecast_realization)
-            raw_forecast_realizations = MergeCubes()(
-                raw_forecast_realizations_extended, slice_over_realization=True
+            raw_forecast_realizations = manipulate_realization_dimension(
+                raw_forecast_realizations, plen
             )
         return raw_forecast_realizations
 
