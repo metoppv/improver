@@ -78,25 +78,23 @@ class PostProcessingPlugin(BasePlugin):
                 Positional arguments.
             **kwargs:
                 Keyword arguments.
-        Returns:
-            Output of self.process()
-        """
-        res = super().__call__(*args, **kwargs)
-        return self.post_process_result(res)
 
-    @classmethod
-    def post_process_result(cls, result):
+        Returns:
+            Output of self.process() with updated title attribute
+        """
         from iris.cube import Cube
 
+        result = super().__call__(*args, **kwargs)
         if isinstance(result, Cube):
-            cls.post_processed_title(result)
+            self.post_processed_title(result)
         elif isinstance(result, Iterable) and not isinstance(result, str):
             for item in result:
-                if isinstance(item, result):
-                    cls.post_processed_title(item)
+                if isinstance(item, Cube):
+                    self.post_processed_title(item)
+        return result
 
     @staticmethod
-    def post_processed_cube_title(cube):
+    def post_processed_title(cube):
         """Updates title attribute on output cube to include
         "Post-Processed"
         """
