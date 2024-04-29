@@ -273,10 +273,10 @@ class Test_rank_ecc(IrisTest):
         self.assertArrayEqual(result.data.mask, mask)
         self.assertEqual(result.data.dtype, np.float32)
 
-    def test_2d_cube_tied_values(self):
+    def test_2d_cube_tied_values_random(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube, when there are tied values witin the
+        2d input cube, when there are tied values within the
         raw ensemble realizations. As there are two possible options for the
         result data, as the tie is decided randomly, both possible result
         data options are checked.
@@ -297,12 +297,29 @@ class Test_rank_ecc(IrisTest):
         matches = [np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
 
-    def test_2d_cube_tied_values_random_seed(self):
+    def test_2d_cube_tied_values_random_with_seed(self):
         """
         Test that the plugin returns the correct cube data for a
-        2d input cube, when there are tied values witin the
+        2d input cube, when there are tied values within the
         raw ensemble realizations. The random seed is specified to ensure that
         only one option, out of the two possible options will be returned.
+        """
+        raw_data = np.array([[1, 1], [3, 2], [2, 2]])
+        calibrated_data = np.array([[1, 1], [2, 2], [3, 3]])
+        result_data = np.array([[1, 1], [3, 3], [2, 2]])
+
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
+
+        result = Plugin().rank_ecc(calibrated_cube, raw_cube, random_seed=1)
+        self.assertArrayAlmostEqual(result.data, result_data)
+
+    def test_2d_cube_tied_values_realization(self):
+        """
+        Test that the plugin returns the correct cube data for a
+        2d input cube, when there are tied values within the
+        raw ensemble realizations. In this test, ties should be broken by assigning
+        values to the highest realization number first.
         """
         raw_data = np.array([[1, 1], [3, 2], [2, 2]])
         calibrated_data = np.array([[1, 1], [2, 2], [3, 3]])
@@ -311,7 +328,7 @@ class Test_rank_ecc(IrisTest):
         raw_cube = self.cube_2d.copy(data=raw_data)
         calibrated_cube = self.cube_2d.copy(data=calibrated_data)
 
-        result = Plugin().rank_ecc(calibrated_cube, raw_cube, random_seed=0)
+        result = Plugin().rank_ecc(calibrated_cube, raw_cube, tie_break="realization")
         self.assertArrayAlmostEqual(result.data, result_data)
 
     def test_1d_cube(self):
@@ -352,6 +369,24 @@ class Test_rank_ecc(IrisTest):
 
         matches = [np.array_equal(aresult, result.data) for aresult in permutations]
         self.assertIn(True, matches)
+
+    def test_bad_tie_break_exception(self):
+        """
+        Test that the correct exception is raised when an unknown method is input for
+        tie_break.
+        """
+
+        raw_data = np.array([[1, 1], [3, 2], [2, 2]])
+        calibrated_data = np.array([[1, 1], [2, 2], [3, 3]])
+
+        raw_cube = self.cube_2d.copy(data=raw_data)
+        calibrated_cube = self.cube_2d.copy(data=calibrated_data)
+
+        message = (
+            'Input tie_break must be either "random", or "realization", not "kittens".'
+        )
+        with self.assertRaisesRegex(ValueError, message):
+            Plugin().rank_ecc(calibrated_cube, raw_cube, tie_break="kittens")
 
 
 class Test__check_input_cube_masks(IrisTest):
