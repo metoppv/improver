@@ -47,47 +47,47 @@ class BasePlugin(ABC):
     Subclasses must be callable. We preserve the process
     method by redirecting to __call__.
     """
-    def __call__(self, *args, verbose=False, **kwargs):
-        """
-        Makes subclasses callable to use process
+
+    def __call__(self, *args, **kwargs):
+        """Makes subclasses callable to use process
         Args:
             *args:
-                Positional arguments, each a filepath, cube or CubeList.
+                Positional arguments.
             **kwargs:
                 Keyword arguments.
         Returns:
             Output of self.process()
         """
-        return self.process(*args, verbose=verbose, **kwargs)
+        return self.process(*args, **kwargs)
 
     @abstractmethod
-    def process(self, *args, verbose=False, **kwargs):
+    def process(self, *args, **kwargs):
         """Abstract class for rest to implement."""
         pass
 
 
 class PostProcessingPlugin(BasePlugin):
-    """
-    An abstract class for IMPROVER post-processing plugins.
+    """An abstract class for IMPROVER post-processing plugins.
     Makes generalised changes to metadata relating to post-processing.
     """
-    def __call__(self, *args, verbose=False, **kwargs):
-        """
-        Makes subclasses callable to use process
+
+    def __call__(self, *args, **kwargs):
+        """Makes subclasses callable to use process
         Args:
             *args:
-                Positional arguments, each a filepath, cube or CubeList.
+                Positional arguments.
             **kwargs:
                 Keyword arguments.
         Returns:
             Output of self.process()
         """
-        res = super().__call__(*args, verbose=verbose, **kwargs)
+        res = super().__call__(*args, **kwargs)
         return self.post_process_result(res)
 
     @classmethod
     def post_process_result(cls, result):
         from iris.cube import Cube
+
         if isinstance(result, Cube):
             cls.post_processed_title(result)
         elif isinstance(result, Iterable) and not isinstance(result, str):
@@ -97,8 +97,7 @@ class PostProcessingPlugin(BasePlugin):
 
     @staticmethod
     def post_processed_cube_title(cube):
-        """
-        Updates title attribute on output cube to include
+        """Updates title attribute on output cube to include
         "Post-Processed"
         """
         from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
