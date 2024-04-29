@@ -1350,6 +1350,7 @@ class EnsembleReordering(BasePlugin):
         raw_forecast_realizations: Cube,
         random_ordering: bool = False,
         random_seed: Optional[int] = None,
+        tie_break: Optional[str] = "random",
     ) -> Cube:
         """
         Function to apply Ensemble Copula Coupling. This ranks the
@@ -1373,11 +1374,19 @@ class EnsembleReordering(BasePlugin):
                 the random seed.
                 If random_seed is None, no random seed is set, so the random
                 values generated are not reproducible.
+            tie_break:
+                The method of tie breaking to use when the first ordering method
+                contains ties. The available methods are "random", to tie-break
+                randomly, and "realization", to tie-break by assigning values to the
+                highest numbered realizations first.
 
         Returns:
             Cube for post-processed realizations where at a particular grid
             point, the ranking of the values within the ensemble matches
             the ranking from the raw ensemble.
+
+        Raises:
+            ValueError: tie_break is not either 'random' or 'realization'
         """
         results = iris.cube.CubeList([])
         for rawfc, calfc in zip(
@@ -1387,18 +1396,29 @@ class EnsembleReordering(BasePlugin):
             if random_seed is not None:
                 random_seed = int(random_seed)
             random_seed = np.random.RandomState(random_seed)
-            random_data = random_seed.rand(*rawfc.data.shape)
             if random_ordering:
+                random_data = random_seed.rand(*rawfc.data.shape)
                 # Returns the indices that would sort the array.
                 # As these indices are from a random dataset, only an argsort
                 # is used.
                 ranking = np.argsort(random_data, axis=0)
             else:
+                if tie_break == "random":
+                    tie_break_data = random_seed.rand(*rawfc.data.shape)
+                elif tie_break == "realization":
+                    realizations = raw_forecast_realizations.coord("realization").points
+                    n_realizations = len(realizations)
+                    realizations = realizations.reshape(n_realizations, 1)
+                    tie_break_data = np.broadcast_to(realizations, rawfc.data.shape)
+                else:
+                    msg = 'Input tie_break must be either "random", or "realization",' \
+                          f' not "{tie_break}".'
+                    raise ValueError(msg)
                 # Lexsort returns the indices sorted firstly by the
                 # primary key, the raw forecast data (unless random_ordering
                 # is enabled), and secondly by the secondary key, an array of
                 # random data, in order to split tied values randomly.
-                sorting_index = np.lexsort((random_data, rawfc.data), axis=0)
+                sorting_index = np.lexsort((tie_break_data, rawfc.data), axis=0)
                 # Returns the indices that would sort the array.
                 ranking = np.argsort(sorting_index, axis=0)
             # Index the post-processed forecast data using the ranking array.
