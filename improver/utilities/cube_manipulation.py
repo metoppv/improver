@@ -842,7 +842,6 @@ def manipulate_realization_dimension(cube: Cube, n_realizations: int) -> Cube:
 
     Raises:
         ValueError: input cube does not contain realizations
-
     """
     if not cube.coords("realization", dim_coords=True):
         input_coords = [c.name() for c in cube.coords(dim_coords=True)]
