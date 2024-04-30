@@ -28,10 +28,17 @@ def test_percentiles(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_percentiles_reordering(tmp_path):
+@pytest.mark.parametrize(
+    "tie_break, kgo",
+    (
+        ("random", "kgo.nc"),
+        ("realization", "tie_break_with_realization_kgo.nc"),
+    ),
+)
+def test_percentiles_reordering(tmp_path, tie_break, kgo):
     """Test percentile to realization conversion with reordering"""
     kgo_dir = acc.kgo_root() / "generate-realizations/percentiles_reordering"
-    kgo_path = kgo_dir / "kgo.nc"
+    kgo_path = kgo_dir / kgo
     forecast_path = kgo_dir / "raw_forecast.nc"
     percentiles_path = kgo_dir / "multiple_percentiles_wind_cube.nc"
     output_path = tmp_path / "output.nc"
@@ -40,6 +47,8 @@ def test_percentiles_reordering(tmp_path):
         "12",
         "--random-seed",
         "0",
+        "--tie-break",
+        tie_break,
         percentiles_path,
         forecast_path,
         "--output",
