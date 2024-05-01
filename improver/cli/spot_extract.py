@@ -128,8 +128,8 @@ def process(
     from improver.metadata.probabilistic import find_percentile_coordinate
     from improver.percentile import PercentileConverter
     from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
-    from improver.spotdata.neighbour_finding import NeighbourSelection
     from improver.spotdata.spot_extraction import SpotExtraction
+    from improver.spotdata.utilities import neighbour_finding_method_name
     from improver.utilities.cube_extraction import extract_subcube
     from improver.utilities.cube_manipulation import collapse_realizations
 
@@ -138,9 +138,9 @@ def process(
 
     if realization_collapse:
         cube = collapse_realizations(cube)
-    neighbour_selection_method = NeighbourSelection(
-        land_constraint=land_constraint, minimum_dz=similar_altitude
-    ).neighbour_finding_method_name()
+    neighbour_selection_method = neighbour_finding_method_name(
+        land_constraint, similar_altitude
+    )
     result = SpotExtraction(neighbour_selection_method=neighbour_selection_method)(
         neighbour_cube, cube, new_title=new_title
     )

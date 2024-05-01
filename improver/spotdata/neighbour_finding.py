@@ -20,6 +20,8 @@ from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
+from .utilities import neighbour_finding_method_name
+
 
 class NeighbourSelection(BasePlugin):
     """
@@ -113,22 +115,6 @@ class NeighbourSelection(BasePlugin):
             self.site_y_coordinate,
             self.node_limit,
         )
-
-    def neighbour_finding_method_name(self) -> str:
-        """
-        Create a name to describe the neighbour method based on the constraints
-        provided.
-
-        Returns:
-            A string that describes the neighbour finding method employed.
-            This is essentially a concatenation of the options.
-        """
-        method_name = "{}{}{}".format(
-            "nearest",
-            "_land" if self.land_constraint else "",
-            "_minimum_dz" if self.minimum_dz else "",
-        )
-        return method_name
 
     def _transform_sites_coordinate_system(
         self, x_points: ndarray, y_points: ndarray, target_crs: CRS
@@ -610,7 +596,9 @@ class NeighbourSelection(BasePlugin):
                 )
 
         # Construct a name to describe the neighbour finding method employed
-        method_name = self.neighbour_finding_method_name()
+        method_name = neighbour_finding_method_name(
+            self.land_constraint, self.minimum_dz
+        )
 
         # Create an array of indices and displacements to return
         data = np.stack(
