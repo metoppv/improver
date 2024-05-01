@@ -105,106 +105,18 @@ def process(
     Returns:
         iris.cube.Cube:
            Cube of spot data.
-
-    Warns:
-        warning:
-           If diagnostic cube is not a known probabilistic type.
-        warning:
-            If a lapse rate cube was not provided, but the option to apply
-            the lapse rate correction was enabled.
-
     """
+    from improver.spotdata.spot_extraction import SpotManipulation
 
-    import warnings
-
-    import iris
-    import numpy as np
-    from iris.exceptions import CoordinateNotFoundError
-
-    from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
-        ConvertProbabilitiesToPercentiles,
-        ResamplePercentiles,
-    )
-    from improver.metadata.probabilistic import find_percentile_coordinate
-    from improver.percentile import PercentileConverter
-    from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
-    from improver.spotdata.spot_extraction import SpotExtraction
-    from improver.spotdata.utilities import neighbour_finding_method_name
-    from improver.utilities.cube_extraction import extract_subcube
-    from improver.utilities.cube_manipulation import collapse_realizations
-
-    neighbour_cube = cubes[-1]
-    cube = cubes[0]
-
-    if realization_collapse:
-        cube = collapse_realizations(cube)
-    neighbour_selection_method = neighbour_finding_method_name(
-        land_constraint, similar_altitude
-    )
-    result = SpotExtraction(neighbour_selection_method=neighbour_selection_method)(
-        neighbour_cube, cube, new_title=new_title
-    )
-
-    # If a probability or percentile diagnostic cube is provided, extract
-    # the given percentile if available. This is done after the spot-extraction
-    # to minimise processing time; usually there are far fewer spot sites than
-    # grid points.
-    if extract_percentiles:
-        extract_percentiles = [np.float32(x) for x in extract_percentiles]
-        try:
-            perc_coordinate = find_percentile_coordinate(result)
-        except CoordinateNotFoundError:
-            if "probability_of_" in result.name():
-                result = ConvertProbabilitiesToPercentiles(
-                    ecc_bounds_warning=ignore_ecc_bounds_exceedance,
-                    skip_ecc_bounds=skip_ecc_bounds,
-                )(result, percentiles=extract_percentiles)
-                result = iris.util.squeeze(result)
-            elif result.coords("realization", dim_coords=True):
-                fast_percentile_method = not np.ma.isMaskedArray(result.data)
-                result = PercentileConverter(
-                    "realization",
-                    percentiles=extract_percentiles,
-                    fast_percentile_method=fast_percentile_method,
-                )(result)
-            else:
-                msg = (
-                    "Diagnostic cube is not a known probabilistic type. "
-                    "The {} percentile could not be extracted. Extracting "
-                    "data from the cube including any leading "
-                    "dimensions.".format(extract_percentiles)
-                )
-                if not suppress_warnings:
-                    warnings.warn(msg)
-        else:
-            if set(extract_percentiles).issubset(perc_coordinate.points):
-                constraint = [
-                    "{}={}".format(perc_coordinate.name(), extract_percentiles)
-                ]
-                result = extract_subcube(result, constraint)
-            else:
-                result = ResamplePercentiles()(result, percentiles=extract_percentiles)
-
-    # Check whether a lapse rate cube has been provided
-    if apply_lapse_rate_correction:
-        if len(cubes) == 3:
-            plugin = SpotLapseRateAdjust(
-                neighbour_selection_method=neighbour_selection_method
-            )
-            result = plugin(result, neighbour_cube, cubes[-2])
-        elif fixed_lapse_rate is not None:
-            plugin = SpotLapseRateAdjust(
-                neighbour_selection_method=neighbour_selection_method,
-                fixed_lapse_rate=fixed_lapse_rate,
-            )
-            result = plugin(result, neighbour_cube)
-        elif not suppress_warnings:
-            warnings.warn(
-                "A lapse rate cube or fixed lapse rate was not provided, but the "
-                "option to apply the lapse rate correction was enabled. No lapse rate "
-                "correction could be applied."
-            )
-
-    # Remove the internal model_grid_hash attribute if present.
-    result.attributes.pop("model_grid_hash", None)
-    return result
+    return SpotManipulation(
+        apply_lapse_rate_correction,
+        fixed_lapse_rate,
+        land_constraint,
+        similar_altitude,
+        extract_percentiles,
+        ignore_ecc_bounds_exceedance,
+        skip_ecc_bounds,
+        new_title,
+        suppress_warnings,
+        realization_collapse,
+    )(cubes)
