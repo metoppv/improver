@@ -10,13 +10,13 @@ from typing import List, Optional, Tuple, Union
 import iris
 import numpy as np
 from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
-from improver.metadata.utilities import create_coordinate_hash
+from improver.metadata.utilities import check_grid_match
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
@@ -341,40 +341,3 @@ class SpotExtraction(BasePlugin):
         spotdata_cube.cell_methods = diagnostic_cube.cell_methods
 
         return spotdata_cube
-
-
-def check_grid_match(cubes: Union[List[Cube], CubeList]) -> None:
-    """
-    Checks that cubes are on, or originate from, compatible coordinate grids.
-    Each cube is first checked for an existing 'model_grid_hash' which can be
-    used to encode coordinate information on cubes that do not themselves
-    contain a coordinate grid (e.g. spotdata cubes). If this is not found a new
-    hash is generated to enable comparison. If the cubes are not compatible, an
-    exception is raised to prevent the use of unmatched cubes.
-
-    Args:
-        cubes:
-            A list of cubes to check for grid compatibility.
-
-    Raises:
-        ValueError: Raised if the cubes are not on matching grids as
-                    identified by the model_grid_hash.
-    """
-
-    def _get_grid_hash(cube):
-        try:
-            cube_hash = cube.attributes["model_grid_hash"]
-        except KeyError:
-            cube_hash = create_coordinate_hash(cube)
-        return cube_hash
-
-    cubes = iter(cubes)
-    reference_hash = _get_grid_hash(next(cubes))
-
-    for cube in cubes:
-        cube_hash = _get_grid_hash(cube)
-        if cube_hash != reference_hash:
-            raise ValueError(
-                "Cubes do not share or originate from the same "
-                "grid, so cannot be used together."
-            )
