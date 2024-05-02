@@ -115,7 +115,10 @@ class Test_correct_where_input_true(IrisTest):
         data = np.ones((3, 3), dtype=np.float32)
         data[1, 1] = 0.0
         cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea",
+            data,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
         )
         self.plugin.input_land = cube.copy()
         self.plugin.output_land = cube.copy()
@@ -191,7 +194,10 @@ class Test_correct_where_input_true(IrisTest):
         data = np.ones((5, 5), dtype=np.float32)
         data[1, 1] = 0.0
         cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea",
+            data,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
         )
         self.plugin.output_land = cube.copy()
         self.plugin.nearest_cube = cube.copy()
@@ -252,9 +258,9 @@ class Test_process(IrisTest):
 
         self.cube = set_up_variable_cube(
             data_cube,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(0, -50000),

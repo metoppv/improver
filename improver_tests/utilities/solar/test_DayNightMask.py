@@ -103,7 +103,11 @@ class Test__create_daynight_mask(IrisTest):
         data[:, 7, 7] = 0.0
 
         self.cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea", attributes=ATTRIBUTES
+            data,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
+            attributes=ATTRIBUTES,
         )
         self.spot_cube = create_spot_cube()
 
@@ -146,16 +150,16 @@ class Test__daynight_lat_lon_cube(IrisTest):
         data = np.ones((16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, -8),
         )
         self.cube_360 = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, 345),
@@ -210,9 +214,9 @@ class Test_process(IrisTest):
         vt = datetime(2015, 11, 20, 8, 0)
         self.cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(0, -30000),
@@ -225,9 +229,9 @@ class Test_process(IrisTest):
         bounds = timedelta(minutes=4)
         self.cube_time_bounds = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(0, -30000),
@@ -239,8 +243,8 @@ class Test_process(IrisTest):
         # Lat lon cubes
         self.cube_lat_lon = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, -8),
@@ -249,8 +253,8 @@ class Test_process(IrisTest):
         )
         self.cube_lat_lon_360 = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, 345),

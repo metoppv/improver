@@ -47,6 +47,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     construct_scalar_time_coords,
     set_up_probability_cube,
+    set_up_spot_probability_cube,
     set_up_variable_cube,
 )
 
@@ -115,14 +116,9 @@ def set_up_basic_model_config_spot_cube(frt=None, time_points=None):
             dt(2017, 1, 10, 11, 0),
         ]
 
-    time_coords = construct_scalar_time_coords(frt, None, frt)
-    time_coords = [crd for crd, _ in time_coords]
-
     n_sites = 10
     data = np.linspace(0, 1, 2 * n_sites, dtype=np.float32).reshape((2, n_sites))
     thresholds = np.array([275.0, 276.0], dtype=np.float32)
-
-    threshold_coord = DimCoord(thresholds, "air_temperature", units="K")
     model_id_coord = AuxCoord([1000], long_name="model_id")
     model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
 
@@ -137,17 +133,32 @@ def set_up_basic_model_config_spot_cube(frt=None, time_points=None):
         "unique_site_id_key": "met_office_site_id",
     }
 
-    cube = build_spotdata_cube(
-        data,
-        "probability_of_air_temperature_above_threshold",
-        "1",
-        *args,
-        **kwargs,
-        scalar_coords=[model_id_coord, model_config_coord, *time_coords],
-        additional_dims=[threshold_coord],
-    )
+    cubes = iris.cube.CubeList()
+    for time in time_points:
+        cube = set_up_spot_probability_cube(
+            data,
+            thresholds,
+            time=time,
+            frt=frt,
+            latitudes=latitudes,
+            longitudes=longitudes,
+            wmo_ids=wmo_ids,
+            include_scalar_coords=[model_id_coord, model_config_coord],
+        )
+        cubes.append(cube)
+    cube = cubes.merge_cube()
 
-    cube = add_coordinate(cube, time_points, "time", is_datetime=True)
+    # cube = build_spotdata_cube(
+    #     data,
+    #     "probability_of_air_temperature_above_threshold",
+    #     "1",
+    #     *args,
+    #     **kwargs,
+    #     scalar_coords=[model_id_coord, model_config_coord, *time_coords],
+    #     additional_dims=[threshold_coord],
+    # )
+
+    # cube = add_coordinate(cube, time_points, "time", is_datetime=True)
     return cube
 
 
