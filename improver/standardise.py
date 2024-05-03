@@ -39,7 +39,7 @@ from iris.exceptions import CoordinateNotFoundError
 from numpy import dtype, ndarray
 
 from improver import BasePlugin
-from improver.metadata.amend import amend_attributes, update_stage_v110_metadata
+from improver.metadata.amend import amend_attributes
 from improver.metadata.check_datatypes import (
     _is_time_coord,
     check_units,
@@ -270,11 +270,6 @@ class StandardiseMetadata(BasePlugin):
         Returns:
             The processed cube
         """
-
-        # update_stage_v110_metadata is deprecated. Please ensure metadata is
-        # StaGE version 1.2.0 compatible.
-        update_stage_v110_metadata(cube)
-
         cube = self._rm_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
 

@@ -29,8 +29,6 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing utilities for modifying cube metadata"""
-import json
-import os
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Tuple, Union
@@ -47,41 +45,6 @@ from improver.metadata.probabilistic import (
     get_threshold_coord_name_from_probability_name,
     is_probability,
 )
-
-
-def update_stage_v110_metadata(cube: Cube) -> None:
-    """Translates attributes relating to the grid_id attribute from StaGE
-    version 1.1.0 to later StaGE versions.
-    Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
-    are ignored.
-
-    Args:
-        cube:
-            Cube to modify attributes in (modified in place)
-    """
-    try:
-        grid_id = cube.attributes.pop("grid_id")
-    except KeyError:
-        # Not a version 1.1.0 grid, do nothing
-        return
-    cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
-    cube.attributes["mosg__grid_version"] = "1.1.0"
-
-
-def _load_json(json_path: str) -> Dict:
-    """Load a JSON file into a dictionary.
-
-    Args:
-        json_path:
-            Path to the JSON file to load.
-
-    Returns:
-        Dictionary containing the JSON data.
-    """
-    if not isinstance(json_path, str):
-        return json_path
-    json_path = os.path.expanduser(os.path.expandvars(json_path))
-    return json.load(open(json_path, "r"))
 
 
 def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
@@ -102,7 +65,6 @@ def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:
             date format, then this string is replaced with the current
             wall-clock time, formatted as specified.
     """
-    attributes_dict = _load_json(attributes_dict)
     for attribute_name, value in attributes_dict.items():
         re_now = r"({now:.*})"
         # We use the DOTALL flag below to tell regex that . should match new-line

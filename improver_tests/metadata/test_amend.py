@@ -44,7 +44,6 @@ from improver.metadata.amend import (
     set_history_attribute,
     update_diagnostic_name,
     update_model_id_attr_attribute,
-    update_stage_v110_metadata,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -85,37 +84,6 @@ def create_cube_with_threshold(data=None, threshold_values=None):
 
     cube.data = data
     return cube
-
-
-class Test_update_stage_v110_metadata(IrisTest):
-    """Test the update_stage_v110_metadata function"""
-
-    def setUp(self):
-        """Set up variables for use in testing."""
-        data = 275.0 * np.ones((3, 3), dtype=np.float32)
-        self.cube = set_up_variable_cube(data)
-
-    def test_basic(self):
-        """Test that cube is unchanged and function returns False"""
-        result = self.cube.copy()
-        update_stage_v110_metadata(result)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, self.cube.data)
-        self.assertEqual(result.attributes, self.cube.attributes)
-
-    def test_update_ukv(self):
-        """Test that cube attributes from ukv 1.1.0 are updated"""
-        self.cube.attributes["grid_id"] = "ukvx_standard_v1"
-        update_stage_v110_metadata(self.cube)
-        self.assertTrue("mosg__grid_type" in self.cube.attributes.keys())
-        self.assertTrue("mosg__model_configuration" in self.cube.attributes.keys())
-        self.assertTrue("mosg__grid_domain" in self.cube.attributes.keys())
-        self.assertTrue("mosg__grid_version" in self.cube.attributes.keys())
-        self.assertFalse("grid_id" in self.cube.attributes.keys())
-        self.assertEqual("standard", self.cube.attributes["mosg__grid_type"])
-        self.assertEqual("uk_det", self.cube.attributes["mosg__model_configuration"])
-        self.assertEqual("uk_extended", self.cube.attributes["mosg__grid_domain"])
-        self.assertEqual("1.1.0", self.cube.attributes["mosg__grid_version"])
 
 
 class Test_amend_attributes(IrisTest):
