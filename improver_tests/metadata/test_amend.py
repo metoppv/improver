@@ -33,7 +33,6 @@ import re
 import unittest
 from datetime import datetime as dt
 
-import iris
 import numpy as np
 import pytest
 from iris.coords import CellMethod

@@ -36,10 +36,6 @@ from typing import Any, Dict, List, Tuple, Union
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
-from improver.metadata.constants.mo_attributes import (
-    GRID_ID_LOOKUP,
-    MOSG_GRID_DEFINITION,
-)
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
