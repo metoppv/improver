@@ -36,6 +36,8 @@ import numpy as np
 
 TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
 
+DT_FORMAT = "%Y%m%dT%H%MZ"
+
 _TIME_REFERENCE_SPEC = TimeSpec(
     calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
 )
