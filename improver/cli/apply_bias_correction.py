@@ -38,8 +38,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast_cube: cli.inputcube,
-    *bias_cubes: cli.inputcube,
+    *cubes: cli.inputcube,
     lower_bound: float = None,
     upper_bound: float = None,
     fill_masked_bias_data: bool = False,
@@ -59,10 +58,9 @@ def process(
     post-bias correction.
 
     Args:
-        forecast_cube (iris.cube.Cube):
-            Cube containing the forecast to apply bias correction to.
-        bias_cubes (iris.cube.Cube or list of iris.cube.Cube):
-            A cube or list of cubes containing forecast bias data over the a specified
+        cubes (iris.cube.Cube or list of iris.cube.Cube):
+            Cube or list of cubes containing the forecast to apply bias correction to, as
+            well as the cubes containing forecast bias data over the a specified
             set of forecast reference times. If a list of cubes is passed in, each cube
             should represent the forecast error for a single forecast reference time; the
             mean value will then be evaluated over the forecast_reference_time coordinate.
@@ -81,6 +79,9 @@ def process(
     import iris
 
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
+
+    forecast_cube = cubes[0]
+    bias_cubes = cubes[1:]
 
     # Check whether bias data supplied, if not then return unadjusted input cube.
     # This behaviour is to allow spin-up of the bias-correction terms.

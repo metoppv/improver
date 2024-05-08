@@ -160,3 +160,42 @@ def test_fill_masked_bias_data(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_no_bias_file(tmp_path):
+    """
+    Test case where bias values are stored in a single file (mean value over
+    multiple historic forecasts).
+    """
+    kgo_dir = acc.kgo_root() / "apply-bias-correction"
+    fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        fcst_path,
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, fcst_path)
+
+
+def test_missing_fcst_file(tmp_path):
+    """
+    Test case where bias values are stored in a single file (mean value over
+    multiple historic forecasts).
+    """
+    kgo_dir = acc.kgo_root() / "apply-bias-correction"
+    bias_file_path = (
+        kgo_dir
+        / "single_bias_file"
+        / "bias_data"
+        / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    )
+    output_path = tmp_path / "output.nc"
+    args = [
+        bias_file_path,
+        "--output",
+        output_path,
+    ]
+    with pytest.raises(ValueError, match="Missing forecast cube"):
+        run_cli(args)
