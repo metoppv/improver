@@ -197,5 +197,5 @@ def test_missing_fcst_file(tmp_path):
         "--output",
         output_path,
     ]
-    with pytest.raises(ValueError, match="Missing forecast cube"):
+    with pytest.raises(ValueError, match="Forecast cube missing"):
         run_cli(args)

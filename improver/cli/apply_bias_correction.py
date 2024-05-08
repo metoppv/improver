@@ -78,10 +78,10 @@ def process(
     """
     import iris
 
+    from improver.calibration import split_forecasts_and_bias_files
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
 
-    forecast_cube = cubes[0]
-    bias_cubes = cubes[1:]
+    forecast_cube, bias_cubes = split_forecasts_and_bias_files(cubes)
 
     # Check whether bias data supplied, if not then return unadjusted input cube.
     # This behaviour is to allow spin-up of the bias-correction terms.
