@@ -876,4 +876,6 @@ def manipulate_realization_dimension(cube: Cube, n_realizations: int) -> Cube:
             raw_forecast_realizations_extended, slice_over_realization=True
         )
 
+        # output.coord("realization").points = output.coord("realization").points.astype('int32')
+
     return output
