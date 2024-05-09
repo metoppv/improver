@@ -442,6 +442,7 @@ def set_up_spot_variable_cube(
 ):
     """
     Set up a spot cube containing a single variable field with:
+
     - latitude, longitude, altitude, WMO ID and unique site ID coordinates
       associated with the sites.
     - optional leading realization coordinate.
@@ -560,6 +561,7 @@ def set_up_variable_cube(
 ):
     """
     Set up a gridded cube containing a single variable field with:
+
     - a lat/lon or equal areas projection.
     - optional leading realization coordinate.
     - optional height or pressure levels.
