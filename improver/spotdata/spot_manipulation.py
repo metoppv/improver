@@ -159,8 +159,9 @@ class SpotManipulation(BasePlugin):
         spot forecasts.
 
         Args:
-            A list of cubes containing the diagnostic data to be extracted,
-            a temperature lapse rate (optional) and the neighbour cube.
+            cubes:
+                A list of cubes containing the diagnostic data to be extracted,
+                a temperature lapse rate (optional) and the neighbour cube.
 
         Returns:
             Spot-extracted forecast data following any optional manipulations.
