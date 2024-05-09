@@ -106,7 +106,7 @@ def process(
         iris.cube.Cube:
            Cube of spot data.
     """
-    from improver.spotdata.spot_extraction import SpotManipulation
+    from improver.spotdata.spot_manipulation import SpotManipulation
 
     return SpotManipulation(
         apply_lapse_rate_correction,
