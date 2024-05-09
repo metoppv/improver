@@ -42,7 +42,6 @@ from improver.utilities.cube_checker import (
     check_for_x_and_y_axes,
 )
 from improver.utilities.cube_manipulation import (
-    MergeCubes,
     enforce_coordinate_ordering,
     get_dim_coord_names,
     manipulate_realization_dimension,
@@ -1415,10 +1414,14 @@ class EnsembleReordering(BasePlugin):
                     broadcast_shape[0] = n_realizations
                     broadcast_shape = tuple(broadcast_shape)
                     realizations = realizations.reshape(n_realizations, 1)
-                    tie_break_data = realizations.reshape(broadcast_shape) * np.ones(target_shape)
+                    tie_break_data = realizations.reshape(broadcast_shape) * np.ones(
+                        target_shape
+                    )
                 else:
-                    msg = 'Input tie_break must be either "random", or "realization",' \
-                          f' not "{tie_break}".'
+                    msg = (
+                        'Input tie_break must be either "random", or "realization",'
+                        f' not "{tie_break}".'
+                    )
                     raise ValueError(msg)
                 # Lexsort returns the indices sorted firstly by the
                 # primary key, the raw forecast data (unless random_ordering

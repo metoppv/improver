@@ -36,8 +36,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    cube: cli.inputcube,
-    n_realizations: int,
+    cube: cli.inputcube, n_realizations: int,
 ):
     """Extend or reduce the number of realizations in a cube.
 
