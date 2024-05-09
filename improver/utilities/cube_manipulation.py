@@ -845,8 +845,10 @@ def manipulate_realization_dimension(cube: Cube, n_realizations: int) -> Cube:
     """
     if not cube.coords("realization", dim_coords=True):
         input_coords = [c.name() for c in cube.coords(dim_coords=True)]
-        msg = "Input cube does not contain realizations. The following dimension" \
-              f"coordinates were found: {input_coords}"
+        msg = (
+            "Input cube does not contain realizations. The following dimension"
+            f"coordinates were found: {input_coords}"
+        )
         raise ValueError(msg)
     elif len(cube.coord("realization").points) == n_realizations:
         output = cube.copy()

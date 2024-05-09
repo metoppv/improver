@@ -42,11 +42,7 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "manipulation, kgo",
-    (
-        ("extend", "extend_kgo.nc"),
-        ("reduce", "reduce_kgo.nc"),
-    ),
+    "manipulation, kgo", (("extend", "extend_kgo.nc"), ("reduce", "reduce_kgo.nc"),),
 )
 def test_basic(tmp_path, manipulation, kgo):
     """Test basic extension/reduction of realization dimension"""

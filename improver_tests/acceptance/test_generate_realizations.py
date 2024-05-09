@@ -30,10 +30,7 @@ def test_percentiles(tmp_path):
 
 @pytest.mark.parametrize(
     "tie_break, kgo",
-    (
-        ("random", "kgo.nc"),
-        ("realization", "tie_break_with_realization_kgo.nc"),
-    ),
+    (("random", "kgo.nc"), ("realization", "tie_break_with_realization_kgo.nc"),),
 )
 def test_percentiles_reordering(tmp_path, tie_break, kgo):
     """Test percentile to realization conversion with reordering"""
