@@ -22,6 +22,7 @@ def process(
     new_title: str = None,
     suppress_warnings: bool = False,
     realization_collapse: bool = False,
+    subset_coord: str = None,
 ):
     """Module to run spot data extraction.
 
@@ -101,6 +102,14 @@ def process(
         realization_collapse (bool):
             Triggers equal-weighting blending of the realization coord if required.
             Use this if a threshold coord is also present on the input cube.
+        subset_coord (str):
+            If a spot cube is provided as input this plugin can return a subset of
+            the sites based on the sites specified in the neighbour cube. To
+            achieve this the plugin needs the name of the site ID coordiante to be
+            used for matching, e.g. wmo_id. If subset_coord is not provided and a
+            spot forecast is passed in the entire spot cube will be processed and
+            returned. The neighbour selection method options have no impact if a
+            spot cube is passed in.
 
     Returns:
         iris.cube.Cube:
@@ -109,14 +118,15 @@ def process(
     from improver.spotdata.spot_manipulation import SpotManipulation
 
     return SpotManipulation(
-        apply_lapse_rate_correction,
-        fixed_lapse_rate,
-        land_constraint,
-        similar_altitude,
-        extract_percentiles,
-        ignore_ecc_bounds_exceedance,
-        skip_ecc_bounds,
-        new_title,
-        suppress_warnings,
-        realization_collapse,
+        apply_lapse_rate_correction=apply_lapse_rate_correction,
+        fixed_lapse_rate=fixed_lapse_rate,
+        land_constraint=land_constraint,
+        similar_altitude=similar_altitude,
+        extract_percentiles=extract_percentiles,
+        ignore_ecc_bounds_exceedance=ignore_ecc_bounds_exceedance,
+        skip_ecc_bounds=skip_ecc_bounds,
+        new_title=new_title,
+        suppress_warnings=suppress_warnings,
+        realization_collapse=realization_collapse,
+        subset_coord=subset_coord,
     )(cubes)

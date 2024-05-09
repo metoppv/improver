@@ -48,6 +48,7 @@ class SpotManipulation(BasePlugin):
         new_title: Optional[str] = None,
         suppress_warnings: bool = False,
         realization_collapse: bool = False,
+        subset_coord: str = None,
     ) -> None:
         """
         Initialise the wrapper plugin using the selected options.
@@ -114,6 +115,14 @@ class SpotManipulation(BasePlugin):
             realization_collapse (bool):
                 Triggers equal-weighting blending of the realization coord if required.
                 Use this if a threshold coord is also present on the input cube.
+            subset_coord (str):
+                If a spot cube is provided as input this plugin can return a subset of
+                the sites based on the sites specified in the neighbour cube. To
+                achieve this the plugin needs the name of the site ID coordiante to be
+                used for matching, e.g. wmo_id. If subset_coord is not provided and a
+                spot forecast is passed in the entire spot cube will be processed and
+                returned. The neighbour selection method options have no impact if a
+                spot cube is passed in.
         """
         self.neighbour_selection_method = get_neighbour_finding_method_name(
             land_constraint, similar_altitude
@@ -126,6 +135,7 @@ class SpotManipulation(BasePlugin):
         self.new_title = new_title
         self.suppress_warnings = suppress_warnings
         self.realization_collapse = realization_collapse
+        self.subset_coord = subset_coord
 
     def process(self, cubes: CubeList) -> Cube:
         """
@@ -148,12 +158,22 @@ class SpotManipulation(BasePlugin):
         neighbour_cube = cubes[-1]
         cube = cubes[0]
 
-        if self.realization_collapse:
-            cube = collapse_realizations(cube)
+        if cube.coords("spot_index"):
+            if self.subset_coord is not None:
+                sites = neighbour_cube.coord(self.subset_coord).points
+                site_constraint = iris.Constraint(
+                    coord_values={self.subset_coord: sites}
+                )
+                result = cube.extract(site_constraint)
+            else:
+                result = cube
+        else:
+            result = SpotExtraction(
+                neighbour_selection_method=self.neighbour_selection_method
+            )(neighbour_cube, cube, new_title=self.new_title)
 
-        result = SpotExtraction(
-            neighbour_selection_method=self.neighbour_selection_method
-        )(neighbour_cube, cube, new_title=self.new_title)
+        if self.realization_collapse:
+            result = collapse_realizations(result)
 
         # If a probability or percentile diagnostic cube is provided, extract
         # the given percentile if available. This is done after the spot-extraction
