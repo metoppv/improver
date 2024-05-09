@@ -18,9 +18,7 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
 from improver.metadata.utilities import check_grid_match
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
-from improver.utilities.cube_manipulation import (
-    enforce_coordinate_ordering,
-)
+from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 from . import UNIQUE_ID_ATTRIBUTE
 

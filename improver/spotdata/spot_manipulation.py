@@ -47,11 +47,10 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 from improver.metadata.probabilistic import find_percentile_coordinate
 from improver.percentile import PercentileConverter
 from improver.utilities.cube_extraction import extract_subcube
-from improver.utilities.cube_manipulation import (
-    collapse_realizations,
-)
-from .spot_extraction import SpotExtraction
+from improver.utilities.cube_manipulation import collapse_realizations
+
 from .apply_lapse_rate import SpotLapseRateAdjust
+from .spot_extraction import SpotExtraction
 from .utilities import neighbour_finding_method_name
 
 
@@ -62,6 +61,7 @@ class SpotManipulation(BasePlugin):
     percentiles, including the conversion to percentiles of probabilities.
     Lapse rate adjustment of spot temperatures is also possible.
     """
+
     def __init__(
         self,
         apply_lapse_rate_correction: bool = False,
