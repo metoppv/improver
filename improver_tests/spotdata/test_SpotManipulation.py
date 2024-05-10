@@ -472,3 +472,28 @@ def test_spot_subset_incomplete(neighbour_cube):
 
     assert_array_equal(result.data, expected)
     assert_array_equal(result.coord("wmo_id").points, expected_ids)
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_unset_ids(neighbour_cube):
+    """Test spot subsetting where the neigbour cube and forecast cube include
+    sites for which the subset ID is set to "None". Unset IDs are non-unique
+    and we cannot rely on them for extracting a specific site. In this case we
+    expect all sites with an ID of "None" to be removed and only the valid ID
+    of '00002' to be extracted."""
+
+    expected = np.array([275])
+    expected_ids = ["00002"]
+    neighbour_cube.coord("wmo_id").points = ["None", "00001", "00002"]
+
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").points = ["None", "None"] + [
+        f"{item:05d}" for item in range(2, 9)
+    ]
+
+    result = SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+    assert_array_equal(result.data, expected)
+    assert_array_equal(result.coord("wmo_id").points, expected_ids)

@@ -165,6 +165,8 @@ class SpotManipulation(BasePlugin):
         if cube.coords("spot_index"):
             if self.subset_coord is not None:
                 sites = neighbour_cube.coord(self.subset_coord).points
+                # Exclude unset site IDs as this value is non-unique.
+                sites = [item for item in sites if item != "None"]
                 site_constraint = iris.Constraint(
                     coord_values={self.subset_coord: sites}
                 )
