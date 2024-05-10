@@ -19,6 +19,8 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
     set_up_probability_cube,
+    set_up_spot_percentile_cube,
+    set_up_spot_probability_cube,
     set_up_spot_variable_cube,
     set_up_variable_cube,
 )
@@ -32,6 +34,16 @@ def gridded_variable(forecast_data):
         np.array([1.5], dtype=np.float32), standard_name="height", units="m"
     )
     return set_up_variable_cube(
+        forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES,
+    )
+
+
+def spot_variable(forecast_data):
+    """Create a spot variable cube to subset with a neighbour cube."""
+    height_crd = DimCoord(
+        np.array([1.5], dtype=np.float32), standard_name="height", units="m"
+    )
+    return set_up_spot_variable_cube(
         forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES,
     )
 
@@ -58,11 +70,29 @@ def gridded_percentiles(forecast_data):
     return set_up_percentile_cube(forecast_data, percentiles, attributes=ATTRIBUTES,)
 
 
+def spot_percentiles(forecast_data):
+    """Create a spot percentile cube to subset with a neighbour cube."""
+    n_percentiles = forecast_data.shape[0]
+    percentiles = np.linspace(20, 80, n_percentiles)
+    return set_up_spot_percentile_cube(
+        forecast_data, percentiles, attributes=ATTRIBUTES,
+    )
+
+
 def gridded_probabilities(forecast_data):
     """Create a gridded probability cube from which to extract spot forecasts."""
     n_thresholds = forecast_data.shape[0]
     thresholds = np.linspace(273, 283, n_thresholds)
     return set_up_probability_cube(forecast_data, thresholds, attributes=ATTRIBUTES,)
+
+
+def spot_probabilities(forecast_data):
+    """Create a spot probability cube to subset with a neighbour cube."""
+    n_thresholds = forecast_data.shape[0]
+    thresholds = np.linspace(273, 283, n_thresholds)
+    return set_up_spot_probability_cube(
+        forecast_data, thresholds, attributes=ATTRIBUTES,
+    )
 
 
 @pytest.fixture
@@ -223,6 +253,62 @@ def add_grid_hash(target, source):
             np.array([[[1, 2], [0, 0], [5, 10]]]),
             {"extract_percentiles": [50]},
             np.array([283, 284]),
+        ),
+        # Subset a spot variable cube.
+        (
+            spot_variable,
+            np.arange(273, 282),
+            np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]]),
+            {"subset_coord": "wmo_id"},
+            np.array([273, 274, 275]),
+        ),
+        # Subset a spot percentile cube and extract percentiles.
+        (
+            spot_percentiles,
+            np.arange(273, 285).reshape(2, 6),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [20, 80]},
+            np.array([[273, 274], [279, 280]]),
+        ),
+        # Subset a spot percentile cube and resample percentiles.
+        (
+            spot_percentiles,
+            np.arange(273, 285).reshape(2, 6),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [50]},
+            np.array([276, 277]),
+        ),
+        # Subset a spot probability cube and extract a percentile.
+        (
+            spot_probabilities,
+            np.stack(
+                [
+                    np.linspace(0.9, 1.0, 6, dtype=np.float32),
+                    np.linspace(0.65, 0.75, 6, dtype=np.float32),
+                    np.linspace(0.4, 0.5, 6, dtype=np.float32),
+                    np.linspace(0.15, 0.25, 6, dtype=np.float32),
+                    np.zeros(6, dtype=np.float32),
+                ]
+            ),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [50]},
+            np.array([277, 277.2], dtype=np.float32),
+        ),
+        # Subset a spot probability cube and extract multiple percentiles.
+        (
+            spot_probabilities,
+            np.stack(
+                [
+                    np.linspace(0.9, 1.0, 6, dtype=np.float32),
+                    np.linspace(0.65, 0.75, 6, dtype=np.float32),
+                    np.linspace(0.4, 0.5, 6, dtype=np.float32),
+                    np.linspace(0.15, 0.25, 6, dtype=np.float32),
+                    np.zeros(6, dtype=np.float32),
+                ]
+            ),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [40, 60]},
+            np.array([[276, 276.2], [278, 278.2]], dtype=np.float32),
         ),
     ],
 )
