@@ -262,6 +262,14 @@ def add_grid_hash(target, source):
             {"subset_coord": "wmo_id"},
             np.array([273, 274, 275]),
         ),
+        # Pass through a spot variable cube as no subset coord specified.
+        (
+            spot_variable,
+            np.arange(273, 282),
+            np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]]),
+            {},
+            np.arange(273, 282),
+        ),
         # Subset a spot percentile cube and extract percentiles.
         (
             spot_percentiles,
@@ -443,3 +451,24 @@ def test_neighbour_selection_method_setting(kwargs, expected):
     within the __init__ method."""
     plugin = SpotManipulation(**kwargs)
     assert plugin.neighbour_selection_method == expected
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_subset_incomplete(neighbour_cube):
+    """Test spot subsetting where the neigbour cube includes sites that are
+    not present in the forecast cube. These points will simply be ignored and
+    only the available sites extracted. In this case we expect the site with
+    wmo_id='00000' to be lost from the returned forecast, despite being in the
+    neighbour cube."""
+
+    expected = np.array([273, 274])
+    expected_ids = ["00001", "00002"]
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").points = [f"{item:05d}" for item in range(1, 10)]
+
+    result = SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+    assert_array_equal(result.data, expected)
+    assert_array_equal(result.coord("wmo_id").points, expected_ids)
