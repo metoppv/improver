@@ -164,13 +164,20 @@ class SpotManipulation(BasePlugin):
         # spot forecast cube forwards unchanged.
         if cube.coords("spot_index"):
             if self.subset_coord is not None:
-                sites = neighbour_cube.coord(self.subset_coord).points
+                try:
+                    sites = neighbour_cube.coord(self.subset_coord).points
+                except CoordinateNotFoundError as err:
+                    raise ValueError(
+                        "Subset_coord not found in neighbour cube."
+                    ) from err
                 # Exclude unset site IDs as this value is non-unique.
                 sites = [item for item in sites if item != "None"]
                 site_constraint = iris.Constraint(
                     coord_values={self.subset_coord: sites}
                 )
                 result = cube.extract(site_constraint)
+                if not result:
+                    raise ValueError("No spot sites retained after subsetting.")
             else:
                 result = cube
         else:

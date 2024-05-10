@@ -497,3 +497,36 @@ def test_spot_unset_ids(neighbour_cube):
 
     assert_array_equal(result.data, expected)
     assert_array_equal(result.coord("wmo_id").points, expected_ids)
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_subset_coord_not_found(neighbour_cube):
+    """Test exception raised for unknown subsetting coordinate."""
+
+    forecast = spot_variable(np.arange(273, 282))
+    with pytest.raises(ValueError, match="Subset_coord not found in neighbour cube."):
+        SpotManipulation(subset_coord="kittens")([forecast, neighbour_cube])
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_no_spots_returned(neighbour_cube):
+    """Test exception raised if subsetting a spot forecast results in no
+    data being returned. This maybe because the subsetting coordinate does not
+    exist on the forecast cube, or because there are no overlapping sites
+    between the forecast and neighbour cube."""
+
+    # No shared ID coordinate
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").rename("kittens")
+    with pytest.raises(ValueError, match="No spot sites retained after subsetting."):
+        SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+    # No overlapping sites
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").points = [f"{item:05d}" for item in range(101, 110)]
+    with pytest.raises(ValueError, match="No spot sites retained after subsetting."):
+        SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
