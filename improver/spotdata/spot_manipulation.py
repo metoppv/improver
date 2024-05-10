@@ -158,6 +158,10 @@ class SpotManipulation(BasePlugin):
         neighbour_cube = cubes[-1]
         cube = cubes[0]
 
+        # If a spot forecast cube is passed as input constrain the sites to
+        # those that are found in the neighbour cube if an ID coordinate on
+        # which to constrain is provided, e.g. wmo_id. Otherwise pass the
+        # spot forecast cube forwards unchanged.
         if cube.coords("spot_index"):
             if self.subset_coord is not None:
                 sites = neighbour_cube.coord(self.subset_coord).points
