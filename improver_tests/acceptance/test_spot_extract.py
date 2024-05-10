@@ -534,3 +534,22 @@ def test_multi_time_input(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_spot_subsetting(tmp_path):
+    """Test subsetting of a spot forecast using a neighbour cube."""
+    kgo_dir = acc.kgo_root() / "spot-extract"
+    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
+    diag_path = kgo_dir / "outputs/nearest_uk_temperatures_unique_ids.nc"
+    kgo_path = kgo_dir / "outputs/spot_subset.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        diag_path,
+        neighbour_path,
+        "--output",
+        output_path,
+        "--subset-coord",
+        "wmo_id",
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)
