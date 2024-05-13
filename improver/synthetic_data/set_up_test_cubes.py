@@ -335,8 +335,16 @@ def _construct_dimension_coords(
     height_levels: Optional[Union[List[float], ndarray]] = None,
     pressure: bool = False,
 ) -> DimCoord:
-    """ Create array of all dimension coordinates. These dimensions will be ordered:
-    realization, height/pressure, y, x. """
+    """Create array of all dimension coordinates. The expected dimension order
+    for gridded cubes is realization, height/pressure, y, x or realization,
+    height/pressure, spot_index for site cubes. The returned coordinates will
+    reflect this ordering.
+
+    A realization coordinate will be created if the cube is
+    (n_spatial_dims + 1) or (n_spatial_dims + 2), even if no values for values
+    for the realizations argument are provided. To create a height coordinate,
+    the height_levels must be provided.
+    """
 
     data_shape = data.shape
     ndims = data.ndim
@@ -464,10 +472,10 @@ def set_up_spot_variable_cube(
             Optional list of altitude values of the same length as the number
             of sites.
         wmo_ids:
-            Optional list of WMO IDs that identify the sites, these stored as
-            padded 5-digit strings. Same length as the number of sites.
+            Optional list of WMO IDs that identify the sites, these are stored
+            as padded 5-digit strings. Same length as the number of sites.
         unique_site_id:
-            Optional list of IDs that identify the sites, these stored as
+            Optional list of IDs that identify the sites, these are stored as
             padded 8-digit strings. Same length as the number of sites.
             If provided, unique_site_id_key must also be provided.
         unique_site_id_key:

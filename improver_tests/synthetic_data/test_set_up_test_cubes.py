@@ -924,6 +924,19 @@ class Test_set_up_spot_variable_cube(IrisTest):
         self.assertArrayEqual(result.coord("wmo_id").points, wmo_ids)
         self.assertArrayEqual(result.coord(unique_site_id_key).points, unique_ids)
 
+    def test_no_unique_id_key_exception(self):
+        """Test an exception is raised if unique_site_ids are provided but no
+        unique_site_id_key is provided."""
+
+        wmo_ids = ["00009", "00008", "00007", "00006"]
+        unique_ids = ["00000020", "00000100", "00005000", "00999999"]
+
+        msg = "A unique_site_id_key must be provided if a unique_site_id"
+        with self.assertRaisesRegex(ValueError, msg):
+            set_up_spot_variable_cube(
+                self.data, wmo_ids=wmo_ids, unique_site_id=unique_ids,
+            )
+
 
 class Test_set_up_percentile_cube(IrisTest):
     """Test the set_up_percentile_cube function"""

@@ -45,10 +45,7 @@ from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import set_up_spot_percentile_cube
 
-altitude = np.zeros(2)
-latitude = np.zeros(2)
-longitude = np.zeros(2)
-wmo_id = ["00001", "00002"]
+WMO_ID = ["00001", "00002"]
 
 
 def _create_forecasts(
@@ -72,7 +69,7 @@ def _create_forecasts(
         percentiles,
         name="wind_speed_at_10m",
         units="m s-1",
-        wmo_ids=["00001", "00002"],
+        wmo_ids=WMO_ID,
         time=dt.strptime(validity_time, DT_FORMAT),
         frt=dt.strptime(forecast_reference_time, DT_FORMAT),
     )
@@ -90,6 +87,10 @@ def _create_scaling_factor_cube(
     Returns:
         Scaling factor cube.
     """
+    altitude = np.zeros(2)
+    latitude = np.zeros(2)
+    longitude = np.zeros(2)
+
     cubelist = iris.cube.CubeList()
     for ref_hour in [3, 12]:
         for forecast_period in [6, 12, 18, 24]:
@@ -120,7 +121,7 @@ def _create_scaling_factor_cube(
                 altitude,
                 latitude,
                 longitude,
-                wmo_id,
+                WMO_ID,
                 scalar_coords=[fp_coord, frth_coord],
             )
             cubelist.append(cube)

@@ -47,16 +47,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_spot_variable_cube,
 )
 
-# Define four spots
-altitude_grid = np.array([0, 50, 20, 50])
-altitude_spot = [0, 20, 100, 80]
-latitude = np.arange(4)
-longitude = np.zeros(4)
-wmo_id = ["00001", "00002", "00003", "00004"]
-# Set forecast and truth data so that the two spots that are higher than the grid have slightly
-# higher truth values.
-forecast_data = np.array([0, 20, 10, 15])
-truth_data = np.array([0, 20, 10.2, 15.1])
+WMO_ID = ["00001", "00002", "00003", "00004"]
 
 
 def _create_forecasts(
@@ -87,7 +78,7 @@ def _create_forecasts(
                     percentiles,
                     name="wind_speed_at_10m",
                     units="m s-1",
-                    wmo_ids=wmo_id,
+                    wmo_ids=WMO_ID,
                     time=vt,
                     frt=frt,
                 )
@@ -120,7 +111,7 @@ def _create_truths(
                     truth_data,
                     name="wind_speed_at_10m",
                     units="m s-1",
-                    wmo_ids=wmo_id,
+                    wmo_ids=WMO_ID,
                     time=vt,
                     frt=frt,
                 )
@@ -135,6 +126,12 @@ def _create_neighbour_cube() -> Cube:
     Returns:
         Neighbour cube.
     """
+    # Define four spots
+    altitude_grid = np.array([0, 50, 20, 50])
+    altitude_spot = [0, 20, 100, 80]
+    latitude = np.arange(4)
+    longitude = np.zeros(4)
+
     land_data = np.zeros((9, 9))
     land_data[0:2, 4] = 1
     land_data[4, 4] = 1
@@ -174,7 +171,7 @@ def _create_neighbour_cube() -> Cube:
     )
     global_sites = [
         {"altitude": alt, "latitude": lat, "longitude": lon, "wmo_id": int(site)}
-        for alt, lat, lon, site in zip(altitude_spot, latitude, longitude, wmo_id)
+        for alt, lat, lon, site in zip(altitude_spot, latitude, longitude, WMO_ID)
     ]
     plugin = NeighbourSelection()
     cube = plugin.process(global_sites, global_orography, global_land_mask)
