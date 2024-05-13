@@ -466,7 +466,7 @@ def set_up_spot_variable_cube(
             Optional list of latitude values of the same length as the number
             of sites.
         longitudes:
-            Optional list of longitude values  of the same length as the number
+            Optional list of longitude values of the same length as the number
             of sites.
         altitudes:
             Optional list of altitude values of the same length as the number

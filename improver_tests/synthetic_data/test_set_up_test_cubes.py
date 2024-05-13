@@ -717,7 +717,7 @@ class Test_set_up_spot_variable_cube(IrisTest):
         self.assertArrayAlmostEqual(result.data, self.data)
         self.assertEqual(result.attributes, {})
 
-        # check dimension coordinates
+        # check auxiliary coordinates associated with expected dimension
         expected_site_dim = result.coord_dims("spot_index")
         for crd in self.site_crds:
             self.assertEqual(result.coord_dims(crd), expected_site_dim)
