@@ -341,9 +341,9 @@ def _construct_dimension_coords(
     reflect this ordering.
 
     A realization coordinate will be created if the cube is
-    (n_spatial_dims + 1) or (n_spatial_dims + 2), even if no values for values
-    for the realizations argument are provided. To create a height coordinate,
-    the height_levels must be provided.
+    (n_spatial_dims + 1) or (n_spatial_dims + 2), even if no values for the
+    realizations argument are provided. To create a height coordinate, the
+    height_levels must be provided.
     """
 
     data_shape = data.shape
