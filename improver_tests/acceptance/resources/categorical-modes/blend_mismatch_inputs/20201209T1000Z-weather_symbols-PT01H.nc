@@ -1,0 +1,1 @@
+../spot_input/20201209T1000Z-weather_symbols-PT01H.nc
