@@ -34,6 +34,19 @@ from pathlib import Path
 
 TOP_LEVEL_DIR = (Path(__file__).parent / "..").resolve()
 DIRECTORIES_COVERED = [TOP_LEVEL_DIR / "improver", TOP_LEVEL_DIR / "improver_tests"]
+EXCLUDED_DIRECTORIES = [TOP_LEVEL_DIR / "improver_tests" / "acceptance" / "resources"]
+
+
+def _has_common_route_with_any(path1, paths):
+    for path2 in paths:
+        try:
+            # Attempt to get the relative path from path1 to path2
+            path1.relative_to(path2)
+            return True
+        except ValueError:
+            # No common route found, continue to the next path
+            continue
+    return False
 
 
 def self_licence():
@@ -70,6 +83,8 @@ def test_init_files_exist():
     for directory in DIRECTORIES_COVERED:
         for path in directory.glob("**"):
             if not path.is_dir():
+                continue
+            if _has_common_route_with_any(path, EXCLUDED_DIRECTORIES):
                 continue
             # ignore hidden directories and their sub-directories
             if any([part.startswith(".") for part in path.parts]):

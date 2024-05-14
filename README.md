@@ -14,19 +14,14 @@ IMPROVER is a library of algorithms for meteorological post-processing and verif
 
 ## Cloning improver
 
-Clone the Repository:
+Clone the Repository pulling test data:
 ```
 git clone git@github.com:metoppv/improver.git
 ```
 
-Enter the Cloned Repository Directory:
+Clone the repository without pulling test data:
 ```
-cd improver
-```
-
-Fetch LFS data:
-```
-git lfs fetch
+GIT_LFS_SKIP_SMUDGE=1 git clone git@github.com:metoppv/improver.git
 ```
 
 After following these steps, you'll have cloned the repository and ensured that the Git LFS data is available locally. Now you can work with the repository, and Git LFS will automatically handle LFS data during operations like checkout, switch branches, etc. If you encounter any issues with LFS data not being updated automatically, you can always manually fetch the LFS data using git lfs fetch.

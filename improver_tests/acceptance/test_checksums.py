@@ -43,6 +43,9 @@ import pytest
 from . import acceptance as acc
 
 
+EXCLUDE_PATTERNS = ["README.md", "LICENSE"]
+
+
 @contextmanager
 def temporary_sort_locale(collate: str) -> Callable[[str, str], bool]:
     """
@@ -99,6 +102,8 @@ def test_kgo_checksums():
         subdirectories[:] = [d for d in subdirectories if not d.startswith(".")]
         filenames = [f for f in filenames if not f.startswith(".")]
         for filename in filenames:
+            if filename in EXCLUDE_PATTERNS:
+                continue
             data_paths.append(pathlib.Path(directory) / filename)
     # generate checksums for all the found files
     path_checksums = {
