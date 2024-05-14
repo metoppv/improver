@@ -169,6 +169,7 @@ def test_no_bias_file(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "apply-bias-correction"
     fcst_path = kgo_dir / "20220814T0300Z-PT0003H00M-wind_speed_at_10m.nc"
+    kgo_path = kgo_dir / "fcst_with_comment" / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
         fcst_path,
@@ -178,6 +179,7 @@ def test_no_bias_file(tmp_path):
     with pytest.warns(UserWarning, match=".*no forecast_error.*"):
         run_cli(args)
     acc.compare(output_path, fcst_path, exclude_attributes="comment")
+    acc.compare(output_path, kgo_path)
 
 
 def test_missing_fcst_file(tmp_path):
