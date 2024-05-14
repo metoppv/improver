@@ -38,7 +38,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    *input_cubes: cli.inputcube,
     lower_bound: float = None,
     upper_bound: float = None,
     fill_masked_bias_data: bool = False,
@@ -54,13 +54,15 @@ def process(
     forecasts (from which the mean value is evaluated), or as a single bias value
     evaluated over a series of reference forecasts.
 
-    A lower bound can be set to ensure that corrected values are physically sensible
-    post-bias correction.
+    A lower bound or upper bound can be set to ensure that corrected values are physically
+    sensible post-bias correction.
 
     Args:
-        cubes (iris.cube.Cube or list of iris.cube.Cube):
-            Cube or list of cubes containing the forecast to apply bias correction to, as
-            well as the cubes containing forecast bias data over the a specified
+        input_cubes (iris.cube.Cube or list of iris.cube.Cube):
+            A list of cubes containing:
+            - A Cube containing the forecast to be calibrated. The input format is expected
+            to be realizations.
+            - A cube or cubelist containing forecast bias data over the a specified
             set of forecast reference times. If a list of cubes is passed in, each cube
             should represent the forecast error for a single forecast reference time; the
             mean value will then be evaluated over the forecast_reference_time coordinate.
@@ -76,16 +78,24 @@ def process(
         iris.cube.Cube:
             Forecast cube with bias correction applied on a per member basis.
     """
+    import warnings
+
     import iris
 
-    from improver.calibration import split_forecasts_and_bias_files
+    from improver.calibration import add_warning_comment, split_forecasts_and_bias_files
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
 
-    forecast_cube, bias_cubes = split_forecasts_and_bias_files(cubes)
+    forecast_cube, bias_cubes = split_forecasts_and_bias_files(input_cubes)
 
     # Check whether bias data supplied, if not then return unadjusted input cube.
     # This behaviour is to allow spin-up of the bias-correction terms.
     if not bias_cubes:
+        msg = (
+            "There are no forecast_error (bias) cubes provided for calibration. "
+            "The uncalibrated forecast will be returned."
+        )
+        warnings.warn(msg)
+        forecast_cube = add_warning_comment(forecast_cube)
         return forecast_cube
     else:
         bias_cubes = iris.cube.CubeList(bias_cubes)

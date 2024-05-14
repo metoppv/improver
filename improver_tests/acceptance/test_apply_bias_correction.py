@@ -175,8 +175,9 @@ def test_no_bias_file(tmp_path):
         "--output",
         output_path,
     ]
-    run_cli(args)
-    acc.compare(output_path, fcst_path)
+    with pytest.warns(UserWarning, match=".*no forecast_error.*"):
+        run_cli(args)
+    acc.compare(output_path, fcst_path, exclude_attributes="comment")
 
 
 def test_missing_fcst_file(tmp_path):
