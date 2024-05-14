@@ -64,14 +64,14 @@ jobs:
         run: |
           source '/usr/share/miniconda/etc/profile.d/conda.sh'
           conda activate im${{ matrix.env }}
-          pytest
+          pytest -m "not acc"
 
       - name: pytest with coverage
         if: matrix.env != 'conda-forge'
         run: |
           source '/usr/share/miniconda/etc/profile.d/conda.sh'
           conda activate im${{ matrix.env }}
-          pytest --cov=improver --cov-report xml:coverage.xml
+          pytest -m "not acc" --cov=improver --cov-report xml:coverage.xml
 
       - name: codacy upload
         if: env.CODACY_PROJECT_TOKEN && matrix.env == 'environment_a'
