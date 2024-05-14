@@ -30,30 +30,24 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Unit tests for the EstimateDzRescaling plugin."""
 
+from datetime import datetime as dt
+from datetime import timedelta
 from typing import List
 
 import iris
 import numpy as np
-import pandas as pd
 import pytest
-from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 
 from improver.calibration.dz_rescaling import EstimateDzRescaling
-from improver.metadata.constants.time_types import TIME_COORDS
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.metadata.constants.time_types import DT_FORMAT
 from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.synthetic_data.set_up_test_cubes import (
+    set_up_spot_percentile_cube,
+    set_up_spot_variable_cube,
+)
 
-# Define four spots
-altitude_grid = np.array([0, 50, 20, 50])
-altitude_spot = [0, 20, 100, 80]
-latitude = np.arange(4)
-longitude = np.zeros(4)
-wmo_id = ["00001", "00002", "00003", "00004"]
-# Set forecast and truth data so that the two spots that are higher than the grid have slightly
-# higher truth values.
-forecast_data = np.array([0, 20, 10, 15])
-truth_data = np.array([0, 20, 10.2, 15.1])
+WMO_ID = ["00001", "00002", "00003", "00004"]
 
 
 def _create_forecasts(
@@ -68,57 +62,28 @@ def _create_forecasts(
     Returns:
         Forecast cube containing four spots and specified time coordinates
     """
-    perc_coord = AuxCoord(
-        np.array(50, dtype=np.float32), long_name="percentile", units="%",
-    )
-    fp_coord = DimCoord(
-        np.array(
-            [fp * 3600 for fp in forecast_periods],
-            dtype=TIME_COORDS["forecast_period"].dtype,
-        ),
-        "forecast_period",
-        units=TIME_COORDS["forecast_period"].units,
-    )
 
-    validity_times = []
+    forecast_data = np.array([0, 20, 10, 15]).reshape(1, 4)
+    percentiles = [50]
+
+    cubes = CubeList()
     for frt in forecast_reference_times:
+        frt = dt.strptime(frt, DT_FORMAT)
         for fp in forecast_periods:
-            validity_times.append(
-                (pd.Timestamp(frt) + pd.Timedelta(hours=fp)).timestamp()
+            vt = frt + timedelta(hours=fp)
+
+            cubes.append(
+                set_up_spot_percentile_cube(
+                    forecast_data,
+                    percentiles,
+                    name="wind_speed_at_10m",
+                    units="m s-1",
+                    wmo_ids=WMO_ID,
+                    time=vt,
+                    frt=frt,
+                )
             )
-
-    validity_times = np.reshape(
-        validity_times, (len(forecast_reference_times), len(forecast_periods))
-    )
-    time_coord = AuxCoord(
-        np.array(validity_times, dtype=TIME_COORDS["time"].dtype,),
-        "time",
-        units=TIME_COORDS["time"].units,
-    )
-
-    frts = [pd.Timestamp(frt).timestamp() for frt in forecast_reference_times]
-    frt_coord = DimCoord(
-        np.array(frts, dtype=TIME_COORDS["forecast_reference_time"].dtype,),
-        "forecast_reference_time",
-        units=TIME_COORDS["forecast_reference_time"].units,
-    )
-
-    data = np.reshape(forecast_data, (1, 1, len(wmo_id)))
-    data = np.tile(data, (len(forecast_reference_times), len(forecast_periods), 1))
-
-    cube = build_spotdata_cube(
-        data,
-        "wind_speed_at_10m",
-        "m s-1",
-        altitude_spot,
-        latitude,
-        longitude,
-        wmo_id,
-        scalar_coords=[perc_coord],
-        additional_dims=[frt_coord, fp_coord],
-    )
-    cube.add_aux_coord(time_coord, data_dims=(0, 1))
-    return cube
+    return cubes.merge_cube()
 
 
 def _create_truths(
@@ -134,31 +99,24 @@ def _create_truths(
     Returns:
         Truth cube containing four spots and specified time coordinates
     """
-    validity_times = []
+    truth_data = np.array([0, 20, 10.2, 15.1], dtype=np.float32)
+    cubes = CubeList()
     for frt in forecast_reference_times:
+        frt = dt.strptime(frt, DT_FORMAT)
         for fp in forecast_periods:
-            validity_times.append(
-                (pd.Timestamp(frt) + pd.Timedelta(hours=fp)).timestamp()
-            )
+            vt = frt + timedelta(hours=fp)
 
-    time_coord = DimCoord(
-        np.array(validity_times, dtype=TIME_COORDS["time"].dtype,),
-        "time",
-        units=TIME_COORDS["time"].units,
-    )
-    data = np.reshape(truth_data, (1, len(wmo_id)))
-    data = np.tile(data, (len(validity_times), 1))
-    cube = build_spotdata_cube(
-        data,
-        "wind_speed_at_10m",
-        "m s-1",
-        altitude_spot,
-        latitude,
-        longitude,
-        wmo_id,
-        additional_dims=[time_coord],
-    )
-    return cube
+            cubes.append(
+                set_up_spot_variable_cube(
+                    truth_data,
+                    name="wind_speed_at_10m",
+                    units="m s-1",
+                    wmo_ids=WMO_ID,
+                    time=vt,
+                    frt=frt,
+                )
+            )
+    return cubes.merge_cube()
 
 
 def _create_neighbour_cube() -> Cube:
@@ -168,6 +126,12 @@ def _create_neighbour_cube() -> Cube:
     Returns:
         Neighbour cube.
     """
+    # Define four spots
+    altitude_grid = np.array([0, 50, 20, 50])
+    altitude_spot = [0, 20, 100, 80]
+    latitude = np.arange(4)
+    longitude = np.zeros(4)
+
     land_data = np.zeros((9, 9))
     land_data[0:2, 4] = 1
     land_data[4, 4] = 1
@@ -207,7 +171,7 @@ def _create_neighbour_cube() -> Cube:
     )
     global_sites = [
         {"altitude": alt, "latitude": lat, "longitude": lon, "wmo_id": int(site)}
-        for alt, lat, lon, site in zip(altitude_spot, latitude, longitude, wmo_id)
+        for alt, lat, lon, site in zip(altitude_spot, latitude, longitude, WMO_ID)
     ]
     plugin = NeighbourSelection()
     cube = plugin.process(global_sites, global_orography, global_land_mask)

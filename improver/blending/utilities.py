@@ -51,7 +51,7 @@ from improver.metadata.constants.attributes import (
     MANDATORY_ATTRIBUTE_DEFAULTS,
     MANDATORY_ATTRIBUTES,
 )
-from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
 from improver.metadata.forecast_times import add_blend_time, forecast_period_coord
 from improver.utilities.round import round_close
 from improver.utilities.temporal import cycletime_to_number
@@ -334,7 +334,7 @@ def store_record_run_as_coord(
         cycle = datetime.utcfromtimestamp(
             cube.coord("forecast_reference_time").points[0]
         )
-        cycle_str = cycle.strftime("%Y%m%dT%H%MZ")
+        cycle_str = cycle.strftime(DT_FORMAT)
 
         blending_weight = 1
         run_attr = (

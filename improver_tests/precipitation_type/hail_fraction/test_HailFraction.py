@@ -49,8 +49,8 @@ def setup_cubes():
     vertical_updraught_data = np.zeros((2, 2), dtype=np.float32)
     vertical_updraught = set_up_variable_cube(
         vertical_updraught_data,
-        "maximum_vertical_updraught",
-        "m s-1",
+        name="maximum_vertical_updraught",
+        units="m s-1",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -59,8 +59,8 @@ def setup_cubes():
     hail_size_data = np.zeros((2, 2), dtype=np.float32)
     hail_size = set_up_variable_cube(
         hail_size_data,
-        "size_of_hail_stones",
-        "m",
+        name="size_of_hail_stones",
+        units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -69,8 +69,8 @@ def setup_cubes():
     cloud_condensation_level_data = np.zeros((2, 2), dtype=np.float32)
     cloud_condensation_level = set_up_variable_cube(
         cloud_condensation_level_data,
-        "air_temperature_at_condensation_level",
-        "K",
+        name="air_temperature_at_condensation_level",
+        units="K",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -79,8 +79,8 @@ def setup_cubes():
     convective_cloud_top_data = np.zeros((2, 2), dtype=np.float32)
     convective_cloud_top = set_up_variable_cube(
         convective_cloud_top_data,
-        "air_temperature_at_convective_cloud_top",
-        "K",
+        name="air_temperature_at_convective_cloud_top",
+        units="K",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -89,8 +89,8 @@ def setup_cubes():
     hail_melting_level_data = np.zeros((2, 2), dtype=np.float32)
     hail_melting_level = set_up_variable_cube(
         hail_melting_level_data,
-        "altitude_of_rain_from_hail_falling_level",
-        "m",
+        name="altitude_of_rain_from_hail_falling_level",
+        units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -99,8 +99,8 @@ def setup_cubes():
     altitude_data = np.zeros((2, 2), dtype=np.float32)
     altitude = set_up_variable_cube(
         altitude_data,
-        "altitude",
-        "m",
+        name="altitude",
+        units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",

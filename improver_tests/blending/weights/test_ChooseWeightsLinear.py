@@ -37,16 +37,15 @@ from datetime import datetime as dt
 import iris
 import numpy as np
 import pytest
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord
 from iris.tests import IrisTest
 
 from improver.blending.weights import ChooseWeightsLinear
 from improver.metadata.forecast_times import forecast_period_coord
-from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
-    construct_scalar_time_coords,
     set_up_probability_cube,
+    set_up_spot_probability_cube,
     set_up_variable_cube,
 )
 
@@ -115,39 +114,24 @@ def set_up_basic_model_config_spot_cube(frt=None, time_points=None):
             dt(2017, 1, 10, 11, 0),
         ]
 
-    time_coords = construct_scalar_time_coords(frt, None, frt)
-    time_coords = [crd for crd, _ in time_coords]
-
     n_sites = 10
     data = np.linspace(0, 1, 2 * n_sites, dtype=np.float32).reshape((2, n_sites))
     thresholds = np.array([275.0, 276.0], dtype=np.float32)
-
-    threshold_coord = DimCoord(thresholds, "air_temperature", units="K")
     model_id_coord = AuxCoord([1000], long_name="model_id")
     model_config_coord = AuxCoord(["uk_det"], long_name="model_configuration")
 
-    altitudes = np.ones(n_sites, dtype=np.float32)
-    latitudes = np.arange(0, n_sites * 10, 10, dtype=np.float32)
-    longitudes = np.arange(0, n_sites * 20, 20, dtype=np.float32)
-    wmo_ids = np.arange(1000, (1000 * n_sites) + 1, 1000)
+    cubes = iris.cube.CubeList()
+    for time in time_points:
+        cube = set_up_spot_probability_cube(
+            data,
+            thresholds,
+            time=time,
+            frt=frt,
+            include_scalar_coords=[model_id_coord, model_config_coord],
+        )
+        cubes.append(cube)
+    cube = cubes.merge_cube()
 
-    args = (altitudes, latitudes, longitudes, wmo_ids)
-    kwargs = {
-        "unique_site_id": wmo_ids,
-        "unique_site_id_key": "met_office_site_id",
-    }
-
-    cube = build_spotdata_cube(
-        data,
-        "probability_of_air_temperature_above_threshold",
-        "1",
-        *args,
-        **kwargs,
-        scalar_coords=[model_id_coord, model_config_coord, *time_coords],
-        additional_dims=[threshold_coord],
-    )
-
-    cube = add_coordinate(cube, time_points, "time", is_datetime=True)
     return cube
 
 
