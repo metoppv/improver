@@ -42,7 +42,6 @@ import pytest
 
 from . import acceptance as acc
 
-
 EXCLUDE_PATTERNS = ["README.md", "LICENSE"]
 
 
