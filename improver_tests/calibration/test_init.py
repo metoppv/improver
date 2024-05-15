@@ -577,7 +577,7 @@ def forecast_error_cubelist():
 def test_split_forecasts_and_bias_files(
     forecast_cube, forecast_error_cubelist, multiple_bias_cubes
 ):
-    """Test the that split_forecasts_and_bias_files correctly separates out
+    """Test that split_forecasts_and_bias_files correctly separates out
     the forecast cube from the forecast error cube(s)."""
     if not multiple_bias_cubes:
         forecast_error_cubelist = forecast_error_cubelist[0:]
@@ -598,7 +598,7 @@ def test_split_forecasts_and_bias_files(
 def test_split_forecasts_and_bias_files_missing_fcst(
     forecast_error_cubelist, multiple_bias_cubes
 ):
-    """Test the that split_forecasts_and_bias_files raises a ValueError when
+    """Test that split_forecasts_and_bias_files raises a ValueError when
     no forecast cube is provided."""
     if not multiple_bias_cubes:
         forecast_error_cubelist = forecast_error_cubelist[0:]
@@ -609,7 +609,7 @@ def test_split_forecasts_and_bias_files_missing_fcst(
 def test_split_forecasts_and_bias_files_multiple_fcsts(
     forecast_cube, forecast_error_cubelist
 ):
-    """Test the that split_forecasts_and_bias_files raises a ValueError when
+    """Test that split_forecasts_and_bias_files raises a ValueError when
     multiple forecast cubes are provided."""
     forecast_error_cubelist.append(forecast_cube)
     forecast_error_cubelist.append(forecast_cube)

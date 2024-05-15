@@ -62,7 +62,7 @@ def process(
             A list of cubes containing:
             - A Cube containing the forecast to be calibrated. The input format is expected
             to be realizations.
-            - A cube or cubelist containing forecast bias data over the a specified
+            - A cube or cubelist containing forecast bias data over a specified
             set of forecast reference times. If a list of cubes is passed in, each cube
             should represent the forecast error for a single forecast reference time; the
             mean value will then be evaluated over the forecast_reference_time coordinate.
