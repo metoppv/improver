@@ -28,26 +28,38 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""Tests for the lightning_usaf"""
 
-from collections import namedtuple
+import pytest
 
-import numpy as np
+from . import acceptance as acc
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+pytestmark = [pytest.mark.acc, acc.skip_if_kgo_missing]
+CLI = acc.cli_name_with_dashes(__file__)
+run_cli = acc.run_cli(CLI)
 
-DT_FORMAT = "%Y%m%dT%H%MZ"
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
+@pytest.mark.parametrize("with_model_attr", (True, False))
+def test_basic(tmp_path, with_model_attr):
+    """Test basic invocation"""
+    kgo_dir = acc.kgo_root() / "lightning-multivariate-probability-usaf2024"
+    kgo_path = kgo_dir / "kgo.nc"
+    cape_path = kgo_dir / "cape.nc"
+    liftidx_path = kgo_dir / "liftidx.nc"
+    pwat_path = kgo_dir / "pwat.nc"
+    cin_path = kgo_dir / "cin.nc"
+    apcp_path = kgo_dir / "apcp.nc"
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
+    output_path = tmp_path / "output.nc"
+    args = [
+        cape_path,
+        liftidx_path,
+        pwat_path,
+        cin_path,
+        apcp_path,
+        "--output",
+        f"{output_path}",
+    ]
 
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "blend_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

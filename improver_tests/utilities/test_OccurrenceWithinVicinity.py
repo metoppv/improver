@@ -328,9 +328,9 @@ def test_with_invalid_land_mask_coords(cube, land_mask_cube):
 def cube_with_realizations_fixture() -> Cube:
     return set_up_variable_cube(
         np.zeros((2, 4, 4), dtype=np.float32),
-        "lwe_precipitation_rate",
-        "m s-1",
-        "equalarea",
+        name="lwe_precipitation_rate",
+        units="m s-1",
+        spatial_grid="equalarea",
         x_grid_spacing=2000.0,
         y_grid_spacing=2000.0,
         domain_corner=(0.0, 0.0),

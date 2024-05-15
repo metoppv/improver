@@ -31,695 +31,614 @@
 """Unit tests for the threshold.Threshold plugin."""
 
 
-import unittest
-
 import numpy as np
+import pytest
 from iris.coords import CellMethod, DimCoord
-from iris.cube import Cube, CubeList
-from iris.tests import IrisTest
+from iris.cube import Cube
 
-from improver.synthetic_data.set_up_test_cubes import (
-    add_coordinate,
-    set_up_variable_cube,
-)
 from improver.threshold import Threshold
 
 
-class Test__add_threshold_coord(IrisTest):
-    """Test the _add_threshold_coord method"""
+@pytest.mark.parametrize(
+    "kwargs,exception",
+    [
+        # a threshold of zero is used with a multiplicative fuzzy factor
+        (
+            {"threshold_values": 0.0, "fuzzy_factor": 0.6},
+            "Invalid threshold with fuzzy factor",
+        ),
+        # a fuzzy factor of minus 1 is given
+        (
+            {"threshold_values": 0.6, "fuzzy_factor": -1.0},
+            "Invalid fuzzy_factor: must be >0 and <1: -1.0",
+        ),
+        # a fuzzy factor of zero is given
+        (
+            {"threshold_values": 0.6, "fuzzy_factor": 0.0},
+            "Invalid fuzzy_factor: must be >0 and <1: 0.0",
+        ),
+        # a fuzzy factor of unity is given
+        (
+            {"threshold_values": 0.6, "fuzzy_factor": 1.0},
+            "Invalid fuzzy_factor: must be >0 and <1: 1.0",
+        ),
+        # a fuzzy factor of 2 is given
+        (
+            {"threshold_values": 0.6, "fuzzy_factor": 2.0},
+            "Invalid fuzzy_factor: must be >0 and <1: 2.0",
+        ),
+        # fuzzy_factor and fuzzy_bounds both set
+        (
+            {"threshold_config": {"0.6": [0.4, 0.8]}, "fuzzy_factor": 2.0},
+            "Invalid combination of keywords",
+        ),
+        # fuzzy_bounds contains one value
+        (
+            {"threshold_config": {"0.6": [0.4]}},
+            "Invalid bounds for one threshold: \\(0.4,\\).",
+        ),
+        # fuzzy_bounds contains three values
+        (
+            {"threshold_config": {"0.6": [0.4, 0.8, 1.2]}},
+            "Invalid bounds for one threshold: \\(0.4, 0.8, 1.2\\).",
+        ),
+        # fuzzy_bounds do not bound threshold - upper bound too low
+        (
+            {"threshold_config": {"0.6": [0.4, 0.5]}},
+            "Threshold must be within bounds: !\\( 0.4 <= 0.6 <= 0.5 \\)",
+        ),
+        # fuzzy_bounds do not bound threshold - lower bound too high
+        (
+            {"threshold_config": {"0.6": [0.7, 0.8]}},
+            "Threshold must be within bounds: !\\( 0.7 <= 0.6 <= 0.8 \\)",
+        ),
+        # comparison_operator is invalid
+        (
+            {"threshold_values": 0.6, "comparison_operator": "invalid"},
+            'String "invalid" does not match any known comparison_operator',
+        ),
+        # collapse coordinate is not percentile or realization
+        (
+            {"threshold_values": 0.6, "collapse_coord": "kittens"},
+            "Can only collapse over a realization coordinate or a percentile",
+        ),
+        # threshold values provided as argument and via config
+        (
+            {"threshold_values": 0.6, "threshold_config": {"0.6"}},
+            "threshold_config and threshold_values are mutually exclusive arguments",
+        ),
+        # at least one set means of defining the thresholds must be used.
+        ({}, "One of threshold_config or threshold_values must be provided.",),
+    ],
+)
+def test_init(kwargs, exception):
+    """Test the exceptions raised by the __init__ method."""
+    with pytest.raises(ValueError, match=exception):
+        Threshold(**kwargs)
 
-    def setUp(self):
-        """Set up a cube and plugin for testing."""
-        self.cube = set_up_variable_cube(np.ones((3, 3), dtype=np.float32))
-        self.plugin = Threshold(threshold_values=1)
-        self.plugin.threshold_coord_name = self.cube.name()
 
-    def test_basic(self):
-        """Test a scalar threshold coordinate is created"""
-        self.plugin._add_threshold_coord(self.cube, 1)
-        self.assertEqual(self.cube.ndim, 2)
-        self.assertIn(
-            "air_temperature",
-            [coord.standard_name for coord in self.cube.coords(dim_coords=False)],
+def test_init_fill_mask():
+    """Test the that a fill_mask argument is made into a float type within
+    the __init__ method."""
+
+    fill_masked = int(5)
+    plugin = Threshold(threshold_values=[0], fill_masked=fill_masked)
+    assert isinstance(plugin.fill_masked, float)
+
+
+@pytest.mark.parametrize(
+    "diagnostic,units", [("precipitation_rate", "mm/hr"), ("air_temperature", "K")]
+)
+def test__add_threshold_coord(default_cube, diagnostic, units):
+    """Test the _add_threshold_coord method for diagnostics with
+    different units."""
+
+    ref_cube = default_cube.copy()
+    default_cube.rename(diagnostic)
+    default_cube.units = units
+    plugin = Threshold(threshold_values=1)
+    plugin.threshold_coord_name = default_cube.name()
+    plugin._add_threshold_coord(default_cube, 1)
+
+    assert default_cube.ndim == ref_cube.ndim
+    if diagnostic == "air_temperature":
+        assert diagnostic in [
+            coord.standard_name for coord in default_cube.coords(dim_coords=False)
+        ]
+    else:
+        assert diagnostic in [
+            coord.long_name for coord in default_cube.coords(dim_coords=False)
+        ]
+
+    threshold_coord = default_cube.coord(diagnostic)
+    assert threshold_coord.var_name == "threshold"
+    assert threshold_coord.points[0] == 1
+    assert threshold_coord.units == default_cube.units
+    assert threshold_coord.dtype == np.float64
+
+
+@pytest.mark.parametrize(
+    "n_realizations,data",
+    [
+        # A typical case with float inputs
+        (1, np.zeros(25, dtype=np.float32).reshape(5, 5)),
+        # A case with integer inputs, where the data is converted to
+        # float32 type, allowing for non-integer thresholded values,
+        # i.e. due to the application of fuzzy thresholds.
+        (1, np.zeros(25, dtype=np.int8).reshape(5, 5)),
+    ],
+)
+def test_attributes_and_types(custom_cube):
+    """Test that the returned cube has the expected type and attributes."""
+
+    expected_attributes = {
+        "source": "Unit test",
+        "institution": "Met Office",
+        "title": "Post-Processed IMPROVER unit test",
+    }
+    plugin = Threshold(threshold_values=12, fuzzy_factor=(5 / 6))
+    result = plugin(custom_cube)
+
+    assert isinstance(result, Cube)
+    assert result.dtype == np.float32
+    for key, attribute in expected_attributes.items():
+        assert result.attributes[key] == attribute
+
+
+@pytest.mark.parametrize(
+    "comparison_operator",
+    ["gt", "lt", "ge", "le", ">", "<", ">=", "<=", "GT", "LT", "GE", "LE"],
+)
+@pytest.mark.parametrize("vicinity", [None, [4000], [3000, 6000]])
+@pytest.mark.parametrize("threshold_values", [-0.5, 0, [0.2, 0.4]])
+@pytest.mark.parametrize("threshold_units", ["mm/hr", "mm/day"])
+def test_threshold_metadata(
+    default_cube,
+    threshold_coord,
+    expected_cube_name,
+    comparison_operator,
+    vicinity,
+    threshold_values,
+    threshold_units,
+):
+    """"Test that the metadata relating to the thresholding options, on both
+    the cube and threshold coordinate is as expected. Many combinations of
+    options are tested, including:
+
+      - All ways of specifying the various comparators
+      - With and without a single or multiple vicinity radii
+      - Negative, zero, and multi-valued threshold values
+      - Threshold units that match and differ from the input data
+    """
+
+    kwargs = {
+        "threshold_values": threshold_values,
+        "comparison_operator": comparison_operator,
+        "vicinity": vicinity,
+        "threshold_units": threshold_units,
+    }
+    ref_cube_name = default_cube.name()
+    plugin = Threshold(**kwargs)
+    result = plugin(default_cube)
+
+    assert result.name() == expected_cube_name.format(cube_name=ref_cube_name)
+    assert result.coord(var_name="threshold") == threshold_coord
+
+    if vicinity:
+        expected_vicinity = DimCoord(
+            vicinity, long_name="radius_of_vicinity", units="m"
         )
-        threshold_coord = self.cube.coord("air_temperature")
-        self.assertEqual(threshold_coord.var_name, "threshold")
-        self.assertAlmostEqual(threshold_coord.points[0], 1)
-        self.assertEqual(threshold_coord.units, self.cube.units)
-
-    def test_long_name(self):
-        """Test coordinate is created with non-standard diagnostic name"""
-        self.cube.rename("sky_temperature")
-        self.plugin.threshold_coord_name = self.cube.name()
-        self.plugin._add_threshold_coord(self.cube, 1)
-        self.assertIn(
-            "sky_temperature",
-            [coord.long_name for coord in self.cube.coords(dim_coords=False)],
-        )
-
-    def test_value_error(self):
-        """Test method catches ValueErrors unrelated to name, by passing it a
-        list of values where a scalar is required"""
-        with self.assertRaises(ValueError):
-            self.plugin._add_threshold_coord(self.cube, [1, 1])
-
-
-class Test_process(IrisTest):
-
-    """Test the thresholding plugin."""
-
-    def setUp(self):
-        """Create a cube with a single non-zero point."""
-        attributes = {"title": "UKV Model Forecast"}
-        data = np.zeros((5, 5), dtype=np.float32)
-        data[2][2] = 0.5  # ~2 mm/hr
-        self.cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2 s^-1",
-            spatial_grid="equalarea",
-            attributes=attributes,
-            standard_grid_metadata="uk_det",
-        )
-
-        rate_data = np.zeros((5, 5), dtype=np.float32)
-        rate_data[2][2] = 1.39e-6  # 5.004 mm/hr
-        self.rate_cube = set_up_variable_cube(
-            rate_data,
-            name="rainfall_rate",
-            units="m s-1",
-            spatial_grid="equalarea",
-            attributes=attributes,
-            standard_grid_metadata="uk_det",
-        )
-
-        self.fuzzy_factor = 0.5
-        self.plugin = Threshold(threshold_values=0.1, fuzzy_factor=0.95)
-
-        self.masked_cube = self.cube.copy()
-        data = np.zeros((5, 5))
-        mask = np.zeros((5, 5))
-        data[2][2] = 0.5
-        data[0][0] = -32768.0
-        mask[0][0] = 1
-        self.masked_cube.data = np.ma.MaskedArray(data, mask=mask)
-
-        cube1 = self.cube.copy()
-        cube1.add_aux_coord(DimCoord([0], "realization"))
-        cube2 = cube1.copy()
-        cube2.coord("realization").points = [1]
-        cube2.data[2, 2] = 1.5
-        self.multi_realization_cube = CubeList([cube1, cube2]).merge_cube()
-
-    def test_basic(self):
-        """Test that the plugin returns an iris.cube.Cube."""
-        result = self.plugin(self.cube)
-        self.assertIsInstance(result, Cube)
-
-    def test_title_updated(self):
-        """Test title is updated"""
-        expected_title = "Post-Processed UKV Model Forecast"
-        result = self.plugin(self.cube)
-        self.assertEqual(result.attributes["title"], expected_title)
-
-    def test_data_type_change_for_ints(self):
-        """Test that the plugin returns an iris.cube.Cube of float32 type
-        if the input cube is of int type. This allows fuzzy bounds to be used
-        which return fractional values."""
-        fuzzy_factor = 5.0 / 6.0
-        threshold = 12
-        self.cube.data = np.arange(25).reshape((5, 5))
-        plugin = Threshold(threshold_values=threshold, fuzzy_factor=fuzzy_factor)
-        result = plugin(self.cube)
-        expected = np.round(np.arange(0, 1, 1.0 / 25.0)).reshape((5, 5))
-        expected[2, 1:4] = [0.25, 0.5, 0.75]
-        self.assertEqual(result.dtype, "float32")
-        self.assertArrayEqual(result.data, expected)
-
-    def test_metadata_changes(self):
-        """Test the metadata altering functionality"""
-        plugin = Threshold(threshold_values=0.1)
-        result = plugin(self.cube)
-        name = "probability_of_{}_above_threshold"
-        expected_name = name.format(self.cube.name())
-        expected_attribute = "greater_than"
-        expected_units = 1
-        expected_coord = DimCoord(
-            np.array([0.1], dtype=np.float32),
-            standard_name=self.cube.name(),
-            var_name="threshold",
-            units=self.cube.units,
-            attributes={"spp__relative_to_threshold": "greater_than"},
-        )
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(
-            result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            expected_attribute,
-        )
-        self.assertEqual(result.units, expected_units)
-        self.assertEqual(result.coord(self.cube.name()), expected_coord)
-
-    def test_threshold(self):
-        """Test the basic threshold functionality."""
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 1.0
-        result = self.plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_above_threshold_without_fuzzy_factor(self):
-        """Test if the fixed threshold is below the value in the data."""
-        plugin = Threshold(threshold_values=0.1)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 1.0
-        result = plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_below_threshold_without_fuzzy_factor(self):
-        """Test if the fixed threshold is above the value in the data."""
-        plugin = Threshold(threshold_values=0.6)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_masked_array(self):
-        """Test masked array are handled correctly.
-        Masked values are preserved following thresholding."""
-        plugin = Threshold(threshold_values=0.1)
-        result = plugin(self.masked_cube)
-        expected_result_array = np.zeros_like(self.masked_cube.data)
-        expected_result_array[2][2] = 1.0
-        self.assertArrayAlmostEqual(result.data.data, expected_result_array)
-        self.assertArrayEqual(result.data.mask, self.masked_cube.data.mask)
-
-    def test_fill_masked(self):
-        """Test plugin when masked points are replaced with fill value"""
-        plugin = Threshold(0.6, fill_masked=np.inf)
-        result = plugin(self.masked_cube)
-        expected_result = np.zeros_like(self.masked_cube.data)
-        expected_result[0][0] = 1.0
-        self.assertArrayEqual(result.data, expected_result)
-
-    def test_threshold_fuzzy(self):
-        """Test when a point is in the fuzzy threshold area."""
-        plugin = Threshold(threshold_values=0.6, fuzzy_factor=self.fuzzy_factor)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 1.0 / 3.0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_fuzzybounds(self):
-        """Test when a point is in the fuzzy threshold area."""
-        bounds = (0.6 * self.fuzzy_factor, 0.6 * (2.0 - self.fuzzy_factor))
-        threshold_config = {"0.6": bounds}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 1.0 / 3.0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_masked_array_fuzzybounds(self):
-        """Test masked array are handled correctly when using fuzzy bounds.
-        Masked values are preserved following thresholding."""
-        bounds = (0.6 * self.fuzzy_factor, 0.6 * (2.0 - self.fuzzy_factor))
-        threshold_config = {"0.6": bounds}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin.process(self.masked_cube)
-        expected_result_array = np.zeros_like(self.masked_cube.data)
-        expected_result_array[2][2] = 1.0 / 3.0
-        self.assertArrayAlmostEqual(result.data.data, expected_result_array)
-        self.assertArrayEqual(
-            result.data.mask, self.masked_cube.data.mask.reshape((5, 5))
-        )
-
-    def test_threshold_boundingzero(self):
-        """Test fuzzy threshold of zero."""
-        threshold_config = {"0.": [-1.0, 1.0]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.full_like(self.cube.data, fill_value=0.5)
-        expected_result_array[2][2] = 0.75
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_boundingzero_above(self):
-        """Test fuzzy threshold of zero where data are above upper-bound."""
-        threshold_config = {"0.": [-0.1, 0.1]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.full_like(self.cube.data, fill_value=0.5)
-        expected_result_array[2][2] = 1.0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_boundingbelowzero(self):
-        """Test fuzzy threshold of below-zero."""
-        threshold_config = {"0.": [-1.0, 1.0]}
-        plugin = Threshold(threshold_config=threshold_config, comparison_operator="<")
-        result = plugin(self.cube)
-        expected_result_array = np.full_like(self.cube.data, fill_value=0.5)
-        expected_result_array[2][2] = 0.25
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_asymmetric_bounds_below(self):
-        """Test when a point is below asymmetric fuzzy threshold area."""
-        threshold_config = {"0.6": [0.51, 0.9]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_asymmetric_bounds_lower(self):
-        """Test when a point is in lower asymmetric fuzzy threshold area."""
-        threshold_config = {"0.6": [0.4, 0.9]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 0.25
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_asymmetric_bounds_middle(self):
-        """Test when a point is on the threshold with asymmetric fuzzy
-        bounds."""
-        threshold_config = {"0.5": [0.4, 0.9]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 0.5
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_asymmetric_bounds_upper(self):
-        """Test when a point is in upper asymmetric fuzzy threshold area."""
-        threshold_config = {"0.4": [0.0, 0.6]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 0.75
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_asymmetric_bounds_above(self):
-        """Test when a point is above asymmetric fuzzy threshold area."""
-        threshold_config = {"0.4": [0.0, 0.45]}
-        plugin = Threshold(threshold_config=threshold_config)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 1.0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_asymmetric_bounds_upper_below(self):
-        """Test when a point is in upper asymmetric fuzzy threshold area
-        and below-threshold is requested."""
-        threshold_config = {"0.4": [0.0, 0.6]}
-        plugin = Threshold(threshold_config=threshold_config, comparison_operator="<")
-        result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data)
-        expected_result_array[2][2] = 0.25
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_fuzzy_miss(self):
-        """Test when a point is not within the fuzzy threshold area."""
-        plugin = Threshold(threshold_values=2.0, fuzzy_factor=self.fuzzy_factor)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_fuzzy_miss_high_threshold(self):
-        """Test when a point is not within the fuzzy high threshold area."""
-        plugin = Threshold(threshold_values=3.0, fuzzy_factor=self.fuzzy_factor)
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_negative(self):
-        """Test a point when the threshold is negative."""
-        self.cube.data[2][2] = -0.75
-        plugin = Threshold(
-            threshold_values=-1.0,
-            fuzzy_factor=self.fuzzy_factor,
-            comparison_operator="<",
-        )
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 0.25
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_below_fuzzy(self):
-        """Test a point in fuzzy threshold in below-threshold-mode."""
-        plugin = Threshold(
-            threshold_values=0.6,
-            fuzzy_factor=self.fuzzy_factor,
-            comparison_operator="<",
-        )
-        result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data)
-        expected_result_array[2][2] = 2.0 / 3.0
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_below_fuzzy_miss(self):
-        """Test not meeting the threshold in fuzzy below-threshold-mode."""
-        plugin = Threshold(
-            threshold_values=2.0,
-            fuzzy_factor=self.fuzzy_factor,
-            comparison_operator="<",
-        )
-        result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_gt(self):
-        """Test a point when we are in > threshold mode."""
-        plugin = Threshold(threshold_values=0.5)
-        name = "probability_of_{}_above_threshold"
-        expected_name = name.format(self.cube.name())
-        expected_attribute = "greater_than"
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 0
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(
-            result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            expected_attribute,
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_ge(self):
-        """Test a point when we are in >= threshold mode."""
-        plugin = Threshold(threshold_values=0.5, comparison_operator=">=")
-        name = "probability_of_{}_above_threshold"
-        expected_name = name.format(self.cube.name())
-        expected_attribute = "greater_than_or_equal_to"
-        result = plugin(self.cube)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[2][2] = 1
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(
-            result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            expected_attribute,
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_lt(self):
-        """Test a point when we are in < threshold mode."""
-        plugin = Threshold(threshold_values=0.5, comparison_operator="<")
-        name = "probability_of_{}_below_threshold"
-        expected_name = name.format(self.cube.name())
-        expected_attribute = "less_than"
-        result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data)
-        expected_result_array[2][2] = 0
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(
-            result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            expected_attribute,
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_le(self):
-        """Test a point when we are in le threshold mode."""
-        plugin = Threshold(threshold_values=0.5, comparison_operator="<=")
-        name = "probability_of_{}_below_threshold"
-        expected_name = name.format(self.cube.name())
-        expected_attribute = "less_than_or_equal_to"
-        result = plugin(self.cube)
-        expected_result_array = np.ones_like(self.cube.data)
-        expected_result_array[2][2] = 1
-        self.assertEqual(result.name(), expected_name)
-        self.assertEqual(
-            result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
-            expected_attribute,
-        )
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_multiple_thresholds(self):
-        """Test multiple thresholds applied to a multi-realization cube return a
-        single cube arrays corresponding to each realization and threshold."""
-        multi_realization_cube = add_coordinate(
-            self.cube, [0, 1, 2], "realization", dtype=np.int32
-        )
-        all_zeroes = np.zeros_like(multi_realization_cube.data)
-        one_exceed_point = all_zeroes.copy()
-        one_exceed_point[:, 2, 2] = 1.0
-        expected_result_array = np.array(
-            [one_exceed_point, one_exceed_point, all_zeroes]
-        )
-        # transpose array so that realization is leading coordinate
-        expected_result_array = np.transpose(expected_result_array, [1, 0, 2, 3])
-        thresholds = [0.2, 0.4, 0.6]
-        plugin = Threshold(threshold_values=thresholds)
-        result = plugin(multi_realization_cube)
-        self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_unit_conversion(self):
-        """Test data are correctly thresholded when the threshold is given in
-        units different from that of the input cube.  In this test two
-        thresholds (of 4 and 6 mm/h) are used on a 5x5 cube where the
-        central data point value is 1.39e-6 m/s (~ 5 mm/h)."""
-        expected_result_array = np.zeros((2, 5, 5))
-        expected_result_array[0][2][2] = 1.0
-        plugin = Threshold(threshold_values=[4.0, 6.0], threshold_units="mm h-1")
-        result = plugin(self.rate_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_unit_conversion_2(self):
-        """Test threshold coordinate points after undergoing unit conversion.
-        Specifically ensuring that small floating point values have no floating
-        point precision errors after the conversion (float equality check with no
-        tolerance)."""
-        plugin = Threshold(threshold_values=[0.03, 0.09, 0.1], threshold_units="mm s-1")
-        result = plugin(self.rate_cube)
-        self.assertArrayEqual(
-            result.coord(var_name="threshold").points,
-            np.array([3e-5, 9.0e-05, 1e-4], dtype="float32"),
-        )
-
-    def test_threshold_unit_conversion_fuzzy_factor(self):
-        """Test for sensible fuzzy factor behaviour when units of threshold
-        are different from input cube.  A fuzzy factor of 0.75 is equivalent
-        to bounds +/- 25% around the threshold in the given units.  So for a
-        threshold of 4 (6) mm/h, the thresholded exceedance probabilities
-        increase linearly from 0 at 3 (4.5) mm/h to 1 at 5 (7.5) mm/h."""
-        expected_result_array = np.zeros((2, 5, 5))
-        expected_result_array[0][2][2] = 1.0
-        expected_result_array[1][2][2] = 0.168
-        plugin = Threshold(
-            threshold_values=[4.0, 6.0], threshold_units="mm h-1", fuzzy_factor=0.75
-        )
-        result = plugin(self.rate_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_threshold_point_nan(self):
-        """Test behaviour for a single NaN grid cell."""
-        # Need to copy the cube as we're adjusting the data.
-        self.cube.data[2][2] = np.NAN
-        msg = "NaN detected in input cube data"
-        plugin = Threshold(
-            threshold_values=2.0,
-            fuzzy_factor=self.fuzzy_factor,
-            comparison_operator="<",
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            plugin(self.cube)
-
-    def test_cell_method_updates(self):
-        """Test plugin adds correct information to cell methods"""
-        self.cube.add_cell_method(CellMethod("max", coords="time"))
-        plugin = Threshold(threshold_values=2.0, comparison_operator=">")
-        result = plugin(self.cube)
-        (cell_method,) = result.cell_methods
-        self.assertEqual(cell_method.method, "max")
-        self.assertEqual(cell_method.coord_names, ("time",))
-        self.assertEqual(cell_method.comments, ("of precipitation_amount",))
-
-    def test_threshold_vicinity(self):
-        """Test the thresholding with application of maximum in vicinity
-        processing."""
-        vicinity = 2000
-        self.plugin = Threshold(threshold_values=0.1, vicinity=vicinity)
-        expected_result_array = np.zeros_like(self.cube.data)
-        expected_result_array[1:4, 1:4] = 1.0
-
-        result = self.plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.coord(var_name="threshold").shape[0], 1)
-        self.assertTrue(result.coord("radius_of_vicinity"))
-        self.assertEqual(result.coord("radius_of_vicinity").points, vicinity)
-
-    def test_multi_threshold_vicinity(self):
-        """Test the thresholding with application of maximum in vicinity
-        processing with multiple thresholds."""
-        cube = self.cube.copy()
-        cube.data[2, 1] = 0.7
-        vicinity = 2000
-        self.plugin = Threshold(threshold_values=[0.1, 0.6], vicinity=vicinity)
-        threshold1, threshold2 = np.zeros((2, *self.cube.shape))
-        threshold1[1:4, 0:4] = 1.0
-        threshold2[1:4, 0:3] = 1.0
-        expected_result_array = np.stack([threshold1, threshold2])
-
-        result = self.plugin(cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.coord(var_name="threshold").shape[0], 2)
-        self.assertTrue(result.coord("radius_of_vicinity"))
-        self.assertEqual(result.coord("radius_of_vicinity").points, vicinity)
-
-    def test_threshold_multi_vicinity(self):
-        """Test the thresholding with application of maximum in vicinity
-        processing with multiple vicinity radii."""
-        vicinity = [2000, 4000]
-        self.plugin = Threshold(threshold_values=0.1, vicinity=vicinity)
-        vicinity1 = np.zeros_like(self.cube.data)
-        vicinity1[1:4, 1:4] = 1.0
-        vicinity2 = np.ones_like(self.cube.data)
-        expected_result_array = np.stack([vicinity1, vicinity2])
-
-        result = self.plugin(self.cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.coord(var_name="threshold").shape[0], 1)
-        self.assertTrue(result.coord("radius_of_vicinity"))
-        self.assertArrayEqual(result.coord("radius_of_vicinity").points, vicinity)
-
-    def test_multi_threshold_multi_vicinity(self):
-        """Test the thresholding with application of maximum in vicinity
-        processing with multiple thresholds and multiple vicinity radii."""
-        cube = self.cube.copy()
-        cube.data[2, 1] = 0.7
-        vicinity = [2000, 4000]
-        self.plugin = Threshold(threshold_values=[0.1, 0.6], vicinity=vicinity)
-        t1v1, t1v2, t2v1, t2v2 = np.zeros((4, *self.cube.shape))
-        t1v1[1:4, 0:4] = 1.0
-        t1v2[:] = 1.0
-        t2v1[1:4, 0:3] = 1.0
-        t2v2[:, 0:4] = 1.0
-        expected_result_array = np.stack([[t1v1, t1v2], [t2v1, t2v2]])
-
-        result = self.plugin(cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-        self.assertEqual(result.coord(var_name="threshold").shape[0], 2)
-        self.assertTrue(result.coord("radius_of_vicinity"))
-        self.assertArrayEqual(result.coord("radius_of_vicinity").points, vicinity)
-
-    def test_realization_collapse(self):
-        """Test the collapsing of the realization coordinate when thresholding."""
-        expected_result_array = np.zeros_like(self.multi_realization_cube.data[0])
-        expected_result_array[2][2] = 0.5
-
-        plugin = Threshold(threshold_values=1.0, collapse_coord="realization")
-        result = plugin(self.multi_realization_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-    def test_percentile_collapse(self):
-        """Test the collapsing of the percentile coordinate when thresholding."""
-        expected_result_array = np.zeros_like(self.multi_realization_cube.data[0])
-        expected_result_array[2][2] = 0.5
-
-        self.multi_realization_cube.coord("realization").rename("percentile")
-        self.multi_realization_cube.coord("percentile").points = [0, 100]
-
-        plugin = Threshold(threshold_values=1.0, collapse_coord="percentile")
-        result = plugin(self.multi_realization_cube)
-        self.assertArrayAlmostEqual(result.data, expected_result_array)
-
-
-class Test__init__(IrisTest):
-
-    """Test error-raising behaviours unique to the init method and the private
-    function _decode_comparison_operator_string."""
-
-    def test_threshold_zero_with_fuzzy_factor(self):
-        """Test when a threshold of zero is used with a multiplicative
-        fuzzy factor (invalid)."""
-        fuzzy_factor = 0.6
-        msg = "Invalid threshold with fuzzy factor"
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=0.0, fuzzy_factor=fuzzy_factor)
-
-    def test_threshold_fuzzy_factor_minus_1(self):
-        """Test when a fuzzy factor of minus 1 is given (invalid)."""
-        fuzzy_factor = -1.0
-        msg = "Invalid fuzzy_factor: must be >0 and <1: -1.0"
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
-
-    def test_threshold_fuzzy_factor_0(self):
-        """Test when a fuzzy factor of zero is given (invalid)."""
-        fuzzy_factor = 0.0
-        msg = "Invalid fuzzy_factor: must be >0 and <1: 0.0"
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
-
-    def test_threshold_fuzzy_factor_1(self):
-        """Test when a fuzzy factor of unity is given (invalid)."""
-        fuzzy_factor = 1.0
-        msg = "Invalid fuzzy_factor: must be >0 and <1: 1.0"
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
-
-    def test_threshold_fuzzy_factor_2(self):
-        """Test when a fuzzy factor of 2 is given (invalid)."""
-        fuzzy_factor = 2.0
-        msg = "Invalid fuzzy_factor: must be >0 and <1: 2.0"
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_values=0.6, fuzzy_factor=fuzzy_factor)
-
-    def test_fuzzy_factor_and_fuzzy_bounds(self):
-        """Test when fuzzy_factor and fuzzy_bounds both set (ambiguous)."""
-        fuzzy_factor = 2.0
-        threshold_config = {"0.6": [0.4, 0.8]}
-        msg = (
-            "Invalid combination of keywords. Cannot specify "
-            "both a fuzzy_factor and use a threshold_config that "
-            "specifies bounds."
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_config=threshold_config, fuzzy_factor=fuzzy_factor)
-
-    def test_invalid_bounds_too_few(self):
-        """Test when fuzzy_bounds contains one value (invalid)."""
-        threshold_config = {"0.6": [0.4]}
-        # Regexp matches .* with any string.
-        msg = "Invalid bounds for one threshold: .*. Expected 2 floats."
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_config=threshold_config)
-
-    def test_invalid_bounds_too_many(self):
-        """Test when fuzzy_bounds contains three values (invalid)."""
-        threshold_config = {"0.6": [0.4, 0.8, 1.2]}
-        # Regexp matches .* with any string.
-        msg = "Invalid bounds for one threshold: .*. Expected 2 floats."
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_config=threshold_config)
-
-    def test_invalid_upper_bound(self):
-        """Test when fuzzy_bounds do not bound threshold (invalid)."""
-        threshold_config = {"0.6": [0.4, 0.5]}
-        # Note that back-slashes are necessary to make regexp literal.
-        msg = "Threshold must be within bounds: " r"\!\( {} <= {} <= {} \)".format(
-            0.4, 0.6, 0.5
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_config=threshold_config)
-
-    def test_invalid_lower_bound(self):
-        """Test when fuzzy_bounds do not bound threshold (invalid)."""
-        threshold_config = {"0.6": [0.7, 0.8]}
-        # Note that back-slashes are necessary to make regexp literal.
-        msg = "Threshold must be within bounds: " r"\!\( {} <= {} <= {} \)".format(
-            0.7, 0.6, 0.8
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(threshold_config=threshold_config)
-
-    def test_invalid_comparison_operator(self):
-        """Test plugin throws a ValueError when comparison_operator is bad"""
-        comparison_operator = "invalid"
-        threshold = 0.6
-        msg = (
-            'String "{}" does not match any known comparison_operator '
-            "method".format(comparison_operator)
-        )
-        with self.assertRaisesRegex(ValueError, msg):
-            Threshold(
-                threshold_values=threshold, comparison_operator=comparison_operator
-            )
-
-
-if __name__ == "__main__":
-    unittest.main()
+        assert result.coord("radius_of_vicinity") == expected_vicinity
+
+
+def test_vicinity_as_empty_list(default_cube):
+    """Test that a vicinity set as an empty list does not result in
+    a vicinity diagnostic or any exceptions. Tested for a deterministic,
+    single realization, and multi-realization cube."""
+
+    expected_cube_name = "probability_of_precipitation_rate_above_threshold"
+    plugin = Threshold(threshold_values=0.5, vicinity=list())
+    result = plugin(default_cube)
+
+    assert result.name() == expected_cube_name
+
+
+@pytest.mark.parametrize("collapse", (False, True))
+@pytest.mark.parametrize("comparator", ("gt", "lt", "le", "ge"))
+@pytest.mark.parametrize(
+    "kwargs,expected_single_value,expected_multi_value",
+    [
+        # Note that the expected values given here are for
+        # thresholding with a ">" or ">=" comparator. If the comparator
+        # is "<" or "<=", the values are inverted as (1 - expected_value).
+        # diagnostic value(s) above threshold value
+        ({"threshold_values": 0.1}, 1.0, [1.0, 1.0]),
+        # diagnostic value(s) below threshold value
+        ({"threshold_values": 1.0}, 0.0, [0.0, 0.0]),
+        # diagnostic value at threshold value, multi-realization values either side,
+        # fuzziness applied
+        ({"threshold_values": 0.5, "fuzzy_factor": 0.5}, 0.5, [0.4, 0.6]),
+        # diagnostic value(s) above threshold value, fuzziness applied
+        ({"threshold_values": 0.4, "fuzzy_factor": 0.5}, 0.75, [0.625, 0.875]),
+        # diagnostic value(s) below threshold value, fuzziness applied
+        ({"threshold_values": 0.8, "fuzzy_factor": 0.5}, 0.125, [0.0625, 0.1875]),
+        # diagnostic value(s) below the fuzzy bounds
+        ({"threshold_values": 2.0, "fuzzy_factor": 0.5}, 0.0, [0.0, 0.0]),
+        # diagnostic value(s) above the fuzzy bounds
+        ({"threshold_values": 0.2, "fuzzy_factor": 0.8}, 1.0, [1.0, 1.0]),
+        # asymmetric fuzzy bounds applied, diagnostic value(s) below threshold value
+        ({"threshold_config": {"0.6": [0.4, 0.7]}}, 0.25, [0.125, 0.375]),
+        # asymmetric fuzzy bounds applied, diagnostic value(s) above threshold value
+        ({"threshold_config": {"0.4": [0.0, 0.6]}}, 0.75, [0.625, 0.875]),
+        # asymmetric fuzzy bounds applied, diagnostic value(s) at threshold value
+        ({"threshold_config": {"0.5": [0.4, 0.7]}}, 0.5, [0.25, 0.625]),
+        # fuzzy bounds set to "None" in the threshold config
+        ({"threshold_config": {"1.0": "None"}}, 0.0, [0.0, 0.0]),
+    ],
+)
+def test_expected_values(default_cube, kwargs, collapse, comparator, expected_result):
+    """Test that thresholding yields the expected data values for
+    different configurations. Variations tried here are:
+
+      - Different threshold values relative to the diagnostic value(s)
+      - Use of fuzzy thresholds, specified in different ways.
+      - Deterministic, single realization, and multi-realization inputs
+      - Different threshold comparators. Note that the tests have been
+        engineered such that there are no cases where the difference
+        between "ge" and "gt", or "le" and "lt" are signficant, these
+        are tested elsewhere.
+      - Collapsing and not collapsing the realization coordinate when
+        present.
+    """
+
+    local_kwargs = kwargs.copy()
+
+    if collapse and default_cube.coords("realization", dim_coords=True):
+        local_kwargs.update({"collapse_coord": "realization"})
+    elif collapse:
+        # No need to repeat tests in which collapse_coord is not used.
+        pytest.skip()
+
+    local_kwargs.update({"comparison_operator": comparator})
+    plugin = Threshold(**local_kwargs)
+    result = plugin(default_cube)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result.data, expected_result)
+
+
+@pytest.mark.parametrize(
+    "kwargs,n_realizations,data,expected_result",
+    [
+        # diagnostic value at threshold value, no fuzziness, various comparators
+        (
+            {"threshold_values": 0.0, "comparison_operator": "gt"},
+            1,
+            np.zeros((3, 3)),
+            np.zeros((3, 3), dtype=np.float32),
+        ),
+        (
+            {"threshold_values": 0.0, "comparison_operator": "lt"},
+            1,
+            np.zeros((3, 3)),
+            np.zeros((3, 3), dtype=np.float32),
+        ),
+        (
+            {"threshold_values": 0.0, "comparison_operator": "ge"},
+            1,
+            np.zeros((3, 3)),
+            np.ones((3, 3), dtype=np.float32),
+        ),
+        (
+            {"threshold_values": 0.0, "comparison_operator": "le"},
+            1,
+            np.zeros((3, 3)),
+            np.ones((3, 3), dtype=np.float32),
+        ),
+        # diagnostic value at threshold value of 0, with fuzziness bounding.
+        # All comparators will give the same result for this symmetric case.
+        (
+            {"threshold_config": {"0.": [-1, 1]}, "comparison_operator": "gt"},
+            1,
+            np.zeros((3, 3)),
+            np.full((3, 3), 0.5, dtype=np.float32),
+        ),
+        # negative diagnostic value above negative threshold with fuzziness.
+        (
+            {"threshold_config": {"-1.": [-2, 0]}, "comparison_operator": "gt"},
+            1,
+            np.ones((3, 3)) * -0.5,
+            np.ones((3, 3), dtype=np.float32) * 0.75,
+        ),
+        # diagnostic value above a negative threshold value
+        (
+            {"threshold_values": -1.0},
+            1,
+            np.zeros((3, 3)),
+            np.ones((3, 3), dtype=np.float32),
+        ),
+        # masked inputs, with outputs retaining masking
+        (
+            {"threshold_values": 1.0},
+            1,
+            np.ma.masked_array([[2.0, 0], [3.0, 3.0]], mask=[[0, 0], [1, 1]]),
+            np.ma.masked_array(
+                [[1.0, 0], [0, 0]], mask=[[0, 0], [1, 1]], dtype=np.float32
+            ),
+        ),
+        # masked inputs, with masked values filled and return type an unmasked array
+        (
+            {"threshold_values": 1.0, "fill_masked": np.inf},
+            1,
+            np.ma.masked_array([[2.0, 0], [3, 3]], mask=[[0, 0], [1, 1]]),
+            np.array([[1.0, 0], [1.0, 1.0]], dtype=np.float32),
+        ),
+        # masked inputs with fuzzy bounds
+        (
+            {"threshold_values": 0.5, "fuzzy_factor": 0.5},
+            1,
+            np.ma.masked_array([[0.5, 0], [3.0, 3.0]], mask=[[0, 0], [1, 1]]),
+            np.ma.masked_array(
+                [[0.5, 0], [0, 0]], mask=[[0, 0], [1, 1]], dtype=np.float32
+            ),
+        ),
+        # multi-realization, masked in one realization, returns expected value when the
+        # realization coordinate is collapsed. This value is 1 as the second
+        # realization is excluded from the averaging due to masking.
+        (
+            {"threshold_values": 0.5, "collapse_coord": "realization"},
+            2,
+            np.ma.masked_array(
+                [
+                    [[1.0, 0], [0, 0]],  # 2x2 realization 0
+                    [[0, 0], [0, 0]],
+                ],  # 2x2 realization 1
+                mask=[[[0, 0], [0, 0]], [[1, 0], [0, 0]]],  # 2x2 realization 0
+            ),  # 2x2 realization 1
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+        # Vicinity processing, with one central value exceeding the threshold
+        # resulting in the whole domain returning probabilities of 1
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.array([[0, 0, 0], [0, 1.0, 0.0], [0, 0, 0]]),
+            np.ones((3, 3), dtype=np.float32),
+        ),
+        # Vicinity processing, with one corner value exceeding the threshold
+        # resulting in neighbouring cells probabilities of 1 within the limit
+        # of the defined vicinity radius (2x2km grid cells)
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.array([[1.0, 0, 0], [0, 0, 0.0], [0, 0, 0]]),
+            np.array([[1.0, 1.0, 0], [1.0, 1.0, 0.0], [0, 0, 0]], dtype=np.float32),
+        ),
+        # Vicinity processing, with one masked value exceeding the threshold.
+        # This masked point is not considered, and so zeros are returned
+        # at neighbouring points within the vicinity radius. The masking is
+        # preserved in the resulting thresholded data.
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.ma.masked_array(
+                [[0, 2.0, 0], [0, 0, 0.0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+            ),
+            np.ma.masked_array(
+                [[0, 0, 0], [0, 0, 0], [0, 0, 0]],
+                mask=[[0, 1, 0], [0, 0, 0], [0, 0, 0]],
+                dtype=np.float32,
+            ),
+        ),
+        # multiple thresholds and multiple vicinities; input a 5x5 grid
+        # with value 1 at the top-left point. For the first threshold
+        # probabilities of 1 are returned in the top left corner over
+        # 2x2 cells for the first vicinity, and over 3x3 cells for the
+        # second vicinity. The second threshold returns only 0 probabilities.
+        (
+            {"threshold_values": [0.5, 1.5], "vicinity": [3000, 5000]},
+            1,
+            np.r_[[1], [0] * 24].reshape((5, 5)),
+            np.stack(
+                [
+                    np.stack(
+                        [
+                            np.r_[[1] * 2, [0] * 3, [1] * 2, [0] * 18].reshape((5, 5)),
+                            np.r_[
+                                [1] * 3, [0] * 2, [1] * 3, [0] * 2, [1] * 3, [0] * 12
+                            ].reshape((5, 5)),
+                        ]
+                    ),
+                    np.zeros((2, 5, 5)),
+                ]
+            ).astype(np.float32),
+        ),
+        # Multiple thresholds applied.
+        (
+            {"threshold_values": [0.5, 1.5]},
+            1,
+            np.ones((3, 3)),
+            np.stack(
+                [np.ones((3, 3), dtype=np.float32), np.zeros((3, 3), dtype=np.float32)]
+            ),
+        ),
+        # threshold value units are specified and differ from the data; if units matches
+        # the returned probabilities would be 1, but taking into account the units
+        # the returned probabilities are 0.
+        (
+            {"threshold_values": 0.5, "threshold_units": "m/s"},
+            1,
+            np.ones((3, 3)),
+            np.zeros((3, 3), dtype=np.float32),
+        ),
+        # value of np.inf tested with an above and below comparator, as well as an
+        # equivalence test with a threshold set to np.inf.
+        (
+            {"threshold_values": 1.0e6, "comparison_operator": "gt"},
+            1,
+            np.array([[np.inf, 0], [0, 0]]),
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+        (
+            {"threshold_values": 1.0e6, "comparison_operator": "lt"},
+            1,
+            np.array([[np.inf, 0], [0, 0]]),
+            np.array([[0, 1.0], [1.0, 1.0]], dtype=np.float32),
+        ),
+        (
+            {"threshold_values": np.inf, "comparison_operator": "ge"},
+            1,
+            np.array([[np.inf, 0], [0, 0]]),
+            np.array([[1.0, 0], [0, 0]], dtype=np.float32),
+        ),
+    ],
+)
+def test_bespoke_expected_values(custom_cube, kwargs, expected_result):
+    """Test that thresholding yields the expected data values for
+    different configurations. Variations tried here are:
+
+      - Different threshold values relative to the diagnostic value(s)
+      - Use of fuzzy thresholds, specified in different ways.
+      - Deterministic, single realization, and multi-realization inputs
+      - Different threshold comparators. Note that the tests have been
+        engineered such that there are no cases where the difference
+        between "ge" and "gt", or "le" and "lt" are signficant, these
+        are tested elsewhere.
+      - Collapsing and not collapsing the realization coordinate when
+        present.
+    """
+    plugin = Threshold(**kwargs)
+    result = plugin(custom_cube)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result.data, expected_result)
+    assert type(result.data) == type(expected_result)
+    assert result.data.dtype == expected_result.dtype
+
+
+@pytest.mark.parametrize(
+    "kwargs,n_realizations,data,mask,expected_result",
+    [
+        # the land corner has a value of 1, this is not spread across the
+        # other points within the vicinity as these are sea points.
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]]),
+            np.array([[0, 0, 1], [0, 0, 0], [0, 0, 0]]),
+            np.array([[0, 0, 1.0], [0, 0, 0], [0, 0, 0]], dtype=np.float32),
+        ),
+        # a sea corner has a value of 1, this is spread across the
+        # other sea points within the vicinity, but not the central
+        # point as this is land.
+        (
+            {"threshold_values": 0.5, "vicinity": 3000},
+            1,
+            np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            np.array([[0, 0, 0], [0, 1, 0], [0, 0, 0]]),
+            np.array([[0, 0, 0], [1.0, 0, 0], [1.0, 1.0, 0]], dtype=np.float32),
+        ),
+        # a vicinity that is large enough to affect all points and a
+        # complex mask to check land points are unaffected by the
+        # spread of values from a sea point.
+        (
+            {"threshold_values": 0.5, "vicinity": 5000},
+            1,
+            np.array([[0, 0, 0], [0, 0, 0], [1.0, 0, 0]]),
+            np.array([[1, 0, 1], [0, 1, 0], [0, 1, 0]]),
+            np.array([[0, 1.0, 0], [1.0, 0, 1.0], [1.0, 0, 1.0]], dtype=np.float32),
+        ),
+    ],
+)
+def test_vicinity_with_landmask(custom_cube, landmask, kwargs, expected_result):
+    """Test that the application of a maximum in neighbourhood method
+    (vicinity) returns the expected values when a mask is provided
+    to limit the spread of values to matching types, e.g. a high
+    probability on land is only spread to other land points.
+    """
+    plugin = Threshold(**kwargs)
+    result = plugin(custom_cube, landmask)
+
+    assert result.data.shape == expected_result.shape
+    assert np.allclose(result.data, expected_result)
+    assert type(result.data) == type(expected_result)
+    assert result.data.dtype == expected_result.dtype
+
+
+@pytest.mark.parametrize("n_realizations,data", [(1, np.array([[0, np.nan], [1, 1]]))])
+def test_nan_handling(custom_cube):
+    """Test that an exception is raised if the input data contains an
+    unmasked NaN."""
+
+    plugin = Threshold(threshold_values=0.5)
+    with pytest.raises(ValueError, match="NaN detected in input cube data"):
+        plugin(custom_cube)
+
+
+@pytest.mark.parametrize(
+    "n_realizations,data,mask", [(1, np.zeros((2, 2)), np.zeros((2, 2)))]
+)
+def test_landmask_no_vicinity(custom_cube, landmask):
+    """Test that an exception is raised if a landmask is provided but
+    vicinity processing is not being applied."""
+
+    plugin = Threshold(threshold_values=0.5)
+    msg = "Cannot apply land-mask cube without in-vicinity processing"
+    with pytest.raises(ValueError, match=msg):
+        plugin(custom_cube, landmask)
+
+
+@pytest.mark.parametrize("n_realizations,data", [(1, np.zeros((2, 2)))])
+def test_cell_methods(custom_cube):
+    """Test that cell methods are modified as expected when present
+    on the input cube."""
+
+    custom_cube.add_cell_method(CellMethod("max", coords="time"))
+    plugin = Threshold(threshold_values=0.5)
+    result = plugin(custom_cube)
+
+    (cell_method,) = result.cell_methods
+    assert cell_method.method == "max"
+    assert cell_method.coord_names[0] == "time"
+    assert cell_method.comments[0] == "of precipitation_rate"
+
+
+@pytest.mark.parametrize("n_realizations,data", [(4, np.zeros((4, 2, 2)))])
+def test_percentile_collapse(custom_cube):
+    """Test that a percentile coordinate can be collapsed to calculate
+    an average. These percentiles must be equally spaced and centred on
+    the 50th percentile ensure they may be considered as equivalent to
+    realizations."""
+
+    expected_result = np.zeros((2, 2, 2), dtype=np.float32)
+    expected_result[0, 0, 0] = 0.25
+
+    percentile_coord = DimCoord([20, 40, 60, 80], long_name="percentile", units="%")
+    custom_cube.remove_coord("realization")
+    custom_cube.add_dim_coord(percentile_coord, 0)
+    custom_cube.data[0, 0, 0] = 1
+
+    plugin = Threshold(threshold_values=[0.5, 1.5], collapse_coord="percentile")
+    result = plugin(custom_cube)
+
+    assert not result.coords("percentile")
+    assert np.allclose(result.data, expected_result)
+    assert (result.coord(var_name="threshold").points == [0.5, 1.5]).all()
+
+
+def test_threshold_unit_conversion(default_cube):
+    """Test threshold coordinate points after undergoing unit conversion.
+    Specifically ensuring that small floating point values have no floating
+    point precision errors after the conversion (float equality check with no
+    tolerance). The data units are mm/hr, and the threshold units are
+    micro-metres/hr."""
+
+    plugin = Threshold(threshold_values=[0.03, 0.09, 0.1], threshold_units="um hr-1")
+    result = plugin(default_cube)
+
+    assert (
+        result.coord(var_name="threshold").points
+        == np.array([3e-5, 9.0e-05, 1e-4], dtype="float32")
+    ).all()
+    assert result.coord(var_name="threshold").units == "mm hr-1"

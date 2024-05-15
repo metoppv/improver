@@ -63,8 +63,8 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
         time_bounds = (datetime(2017, 11, 10, 3, 0), datetime(2017, 11, 10, 4, 0))
     rain = set_up_variable_cube(
         rain_data,
-        name.format(phase="rain"),
-        units,
+        name=name.format(phase="rain"),
+        units=units,
         time_bounds=time_bounds,
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
@@ -72,8 +72,8 @@ def setup_cubes(rain_data=RAIN_DATA, snow_data=SNOW_DATA, name="{phase}rate"):
     )
     snow = set_up_variable_cube(
         snow_data,
-        name.format(phase="lwe_snow"),
-        units,
+        name=name.format(phase="lwe_snow"),
+        units=units,
         time_bounds=time_bounds,
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,

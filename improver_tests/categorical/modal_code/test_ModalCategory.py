@@ -41,6 +41,7 @@ from iris.cube import CubeList
 
 from improver.blending import WEIGHT_FORMAT
 from improver.categorical.modal_code import ModalCategory
+from improver.metadata.constants.time_types import DT_FORMAT
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.synthetic_data.set_up_test_cubes import construct_scalar_time_coords
 from improver_tests.categorical.decision_tree import set_up_wxcube, wxcode_decision_tree
@@ -48,7 +49,6 @@ from improver_tests.categorical.decision_tree import set_up_wxcube, wxcode_decis
 MODEL_ID_ATTR = "mosg__model_configuration"
 RECORD_RUN_ATTR = "mosg__model_run"
 TARGET_TIME = dt(2020, 6, 15, 18)
-TIME_FORMAT = "%Y%m%dT%H%MZ"
 
 
 @pytest.fixture(name="wxcode_series")
@@ -126,8 +126,8 @@ def wxcode_series_fixture(
                 wxcubes[-1].attributes.update(
                     {
                         RECORD_RUN_ATTR: (
-                            f"uk_det:{ukv_time:{TIME_FORMAT}}:{ukv_weight:{WEIGHT_FORMAT}}\n"
-                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_FORMAT}}"
+                            f"uk_det:{ukv_time:{DT_FORMAT}}:{ukv_weight:{WEIGHT_FORMAT}}\n"
+                            f"uk_ens:{enukx_time:{DT_FORMAT}}:{enukx_weight:{WEIGHT_FORMAT}}"
                         )
                     }
                 )
@@ -136,7 +136,7 @@ def wxcode_series_fixture(
                 wxcubes[-1].attributes.update(
                     {
                         RECORD_RUN_ATTR: (
-                            f"uk_ens:{enukx_time:{TIME_FORMAT}}:{enukx_weight:{WEIGHT_FORMAT}}"
+                            f"uk_ens:{enukx_time:{DT_FORMAT}}:{enukx_weight:{WEIGHT_FORMAT}}"
                         )
                     }
                 )

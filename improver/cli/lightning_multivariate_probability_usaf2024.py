@@ -1,3 +1,4 @@
+#!/usr/bin/env python
 # -*- coding: utf-8 -*-
 # -----------------------------------------------------------------------------
 # (C) British Crown copyright. The Met Office.
@@ -28,26 +29,48 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
-"""Expected datatypes and units for time-type coordinates"""
+"""Script to create lightning probabilities from multi-parameter datasets."""
 
-from collections import namedtuple
+from improver import cli
 
-import numpy as np
 
-TimeSpec = namedtuple("TimeSpec", ("calendar", "dtype", "units"))
+@cli.clizefy
+@cli.with_output
+def process(
+    *cubes: cli.inputcube, model_id_attr: str = None,
+):
+    """
+    From the supplied following cubes:
+    Convective Available Potential Energy (CAPE in J/kg),
+    Lifted Index (liftind in K),
+    Precipitable Water (pwat in kg m-2 or mm. This is used as mm in the regression equations),
+    Convective Inhibition (CIN in J/kg),
+    3-hour Accumulated Precipitation (apcp in kg m-2 or millimetres),
+    calculate a probability of lightning cube using relationships developed using regression
+    statistics.
 
-DT_FORMAT = "%Y%m%dT%H%MZ"
+    The cubes for CAPE, lifted index, precipitable water, and CIN must be valid for the beginning
+    of the 3-hr accumulated precipitation window.
 
-_TIME_REFERENCE_SPEC = TimeSpec(
-    calendar="gregorian", dtype=np.int64, units="seconds since 1970-01-01 00:00:00"
-)
+    Does not collapse a realization coordinate.
 
-_TIME_INTERVAL_SPEC = TimeSpec(calendar=None, dtype=np.int32, units="seconds")
+    Args:
+        cubes (list of iris.cube.Cube):
+            Cubes to be processed.
+        model_id_attr (str):
+            Name of the attribute used to identify the source model for
+            blending.
 
-TIME_COORDS = {
-    "time": _TIME_REFERENCE_SPEC,
-    "forecast_reference_time": _TIME_REFERENCE_SPEC,
-    "blend_time": _TIME_REFERENCE_SPEC,
-    "forecast_period": _TIME_INTERVAL_SPEC,
-    "UTC_offset": _TIME_INTERVAL_SPEC,
-}
+    Returns:
+        iris.cube.Cube:
+            Cube of probabilities of lightning
+    """
+    from iris.cube import CubeList
+
+    from improver.lightning import LightningMultivariateProbability_USAF2024
+
+    result = LightningMultivariateProbability_USAF2024()(
+        CubeList(cubes), model_id_attr=model_id_attr
+    )
+
+    return result

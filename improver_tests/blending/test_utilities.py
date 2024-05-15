@@ -55,6 +55,7 @@ from improver.blending.utilities import (
     update_record_run_weights,
 )
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
+from improver.metadata.constants.time_types import DT_FORMAT
 from improver.synthetic_data.set_up_test_cubes import set_up_probability_cube
 
 
@@ -96,9 +97,7 @@ def cycle_cube_with_blend_record() -> Cube:
     cubes = setup_cycle_cube()
     updated_cubes = CubeList()
     for cube in cubes.slices_over("forecast_reference_time"):
-        time = (
-            cube.coord("forecast_reference_time").cell(0).point.strftime("%Y%m%dT%H%MZ")
-        )
+        time = cube.coord("forecast_reference_time").cell(0).point.strftime(DT_FORMAT)
 
         blend_record_coord = AuxCoord(
             [f"uk_det:{time}:{1:{WEIGHT_FORMAT}}"], long_name=RECORD_COORD
@@ -467,7 +466,7 @@ def test_update_record_run_weights_cycle(
     data and metadata to the input cube."""
 
     frts = [
-        cube.coord("forecast_reference_time").cell(0).point.strftime("%Y%m%dT%H%MZ")
+        cube.coord("forecast_reference_time").cell(0).point.strftime(DT_FORMAT)
         for cube in cycle_cube_with_blend_record.slices_over("forecast_reference_time")
     ]
 

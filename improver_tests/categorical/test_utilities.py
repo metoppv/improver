@@ -112,7 +112,7 @@ class Test_categorical_attributes(IrisTest):
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
         ).reshape((2, 3, 3))
-        cube = set_up_variable_cube(data, "weather_code", "1",)
+        cube = set_up_variable_cube(data, name="weather_code", units="1",)
         date_times = [
             datetime.datetime(2017, 11, 19, 0, 30),
             datetime.datetime(2017, 11, 19, 1, 30),

@@ -44,11 +44,11 @@ from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 from numpy import int64
 
-from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
 
 
 def cycletime_to_datetime(
-    cycletime: str, cycletime_format: str = "%Y%m%dT%H%MZ"
+    cycletime: str, cycletime_format: str = DT_FORMAT
 ) -> datetime:
     """Convert a string representating the cycletime of the
     format YYYYMMDDTHHMMZ into a datetime object.
@@ -67,7 +67,7 @@ def cycletime_to_datetime(
 
 
 def datetime_to_cycletime(
-    adatetime: datetime, cycletime_format: str = "%Y%m%dT%H%MZ"
+    adatetime: datetime, cycletime_format: str = DT_FORMAT
 ) -> str:
     """Convert a datetime object into a string representing the cycletime
     of the format YYYYMMDDTHHMMZ.
@@ -87,7 +87,7 @@ def datetime_to_cycletime(
 
 def cycletime_to_number(
     cycletime: str,
-    cycletime_format: str = "%Y%m%dT%H%MZ",
+    cycletime_format: str = DT_FORMAT,
     time_unit: str = "hours since 1970-01-01 00:00:00",
     calendar: str = "gregorian",
 ) -> float:

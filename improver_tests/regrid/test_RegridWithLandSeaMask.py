@@ -88,9 +88,9 @@ def define_source_target_grid_data():
     out_mask[1, 0] = 0
 
     # create cube with default spacing
-    cube_in = set_up_variable_cube(data, "air_temperature", "Celsius")
-    cube_in_mask = set_up_variable_cube(in_mask, "Land_Binary_Mask", "1")
-    cube_out_mask = set_up_variable_cube(out_mask, "Land_Binary_Mask", "1")
+    cube_in = set_up_variable_cube(data, name="air_temperature", units="Celsius")
+    cube_in_mask = set_up_variable_cube(in_mask, name="Land_Binary_Mask", units="1")
+    cube_out_mask = set_up_variable_cube(out_mask, name="Land_Binary_Mask", units="1")
 
     # modify cube coordinates to the designed value
     cube_in = modify_cube_coordinate_value(cube_in, in_lons, in_lats)
@@ -130,9 +130,9 @@ def define_source_target_grid_data_same_domain():
     out_mask[1, 0] = 0
 
     # create cube with default spacing
-    cube_in = set_up_variable_cube(data, "air_temperature", "Celsius")
-    cube_in_mask = set_up_variable_cube(in_mask, "Land_Binary_Mask", "1")
-    cube_out_mask = set_up_variable_cube(out_mask, "Land_Binary_Mask", "1")
+    cube_in = set_up_variable_cube(data, name="air_temperature", units="Celsius")
+    cube_in_mask = set_up_variable_cube(in_mask, name="Land_Binary_Mask", units="1")
+    cube_out_mask = set_up_variable_cube(out_mask, name="Land_Binary_Mask", units="1")
 
     # modify cube coordinates to the designed value
     cube_in = modify_cube_coordinate_value(cube_in, in_lons, in_lats)

@@ -40,7 +40,7 @@ from typing import Any, Dict, List, Optional, Tuple, Type, Union
 import iris
 import numpy as np
 from cf_units import Unit, date2num
-from iris.coords import Coord, DimCoord
+from iris.coords import AuxCoord, Coord, DimCoord
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from numpy import ndarray
@@ -51,6 +51,7 @@ from improver.metadata.check_datatypes import check_mandatory_standards
 from improver.metadata.constants.mo_attributes import MOSG_GRID_DEFINITION
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.forecast_times import forecast_period_coord
+from improver.spotdata import UNIQUE_ID_ATTRIBUTE
 
 DIM_COORD_ATTRIBUTES = {
     "realization": {"units": "1"},
@@ -327,34 +328,55 @@ def _create_dimension_coord(
 
 def _construct_dimension_coords(
     data: Union[MaskedArray, ndarray],
-    y_coord: DimCoord,
-    x_coord: DimCoord,
-    realizations: Union[List[float], ndarray],
-    height_levels: Union[List[float], ndarray],
-    pressure: bool,
+    y_coord: Optional[DimCoord] = None,
+    x_coord: Optional[DimCoord] = None,
+    spot_index: Optional[DimCoord] = None,
+    realizations: Optional[Union[List[float], ndarray]] = None,
+    height_levels: Optional[Union[List[float], ndarray]] = None,
+    pressure: bool = False,
 ) -> DimCoord:
-    """ Create array of all dimension coordinates. These dimensions will be ordered:
-    realization, height/pressure, y, x. """
+    """Create array of all dimension coordinates. The expected dimension order
+    for gridded cubes is realization, height/pressure, y, x or realization,
+    height/pressure, spot_index for site cubes. The returned coordinates will
+    reflect this ordering.
+
+    A realization coordinate will be created if the cube is
+    (n_spatial_dims + 1) or (n_spatial_dims + 2), even if no values for the
+    realizations argument are provided. To create a height coordinate, the
+    height_levels must be provided.
+    """
+
     data_shape = data.shape
-    ndims = len(data_shape)
+    ndims = data.ndim
+    n_spatial_dims = sum([item is not None for item in [y_coord, x_coord, spot_index]])
 
-    if ndims not in (2, 3, 4):
+    if not n_spatial_dims <= ndims <= n_spatial_dims + 2:
         raise ValueError(
-            "Expected 2 to 4 dimensions on input data: got {}".format(ndims)
+            f"Expected {n_spatial_dims} to {n_spatial_dims + 2} dimensions on "
+            f"input data: got {ndims}"
         )
 
-    if realizations is not None and height_levels is not None and ndims != 4:
+    if (
+        realizations is not None
+        and height_levels is not None
+        and ndims != n_spatial_dims + 2
+    ):
         raise ValueError(
-            "Input data must have 4 dimensions to add both realization "
-            "and height coordinates: got {}".format(ndims)
+            f"Input data must have {n_spatial_dims + 2} dimensions to add both realization "
+            f"and height coordinates: got {ndims}"
         )
 
-    if height_levels is None and ndims == 4:
-        raise ValueError("Height levels must be provided if data has 4 dimensions.")
+    if height_levels is None and ndims > n_spatial_dims + 1:
+        raise ValueError(
+            "Height levels must be provided if data has > "
+            f"{n_spatial_dims + 1} dimensions."
+        )
 
     dim_coords = []
 
-    if ndims == 4 or (height_levels is None and ndims == 3):
+    if ndims == n_spatial_dims + 2 or (
+        height_levels is None and ndims == n_spatial_dims + 1
+    ):
         coord_name = "realization"
         coord_units = DIM_COORD_ATTRIBUTES[coord_name]["units"]
         coord_length = data_shape[0]
@@ -364,7 +386,7 @@ def _construct_dimension_coords(
         )
         dim_coords.append((realization_coord, 0))
 
-    if height_levels is not None and ndims in (3, 4):
+    if height_levels is not None and n_spatial_dims + 1 <= ndims <= n_spatial_dims + 2:
         # Determine the index of the height coord based on if a realization coord has been created
         i = len(dim_coords)
         coord_length = data_shape[i]
@@ -386,88 +408,19 @@ def _construct_dimension_coords(
         )
         dim_coords.append((height_coord, i))
 
-    dim_coords.append((y_coord, len(dim_coords)))
-    dim_coords.append((x_coord, len(dim_coords)))
+    if spot_index is not None:
+        dim_coords.append((spot_index, len(dim_coords)))
+    else:
+        dim_coords.append((y_coord, len(dim_coords)))
+        dim_coords.append((x_coord, len(dim_coords)))
 
     return dim_coords
 
 
-def set_up_variable_cube(
-    data: ndarray,
-    name: str = "air_temperature",
-    units: str = "K",
-    spatial_grid: str = "latlon",
-    time: datetime = datetime(2017, 11, 10, 4, 0),
-    time_bounds: Optional[Tuple[datetime, datetime]] = None,
-    frt: Optional[datetime] = None,
-    blend_time: Optional[datetime] = None,
-    realizations: Optional[Union[List[float], ndarray]] = None,
-    include_scalar_coords: Optional[List[Coord]] = None,
-    attributes: Optional[Dict[str, str]] = None,
-    standard_grid_metadata: Optional[str] = None,
-    x_grid_spacing: Optional[float] = None,
-    y_grid_spacing: Optional[float] = None,
-    domain_corner: Optional[Tuple[float, float]] = None,
-    height_levels: Optional[Union[List[float], ndarray]] = None,
-    pressure: bool = False,
-) -> Cube:
+def _yx_for_grid(data, spatial_grid, x_grid_spacing, y_grid_spacing, domain_corner):
+    """Construct y and x coordinates for gridded data based upon the shape of
+    the data array.
     """
-    Set up a cube containing a single variable field with:
-    - x/y spatial dimensions (equal area or lat / lon)
-    - optional leading "realization" dimension
-    - optional "height" dimension
-    - "time", "forecast_reference_time" and "forecast_period" scalar coords
-    - option to specify additional scalar coordinates
-    - configurable attributes
-
-    Args:
-        data:
-            2D (y-x ordered) or 3D (realization-y-x ordered) array of data
-            to put into the cube.
-        name:
-            Variable name (standard / long)
-        units:
-            Variable units
-        spatial_grid:
-            What type of x/y coordinate values to use.  Permitted values are
-            "latlon" or "equalarea".
-        time:
-            Single cube validity time
-        time_bounds:
-            Lower and upper bound on time point, if required
-        frt:
-            Single cube forecast reference time. Default value is datetime(2017, 11, 10, 0, 0).
-        blend_time:
-            Single cube blend time
-        realizations:
-            List of forecast realizations.  If not present, taken from the
-            leading dimension of the input data array (if 3D).
-        include_scalar_coords:
-            List of iris.coords.DimCoord or AuxCoord instances of length 1.
-        attributes:
-            Optional cube attributes.
-        standard_grid_metadata:
-            Recognised mosg__model_configuration for which to set up Met
-            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
-            'gl_det' or 'gl_ens'.
-        x_grid_spacing:
-            Grid resolution along the x axis (degrees for latlon or metres for equalarea).
-        y_grid_spacing:
-            Grid resolution along the y axis (degrees for latlon or metres for equalarea).
-        domain_corner:
-            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
-        height_levels:
-            List of height levels in metres or pressure levels in Pa.
-        pressure:
-            Flag to indicate whether the height levels are specified as pressure, in Pa.
-            If False, use height in metres.
-
-    Returns:
-        Cube containing a single variable field
-    """
-    if not frt and not blend_time:
-        frt = datetime(2017, 11, 10, 0, 0)
-    # construct spatial dimension coordinates
     ypoints = data.shape[-2]
     xpoints = data.shape[-1]
     y_coord, x_coord = construct_yx_coords(
@@ -478,10 +431,251 @@ def set_up_variable_cube(
         y_grid_spacing=y_grid_spacing,
         domain_corner=domain_corner,
     )
+    return y_coord, x_coord
+
+
+def set_up_spot_variable_cube(
+    data: ndarray,
+    latitudes: Optional[Union[List[float], ndarray]] = None,
+    longitudes: Optional[Union[List[float], ndarray]] = None,
+    altitudes: Optional[Union[List[float], ndarray]] = None,
+    wmo_ids: Optional[Union[List[float], ndarray]] = None,
+    unique_site_id: Optional[Union[List[str], ndarray]] = None,
+    unique_site_id_key: Optional[str] = None,
+    realizations: Optional[Union[List[float], ndarray]] = None,
+    height_levels: Optional[Union[List[float], ndarray]] = None,
+    pressure: bool = False,
+    *args,
+    **kwargs,
+):
+    """
+    Set up a spot cube containing a single variable field with:
+
+    - latitude, longitude, altitude, WMO ID and unique site ID coordinates
+      associated with the sites.
+    - optional leading realization coordinate.
+    - optional height or pressure levels.
+    - additional options available by keywords passed to the _variable_cube
+      function.
+
+    Args:
+        data:
+            1D (length of no. of sites) or 2D (realization-sites ordered)
+            array of data to put into the cube.
+        latitudes:
+            Optional list of latitude values of the same length as the number
+            of sites.
+        longitudes:
+            Optional list of longitude values of the same length as the number
+            of sites.
+        altitudes:
+            Optional list of altitude values of the same length as the number
+            of sites.
+        wmo_ids:
+            Optional list of WMO IDs that identify the sites, these are stored
+            as padded 5-digit strings. Same length as the number of sites.
+        unique_site_id:
+            Optional list of IDs that identify the sites, these are stored as
+            padded 8-digit strings. Same length as the number of sites.
+            If provided, unique_site_id_key must also be provided.
+        unique_site_id_key:
+            Optional string that names the unique_site_id coordinate.
+        realizations:
+            List of forecast realizations.  If not present, taken from the
+            leading dimension of the input data array (if 2D).
+        height_levels:
+            List of height levels in metres or pressure levels in Pa.
+        pressure:
+            Flag to indicate whether the height levels are specified as pressure, in Pa.
+            If False, use height in metres.
+
+    Returns:
+        Cube containing a single spot variable field
+    """
+
+    n_sites = data.shape[-1]
+    spot_index = DimCoord(np.arange(n_sites), long_name="spot_index", units="1")
+
+    altitudes = (
+        altitudes if altitudes is not None else np.ones((n_sites), dtype=np.float32)
+    )
+    latitudes = (
+        latitudes
+        if latitudes is not None
+        else np.linspace(50, 60, n_sites, dtype=np.float32)
+    )
+    longitudes = (
+        longitudes
+        if longitudes is not None
+        else np.linspace(-5, 5, n_sites, dtype=np.float32)
+    )
+    wmo_ids = wmo_ids if wmo_ids is not None else range(n_sites)
+    wmo_ids = [f"{int(item):05d}" for item in wmo_ids]
+
+    alt_coord = AuxCoord(altitudes, "altitude", units="m")
+    y_coord = AuxCoord(latitudes, "latitude", units="degrees")
+    x_coord = AuxCoord(longitudes, "longitude", units="degrees")
+    id_coord = AuxCoord(wmo_ids, long_name="wmo_id")
+    unique_id_coord = None
+
+    if unique_site_id is not None:
+        if not unique_site_id_key:
+            raise ValueError(
+                "A unique_site_id_key must be provided if a unique_site_id is"
+                " provided."
+            )
+        unique_site_id = [f"{int(item):08d}" for item in unique_site_id]
+        unique_id_coord = AuxCoord(
+            unique_site_id,
+            long_name=unique_site_id_key,
+            units="no_unit",
+            attributes={UNIQUE_ID_ATTRIBUTE: "true"},
+        )
 
     dim_coords = _construct_dimension_coords(
-        data, y_coord, x_coord, realizations, height_levels, pressure
+        data,
+        spot_index=spot_index,
+        realizations=realizations,
+        height_levels=height_levels,
+        pressure=pressure,
     )
+
+    cube = _variable_cube(data, dim_coords, *args, **kwargs)
+
+    (spatial_coord_index,) = cube.coord_dims("spot_index")
+    crds = [y_coord, x_coord, alt_coord, id_coord]
+    if unique_id_coord is not None:
+        crds.append(unique_id_coord)
+
+    for crd in crds:
+        cube.add_aux_coord(crd, spatial_coord_index)
+
+    # don't allow unit tests to set up invalid cubes
+    check_mandatory_standards(cube)
+    return cube
+
+
+def set_up_variable_cube(
+    data: ndarray,
+    spatial_grid: str = "latlon",
+    x_grid_spacing: Optional[float] = None,
+    y_grid_spacing: Optional[float] = None,
+    domain_corner: Optional[Tuple[float, float]] = None,
+    realizations: Optional[Union[List[float], ndarray]] = None,
+    height_levels: Optional[Union[List[float], ndarray]] = None,
+    pressure: bool = False,
+    *args,
+    **kwargs,
+):
+    """
+    Set up a gridded cube containing a single variable field with:
+
+    - a lat/lon or equal areas projection.
+    - optional leading realization coordinate.
+    - optional height or pressure levels.
+    - additional options available by keywords passed to the _variable_cube
+      function.
+
+    Args:
+        data:
+            2D (y-x ordered) or 3D (realization-y-x ordered) array of data
+            to put into the cube.
+        spatial_grid:
+            What type of x/y coordinate values to use.  Permitted values are
+            "latlon" or "equalarea".
+        x_grid_spacing:
+            Grid resolution along the x axis (degrees for latlon or metres for equalarea).
+        y_grid_spacing:
+            Grid resolution along the y axis (degrees for latlon or metres for equalarea).
+        domain_corner:
+            Bottom left corner of grid domain (y,x) (degrees for latlon or metres for equalarea).
+        realizations:
+            List of forecast realizations.  If not present, taken from the
+            leading dimension of the input data array (if 3D).
+        height_levels:
+            List of height levels in metres or pressure levels in Pa.
+        pressure:
+            Flag to indicate whether the height levels are specified as pressure, in Pa.
+            If False, use height in metres.
+
+    Returns:
+        Cube containing a single gridded variable field
+    """
+
+    y_coord, x_coord = _yx_for_grid(
+        data, spatial_grid, x_grid_spacing, y_grid_spacing, domain_corner
+    )
+
+    dim_coords = _construct_dimension_coords(
+        data,
+        y_coord=y_coord,
+        x_coord=x_coord,
+        realizations=realizations,
+        height_levels=height_levels,
+        pressure=pressure,
+    )
+
+    cube = _variable_cube(data, dim_coords, *args, **kwargs)
+
+    # don't allow unit tests to set up invalid cubes
+    check_mandatory_standards(cube)
+
+    return cube
+
+
+def _variable_cube(
+    data: ndarray,
+    dim_coords: Tuple[Union[AuxCoord, DimCoord]],
+    name: str = "air_temperature",
+    units: str = "K",
+    time: datetime = datetime(2017, 11, 10, 4, 0),
+    time_bounds: Optional[Tuple[datetime, datetime]] = None,
+    frt: Optional[datetime] = None,
+    blend_time: Optional[datetime] = None,
+    include_scalar_coords: Optional[List[Coord]] = None,
+    attributes: Optional[Dict[str, str]] = None,
+    standard_grid_metadata: Optional[str] = None,
+) -> Cube:
+    """
+    Set up a cube containing a single variable field with:
+    - the provided dimension coordinates
+    - "time", "forecast_reference_time" and "forecast_period" scalar coords
+    - option to specify additional scalar coordinates
+    - configurable attributes
+
+    Args:
+        data:
+            2D (y-x ordered) or 3D (realization-y-x ordered) array of data
+            to put into the cube.
+        dim_coords:
+            Dimension coordinates for the constructed cube, e.g. the x and
+            y dimensions.
+        name:
+            Variable name (standard / long)
+        units:
+            Variable units
+        time:
+            Single cube validity time
+        time_bounds:
+            Lower and upper bound on time point, if required
+        frt:
+            Single cube forecast reference time. Default value is datetime(2017, 11, 10, 0, 0).
+        blend_time:
+            Single cube blend time
+        include_scalar_coords:
+            List of iris.coords.DimCoord or AuxCoord instances of length 1.
+        attributes:
+            Optional cube attributes.
+        standard_grid_metadata:
+            Recognised mosg__model_configuration for which to set up Met
+            Office standard grid attributes.  Should be 'uk_det', 'uk_ens',
+            'gl_det' or 'gl_ens'.
+
+    Returns:
+        Cube containing a single variable field
+    """
+    if not frt and not blend_time:
+        frt = datetime(2017, 11, 10, 0, 0)
 
     # construct list of aux_coords_and_dims
     scalar_coords = construct_scalar_time_coords(time, time_bounds, frt, blend_time)
@@ -506,18 +700,40 @@ def set_up_variable_cube(
     )
     cube.rename(name)
 
-    # don't allow unit tests to set up invalid cubes
-    check_mandatory_standards(cube)
-
     return cube
 
 
-def set_up_percentile_cube(
-    data: ndarray, percentiles: Union[List[float], ndarray], **kwargs: Any,
+def set_up_spot_percentile_cube(*args, **kwargs):
+    """Set up a cube containing spot percentiles of a variable.
+
+    Args:
+        data:
+            2D (percentile-sites ordered) array of data to put into the cube
+    Returns:
+        Cube containing spot percentiles.
+    """
+    function = set_up_spot_variable_cube
+    return _percentile_cube(function, *args, **kwargs)
+
+
+def set_up_percentile_cube(*args, **kwargs):
+    """Set up a cube containing gridded percentiles of a variable.
+
+    Args:
+        data:
+            3D (percentile-y-x ordered) array of data to put into the cube
+    Returns:
+        Cube containing gridded percentiles.
+    """
+    function = set_up_variable_cube
+    return _percentile_cube(function, *args, **kwargs)
+
+
+def _percentile_cube(
+    function, data: ndarray, percentiles: Union[List[float], ndarray], **kwargs: Any,
 ) -> Cube:
     """
     Set up a cube containing percentiles of a variable with:
-    - x/y spatial dimensions (equal area or lat / lon)
     - leading "percentile" dimension
     - "time", "forecast_reference_time" and "forecast_period" scalar coords
     - option to specify additional scalar coordinates
@@ -525,7 +741,7 @@ def set_up_percentile_cube(
 
     Args:
         data:
-            3D (percentile-y-x ordered) array of data to put into the cube
+            Array of data to put into the cube
         percentiles:
             List of int / float percentile values whose length must match the
             first dimension on the input data cube
@@ -535,7 +751,7 @@ def set_up_percentile_cube(
     Returns:
         Cube containing percentiles
     """
-    cube = set_up_variable_cube(data, realizations=percentiles, **kwargs,)
+    cube = function(data, realizations=percentiles, **kwargs,)
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
     if len(percentiles) == 1:
@@ -543,7 +759,34 @@ def set_up_percentile_cube(
     return cube
 
 
-def set_up_probability_cube(
+def set_up_spot_probability_cube(*args, **kwargs):
+    """Set up a cube containing spot probabilities at thresholds.
+
+    Args:
+        data:
+            2D (threshold-sites) array of data to put into the cube
+    Returns:
+        Cube containing spot probabilities.
+    """
+    function = set_up_spot_variable_cube
+    return _probability_cube(function, *args, **kwargs)
+
+
+def set_up_probability_cube(*args, **kwargs):
+    """Set up a cube containing gridded probabilities at thresholds.
+
+    Args:
+        data:
+            3D (threshold-y-x ordered) array of data to put into the cube
+    Returns:
+        Cube containing gridded probabilities.
+    """
+    function = set_up_variable_cube
+    return _probability_cube(function, *args, **kwargs)
+
+
+def _probability_cube(
+    function,
     data: ndarray,
     thresholds: Union[List[float], ndarray],
     variable_name: str = "air_temperature",
@@ -553,7 +796,6 @@ def set_up_probability_cube(
 ) -> Cube:
     """
     Set up a cube containing probabilities at thresholds with:
-    - x/y spatial dimensions (equal area or lat / lon)
     - leading "threshold" dimension
     - "time", "forecast_reference_time" and "forecast_period" scalar coords
     - option to specify additional scalar coordinates
@@ -564,7 +806,7 @@ def set_up_probability_cube(
 
     Args:
         data:
-            3D (threshold-y-x ordered) array of data to put into the cube
+            Array of data to put into the cube
         thresholds:
             List of int / float threshold values whose length must match the
             first dimension on the input data cube
@@ -600,9 +842,7 @@ def set_up_probability_cube(
         )
         raise ValueError(msg)
 
-    cube = set_up_variable_cube(
-        data, name=name, units="1", realizations=thresholds, **kwargs,
-    )
+    cube = function(data, name=name, units="1", realizations=thresholds, **kwargs,)
     threshold_name = variable_name.replace("_in_vicinity", "")
     cube.coord("realization").rename(threshold_name)
     cube.coord(threshold_name).var_name = "threshold"

@@ -51,7 +51,9 @@ class Test_create_difference_cube(IrisTest):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         self.diff_in_y_array = np.array([[1, 2, 3], [3, 6, 9]])
-        self.cube = set_up_variable_cube(data, "wind_speed", "m s-1", "equalarea",)
+        self.cube = set_up_variable_cube(
+            data, name="wind_speed", units="m s-1", spatial_grid="equalarea",
+        )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_y_dimension(self):
@@ -95,7 +97,9 @@ class Test_calculate_difference(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
-        self.cube = set_up_variable_cube(data, "wind_speed", "m s-1", "equalarea",)
+        self.cube = set_up_variable_cube(
+            data, name="wind_speed", units="m s-1", spatial_grid="equalarea",
+        )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_x_dimension(self):
@@ -150,7 +154,11 @@ class Test_process(IrisTest):
         """Set up cube."""
         data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         self.cube = set_up_variable_cube(
-            data, "wind_speed", "m s-1", "equalarea", realizations=np.array([1, 2]),
+            data,
+            name="wind_speed",
+            units="m s-1",
+            spatial_grid="equalarea",
+            realizations=np.array([1, 2]),
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
@@ -191,7 +199,11 @@ class Test_process(IrisTest):
         expected_x = np.array([[[1, 1], [2, 2], [5, 5]], [[1, 1], [0, 4], [5, 10]]])
         expected_y = np.array([[[1, 2, 3], [3, 6, 9]], [[1, 0, 3], [3, 8, 14]]])
         cube = set_up_variable_cube(
-            data, "wind_speed", "m s-1", "equalarea", realizations=np.array([1, 2]),
+            data,
+            name="wind_speed",
+            units="m s-1",
+            spatial_grid="equalarea",
+            realizations=np.array([1, 2]),
         )
         result = self.plugin.process(cube)
         self.assertIsInstance(result[0], iris.cube.Cube)

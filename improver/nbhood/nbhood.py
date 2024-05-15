@@ -99,7 +99,9 @@ def circular_kernel(ranges: int, weighted_mode: bool) -> ndarray:
     # contained within the desired radius.
     kernel = np.ones((int(1 + ranges * 2), (int(1 + ranges * 2))))
     # Create an open multi-dimensional meshgrid.
-    open_grid = np.array(np.ogrid[[slice(-x, x + 1) for x in (ranges, ranges)]])
+    open_grid = np.array(
+        np.ogrid[[slice(-x, x + 1) for x in (ranges, ranges)]], dtype=object
+    )
     if weighted_mode:
         # Create a kernel, such that the central grid point has the
         # highest weighting, with the weighting decreasing with distance

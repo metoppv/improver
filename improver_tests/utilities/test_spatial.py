@@ -304,7 +304,10 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea",
+            data,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
         )
 
     def test_basic_distance_to_grid_cells(self):
@@ -520,15 +523,15 @@ class Test_get_grid_y_x_values(IrisTest):
         """Set up the cube."""
         data = np.ones((1, 2, 4), dtype=np.float32)
         self.latlon_cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2",
+            data, name="precipitation_amount", units="kg m^-2",
         )
         self.expected_lons = np.array([-15, -5, 5, 15, -15, -5, 5, 15]).reshape(2, 4)
         self.expected_lats = np.array([-5, -5, -5, -5, 5, 5, 5, 5]).reshape(2, 4)
         self.equalarea_cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(-1000, -1000),
@@ -566,9 +569,9 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         data = np.ones((1, 2, 2), dtype=np.float32)
         self.cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000000,
             y_grid_spacing=2000000,
             domain_corner=(-1000000, -1000000),
