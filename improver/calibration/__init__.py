@@ -209,6 +209,45 @@ def split_forecasts_and_coeffs(
     )
 
 
+def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[CubeList]]:
+    """Split the input forecast from the forecast error files used for bias-correction.
+
+    Args:
+        cubes:
+            A list of input cubes which will be split into forecast and forecast errors.
+
+    Returns:
+        - A cube containing the current forecast.
+        - If found, a cube or cubelist containing the bias correction files.
+
+    Raises:
+        ValueError: If multiple forecast cubes provided, when only one is expected.
+        ValueError: If no forecast is found.
+    """
+    forecast_cube = None
+    bias_cubes = CubeList()
+
+    for cube in cubes:
+        if "forecast_error" in cube.name():
+            bias_cubes.append(cube)
+        else:
+            if forecast_cube is None:
+                forecast_cube = cube
+            else:
+                msg = (
+                    "Multiple forecast inputs have been provided. Only one is expected."
+                )
+                raise ValueError(msg)
+
+    if forecast_cube is None:
+        msg = "No forecast is present. A forecast cube is required."
+        raise ValueError(msg)
+
+    bias_cubes = bias_cubes if bias_cubes else None
+
+    return forecast_cube, bias_cubes
+
+
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:
     """Check the validity time of the forecast matches the accepted validity times
     within the validity times list.

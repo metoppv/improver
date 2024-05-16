@@ -31,7 +31,7 @@
 """Unit tests for calibration.__init__"""
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import iris
 import numpy as np
@@ -40,6 +40,7 @@ from iris.cube import CubeList
 
 from improver.calibration import (
     add_warning_comment,
+    split_forecasts_and_bias_files,
     split_forecasts_and_coeffs,
     split_forecasts_and_truth,
     validity_time_check,
@@ -540,6 +541,81 @@ class Test_split_forecasts_and_coeffs(ImproverTest):
                 ),
                 self.land_sea_mask_name,
             )
+
+
+@pytest.fixture
+def forecast_cube():
+    return set_up_variable_cube(
+        data=np.array(
+            [[1.0, 2.0, 2.0], [2.0, 1.0, 3.0], [1.0, 3.0, 3.0]], dtype=np.float32
+        ),
+        name="wind_speed",
+        units="m/s",
+    )
+
+
+@pytest.fixture
+def forecast_error_cubelist():
+    bias_cubes = CubeList()
+    for bias_index in range(-1, 2):
+        bias_cube = set_up_variable_cube(
+            data=np.array(
+                [[0.0, 0.0, 0.0], [-1.0, 1.0, 0.0], [-2.0, 0.0, 1.0]], dtype=np.float32
+            )
+            + (-1) * bias_index,
+            name="forecast_error_of_wind_speed",
+            units="m/s",
+            frt=(datetime(2017, 11, 10, 0, 0) - timedelta(days=(2 - bias_index))),
+            attributes={"title": "Forecast bias data"},
+        )
+        bias_cube.remove_coord("time")
+        bias_cubes.append(bias_cube)
+    return bias_cubes
+
+
+@pytest.mark.parametrize("multiple_bias_cubes", [(True, False)])
+def test_split_forecasts_and_bias_files(
+    forecast_cube, forecast_error_cubelist, multiple_bias_cubes
+):
+    """Test that split_forecasts_and_bias_files correctly separates out
+    the forecast cube from the forecast error cube(s)."""
+    if not multiple_bias_cubes:
+        forecast_error_cubelist = forecast_error_cubelist[0:]
+    merged_input_cubelist = forecast_error_cubelist.copy()
+    merged_input_cubelist.append(forecast_cube)
+
+    result_forecast_cube, result_bias_cubes = split_forecasts_and_bias_files(
+        merged_input_cubelist
+    )
+
+    assert result_forecast_cube == forecast_cube
+    assert result_bias_cubes == forecast_error_cubelist
+    if not multiple_bias_cubes:
+        assert len(result_bias_cubes) == 1
+
+
+@pytest.mark.parametrize("multiple_bias_cubes", [(True, False)])
+def test_split_forecasts_and_bias_files_missing_fcst(
+    forecast_error_cubelist, multiple_bias_cubes
+):
+    """Test that split_forecasts_and_bias_files raises a ValueError when
+    no forecast cube is provided."""
+    if not multiple_bias_cubes:
+        forecast_error_cubelist = forecast_error_cubelist[0:]
+    with pytest.raises(ValueError, match="No forecast is present"):
+        split_forecasts_and_bias_files(forecast_error_cubelist)
+
+
+def test_split_forecasts_and_bias_files_multiple_fcsts(
+    forecast_cube, forecast_error_cubelist
+):
+    """Test that split_forecasts_and_bias_files raises a ValueError when
+    multiple forecast cubes are provided."""
+    forecast_error_cubelist.append(forecast_cube)
+    forecast_error_cubelist.append(forecast_cube)
+
+    with pytest.raises(ValueError, match="Multiple forecast inputs"):
+        split_forecasts_and_bias_files(forecast_error_cubelist)
 
 
 @pytest.mark.parametrize(
