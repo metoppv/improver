@@ -80,13 +80,13 @@ class SpotManipulation(BasePlugin):
 
         Args:
             apply_lapse_rate_correction (bool):
-                Use to apply a lapse-rate correction to screen temperature data so
-                that the data are a better match the altitude of the spot site for
-                which they have been extracted. This lapse rate will be applied for
-                a fixed orographic difference between the site and gridpoint
-                altitude. Differences in orography in excess of this fixed limit
-                will use the Environmental Lapse Rate (also known as the Standard
-                Atmosphere Lapse Rate).
+                Use to apply a lapse-rate correction to screen temperature
+                forecasts so that they better represent the altitude of the
+                spot site for which they have been extracted. This lapse rate
+                will be applied for a fixed orographic difference between the
+                site and grid point altitude. Differences in orography in
+                excess of this fixed limit will use the Environmental Lapse
+                Rate (also known as the Standard Atmosphere Lapse Rate).
             fixed_lapse_rate (float):
                 If provided, use this fixed value as a lapse-rate for adjusting
                 the forecast values if apply_lapse_rate_correction is True. This
@@ -197,7 +197,7 @@ class SpotManipulation(BasePlugin):
                     )(result, percentiles=extract_percentiles)
                     result = iris.util.squeeze(result)
                 elif result.coords("realization", dim_coords=True):
-                    fast_percentile_method = not np.ma.isMaskedArray(result.data)
+                    fast_percentile_method = not np.ma.is_masked(result.data)
                     result = PercentileConverter(
                         "realization",
                         percentiles=extract_percentiles,

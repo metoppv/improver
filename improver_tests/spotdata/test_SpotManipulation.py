@@ -204,6 +204,51 @@ def add_grid_hash(target, source):
             {"extract_percentiles": [40, 60]},
             np.array([[277, 277], [279, 279]]),
         ),
+        # Extraction including realization collapse
+        (
+            gridded_variable,
+            np.arange(273, 291).reshape(2, 3, 3),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"realization_collapse": True},
+            np.array([278.5, 279.5]),
+        ),
+        # Percentile extraction derived from realizations
+        (
+            gridded_variable,
+            np.arange(273, 300).reshape(3, 3, 3),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"extract_percentiles": [50]},
+            np.array([283, 284]),
+        ),
+        # Percentile extraction derived from realizations; masked type, no mask
+        (
+            gridded_variable,
+            np.ma.arange(273, 300).reshape(3, 3, 3),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"extract_percentiles": [50]},
+            np.array([283, 284]),
+        ),
+        # Percentile extraction derived from realizations; masked type, masking
+        (
+            gridded_variable,
+            np.ma.masked_array(
+                [
+                    np.arange(273, 282).reshape(3, 3),
+                    np.arange(282, 291).reshape(3, 3),
+                    np.arange(291, 300).reshape(3, 3),
+                    np.arange(300, 309).reshape(3, 3),
+                ],
+                mask=[
+                    np.zeros((3, 3)),
+                    np.zeros((3, 3)),
+                    np.zeros((3, 3)),
+                    np.ones((3, 3)),
+                ],
+            ),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"extract_percentiles": [50]},
+            np.array([283, 284]),
+        ),
     ],
 )
 def test_extraction(ftype, forecast_data, neighbour_cube, kwargs, expected):
