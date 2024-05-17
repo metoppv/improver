@@ -67,7 +67,7 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
         from improver.psychrometric_calculations.psychrometric_calculations import (
             HumidityMixingRatio,
         )
-        self.model_id_attr = model_id_attr
+        model_id_attr = model_id_attr
         self._humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
         self._cloud_condensation_level_plugin = CloudCondensationLevel(model_id_attr=model_id_attr)
 
@@ -178,8 +178,8 @@ class CloudCondensationLevel(PostProcessingPlugin):
 
         """
         cubes = flatten(cubes)
-        (self.temperature, self.pressure, self.humidity,) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure", "relative_humidity"]
+        (self.temperature, self.pressure, self.humidity) = CubeList(cubes).extract(
+            ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
         )
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         return (

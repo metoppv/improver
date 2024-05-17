@@ -68,4 +68,4 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
         MetaPluginCloudCondensationLevel,
     )
 
-    return MetaPluginCloudCondensationLevel(model_id_attr=model_id_attr)(cubes)
+    return MetaPluginCloudCondensationLevel(model_id_attr=model_id_attr)(*cubes)
