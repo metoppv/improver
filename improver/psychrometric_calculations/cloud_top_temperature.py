@@ -46,7 +46,6 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     saturated_humidity,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
-from improver.utilities.flatten import flatten
 
 
 class CloudTopTemperature(PostProcessingPlugin):

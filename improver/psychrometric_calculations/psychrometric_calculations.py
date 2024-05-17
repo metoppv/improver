@@ -47,8 +47,8 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import sort_coord_in_cube
-from improver.utilities.flatten import flatten
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
 from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -353,7 +353,7 @@ class HumidityMixingRatio(BasePlugin):
             Cube of humidity mixing ratio
 
         """
-        cubes = flatten(cubes)
+        cubes = as_cubelist(cubes)
         (self.temperature, self.pressure, self.rel_humidity,) = CubeList(cubes).extract(
             ["air_temperature", "surface_air_pressure", "relative_humidity"]
         )

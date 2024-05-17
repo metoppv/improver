@@ -57,8 +57,7 @@ def process(
     Returns:
         iris.cube.Cube
     """
-    from improver.metadata.amend import amend_attributes
+    from improver.utilities.copy_attributes import CopyAttributes
 
-    new_attributes = {k: template_cube.attributes[k] for k in attributes}
-    amend_attributes(cube, new_attributes)
-    return cube
+    plugin = CopyAttributes(attributes)
+    return plugin(cube, template_cube=template_cube)

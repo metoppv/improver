@@ -45,7 +45,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
-from improver.utilities.flatten import flatten
+from improver.utilities.common_input_handle import as_cubelist
 
 
 class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
@@ -177,7 +177,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
             air_pressure_at_cloud_condensation_level
 
         """
-        cubes = flatten(cubes)
+        cubes = as_cubelist(cubes)
         (self.temperature, self.pressure, self.humidity) = CubeList(cubes).extract(
             ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
         )

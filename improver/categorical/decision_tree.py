@@ -69,7 +69,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.flatten import flatten
+from improver.utilities.common_input_handle import as_cubelist
 
 
 def _define_invertible_conditions() -> Dict[str, str]:
@@ -192,7 +192,7 @@ class ApplyDecisionTree(BasePlugin):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
-        cubes = CubeList(flatten(cubes))
+        cubes = as_cubelist(cubes)
         
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
