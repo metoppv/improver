@@ -85,24 +85,13 @@ def process(
         iris.cube.Cube:
             A cube of categorical data.
     """
-    if check_tree:
-        from improver.categorical.utilities import check_tree
-
-        return check_tree(decision_tree, target_period=target_period)
-
-    from iris.cube import CubeList
-
     from improver.categorical.decision_tree import ApplyDecisionTree
-    from improver.utilities.flatten import flatten
 
-    if not cubes:
-        raise RuntimeError("Not enough input arguments. See help for more information.")
-
-    cubes = flatten(cubes)
     return ApplyDecisionTree(
         decision_tree,
         model_id_attr=model_id_attr,
         record_run_attr=record_run_attr,
         target_period=target_period,
         title=title,
-    )(CubeList(cubes))
+        check_tree=check_tree,
+    )(*cubes)
