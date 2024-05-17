@@ -89,4 +89,4 @@ def process(
         new_name=new_name,
         cell_method_coordinate=cell_method_coordinate,
         expand_bound=expand_bound,
-    )(CubeList(cubes))
+    )(*cubes)

@@ -49,6 +49,7 @@ from improver.utilities.cube_manipulation import (
     expand_bounds,
     filter_realizations,
 )
+from improver.utilities.flatten import flatten
 
 
 class Combine(BasePlugin):
@@ -109,7 +110,7 @@ class Combine(BasePlugin):
             expand_bound=self.expand_bound,
         )
 
-    def process(self, cubes: CubeList) -> Cube:
+    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
         """
         Preprocesses the cubes, then passes them to the appropriate plugin
 
@@ -128,8 +129,9 @@ class Combine(BasePlugin):
             ValueError:
                 If minimum_realizations aren't met, or less than one were requested.
         """
-        if not cubes:
+        if not cubes or all([not cube for cube in cubes]):
             raise TypeError("A cube is needed to be combined.")
+        cubes = CubeList(flatten(cubes))
         if self.new_name is None:
             self.new_name = cubes[0].name()
 
