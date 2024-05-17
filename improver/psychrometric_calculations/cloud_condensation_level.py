@@ -169,7 +169,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
 
         Args:
             cubes:
-                Cubes, in this order, of temperature (K), pressure (Pa)
+                Cubes, of temperature (K), pressure (Pa)
                 and humidity mixing ratio (kg kg-1)
 
         Returns:

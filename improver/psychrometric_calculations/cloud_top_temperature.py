@@ -29,9 +29,10 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module containing the CloudTopTemperature plugin"""
+from typing import Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
@@ -45,6 +46,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     saturated_humidity,
 )
 from improver.utilities.cube_checker import assert_spatial_coords_match
+from improver.utilities.flatten import flatten
 
 
 class CloudTopTemperature(PostProcessingPlugin):
@@ -138,23 +140,23 @@ class CloudTopTemperature(PostProcessingPlugin):
         )
         return cube
 
-    def process(self, t_at_ccl: Cube, p_at_ccl: Cube, temperature: Cube) -> Cube:
+    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
         """
 
         Args:
-            t_at_ccl:
-                temperature at cloud condensation level
-            p_at_ccl:
-                pressure at cloud condensation level
-            temperature:
-                temperature on pressure levels
+            cubes:
+                Cubes, of 'temperature at cloud condensation level',
+                'pressure at cloud condensation level' and 'temperature on pressure levels'.
 
         Returns:
             Cube of cloud top temperature
         """
-        self.t_at_ccl = t_at_ccl
-        self.p_at_ccl = p_at_ccl
-        self.temperature = temperature
+        (self.t_at_ccl, self.p_at_ccl, self.temperature) = CubeList(cubes).extract(
+            ["air_temperature_at_condensation_level",
+             "air_pressure_at_condensation_level",
+             "air_temperature"]
+        )
+
         assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")
         self.t_at_ccl.convert_units("K")
