@@ -85,6 +85,11 @@ def process(
         iris.cube.Cube:
             A cube of categorical data.
     """
+    if check_tree:
+        from improver.categorical.utilities import check_tree
+
+        # WARNING: This means that we do not return our input data
+        return check_tree(decision_tree, target_period=target_period)
     from improver.categorical.decision_tree import ApplyDecisionTree
 
     return ApplyDecisionTree(
@@ -93,5 +98,4 @@ def process(
         record_run_attr=record_run_attr,
         target_period=target_period,
         title=title,
-        check_tree=check_tree,
     )(*cubes)

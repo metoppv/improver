@@ -69,6 +69,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.flatten import flatten
 
 
 def _define_invertible_conditions() -> Dict[str, str]:
@@ -110,7 +111,6 @@ class ApplyDecisionTree(BasePlugin):
         record_run_attr: Optional[str] = None,
         target_period: Optional[int] = None,
         title: Optional[str] = None,
-        check_tree: Optional[bool] = False,
     ) -> None:
         """
         Define a decision tree for determining a category based upon
@@ -138,12 +138,6 @@ class ApplyDecisionTree(BasePlugin):
                 output. This will override the title generated from
                 the inputs, where this generated title is only set if all of the
                 inputs share a common title.
-            check_tree (bool):
-                If set, the decision tree will be checked to see if it conforms to
-                the expected format and that all nodes can be reached; the only other
-                argument required is the path to the decision tree. If the tree is found
-                to be valid the required inputs will be listed. Setting this flag will
-                prevent the CLI performing any other actions.  Optional.
 
         float_tolerance defines the tolerance when matching thresholds to allow
         for the difficulty of float comparisons.
@@ -168,11 +162,6 @@ class ApplyDecisionTree(BasePlugin):
         # (defaults to False, checked on reading input cubes)
         self.coord_named_threshold = False
 
-        if check_tree:
-            from improver.categorical.utilities import check_tree
-
-            return check_tree(decision_tree, target_period=target_period)
-
     def __repr__(self) -> str:
         """Represent the configured plugin instance as a string."""
         return "<ApplyDecisionTree start_node={}>".format(self.start_node)
@@ -190,7 +179,7 @@ class ApplyDecisionTree(BasePlugin):
 
         Args:
             cubes:
-                A CubeList containing the input diagnostic cubes.
+                Input diagnostic cubes.
 
         Returns:
             - A CubeList containing only the required cubes.
@@ -203,8 +192,7 @@ class ApplyDecisionTree(BasePlugin):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
-        from improver.utilities.flatten import flatten
-        cubes = flatten(cubes)
+        cubes = CubeList(flatten(cubes))
         
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
@@ -839,15 +827,11 @@ class ApplyDecisionTree(BasePlugin):
 
         Args:
             cubes:
-                A list of diagnostics required for the decision tree, these at
-                co-incident times.
+                Diagnostics required for the decision tree, these at co-incident times.
 
         Returns:
             A cube of categorical data.
         """
-        if not cubes:
-            raise RuntimeError("Not enough input arguments. See help for more information.")
-
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
         cubes, optional_node_data_missing = self.prepare_input_cubes(cubes)
