@@ -64,24 +64,8 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
                 Cube of pressure at cloud condensation level (Pa)
 
     """
-    from iris.cube import CubeList
-
     from improver.psychrometric_calculations.cloud_condensation_level import (
-        CloudCondensationLevel,
-    )
-    from improver.psychrometric_calculations.psychrometric_calculations import (
-        HumidityMixingRatio,
-    )
-    from improver.utilities.flatten import flatten
-
-    cubes = flatten(cubes)
-    (temperature, pressure, humidity,) = CubeList(cubes).extract(
-        ["air_temperature", "surface_air_pressure", "relative_humidity"]
+        MetaPluginCloudCondensationLevel,
     )
 
-    humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
-    humidity = humidity_plugin([temperature, pressure, humidity])
-
-    return CloudCondensationLevel(model_id_attr=model_id_attr)(
-        [humidity_plugin.temperature, humidity_plugin.pressure, humidity]
-    )
+    return MetaPluginCloudCondensationLevel(model_id_attr=model_id_attr)(cubes)

@@ -48,6 +48,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import sort_coord_in_cube
+from improver.utilities.flatten import flatten
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
 from improver.utilities.spatial import OccurrenceWithinVicinity
@@ -340,20 +341,24 @@ class HumidityMixingRatio(BasePlugin):
         )
         return cube
 
-    def process(self, cubes: List[Cube]) -> Cube:
+    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
         """
         Calculates the humidity mixing ratio from the inputs.
 
         Args:
             cubes:
-                Cubes, in this order, of temperature (K), pressure (Pa) and relative humidity (1)
+                Cubes, of temperature (K), pressure (Pa) and relative humidity (1)
 
         Returns:
             Cube of humidity mixing ratio
 
         """
-        self.mandatory_attributes = generate_mandatory_attributes(cubes)
-        self.temperature, self.pressure, self.rel_humidity = cubes
+        cubes = flatten(cubes)
+        (self.temperature, self.pressure, self.rel_humidity,) = CubeList(cubes).extract(
+            ["air_temperature", "surface_air_pressure", "relative_humidity"]
+        )
+
+        self.mandatory_attributes = generate_mandatory_attributes([self.temperature, self.pressure, self.rel_humidity])
         humidity = (
             saturated_humidity(self.temperature.data, self.pressure.data)
             * self.rel_humidity.data
