@@ -193,7 +193,7 @@ class ApplyDecisionTree(BasePlugin):
                 The error includes details of which fields are missing.
         """
         cubes = as_cubelist(*cubes)
-        
+
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
 
@@ -822,7 +822,7 @@ class ApplyDecisionTree(BasePlugin):
                 raise RuntimeError(msg)
         return res
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Apply the decision tree to the input cubes to produce categorical output.
 
         Args:

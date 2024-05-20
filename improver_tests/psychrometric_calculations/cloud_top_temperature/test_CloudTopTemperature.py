@@ -30,7 +30,7 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the CloudTopTemperature plugin"""
 import copy
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -52,6 +52,58 @@ POST_PROCESSED_MANDATORY_ATTRIBUTES = copy.deepcopy(LOCAL_MANDATORY_ATTRIBUTES)
 POST_PROCESSED_MANDATORY_ATTRIBUTES[
     "title"
 ] = f"Post-Processed {POST_PROCESSED_MANDATORY_ATTRIBUTES['title']}"
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.cloud_top_temperature.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        CloudTopTemperature(model_id_attr=sentinel.model_id_attr)(
+            sentinel.t_at_ccl, sentinel.p_at_ccl, sentinel.temperature
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.t_at_ccl, sentinel.p_at_ccl, sentinel.temperature
+    )
+
+
+@patch(
+    "improver.psychrometric_calculations.cloud_top_temperature.assert_spatial_coords_match"
+)
+@pytest.mark.parametrize(
+    "cube_names",
+    [
+        (
+            "air_temperature_at_cloud_condensation_level",
+            "air_pressure_at_cloud_condensation_level",
+            "temperature_on_pressure_levels",
+        ),
+        (
+            "air_temperature_at_condensation_level",
+            "air_pressure_at_condensation_level",
+            "temperature_on_pressure_levels",
+        ),
+    ],
+)
+def test_cube_extraction(mock_assert_spatial_coords_match, cube_names):
+    mock_assert_spatial_coords_match.side_effect = HaltExecution
+    t_at_ccl = Cube(None, long_name=cube_names[0])
+    p_at_ccl = Cube(None, long_name=cube_names[1])
+    temperature = Cube(None, long_name=cube_names[2])
+    try:
+        CloudTopTemperature(model_id_attr=sentinel.model_id_attr)(
+            t_at_ccl, p_at_ccl, temperature
+        )
+    except HaltExecution:
+        pass
+    mock_assert_spatial_coords_match.assert_called_once_with(
+        [t_at_ccl, p_at_ccl, temperature]
+    )
 
 
 @pytest.fixture(name="t_at_ccl")

@@ -29,7 +29,7 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Module to contain CloudCondensationLevel plugin."""
-from typing import List, Tuple, Union
+from typing import Tuple, Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -67,14 +67,17 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
         from improver.psychrometric_calculations.psychrometric_calculations import (
             HumidityMixingRatio,
         )
+
         model_id_attr = model_id_attr
         self._humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
-        self._cloud_condensation_level_plugin = CloudCondensationLevel(model_id_attr=model_id_attr)
+        self._cloud_condensation_level_plugin = CloudCondensationLevel(
+            model_id_attr=model_id_attr
+        )
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Tuple[Cube, Cube]:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
         """
-        Calls the HumidityMixingRatio plugin to calculate humidity mixing ratio from relative humidity.
-        Calls the CloudCondensationLevel plugin to calculate cloud condensation level.
+        Call HumidityMixingRatio followed by CloudCondensationLevel to calculate cloud
+        condensation level.
 
         Args:
             cubes:
@@ -87,7 +90,8 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
         """
         humidity = self._humidity_plugin(*cubes)
         return self._cloud_condensation_level_plugin(
-            self._humidity_plugin.temperature, self._humidity_plugin.pressure, humidity)
+            self._humidity_plugin.temperature, self._humidity_plugin.pressure, humidity
+        )
 
 
 class CloudCondensationLevel(PostProcessingPlugin):
@@ -163,7 +167,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
         )
         return ccl_pressure, ccl_temperature
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Tuple[Cube, Cube]:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
         """
         Calculates the cloud condensation level from the near-surface inputs.
 

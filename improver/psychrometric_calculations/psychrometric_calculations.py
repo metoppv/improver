@@ -341,7 +341,7 @@ class HumidityMixingRatio(BasePlugin):
         )
         return cube
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Calculates the humidity mixing ratio from the inputs.
 
@@ -354,11 +354,18 @@ class HumidityMixingRatio(BasePlugin):
 
         """
         cubes = as_cubelist(*cubes)
-        (self.temperature, self.pressure, self.rel_humidity,) = CubeList(cubes).extract(
-            ["air_temperature", "surface_air_pressure", "relative_humidity"]
-        )
+        try:
+            (self.temperature, self.pressure, self.rel_humidity,) = cubes.extract(
+                ["air_temperature", "surface_air_pressure", "relative_humidity"]
+            )
+        except ValueError:
+            (self.temperature, self.pressure, self.rel_humidity,) = cubes.extract(
+                ["air_temperature", "air_pressure", "relative_humidity"]
+            )
 
-        self.mandatory_attributes = generate_mandatory_attributes([self.temperature, self.pressure, self.rel_humidity])
+        self.mandatory_attributes = generate_mandatory_attributes(
+            [self.temperature, self.pressure, self.rel_humidity]
+        )
         humidity = (
             saturated_humidity(self.temperature.data, self.pressure.data)
             * self.rel_humidity.data

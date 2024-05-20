@@ -110,7 +110,7 @@ class Combine(BasePlugin):
             expand_bound=self.expand_bound,
         )
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Preprocesses the cubes, then passes them to the appropriate plugin
 

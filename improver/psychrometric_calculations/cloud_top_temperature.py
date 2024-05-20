@@ -45,6 +45,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
@@ -139,7 +140,7 @@ class CloudTopTemperature(PostProcessingPlugin):
         )
         return cube
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
 
         Args:
@@ -150,11 +151,26 @@ class CloudTopTemperature(PostProcessingPlugin):
         Returns:
             Cube of cloud top temperature
         """
-        (self.t_at_ccl, self.p_at_ccl, self.temperature) = CubeList(cubes).extract(
-            ["air_temperature_at_condensation_level",
-             "air_pressure_at_condensation_level",
-             "air_temperature"]
-        )
+        try:
+            (self.t_at_ccl, self.p_at_ccl, self.temperature) = as_cubelist(
+                *cubes
+            ).extract(
+                [
+                    "air_temperature_at_condensation_level",
+                    "air_pressure_at_condensation_level",
+                    "temperature_on_pressure_levels",
+                ]
+            )
+        except ValueError:
+            (self.t_at_ccl, self.p_at_ccl, self.temperature) = as_cubelist(
+                *cubes
+            ).extract(
+                [
+                    "air_temperature_at_cloud_condensation_level",
+                    "air_pressure_at_cloud_condensation_level",
+                    "temperature_on_pressure_levels",
+                ]
+            )
 
         assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")

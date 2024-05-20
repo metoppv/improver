@@ -49,7 +49,7 @@ class HaltExecution(Exception):
 def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:
-        Combine('+')(sentinel.cube1, sentinel.cube2)
+        Combine("+")(sentinel.cube1, sentinel.cube2)
     except HaltExecution:
         pass
     mock_as_cubelist.assert_called_once_with(sentinel.cube1, sentinel.cube2)

@@ -57,11 +57,43 @@ def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.side_effect = HaltExecution
     try:
         HumidityMixingRatio()(
-            sentinel.air_temperature, sentinel.surface_air_pressure, sentinel.relative_humidity)
+            sentinel.air_temperature,
+            sentinel.surface_air_pressure,
+            sentinel.relative_humidity,
+        )
     except HaltExecution:
         pass
     mock_as_cubelist.assert_called_once_with(
-        sentinel.air_temperature, sentinel.surface_air_pressure, sentinel.relative_humidity)
+        sentinel.air_temperature,
+        sentinel.surface_air_pressure,
+        sentinel.relative_humidity,
+    )
+
+
+@patch(
+    "improver.psychrometric_calculations.psychrometric_calculations.generate_mandatory_attributes"
+)
+@pytest.mark.parametrize(
+    "cube_names",
+    [
+        ("air_temperature", "surface_air_pressure", "relative_humidity"),
+        ("air_temperature", "air_pressure", "relative_humidity"),
+    ],
+)
+def test_cube_extraction(mock_generate_mandatory_attributes, cube_names):
+    mock_generate_mandatory_attributes.side_effect = HaltExecution
+    temp = Cube(None, long_name=cube_names[0])
+    pressure = Cube(None, long_name=cube_names[1])
+    humidity = Cube(None, long_name=cube_names[2])
+    try:
+        HumidityMixingRatio(model_id_attr=sentinel.model_id_attr)(
+            pressure, humidity, temp
+        )
+    except HaltExecution:
+        pass
+    mock_generate_mandatory_attributes.assert_called_once_with(
+        [temp, pressure, humidity]
+    )
 
 
 @pytest.fixture(name="temperature")
