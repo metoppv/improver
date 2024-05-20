@@ -59,7 +59,7 @@ def process(
     The smoothing coefficients are calculated from the orography gradient using
     a simple equation with the user defined value for the power:
 
-    smoothing_coefficient = coefficient * gradient**power
+    smoothing_coefficient = gradient**power
 
     The resulting values are scaled between min_gradient_smoothing_coefficient
     and max_gradient_smoothing_coefficient to give the desired range of
