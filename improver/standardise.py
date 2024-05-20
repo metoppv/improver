@@ -47,6 +47,7 @@ from improver.metadata.check_datatypes import (
     get_required_units,
 )
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.utilities.common_input_handle import as_cube
 from improver.utilities.round import round_close
 
 
@@ -270,6 +271,7 @@ class StandardiseMetadata(BasePlugin):
         Returns:
             The processed cube
         """
+        cube = as_cube(cube)
         cube = self._rm_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
 

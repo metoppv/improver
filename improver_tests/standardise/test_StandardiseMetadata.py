@@ -32,6 +32,7 @@
 
 import unittest
 from datetime import datetime
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -40,6 +41,27 @@ from iris.tests import IrisTest
 
 from improver.standardise import StandardiseMetadata
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.standardise.as_cube")
+def test_as_cubelist_called(mock_as_cube):
+    mock_as_cube.side_effect = HaltExecution
+    try:
+        StandardiseMetadata()(
+            sentinel.cube,
+            new_name=sentinel.new_name,
+            new_units=sentinel.new_units,
+            coords_to_remove=sentinel.coords_to_remove,
+            coord_modification=sentinel.coord_modification,
+            attributes_dict=sentinel.attributes_dict,
+        )
+    except HaltExecution:
+        pass
+    mock_as_cube.assert_called_once_with(sentinel.cube)
 
 
 class Test_process(IrisTest):

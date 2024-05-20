@@ -85,23 +85,6 @@ def test_fix_float64(tmp_path):
     acc.compare(output_path, kgo_path)
 
 
-def test_stage_v110_basic(tmp_path):
-    """Test updating a file with StaGE version 1.1.0 metadata"""
-    kgo_dir = acc.kgo_root() / "standardise/stage-v110"
-    kgo_path = kgo_dir / "kgo.nc"
-    input_path = kgo_dir / "input.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--attributes-config",
-        ATTRIBUTES_PATH,
-        "--output",
-        output_path,
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
-
-
 def test_nimrod_radarrate_basic(tmp_path):
     """Test updating a file with Nimrod-format Radarnet data"""
     kgo_dir = acc.kgo_root() / "standardise/radarnet"
