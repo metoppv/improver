@@ -78,7 +78,7 @@ class Test_create_difference_cube(IrisTest):
         self.assertArrayEqual(result.data, diff_array)
 
     def test_x_dimension_for_circular_latlon_cube(self):
-        """Test differences calculated along the x dimension."""
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
         test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         test_cube_x_grid_spacing = 120
         test_cube = set_up_variable_cube(

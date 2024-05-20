@@ -31,8 +31,10 @@
 """ Provides support utilities."""
 
 import copy
+import warnings
 from typing import List, Optional, Tuple, Union
 
+from scipy.stats import circmean
 import cartopy.crs as ccrs
 import iris
 import netCDF4
@@ -192,8 +194,43 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
 
     @staticmethod
-    def _axis_wraps_around_meridian(axis: Coord, cube: Cube):
+    def _axis_wraps_around_meridian(axis: Coord, cube: Cube) -> bool:
+        """Returns true if the cube is 'circular' with the given axis wrapping around, i.e. if there
+        is a smooth transition between 180 degrees and -180 degrees on the axis.
+
+        Args:
+            axis:
+                Axis to check for circularity.
+            cube:
+                The cube to which the axis belongs.
+
+        Returns:
+            True if the axis wraps around the meridian; false otherwise.
+        """
         return axis.circular and axis == cube.coord(axis="x")
+
+    @staticmethod
+    def _get_wrap_around_mean_point(points: ndarray) -> float:
+        """
+        Calculates the midpoint between the two x coordinate points nearest the meridian.
+
+        args:
+            points:
+                The x coordinate points of the cube.
+
+        returns:
+            The x value of the midpoint between the two x coordinate points nearest the meridian.
+        """
+        if np.min(points) < 0:
+            min_azimuth = -180
+            max_azimuth = 180
+        else:
+            min_azimuth = 0
+            max_azimuth - 360
+        extra_mean_point = circmean([points[-1], points[0]], max_azimuth, min_azimuth)
+        if np.isclose(extra_mean_point, -180, atol=1e-4):
+            extra_mean_point = 180
+        return extra_mean_point
 
     @staticmethod
     def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str) -> None:
@@ -218,8 +255,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         self, cube: Cube, coord_name: str, diff_along_axis: ndarray
     ) -> Cube:
         """
-        Put the difference array into a cube with the appropriate
-        metadata.
+        Put the difference array into a cube with the appropriate metadata.
 
         Args:
             cube:
@@ -239,12 +275,16 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         mean_points = (points[1:] + points[:-1]) / 2
         if self._axis_wraps_around_meridian(axis, cube):
             if type(axis.coord_system) != GeogCS:
-                raise ValueError(
-                    "DifferenceBetweenAdjacentGridSquares does not currently support cubes with "
-                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
+                warnings.warn(
+                    "DifferenceBetweenAdjacentGridSquares does not fully support cubes with "
+                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system. "
+                    "Such cubes will be handled as if they were not circular, meaning that the "
+                    "differences cube returned will have one fewer points along the specified axis"
+                    "than the input cube."
                 )
-            extra_mean_point = np.mean([points[-1], (points[0] + 360)]) % 360
-            mean_points = np.hstack([mean_points, extra_mean_point])
+            else:
+                extra_mean_point = self._get_wrap_around_mean_point(points)
+                mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
         # Create a new coordinate for the coordinate along which the
@@ -284,8 +324,8 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_axis_number = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis_number)
         if self._axis_wraps_around_meridian(diff_axis, cube):
-            first_column = cube.data[:, :1]
-            last_column = cube.data[:, -1:]
+            first_column = cube.data[:, 0].reshape([-1, 1])
+            last_column = cube.data[:, -1].reshape([-1, 1])
             wrap_around_diff = np.diff(
                 np.hstack([last_column, first_column]), axis=diff_axis_number
             )
