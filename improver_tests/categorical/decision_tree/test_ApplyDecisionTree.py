@@ -33,6 +33,7 @@
 import unittest
 from datetime import datetime as dt
 from datetime import timedelta
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -54,6 +55,22 @@ from improver.synthetic_data.set_up_test_cubes import (
 )
 
 from . import deterministic_diagnostic_tree, wxcode_decision_tree
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.categorical.decision_tree.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+            sentinel.precip_cube, sentinel.hail_cube
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(sentinel.precip_cube, sentinel.hail_cube)
 
 
 @pytest.fixture()

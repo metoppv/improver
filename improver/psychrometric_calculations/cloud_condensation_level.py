@@ -85,7 +85,7 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
             air_pressure_at_cloud_condensation_level
 
         """
-        humidity = self._humidity_plugin(cubes)
+        humidity = self._humidity_plugin(*cubes)
         return self._cloud_condensation_level_plugin(
             self._humidity_plugin.temperature, self._humidity_plugin.pressure, humidity)
 

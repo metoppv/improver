@@ -29,6 +29,8 @@
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
 """Tests for the HumidityMixingRatio plugin"""
+from unittest.mock import patch, sentinel
+
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -44,6 +46,22 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "source": "unit test",
     "institution": "somewhere",
 }
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.psychrometric_calculations.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        HumidityMixingRatio()(
+            sentinel.air_temperature, sentinel.surface_air_pressure, sentinel.relative_humidity)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.air_temperature, sentinel.surface_air_pressure, sentinel.relative_humidity)
 
 
 @pytest.fixture(name="temperature")

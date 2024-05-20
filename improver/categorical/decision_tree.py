@@ -192,7 +192,7 @@ class ApplyDecisionTree(BasePlugin):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
-        cubes = as_cubelist(cubes)
+        cubes = as_cubelist(*cubes)
         
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
@@ -834,7 +834,7 @@ class ApplyDecisionTree(BasePlugin):
         """
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
-        cubes, optional_node_data_missing = self.prepare_input_cubes(cubes)
+        cubes, optional_node_data_missing = self.prepare_input_cubes(*cubes)
 
         # Reroute the decision tree around missing optional nodes
         if optional_node_data_missing is not None:

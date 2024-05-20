@@ -353,7 +353,7 @@ class HumidityMixingRatio(BasePlugin):
             Cube of humidity mixing ratio
 
         """
-        cubes = as_cubelist(cubes)
+        cubes = as_cubelist(*cubes)
         (self.temperature, self.pressure, self.rel_humidity,) = CubeList(cubes).extract(
             ["air_temperature", "surface_air_pressure", "relative_humidity"]
         )
