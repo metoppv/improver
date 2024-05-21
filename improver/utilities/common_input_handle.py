@@ -51,8 +51,13 @@ def as_cubelist(*cubes: Union[Cube, CubeList]):
             A CubeList containing all the cubes provided as input.
     """
     if not cubes or all([not cube for cube in cubes]):
-        raise ValueError("One or more cube should be provided.")
-    return CubeList(flatten(cubes))
+        raise ValueError("One or more cubes should be provided.")
+    cubes = CubeList(flatten(cubes))
+    # Remove CubeList verification for iris >=3.3.0
+    for cube in cubes:
+        if not hasattr(cube, "add_aux_coord"):
+            raise TypeError("CubeList contains a non iris Cube object.")
+    return cubes
 
 
 def as_cube(cube: Union[Cube, CubeList]):
@@ -63,7 +68,7 @@ def as_cube(cube: Union[Cube, CubeList]):
 
     Args:
         cube:
-            Input data provided in the form of a cube ir cubelists.
+            Input data provided in the form of a cube or cubelists.
 
     Returns:
         Cube:
@@ -75,6 +80,6 @@ def as_cube(cube: Union[Cube, CubeList]):
         if len(cube) > 1:
             raise ValueError("A single cube should be provided.")
         cube = cube[0]
-    elif not isinstance(cube, Cube):
+    if not isinstance(cube, Cube):
         raise TypeError("A cube should be provided.")
     return cube

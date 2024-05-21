@@ -68,7 +68,6 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
             HumidityMixingRatio,
         )
 
-        model_id_attr = model_id_attr
         self._humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
         self._cloud_condensation_level_plugin = CloudCondensationLevel(
             model_id_attr=model_id_attr

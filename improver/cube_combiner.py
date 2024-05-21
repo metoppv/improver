@@ -129,10 +129,7 @@ class Combine(BasePlugin):
             ValueError:
                 If minimum_realizations aren't met, or less than one were requested.
         """
-        try:
-            cubes = as_cubelist(*cubes)
-        except ValueError:
-            raise ValueError("A cube is needed to be combined.")
+        cubes = as_cubelist(*cubes)
 
         if self.new_name is None:
             self.new_name = cubes[0].name()

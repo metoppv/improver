@@ -157,9 +157,3 @@ def test_minimum_realizations_exceptions(
     """Ensure specifying too few realizations will raise an error"""
     with pytest.raises(error_class, match=msg):
         Combine("+", minimum_realizations=minimum_realizations)(realization_cubes)
-
-
-def test_empty_cubelist():
-    """Ensure supplying an empty CubeList raises an error"""
-    with pytest.raises(ValueError, match="A cube is needed to be combined."):
-        Combine("+")(CubeList())

@@ -35,35 +35,61 @@ from improver.utilities.common_input_handle import as_cubelist
 
 
 def test_cubelist_as_cubelist():
+    """Test that a CubeList is returned when a CubeList is provided."""
     cube = Cube([0])
-    res = as_cubelist(cube)
+    cubes = CubeList([cube])
+    res = as_cubelist(cubes)
     assert isinstance(res, CubeList)
     assert id(res[0]) == id(cube)
 
 
 def test_cube_as_cubelist():
+    """Test that a CubeList is returned when a Cube is provided."""
     cube = Cube([0])
-    res = as_cubelist(cube)
+    res = as_cubelist([cube])
     assert isinstance(res, CubeList)
     assert id(res[0]) == id(cube)
 
 
 def test_cube_cubelist_mixture_as_cubelist():
+    """
+    Test that a CubeList is returned when a mixture of Cubes and CubeLists
+    is provided.  Additionally demonstrate that the order of the input
+    is preserved in the output.
+    """
     cube = Cube([0])
-    cubes = CubeList([cube])
+    cube2 = Cube([0])
+    cubes = CubeList([cube2])
+
+    # order1
     res = as_cubelist(cube, cubes)
     assert isinstance(res, CubeList)
     assert id(res[0]) == id(cube)
+    assert id(res[1]) == id(cube2)
+
+    # order2
+    res = as_cubelist(cubes, cube)
+    assert isinstance(res, CubeList)
+    assert id(res[0]) == id(cube2)
     assert id(res[1]) == id(cube)
 
 
-def test_argument_provided():
-    msg = "One or more cube should be provided."
+def test_no_argument_provided():
+    """Test when no argument has been provided."""
+    msg = "One or more cubes should be provided."
     with pytest.raises(ValueError, match=msg):
         as_cubelist(None)
 
 
-def test_no_cube_provided():
-    msg = "One or more cube should be provided."
+def test_empty_list_provided():
+    """Test when an empty list is provided."""
+    msg = "One or more cubes should be provided."
     with pytest.raises(ValueError, match=msg):
         as_cubelist([])
+
+
+def test_non_cube_cubelist_provided():
+    """Test when a CubeList containing a non cube would otherwise be provided."""
+    msg = "CubeList contains a non iris Cube object."
+    with pytest.raises(TypeError, match=msg):
+        as_cubelist(CubeList(["not_a_cube"]))

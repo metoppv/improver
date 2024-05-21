@@ -32,16 +32,14 @@
 """CLI to generate the convective cloud top temperature from CCL and temperature profile data."""
 from improver import cli
 
-# Creates the value_converter that clize needs.
-input_ccl = cli.create_constrained_inputcubelist_converter(
-    "air_temperature_at_condensation_level", "air_pressure_at_condensation_level"
-)
-
 
 @cli.clizefy
 @cli.with_output
 def process(
-    ccl_cubes: input_ccl, temperature: cli.inputcube, *, model_id_attr: str = None
+    ccl_cubes: cli.inputcubelist,
+    temperature: cli.inputcube,
+    *,
+    model_id_attr: str = None,
 ):
     """Module to calculate the convective cloud top temperature from the
     cloud condensation level temperature and pressure, and temperature

@@ -151,26 +151,33 @@ class CloudTopTemperature(PostProcessingPlugin):
         Returns:
             Cube of cloud top temperature
         """
-        try:
-            (self.t_at_ccl, self.p_at_ccl, self.temperature) = as_cubelist(
-                *cubes
-            ).extract(
-                [
-                    "air_temperature_at_condensation_level",
-                    "air_pressure_at_condensation_level",
-                    "temperature_on_pressure_levels",
-                ]
-            )
-        except ValueError:
-            (self.t_at_ccl, self.p_at_ccl, self.temperature) = as_cubelist(
-                *cubes
-            ).extract(
-                [
-                    "air_temperature_at_cloud_condensation_level",
-                    "air_pressure_at_cloud_condensation_level",
-                    "temperature_on_pressure_levels",
-                ]
-            )
+        cubes = as_cubelist(*cubes)
+        self.t_at_ccl = cubes.extract(
+            [
+                "air_temperature_at_condensation_level",
+                "air_temperature_at_cloud_condensation_level",
+            ]
+        )
+        self.p_at_ccl = cubes.extract(
+            [
+                "air_pressure_at_condensation_level",
+                "air_pressure_at_cloud_condensation_level",
+            ]
+        )
+        self.temperature = cubes.extract(
+            ["temperature_on_pressure_levels", "air_temperature"]
+        )
+        for cube in [self.t_at_ccl, self.p_at_ccl, self.temperature]:
+            if not cube or len(cube) != 1:
+                raise ValueError(
+                    "The input cubes must contain exactly one 'temperature at cloud "
+                    "condensation level', 'pressure at cloud condensation level' and "
+                    "'temperature on pressure levels'.  "
+                    f"Cubes provided: {[cube.name() for cube in cubes]}"
+                )
+        self.t_at_ccl = self.t_at_ccl[0]
+        self.p_at_ccl = self.p_at_ccl[0]
+        self.temperature = self.temperature[0]
 
         assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")

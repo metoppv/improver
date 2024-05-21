@@ -60,7 +60,7 @@ def test_copy_attributes_multi_input():
 
     Demonstrates copying attributes from the template cube to the input
     cubes and also demonstrates the attributes on the templates cube that
-    aren't specified in the attributes list awre indeed ignored.
+    aren't specified in the attributes list are indeed ignored.
     """
     attributes = ["attribA", "attribB"]
     cube0 = Cube([0], attributes={"attribA": "valueA", "attribB": "valueB"})
@@ -85,7 +85,9 @@ def test_copy_attributes_single_input():
     As per 'test_copy_attributes_multi_input' except only one input cube is provided.
     """
     attributes = ["attribA", "attribB"]
-    cube0 = Cube([0], attributes={"attribA": "valueA", "attribB": "valueB"})
+    cube0 = Cube(
+        [0], attributes={"attribA": "valueA", "attribB": "valueB", "attribD": "valueD"}
+    )
     template_cube = Cube(
         [0], attributes={"attribA": "tempA", "attribB": "tempB", "attribC": "tempC"}
     )
@@ -95,5 +97,6 @@ def test_copy_attributes_single_input():
     assert type(result) == Cube
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"
+    assert result.attributes["attribD"] == "valueD"
     assert "attribC" not in result.attributes
     assert id(result) == id(cube0)

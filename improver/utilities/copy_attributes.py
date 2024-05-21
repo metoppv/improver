@@ -65,9 +65,6 @@ class CopyAttributes(BasePlugin):
             template_cube:
                 Source cube to get attribute values from.
 
-        Raises:
-            KeyError: If any of the attributes are not present on the template_cube.
-
         Returns:
             Updated cube(s).
 

@@ -106,6 +106,16 @@ def test_cube_extraction(mock_assert_spatial_coords_match, cube_names):
     )
 
 
+def test_cube_extraction_missing():
+    t_at_ccl = Cube(None)
+    p_at_ccl = Cube(None)
+    temperature = Cube(None)
+    with pytest.raises(ValueError, match="The input cubes must contain exactly one"):
+        CloudTopTemperature(model_id_attr=sentinel.model_id_attr)(
+            t_at_ccl, p_at_ccl, temperature
+        )
+
+
 @pytest.fixture(name="t_at_ccl")
 def t_at_ccl_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature at Cloud condensation level data"""
