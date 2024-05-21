@@ -1,7 +1,7 @@
 #!/usr/bin/env python
 # (C) Crown copyright, Met Office. All rights reserved.
 #
-# This file is part of improver and is released under a BSD 3-Clause license.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """CLI to generate the convective cloud top temperature from CCL and temperature profile data."""
 from improver import cli
