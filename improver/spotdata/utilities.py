@@ -32,7 +32,7 @@
 """Spot data utilities."""
 
 
-def neighbour_finding_method_name(land_constraint: bool, minimum_dz: bool) -> str:
+def get_neighbour_finding_method_name(land_constraint: bool, minimum_dz: bool) -> str:
     """
     Create a name to describe the neighbour method based on the constraints
     provided.

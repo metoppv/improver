@@ -51,7 +51,7 @@ from improver.utilities.cube_manipulation import collapse_realizations
 
 from .apply_lapse_rate import SpotLapseRateAdjust
 from .spot_extraction import SpotExtraction
-from .utilities import neighbour_finding_method_name
+from .utilities import get_neighbour_finding_method_name
 
 
 class SpotManipulation(BasePlugin):
@@ -141,7 +141,7 @@ class SpotManipulation(BasePlugin):
                 Triggers equal-weighting blending of the realization coord if required.
                 Use this if a threshold coord is also present on the input cube.
         """
-        self.neighbour_selection_method = neighbour_finding_method_name(
+        self.neighbour_selection_method = get_neighbour_finding_method_name(
             land_constraint, similar_altitude
         )
         self.apply_lapse_rate_correction = apply_lapse_rate_correction

@@ -52,9 +52,9 @@ def process(
             height
     """
     from improver.spotdata.height_adjustment import SpotHeightAdjustment
-    from improver.spotdata.utilities import neighbour_finding_method_name
+    from improver.spotdata.utilities import get_neighbour_finding_method_name
 
-    neighbour_selection_method = neighbour_finding_method_name(
+    neighbour_selection_method = get_neighbour_finding_method_name(
         land_constraint=land_constraint, minimum_dz=similar_altitude
     )
 

@@ -33,7 +33,7 @@
 
 import pytest
 
-from improver.spotdata.utilities import neighbour_finding_method_name
+from improver.spotdata.utilities import get_neighbour_finding_method_name
 
 
 @pytest.mark.parametrize(
@@ -45,9 +45,9 @@ from improver.spotdata.utilities import neighbour_finding_method_name
         (False, True, "nearest_minimum_dz"),
     ),
 )
-def test_neighbour_finding_method_name(land_constraint, minimum_dz, expected):
+def test_get_neighbour_finding_method_name(land_constraint, minimum_dz, expected):
     """Test the function for generating the name that describes the neighbour
     finding method."""
 
-    result = neighbour_finding_method_name(land_constraint, minimum_dz)
+    result = get_neighbour_finding_method_name(land_constraint, minimum_dz)
     assert result == expected

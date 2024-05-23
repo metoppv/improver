@@ -20,7 +20,7 @@ from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
-from .utilities import neighbour_finding_method_name
+from .utilities import get_neighbour_finding_method_name
 
 
 class NeighbourSelection(BasePlugin):
@@ -596,7 +596,7 @@ class NeighbourSelection(BasePlugin):
                 )
 
         # Construct a name to describe the neighbour finding method employed
-        method_name = neighbour_finding_method_name(
+        method_name = get_neighbour_finding_method_name(
             self.land_constraint, self.minimum_dz
         )
 
