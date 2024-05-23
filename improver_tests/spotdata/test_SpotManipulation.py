@@ -1,33 +1,8 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
+
 """Unit tests for SpotManipulation class"""
 
 import warnings
@@ -52,7 +27,7 @@ ATTRIBUTES = {"mosg__grid_domain": "global", "mosg__grid_type": "standard"}
 
 
 def gridded_variable(forecast_data):
-    """Create a gridded variable cube from which to extract spot foreasts."""
+    """Create a gridded variable cube from which to extract spot forecasts."""
     height_crd = DimCoord(
         np.array([1.5], dtype=np.float32), standard_name="height", units="m"
     )
@@ -77,14 +52,14 @@ def gridded_lapse_rate(lapse_rates):
 
 
 def gridded_percentiles(forecast_data):
-    """Create a gridded percentile cube from which to extract spot foreasts."""
+    """Create a gridded percentile cube from which to extract spot forecasts."""
     n_percentiles = forecast_data.shape[0]
     percentiles = np.linspace(20, 80, n_percentiles)
     return set_up_percentile_cube(forecast_data, percentiles, attributes=ATTRIBUTES,)
 
 
 def gridded_probabilities(forecast_data):
-    """Create a gridded probability cube from which to extract spot foreasts."""
+    """Create a gridded probability cube from which to extract spot forecasts."""
     n_thresholds = forecast_data.shape[0]
     thresholds = np.linspace(273, 283, n_thresholds)
     return set_up_probability_cube(forecast_data, thresholds, attributes=ATTRIBUTES,)
@@ -267,7 +242,7 @@ def test_extraction(ftype, forecast_data, neighbour_cube, kwargs, expected):
 def test_unknown_prob_type_warning(neighbour_cube):
     """Test a warning is raised if percentiles are requested from a cube from
     which they cannot be extracted and that all data is returned in spot
-    format. In this case that is the 20th and 80th pecentiles are both
+    format. In this case that is the 20th and 80th percentiles are both
     returned rather than the requested 50th percentile. If the
     suppress_warnings option is set then test that no warning is raised."""
 
@@ -363,3 +338,22 @@ def test_missing_lapse_rate_warning(forecast_data, neighbour_cube, kwargs, expec
             result = SpotManipulation(**kwargs)([forecast, neighbour_cube])
 
     assert_array_equal(result.data, expected)
+
+
+@pytest.mark.parametrize(
+    "kwargs,expected",
+    [
+        ({}, "nearest"),
+        ({"land_constraint": True}, "nearest_land"),
+        ({"similar_altitude": True}, "nearest_minimum_dz"),
+        (
+            {"land_constraint": True, "similar_altitude": True},
+            "nearest_land_minimum_dz",
+        ),
+    ],
+)
+def test_neighbour_selection_method_setting(kwargs, expected):
+    """Test that the neighbour_selection_method argument is set correctly
+    within the __init__ method."""
+    plugin = SpotManipulation(**kwargs)
+    assert plugin.neighbour_selection_method == expected
