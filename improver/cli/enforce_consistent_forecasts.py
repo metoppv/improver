@@ -116,14 +116,14 @@ def process(
             "must be length 1 or 2, and must all be the same length."
         )
 
-    cubes = flatten(cubes)
+    cubes = CubeList(flatten(cubes))
 
     if len(cubes) != 2:
         raise ValueError(
             f"Exactly two cubes should be provided but received {len(cubes)}"
         )
 
-    ref_forecast = CubeList(cubes).extract_cube(ref_name)
+    ref_forecast = cubes.extract_cube(ref_name)
     cubes.remove(ref_forecast)
 
     forecast_cube = cubes[0]

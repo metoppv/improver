@@ -104,7 +104,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
         visibility_cube = None
         cloud_base_ground_cube = None
 
-        cubes = flatten(cubes)
+        cubes = list(flatten(cubes))
         cube_names = [cube.name() for cube in cubes]
         if len(cubes) != 2:
             raise ValueError(

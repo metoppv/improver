@@ -28,6 +28,8 @@
 # CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
 # ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
 # POSSIBILITY OF SUCH DAMAGE.
+from itertools import permutations
+
 import pytest
 from iris.cube import Cube, CubeList
 
@@ -54,24 +56,22 @@ def test_cube_as_cubelist():
 def test_cube_cubelist_mixture_as_cubelist():
     """
     Test that a CubeList is returned when a mixture of Cubes and CubeLists
-    is provided.  Additionally demonstrate that the order of the input
-    is preserved in the output.
+    are provided.  Additionally demonstrate that the order of the input
+    is preserved in the output, with each order permutation verified.
     """
-    cube = Cube([0])
-    cube2 = Cube([0])
+    cube = Cube(0, long_name="1")
+    cube2 = Cube(1, long_name="2")
+    cube3 = Cube(2, long_name="3")
     cubes = CubeList([cube2])
 
-    # order1
-    res = as_cubelist(cube, cubes)
-    assert isinstance(res, CubeList)
-    assert id(res[0]) == id(cube)
-    assert id(res[1]) == id(cube2)
+    inputs = [cube, cubes, cube3]
+    returns = [cube, cube2, cube3]
 
-    # order2
-    res = as_cubelist(cubes, cube)
-    assert isinstance(res, CubeList)
-    assert id(res[0]) == id(cube2)
-    assert id(res[1]) == id(cube)
+    for pindx in permutations(range(len(inputs))):  # permutation indices
+        res = as_cubelist(*[inputs[ind] for ind in pindx])
+        assert isinstance(res, CubeList)
+        for ind, pind in enumerate(pindx):
+            assert id(res[ind]) == id(returns[pind])
 
 
 def test_no_argument_provided():

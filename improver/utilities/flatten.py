@@ -30,27 +30,27 @@
 # POSSIBILITY OF SUCH DAMAGE.
 """ Provides support utilities for flattening."""
 
-from typing import List, Tuple, Union
+from typing import Any, Generator, Iterable, Union
 
 
-def flatten(nested_list: Union[List, Tuple]) -> List:
-    """Flatten an arbitrarily nested iterable.
+def flatten(nested_iterable: Union[Iterable[Any], Any]) -> Generator[Any, None, None]:
+    """
+    Flatten an arbitrarily nested iterable.
 
     Args:
-        nested_list:
-            An arbitrarily nested iterable to be flattened.
+        nested_iterable:
+            The nested iterable to be flattened.
 
-    Returns:
-        A list containing a flattened version of the arbitrarily nested input.
+    Yields:
+        The flattened items from the nested iterable.
     """
-    flat_list = []
-    if not isinstance(nested_list, (list, tuple)):
-        raise ValueError(
-            f"Expected object of type list or tuple, not {type(nested_list)}"
-        )
-    for item in nested_list:
-        if isinstance(item, (list, tuple)):
-            flat_list.extend(flatten(item))
+    if not isinstance(nested_iterable, Iterable) or isinstance(
+        nested_iterable, (str, bytes)
+    ):
+        yield nested_iterable
+        return
+    for item in nested_iterable:
+        if isinstance(item, Iterable) and not isinstance(item, (str, bytes)):
+            yield from flatten(item)
         else:
-            flat_list.append(item)
-    return flat_list
+            yield item
