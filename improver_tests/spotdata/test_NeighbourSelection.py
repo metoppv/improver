@@ -154,44 +154,6 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-class Test_neighbour_finding_method_name(IrisTest):
-
-    """Test the function for generating the name that describes the neighbour
-    finding method."""
-
-    def test_nearest(self):
-        """Test name generated when using the default nearest neighbour
-        method."""
-        plugin = NeighbourSelection()
-        expected = "nearest"
-        result = plugin.neighbour_finding_method_name()
-        self.assertEqual(result, expected)
-
-    def test_nearest_land(self):
-        """Test name generated when using the nearest land neighbour
-        method."""
-        plugin = NeighbourSelection(land_constraint=True)
-        expected = "nearest_land"
-        result = plugin.neighbour_finding_method_name()
-        self.assertEqual(result, expected)
-
-    def test_nearest_land_minimum_dz(self):
-        """Test name generated when using the nearest land neighbour
-        with smallest vertical displacment method."""
-        plugin = NeighbourSelection(land_constraint=True, minimum_dz=True)
-        expected = "nearest_land_minimum_dz"
-        result = plugin.neighbour_finding_method_name()
-        self.assertEqual(result, expected)
-
-    def test_nearest_minimum_dz(self):
-        """Test name generated when using the nearest neighbour with the
-        smallest vertical displacment method."""
-        plugin = NeighbourSelection(minimum_dz=True)
-        expected = "nearest_minimum_dz"
-        result = plugin.neighbour_finding_method_name()
-        self.assertEqual(result, expected)
-
-
 class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
 
     """Test the function for converting arrays of site coordinates into the
