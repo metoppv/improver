@@ -341,6 +341,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
         Returns:
             Cube of wet bulb temperature integral (Kelvin-metres).
         """
+        wet_bulb_temperature = as_cube(wet_bulb_temperature)
         wbt = wet_bulb_temperature.copy()
         wbt.convert_units("degC")
         wbt.coord("height").convert_units("m")
