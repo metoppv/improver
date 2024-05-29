@@ -123,9 +123,8 @@ def test_3h_cubes(cape_cube, precip_cube, expected_cube):
 def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
     """Run the plugin with model_id_attr and check the result cube matches the expected_cube"""
     expected_cube.attributes["mosg__model_configuration"] = "gl_ens"
-    result = LightningFromCapePrecip()(
-        CubeList([cape_cube, precip_cube]), model_id_attr="mosg__model_configuration"
-    )
+    result = LightningFromCapePrecip(model_id_attr="mosg__model_configuration")(
+        CubeList([cape_cube, precip_cube]))
     assert result.xml().splitlines(keepends=True) == expected_cube.xml().splitlines(
         keepends=True
     )
