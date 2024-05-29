@@ -23,6 +23,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
+from improver.utilities.common_input_handle import as_cube
 
 
 class WetBulbTemperature(BasePlugin):
@@ -355,3 +356,36 @@ class WetBulbTemperatureIntegral(BasePlugin):
         # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit("K m")
         return wet_bulb_temperature_integral
+
+
+class MetaProcModWetBulbFreezingLevel(BasePlugin):
+    """Meta processing module to handle the necessary extract and metadata handling (rename)
+    required by wet bulb freezing level generation."""
+
+    def process(self, wet_bulb_temperature: Cube) -> Cube:
+        """
+        generate wet-bulb freezing level.
+
+        The height level at which the wet-bulb temperature first drops below 273.15K
+        (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
+        the ground and ascending through height levels.
+
+        In grid squares where the temperature never goes below 273.15K the highest
+        height level on the cube is returned. In grid squares where the temperature
+        starts below 273.15K the lowest height on the cube is returned.
+
+        Args:
+            wet_bulb_temperature:
+                Cube of wet-bulb air temperatures over multiple height levels.
+
+        Returns:
+            Cube of wet-bulb freezing level.
+        """
+        from improver.utilities.cube_extraction import ExtractLevel
+
+        wet_bulb_temperature = as_cube(wet_bulb_temperature)
+        wet_bulb_freezing_level = ExtractLevel(
+            positive_correlation=False, value_of_level=273.15
+        )(wet_bulb_temperature)
+        wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
+        return wet_bulb_freezing_level
