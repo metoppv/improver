@@ -16,6 +16,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.utilities.common_input_handle import as_cube
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -743,6 +744,7 @@ def maximum_in_height(
         ValueError:
             If the cube has no height levels between the lower_height_bound and upper_height_bound
     """
+    cube = as_cube(cube)
     height_levels = cube.coord("height").points
 
     # replace None in bounds with a numerical value either below or above the range of height
