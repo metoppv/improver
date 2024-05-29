@@ -23,7 +23,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 )
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
-from improver.utilities.common_input_handle import as_cube
+from improver.utilities.common_input_handle import as_cube, as_cubelist
 
 
 class WetBulbTemperature(BasePlugin):
@@ -274,7 +274,7 @@ class WetBulbTemperature(BasePlugin):
         )
         return wbt
 
-    def process(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+    def process(self, *cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
         temperatures. This process function splits input cubes over vertical
@@ -294,6 +294,7 @@ class WetBulbTemperature(BasePlugin):
         Returns:
             Cube of wet bulb temperature (K).
         """
+        cubes = as_cubelist(cubes)
         names_to_extract = ["air_temperature", "relative_humidity", "air_pressure"]
         if len(cubes) != len(names_to_extract):
             raise ValueError(
