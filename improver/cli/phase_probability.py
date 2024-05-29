@@ -51,4 +51,4 @@ def process(*cubes: cli.inputcube):
         PrecipPhaseProbability,
     )
 
-    return PrecipPhaseProbability()(CubeList(cubes))
+    return PrecipPhaseProbability()(*cubes)
