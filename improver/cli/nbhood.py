@@ -96,51 +96,16 @@ def process(
         RuntimeError:
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
-    from improver.nbhood import radius_by_lead_time
-    from improver.nbhood.nbhood import (
-        GeneratePercentilesFromANeighbourhood,
-        NeighbourhoodProcessing,
+    from improver.nbhood.nbhood import MetaProcModNeighbourhood
+    plugin = MetaProcModNeighbourhood(
+        neighbourhood_output = neighbourhood_output,
+        neighbourhood_shape = neighbourhood_shape,
+        radii = radii,
+        lead_times = lead_times,
+        degrees_as_complex = degrees_as_complex,
+        weighted_mode = weighted_mode,
+        area_sum = area_sum,
+        percentiles = percentiles,
+        halo_radius = halo_radius,
     )
-    from improver.utilities.pad_spatial import remove_cube_halo
-    from improver.wind_calculations.wind_direction import WindDirection
-
-    if neighbourhood_output == "percentiles":
-        if weighted_mode:
-            raise RuntimeError(
-                "weighted_mode cannot be used with" 'neighbourhood_output="percentiles"'
-            )
-        if degrees_as_complex:
-            raise RuntimeError("Cannot generate percentiles from complex numbers")
-
-    if neighbourhood_shape == "circular":
-        if degrees_as_complex:
-            raise RuntimeError(
-                "Cannot process complex numbers with circular neighbourhoods"
-            )
-
-    if degrees_as_complex:
-        # convert cube data into complex numbers
-        cube.data = WindDirection.deg_to_complex(cube.data)
-
-    radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
-
-    if neighbourhood_output == "probabilities":
-        result = NeighbourhoodProcessing(
-            neighbourhood_shape,
-            radius_or_radii,
-            lead_times=lead_times,
-            weighted_mode=weighted_mode,
-            sum_only=area_sum,
-            re_mask=True,
-        )(cube, mask_cube=mask)
-    elif neighbourhood_output == "percentiles":
-        result = GeneratePercentilesFromANeighbourhood(
-            radius_or_radii, lead_times=lead_times, percentiles=percentiles,
-        )(cube)
-
-    if degrees_as_complex:
-        # convert neighbourhooded cube back to degrees
-        result.data = WindDirection.complex_to_deg(result.data)
-    if halo_radius is not None:
-        result = remove_cube_halo(result, halo_radius)
-    return result
+    return plugin(cube, mask=mask)
