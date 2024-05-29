@@ -16,18 +16,19 @@ def test_cubelist_as_cube():
     assert id(res) == id(cube)
 
 
+def test_iterable_as_cube():
+    """Test that a Cube is returned when an iterable containing a cube is provided."""
+    cube = Cube([0])
+    cubes = [cube]
+    res = as_cube(cubes)
+    assert id(res) == id(cube)
+
+
 def test_cube_as_cube():
     """Test that a Cube is returned when a Cube is provided."""
     cube = Cube([0])
     res = as_cube(cube)
     assert id(res) == id(cube)
-
-
-def test_no_argument_provided():
-    """Test that an error is raised when no cube is provided."""
-    msg = "A cube should be provided."
-    with pytest.raises(ValueError, match=msg):
-        as_cube(None)
 
 
 def test_non_cube_provided():
