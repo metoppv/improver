@@ -52,13 +52,14 @@ def process(
             A single cube matching the input constraints or None. If no
             sub-cube is found within the cube that matches the constraints.
     """
-    from improver.utilities.cube_extraction import extract_subcube
+    from improver.utilities.cube_extraction import ExtractSubCube
 
-    result = extract_subcube(cube, constraints, units)
-
-    if result is None and ignore_failure:
-        return cube
-    if result is None:
-        msg = "Constraint(s) could not be matched in input cube"
-        raise ValueError(msg)
+    plugin = ExtractSubCube(constraints, units=units)
+    try:
+        result = plugin.process(cube)
+    except ValueError as err:
+        if err.args[0] == "Constraint(s) could not be matched in input cube" and ignore_failure:
+            return cube
+        else:
+            raise
     return result
