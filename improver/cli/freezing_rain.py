@@ -43,4 +43,4 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     from improver.precipitation_type.freezing_rain import FreezingRain
 
-    return FreezingRain(model_id_attr=model_id_attr)(CubeList(cubes))
+    return FreezingRain(model_id_attr=model_id_attr)(*cubes)
