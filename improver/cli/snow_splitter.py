@@ -46,4 +46,4 @@ def process(*cubes: cli.inputcube, output_is_rain: bool):
 
     from improver.precipitation_type.snow_splitter import SnowSplitter
 
-    return SnowSplitter(output_is_rain=output_is_rain)(CubeList(cubes))
+    return SnowSplitter(output_is_rain=output_is_rain)(*cubes)
