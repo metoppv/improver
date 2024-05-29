@@ -15,6 +15,7 @@ from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
 from improver import BasePlugin
+from improver.utilities.common_input_handle import as_cube
 
 
 def interpolate_missing_data(
@@ -98,6 +99,26 @@ class InterpolateUsingDifference(BasePlugin):
     calculated as the reference cube data minus the interpolated difference
     field.
     """
+    def __init__(self, limit: Optional[Cube] = None, limit_as_maximum: bool = True) -> None:
+        """
+        Initialise the plugin.
+        
+        Args:
+            limit:
+                A cube of limiting values to apply to the cube that is being
+                filled in. This can be used to ensure that the resulting values
+                do not fall below / exceed the limiting values; whether the
+                limit values should be used as a minima or maxima is
+                determined by the limit_as_maximum option. These values should
+                be on an x-y grid of the same size as an x-y slice of cube.
+            limit_as_maximum:
+                If True the test against the values allowed by the limit array
+                is that if the interpolated values exceed the limit they should
+                be set to the limit value. If False, the test is whether the
+                interpolated values fall below the limit value.
+        """
+        self._limit = limit
+        self._limit_as_maximum = limit_as_maximum
 
     def __repr__(self) -> str:
         """String representation of plugin."""
@@ -124,13 +145,7 @@ class InterpolateUsingDifference(BasePlugin):
                 " cube. " + str(err)
             )
 
-    def process(
-        self,
-        cube: Cube,
-        reference_cube: Cube,
-        limit: Optional[Cube] = None,
-        limit_as_maximum: bool = True,
-    ) -> Cube:
+    def process(self, cube: Cube, reference_cube: Cube) -> Cube:
         """
         Apply plugin to input data.
 
@@ -140,19 +155,7 @@ class InterpolateUsingDifference(BasePlugin):
                 regions.
             reference_cube:
                 A cube that covers the entire domain that it shares with
-                cube.
-            limit:
-                A cube of limiting values to apply to the cube that is being
-                filled in. This can be used to ensure that the resulting values
-                do not fall below / exceed the limiting values; whether the
-                limit values should be used as a minima or maxima is
-                determined by the limit_as_maximum option. These values should
-                be on an x-y grid of the same size as an x-y slice of cube.
-            limit_as_maximum:
-                If True the test against the values allowed by the limit array
-                is that if the interpolated values exceed the limit they should
-                be set to the limit value. If False, the test is whether the
-                interpolated values fall below the limit value.
+                cube. This cube is used to calculate the difference field.
 
         Return:
             A copy of the input cube in which the missing data has been
@@ -164,13 +167,15 @@ class InterpolateUsingDifference(BasePlugin):
             ValueError: If the reference cube is not complete across the
                         entire domain.
         """
+        cube = as_cube(cube)
+        reference_cube = as_cube(reference_cube)
         if not np.ma.is_masked(cube.data):
             warnings.warn(
                 "Input cube unmasked, no data to fill in, returning unchanged."
             )
             return cube
 
-        self._check_inputs(cube, reference_cube, limit)
+        self._check_inputs(cube, reference_cube, self._limit)
 
         filled_cube = iris.cube.CubeList()
         xaxis, yaxis = cube.coord(axis="x"), cube.coord(axis="y")
@@ -204,14 +209,14 @@ class InterpolateUsingDifference(BasePlugin):
                 rslice.data[invalid_points] - interpolated_difference[invalid_points]
             )
 
-            if limit is not None:
-                if limit_as_maximum:
+            if self._limit is not None:
+                if self._limit_as_maximum:
                     result.data[invalid_points] = np.clip(
-                        result.data[invalid_points], None, limit.data[invalid_points]
+                        result.data[invalid_points], None, self._limit.data[invalid_points]
                     )
                 else:
                     result.data[invalid_points] = np.clip(
-                        result.data[invalid_points], limit.data[invalid_points], None
+                        result.data[invalid_points], self._limit.data[invalid_points], None
                     )
             filled_cube.append(result)
 

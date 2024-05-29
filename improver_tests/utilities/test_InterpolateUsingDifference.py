@@ -63,9 +63,9 @@ class Test_repr(unittest.TestCase):
         )
 
 
-class Test__check_inputs(Test_Setup):
+class Test_process_check_inputs(Test_Setup):
 
-    """Tests for the private _check_inputs method."""
+    """Tests for input check behaviour of process method."""
 
     def test_incomplete_reference_data(self):
         """Test an exception is raised if the reference field is incomplete."""
@@ -73,8 +73,8 @@ class Test__check_inputs(Test_Setup):
         self.snow_sleet.data[1, 1] = np.nan
         msg = "The reference cube contains np.nan data"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, None
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet
             )
 
     def test_incompatible_reference_cube_units(self):
@@ -84,8 +84,8 @@ class Test__check_inputs(Test_Setup):
         self.snow_sleet.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, None
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet
             )
 
     def test_incompatible_limit_units(self):
@@ -95,8 +95,8 @@ class Test__check_inputs(Test_Setup):
         self.limit.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, limit=self.limit
+            InterpolateUsingDifference(limit=self.limit).process(
+                self.sleet_rain, self.snow_sleet
             )
 
     def test_convert_units(self):
@@ -106,8 +106,8 @@ class Test__check_inputs(Test_Setup):
         self.snow_sleet.convert_units("cm")
         self.limit.convert_units("cm")
 
-        InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit
+        InterpolateUsingDifference(limit=self.limit).process(
+            self.sleet_rain, self.snow_sleet
         )
 
 
@@ -138,8 +138,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [8.5, 8.0, 6.0], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit, limit_as_maximum=True
+        result = InterpolateUsingDifference(limit=self.limit, limit_as_maximum=True).process(
+            self.sleet_rain, self.snow_sleet
         )
 
         assert_array_equal(result.data, expected)
@@ -155,8 +155,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit, limit_as_maximum=False
+        result = InterpolateUsingDifference(limit=self.limit, limit_as_maximum=False).process(
+            self.sleet_rain, self.snow_sleet,
         )
 
         assert_array_equal(result.data, expected)
@@ -176,8 +176,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference().process(
-            sleet_rain, snow_sleet, limit=self.limit, limit_as_maximum=False
+        result = InterpolateUsingDifference(limit=self.limit, limit_as_maximum=False).process(
+            sleet_rain, snow_sleet
         )
 
         assert_array_equal(result[0].data, expected)
@@ -218,11 +218,12 @@ class Test_process(Test_Setup):
             self.sleet_rain, self.snow_sleet
         )
 
-        result_limited = InterpolateUsingDifference().process(
+        result_limited = InterpolateUsingDifference(
+            limit=self.snow_sleet,
+            limit_as_maximum=False).process(
             self.sleet_rain,
             self.snow_sleet,
-            limit=self.snow_sleet,
-            limit_as_maximum=False,
+
         )
 
         assert_array_equal(result_unlimited.data, expected_unlimited)
@@ -278,8 +279,8 @@ class Test_process(Test_Setup):
         self.snow_sleet.convert_units("cm")
         self.limit.convert_units("cm")
 
-        result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit
+        result = InterpolateUsingDifference(limit=self.limit).process(
+            self.sleet_rain, self.snow_sleet
         )
 
         assert_array_equal(result.data, expected)
