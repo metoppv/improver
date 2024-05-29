@@ -33,7 +33,7 @@ def setup_cubes():
     hail_size_data = np.zeros((2, 2), dtype=np.float32)
     hail_size = set_up_variable_cube(
         hail_size_data,
-        name="size_of_hail_stones",
+        name="diameter_of_hail_stones",
         units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
@@ -73,7 +73,7 @@ def setup_cubes():
     altitude_data = np.zeros((2, 2), dtype=np.float32)
     altitude = set_up_variable_cube(
         altitude_data,
-        name="altitude",
+        name="surface_altitude",
         units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
