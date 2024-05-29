@@ -73,6 +73,6 @@ def test_empty_list_provided():
 
 def test_non_cube_cubelist_provided():
     """Test when a CubeList containing a non cube would otherwise be provided."""
-    msg = "CubeList contains a non iris Cube object."
+    msg = "A non iris Cube object has been provided."
     with pytest.raises(TypeError, match=msg):
         as_cubelist(CubeList(["not_a_cube"]))

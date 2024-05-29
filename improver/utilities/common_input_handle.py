@@ -29,17 +29,18 @@ def as_cubelist(*cubes: Union[Cube, CubeList]):
     # Remove CubeList verification for iris >=3.3.0
     for cube in cubes:
         if not hasattr(cube, "add_aux_coord"):
-            raise TypeError("CubeList contains a non iris Cube object.")
+            raise TypeError("A non iris Cube object has been provided.")
     if len(cubes) == 0:
         raise ValueError("One or more cubes should be provided.")
     return cubes
 
 
-def as_cube(cube: Union[Cube, CubeList]):
+def as_cube(*cube: Union[Cube, CubeList]):
     """
     Standardise input handling of cube arguments.
 
     The role of this function is to return a single cube object.
+    Where more than one cube is provided, a cubelist merge is attempted.
 
     Args:
         cube:
@@ -50,11 +51,12 @@ def as_cube(cube: Union[Cube, CubeList]):
         Cube:
             A single cube.
     """
-    cubes = CubeList(flatten(cube))
-    if len(cubes) != 1:
-        raise ValueError(f"A single cube should be provided, not {len(cubes)}")
-    cube = cubes[0]
-    # Remove CubeList verification for iris >=3.3.0
-    if not isinstance(cube, Cube):
-        raise TypeError("A cube should be provided.")
-    return cube
+    cubelist = as_cubelist(*cube)
+    if len(cubelist) != 1:
+        # cube merge changes the object ID so this is conditional
+        try:
+            cubelist = [cubelist.merge_cube()]
+        except Exception as err:
+            err_msg = "Unable to return a single cube."
+            raise ValueError(err_msg) from err
+    return cubelist[0]
