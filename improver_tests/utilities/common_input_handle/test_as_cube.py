@@ -2,6 +2,7 @@
 #
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+"""Unit tests for the as_cube function."""
 from unittest.mock import patch, sentinel
 
 import pytest

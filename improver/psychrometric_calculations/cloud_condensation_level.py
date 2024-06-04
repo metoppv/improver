@@ -16,6 +16,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
+    HumidityMixingRatio,
     dry_adiabatic_temperature,
     saturated_humidity,
 )
@@ -38,10 +39,6 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
             model_id_attr:
                 Name of model ID attribute to be copied from source cubes to output cube
         """
-        from improver.psychrometric_calculations.psychrometric_calculations import (
-            HumidityMixingRatio,
-        )
-
         self._humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
         self._cloud_condensation_level_plugin = CloudCondensationLevel(
             model_id_attr=model_id_attr
@@ -54,7 +51,7 @@ class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
 
         Args:
             cubes:
-                Cubes, of temperature (K), pressure (Pa) and humidity (1).
+                Cubes of temperature (K), pressure (Pa) and humidity (1).
 
         Returns:
             Cubes of air_temperature_at_cloud_condensation_level and
@@ -146,7 +143,7 @@ class CloudCondensationLevel(PostProcessingPlugin):
 
         Args:
             cubes:
-                Cubes, of temperature (K), pressure (Pa)
+                Cubes of temperature (K), pressure (Pa)
                 and humidity mixing ratio (kg kg-1)
 
         Returns:

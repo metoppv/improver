@@ -62,7 +62,7 @@ def process(
     if check_tree:
         from improver.categorical.utilities import check_tree
 
-        # WARNING: This means that we do not return our input data
+        # WARNING: This means that we do not return a cube/cubelist.
         return check_tree(decision_tree, target_period=target_period)
     from improver.categorical.decision_tree import ApplyDecisionTree
 

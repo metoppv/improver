@@ -44,32 +44,6 @@ def test_as_cubelist_called(mock_as_cubelist):
     )
 
 
-@patch(
-    "improver.psychrometric_calculations.psychrometric_calculations.generate_mandatory_attributes"
-)
-@pytest.mark.parametrize(
-    "cube_names",
-    [
-        ("air_temperature", "surface_air_pressure", "relative_humidity"),
-        ("air_temperature", "air_pressure", "relative_humidity"),
-    ],
-)
-def test_cube_extraction(mock_generate_mandatory_attributes, cube_names):
-    mock_generate_mandatory_attributes.side_effect = HaltExecution
-    temp = Cube(None, long_name=cube_names[0])
-    pressure = Cube(None, long_name=cube_names[1])
-    humidity = Cube(None, long_name=cube_names[2])
-    try:
-        HumidityMixingRatio(model_id_attr=sentinel.model_id_attr)(
-            pressure, humidity, temp
-        )
-    except HaltExecution:
-        pass
-    mock_generate_mandatory_attributes.assert_called_once_with(
-        [temp, pressure, humidity]
-    )
-
-
 @pytest.fixture(name="temperature")
 def temperature_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature data"""
@@ -85,7 +59,10 @@ def pressure_cube_fixture() -> Cube:
     """Set up a r, y, x cube of pressure data"""
     data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
     pressure_cube = set_up_variable_cube(
-        data, name="air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data,
+        name="surface_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure_cube
 

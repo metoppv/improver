@@ -321,21 +321,16 @@ class HumidityMixingRatio(BasePlugin):
 
         Args:
             cubes:
-                Cubes, of temperature (K), pressure (Pa) and relative humidity (1)
+                Cubes of temperature (K), pressure (Pa) and relative humidity (1)
 
         Returns:
             Cube of humidity mixing ratio
 
         """
         cubes = as_cubelist(*cubes)
-        try:
-            (self.temperature, self.pressure, self.rel_humidity,) = cubes.extract(
-                ["air_temperature", "surface_air_pressure", "relative_humidity"]
-            )
-        except ValueError:
-            (self.temperature, self.pressure, self.rel_humidity,) = cubes.extract(
-                ["air_temperature", "air_pressure", "relative_humidity"]
-            )
+        (self.temperature, self.pressure, self.rel_humidity,) = cubes.extract_cubes(
+            ["air_temperature", "surface_air_pressure", "relative_humidity"]
+        )
 
         self.mandatory_attributes = generate_mandatory_attributes(
             [self.temperature, self.pressure, self.rel_humidity]

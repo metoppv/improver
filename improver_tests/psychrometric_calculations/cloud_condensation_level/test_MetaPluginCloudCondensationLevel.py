@@ -10,7 +10,7 @@ from improver.psychrometric_calculations.cloud_condensation_level import (
 
 
 @patch(
-    "improver.psychrometric_calculations.psychrometric_calculations.HumidityMixingRatio"
+    "improver.psychrometric_calculations.cloud_condensation_level.HumidityMixingRatio"
 )
 @patch(
     "improver.psychrometric_calculations.cloud_condensation_level.CloudCondensationLevel"

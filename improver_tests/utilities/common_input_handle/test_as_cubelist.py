@@ -2,6 +2,7 @@
 #
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+"""Unit tests for the as_cubelist function."""
 from itertools import permutations
 
 import pytest
@@ -20,7 +21,7 @@ def test_cubelist_as_cubelist():
 
 
 def test_iterable_as_cubelist():
-    """Test that a CubeList is returned when a CubeList is provided."""
+    """Test that a CubeList is returned when a list is provided."""
     cube = Cube([0])
     cubes = [cube]
     res = as_cubelist(cubes)
@@ -72,7 +73,7 @@ def test_empty_list_provided():
 
 
 def test_non_cube_cubelist_provided():
-    """Test when a CubeList containing a non cube would otherwise be provided."""
+    """Test when a CubeList containing a non cube is provided."""
     msg = "A non iris Cube object has been provided."
     with pytest.raises(TypeError, match=msg):
         as_cubelist(CubeList(["not_a_cube"]))

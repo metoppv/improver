@@ -54,6 +54,7 @@ def get_cube(name) -> Cube:
     ],
 )
 def test_all(nested_iterable, expected):
+    """Check permutations of input types and nested structures to flatten."""
     res = list(flatten(nested_iterable))
     if isinstance(nested_iterable, (set, frozenset)):
         # Sets are unordered, so we need to sort the output

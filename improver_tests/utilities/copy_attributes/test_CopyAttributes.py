@@ -35,6 +35,9 @@ def test_copy_attributes_multi_input():
     Demonstrates copying attributes from the template cube to the input
     cubes and also demonstrates the attributes on the templates cube that
     aren't specified in the attributes list are indeed ignored.
+
+    Note how we are verifying the object IDs, since CubeAttributes is an
+    in-place operation.
     """
     attributes = ["attribA", "attribB"]
     cube0 = Cube([0], attributes={"attribA": "valueA", "attribB": "valueB"})
@@ -45,7 +48,7 @@ def test_copy_attributes_multi_input():
 
     plugin = CopyAttributes(attributes)
     result = plugin.process(cube0, cube1, template_cube=template_cube)
-    assert type(result) == tuple
+    assert type(result) is tuple
     for res in result:
         assert res.attributes["attribA"] == "tempA"
         assert res.attributes["attribB"] == "tempB"
@@ -68,7 +71,7 @@ def test_copy_attributes_single_input():
 
     plugin = CopyAttributes(attributes)
     result = plugin.process(cube0, template_cube=template_cube)
-    assert type(result) == Cube
+    assert type(result) is Cube
     assert result.attributes["attribA"] == "tempA"
     assert result.attributes["attribB"] == "tempB"
     assert result.attributes["attribD"] == "valueD"

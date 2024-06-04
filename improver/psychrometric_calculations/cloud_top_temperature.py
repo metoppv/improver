@@ -119,39 +119,20 @@ class CloudTopTemperature(PostProcessingPlugin):
 
         Args:
             cubes:
-                Cubes, of 'temperature at cloud condensation level',
+                Cubes of 'temperature at cloud condensation level',
                 'pressure at cloud condensation level' and 'temperature on pressure levels'.
 
         Returns:
             Cube of cloud top temperature
         """
         cubes = as_cubelist(*cubes)
-        self.t_at_ccl = cubes.extract(
+        self.t_at_ccl, self.p_at_ccl, self.temperature = cubes.extract_cubes(
             [
                 "air_temperature_at_condensation_level",
-                "air_temperature_at_cloud_condensation_level",
-            ]
-        )
-        self.p_at_ccl = cubes.extract(
-            [
                 "air_pressure_at_condensation_level",
-                "air_pressure_at_cloud_condensation_level",
+                "air_temperature",
             ]
         )
-        self.temperature = cubes.extract(
-            ["temperature_on_pressure_levels", "air_temperature"]
-        )
-        for cube in [self.t_at_ccl, self.p_at_ccl, self.temperature]:
-            if not cube or len(cube) != 1:
-                raise ValueError(
-                    "The input cubes must contain exactly one 'temperature at cloud "
-                    "condensation level', 'pressure at cloud condensation level' and "
-                    "'temperature on pressure levels'.  "
-                    f"Cubes provided: {[cube.name() for cube in cubes]}"
-                )
-        self.t_at_ccl = self.t_at_ccl[0]
-        self.p_at_ccl = self.p_at_ccl[0]
-        self.temperature = self.temperature[0]
 
         assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")
