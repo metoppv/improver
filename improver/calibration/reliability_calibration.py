@@ -368,6 +368,7 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             np.expand_dims(np.isclose(truth, 1), 0) & forecast_counts.astype(bool)
         ).astype(int)
 
+        # discard last index in first dimension because it contains data from forecast nans
         reliability_table = np.ma.stack(
             [
                 observation_counts[:-1, :],
