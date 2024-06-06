@@ -325,7 +325,7 @@ def test_process_table_values(create_rel_table_inputs, expected_table):
 def test_process_table_values_nan_or_masked_forecast(
     create_rel_table_inputs, expected_table
 ):
-    """Test that nan or maksed values in the forecast are not counted."""
+    """Test that nan or masked values in the forecast are not counted."""
 
     forecast, truth = create_rel_table_inputs.forecast, create_rel_table_inputs.truth
     nan_ind = list(range(0, forecast.data.size, 2))
