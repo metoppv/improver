@@ -1276,7 +1276,7 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         )
         y_0, y_1 = interpolation_function([0, 1])
         xp = np.copy(reliability_probabilities)
-        # Extrapolation preserves the slop of the first and last segments of the piecewise
+        # Extrapolation preserves the slope of the first and last segments of the piecewise
         # linear function. Thus the slope betweeen [0, y_0] and [xp[0], fp[0]] is the same as that
         # between [xp[0], fp[0]] and [xp[1], fp[1]], so we can replace
         # [xp[0], fp[0]] with [0, y_0] to extend the width of the first segment of the
