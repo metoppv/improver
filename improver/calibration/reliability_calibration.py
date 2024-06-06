@@ -1268,12 +1268,19 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         forecast_probabilities = np.ma.getdata(forecast_threshold).flatten()
 
-        # interpolate using scipy first to get extrapolated values at endpoints
+        # Interpolate using scipy first to get extrapolated values at endpoints
+        # since np.interp does not allow extrapolation. We would need to change back
+        # to scipy.interpolate if we want non-linear interpolation in future.
         interpolation_function = scipy.interpolate.interp1d(
             reliability_probabilities, observation_frequencies, fill_value="extrapolate"
         )
         y_0, y_1 = interpolation_function([0, 1])
         xp = np.copy(reliability_probabilities)
+        # Extrapolation preserves the slop of the first and last segments of the piecewise
+        # linear function. Thus the slope betweeen [0, y_0] and [xp[0], fp[0]] is the same as that
+        # between [xp[0], fp[0]] and [xp[1], fp[1]], so we can replace
+        # [xp[0], fp[0]] with [0, y_0] to extend the width of the first segment of the
+        # piecewise linear function. A similar argument applies for the last segment.
         xp[0] = 0
         xp[-1] = 1
         fp = np.copy(observation_frequencies)
