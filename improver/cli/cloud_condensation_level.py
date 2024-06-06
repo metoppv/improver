@@ -39,7 +39,7 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
 
     """
     from improver.psychrometric_calculations.cloud_condensation_level import (
-        MetaPluginCloudCondensationLevel,
+        MetaCloudCondensationLevel,
     )
 
-    return MetaPluginCloudCondensationLevel(model_id_attr=model_id_attr)(*cubes)
+    return MetaCloudCondensationLevel(model_id_attr=model_id_attr)(*cubes)

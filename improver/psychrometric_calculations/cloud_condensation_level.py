@@ -23,7 +23,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
 from improver.utilities.common_input_handle import as_cubelist
 
 
-class MetaPluginCloudCondensationLevel(PostProcessingPlugin):
+class MetaCloudCondensationLevel(PostProcessingPlugin):
     """
     Meta-plugin which handles the calling of HumidityMixingRatio followed by CloudCondensationLevel.
     Derives the temperature and pressure of the convective cloud condensation

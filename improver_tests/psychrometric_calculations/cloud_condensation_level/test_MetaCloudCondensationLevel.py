@@ -2,10 +2,11 @@
 #
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
+"""Tests for the MetaCloudCondensationLevel plugin."""
 from unittest.mock import patch, sentinel
 
 from improver.psychrometric_calculations.cloud_condensation_level import (
-    MetaPluginCloudCondensationLevel,
+    MetaCloudCondensationLevel,
 )
 
 
@@ -18,7 +19,7 @@ from improver.psychrometric_calculations.cloud_condensation_level import (
 def test_basic(mock_CloudCondensationLevel, mock_HumidityMixingRatio):
     """Test that the underlying plugins are called in the manner we expect."""
     model_id_attr = "mosg__model_configuration"
-    plugin = MetaPluginCloudCondensationLevel(model_id_attr=model_id_attr)
+    plugin = MetaCloudCondensationLevel(model_id_attr=model_id_attr)
 
     # Ensure we initialise our plugins as we expect.
     mock_HumidityMixingRatio.assert_called_once_with(model_id_attr=model_id_attr)
