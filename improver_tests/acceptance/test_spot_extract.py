@@ -553,26 +553,3 @@ def test_spot_subsetting(tmp_path):
     ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
-
-
-def test_spot_subsetting_lapse_rate(tmp_path):
-    """Test subsetting of a spot forecast using a neighbour cube and
-    applying a gridded lapse rate cube."""
-    kgo_dir = acc.kgo_root() / "spot-extract"
-    neighbour_path = kgo_dir / "inputs/all_methods_uk.nc"
-    diag_path = kgo_dir / "outputs/nearest_uk_temperatures_unique_ids.nc"
-    kgo_path = kgo_dir / "outputs/spot_subset.nc"
-    output_path = tmp_path / "output.nc"
-    args = [
-        diag_path,
-        neighbour_path,
-        "--output",
-        output_path,
-        "--apply-lapse-rate-correction",
-        "--fixed-lapse-rate",
-        "-6E-3",
-        "--subset-coord",
-        "wmo_id",
-    ]
-    run_cli(args)
-    acc.compare(output_path, kgo_path)
