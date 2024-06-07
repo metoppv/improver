@@ -457,7 +457,7 @@ def test_neighbour_selection_method_setting(kwargs, expected):
     "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
 )
 def test_spot_subset_incomplete(neighbour_cube):
-    """Test spot subsetting where the neigbour cube includes sites that are
+    """Test spot subsetting where the neighbour cube includes sites that are
     not present in the forecast cube. These points will simply be ignored and
     only the available sites extracted. In this case we expect the site with
     wmo_id='00000' to be lost from the returned forecast, despite being in the
@@ -478,7 +478,7 @@ def test_spot_subset_incomplete(neighbour_cube):
     "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
 )
 def test_spot_unset_ids(neighbour_cube):
-    """Test spot subsetting where the neigbour cube and forecast cube include
+    """Test spot subsetting where the neighbour cube and forecast cube include
     sites for which the subset ID is set to "None". Unset IDs are non-unique
     and we cannot rely on them for extracting a specific site. In this case we
     expect all sites with an ID of "None" to be removed and only the valid ID
@@ -530,3 +530,32 @@ def test_no_spots_returned(neighbour_cube):
     forecast.coord("wmo_id").points = [f"{item:05d}" for item in range(101, 110)]
     with pytest.raises(ValueError, match="No spot sites retained after subsetting."):
         SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_subset_lapse_rate_exception(neighbour_cube):
+    """Test exception raised if attempting to apply a lapse rate to an existing
+    spot forecast. This could be implemented but has not been as we have no use
+    case at present. The tests here cover a fixed lapse rate or a lapse rate
+    provided as a cube."""
+
+    msg = (
+        "Lapse rate adjustment when subsetting an existing spot "
+        "forecast cube has not been implemented."
+    )
+
+    forecast = spot_variable(np.arange(273, 282))
+    with pytest.raises(NotImplementedError, match=msg):
+        SpotManipulation(
+            subset_coord="wmo_id",
+            fixed_lapse_rate=0.001,
+            apply_lapse_rate_correction=True,
+        )([forecast, neighbour_cube])
+
+    lapse_rate_cube = forecast.copy()
+    with pytest.raises(NotImplementedError, match=msg):
+        SpotManipulation(subset_coord="wmo_id", apply_lapse_rate_correction=True)(
+            [forecast, lapse_rate_cube, neighbour_cube]
+        )

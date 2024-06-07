@@ -49,6 +49,8 @@ def process(
             site and grid point altitude. Differences in orography in
             excess of this fixed limit will use the Environmental Lapse
             Rate (also known as the Standard Atmosphere Lapse Rate).
+            Lapse rate adjustment cannot be applied to existing spot
+            forecasts that are passed in for subsetting.
         fixed_lapse_rate (float):
             If provided, use this fixed value as a lapse-rate for adjusting
             the forecast values if apply_lapse_rate_correction is True. This
@@ -105,9 +107,9 @@ def process(
         subset_coord (str):
             If a spot cube is provided as input this plugin can return a subset of
             the sites based on the sites specified in the neighbour cube. To
-            achieve this the plugin needs the name of the site ID coordiante to be
-            used for matching, e.g. wmo_id. If subset_coord is not provided and a
-            spot forecast is passed in the entire spot cube will be processed and
+            achieve this the plugin needs the name of the site ID coordinate to be
+            used for matching, e.g. wmo_id. If subset_coord is not provided, and a
+            spot forecast is passed in, the entire spot cube will be processed and
             returned. The neighbour selection method options have no impact if a
             spot cube is passed in.
 

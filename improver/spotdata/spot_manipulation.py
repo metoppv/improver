@@ -62,6 +62,8 @@ class SpotManipulation(BasePlugin):
                 site and grid point altitude. Differences in orography in
                 excess of this fixed limit will use the Environmental Lapse
                 Rate (also known as the Standard Atmosphere Lapse Rate).
+                Lapse rate adjustment cannot be applied to existing spot
+                forecasts that are passed in for subsetting.
             fixed_lapse_rate (float):
                 If provided, use this fixed value as a lapse-rate for adjusting
                 the forecast values if apply_lapse_rate_correction is True. This
@@ -118,9 +120,9 @@ class SpotManipulation(BasePlugin):
             subset_coord (str):
                 If a spot cube is provided as input this plugin can return a subset of
                 the sites based on the sites specified in the neighbour cube. To
-                achieve this the plugin needs the name of the site ID coordiante to be
-                used for matching, e.g. wmo_id. If subset_coord is not provided and a
-                spot forecast is passed in the entire spot cube will be processed and
+                achieve this the plugin needs the name of the site ID coordinate to be
+                used for matching, e.g. wmo_id. If subset_coord is not provided, and a
+                spot forecast is passed in, the entire spot cube will be processed and
                 returned. The neighbour selection method options have no impact if a
                 spot cube is passed in.
         """
@@ -158,12 +160,23 @@ class SpotManipulation(BasePlugin):
         neighbour_cube = cubes[-1]
         cube = cubes[0]
 
-        # If a spot forecast cube is passed as input constrain the sites to
+        # If a spot forecast cube is passed in, constrain the sites to
         # those that are found in the neighbour cube if an ID coordinate on
         # which to constrain is provided, e.g. wmo_id. Otherwise pass the
         # spot forecast cube forwards unchanged.
         if cube.coords("spot_index"):
-            if self.subset_coord is not None:
+
+            if (
+                self.apply_lapse_rate_correction is not False
+                or self.fixed_lapse_rate is not None
+            ):
+                raise NotImplementedError(
+                    "Lapse rate adjustment when subsetting an existing spot "
+                    "forecast cube has not been implemented."
+                )
+            if self.subset_coord is None:
+                result = cube
+            else:
                 try:
                     sites = neighbour_cube.coord(self.subset_coord).points
                 except CoordinateNotFoundError as err:
@@ -178,8 +191,6 @@ class SpotManipulation(BasePlugin):
                 result = cube.extract(site_constraint)
                 if not result:
                     raise ValueError("No spot sites retained after subsetting.")
-            else:
-                result = cube
         else:
             result = SpotExtraction(
                 neighbour_selection_method=self.neighbour_selection_method
