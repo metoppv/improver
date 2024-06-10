@@ -3,6 +3,8 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
+from unittest.mock import patch, sentinel
+
 import numpy as np
 import pytest
 from iris.cube import Cube
@@ -20,6 +22,28 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 }
 
 
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.psychrometric_calculations.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        HumidityMixingRatio()(
+            sentinel.air_temperature,
+            sentinel.surface_air_pressure,
+            sentinel.relative_humidity,
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.air_temperature,
+        sentinel.surface_air_pressure,
+        sentinel.relative_humidity,
+    )
+
+
 @pytest.fixture(name="temperature")
 def temperature_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature data"""
@@ -35,7 +59,10 @@ def pressure_cube_fixture() -> Cube:
     """Set up a r, y, x cube of pressure data"""
     data = np.full((2, 2, 2), fill_value=1e5, dtype=np.float32)
     pressure_cube = set_up_variable_cube(
-        data, name="air_pressure", units="Pa", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data,
+        name="surface_air_pressure",
+        units="Pa",
+        attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
     return pressure_cube
 

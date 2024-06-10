@@ -5,7 +5,7 @@
 """Provides utilities for updating a forecast or forecasts based on a reference."""
 
 import warnings
-from typing import List, Optional, Union
+from typing import Iterable, List, Optional, Union
 
 import iris
 import numpy as np
@@ -330,7 +330,7 @@ def normalise_to_reference(
 
 
 def split_cubes_by_name(
-    cubes: Union[List[Cube], CubeList], cube_names: Union[str, List[str]] = None
+    cubes: Union[Iterable[Cube], CubeList], cube_names: Union[str, List[str]] = None,
 ) -> tuple:
     """Split a list of cubes into two lists; one containing all cubes with names which
     match cube_names, and the other containing all the other cubes.

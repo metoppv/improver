@@ -55,12 +55,7 @@ def process(
     Returns:
         iris.cube.Cube
     """
-    from improver.metadata.amend import update_stage_v110_metadata
     from improver.standardise import StandardiseMetadata
-
-    # update_stage_v110_metadata is deprecated. Please ensure metadata is
-    # StaGE version 1.2.0 compatible.
-    update_stage_v110_metadata(cube)
 
     return StandardiseMetadata()(
         cube,

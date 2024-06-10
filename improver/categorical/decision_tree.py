@@ -43,6 +43,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 
 
 def _define_invertible_conditions() -> Dict[str, str]:
@@ -140,7 +141,7 @@ class ApplyDecisionTree(BasePlugin):
         return "<ApplyDecisionTree start_node={}>".format(self.start_node)
 
     def prepare_input_cubes(
-        self, cubes: CubeList
+        self, *cubes: Union[Cube, CubeList]
     ) -> Tuple[CubeList, Optional[List[str]]]:
         """
         Check that the input cubes contain all the diagnostics and thresholds
@@ -152,7 +153,7 @@ class ApplyDecisionTree(BasePlugin):
 
         Args:
             cubes:
-                A CubeList containing the input diagnostic cubes.
+                Input diagnostic cubes.
 
         Returns:
             - A CubeList containing only the required cubes.
@@ -165,6 +166,8 @@ class ApplyDecisionTree(BasePlugin):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
+        cubes = as_cubelist(*cubes)
+
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
 
@@ -793,20 +796,19 @@ class ApplyDecisionTree(BasePlugin):
                 raise RuntimeError(msg)
         return res
 
-    def process(self, cubes: CubeList) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Apply the decision tree to the input cubes to produce categorical output.
 
         Args:
             cubes:
-                A cubelist containing the diagnostics required for the
-                decision tree, these at co-incident times.
+                Diagnostics required for the decision tree, these at co-incident times.
 
         Returns:
             A cube of categorical data.
         """
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
-        cubes, optional_node_data_missing = self.prepare_input_cubes(cubes)
+        cubes, optional_node_data_missing = self.prepare_input_cubes(*cubes)
 
         # Reroute the decision tree around missing optional nodes
         if optional_node_data_missing is not None:

@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the CloudTopTemperature plugin"""
 import copy
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -28,13 +28,31 @@ POST_PROCESSED_MANDATORY_ATTRIBUTES[
 ] = f"Post-Processed {POST_PROCESSED_MANDATORY_ATTRIBUTES['title']}"
 
 
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.cloud_top_temperature.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        CloudTopTemperature(model_id_attr=sentinel.model_id_attr)(
+            sentinel.t_at_ccl, sentinel.p_at_ccl, sentinel.temperature
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.t_at_ccl, sentinel.p_at_ccl, sentinel.temperature
+    )
+
+
 @pytest.fixture(name="t_at_ccl")
 def t_at_ccl_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature at Cloud condensation level data"""
     data = np.full((2, 2, 2), fill_value=290, dtype=np.float32)
     ccl_cube = set_up_variable_cube(
         data,
-        name="air_temperature_at_cloud_condensation_level",
+        name="air_temperature_at_condensation_level",
         units="K",
         attributes=POST_PROCESSED_MANDATORY_ATTRIBUTES,
     )
@@ -47,7 +65,7 @@ def p_at_ccl_cube_fixture() -> Cube:
     data = np.full((2, 2, 2), fill_value=95000, dtype=np.float32)
     ccl_cube = set_up_variable_cube(
         data,
-        name="air_pressure_at_cloud_condensation_level",
+        name="air_pressure_at_condensation_level",
         units="Pa",
         attributes=POST_PROCESSED_MANDATORY_ATTRIBUTES,
     )
@@ -65,7 +83,7 @@ def t_cube_fixture(profile_shift) -> Cube:
         data + profile_shift,
         pressure=True,
         height_levels=np.arange(100000, 29999, -10000),
-        name="temperature_on_pressure_levels",
+        name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )

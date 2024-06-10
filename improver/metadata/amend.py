@@ -10,34 +10,11 @@ from typing import Any, Dict, List, Tuple, Union
 from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 
-from improver.metadata.constants.mo_attributes import (
-    GRID_ID_LOOKUP,
-    MOSG_GRID_DEFINITION,
-)
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
     get_threshold_coord_name_from_probability_name,
     is_probability,
 )
-
-
-def update_stage_v110_metadata(cube: Cube) -> None:
-    """Translates attributes relating to the grid_id attribute from StaGE
-    version 1.1.0 to later StaGE versions.
-    Cubes that have no "grid_id" attribute are not recognised as v1.1.0 and
-    are ignored.
-
-    Args:
-        cube:
-            Cube to modify attributes in (modified in place)
-    """
-    try:
-        grid_id = cube.attributes.pop("grid_id")
-    except KeyError:
-        # Not a version 1.1.0 grid, do nothing
-        return
-    cube.attributes.update(MOSG_GRID_DEFINITION[GRID_ID_LOOKUP[grid_id]])
-    cube.attributes["mosg__grid_version"] = "1.1.0"
 
 
 def amend_attributes(cube: Cube, attributes_dict: Dict[str, Any]) -> None:

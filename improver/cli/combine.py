@@ -52,8 +52,6 @@ def process(
         result (iris.cube.Cube):
             Returns a cube with the combined data.
     """
-    from iris.cube import CubeList
-
     from improver.cube_combiner import Combine
 
     return Combine(
@@ -63,4 +61,4 @@ def process(
         new_name=new_name,
         cell_method_coordinate=cell_method_coordinate,
         expand_bound=expand_bound,
-    )(CubeList(cubes))
+    )(*cubes)

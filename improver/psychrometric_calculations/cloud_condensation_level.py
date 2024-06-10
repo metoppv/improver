@@ -3,10 +3,10 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain CloudCondensationLevel plugin."""
-from typing import List, Tuple
+from typing import Tuple, Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 from scipy.optimize import newton
 
@@ -16,9 +16,52 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.psychrometric_calculations.psychrometric_calculations import (
+    HumidityMixingRatio,
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cubelist
+
+
+class MetaCloudCondensationLevel(PostProcessingPlugin):
+    """
+    Meta-plugin which handles the calling of HumidityMixingRatio followed by CloudCondensationLevel.
+    Derives the temperature and pressure of the convective cloud condensation
+    level from near-surface values of temperature, pressure and humidity mixing
+    ratio.
+    """
+
+    def __init__(self, model_id_attr: str = None):
+        """
+        Set up class
+
+        Args:
+            model_id_attr:
+                Name of model ID attribute to be copied from source cubes to output cube
+        """
+        self._humidity_plugin = HumidityMixingRatio(model_id_attr=model_id_attr)
+        self._cloud_condensation_level_plugin = CloudCondensationLevel(
+            model_id_attr=model_id_attr
+        )
+
+    def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
+        """
+        Call HumidityMixingRatio followed by CloudCondensationLevel to calculate cloud
+        condensation level.
+
+        Args:
+            cubes:
+                Cubes of temperature (K), pressure (Pa) and humidity (1).
+
+        Returns:
+            Cubes of air_temperature_at_cloud_condensation_level and
+            air_pressure_at_cloud_condensation_level
+
+        """
+        humidity = self._humidity_plugin(*cubes)
+        return self._cloud_condensation_level_plugin(
+            self._humidity_plugin.temperature, self._humidity_plugin.pressure, humidity
+        )
 
 
 class CloudCondensationLevel(PostProcessingPlugin):
@@ -94,13 +137,13 @@ class CloudCondensationLevel(PostProcessingPlugin):
         )
         return ccl_pressure, ccl_temperature
 
-    def process(self, cubes: List[Cube]) -> Tuple[Cube, Cube]:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Tuple[Cube, Cube]:
         """
         Calculates the cloud condensation level from the near-surface inputs.
 
         Args:
             cubes:
-                Cubes, in this order, of temperature (K), pressure (Pa)
+                Cubes of temperature (K), pressure (Pa)
                 and humidity mixing ratio (kg kg-1)
 
         Returns:
@@ -108,7 +151,10 @@ class CloudCondensationLevel(PostProcessingPlugin):
             air_pressure_at_cloud_condensation_level
 
         """
-        self.temperature, self.pressure, self.humidity = cubes
+        cubes = as_cubelist(cubes)
+        (self.temperature, self.pressure, self.humidity) = CubeList(cubes).extract(
+            ["air_temperature", "surface_air_pressure", "humidity_mixing_ratio"]
+        )
         ccl_pressure, ccl_temperature = self._iterate_to_ccl()
         return (
             self._make_ccl_cube(ccl_temperature, is_temperature=True),

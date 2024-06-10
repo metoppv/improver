@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the cube_combiner.Combine plugin."""
 from datetime import datetime
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -12,6 +13,20 @@ from iris.cube import Cube, CubeList
 from improver.cube_combiner import Combine, CubeCombiner
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.cube_combiner.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        Combine("+")(sentinel.cube1, sentinel.cube2)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(sentinel.cube1, sentinel.cube2)
 
 
 @pytest.fixture(name="realization_cubes")
@@ -116,9 +131,3 @@ def test_minimum_realizations_exceptions(
     """Ensure specifying too few realizations will raise an error"""
     with pytest.raises(error_class, match=msg):
         Combine("+", minimum_realizations=minimum_realizations)(realization_cubes)
-
-
-def test_empty_cubelist():
-    """Ensure supplying an empty CubeList raises an error"""
-    with pytest.raises(TypeError, match="A cube is needed to be combined."):
-        Combine("+")(CubeList())

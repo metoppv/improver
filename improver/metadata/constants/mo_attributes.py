@@ -37,11 +37,3 @@ MOSG_GRID_DEFINITION = {
     },
     "nc_det": {"mosg__model_configuration": "nc_det"},
 }
-
-# Map correct metadata from StaGE v1.1.0
-GRID_ID_LOOKUP = {
-    "enukx_standard_v1": "uk_ens",
-    "engl_standard_v1": "gl_ens",
-    "ukvx_standard_v1": "uk_det",
-    "glm_standard_v1": "gl_det",
-}

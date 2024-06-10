@@ -3,9 +3,10 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing the CloudTopTemperature plugin"""
+from typing import Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
@@ -18,6 +19,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
@@ -112,23 +114,26 @@ class CloudTopTemperature(PostProcessingPlugin):
         )
         return cube
 
-    def process(self, t_at_ccl: Cube, p_at_ccl: Cube, temperature: Cube) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
 
         Args:
-            t_at_ccl:
-                temperature at cloud condensation level
-            p_at_ccl:
-                pressure at cloud condensation level
-            temperature:
-                temperature on pressure levels
+            cubes:
+                Cubes of 'temperature at cloud condensation level',
+                'pressure at cloud condensation level' and 'temperature on pressure levels'.
 
         Returns:
             Cube of cloud top temperature
         """
-        self.t_at_ccl = t_at_ccl
-        self.p_at_ccl = p_at_ccl
-        self.temperature = temperature
+        cubes = as_cubelist(*cubes)
+        self.t_at_ccl, self.p_at_ccl, self.temperature = cubes.extract_cubes(
+            [
+                "air_temperature_at_condensation_level",
+                "air_pressure_at_condensation_level",
+                "air_temperature",
+            ]
+        )
+
         assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")
         self.t_at_ccl.convert_units("K")

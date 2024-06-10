@@ -18,6 +18,7 @@ from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.check_datatypes import enforce_dtype
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.metadata.probabilistic import find_threshold_coordinate
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
@@ -83,7 +84,7 @@ class Combine(BasePlugin):
             expand_bound=self.expand_bound,
         )
 
-    def process(self, cubes: CubeList) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Preprocesses the cubes, then passes them to the appropriate plugin
 
@@ -102,8 +103,8 @@ class Combine(BasePlugin):
             ValueError:
                 If minimum_realizations aren't met, or less than one were requested.
         """
-        if not cubes:
-            raise TypeError("A cube is needed to be combined.")
+        cubes = as_cubelist(*cubes)
+
         if self.new_name is None:
             self.new_name = cubes[0].name()
 
