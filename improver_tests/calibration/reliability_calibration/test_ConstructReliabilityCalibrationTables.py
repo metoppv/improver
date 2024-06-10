@@ -296,6 +296,50 @@ def test_process_table_values(create_rel_table_inputs, expected_table):
     )
 
 
+def test_process_table_values_nan_or_masked_forecast(
+    create_rel_table_inputs, expected_table
+):
+    """Test that nan or masked values in the forecast are not counted."""
+
+    forecast, truth = create_rel_table_inputs.forecast, create_rel_table_inputs.truth
+    nan_ind = list(range(0, forecast.data.size, 2))
+    nan_ind_bool = np.zeros_like(forecast.data).astype(bool)
+    nan_ind_bool.flat[nan_ind] = 1
+    # split the forecast into 2 parts, which have inverse patterns of nans
+    forecast_1 = forecast.copy(data=np.where(nan_ind_bool, np.nan, forecast.data))
+    forecast_2 = forecast.copy(data=np.where(nan_ind_bool, forecast.data, np.nan))
+    expected = np.reshape(
+        np.sum([expected_table, expected_table], axis=0),
+        create_rel_table_inputs.expected_shape,
+    )
+    plugin = Plugin(single_value_lower_limit=True, single_value_upper_limit=True)
+    result_1 = plugin.process(forecast_1, truth)[0]
+    result_2 = plugin.process(forecast_2, truth)[0]
+    sum_result = result_1 + result_2
+    assert_array_equal(sum_result.data, expected)
+    # mask nan values and fill with random data
+    forecast_masked = forecast.copy(data=np.ma.masked_invalid(forecast_1.data))
+    forecast_masked.data = np.where(
+        np.ma.getmask(forecast_1.data),
+        np.random.random(forecast_1.data.shape),
+        forecast_1.data,
+    )
+    result = plugin.process(forecast_masked, truth)[0]
+    # check masks are preserved
+    assert_array_equal(
+        np.ma.getmask(result.data),
+        np.broadcast_to(np.ma.getmask(forecast_masked.data), result.shape),
+    )
+    expected = result_1.copy(
+        data=np.ma.masked_where(
+            result_1.data,
+            np.broadcast_to(np.ma.getmask(forecast_masked), result_1.shape),
+        )
+    )
+    # check masked data is not counted in reliability table
+    assert_array_equal(result.data, expected.data)
+
+
 def test_table_values_masked_truth(
     forecast_grid, masked_truths, expected_table_for_mask
 ):

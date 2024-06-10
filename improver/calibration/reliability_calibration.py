@@ -313,25 +313,41 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             dimension(s) of the forecast and truth cubes (which are
             equivalent).
         """
-        observation_counts = []
-        forecast_probabilities = []
-        forecast_counts = []
 
-        for bin_min, bin_max in self.probability_bins:
-            observation_mask = (
-                ((forecast >= bin_min) & (forecast <= bin_max)) & (np.isclose(truth, 1))
-            ).astype(int)
-            forecast_mask = ((forecast >= bin_min) & (forecast <= bin_max)).astype(int)
-            forecasts_probability_values = forecast * forecast_mask
+        bin_edges = np.concatenate(
+            [
+                np.array(self.probability_bins[:, 0]),
+                np.array([self.probability_bins[-1, 1] + self.single_value_tolerance]),
+            ]
+        ).astype(self.probability_bins.dtype)
+        bin_index = np.searchsorted(bin_edges, forecast, side="right") - 1
+        # nan values have index len(bin_edges) - 1, which is one more than the number of bins.
+        # Therefore, to make put_along_axis work, we also make the first dimension of the new shape
+        # one more than the number of bins, and discard the last slice of the first dimension later.
+        new_shape = (len(bin_edges),) + forecast.shape
+        forecast_mask = np.broadcast_to(
+            np.expand_dims(np.ma.getmask(forecast), 0), new_shape
+        )
+        forecast_probabilities = np.zeros(new_shape, dtype=forecast.dtype)
+        np.put_along_axis(
+            forecast_probabilities, np.expand_dims(bin_index, 0), forecast, axis=0
+        )
+        forecast_probabilities = np.ma.array(
+            forecast_probabilities, mask=forecast_mask, copy=False
+        )
+        forecast_counts = np.zeros_like(forecast_probabilities)
+        np.put_along_axis(forecast_counts, np.expand_dims(bin_index, 0), 1, axis=0)
+        forecast_counts = np.ma.array(forecast_counts, mask=forecast_mask, copy=False)
+        observation_counts = (
+            np.expand_dims(np.isclose(truth, 1), 0) & forecast_counts.astype(bool)
+        ).astype(int)
 
-            observation_counts.append(observation_mask)
-            forecast_probabilities.append(forecasts_probability_values)
-            forecast_counts.append(forecast_mask)
+        # discard last index in first dimension because it contains data from forecast nans
         reliability_table = np.ma.stack(
             [
-                np.ma.stack(observation_counts),
-                np.ma.stack(forecast_probabilities),
-                np.ma.stack(forecast_counts),
+                observation_counts[:-1, :],
+                forecast_probabilities[:-1, :],
+                forecast_counts[:-1, :],
             ]
         )
 
