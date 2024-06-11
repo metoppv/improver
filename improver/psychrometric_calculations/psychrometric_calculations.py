@@ -26,7 +26,6 @@ from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
 from improver.utilities.spatial import OccurrenceWithinVicinity
-from improver.utilities.common_input_handle import as_cubelist
 
 SVP_T_MIN = 183.15
 SVP_T_MAX = 338.25

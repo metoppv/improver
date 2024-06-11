@@ -58,7 +58,10 @@ def process(
     try:
         result = plugin.process(cube)
     except ValueError as err:
-        if err.args[0] == "Constraint(s) could not be matched in input cube" and ignore_failure:
+        if (
+            err.args[0] == "Constraint(s) could not be matched in input cube"
+            and ignore_failure
+        ):
             return cube
         else:
             raise

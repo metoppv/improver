@@ -92,7 +92,7 @@ class HailFraction(PostProcessingPlugin):
         ] = 0.05
         return hail_fraction
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Calculates the hail fraction using the maximum vertical updraught,
         the hail_size, the cloud condensation level temperature, the convective cloud
         top temperature, the altitude of the hail to rain phase change and the

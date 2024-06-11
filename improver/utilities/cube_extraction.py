@@ -13,8 +13,8 @@ from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
-from improver.utilities.common_input_handle import as_cube
 from improver.metadata.constants import FLOAT_DTYPE
+from improver.utilities.common_input_handle import as_cube
 from improver.utilities.cube_constraints import create_sorted_lambda_constraint
 from improver.utilities.cube_manipulation import get_dim_coord_names
 
@@ -267,7 +267,13 @@ def extract_subcube(
 
 class ExtractSubCube(BasePlugin):
     """Extract a subcube from the provided cube, given constraints."""
-    def __init__(self, constraints: List[str], units: Optional[List[str]] = None, use_original_units: bool = True) -> None:
+
+    def __init__(
+        self,
+        constraints: List[str],
+        units: Optional[List[str]] = None,
+        use_original_units: bool = True,
+    ) -> None:
         """
         Set up the ExtractSubCube plugin.
 
@@ -291,7 +297,7 @@ class ExtractSubCube(BasePlugin):
 
     def process(self, cube: Cube):
         """Perform the subcube extraction.
-        
+
         Args:
             cube:
                 The cube from which a subcube is to be extracted.
@@ -303,7 +309,9 @@ class ExtractSubCube(BasePlugin):
             ValueError: If the constraint(s) could not be matched to the input cube.
         """
         cube = as_cube(cube)
-        cube = extract_subcube(cube, self._constraints, self._units, self._use_original_units)
+        cube = extract_subcube(
+            cube, self._constraints, self._units, self._use_original_units
+        )
         if cube is None:
             raise ValueError("Constraint(s) could not be matched in input cube")
         return cube

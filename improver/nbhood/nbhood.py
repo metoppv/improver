@@ -15,6 +15,9 @@ from scipy.ndimage.filters import correlate
 from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.forecast_times import forecast_period_coord
+from improver.nbhood import radius_by_lead_time
+from improver.utilities.common_input_handle import as_cube
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
@@ -721,23 +724,26 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         return result
 
 
-class MetaProcModNeighbourhood(BasePlugin):
-    """Meta-processing module which handles probabilities and percentiles neighbourhood processing."""
+class MetaNeighbourhood(BasePlugin):
+    """
+    Meta-processing module which handles probabilities and percentiles
+    neighbourhood processing.
+    """
 
     def __init__(
-            self,
-            neighbourhood_output: str,
-            neighbourhood_shape: str = "square",
-            radii: Optional[List[float]] = None,
-            lead_times: Optional[List[int]] = None,
-            degrees_as_complex: bool = False,
-            weighted_mode: bool = False,
-            area_sum: bool = False,
-            percentiles: float = DEFAULT_PERCENTILES,
-            halo_radius: float = None,
-        ) -> None:
+        self,
+        neighbourhood_output: str,
+        radii: List[float],
+        lead_times: List[int],
+        neighbourhood_shape: str = "square",
+        degrees_as_complex: bool = False,
+        weighted_mode: bool = False,
+        area_sum: bool = False,
+        percentiles: float = DEFAULT_PERCENTILES,
+        halo_radius: float = None,
+    ) -> None:
         """
-        Initialise the MetaProcModNeighbourhood class.
+        Initialise the MetaNeighbourhood class.
 
         Args:
             neighbourhood_output:
@@ -750,12 +756,6 @@ class MetaProcModNeighbourhood(BasePlugin):
                 The calculation of percentiles from a neighbourhood is notably slower
                 than neighbourhood processing using a thresholded probability field.
                 Options: "probabilities", "percentiles".
-            neighbourhood_shape:
-                Name of the neighbourhood method to use. Only a "circular"
-                neighbourhood shape is applicable for calculating "percentiles"
-                output.
-                Options: "circular", "square".
-                Default: "square".
             radii:
                 The radius or a list of radii in metres of the neighbourhood to
                 apply.
@@ -766,6 +766,12 @@ class MetaProcModNeighbourhood(BasePlugin):
                 The lead times in hours that correspond to the radii to be used.
                 If lead_times are set, radii must be a list the same length as
                 lead_times.
+            neighbourhood_shape:
+                Name of the neighbourhood method to use. Only a "circular"
+                neighbourhood shape is applicable for calculating "percentiles"
+                output.
+                Options: "circular", "square".
+                Default: "square".
             degrees_as_complex:
                 Include this option to process angles as complex numbers.
                 Not compatible with circular kernel or percentiles.
@@ -788,7 +794,6 @@ class MetaProcModNeighbourhood(BasePlugin):
         """
         self._neighbourhood_output = neighbourhood_output
         self._neighbourhood_shape = neighbourhood_shape
-        from improver.nbhood import radius_by_lead_time
         self._radius_or_radii, self._lead_times = radius_by_lead_time(radii, lead_times)
         self._degrees_as_complex = degrees_as_complex
         self._weighted_mode = weighted_mode
@@ -799,7 +804,8 @@ class MetaProcModNeighbourhood(BasePlugin):
         if neighbourhood_output == "percentiles":
             if weighted_mode:
                 raise RuntimeError(
-                    "weighted_mode cannot be used with" 'neighbourhood_output="percentiles"'
+                    "weighted_mode cannot be used with"
+                    'neighbourhood_output="percentiles"'
                 )
             if degrees_as_complex:
                 raise RuntimeError("Cannot generate percentiles from complex numbers")
@@ -809,15 +815,27 @@ class MetaProcModNeighbourhood(BasePlugin):
                 raise RuntimeError(
                     "Cannot process complex numbers with circular neighbourhoods"
                 )
-            
-    def process(self, cube, mask):
+
+    def process(self, cube: Cube, mask: Cube = None) -> Cube:
+        """
+        Apply neighbourhood processing to the input cube.
+
+        Args:
+            cube: The input cube.
+            mask: The mask cube.
+
+        Returns:
+            iris.cube.Cube: The processed cube.
+        """
+        cube = as_cube(cube)
+        if mask:
+            mask = as_cube(mask)
+
         if self._degrees_as_complex:
             # convert cube data into complex numbers
-            from improver.wind_calculations.wind_direction import WindDirection
-            cube.data = WindDirection.deg_to_complex(cube.data)
+            cube.data = deg_to_complex(cube.data)
 
         if self._neighbourhood_output == "probabilities":
-            from improver.nbhood.nbhood import NeighbourhoodProcessing
             result = NeighbourhoodProcessing(
                 self._neighbourhood_shape,
                 self._radius_or_radii,
@@ -827,15 +845,17 @@ class MetaProcModNeighbourhood(BasePlugin):
                 re_mask=True,
             )(cube, mask_cube=mask)
         elif self._neighbourhood_output == "percentiles":
-            from improver.nbhood.nbhood import GeneratePercentilesFromANeighbourhood
             result = GeneratePercentilesFromANeighbourhood(
-                self._radius_or_radii, lead_times=self._lead_times, percentiles=self._percentiles,
+                self._radius_or_radii,
+                lead_times=self._lead_times,
+                percentiles=self._percentiles,
             )(cube)
 
         if self._degrees_as_complex:
             # convert neighbourhooded cube back to degrees
-            result.data = WindDirection.complex_to_deg(result.data)
+            result.data = complex_to_deg(result.data)
         if self._halo_radius is not None:
             from improver.utilities.pad_spatial import remove_cube_halo
+
             result = remove_cube_halo(result, self._halo_radius)
         return result

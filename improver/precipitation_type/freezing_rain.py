@@ -269,7 +269,7 @@ class FreezingRain(PostProcessingPlugin):
 
         return freezing_rain
 
-    def process(self, *input_cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *input_cubes: Union[Cube, CubeList]) -> Cube:
         """Check input cubes, then calculate a probability of freezing rain
         diagnostic. Collapses the realization coordinate if present.
 
@@ -283,7 +283,7 @@ class FreezingRain(PostProcessingPlugin):
         Returns:
             Cube of freezing rain probabilties.
         """
-        input_cubes = as_cubelist(input_cubes)
+        input_cubes = as_cubelist(*input_cubes)
         self._get_input_cubes(input_cubes)
 
         try:

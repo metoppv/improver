@@ -45,8 +45,6 @@ def process(*cubes: cli.inputcube):
             The name of the orography cube must be "surface_altitude".
             The name of the site ancillary most be "grid_neighbours".
     """
-    from iris.cube import CubeList
-
     from improver.psychrometric_calculations.precip_phase_probability import (
         PrecipPhaseProbability,
     )

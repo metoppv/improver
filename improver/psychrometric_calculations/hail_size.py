@@ -467,7 +467,7 @@ class HailSize(BasePlugin):
         )
         return hail_size_cube
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Main entry point of this class
 
@@ -487,11 +487,13 @@ class HailSize(BasePlugin):
             Cube of hail diameter (m)
         """
         cubes = as_cubelist(*cubes)
-        (temperature_on_pressure,
-         ccl_pressure,
-         ccl_temperature,
-         wet_bulb_zero_height_asl,
-         orography) = cubes.extract(
+        (
+            temperature_on_pressure,
+            ccl_pressure,
+            ccl_temperature,
+            wet_bulb_zero_height_asl,
+            orography,
+        ) = cubes.extract(
             [
                 "air_temperature",
                 "air_pressure_at_condensation_level",

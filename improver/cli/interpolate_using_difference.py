@@ -53,7 +53,7 @@ def process(
     """
     from improver.utilities.interpolation import InterpolateUsingDifference
 
-    result = InterpolateUsingDifference(limit=limit, limit_as_maximum=limit_as_maximum)(
-        cube, reference_cube=reference_cube
+    result = InterpolateUsingDifference(limit_as_maximum=limit_as_maximum)(
+        cube, reference_cube=reference_cube, limit=limit,
     )
     return result

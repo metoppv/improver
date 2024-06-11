@@ -14,6 +14,7 @@ from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -110,6 +111,8 @@ class WindDirection(PostProcessingPlugin):
     ) -> Union[ndarray, float]:
         """Converts degrees to complex values.
 
+        See deg_to_complex
+
         The radius value can be used to weigh values - but it is set
         to 1 for now.
 
@@ -123,14 +126,7 @@ class WindDirection(PostProcessingPlugin):
             3D array or float - wind direction translated to
             complex numbers.
         """
-        # Convert from degrees to radians.
-        angle_rad = np.deg2rad(angle_deg)
-        # Derive real and imaginary components (also known as a and b)
-        real = radius * np.cos(angle_rad)
-        imag = radius * np.sin(angle_rad)
-
-        # Combine components into a complex number and return.
-        return real + 1j * imag
+        return deg_to_complex(angle_deg, radius)
 
     @staticmethod
     def complex_to_deg(complex_in: ndarray) -> ndarray:
@@ -151,20 +147,7 @@ class WindDirection(PostProcessingPlugin):
         Raises:
             TypeError: If complex_in is not an array.
         """
-
-        if not isinstance(complex_in, np.ndarray):
-            msg = "Input data is not a numpy array, but {}"
-            raise TypeError(msg.format(type(complex_in)))
-
-        angle = np.angle(complex_in, deg=True)
-
-        # Convert angles so they are in the range [0, 360)
-        angle = np.mod(np.float32(angle), 360)
-
-        # We don't need 64 bit precision.
-        angle = angle.astype(np.float32)
-
-        return angle
+        return complex_to_deg(complex_in)
 
     def calc_wind_dir_mean(self) -> None:
         """Find the mean wind direction using complex average which actually
@@ -186,7 +169,7 @@ class WindDirection(PostProcessingPlugin):
                 along an axis using np.mean().
         """
         self.wdir_mean_complex = np.mean(self.wdir_complex, axis=self.realization_axis)
-        self.wdir_slice_mean.data = self.complex_to_deg(self.wdir_mean_complex)
+        self.wdir_slice_mean.data = complex_to_deg(self.wdir_mean_complex)
 
     def find_r_values(self) -> None:
         """Find radius values from complex numbers.
@@ -309,7 +292,7 @@ class WindDirection(PostProcessingPlugin):
         ):
             self._reset()
             # Extract wind direction data.
-            self.wdir_complex = self.deg_to_complex(wdir_slice.data)
+            self.wdir_complex = deg_to_complex(wdir_slice.data)
             (self.realization_axis,) = wdir_slice.coord_dims("realization")
             # Copies input cube and remove realization dimension to create
             # cubes for storing results.

@@ -39,8 +39,6 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
             A cube of freezing rain rate or accumulation probabilities.
 
     """
-    from iris.cube import CubeList
-
     from improver.precipitation_type.freezing_rain import FreezingRain
 
     return FreezingRain(model_id_attr=model_id_attr)(*cubes)

@@ -3,6 +3,7 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the HailSize plugin"""
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -18,6 +19,22 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "institution": "somewhere",
 }
 pytest.importorskip("stratify")
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.hail_size.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        HailSize()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 @pytest.fixture

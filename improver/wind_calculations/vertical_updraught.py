@@ -14,8 +14,8 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
-from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.common_input_handle import as_cubelist
+from improver.utilities.cube_checker import spatial_coords_match
 
 
 class VerticalUpdraught(BasePlugin):
@@ -148,7 +148,7 @@ class VerticalUpdraught(BasePlugin):
         )
         return cube
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Executes methods to calculate updraught from CAPE and precipitation rate
         and packages this as a Cube with appropriate metadata.
 
@@ -160,7 +160,7 @@ class VerticalUpdraught(BasePlugin):
             Cube:
                 Containing maximum vertical updraught
         """
-        cubes = as_cubelist(cubes)
+        cubes = as_cubelist(*cubes)
         self._parse_inputs(cubes)
         return self._make_updraught_cube(
             self._updraught_from_cape() + self._updraught_increment_from_precip()

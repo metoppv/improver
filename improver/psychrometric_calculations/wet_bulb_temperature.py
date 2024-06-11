@@ -21,9 +21,9 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cube, as_cubelist
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
-from improver.utilities.common_input_handle import as_cube, as_cubelist
 
 
 class WetBulbTemperature(BasePlugin):
@@ -294,7 +294,7 @@ class WetBulbTemperature(BasePlugin):
         Returns:
             Cube of wet bulb temperature (K).
         """
-        cubes = as_cubelist(cubes)
+        cubes = as_cubelist(*cubes)
         names_to_extract = ["air_temperature", "relative_humidity", "air_pressure"]
         if len(cubes) != len(names_to_extract):
             raise ValueError(
@@ -360,7 +360,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
         return wet_bulb_temperature_integral
 
 
-class MetaProcModWetBulbFreezingLevel(BasePlugin):
+class MetaWetBulbFreezingLevel(BasePlugin):
     """Meta processing module to handle the necessary extract and metadata handling (rename)
     required by wet bulb freezing level generation."""
 

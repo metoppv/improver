@@ -96,16 +96,17 @@ def process(
         RuntimeError:
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
-    from improver.nbhood.nbhood import MetaProcModNeighbourhood
-    plugin = MetaProcModNeighbourhood(
-        neighbourhood_output = neighbourhood_output,
-        neighbourhood_shape = neighbourhood_shape,
-        radii = radii,
-        lead_times = lead_times,
-        degrees_as_complex = degrees_as_complex,
-        weighted_mode = weighted_mode,
-        area_sum = area_sum,
-        percentiles = percentiles,
-        halo_radius = halo_radius,
+    from improver.nbhood.nbhood import MetaNeighbourhood
+
+    plugin = MetaNeighbourhood(
+        neighbourhood_output=neighbourhood_output,
+        neighbourhood_shape=neighbourhood_shape,
+        radii=radii,
+        lead_times=lead_times,
+        degrees_as_complex=degrees_as_complex,
+        weighted_mode=weighted_mode,
+        area_sum=area_sum,
+        percentiles=percentiles,
+        halo_radius=halo_radius,
     )
     return plugin(cube, mask=mask)

@@ -48,7 +48,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
     def __init__(self, model_id_attr: str = None) -> None:
         """
         Initialise the plugin with the model_id_attr.
-        
+
         Args:
             model_id_attr:
                 The name of the dataset attribute to be used to identify the source
@@ -108,7 +108,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             raise ValueError("Supplied cubes do not have the same spatial coordinates")
         return cape, precip
 
-    def process(self, *cubes: Union[Cube,CubeList]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         From the supplied CAPE and precipitation-rate cubes, calculate a probability
         of lightning cube.

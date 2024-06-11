@@ -6,6 +6,7 @@
 import re
 from datetime import datetime
 from typing import List
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -21,6 +22,22 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "source": "unit test",
     "institution": "somewhere",
 }
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.wind_calculations.vertical_updraught.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        VerticalUpdraught(model_id_attr=sentinel.model_id_attr)(
+            sentinel.cape, sentinel.precip
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(sentinel.cape, sentinel.precip)
 
 
 @pytest.fixture(name="cape")

@@ -3,8 +3,8 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the InterpolateUsingDifference plugin."""
-
 import unittest
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -15,6 +15,24 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_variable_cube,
 )
 from improver.utilities.interpolation import InterpolateUsingDifference
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.utilities.interpolation.as_cube")
+def test_as_cube_called(mock_as_cube):
+    mock_as_cube.side_effect = [None, None, HaltExecution]  # halt execution on 2nd call
+    try:
+        InterpolateUsingDifference()(
+            sentinel.cube, sentinel.reference_cube, limit=sentinel.limit_cube
+        )
+    except HaltExecution:
+        pass
+    mock_as_cube.assert_any_call(sentinel.cube)
+    mock_as_cube.assert_any_call(sentinel.limit_cube)
+    mock_as_cube.assert_any_call(sentinel.reference_cube)
 
 
 class Test_Setup(unittest.TestCase):
@@ -73,9 +91,7 @@ class Test_process_check_inputs(Test_Setup):
         self.snow_sleet.data[1, 1] = np.nan
         msg = "The reference cube contains np.nan data"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet
-            )
+            InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
     def test_incompatible_reference_cube_units(self):
         """Test an exception is raised if the reference cube has units that
@@ -84,9 +100,7 @@ class Test_process_check_inputs(Test_Setup):
         self.snow_sleet.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference().process(
-                self.sleet_rain, self.snow_sleet
-            )
+            InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
     def test_incompatible_limit_units(self):
         """Test an exception is raised if the limit cube has units that
@@ -95,8 +109,8 @@ class Test_process_check_inputs(Test_Setup):
         self.limit.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference(limit=self.limit).process(
-                self.sleet_rain, self.snow_sleet
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet, limit=self.limit,
             )
 
     def test_convert_units(self):
@@ -106,8 +120,8 @@ class Test_process_check_inputs(Test_Setup):
         self.snow_sleet.convert_units("cm")
         self.limit.convert_units("cm")
 
-        InterpolateUsingDifference(limit=self.limit).process(
-            self.sleet_rain, self.snow_sleet
+        InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit
         )
 
 
@@ -138,8 +152,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [8.5, 8.0, 6.0], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference(limit=self.limit, limit_as_maximum=True).process(
-            self.sleet_rain, self.snow_sleet
+        result = InterpolateUsingDifference(limit_as_maximum=True).process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result.data, expected)
@@ -155,8 +169,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference(limit=self.limit, limit_as_maximum=False).process(
-            self.sleet_rain, self.snow_sleet,
+        result = InterpolateUsingDifference(limit_as_maximum=False).process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result.data, expected)
@@ -176,8 +190,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference(limit=self.limit, limit_as_maximum=False).process(
-            sleet_rain, snow_sleet
+        result = InterpolateUsingDifference(limit_as_maximum=False).process(
+            sleet_rain, snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result[0].data, expected)
@@ -218,12 +232,8 @@ class Test_process(Test_Setup):
             self.sleet_rain, self.snow_sleet
         )
 
-        result_limited = InterpolateUsingDifference(
-            limit=self.snow_sleet,
-            limit_as_maximum=False).process(
-            self.sleet_rain,
-            self.snow_sleet,
-
+        result_limited = InterpolateUsingDifference(limit_as_maximum=False).process(
+            self.sleet_rain, self.snow_sleet, limit=self.snow_sleet,
         )
 
         assert_array_equal(result_unlimited.data, expected_unlimited)
@@ -279,8 +289,8 @@ class Test_process(Test_Setup):
         self.snow_sleet.convert_units("cm")
         self.limit.convert_units("cm")
 
-        result = InterpolateUsingDifference(limit=self.limit).process(
-            self.sleet_rain, self.snow_sleet
+        result = InterpolateUsingDifference().process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result.data, expected)

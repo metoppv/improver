@@ -3,6 +3,7 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HailFraction plugin."""
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -16,6 +17,22 @@ COMMON_ATTRS = {
     "institution": "Met Office",
     "title": "Post-Processed IMPROVER unit test",
 }
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.precipitation_type.hail_fraction.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        HailFraction()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 def setup_cubes():
