@@ -8,10 +8,10 @@ import unittest
 from datetime import datetime, timedelta
 
 import cftime
-from cf_units import Unit
 import iris
 import numpy as np
 import pytest
+from cf_units import Unit
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
@@ -477,11 +477,18 @@ class Test_relabel_to_period(unittest.TestCase):
 @pytest.fixture
 def period_cube(data, period_lengths):
     """
-    data:
-        Data with a leading dimension of the same length as the period_lengths
-        list.
-    period_lengths:
-        A list of period lengths in seconds.
+    Generates a cube of average lightning flash rate within a period.
+
+    Args:
+        data:
+            Data with a leading dimension of the same length as the
+            period_lengths list.
+        period_lengths:
+            A list of period lengths in seconds. If multiple period lengths
+            are provided the returned cube will have a leading time dimension.
+    Returns:
+        A period cube with units of m-2 s-1 for use in testing time
+        integration using the period defined by the time bounds.
     """
 
     frt = datetime(2024, 6, 11, 12)
@@ -492,7 +499,7 @@ def period_cube(data, period_lengths):
     cubes = CubeList()
     for ii, dslice in enumerate(data):
         # Sum periods to get time so that they don't overlap.
-        time_offset = np.sum(period_lengths[:ii+1]).astype(np.float64)
+        time_offset = np.sum(period_lengths[: ii + 1]).astype(np.float64)
         time = frt + timedelta(seconds=time_offset)
         cubes.append(
             set_up_variable_cube(
@@ -501,7 +508,7 @@ def period_cube(data, period_lengths):
                 units="m-2 s-1",
                 time=time,
                 frt=frt,
-                time_bounds=((time - timedelta(seconds=period_lengths[ii])), time)
+                time_bounds=((time - timedelta(seconds=period_lengths[ii])), time),
             )
         )
 
@@ -513,12 +520,7 @@ def period_cube(data, period_lengths):
     [
         # Array with a rate of 1 per second, with a period of 3-hours.
         # The resulting data are a count of 10800 (3-hours in seconds * rate)
-        (
-            {},
-            np.ones((5, 5)),
-            [10800],
-            np.full((5, 5), 10800),
-        ),
+        ({}, np.ones((5, 5)), [10800], np.full((5, 5), 10800),),
         # Array with two rates, 1/200 per second and 3/400 per second. Two
         # periods of 3 and 2 hours leading to counts of 54 in each period;
         # (10800 * 0.005) and (7200 * 0.0075).
@@ -552,8 +554,7 @@ def test_integrate_time(period_cube, kwargs, expected):
     expected following multiplication by the time period. Checks the units
     have been updated, a suitable cell method has been added, the time
     coordinate is unchanged, still describing a period, and that if a new
-    diagnostic name is specified, this as been applied.
-    """
+    diagnostic name is specified, this as been applied."""
 
     result = integrate_time(period_cube.copy(), **kwargs)
 
@@ -564,6 +565,17 @@ def test_integrate_time(period_cube, kwargs, expected):
     assert result.coord("time") == period_cube.coord("time")
     if kwargs:
         assert result.name() == kwargs["new_name"]
+
+
+@pytest.mark.parametrize("data,period_lengths", [(np.ones((5, 5)), [10800])])
+def test_integrate_time_exception(period_cube):
+    """Tests that the integrate_time function raises an exception if the cube
+    passed in does not have bounds on the time coordinate."""
+
+    period_cube.coord("time").bounds = None
+    with pytest.raises(ValueError, match="time coordinate must have bounds"):
+        integrate_time(period_cube.copy())
+
 
 if __name__ == "__main__":
     unittest.main()

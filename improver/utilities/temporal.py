@@ -305,19 +305,23 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
     Returns:
         The cube with the data multiplied by the period in seconds defined
         by the time time bounds
+
+    Raises:
+        ValueError: If the input cube time coordinate does not have time
+                    bounds.
     """
     # Ensure cube has a time coordinate with bounds
     if not cube.coord("time").has_bounds():
         raise ValueError(
-            "time coordinate must have bounds to apply this time-bounds "
-            "integration")
+            "time coordinate must have bounds to apply this time-bounds " "integration"
+        )
 
     # For each grid of data associated with a time, multiply the rate / frequency
     # by the associated time interval to get an accumulation / count over the
     # period.
     integrated_cube = iris.cube.CubeList()
     for cslice in cube.slices_over("time"):
-        multiplier, = np.diff(cslice.coord("time").cell(0).bound)
+        (multiplier,) = np.diff(cslice.coord("time").cell(0).bound)
         multiplier = multiplier.total_seconds()
         cslice.data *= multiplier
         integrated_cube.append(cslice)
