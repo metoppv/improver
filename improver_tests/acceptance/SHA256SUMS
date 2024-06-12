@@ -535,6 +535,9 @@ caa759d708afc535223bcf35924e98962675f6e3f690fe1f82c5de5ba08302b4  ./hail-size/te
 c4451e5a94a946215e5a3e09787b0d25c215aa4511110f46b6015c1c5aab13c9  ./hail-size/wet_bulb_freezing_altitude.nc
 0af18a52713334627696679bb369bb00332e5cb8f8a1a82ca9a2a7612071e6d3  ./hail-size/with_id_attr/kgo.nc
 76d84b674d8c0c9bed8bd27fad6697be7559c9ebe1c13296363717cbcd888add  ./hail-size/without_id_attr/kgo.nc
+cebc2ccbe6c8e33b3e39d65f07d189172133a3fc6c22e3567c61572e14750cef  ./integrate-time-bounds/basic/kgo.nc
+b8ae3b9d3db05fc0c8479bb707465aeaf140202ab4477d025f5c793e2d287dc8  ./integrate-time-bounds/basic/kgo_renamed.nc
+5aaa03199faf9df5fda699936b33df862b071b3790b04791fef31d8cc0fd074a  ./integrate-time-bounds/basic/lightning_frequency.nc
 84562b15f63f014168f6808bee71995a84185d3a62bf436eb7a537010dcf4015  ./interpolate-using-difference/basic/orog.nc
 854bba49c9daa66d930c2ea74300607297cd836ed8579e0a449a40e738e18af1  ./interpolate-using-difference/basic/sleet_rain_max_limited_kgo.nc
 0bcbf3e7d168b97a8229e24866ef110b11f6dd61d14c8d6f18d9c2003d93d5b8  ./interpolate-using-difference/basic/sleet_rain_min_limited_kgo.nc

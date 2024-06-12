@@ -32,6 +32,12 @@ def test_rename(tmp_path):
     kgo_path = kgo_dir / "kgo_renamed.nc"
     input_path = kgo_dir / "lightning_frequency.nc"
     output_path = tmp_path / "output.nc"
-    args = [input_path, "--new-name", "number_of_lightning_flashes_per_unit_area", "--output", output_path]
+    args = [
+        input_path,
+        "--new-name",
+        "number_of_lightning_flashes_per_unit_area",
+        "--output",
+        output_path,
+    ]
     run_cli(args)
     acc.compare(output_path, kgo_path)
