@@ -13,7 +13,7 @@ import iris
 import numpy as np
 from cftime import DatetimeGregorian
 from iris import Constraint
-from iris.coords import Coord
+from iris.coords import CellMethod, Coord
 from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 from numpy import int64
@@ -281,3 +281,63 @@ def relabel_to_period(cube: Cube, period: Optional[int] = None):
             dtype=TIME_COORDS[coord].dtype,
         )
     return cube
+
+
+def integrate_time(cube: Cube, new_name: str = None) -> Cube:
+    """
+    Multiply a frequency or rate cube by the time period given by the
+    time bounds over which it is defined to return a count or accumulation.
+    The frequency or rate must be defined with time bounds, e.g. an average
+    frequency across the period.
+
+    The returned cube has units equivalent to the input cube multiplied by
+    seconds.
+
+    Any time related cell methods are removed from the output cube and a new
+    "sum" over time cell method is added.
+
+    Args:
+        Cube:
+            A cube of average frequency or rate within a defined period.
+        new_name:
+            A new name for the resulting diagnostic.
+
+    Returns:
+        The cube with the data multiplied by the period in seconds defined
+        by the time time bounds
+    """
+    # Ensure cube has a time coordinate with bounds
+    if not cube.coord("time").has_bounds():
+        raise ValueError(
+            "time coordinate must have bounds to apply this time-bounds "
+            "integration")
+
+    # For each grid of data associated with a time, multiply the rate / frequency
+    # by the associated time interval to get an accumulation / count over the
+    # period.
+    integrated_cube = iris.cube.CubeList()
+    for cslice in cube.slices_over("time"):
+        multiplier, = np.diff(cslice.coord("time").cell(0).bound)
+        multiplier = multiplier.total_seconds()
+        cslice.data *= multiplier
+        integrated_cube.append(cslice)
+
+    integrated_cube = integrated_cube.merge_cube()
+
+    # Modify the cube units to reflect the multiplication by time.
+    integrated_cube.units *= cf_units.Unit("s")
+    if new_name is not None:
+        integrated_cube.rename(new_name)
+
+    # Add a suitable cell method to describe what has been done and remove
+    # former cell methods associated with the time coordinate which are now
+    # out of date.
+    new_cell_method = CellMethod("sum", coords=["time"])
+    new_cell_methods = [new_cell_method]
+    for cm in integrated_cube.cell_methods:
+        if not "time" in cm.coord_names:
+            new_cell_methods.append(cm)
+
+    integrated_cube.cell_methods = new_cell_methods
+
+    return integrated_cube

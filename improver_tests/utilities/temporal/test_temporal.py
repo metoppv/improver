@@ -5,9 +5,10 @@
 """Unit tests for temporal utilities."""
 
 import unittest
-from datetime import datetime
+from datetime import datetime, timedelta
 
 import cftime
+from cf_units import Unit
 import iris
 import numpy as np
 import pytest
@@ -28,6 +29,7 @@ from improver.utilities.temporal import (
     datetime_to_iris_time,
     extract_cube_at_time,
     extract_nearest_time_point,
+    integrate_time,
     iris_time_to_datetime,
     relabel_to_period,
 )
@@ -471,6 +473,97 @@ class Test_relabel_to_period(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, msg):
             relabel_to_period(self.cube, period=0)
 
+
+@pytest.fixture
+def period_cube(data, period_lengths):
+    """
+    data:
+        Data with a leading dimension of the same length as the period_lengths
+        list.
+    period_lengths:
+        A list of period lengths in seconds.
+    """
+
+    frt = datetime(2024, 6, 11, 12)
+    # Enable consistent slicing even if 1 period and a 2D data array are passed in
+    if len(period_lengths) == 1:
+        data = np.expand_dims(data, 0)
+
+    cubes = CubeList()
+    for ii, dslice in enumerate(data):
+        # Sum periods to get time so that they don't overlap.
+        time_offset = np.sum(period_lengths[:ii+1]).astype(np.float64)
+        time = frt + timedelta(seconds=time_offset)
+        cubes.append(
+            set_up_variable_cube(
+                dslice.astype(np.float32),
+                name="frequency_of_lightning_flashes_per_unit_area",
+                units="m-2 s-1",
+                time=time,
+                frt=frt,
+                time_bounds=((time - timedelta(seconds=period_lengths[ii])), time)
+            )
+        )
+
+    return cubes.merge_cube()
+
+
+@pytest.mark.parametrize(
+    "kwargs,data,period_lengths,expected",
+    [
+        # Array with a rate of 1 per second, with a period of 3-hours.
+        # The resulting data are a count of 10800 (3-hours in seconds * rate)
+        (
+            {},
+            np.ones((5, 5)),
+            [10800],
+            np.full((5, 5), 10800),
+        ),
+        # Array with two rates, 1/200 per second and 3/400 per second. Two
+        # periods of 3 and 2 hours leading to counts of 54 in each period;
+        # (10800 * 0.005) and (7200 * 0.0075).
+        (
+            {},
+            np.full((2, 5, 5), [[[0.005]], [[0.0075]]]),
+            [10800, 7200],
+            np.full((2, 5, 5), 54),
+        ),
+        # Array with rates of 1/200 per second. Two periods of 3 and 2 hours.
+        # The resulting data are a count of 54 (10800 * 0.005), and 36
+        # (7200 * 0.005).
+        (
+            {},
+            np.full((2, 5, 5), 0.005),
+            [10800, 7200],
+            np.full((2, 5, 5), [[[54]], [[36]]]),
+        ),
+        # Duplicates the first test but sets a new name for the resulting
+        # diagnostic and tests that it is used.
+        (
+            {"new_name": "number_of_lightning_flashes_per_unit_area"},
+            np.ones((5, 5)),
+            [10800],
+            np.full((5, 5), 10800),
+        ),
+    ],
+)
+def test_integrate_time(period_cube, kwargs, expected):
+    """Tests for the integrate_time function. Checks that the data is as
+    expected following multiplication by the time period. Checks the units
+    have been updated, a suitable cell method has been added, the time
+    coordinate is unchanged, still describing a period, and that if a new
+    diagnostic name is specified, this as been applied.
+    """
+
+    result = integrate_time(period_cube.copy(), **kwargs)
+
+    np.testing.assert_array_equal(result.data, expected)
+    assert result.units == Unit("m-2")
+    assert result.cell_methods[0].method == "sum"
+    assert "time" in result.cell_methods[0].coord_names
+    assert result.coord("time") == period_cube.coord("time")
+    if kwargs:
+        assert result.name() == kwargs["new_name"]
 
 if __name__ == "__main__":
     unittest.main()
