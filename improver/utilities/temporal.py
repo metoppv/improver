@@ -339,7 +339,7 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
     new_cell_method = CellMethod("sum", coords=["time"])
     new_cell_methods = [new_cell_method]
     for cm in integrated_cube.cell_methods:
-        if not "time" in cm.coord_names:
+        if "time" not in cm.coord_names:
             new_cell_methods.append(cm)
 
     integrated_cube.cell_methods = new_cell_methods
