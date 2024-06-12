@@ -10,7 +10,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(cube: cli.inputcube, new_name=None):
+def process(cube: cli.inputcube, *, new_name: str = None):
     """Multiply a frequency or rate cube by the time period given by the
     time bounds over which it is defined to return a count or accumulation.
     The frequency or rate must be defined with time bounds, e.g. an average
