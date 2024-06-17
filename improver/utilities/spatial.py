@@ -326,12 +326,15 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_axis_number = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis_number)
         if self._axis_wraps_around_meridian(diff_axis, cube):
-            first_column = cube.data[:, 0].reshape([-1, 1])
-            last_column = cube.data[:, -1].reshape([-1, 1])
-            wrap_around_diff = np.diff(
-                np.hstack([last_column, first_column]), axis=diff_axis_number
-            )
-            diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff])
+            # Get wrap-around difference:
+            first_column = np.take(cube.data, indices=0, axis=diff_axis_number)
+            last_column = np.take(cube.data, indices=-1, axis=diff_axis_number)
+            wrap_around_diff = first_column - last_column
+            # Apply wrap-around difference vector to diff array:
+            if diff_axis_number == 0:
+                diff_along_axis = np.vstack([diff_along_axis, wrap_around_diff])
+            elif diff_axis_number == 1:
+                diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff.reshape([-1, 1])])
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
