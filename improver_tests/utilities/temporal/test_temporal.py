@@ -12,6 +12,7 @@ import iris
 import numpy as np
 import pytest
 from cf_units import Unit
+from iris.coords import CellMethod
 from iris.cube import Cube, CubeList
 from iris.tests import IrisTest
 from iris.time import PartialDateTime
@@ -512,7 +513,12 @@ def period_cube(data, period_lengths):
             )
         )
 
-    return cubes.merge_cube()
+    cube = cubes.merge_cube()
+    cube.cell_methods = [
+        CellMethod("point", coords=["latitude", "longitude"]),
+        CellMethod("max", coords=["time"]),
+    ]
+    return cube
 
 
 @pytest.mark.parametrize(
@@ -554,14 +560,25 @@ def test_integrate_time(period_cube, kwargs, expected):
     expected following multiplication by the time period. Checks the units
     have been updated, a suitable cell method has been added, the time
     coordinate is unchanged, still describing a period, and that if a new
-    diagnostic name is specified, this as been applied."""
+    diagnostic name is specified, this as been applied. Also checks that
+    existing cell_methods related to time are removed, and those not related
+    to time are preserved."""
 
     result = integrate_time(period_cube.copy(), **kwargs)
 
     np.testing.assert_array_equal(result.data, expected)
     assert result.units == Unit("m-2")
-    assert result.cell_methods[0].method == "sum"
-    assert "time" in result.cell_methods[0].coord_names
+
+    cm_names = [name for cm in result.cell_methods for name in cm.coord_names]
+    cm_methods = [cm.method for cm in result.cell_methods]
+
+    assert "sum" in cm_methods
+    assert "point" in cm_methods
+    assert "max" not in cm_methods
+    assert "time" in cm_names
+    assert "latitude" in cm_names
+    assert "longitude" in cm_names
+
     assert result.coord("time") == period_cube.coord("time")
     if kwargs:
         assert result.name() == kwargs["new_name"]

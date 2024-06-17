@@ -288,7 +288,9 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
     Multiply a frequency or rate cube by the time period given by the
     time bounds over which it is defined to return a count or accumulation.
     The frequency or rate must be defined with time bounds, e.g. an average
-    frequency across the period.
+    frequency across the period. This function will handle a cube with a
+    non-scalar time coordinate, multiplying each time in the coordiante by the
+    related bounds.
 
     The returned cube has units equivalent to the input cube multiplied by
     seconds.
@@ -304,7 +306,7 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
 
     Returns:
         The cube with the data multiplied by the period in seconds defined
-        by the time time bounds
+        by the bounds on the time coordinate.
 
     Raises:
         ValueError: If the input cube time coordinate does not have time
@@ -313,7 +315,7 @@ def integrate_time(cube: Cube, new_name: str = None) -> Cube:
     # Ensure cube has a time coordinate with bounds
     if not cube.coord("time").has_bounds():
         raise ValueError(
-            "time coordinate must have bounds to apply this time-bounds " "integration"
+            "time coordinate must have bounds to apply this time-bounds integration"
         )
 
     # For each grid of data associated with a time, multiply the rate / frequency

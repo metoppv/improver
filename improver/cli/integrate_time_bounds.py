@@ -14,7 +14,9 @@ def process(cube: cli.inputcube, *, new_name: str = None):
     """Multiply a frequency or rate cube by the time period given by the
     time bounds over which it is defined to return a count or accumulation.
     The frequency or rate must be defined with time bounds, e.g. an average
-    frequency across the period.
+    frequency across the period. This function will handle a cube with a
+    non-scalar time coordinate, multiplying each time in the coordiante by the
+    related bounds.
 
     The returned cube has units equivalent to the input cube multiplied by
     seconds. Any time related cell methods are removed from the output cube
