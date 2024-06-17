@@ -22,11 +22,9 @@ from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
-from improver.metadata.probabilistic import (in_vicinity_name_format,
-                                             is_probability)
+from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
 from improver.metadata.utilities import create_new_diagnostic_cube
-from improver.utilities.cube_checker import (check_cube_coordinates,
-                                             spatial_coords_match)
+from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from iris.coord_systems import GeogCS
 from iris.coords import AuxCoord, CellMethod, Coord
@@ -308,7 +306,9 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             if diff_axis_number == 0:
                 diff_along_axis = np.vstack([diff_along_axis, wrap_around_diff])
             elif diff_axis_number == 1:
-                diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff.reshape([-1, 1])])
+                diff_along_axis = np.hstack(
+                    [diff_along_axis, wrap_around_diff.reshape([-1, 1])]
+                )
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:

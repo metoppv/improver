@@ -69,7 +69,9 @@ class Test_create_difference_cube(IrisTest):
         expected_x_coords = np.array(
             [-60, 60, 180]
         )  # Original data are at [-120, 0, 120], therefore differences are at [-60, 60, 180].
-        result = self.plugin.create_difference_cube(test_cube, "longitude", expected_diff_array)
+        result = self.plugin.create_difference_cube(
+            test_cube, "longitude", expected_diff_array
+        )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, expected_diff_array)
@@ -136,7 +138,9 @@ class Test_calculate_difference(IrisTest):
 
     def test_missing_data(self):
         """Test that the result is as expected when data is missing."""
-        data = np.array([[1, 2, 3, 4], [np.nan, 4, 6, 8], [5, 10, 15, 20]], dtype=np.float32)
+        data = np.array(
+            [[1, 2, 3, 4], [np.nan, 4, 6, 8], [5, 10, 15, 20]], dtype=np.float32
+        )
         self.cube.data = data
         expected = np.array([[np.nan, 2, 3, 4], [np.nan, 6, 9, 12]])
         result = self.plugin.calculate_difference(
@@ -149,10 +153,12 @@ class Test_calculate_difference(IrisTest):
         """Test that the result is as expected when data is masked."""
         data = ma.array(
             [[1, 2, 3, 4], [2, 4, 6, 8], [5, 10, 15, 20]],
-            mask=[[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]]
+            mask=[[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]],
         )
         self.cube.data = data
-        expected = ma.array([[1, 2, 3, 4], [3, 6, 9, 12]], mask=[[1, 0, 0, 0], [1, 0, 0, 0]])
+        expected = ma.array(
+            [[1, 2, 3, 4], [3, 6, 9, 12]], mask=[[1, 0, 0, 0], [1, 0, 0, 0]]
+        )
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="y").name()
         )
