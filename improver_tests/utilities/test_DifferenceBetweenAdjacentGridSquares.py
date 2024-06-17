@@ -63,8 +63,6 @@ class Test_create_difference_cube(IrisTest):
             x_grid_spacing=test_cube_x_grid_spacing,
             name="wind_speed",
             units="m s-1",
-
-
         )
         test_cube.coord(axis="x").circular = True
         expected_diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
@@ -95,7 +93,9 @@ class Test_calculate_difference(IrisTest):
     def setUp(self):
         """Set up cube."""
         data = np.array([[1, 2, 3, 4], [2, 4, 6, 8], [5, 10, 15, 20]])
-        self.cube = set_up_variable_cube(data, "equalarea", name="wind_speed", units="m s-1",)
+        self.cube = set_up_variable_cube(
+            data, "equalarea", name="wind_speed", units="m s-1",
+        )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_x_dimension(self):
