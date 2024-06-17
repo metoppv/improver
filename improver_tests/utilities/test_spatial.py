@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the distance_to_number_of_grid_cells function from
  spatial.py."""
 from copy import copy
@@ -304,7 +278,10 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea",
+            data,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
         )
 
     def test_basic_distance_to_grid_cells(self):
@@ -520,15 +497,15 @@ class Test_get_grid_y_x_values(IrisTest):
         """Set up the cube."""
         data = np.ones((1, 2, 4), dtype=np.float32)
         self.latlon_cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2",
+            data, name="precipitation_amount", units="kg m^-2",
         )
         self.expected_lons = np.array([-15, -5, 5, 15, -15, -5, 5, 15]).reshape(2, 4)
         self.expected_lats = np.array([-5, -5, -5, -5, 5, 5, 5, 5]).reshape(2, 4)
         self.equalarea_cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(-1000, -1000),
@@ -566,9 +543,9 @@ class Test_transform_grid_to_lat_lon(IrisTest):
         data = np.ones((1, 2, 2), dtype=np.float32)
         self.cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000000,
             y_grid_spacing=2000000,
             domain_corner=(-1000000, -1000000),

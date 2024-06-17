@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for cube setup functions
 """
@@ -49,6 +23,9 @@ from improver.synthetic_data.set_up_test_cubes import (
     construct_yx_coords,
     set_up_percentile_cube,
     set_up_probability_cube,
+    set_up_spot_percentile_cube,
+    set_up_spot_probability_cube,
+    set_up_spot_variable_cube,
     set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import get_dim_coord_names
@@ -443,7 +420,7 @@ class Test_set_up_variable_cube(IrisTest):
         """Test error is raised if the realizations provided do not match the
         data dimensions"""
         realizations_len = 4
-        data_len = len(self.data_3d[0])
+        data_len = self.data_3d.shape[0]
         msg = "Cannot generate {} realizations with data of length {}".format(
             realizations_len, data_len
         )
@@ -456,7 +433,7 @@ class Test_set_up_variable_cube(IrisTest):
         """Test error is raised if the heights provided do not match the
         data dimensions"""
         height_levels_len = 4
-        data_len = len(self.data_3d[0])
+        data_len = self.data_3d.shape[0]
         msg = "Cannot generate {} heights with data of length {}".format(
             height_levels_len, data_len
         )
@@ -499,7 +476,7 @@ class Test_set_up_variable_cube(IrisTest):
     def test_error_no_height_levels_4d_data(self):
         """ Tests error is raised if 4d data provided but not height_levels """
         data_4d = np.array([self.data_3d, self.data_3d])
-        msg = "Height levels must be provided if data has 4 dimensions."
+        msg = "Height levels must be provided if data has > 3 dimensions."
         with self.assertRaisesRegex(ValueError, msg):
             _ = set_up_variable_cube(data_4d)
 
@@ -690,6 +667,251 @@ class Test_set_up_variable_cube(IrisTest):
         )
 
 
+class Test_set_up_spot_variable_cube(IrisTest):
+    """Test the set_up_spot_variable_cube base function. Much of this
+    functionality overlaps with the gridded case, so these tests primarily
+    cover the spot specific elements."""
+
+    def setUp(self):
+        """Set up simple temperature data array"""
+        self.data = np.linspace(275.0, 284.0, 4).astype(np.float32)
+        self.data_2d = np.array([self.data, self.data, self.data])
+        self.site_crds = ["latitude", "longitude", "altitude", "wmo_id"]
+
+    def test_defaults(self):
+        """Test default arguments produce cube with expected dimensions
+        and metadata"""
+        result = set_up_spot_variable_cube(self.data)
+
+        # check type, data and attributes
+        self.assertIsInstance(result, iris.cube.Cube)
+        self.assertEqual(result.standard_name, "air_temperature")
+        self.assertEqual(result.name(), "air_temperature")
+        self.assertEqual(result.units, "K")
+        self.assertArrayAlmostEqual(result.data, self.data)
+        self.assertEqual(result.attributes, {})
+
+        # check auxiliary coordinates associated with expected dimension
+        expected_site_dim = result.coord_dims("spot_index")
+        for crd in self.site_crds:
+            self.assertEqual(result.coord_dims(crd), expected_site_dim)
+
+        # check scalar time coordinates
+        for time_coord in ["time", "forecast_reference_time"]:
+            self.assertEqual(result.coord(time_coord).dtype, np.int64)
+        self.assertEqual(result.coord("forecast_period").dtype, np.int32)
+
+        expected_time = datetime(2017, 11, 10, 4, 0)
+        time_point = iris_time_to_datetime(result.coord("time"))[0]
+        self.assertEqual(time_point, expected_time)
+
+        expected_frt = datetime(2017, 11, 10, 0, 0)
+        frt_point = iris_time_to_datetime(result.coord("forecast_reference_time"))[0]
+        self.assertEqual(frt_point, expected_frt)
+
+        self.assertEqual(result.coord("forecast_period").units, "seconds")
+        self.assertEqual(result.coord("forecast_period").points[0], 14400)
+
+        check_mandatory_standards(result)
+
+    def test_height_levels(self):
+        """Test height coordinate is added"""
+        height_levels = [1.5, 3.0, 4.5]
+        expected_units = "m"
+        expected_attributes = {"positive": "up"}
+        expected_site_dim = 1
+        result = set_up_spot_variable_cube(self.data_2d, height_levels=height_levels)
+        self.assertArrayAlmostEqual(result.data, self.data_2d)
+        self.assertEqual(result.coord_dims("height"), (0,))
+        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        self.assertEqual(result.coord("height").units, expected_units)
+        self.assertEqual(result.coord("height").attributes, expected_attributes)
+        for crd in self.site_crds:
+            self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
+
+    def test_pressure_levels(self):
+        """Test pressure coordinate is added"""
+        height_levels = [90000, 70000, 3000]
+        expected_units = "Pa"
+        pressure = True
+        expected_attributes = {"positive": "down"}
+        expected_site_dim = 1
+        result = set_up_spot_variable_cube(
+            self.data_2d, height_levels=height_levels, pressure=pressure
+        )
+        self.assertArrayAlmostEqual(result.data, self.data_2d)
+        self.assertEqual(result.coord_dims("pressure"), (0,))
+        self.assertArrayEqual(result.coord("pressure").points, np.array(height_levels))
+        self.assertEqual(result.coord("pressure").units, expected_units)
+        self.assertEqual(result.coord("pressure").attributes, expected_attributes)
+        for crd in self.site_crds:
+            self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
+
+    def test_realizations_from_data(self):
+        """Test realization coordinate is added for 3D data"""
+        expected_site_dim = 1
+        result = set_up_spot_variable_cube(self.data_2d)
+        self.assertArrayAlmostEqual(result.data, self.data_2d)
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1, 2]))
+        for crd in self.site_crds:
+            self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
+
+    def test_realizations(self):
+        """Test specific realization values"""
+        result = set_up_spot_variable_cube(
+            self.data_2d, realizations=np.array([0, 3, 4])
+        )
+        self.assertArrayEqual(result.coord("realization").points, np.array([0, 3, 4]))
+
+    def test_error_unmatched_realizations(self):
+        """Test error is raised if the realizations provided do not match the
+        data dimensions"""
+        realizations_len = 4
+        data_len = self.data_2d.shape[0]
+        msg = "Cannot generate {} realizations with data of length {}".format(
+            realizations_len, data_len
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_spot_variable_cube(
+                self.data_2d, realizations=np.arange(realizations_len)
+            )
+
+    def test_error_unmatched_height_levels(self):
+        """Test error is raised if the heights provided do not match the
+        data dimensions"""
+        height_levels_len = 4
+        data_len = self.data_2d.shape[0]
+        msg = "Cannot generate {} heights with data of length {}".format(
+            height_levels_len, data_len
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_spot_variable_cube(
+                self.data_2d, height_levels=np.arange(height_levels_len)
+            )
+
+    def test_realizations_from_data_height_levels(self):
+        """ Tests realizations from data and height coordinates added """
+        height_levels = [1.5, 3.0, 4.5]
+        data_3d = np.array([self.data_2d, self.data_2d])
+        expected_site_dim = 2
+        result = set_up_spot_variable_cube(data_3d, height_levels=height_levels)
+        self.assertArrayAlmostEqual(result.data, data_3d)
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertArrayEqual(result.coord("realization").points, np.array([0, 1]))
+        self.assertEqual(result.coord_dims("height"), (1,))
+        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        for crd in self.site_crds:
+            self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
+
+    def test_realizations_height_levels(self):
+        """ Tests realizations and height coordinates added """
+        realizations = [0, 3]
+        height_levels = [1.5, 3.0, 4.5]
+        data_3d = np.array([self.data_2d, self.data_2d])
+        expected_site_dim = 2
+        result = set_up_spot_variable_cube(
+            data_3d, realizations=realizations, height_levels=height_levels
+        )
+        self.assertArrayAlmostEqual(result.data, data_3d)
+        self.assertEqual(result.coord_dims("realization"), (0,))
+        self.assertArrayEqual(
+            result.coord("realization").points, np.array(realizations)
+        )
+        self.assertEqual(result.coord_dims("height"), (1,))
+        self.assertArrayEqual(result.coord("height").points, np.array(height_levels))
+        for crd in self.site_crds:
+            self.assertEqual(result.coord_dims(crd)[0], expected_site_dim)
+
+    def test_error_no_height_levels_3d_data(self):
+        """ Tests error is raised if 3d data provided but not height_levels """
+        data_3d = np.array([self.data_2d, self.data_2d])
+        msg = "Height levels must be provided if data has > 2 dimensions."
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_spot_variable_cube(data_3d)
+
+    def test_error_too_many_dimensions(self):
+        """Test error is raised if input cube has more than 4 dimensions"""
+        data_4d = np.array([[self.data_2d, self.data_2d], [self.data_2d, self.data_2d]])
+        msg = "Expected 1 to 3 dimensions on input data: got 4"
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_spot_variable_cube(data_4d)
+
+    def test_error_not_enough_dimensions(self):
+        """Test error is raised if 3D input cube and both realizations and heights provided"""
+        realizations = [0, 3, 4]
+        height_levels = [1.5, 3.0, 4.5]
+        msg = (
+            "Input data must have 3 dimensions to add both realization "
+            "and height coordinates: got 2"
+        )
+        with self.assertRaisesRegex(ValueError, msg):
+            _ = set_up_spot_variable_cube(
+                self.data_2d, realizations=realizations, height_levels=height_levels
+            )
+
+    def test_custom_coords(self):
+        """Test that a cube can be set-up with custom coordinates associated
+        with the spot_index, e.g. latitude, altitude, etc."""
+
+        latitudes = [50, 55, 56, 57]
+        longitudes = [-10, 5, 70, 71]
+        altitudes = [-1, 0, 30, 20]
+        wmo_ids = [9, 8, 7, 6]
+        unique_ids = [20, 100, 5000, 999999]
+        unique_site_id_key = "met_office_site_id"
+
+        result = set_up_spot_variable_cube(
+            self.data,
+            latitudes=latitudes,
+            longitudes=longitudes,
+            altitudes=altitudes,
+            wmo_ids=wmo_ids,
+            unique_site_id=unique_ids,
+            unique_site_id_key=unique_site_id_key,
+        )
+        self.assertArrayEqual(result.coord("latitude").points, latitudes)
+        self.assertArrayEqual(result.coord("longitude").points, longitudes)
+        self.assertArrayEqual(result.coord("altitude").points, altitudes)
+        self.assertArrayEqual(
+            result.coord("wmo_id").points, [f"{item:05d}" for item in wmo_ids]
+        )
+        self.assertArrayEqual(
+            result.coord(unique_site_id_key).points,
+            [f"{item:08d}" for item in unique_ids],
+        )
+
+    def test_site_ids_as_strings(self):
+        """Test that site IDs provided preformatted as strings are handled
+        correctly."""
+
+        wmo_ids = ["00009", "00008", "00007", "00006"]
+        unique_ids = ["00000020", "00000100", "00005000", "00999999"]
+        unique_site_id_key = "met_office_site_id"
+
+        result = set_up_spot_variable_cube(
+            self.data,
+            wmo_ids=wmo_ids,
+            unique_site_id=unique_ids,
+            unique_site_id_key=unique_site_id_key,
+        )
+        self.assertArrayEqual(result.coord("wmo_id").points, wmo_ids)
+        self.assertArrayEqual(result.coord(unique_site_id_key).points, unique_ids)
+
+    def test_no_unique_id_key_exception(self):
+        """Test an exception is raised if unique_site_ids are provided but no
+        unique_site_id_key is provided."""
+
+        wmo_ids = ["00009", "00008", "00007", "00006"]
+        unique_ids = ["00000020", "00000100", "00005000", "00999999"]
+
+        msg = "A unique_site_id_key must be provided if a unique_site_id"
+        with self.assertRaisesRegex(ValueError, msg):
+            set_up_spot_variable_cube(
+                self.data, wmo_ids=wmo_ids, unique_site_id=unique_ids,
+            )
+
+
 class Test_set_up_percentile_cube(IrisTest):
     """Test the set_up_percentile_cube function"""
 
@@ -728,6 +950,39 @@ class Test_set_up_percentile_cube(IrisTest):
         """Test a cube with one percentile correctly stores this as a scalar
         coordinate"""
         result = set_up_percentile_cube(self.data[1:2], self.percentiles[1:2])
+        dim_coords = get_dim_coord_names(result)
+        self.assertNotIn("percentile", dim_coords)
+
+
+class Test_set_up_spot_percentile_cube(IrisTest):
+    """Test the set_up_spot_percentile_cube function. These tests are largely
+    the same as for the gridded case, omitting the grid metadata check."""
+
+    def setUp(self):
+        """Set up simple array of percentile-type data"""
+        self.data = np.array(
+            [
+                [273.5, 275.1, 274.9, 272.0],
+                [274.2, 276.4, 275.5, 274.5],
+                [275.6, 278.1, 277.2, 276.1],
+            ],
+            dtype=np.float32,
+        )
+        self.percentiles = np.array([20, 50, 80])
+
+    def test_defaults(self):
+        """Test default arguments produce cube with expected dimensions
+        and metadata"""
+        result = set_up_spot_percentile_cube(self.data, self.percentiles)
+        perc_coord = result.coord("percentile")
+        self.assertArrayEqual(perc_coord.points, self.percentiles)
+        self.assertEqual(perc_coord.units, "%")
+        check_mandatory_standards(result)
+
+    def test_single_percentile(self):
+        """Test a cube with one percentile correctly stores this as a scalar
+        coordinate"""
+        result = set_up_spot_percentile_cube(self.data[1:2], self.percentiles[1:2])
         dim_coords = get_dim_coord_names(result)
         self.assertNotIn("percentile", dim_coords)
 
@@ -816,6 +1071,66 @@ class Test_set_up_probability_cube(IrisTest):
         )
         self.assertEqual(thresh_coord.name(), "air_temperature")
         self.assertEqual(thresh_coord.var_name, "threshold")
+
+
+class Test_set_up_spot_probability_cube(IrisTest):
+    """Test the set_up_spot_probability_cube function. These tests are largely
+    the same as for the gridded case, omitting the grid metadata check."""
+
+    def setUp(self):
+        """Set up array of exceedance probabilities"""
+        self.data = np.array(
+            [[1.0, 1.0, 0.9, 0.9], [0.8, 0.8, 0.7, 0.8], [0.6, 0.4, 0.3, 0.3]],
+            dtype=np.float32,
+        )
+        self.thresholds = np.array([275.0, 275.5, 276.0], dtype=np.float32)
+
+    def test_defaults(self):
+        """Test default arguments produce cube with expected dimensions
+        and metadata"""
+        result = set_up_spot_probability_cube(self.data, self.thresholds)
+        thresh_coord = find_threshold_coordinate(result)
+        self.assertEqual(
+            result.name(), "probability_of_air_temperature_above_threshold"
+        )
+        self.assertEqual(result.units, "1")
+        self.assertArrayEqual(thresh_coord.points, self.thresholds)
+        self.assertEqual(thresh_coord.name(), "air_temperature")
+        self.assertEqual(thresh_coord.var_name, "threshold")
+        self.assertEqual(thresh_coord.units, "K")
+        self.assertEqual(len(thresh_coord.attributes), 1)
+        self.assertEqual(
+            thresh_coord.attributes["spp__relative_to_threshold"], "greater_than",
+        )
+        check_mandatory_standards(result)
+
+    def test_relative_to_threshold(self):
+        """Test ability to reset the "spp__relative_to_threshold" attribute"""
+        data = np.flipud(self.data)
+        result = set_up_spot_probability_cube(
+            data, self.thresholds, spp__relative_to_threshold="less_than"
+        )
+        self.assertEqual(len(result.coord(var_name="threshold").attributes), 1)
+        self.assertEqual(
+            result.coord(var_name="threshold").attributes["spp__relative_to_threshold"],
+            "less_than",
+        )
+
+    def test_relative_to_threshold_set(self):
+        """Test that an error is raised if the "spp__relative_to_threshold"
+        attribute has not been set when setting up a probability cube"""
+        msg = "The spp__relative_to_threshold attribute MUST be set"
+        with self.assertRaisesRegex(ValueError, msg):
+            set_up_spot_probability_cube(
+                self.data, self.thresholds, spp__relative_to_threshold=None
+            )
+
+    def test_single_threshold(self):
+        """Test a cube with one threshold correctly stores this as a scalar
+        coordinate"""
+        result = set_up_spot_probability_cube(self.data[1:2], self.thresholds[1:2])
+        dim_coords = get_dim_coord_names(result)
+        self.assertNotIn("air_temperature", dim_coords)
 
 
 class Test_add_coordinate(IrisTest):

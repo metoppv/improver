@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Estimate and apply a rescaling of the input forecast based on the difference
 in altitude between the grid point and the site."""
 
@@ -45,7 +19,7 @@ from improver import PostProcessingPlugin
 from improver.calibration.utilities import filter_non_matching_cubes
 from improver.constants import SECONDS_IN_HOUR
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.spotdata.utilities import get_neighbour_finding_method_name
 
 
 class EstimateDzRescaling(PostProcessingPlugin):
@@ -100,10 +74,9 @@ class EstimateDzRescaling(PostProcessingPlugin):
         # Please see numpy.polynomial.polynomial.Polynomial.fit for further information.
         self.polyfit_deg = 1
 
-        self.neighbour_selection_method = NeighbourSelection(
+        self.neighbour_selection_method = get_neighbour_finding_method_name(
             land_constraint=land_constraint, minimum_dz=similar_altitude
-        ).neighbour_finding_method_name()
-
+        )
         self.site_id_coord = site_id_coord
 
     def _fit_polynomial(self, forecasts: Cube, truths: Cube, dz: Cube) -> float:

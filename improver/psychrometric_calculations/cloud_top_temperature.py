@@ -1,37 +1,12 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Module containing the CloudTopTemperature plugin"""
+from typing import Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 
 from improver import PostProcessingPlugin
@@ -44,6 +19,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
@@ -138,23 +114,26 @@ class CloudTopTemperature(PostProcessingPlugin):
         )
         return cube
 
-    def process(self, t_at_ccl: Cube, p_at_ccl: Cube, temperature: Cube) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
 
         Args:
-            t_at_ccl:
-                temperature at cloud condensation level
-            p_at_ccl:
-                pressure at cloud condensation level
-            temperature:
-                temperature on pressure levels
+            cubes:
+                Cubes of 'temperature at cloud condensation level',
+                'pressure at cloud condensation level' and 'temperature on pressure levels'.
 
         Returns:
             Cube of cloud top temperature
         """
-        self.t_at_ccl = t_at_ccl
-        self.p_at_ccl = p_at_ccl
-        self.temperature = temperature
+        cubes = as_cubelist(*cubes)
+        self.t_at_ccl, self.p_at_ccl, self.temperature = cubes.extract_cubes(
+            [
+                "air_temperature_at_condensation_level",
+                "air_pressure_at_condensation_level",
+                "air_temperature",
+            ]
+        )
+
         assert_spatial_coords_match([self.t_at_ccl, self.p_at_ccl, self.temperature])
         self.temperature.convert_units("K")
         self.t_at_ccl.convert_units("K")

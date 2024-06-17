@@ -1,35 +1,10 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Tests for the cube_combiner.Combine plugin."""
 from datetime import datetime
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -38,6 +13,20 @@ from iris.cube import Cube, CubeList
 from improver.cube_combiner import Combine, CubeCombiner
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.cube_combiner.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        Combine("+")(sentinel.cube1, sentinel.cube2)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(sentinel.cube1, sentinel.cube2)
 
 
 @pytest.fixture(name="realization_cubes")
@@ -142,9 +131,3 @@ def test_minimum_realizations_exceptions(
     """Ensure specifying too few realizations will raise an error"""
     with pytest.raises(error_class, match=msg):
         Combine("+", minimum_realizations=minimum_realizations)(realization_cubes)
-
-
-def test_empty_cubelist():
-    """Ensure supplying an empty CubeList raises an error"""
-    with pytest.raises(TypeError, match="A cube is needed to be combined."):
-        Combine("+")(CubeList())

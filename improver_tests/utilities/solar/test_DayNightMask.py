@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """ Unit tests for DayNightMask class """
 
 import unittest
@@ -103,7 +77,11 @@ class Test__create_daynight_mask(IrisTest):
         data[:, 7, 7] = 0.0
 
         self.cube = set_up_variable_cube(
-            data, "precipitation_amount", "kg m^-2", "equalarea", attributes=ATTRIBUTES
+            data,
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
+            attributes=ATTRIBUTES,
         )
         self.spot_cube = create_spot_cube()
 
@@ -146,16 +124,16 @@ class Test__daynight_lat_lon_cube(IrisTest):
         data = np.ones((16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, -8),
         )
         self.cube_360 = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, 345),
@@ -210,9 +188,9 @@ class Test_process(IrisTest):
         vt = datetime(2015, 11, 20, 8, 0)
         self.cube = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(0, -30000),
@@ -225,9 +203,9 @@ class Test_process(IrisTest):
         bounds = timedelta(minutes=4)
         self.cube_time_bounds = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
-            "equalarea",
+            name="precipitation_amount",
+            units="kg m^-2",
+            spatial_grid="equalarea",
             x_grid_spacing=2000,
             y_grid_spacing=2000,
             domain_corner=(0, -30000),
@@ -239,8 +217,8 @@ class Test_process(IrisTest):
         # Lat lon cubes
         self.cube_lat_lon = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, -8),
@@ -249,8 +227,8 @@ class Test_process(IrisTest):
         )
         self.cube_lat_lon_360 = set_up_variable_cube(
             data,
-            "precipitation_amount",
-            "kg m^-2",
+            name="precipitation_amount",
+            units="kg m^-2",
             x_grid_spacing=1,
             y_grid_spacing=1,
             domain_corner=(49, 345),

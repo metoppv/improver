@@ -1,36 +1,10 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Tests for the CloudTopTemperature plugin"""
 import copy
-from unittest.mock import patch
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -54,13 +28,31 @@ POST_PROCESSED_MANDATORY_ATTRIBUTES[
 ] = f"Post-Processed {POST_PROCESSED_MANDATORY_ATTRIBUTES['title']}"
 
 
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.cloud_top_temperature.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        CloudTopTemperature(model_id_attr=sentinel.model_id_attr)(
+            sentinel.t_at_ccl, sentinel.p_at_ccl, sentinel.temperature
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.t_at_ccl, sentinel.p_at_ccl, sentinel.temperature
+    )
+
+
 @pytest.fixture(name="t_at_ccl")
 def t_at_ccl_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature at Cloud condensation level data"""
     data = np.full((2, 2, 2), fill_value=290, dtype=np.float32)
     ccl_cube = set_up_variable_cube(
         data,
-        name="air_temperature_at_cloud_condensation_level",
+        name="air_temperature_at_condensation_level",
         units="K",
         attributes=POST_PROCESSED_MANDATORY_ATTRIBUTES,
     )
@@ -73,7 +65,7 @@ def p_at_ccl_cube_fixture() -> Cube:
     data = np.full((2, 2, 2), fill_value=95000, dtype=np.float32)
     ccl_cube = set_up_variable_cube(
         data,
-        name="air_pressure_at_cloud_condensation_level",
+        name="air_pressure_at_condensation_level",
         units="Pa",
         attributes=POST_PROCESSED_MANDATORY_ATTRIBUTES,
     )
@@ -91,7 +83,7 @@ def t_cube_fixture(profile_shift) -> Cube:
         data + profile_shift,
         pressure=True,
         height_levels=np.arange(100000, 29999, -10000),
-        name="temperature_on_pressure_levels",
+        name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )

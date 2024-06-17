@@ -1,110 +1,51 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyDzRescaling plugin."""
+from datetime import datetime as dt
 from typing import List
 
 import iris
 import numpy as np
 import pandas as pd
 import pytest
-from iris.coords import AuxCoord, DimCoord
+from iris.coords import AuxCoord
 from iris.cube import Cube
 
 from improver.calibration.dz_rescaling import ApplyDzRescaling
 from improver.constants import SECONDS_IN_HOUR
-from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
+from improver.synthetic_data.set_up_test_cubes import set_up_spot_percentile_cube
 
-altitude = np.zeros(2)
-latitude = np.zeros(2)
-longitude = np.zeros(2)
-wmo_id = ["00001", "00002"]
+WMO_ID = ["00001", "00002"]
 
 
 def _create_forecasts(
-    forecast_reference_time: str,
-    validity_time: str,
-    forecast_period: float,
-    forecast_percs: List[float],
+    forecast_reference_time: str, validity_time: str, forecast_percs: List[float],
 ) -> Cube:
     """Create site forecast cube for testing.
 
     Args:
         forecast_reference_time: Timestamp e.g. "20170101T0000Z".
         validity_time: Timestamp e.g. "20170101T0600Z".
-        forecast_period: Forecast period in hours.
         forecast_percs: Forecast wind speed at 10th, 50th and 90th percentile.
 
     Returns:
         Forecast cube containing three percentiles and two sites.
     """
-    data = np.array(forecast_percs).repeat(2).reshape(3, 2)
+    data = np.array(forecast_percs, dtype=np.float32).repeat(2).reshape(3, 2)
+    percentiles = [10, 50, 90]
 
-    perc_coord = DimCoord(
-        np.array([10, 50, 90], dtype=np.float32), long_name="percentile", units="%",
-    )
-    fp_coord = AuxCoord(
-        np.array(
-            forecast_period * SECONDS_IN_HOUR,
-            dtype=TIME_COORDS["forecast_period"].dtype,
-        ),
-        "forecast_period",
-        units=TIME_COORDS["forecast_period"].units,
-    )
-    time_coord = AuxCoord(
-        np.array(
-            pd.Timestamp(validity_time).timestamp(), dtype=TIME_COORDS["time"].dtype,
-        ),
-        "time",
-        units=TIME_COORDS["time"].units,
-    )
-    frt_coord = AuxCoord(
-        np.array(
-            pd.Timestamp(forecast_reference_time).timestamp(),
-            dtype=TIME_COORDS["forecast_reference_time"].dtype,
-        ),
-        "forecast_reference_time",
-        units=TIME_COORDS["forecast_reference_time"].units,
-    )
-
-    cube = build_spotdata_cube(
+    cube = set_up_spot_percentile_cube(
         data,
-        "wind_speed_at_10m",
-        "m s-1",
-        altitude,
-        latitude,
-        longitude,
-        wmo_id,
-        scalar_coords=[fp_coord, time_coord, frt_coord],
-        additional_dims=[perc_coord],
+        percentiles,
+        name="wind_speed_at_10m",
+        units="m s-1",
+        wmo_ids=WMO_ID,
+        time=dt.strptime(validity_time, DT_FORMAT),
+        frt=dt.strptime(forecast_reference_time, DT_FORMAT),
     )
     return cube
 
@@ -120,6 +61,10 @@ def _create_scaling_factor_cube(
     Returns:
         Scaling factor cube.
     """
+    altitude = np.zeros(2)
+    latitude = np.zeros(2)
+    longitude = np.zeros(2)
+
     cubelist = iris.cube.CubeList()
     for ref_hour in [3, 12]:
         for forecast_period in [6, 12, 18, 24]:
@@ -150,7 +95,7 @@ def _create_scaling_factor_cube(
                 altitude,
                 latitude,
                 longitude,
-                wmo_id,
+                WMO_ID,
                 scalar_coords=[fp_coord, frth_coord],
             )
             cubelist.append(cube)
@@ -193,14 +138,9 @@ def test_apply_dz_rescaling(
     validity_time = (
         pd.Timestamp(forecast_reference_time)
         + pd.Timedelta(hours=forecast_period + forecast_period_offset)
-    ).strftime("%Y%m%dT%H%MZ")
+    ).strftime(DT_FORMAT)
 
-    forecast = _create_forecasts(
-        forecast_reference_time,
-        validity_time,
-        forecast_period + forecast_period_offset,
-        forecast,
-    )
+    forecast = _create_forecasts(forecast_reference_time, validity_time, forecast,)
     # Use min(fp, 24) here to ensure that the scaling cube contains
     # the scaling factor for the last forecast_period if the specified
     # forecast period is beyond the T+24 limit of the scaling cube.
@@ -242,11 +182,9 @@ def test_use_correct_time():
 
     validity_time = (
         pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
-    ).strftime("%Y%m%dT%H%MZ")
+    ).strftime(DT_FORMAT)
 
-    forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period, forecast,
-    )
+    forecast = _create_forecasts(forecast_reference_time, validity_time, forecast,)
     scaling_factor = _create_scaling_factor_cube(12, forecast_period, scaling_factor)
     scaling_factor.data[0, 0, 0] = scaling_factor.data[0, 0, 0].copy() + 0.01
 
@@ -267,11 +205,9 @@ def test_mismatching_sites():
 
     validity_time = (
         pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
-    ).strftime("%Y%m%dT%H%MZ")
+    ).strftime(DT_FORMAT)
 
-    forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period, [10, 20, 30]
-    )
+    forecast = _create_forecasts(forecast_reference_time, validity_time, [10, 20, 30])
     scaling_factor = _create_scaling_factor_cube(3, forecast_period, 1.0)
 
     with pytest.raises(ValueError, match="The mismatched sites are: {'00002'}"):
@@ -289,11 +225,9 @@ def test_no_appropriate_scaled_dz(forecast_period, frt_hour, exception):
 
     validity_time = (
         pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
-    ).strftime("%Y%m%dT%H%MZ")
+    ).strftime(DT_FORMAT)
 
-    forecast = _create_forecasts(
-        forecast_reference_time, validity_time, forecast_period, [10, 20, 30]
-    )
+    forecast = _create_forecasts(forecast_reference_time, validity_time, [10, 20, 30])
     scaling_factor = _create_scaling_factor_cube(3, forecast_period, 1.0)
 
     with pytest.raises(ValueError, match=exception):

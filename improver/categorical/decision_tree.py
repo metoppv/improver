@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Module containing categorical decision tree implementation."""
 
 
@@ -69,6 +43,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 
 
 def _define_invertible_conditions() -> Dict[str, str]:
@@ -166,7 +141,7 @@ class ApplyDecisionTree(BasePlugin):
         return "<ApplyDecisionTree start_node={}>".format(self.start_node)
 
     def prepare_input_cubes(
-        self, cubes: CubeList
+        self, *cubes: Union[Cube, CubeList]
     ) -> Tuple[CubeList, Optional[List[str]]]:
         """
         Check that the input cubes contain all the diagnostics and thresholds
@@ -178,7 +153,7 @@ class ApplyDecisionTree(BasePlugin):
 
         Args:
             cubes:
-                A CubeList containing the input diagnostic cubes.
+                Input diagnostic cubes.
 
         Returns:
             - A CubeList containing only the required cubes.
@@ -191,6 +166,8 @@ class ApplyDecisionTree(BasePlugin):
                 Raises an IOError if any of the required input data is missing.
                 The error includes details of which fields are missing.
         """
+        cubes = as_cubelist(*cubes)
+
         # Check that all cubes are valid at or over the same periods
         self.check_coincidence(cubes)
 
@@ -819,20 +796,19 @@ class ApplyDecisionTree(BasePlugin):
                 raise RuntimeError(msg)
         return res
 
-    def process(self, cubes: CubeList) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Apply the decision tree to the input cubes to produce categorical output.
 
         Args:
             cubes:
-                A cubelist containing the diagnostics required for the
-                decision tree, these at co-incident times.
+                Diagnostics required for the decision tree, these at co-incident times.
 
         Returns:
             A cube of categorical data.
         """
         # Check input cubes contain required data and return only those that
         # are needed to speed up later cube extractions.
-        cubes, optional_node_data_missing = self.prepare_input_cubes(cubes)
+        cubes, optional_node_data_missing = self.prepare_input_cubes(*cubes)
 
         # Reroute the decision tree around missing optional nodes
         if optional_node_data_missing is not None:
