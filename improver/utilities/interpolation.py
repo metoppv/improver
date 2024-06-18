@@ -200,6 +200,8 @@ class InterpolateUsingDifference(BasePlugin):
                 interpolated_difference = interpolate_missing_data(
                     difference_field, valid_points=~remain_invalid, method="nearest"
                 )
+            # It is possible for the interpolated differences to be outside of the range
+            # of the source data (machine-precision). Enforce the original data range.
             interpolated_difference = np.clip(
                 interpolated_difference, min_difference, max_difference
             )
