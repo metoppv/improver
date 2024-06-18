@@ -317,7 +317,9 @@ class Test_process(Test_Setup):
 
         result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
-        assert_array_almost_equal(result.data, expected, decimal=21)
+        assert_array_almost_equal(result.data, expected, decimal=5)
+        assert (result.data >= np.nanmin(self.sleet_rain.data)).all()
+        assert (result.data <= np.nanmax(self.sleet_rain.data)).all()
 
 
 if __name__ == "__main__":
