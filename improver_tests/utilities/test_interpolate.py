@@ -49,7 +49,9 @@ class Test_interpolate_missing_data(IrisTest):
         range of the input can be found, if the test tolerance is sufficiently tight.
         If this test fails with a newer version of Scipy, then the enforcement of this range
         in improver.utilitiess.interpolation.InterpolateUsingDifference needs revisiting."""
-        data = np.zeros((18, 18))  # The smallest array where this behaviour has been found
+        data = np.zeros(
+            (18, 18)
+        )  # The smallest array where this behaviour has been found
         data[1:-1, 1:-1] = np.nan
         data[0, 4] = 100
         expected = np.zeros_like(data)
