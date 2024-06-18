@@ -19,6 +19,8 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_percentile_cube,
     set_up_probability_cube,
+    set_up_spot_percentile_cube,
+    set_up_spot_probability_cube,
     set_up_spot_variable_cube,
     set_up_variable_cube,
 )
@@ -32,6 +34,16 @@ def gridded_variable(forecast_data):
         np.array([1.5], dtype=np.float32), standard_name="height", units="m"
     )
     return set_up_variable_cube(
+        forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES,
+    )
+
+
+def spot_variable(forecast_data):
+    """Create a spot variable cube to subset with a neighbour cube."""
+    height_crd = DimCoord(
+        np.array([1.5], dtype=np.float32), standard_name="height", units="m"
+    )
+    return set_up_spot_variable_cube(
         forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES,
     )
 
@@ -58,11 +70,29 @@ def gridded_percentiles(forecast_data):
     return set_up_percentile_cube(forecast_data, percentiles, attributes=ATTRIBUTES,)
 
 
+def spot_percentiles(forecast_data):
+    """Create a spot percentile cube to subset with a neighbour cube."""
+    n_percentiles = forecast_data.shape[0]
+    percentiles = np.linspace(20, 80, n_percentiles)
+    return set_up_spot_percentile_cube(
+        forecast_data, percentiles, attributes=ATTRIBUTES,
+    )
+
+
 def gridded_probabilities(forecast_data):
     """Create a gridded probability cube from which to extract spot forecasts."""
     n_thresholds = forecast_data.shape[0]
     thresholds = np.linspace(273, 283, n_thresholds)
     return set_up_probability_cube(forecast_data, thresholds, attributes=ATTRIBUTES,)
+
+
+def spot_probabilities(forecast_data):
+    """Create a spot probability cube to subset with a neighbour cube."""
+    n_thresholds = forecast_data.shape[0]
+    thresholds = np.linspace(273, 283, n_thresholds)
+    return set_up_spot_probability_cube(
+        forecast_data, thresholds, attributes=ATTRIBUTES,
+    )
 
 
 @pytest.fixture
@@ -224,6 +254,70 @@ def add_grid_hash(target, source):
             {"extract_percentiles": [50]},
             np.array([283, 284]),
         ),
+        # Subset a spot variable cube.
+        (
+            spot_variable,
+            np.arange(273, 282),
+            np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]]),
+            {"subset_coord": "wmo_id"},
+            np.array([273, 274, 275]),
+        ),
+        # Pass through a spot variable cube as no subset coord specified.
+        (
+            spot_variable,
+            np.arange(273, 282),
+            np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]]),
+            {},
+            np.arange(273, 282),
+        ),
+        # Subset a spot percentile cube and extract percentiles.
+        (
+            spot_percentiles,
+            np.arange(273, 285).reshape(2, 6),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [20, 80]},
+            np.array([[273, 274], [279, 280]]),
+        ),
+        # Subset a spot percentile cube and resample percentiles.
+        (
+            spot_percentiles,
+            np.arange(273, 285).reshape(2, 6),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [50]},
+            np.array([276, 277]),
+        ),
+        # Subset a spot probability cube and extract a percentile.
+        (
+            spot_probabilities,
+            np.stack(
+                [
+                    np.linspace(0.9, 1.0, 6, dtype=np.float32),
+                    np.linspace(0.65, 0.75, 6, dtype=np.float32),
+                    np.linspace(0.4, 0.5, 6, dtype=np.float32),
+                    np.linspace(0.15, 0.25, 6, dtype=np.float32),
+                    np.zeros(6, dtype=np.float32),
+                ]
+            ),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [50]},
+            np.array([277, 277.2], dtype=np.float32),
+        ),
+        # Subset a spot probability cube and extract multiple percentiles.
+        (
+            spot_probabilities,
+            np.stack(
+                [
+                    np.linspace(0.9, 1.0, 6, dtype=np.float32),
+                    np.linspace(0.65, 0.75, 6, dtype=np.float32),
+                    np.linspace(0.4, 0.5, 6, dtype=np.float32),
+                    np.linspace(0.15, 0.25, 6, dtype=np.float32),
+                    np.zeros(6, dtype=np.float32),
+                ]
+            ),
+            np.array([[[1, 2], [0, 0], [5, 10]]]),
+            {"subset_coord": "wmo_id", "extract_percentiles": [40, 60]},
+            np.array([[276, 276.2], [278, 278.2]], dtype=np.float32),
+        ),
     ],
 )
 def test_extraction(ftype, forecast_data, neighbour_cube, kwargs, expected):
@@ -357,3 +451,111 @@ def test_neighbour_selection_method_setting(kwargs, expected):
     within the __init__ method."""
     plugin = SpotManipulation(**kwargs)
     assert plugin.neighbour_selection_method == expected
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_subset_incomplete(neighbour_cube):
+    """Test spot subsetting where the neighbour cube includes sites that are
+    not present in the forecast cube. These points will simply be ignored and
+    only the available sites extracted. In this case we expect the site with
+    wmo_id='00000' to be lost from the returned forecast, despite being in the
+    neighbour cube."""
+
+    expected = np.array([273, 274])
+    expected_ids = ["00001", "00002"]
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").points = [f"{item:05d}" for item in range(1, 10)]
+
+    result = SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+    assert_array_equal(result.data, expected)
+    assert_array_equal(result.coord("wmo_id").points, expected_ids)
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_unset_ids(neighbour_cube):
+    """Test spot subsetting where the neighbour cube and forecast cube include
+    sites for which the subset ID is set to "None". Unset IDs are non-unique
+    and we cannot rely on them for extracting a specific site. In this case we
+    expect all sites with an ID of "None" to be removed and only the valid ID
+    of '00002' to be extracted."""
+
+    expected = np.array([275])
+    expected_ids = ["00002"]
+    neighbour_cube.coord("wmo_id").points = ["None", "00001", "00002"]
+
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").points = ["None", "None"] + [
+        f"{item:05d}" for item in range(2, 9)
+    ]
+
+    result = SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+    assert_array_equal(result.data, expected)
+    assert_array_equal(result.coord("wmo_id").points, expected_ids)
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_subset_coord_not_found(neighbour_cube):
+    """Test exception raised for unknown subsetting coordinate."""
+
+    forecast = spot_variable(np.arange(273, 282))
+    with pytest.raises(ValueError, match="Subset_coord not found in neighbour cube."):
+        SpotManipulation(subset_coord="kittens")([forecast, neighbour_cube])
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_no_spots_returned(neighbour_cube):
+    """Test exception raised if subsetting a spot forecast results in no
+    data being returned. This maybe because the subsetting coordinate does not
+    exist on the forecast cube, or because there are no overlapping sites
+    between the forecast and neighbour cube."""
+
+    # No shared ID coordinate
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").rename("kittens")
+    with pytest.raises(ValueError, match="No spot sites retained after subsetting."):
+        SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+    # No overlapping sites
+    forecast = spot_variable(np.arange(273, 282))
+    forecast.coord("wmo_id").points = [f"{item:05d}" for item in range(101, 110)]
+    with pytest.raises(ValueError, match="No spot sites retained after subsetting."):
+        SpotManipulation(subset_coord="wmo_id")([forecast, neighbour_cube])
+
+
+@pytest.mark.parametrize(
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+)
+def test_spot_subset_lapse_rate_exception(neighbour_cube):
+    """Test exception raised if attempting to apply a lapse rate to an existing
+    spot forecast. This could be implemented but has not been as we have no use
+    case at present. The tests here cover a fixed lapse rate or a lapse rate
+    provided as a cube."""
+
+    msg = (
+        "Lapse rate adjustment when subsetting an existing spot "
+        "forecast cube has not been implemented."
+    )
+
+    forecast = spot_variable(np.arange(273, 282))
+    with pytest.raises(NotImplementedError, match=msg):
+        SpotManipulation(
+            subset_coord="wmo_id",
+            fixed_lapse_rate=0.001,
+            apply_lapse_rate_correction=True,
+        )([forecast, neighbour_cube])
+
+    lapse_rate_cube = forecast.copy()
+    with pytest.raises(NotImplementedError, match=msg):
+        SpotManipulation(subset_coord="wmo_id", apply_lapse_rate_correction=True)(
+            [forecast, lapse_rate_cube, neighbour_cube]
+        )
