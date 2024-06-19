@@ -53,7 +53,7 @@ def interpolate_missing_data(
         was possible to fill these in.
     """
     if valid_points is None:
-        valid_points = np.full_like(data, True, dtype=np.bool)
+        valid_points = np.full_like(data, True, dtype=bool)
 
     # Interpolate linearly across the remaining points
     index = ~np.isnan(data)
@@ -187,6 +187,8 @@ class InterpolateUsingDifference(BasePlugin):
                 out=np.full(cslice.shape, np.nan),
                 where=valid_points,
             )
+            min_difference = np.nanmin(difference_field)
+            max_difference = np.nanmax(difference_field)
             interpolated_difference = interpolate_missing_data(
                 difference_field, valid_points=valid_points
             )
@@ -198,6 +200,11 @@ class InterpolateUsingDifference(BasePlugin):
                 interpolated_difference = interpolate_missing_data(
                     difference_field, valid_points=~remain_invalid, method="nearest"
                 )
+            # It is possible for the interpolated differences to be outside of the range
+            # of the source data (machine-precision). Enforce the original data range.
+            interpolated_difference = np.clip(
+                interpolated_difference, min_difference, max_difference
+            )
 
             result = cslice.copy()
             result.data[invalid_points] = (

@@ -8,7 +8,7 @@ import unittest
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -285,6 +285,41 @@ class Test_process(Test_Setup):
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
         self.assertEqual(result.metadata, self.sleet_rain.metadata)
+
+    def test_range_enforcement(self):
+        """Test interpolation on a case where the result is known to be outside of the
+        input data range."""
+        data = np.zeros(
+            (18, 18), dtype=np.float32
+        )  # The smallest array where this behaviour has been found
+        data[1:-1, 1:-1] = np.nan
+        data[0, 4] = 100
+        sleet_rain = np.ma.masked_invalid(data)
+
+        self.snow_sleet = set_up_variable_cube(
+            np.zeros_like(data),
+            name="altitude_of_snow_falling_level",
+            units="m",
+            spatial_grid="equalarea",
+        )
+        self.sleet_rain = set_up_variable_cube(
+            sleet_rain,
+            name="altitude_of_rain_falling_level",
+            units="m",
+            spatial_grid="equalarea",
+        )
+
+        expected = np.zeros_like(data)
+        expected[0, 4] = 100
+        expected[1, 3] = 75
+        expected[2, 2] = 50
+        expected[3, 1] = 25
+
+        result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
+
+        assert_array_almost_equal(result.data, expected, decimal=5)
+        assert (result.data >= np.nanmin(self.sleet_rain.data)).all()
+        assert (result.data <= np.nanmax(self.sleet_rain.data)).all()
 
 
 if __name__ == "__main__":

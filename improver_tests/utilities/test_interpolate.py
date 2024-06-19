@@ -43,6 +43,30 @@ class Test_interpolate_missing_data(IrisTest):
         self.valid_data_for_limit_test = np.full((5, 5), True)
         self.valid_data_for_limit_test[:, 1:4] = False
 
+    def test_mostly_zeros(self):
+        """Test when all-but-one of the points around the missing data are the same.
+        The point of this test is to highlight a case where values outside of the max:min
+        range of the input can be found, if the test tolerance is sufficiently tight.
+        If this test fails with a newer version of Scipy, then the enforcement of this range
+        in improver.utilitiess.interpolation.InterpolateUsingDifference needs revisiting."""
+        data = np.zeros(
+            (18, 18)
+        )  # The smallest array where this behaviour has been found
+        data[1:-1, 1:-1] = np.nan
+        data[0, 4] = 100
+        expected = np.zeros_like(data)
+        expected[0, 4] = 100
+        expected[1, 3] = 75
+        expected[2, 2] = 50
+        expected[3, 1] = 25
+        expected[2, 3] = -1.11022302e-14
+        expected[3, 2] = -4.44089210e-14
+        expected[4, 1] = -2.22044605e-14
+
+        data_updated = interpolate_missing_data(data)
+
+        self.assertArrayAlmostEqual(data_updated, expected, decimal=21)
+
     def test_basic_linear(self):
         """Test when all the points around the missing data are the same."""
         data = np.ones((3, 3))
