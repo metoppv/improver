@@ -16,12 +16,12 @@ from numpy import ndarray
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.round import round_close
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
-from improver.wind_calculations.wind_direction import WindDirection
 
 
 class TemporalInterpolation(BasePlugin):
@@ -628,8 +628,8 @@ class TemporalInterpolation(BasePlugin):
         # interpolations (esp. the 0/360 wraparound) are handled in a sane
         # fashion.
         if cube_t0.units == "degrees" and cube_t1.units == "degrees":
-            cube_t0.data = WindDirection.deg_to_complex(cube_t0.data)
-            cube_t1.data = WindDirection.deg_to_complex(cube_t1.data)
+            cube_t0.data = deg_to_complex(cube_t0.data)
+            cube_t1.data = deg_to_complex(cube_t1.data)
 
         # Convert accumulations into rates to allow interpolation using trends
         # in the data and to accommodate non-uniform output intervals. This also
@@ -646,9 +646,7 @@ class TemporalInterpolation(BasePlugin):
 
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
         if cube_t0.units == "degrees" and cube_t1.units == "degrees":
-            interpolated_cube.data = WindDirection.complex_to_deg(
-                interpolated_cube.data
-            )
+            interpolated_cube.data = complex_to_deg(interpolated_cube.data)
 
         if self.period_inputs:
             # Add bounds to the time coordinates of the interpolated outputs

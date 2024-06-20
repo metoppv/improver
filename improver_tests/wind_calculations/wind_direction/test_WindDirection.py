@@ -5,6 +5,7 @@
 """Unit tests for the wind_direction.WindDirection plugin."""
 
 import unittest
+import unittest.mock as mock
 
 import numpy as np
 from iris.coords import DimCoord
@@ -179,55 +180,22 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-# Test the complex number handling functions.
-class Test_deg_to_complex(IrisTest):
-    """Test the deg_to_complex function."""
-
-    def test_converts_single(self):
-        """Tests that degree angle value is converted to complex."""
-        expected_out = 0.707106781187 + 0.707106781187j
-        result = WindDirection().deg_to_complex(45.0)
-        self.assertAlmostEqual(result, expected_out)
-
-    def test_handles_angle_wrap(self):
-        """Test that code correctly handles 360 and 0 degrees."""
-        expected_out = 1 + 0j
-        result = WindDirection().deg_to_complex(0)
-        self.assertAlmostEqual(result, expected_out)
-
-        expected_out = 1 - 0j
-        result = WindDirection().deg_to_complex(360)
-        self.assertAlmostEqual(result, expected_out)
-
-    def test_converts_array(self):
-        """Tests that array of floats is converted to complex array."""
-        result = WindDirection().deg_to_complex(np.arange(0.0, 360, 10))
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
+@mock.patch("improver.wind_calculations.wind_direction.deg_to_complex")
+def test_deg_to_complex(mock_deg_to_complex):
+    """Tests that the underlying deg_to_complex function is
+    called via the deg_to_complex method."""
+    WindDirection().deg_to_complex(mock.sentinel.angle_deg, mock.sentinel.radius)
+    mock_deg_to_complex.assert_called_once_with(
+        mock.sentinel.angle_deg, mock.sentinel.radius
+    )
 
 
-class Test_complex_to_deg(IrisTest):
-    """Test the complex_to_deg function."""
-
-    def test_fails_if_data_is_not_array(self):
-        """Test code raises a Type Error if input data not an array."""
-        input_data = 0 - 1j
-        msg = "Input data is not a numpy array, but {}".format(type(input_data))
-        with self.assertRaisesRegex(TypeError, msg):
-            WindDirection().complex_to_deg(input_data)
-
-    def test_handles_angle_wrap(self):
-        """Test that code correctly handles 360 and 0 degrees."""
-        # Input is complex for 0 and 360 deg - both should return 0.0.
-        input_data = np.array([1 + 0j, 1 - 0j])
-        result = WindDirection().complex_to_deg(input_data)
-        self.assertTrue((result == 0.0).all())
-
-    def test_converts_array(self):
-        """Tests that array of complex values are converted to degrees."""
-        result = WindDirection().complex_to_deg(COMPLEX_ANGLES)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, np.arange(0.0, 360, 10))
+@mock.patch("improver.wind_calculations.wind_direction.complex_to_deg")
+def test_complex_to_deg(mock_complex_to_deg):
+    """Tests that the underlying complex_to_deg function is
+    called via the complex_to_deg method."""
+    WindDirection().complex_to_deg(mock.sentinel.complex_in)
+    mock_complex_to_deg.assert_called_once_with(mock.sentinel.complex_in)
 
 
 class Test_complex_to_deg_roundtrip(IrisTest):

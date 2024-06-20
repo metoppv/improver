@@ -3,8 +3,8 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Test methods in lightning.LightningFromCapePrecip"""
-
 from datetime import datetime
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -17,6 +17,22 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.lightning.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        LightningFromCapePrecip()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 @pytest.fixture(name="cape_cube")
@@ -123,8 +139,8 @@ def test_3h_cubes(cape_cube, precip_cube, expected_cube):
 def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
     """Run the plugin with model_id_attr and check the result cube matches the expected_cube"""
     expected_cube.attributes["mosg__model_configuration"] = "gl_ens"
-    result = LightningFromCapePrecip()(
-        CubeList([cape_cube, precip_cube]), model_id_attr="mosg__model_configuration"
+    result = LightningFromCapePrecip(model_id_attr="mosg__model_configuration")(
+        CubeList([cape_cube, precip_cube])
     )
     assert result.xml().splitlines(keepends=True) == expected_cube.xml().splitlines(
         keepends=True

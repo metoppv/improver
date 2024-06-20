@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """This module contains the VerticalUpdraught plugin"""
 
-from typing import List
+from typing import Union
 
 import numpy as np
 from iris.cube import Cube, CubeList
@@ -14,6 +14,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -47,7 +48,7 @@ class VerticalUpdraught(BasePlugin):
         self._minimum_cape = 10.0  # J kg-1. Minimum value to diagnose updraught from
         self._minimum_precip = 5.0  # mm h-1. Minimum value to diagnose updraught from
 
-    def _parse_inputs(self, inputs: List[Cube]) -> None:
+    def _parse_inputs(self, cubes: CubeList) -> None:
         """
         Separates input CubeList into CAPE and precipitation rate objects with standard units
         and raises Exceptions if it can't, or finds excess data.
@@ -59,7 +60,6 @@ class VerticalUpdraught(BasePlugin):
             ValueError:
                 If additional cubes are found
         """
-        cubes = CubeList(inputs)
         try:
             (self.cape, self.precip) = cubes.extract(self.cube_names)
         except ValueError as e:
@@ -69,7 +69,7 @@ class VerticalUpdraught(BasePlugin):
         if len(cubes) > 2:
             extras = [c.name() for c in cubes if c.name() not in self.cube_names]
             raise ValueError(f"Unexpected Cube(s) found in inputs: {extras}")
-        if not spatial_coords_match(inputs):
+        if not spatial_coords_match(cubes):
             raise ValueError(f"Spatial coords of input Cubes do not match: {cubes}")
         time_error_msg = self._input_times_error()
         if time_error_msg:
@@ -148,7 +148,7 @@ class VerticalUpdraught(BasePlugin):
         )
         return cube
 
-    def process(self, inputs: List[Cube]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Executes methods to calculate updraught from CAPE and precipitation rate
         and packages this as a Cube with appropriate metadata.
 
@@ -160,7 +160,8 @@ class VerticalUpdraught(BasePlugin):
             Cube:
                 Containing maximum vertical updraught
         """
-        self._parse_inputs(inputs)
+        cubes = as_cubelist(*cubes)
+        self._parse_inputs(cubes)
         return self._make_updraught_cube(
             self._updraught_from_cape() + self._updraught_increment_from_precip()
         )

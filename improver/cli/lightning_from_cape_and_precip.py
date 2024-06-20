@@ -29,10 +29,6 @@ def process(
         iris.cube.Cube:
             Cube of probabilities of lightning relative to a zero rate thresholds
     """
-    from iris.cube import CubeList
-
     from improver.lightning import LightningFromCapePrecip
 
-    result = LightningFromCapePrecip()(CubeList(cubes), model_id_attr=model_id_attr)
-
-    return result
+    return LightningFromCapePrecip(model_id_attr=model_id_attr)(*cubes)

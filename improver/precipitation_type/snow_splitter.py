@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module to separate snow and rain contributions from a precipitation diagnostic"""
 
-from typing import Tuple
+from typing import Tuple, Union
 
 import numpy as np
 from iris import Constraint
@@ -12,6 +12,7 @@ from iris.cube import Cube, CubeList
 
 from improver import BasePlugin
 from improver.cube_combiner import Combine
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
 
 
@@ -63,7 +64,7 @@ class SnowSplitter(BasePlugin):
 
         return (rain_cube, snow_cube, precip_cube)
 
-    def process(self, cubes: CubeList,) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Splits the precipitation cube data into a snow or rain contribution.
 
@@ -102,7 +103,7 @@ class SnowSplitter(BasePlugin):
             ValueError: If, at some grid square, both snow_cube and rain_cube have a probability of
             0
         """  # noqa: W605  (flake8 objects to \_ in "lwe\_" that is required for Sphinx)
-
+        cubes = as_cubelist(*cubes)
         rain_cube, snow_cube, precip_cube = self.separate_input_cubes(cubes)
 
         assert_spatial_coords_match([rain_cube, snow_cube, precip_cube])

@@ -27,34 +27,6 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
             A single cube containing the hail fraction.
 
     """
-    from iris.cube import CubeList
-
     from improver.precipitation_type.hail_fraction import HailFraction
-    from improver.utilities.flatten import flatten
 
-    (
-        vertical_updraught,
-        hail_size,
-        cloud_condensation_level,
-        convective_cloud_top,
-        hail_melting_level,
-        altitude,
-    ) = CubeList(flatten(cubes)).extract(
-        [
-            "maximum_vertical_updraught",
-            "diameter_of_hail_stones",
-            "air_temperature_at_condensation_level",
-            "air_temperature_at_convective_cloud_top",
-            "altitude_of_rain_from_hail_falling_level",
-            "surface_altitude",
-        ]
-    )
-
-    return HailFraction(model_id_attr=model_id_attr)(
-        vertical_updraught,
-        hail_size,
-        cloud_condensation_level,
-        convective_cloud_top,
-        hail_melting_level,
-        altitude,
-    )
+    return HailFraction(model_id_attr=model_id_attr)(*cubes)

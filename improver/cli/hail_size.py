@@ -33,24 +33,6 @@ def process(*cubes: cli.inputcubelist, model_id_attr: str = None):
         iris.cube.Cube:
             Cube of diameter_of_hail (m).
     """
-
-    from iris.cube import CubeList
-
     from improver.psychrometric_calculations.hail_size import HailSize
-    from improver.utilities.flatten import flatten
 
-    cubes = flatten(cubes)
-    (temperature, ccl_pressure, ccl_temperature, wet_bulb_zero, orography,) = CubeList(
-        cubes
-    ).extract(
-        [
-            "air_temperature",
-            "air_pressure_at_condensation_level",
-            "air_temperature_at_condensation_level",
-            "wet_bulb_freezing_level_altitude",
-            "surface_altitude",
-        ]
-    )
-    return HailSize(model_id_attr=model_id_attr)(
-        ccl_temperature, ccl_pressure, temperature, wet_bulb_zero, orography,
-    )
+    return HailSize(model_id_attr=model_id_attr)(*cubes)

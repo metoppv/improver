@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing lightning classes."""
 from datetime import timedelta
-from typing import Tuple
+from typing import Tuple, Union
 
 import iris
 import numpy as np
@@ -18,6 +18,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.threshold import LatitudeDependentThreshold
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.rescale import rescale
 from improver.utilities.spatial import create_vicinity_coord
@@ -43,6 +44,17 @@ class LightningFromCapePrecip(PostProcessingPlugin):
     +---------------------------+------------+---------------------+
 
     """
+
+    def __init__(self, model_id_attr: str = None) -> None:
+        """
+        Initialise the plugin with the model_id_attr.
+
+        Args:
+            model_id_attr:
+                The name of the dataset attribute to be used to identify the source
+                model when blending data from different models.
+        """
+        self._model_id_attr = model_id_attr
 
     @staticmethod
     def _get_inputs(cubes: CubeList) -> Tuple[Cube, Cube]:
@@ -96,7 +108,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             raise ValueError("Supplied cubes do not have the same spatial coordinates")
         return cape, precip
 
-    def process(self, cubes: CubeList, model_id_attr: str = None) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         From the supplied CAPE and precipitation-rate cubes, calculate a probability
         of lightning cube.
@@ -104,9 +116,6 @@ class LightningFromCapePrecip(PostProcessingPlugin):
         Args:
             cubes:
                 Cubes of CAPE and Precipitation rate.
-            model_id_attr:
-                The name of the dataset attribute to be used to identify the source
-                model when blending data from different models.
 
         Returns:
             Cube of lightning data
@@ -115,6 +124,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             ValueError:
                 If one of the cubes is not found or doesn't match the other
         """
+        cubes = as_cubelist(*cubes)
         cape, precip = self._get_inputs(cubes)
 
         cape_true = LatitudeDependentThreshold(
@@ -137,7 +147,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
             template_cube=precip,
             data=data.astype(FLOAT_DTYPE),
             mandatory_attributes=generate_mandatory_attributes(
-                cubes, model_id_attr=model_id_attr
+                cubes, model_id_attr=self._model_id_attr
             ),
         )
 

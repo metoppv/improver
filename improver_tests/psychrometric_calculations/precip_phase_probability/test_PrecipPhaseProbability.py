@@ -3,8 +3,8 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for psychrometric_calculations PrecipPhaseProbability plugin."""
-
 import operator
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -36,6 +36,22 @@ FALLING_LEVEL_DATA = np.array(
 )
 FALLING_LEVEL_DATA[0, 0, 0] = 75
 FALLING_LEVEL_DATA[1, 0, 0] = 25
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.precip_phase_probability.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        PrecipPhaseProbability()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 def check_metadata(result, phase):

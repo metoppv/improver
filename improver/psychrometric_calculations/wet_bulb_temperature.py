@@ -21,6 +21,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     _calculate_latent_heat,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cube, as_cubelist
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.mathematical_operations import Integration
 
@@ -273,7 +274,7 @@ class WetBulbTemperature(BasePlugin):
         )
         return wbt
 
-    def process(self, cubes: Union[List[Cube], CubeList]) -> Cube:
+    def process(self, *cubes: Union[List[Cube], CubeList]) -> Cube:
         """
         Call the calculate_wet_bulb_temperature function to calculate wet bulb
         temperatures. This process function splits input cubes over vertical
@@ -293,6 +294,7 @@ class WetBulbTemperature(BasePlugin):
         Returns:
             Cube of wet bulb temperature (K).
         """
+        cubes = as_cubelist(*cubes)
         names_to_extract = ["air_temperature", "relative_humidity", "air_pressure"]
         if len(cubes) != len(names_to_extract):
             raise ValueError(
@@ -340,6 +342,7 @@ class WetBulbTemperatureIntegral(BasePlugin):
         Returns:
             Cube of wet bulb temperature integral (Kelvin-metres).
         """
+        wet_bulb_temperature = as_cube(wet_bulb_temperature)
         wbt = wet_bulb_temperature.copy()
         wbt.convert_units("degC")
         wbt.coord("height").convert_units("m")
@@ -355,3 +358,36 @@ class WetBulbTemperatureIntegral(BasePlugin):
         # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit("K m")
         return wet_bulb_temperature_integral
+
+
+class MetaWetBulbFreezingLevel(BasePlugin):
+    """Meta processing module to handle the necessary extract and metadata handling (rename)
+    required by wet bulb freezing level generation."""
+
+    def process(self, wet_bulb_temperature: Cube) -> Cube:
+        """
+        generate wet-bulb freezing level.
+
+        The height level at which the wet-bulb temperature first drops below 273.15K
+        (0 degrees Celsius) is extracted from the wet-bulb temperature cube starting from
+        the ground and ascending through height levels.
+
+        In grid squares where the temperature never goes below 273.15K the highest
+        height level on the cube is returned. In grid squares where the temperature
+        starts below 273.15K the lowest height on the cube is returned.
+
+        Args:
+            wet_bulb_temperature:
+                Cube of wet-bulb air temperatures over multiple height levels.
+
+        Returns:
+            Cube of wet-bulb freezing level.
+        """
+        from improver.utilities.cube_extraction import ExtractLevel
+
+        wet_bulb_temperature = as_cube(wet_bulb_temperature)
+        wet_bulb_freezing_level = ExtractLevel(
+            positive_correlation=False, value_of_level=273.15
+        )(wet_bulb_temperature)
+        wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
+        return wet_bulb_freezing_level

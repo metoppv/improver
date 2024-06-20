@@ -49,4 +49,4 @@ def process(
 
     return WetBulbTemperature(
         precision=convergence_condition, model_id_attr=model_id_attr
-    )(cubes)
+    )(*cubes)
