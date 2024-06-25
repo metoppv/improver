@@ -15,7 +15,7 @@ def process(cube: cli.inputcube, *, new_name: str = None):
     time bounds over which it is defined to return a count or accumulation.
     The frequency or rate must be defined with time bounds, e.g. an average
     frequency across the period. This function will handle a cube with a
-    non-scalar time coordinate, multiplying each time in the coordiante by the
+    non-scalar time coordinate, multiplying each time in the coordinate by the
     related bounds.
 
     The returned cube has units equivalent to the input cube multiplied by

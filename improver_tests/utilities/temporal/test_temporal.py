@@ -584,6 +584,24 @@ def test_integrate_time(period_cube, kwargs, expected):
         assert result.name() == kwargs["new_name"]
 
 
+@pytest.mark.parametrize("data,period_lengths", [(np.ones((5, 5)), [3600])])
+def test_integrate_non_second_units(period_cube):
+    """Test that input data with a rate expressed in a different time unit,
+    e.g. per minute, is returned with units that describe the data
+    correctly. The data itself will be expressed as an integral over seconds
+    but the cube units will include the necessary factor to account for the
+    differing input units."""
+
+    expected = np.full(period_cube.shape, 3600)
+    expected_units = Unit(f"{1./60} m-2")
+    period_cube.units = Unit("m-2 minute-1")
+
+    result = integrate_time(period_cube.copy())
+
+    np.testing.assert_array_equal(result.data, expected)
+    assert result.units == expected_units
+
+
 @pytest.mark.parametrize("data,period_lengths", [(np.ones((5, 5)), [10800])])
 def test_integrate_time_exception(period_cube):
     """Tests that the integrate_time function raises an exception if the cube
