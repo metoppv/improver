@@ -743,7 +743,7 @@ def maximum_in_height(
         ValueError:
             If the cube has no height levels between the lower_height_bound and upper_height_bound
     """
-    height_levels = cube.coord("height").points
+    height_levels = cube.coord('height').points
 
     # replace None in bounds with a numerical value either below or above the range of height
     # levels in the cube so it can be used as a constraint.
@@ -764,7 +764,7 @@ def maximum_in_height(
         )
 
     if len(cube_subsetted.coord("height").points) > 1:
-        max_cube = cube_subsetted.collapsed("height", iris.analysis.MAX)
+        max_cube = cube_subsetted.collapsed('height', iris.analysis.MAX)
     else:
         max_cube = cube_subsetted
 
@@ -772,3 +772,54 @@ def maximum_in_height(
         max_cube.rename(new_name)
 
     return max_cube
+
+
+def height_of_maximum(
+    cube: Cube,
+    max_cube: Cube,
+    high_or_low: str = 'low',
+    new_name: str = None,
+) -> Cube:
+    """Calculates the height level at which the maximum value has been calculated. This
+    takes in a cube with values at different heights, and also a cube with the maximum
+    of these heights. It compares these (default is to start at the highest height and 
+    work down through the height levels), and then outputs the height it reaches the maximum value.
+
+    Args:
+        cube:
+            A cube with a height coordinate.
+        max_cube:
+            A cube of the maximum value over the height coordinate.
+        high_or_low: 
+            Whether we are looking for the highest or lowest maximum height (for the case where the
+            maximum occurs at more than one height)
+        new_name:
+            The new name to be assigned to the output cube. If unspecified the name of the original
+            cube is used.
+    Returns:
+        A cube of heights at which the maximum values occur.
+
+    Raises:
+        ValueError:
+            If the cube has only 1 height level or if an input other than high or low is tried for the 
+            high_or_low value.
+    """
+    height_of_max = max_cube.copy()
+    
+    if len(cube.coord("height").points) == 1:
+        raise ValueError(
+            f"""More than 1 height level is required."""
+        )
+
+    if high_or_low == 'high':
+        for height in range(len(cube.coord('height').points)):
+            height_of_max.data = np.where(cube[height].data == max_cube.data,
+                                       cube[height].coord('height').points[0], height_of_max.data)
+    if high_or_low == 'low':
+        for height in range(len(cube.coord('height').points)-1, -1, -1):
+            height_of_max.data = np.where(cube[height].data == max_cube.data,
+                                       cube[height].coord('height').points[0], height_of_max.data)
+    if new_name:
+        height_of_max.rename(new_name)
+    return height_of_max
+
