@@ -743,7 +743,7 @@ def maximum_in_height(
         ValueError:
             If the cube has no height levels between the lower_height_bound and upper_height_bound
     """
-    height_levels = cube.coord('height').points
+    height_levels = cube.coord("height").points
 
     # replace None in bounds with a numerical value either below or above the range of height
     # levels in the cube so it can be used as a constraint.
@@ -764,7 +764,7 @@ def maximum_in_height(
         )
 
     if len(cube_subsetted.coord("height").points) > 1:
-        max_cube = cube_subsetted.collapsed('height', iris.analysis.MAX)
+        max_cube = cube_subsetted.collapsed("height", iris.analysis.MAX)
     else:
         max_cube = cube_subsetted
 
