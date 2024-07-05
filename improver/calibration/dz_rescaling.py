@@ -19,7 +19,7 @@ from improver import PostProcessingPlugin
 from improver.calibration.utilities import filter_non_matching_cubes
 from improver.constants import SECONDS_IN_HOUR
 from improver.metadata.constants.time_types import TIME_COORDS
-from improver.spotdata.neighbour_finding import NeighbourSelection
+from improver.spotdata.utilities import get_neighbour_finding_method_name
 
 
 class EstimateDzRescaling(PostProcessingPlugin):
@@ -74,10 +74,9 @@ class EstimateDzRescaling(PostProcessingPlugin):
         # Please see numpy.polynomial.polynomial.Polynomial.fit for further information.
         self.polyfit_deg = 1
 
-        self.neighbour_selection_method = NeighbourSelection(
+        self.neighbour_selection_method = get_neighbour_finding_method_name(
             land_constraint=land_constraint, minimum_dz=similar_altitude
-        ).neighbour_finding_method_name()
-
+        )
         self.site_id_coord = site_id_coord
 
     def _fit_polynomial(self, forecasts: Cube, truths: Cube, dz: Cube) -> float:
