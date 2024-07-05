@@ -13,8 +13,7 @@ def deg_to_complex(
 ) -> Union[ndarray, float]:
     """Converts degrees to complex values.
 
-    The radius value can be used to weigh values - but it is set
-    to 1 for now.
+    The radius argument can be used to weight values. Defaults to 1.
 
     Args:
         angle_deg:

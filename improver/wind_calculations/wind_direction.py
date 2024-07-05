@@ -3,9 +3,6 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing wind direction averaging plugins."""
-
-from typing import Union
-
 import iris
 import numpy as np
 from iris.coords import CellMethod
@@ -104,50 +101,6 @@ class WindDirection(PostProcessingPlugin):
         self.wdir_slice_mean = None
         self.wdir_mean_complex = None
         self.r_vals_slice = None
-
-    @staticmethod
-    def deg_to_complex(
-        angle_deg: Union[ndarray, float], radius: Union[ndarray, float] = 1
-    ) -> Union[ndarray, float]:
-        """Converts degrees to complex values.
-
-        See deg_to_complex
-
-        The radius value can be used to weigh values - but it is set
-        to 1 for now.
-
-        Args:
-            angle_deg:
-                3D array or float - wind direction angles in degrees.
-            radius:
-                3D array or float - radius value for each point, default=1.
-
-        Returns:
-            3D array or float - wind direction translated to
-            complex numbers.
-        """
-        return deg_to_complex(angle_deg, radius)
-
-    @staticmethod
-    def complex_to_deg(complex_in: ndarray) -> ndarray:
-        """Converts complex to degrees.
-
-        The "np.angle" function returns negative numbers when the input
-        is greater than 180. Therefore additional processing is needed
-        to ensure that the angle is between 0-359.
-
-        Args:
-            complex_in:
-                3D array - wind direction angles in
-                complex number form.
-
-        Returns:
-            3D array - wind direction in angle form
-
-        Raises:
-            TypeError: If complex_in is not an array.
-        """
-        return complex_to_deg(complex_in)
 
     def calc_wind_dir_mean(self) -> None:
         """Find the mean wind direction using complex average which actually

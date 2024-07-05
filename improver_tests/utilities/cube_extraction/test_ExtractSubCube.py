@@ -19,6 +19,7 @@ def test_ui(mock_extract_subcube, mock_as_cube):
         sentinel.constraints,
         units=sentinel.units,
         use_original_units=sentinel.use_original_units,
+        ignore_failure=sentinel.ignore_failure,
     )
     plugin(sentinel.cube)
     mock_as_cube.assert_called_once_with(sentinel.cube)
@@ -31,7 +32,17 @@ def test_no_matching_constraint_exception():
     """
     Test that a ValueError is raised when no constraints match.
     """
-    plugin = ExtractSubCube(["dummy_name=dummy_value"])
+    plugin = ExtractSubCube(["dummy_name=dummy_value"], ignore_failure=False)
     with pytest.raises(ValueError) as excinfo:
         plugin(Cube(0))
     assert str(excinfo.value) == "Constraint(s) could not be matched in input cube"
+
+
+def test_no_matching_constraint_ignore():
+    """
+    Test that the original cube is returned when no constraints match and ignore specified.
+    """
+    plugin = ExtractSubCube(["dummy_name=dummy_value"], ignore_failure=True)
+    src_cube = Cube(0)
+    res = plugin(src_cube)
+    assert res is src_cube

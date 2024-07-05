@@ -54,15 +54,6 @@ def process(
     """
     from improver.utilities.cube_extraction import ExtractSubCube
 
-    plugin = ExtractSubCube(constraints, units=units)
-    try:
-        result = plugin.process(cube)
-    except ValueError as err:
-        if (
-            err.args[0] == "Constraint(s) could not be matched in input cube"
-            and ignore_failure
-        ):
-            return cube
-        else:
-            raise
+    plugin = ExtractSubCube(constraints, units=units, ignore_failure=ignore_failure)
+    result = plugin.process(cube)
     return result

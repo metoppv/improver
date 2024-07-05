@@ -273,6 +273,7 @@ class ExtractSubCube(BasePlugin):
         constraints: List[str],
         units: Optional[List[str]] = None,
         use_original_units: bool = True,
+        ignore_failure: bool = False,
     ) -> None:
         """
         Set up the ExtractSubCube plugin.
@@ -290,10 +291,14 @@ class ExtractSubCube(BasePlugin):
                 should be converted back to their original units. The default is
                 True, indicating that the units should be converted back to the
                 original units.
+            ignore_failure:
+                Option to ignore constraint match failure and return the input
+                cube.
         """
         self._constraints = constraints
         self._units = units
         self._use_original_units = use_original_units
+        self._ignore_failure = ignore_failure
 
     def process(self, cube: Cube):
         """Perform the subcube extraction.
@@ -309,12 +314,14 @@ class ExtractSubCube(BasePlugin):
             ValueError: If the constraint(s) could not be matched to the input cube.
         """
         cube = as_cube(cube)
-        cube = extract_subcube(
+        res = extract_subcube(
             cube, self._constraints, self._units, self._use_original_units
         )
-        if cube is None:
-            raise ValueError("Constraint(s) could not be matched in input cube")
-        return cube
+        if res is None:
+            res = cube
+            if not self._ignore_failure:
+                raise ValueError("Constraint(s) could not be matched in input cube")
+        return res
 
 
 def thin_cube(cube: Cube, thinning_dict: Dict[str, int]) -> Cube:

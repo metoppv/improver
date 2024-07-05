@@ -5,7 +5,6 @@
 """Unit tests for the wind_direction.WindDirection plugin."""
 
 import unittest
-import unittest.mock as mock
 
 import numpy as np
 from iris.coords import DimCoord
@@ -13,7 +12,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.wind_calculations.wind_direction import WindDirection
+from improver.wind_calculations.wind_direction import WindDirection, deg_to_complex
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.
@@ -180,45 +179,6 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-@mock.patch("improver.wind_calculations.wind_direction.deg_to_complex")
-def test_deg_to_complex(mock_deg_to_complex):
-    """Tests that the underlying deg_to_complex function is
-    called via the deg_to_complex method."""
-    WindDirection().deg_to_complex(mock.sentinel.angle_deg, mock.sentinel.radius)
-    mock_deg_to_complex.assert_called_once_with(
-        mock.sentinel.angle_deg, mock.sentinel.radius
-    )
-
-
-@mock.patch("improver.wind_calculations.wind_direction.complex_to_deg")
-def test_complex_to_deg(mock_complex_to_deg):
-    """Tests that the underlying complex_to_deg function is
-    called via the complex_to_deg method."""
-    WindDirection().complex_to_deg(mock.sentinel.complex_in)
-    mock_complex_to_deg.assert_called_once_with(mock.sentinel.complex_in)
-
-
-class Test_complex_to_deg_roundtrip(IrisTest):
-    """Test the complex_to_deg and deg_to_complex functions together."""
-
-    def setUp(self):
-        """Initialise plugin and supply data for tests"""
-        self.plugin = WindDirection()
-        self.cube = make_wdir_cube_534()
-
-    def test_from_deg(self):
-        """Tests that array of values are converted to complex and back."""
-        tmp_complex = self.plugin.deg_to_complex(self.cube.data)
-        result = self.plugin.complex_to_deg(tmp_complex)
-        self.assertArrayAlmostEqual(result, self.cube.data, decimal=4)
-
-    def test_from_complex(self):
-        """Tests that array of values are converted to degrees and back."""
-        tmp_degrees = self.plugin.complex_to_deg(COMPLEX_ANGLES)
-        result = self.plugin.deg_to_complex(tmp_degrees)
-        self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
-
-
 class Test_calc_wind_dir_mean(IrisTest):
     """Test the calc_wind_dir_mean function."""
 
@@ -227,7 +187,7 @@ class Test_calc_wind_dir_mean(IrisTest):
         self.plugin = WindDirection()
         # 5x3x4 3D Array containing wind direction in angles.
         cube = make_wdir_cube_534()
-        self.plugin.wdir_complex = self.plugin.deg_to_complex(cube.data)
+        self.plugin.wdir_complex = deg_to_complex(cube.data)
         self.plugin.wdir_slice_mean = next(cube.slices_over("realization"))
         self.plugin.realization_axis = 0
 
@@ -244,7 +204,7 @@ class Test_calc_wind_dir_mean(IrisTest):
         """Test that the function defines correct complex mean."""
         self.plugin.calc_wind_dir_mean()
         result = self.plugin.wdir_mean_complex
-        expected_complex = self.plugin.deg_to_complex(
+        expected_complex = deg_to_complex(
             self.expected_wind_mean, radius=np.absolute(result)
         )
         self.assertArrayAlmostEqual(result, expected_complex)
@@ -312,9 +272,7 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_slice_mean = cube[0].copy(
             data=np.array([[180.0, 55.0], [280.0, 0.0]])
         )
-        self.plugin.wdir_mean_complex = self.plugin.deg_to_complex(
-            self.plugin.wdir_slice_mean.data
-        )
+        self.plugin.wdir_mean_complex = deg_to_complex(self.plugin.wdir_slice_mean.data)
         expected_out = np.array([[90.0, 55.0], [280.0, 0.0]])
         where_low_r = np.array([[True, False], [False, False]])
         self.plugin.wind_dir_decider(where_low_r, cube)
@@ -344,7 +302,7 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.realization_axis = 0
         self.plugin.n_realizations = 1
         self.plugin.wdir_mean_complex = np.pad(
-            self.plugin.deg_to_complex(wind_dir_deg_mean),
+            deg_to_complex(wind_dir_deg_mean),
             ((4, 4), (4, 4)),
             "constant",
             constant_values=(0.0, 0.0),
