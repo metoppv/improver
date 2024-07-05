@@ -7,110 +7,120 @@ This module contains the plugins for the IMPROVER project.  This aids in discove
 by making them available to a single flat namespace.  This also protects end-users from
 changes in structure to IMPROVER impacting their use of the plugins.
 """
-from improver.between_thresholds import OccurrenceBetweenThresholds
-from improver.blending.blend_across_adjacent_points import TriangularWeightedBlendAcrossAdjacentPoints
-from improver.blending.calculate_weights_and_blend import WeightAndBlend
-from improver.blending.spatial_weights import SpatiallyVaryingWeightsFromMask
-from improver.blending.weighted_blend import MergeCubesForWeightedBlending
-from improver.blending.weighted_blend import WeightedBlendAcrossWholeDimension
-from improver.blending.weights import ChooseWeightsLinear
-from improver.blending.weights import ChooseDefaultWeightsLinear
-from improver.blending.weights import ChooseDefaultWeightsNonLinear
-from improver.blending.weights import ChooseDefaultWeightsTriangular
-from improver.calibration.ensemble_calibration import ContinuousRankedProbabilityScoreMinimisers
-from improver.calibration.ensemble_calibration import EstimateCoefficientsForEnsembleCalibration
-from improver.calibration.ensemble_calibration import CalibratedForecastDistributionParameters
-from improver.calibration.ensemble_calibration import ApplyEMOS
-from improver.calibration.reliability_calibration import ConstructReliabilityCalibrationTables
-from improver.calibration.reliability_calibration import AggregateReliabilityCalibrationTables
-from improver.calibration.reliability_calibration import ManipulateReliabilityTable
-from improver.calibration.reliability_calibration import ApplyReliabilityCalibration
-from improver.calibration.rainforest_calibration import ApplyRainForestsCalibration
-from improver.calibration.dz_rescaling import EstimateDzRescaling
-from improver.calibration.dz_rescaling import ApplyDzRescaling
-from improver.calibration.simple_bias_correction import CalculateForecastBias
-from improver.calibration.simple_bias_correction import ApplyBiasCorrection
-from improver.cube_combiner import Combine
-from improver.cube_combiner import CubeCombiner
-from improver.cube_combiner import MaxInTimeWindow
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import RebadgeRealizationsAsPercentiles
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import RebadgePercentilesAsRealizations
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import ResamplePercentiles
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import ConvertProbabilitiesToPercentiles
-from improver.ensemble_copula_coupling.ensemble_copula_coupling import EnsembleReordering
-from improver.generate_ancillaries.generate_ancillary import CorrectLandSeaMask
-from improver.generate_ancillaries.generate_ancillary import GenerateOrographyBandAncils
-from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import OrographicSmoothingCoefficients
-from improver.generate_ancillaries.generate_svp_table import SaturatedVapourPressureTable
-from improver.generate_ancillaries.generate_derived_solar_fields import GenerateSolarTime
-from improver.generate_ancillaries.generate_derived_solar_fields import GenerateClearskySolarRadiation
-from improver.generate_ancillaries.generate_topographic_zone_weights import GenerateTopographicZoneWeights
-from improver.lapse_rate import ApplyGriddedLapseRate
-from improver.lapse_rate import LapseRate
-from improver.threshold import Threshold
-from improver.nbhood.nbhood import BaseNeighbourhoodProcessing
-from improver.nbhood.nbhood import MetaNeighbourhood
-from improver.nbhood.use_nbhood import ApplyNeighbourhoodProcessingWithAMask
-from improver.nbhood.recursive_filter import RecursiveFilter
-from improver.nowcasting.accumulation import Accumulation
-from improver.nowcasting.forecasting import AdvectField
-from improver.nowcasting.forecasting import CreateExtrapolationForecast
-from improver.nowcasting.lightning import NowcastLightning
-from improver.nowcasting.optical_flow import OpticalFlow
-from improver.nowcasting.pysteps_advection import PystepsExtrapolate
-from improver.nowcasting.utilities import ExtendRadarMask
-from improver.nowcasting.utilities import FillRadarHoles
-from improver.nowcasting.utilities import ApplyOrographicEnhancement
-from improver.orographic_enhancement import OrographicEnhancement
-from improver.percentile import PercentileConverter
-from improver.precipitation_type.convection import ConvectionRatioFromComponents
-from improver.precipitation_type.shower_condition_probability import ShowerConditionProbability
-from improver.precipitation_type.snow_fraction import SnowFraction
-from improver.precipitation_type.snow_splitter import SnowSplitter
-from improver.precipitation_type.freezing_rain import FreezingRain
-from improver.precipitation_type.hail_fraction import HailFraction
-from improver.psychrometric_calculations.precip_phase_probability import PrecipPhaseProbability
-from improver.psychrometric_calculations.psychrometric_calculations import HumidityMixingRatio
-from improver.psychrometric_calculations.psychrometric_calculations import PhaseChangeLevel
-from improver.psychrometric_calculations.significant_phase_mask import SignificantPhaseMask
-from improver.psychrometric_calculations.hail_size import HailSize
-from improver.psychrometric_calculations.cloud_condensation_level import MetaCloudCondensationLevel
-from improver.psychrometric_calculations.cloud_condensation_level import CloudCondensationLevel
-from improver.psychrometric_calculations.cloud_top_temperature import CloudTopTemperature
-from improver.psychrometric_calculations.wet_bulb_temperature import WetBulbTemperature
-from improver.psychrometric_calculations.wet_bulb_temperature import WetBulbTemperatureIntegral
-from improver.psychrometric_calculations.wet_bulb_temperature import MetaWetBulbFreezingLevel
-from improver.regrid.landsea import RegridLandSea
-from improver.regrid.landsea import AdjustLandSeaPoints
-from improver.regrid.landsea2 import RegridWithLandSeaMask
-from improver.spotdata.apply_lapse_rate import SpotLapseRateAdjust
-from improver.spotdata.neighbour_finding import NeighbourSelection
-from improver.spotdata.spot_extraction import SpotExtraction
-from improver.spotdata.height_adjustment import SpotHeightAdjustment
-from improver.standardise import StandardiseMetadata
-from improver.utilities.cube_extraction import ExtractSubCube
-from improver.utilities.cube_extraction import ExtractLevel
-from improver.utilities.cube_manipulation import MergeCubes
-from improver.utilities.interpolation import InterpolateUsingDifference
-from improver.utilities.mathematical_operations import Integration
-from improver.utilities.solar import DayNightMask
-from improver.utilities.spatial import DifferenceBetweenAdjacentGridSquares
-from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
-from improver.utilities.spatial import OccurrenceWithinVicinity
-from improver.utilities.temporal_interpolation import TemporalInterpolation
-from improver.utilities.textural import FieldTexture
-from improver.utilities.time_lagging import GenerateTimeLaggedEnsemble
-from improver.utilities.forecast_reference_enforcement import EnforceConsistentForecasts
-from improver.utilities.copy_attributes import CopyAttributes
-from improver.lightning import LightningFromCapePrecip
-from improver.lightning import LightningMultivariateProbability_USAF2024
-from improver.wind_calculations.wind_components import ResolveWindComponents
-from improver.wind_calculations.wind_direction import WindDirection
-from improver.wind_calculations.wind_downscaling import FrictionVelocity
-from improver.wind_calculations.wind_downscaling import RoughnessCorrection
-from improver.wind_calculations.wind_gust_diagnostic import WindGustDiagnostic
-from improver.wind_calculations.vertical_updraught import VerticalUpdraught
-from improver.categorical.decision_tree import ApplyDecisionTree
-from improver.categorical.modal_code import ModalCategory
-from improver.expected_value import ExpectedValue
-from improver.visibility.visibility_combine_cloud_base import VisibilityCombineCloudBase
+from importlib import import_module
+
+
+PROCESSING_MODULES = {
+    'OccurrenceBetweenThresholds': 'improver.between_thresholds',
+    'TriangularWeightedBlendAcrossAdjacentPoints': 'improver.blending.blend_across_adjacent_points',
+    'WeightAndBlend': 'improver.blending.calculate_weights_and_blend',
+    'SpatiallyVaryingWeightsFromMask': 'improver.blending.spatial_weights',
+    'MergeCubesForWeightedBlending': 'improver.blending.weighted_blend',
+    'WeightedBlendAcrossWholeDimension': 'improver.blending.weighted_blend',
+    'ChooseWeightsLinear': 'improver.blending.weights',
+    'ChooseDefaultWeightsLinear': 'improver.blending.weights',
+    'ChooseDefaultWeightsNonLinear': 'improver.blending.weights',
+    'ChooseDefaultWeightsTriangular': 'improver.blending.weights',
+    'ContinuousRankedProbabilityScoreMinimisers': 'improver.calibration.ensemble_calibration',
+    'EstimateCoefficientsForEnsembleCalibration': 'improver.calibration.ensemble_calibration',
+    'CalibratedForecastDistributionParameters': 'improver.calibration.ensemble_calibration',
+    'ApplyEMOS': 'improver.calibration.ensemble_calibration',
+    'ConstructReliabilityCalibrationTables': 'improver.calibration.reliability_calibration',
+    'AggregateReliabilityCalibrationTables': 'improver.calibration.reliability_calibration',
+    'ManipulateReliabilityTable': 'improver.calibration.reliability_calibration',
+    'ApplyReliabilityCalibration': 'improver.calibration.reliability_calibration',
+    'ApplyRainForestsCalibration': 'improver.calibration.rainforest_calibration',
+    'EstimateDzRescaling': 'improver.calibration.dz_rescaling',
+    'ApplyDzRescaling': 'improver.calibration.dz_rescaling',
+    'CalculateForecastBias': 'improver.calibration.simple_bias_correction',
+    'ApplyBiasCorrection': 'improver.calibration.simple_bias_correction',
+    'Combine': 'improver.cube_combiner',
+    'CubeCombiner': 'improver.cube_combiner',
+    'MaxInTimeWindow': 'improver.cube_combiner',
+    'RebadgeRealizationsAsPercentiles': 'improver.ensemble_copula_coupling.ensemble_copula_coupling',
+    'RebadgePercentilesAsRealizations': 'improver.ensemble_copula_coupling.ensemble_copula_coupling',
+    'ResamplePercentiles': 'improver.ensemble_copula_coupling.ensemble_copula_coupling',
+    'ConvertProbabilitiesToPercentiles': 'improver.ensemble_copula_coupling.ensemble_copula_coupling',
+    'EnsembleReordering': 'improver.ensemble_copula_coupling.ensemble_copula_coupling',
+    'CorrectLandSeaMask': 'improver.generate_ancillaries.generate_ancillary',
+    'GenerateOrographyBandAncils': 'improver.generate_ancillaries.generate_ancillary',
+    'OrographicSmoothingCoefficients': 'improver.generate_ancillaries.generate_orographic_smoothing_coefficients',
+    'SaturatedVapourPressureTable': 'improver.generate_ancillaries.generate_svp_table',
+    'GenerateSolarTime': 'improver.generate_ancillaries.generate_derived_solar_fields',
+    'GenerateClearskySolarRadiation': 'improver.generate_ancillaries.generate_derived_solar_fields',
+    'GenerateTopographicZoneWeights': 'improver.generate_ancillaries.generate_topographic_zone_weights',
+    'ApplyGriddedLapseRate': 'improver.lapse_rate',
+    'LapseRate': 'improver.lapse_rate',
+    'Threshold': 'improver.threshold',
+    'BaseNeighbourhoodProcessing': 'improver.nbhood.nbhood',
+    'MetaNeighbourhood': 'improver.nbhood.nbhood',
+    'ApplyNeighbourhoodProcessingWithAMask': 'improver.nbhood.use_nbhood',
+    'RecursiveFilter': 'improver.nbhood.recursive_filter',
+    'Accumulation': 'improver.nowcasting.accumulation',
+    'AdvectField': 'improver.nowcasting.forecasting',
+    'CreateExtrapolationForecast': 'improver.nowcasting.forecasting',
+    'NowcastLightning': 'improver.nowcasting.lightning',
+    'OpticalFlow': 'improver.nowcasting.optical_flow',
+    'PystepsExtrapolate': 'improver.nowcasting.pysteps_advection',
+    'ExtendRadarMask': 'improver.nowcasting.utilities',
+    'FillRadarHoles': 'improver.nowcasting.utilities',
+    'ApplyOrographicEnhancement': 'improver.nowcasting.utilities',
+    'OrographicEnhancement': 'improver.orographic_enhancement',
+    'PercentileConverter': 'improver.percentile',
+    'ConvectionRatioFromComponents': 'improver.precipitation_type.convection',
+    'ShowerConditionProbability': 'improver.precipitation_type.shower_condition_probability',
+    'SnowFraction': 'improver.precipitation_type.snow_fraction',
+    'SnowSplitter': 'improver.precipitation_type.snow_splitter',
+    'FreezingRain': 'improver.precipitation_type.freezing_rain',
+    'HailFraction': 'improver.precipitation_type.hail_fraction',
+    'PrecipPhaseProbability': 'improver.psychrometric_calculations.precip_phase_probability',
+    'HumidityMixingRatio': 'improver.psychrometric_calculations.psychrometric_calculations',
+    'PhaseChangeLevel': 'improver.psychrometric_calculations.psychrometric_calculations',
+    'SignificantPhaseMask': 'improver.psychrometric_calculations.significant_phase_mask',
+    'HailSize': 'improver.psychrometric_calculations.hail_size',
+    'MetaCloudCondensationLevel': 'improver.psychrometric_calculations.cloud_condensation_level',
+    'CloudCondensationLevel': 'improver.psychrometric_calculations.cloud_condensation_level',
+    'CloudTopTemperature': 'improver.psychrometric_calculations.cloud_top_temperature',
+    'WetBulbTemperature': 'improver.psychrometric_calculations.wet_bulb_temperature',
+    'WetBulbTemperatureIntegral': 'improver.psychrometric_calculations.wet_bulb_temperature',
+    'MetaWetBulbFreezingLevel': 'improver.psychrometric_calculations.wet_bulb_temperature',
+    'RegridLandSea': 'improver.regrid.landsea',
+    'AdjustLandSeaPoints': 'improver.regrid.landsea',
+    'RegridWithLandSeaMask': 'improver.regrid.landsea2',
+    'SpotLapseRateAdjust': 'improver.spotdata.apply_lapse_rate',
+    'NeighbourSelection': 'improver.spotdata.neighbour_finding',
+    'SpotExtraction': 'improver.spotdata.spot_extraction',
+    'SpotHeightAdjustment': 'improver.spotdata.height_adjustment',
+    'StandardiseMetadata': 'improver.standardise',
+    'ExtractSubCube': 'improver.utilities.cube_extraction',
+    'ExtractLevel': 'improver.utilities.cube_extraction',
+    'MergeCubes': 'improver.utilities.cube_manipulation',
+    'InterpolateUsingDifference': 'improver.utilities.interpolation',
+    'Integration': 'improver.utilities.mathematical_operations',
+    'DayNightMask': 'improver.utilities.solar',
+    'DifferenceBetweenAdjacentGridSquares': 'improver.utilities.spatial',
+    'GradientBetweenAdjacentGridSquares': 'improver.utilities.spatial',
+    'OccurrenceWithinVicinity': 'improver.utilities.spatial',
+    'TemporalInterpolation': 'improver.utilities.temporal_interpolation',
+    'FieldTexture': 'improver.utilities.textural',
+    'GenerateTimeLaggedEnsemble': 'improver.utilities.time_lagging',
+    'EnforceConsistentForecasts': 'improver.utilities.forecast_reference_enforcement',
+    'CopyAttributes': 'improver.utilities.copy_attributes',
+    'LightningFromCapePrecip': 'improver.lightning',
+    'LightningMultivariateProbability_USAF2024': 'improver.lightning',
+    'ResolveWindComponents': 'improver.wind_calculations.wind_components',
+    'WindDirection': 'improver.wind_calculations.wind_direction',
+    'FrictionVelocity': 'improver.wind_calculations.wind_downscaling',
+    'RoughnessCorrection': 'improver.wind_calculations.wind_downscaling',
+    'WindGustDiagnostic': 'improver.wind_calculations.wind_gust_diagnostic',
+    'VerticalUpdraught': 'improver.wind_calculations.vertical_updraught',
+    'ApplyDecisionTree': 'improver.categorical.decision_tree',
+    'ModalCategory': 'improver.categorical.modal_code',
+    'ExpectedValue': 'improver.expected_value',
+    'VisibilityCombineCloudBase': 'improver.visibility.visibility_combine_cloud_base',
+}
+
+
+def __getattr__(name):
+    mod = import_module(PROCESSING_MODULES[name])
+    return getattr(mod, name)
