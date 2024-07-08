@@ -822,4 +822,3 @@ def height_of_maximum(
     if new_name:
         height_of_max.rename(new_name)
     return height_of_max
-

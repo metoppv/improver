@@ -10,6 +10,7 @@ import numpy as np
 import pytest
 from iris.cube import Cube
 
+import pytest
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import height_of_maximum
 from numpy.testing import assert_allclose
@@ -72,9 +73,9 @@ def test_lowest(input_cube, max_cube, low_cube):
     output_cube = height_of_maximum(input_cube, max_cube)
     assert_allclose(output_cube.data, low_cube.data)
 
+
 def test_one_height(input_cube):
     one_height = input_cube[0]
     msg = "More than 1 height level is required."
     with pytest.raises(ValueError, match=msg):
         height_of_maximum(one_height, one_height)
-
