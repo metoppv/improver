@@ -30,3 +30,4 @@ dependencies:
   - threadpoolctl
   # Pinned dependencies of dependencies
   - pillow<=10.0.1  # https://github.com/metoppv/improver/issues/2010
+  - pandas<=2.0.0  # https://github.com/metoppv/improver/issues/2010
