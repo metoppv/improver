@@ -782,7 +782,7 @@ def height_of_maximum(
 ) -> Cube:
     """Calculates the height level at which the maximum value has been calculated. This
     takes in a cube with values at different heights, and also a cube with the maximum
-    of these heights. It compares these (default is to start at the highest height and 
+    of these heights. It compares these (default is to start at the lowest height and 
     work down through the height levels), and then outputs the height it reaches the maximum value.
 
     Args:
