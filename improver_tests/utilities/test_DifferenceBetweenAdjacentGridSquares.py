@@ -33,25 +33,42 @@ class Test_create_difference_cube(IrisTest):
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
         points = self.cube.coord(axis="y").points
-        expected_y = (points[1:] + points[:-1]) / 2
+        expected_y_coords = (points[1:] + points[:-1]) / 2
         result = self.plugin.create_difference_cube(
             self.cube, "projection_y_coordinate", self.diff_in_y_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y)
+        self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y_coords)
         self.assertArrayEqual(result.data, self.diff_in_y_array)
 
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
         diff_array = np.array([[1, 1], [2, 2], [5, 5]])
         points = self.cube.coord(axis="x").points
-        expected_x = (points[1:] + points[:-1]) / 2
+        expected_x_coords = (points[1:] + points[:-1]) / 2
         result = self.plugin.create_difference_cube(
             self.cube, "projection_x_coordinate", diff_array
         )
         self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x)
+        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, diff_array)
+
+    def test_x_dimension_for_circular_latlon_cube(self):
+        """Test differences calculated along the x dimension."""
+        test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
+        test_cube_x_grid_spacing = 120
+        test_cube = set_up_variable_cube(test_cube_data, "wind_speed", "m s-1", "latlon", x_grid_spacing=test_cube_x_grid_spacing)
+        test_cube.coord(axis="x").circular = True
+        diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
+        expected_x_coords = np.array([-60, 60, 180])  # Original data at [-120, 0, 120], therefore differences are at [-60, 60, 180].
+        result = self.plugin.create_difference_cube(
+            test_cube, "longitude", diff_array
+        )
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
+        self.assertArrayEqual(result.data, diff_array)
+
+        # TOdo: FAILS FOR equal area cubes. Is this a problem? Which projections is it worth coding against?
 
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
@@ -79,6 +96,16 @@ class Test_calculate_difference(IrisTest):
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
         expected = np.array([[1, 1], [2, 2], [5, 5]])
+        result = self.plugin.calculate_difference(
+            self.cube, self.cube.coord(axis="x").name()
+        )
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayEqual(result, expected)
+
+    def test_x_dimension_wraps_around_meridian(self):
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
+        self.cube.coord(axis="x").circular = True
+        expected = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="x").name()
         )
