@@ -9,6 +9,7 @@ from typing import Callable, List, Union
 
 import iris
 import numpy as np
+import numpy.ma as ma
 from iris.coords import AuxCoord, CellMethod, DimCoord
 from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
@@ -128,6 +129,34 @@ class Combine(BasePlugin):
         return self.plugin(CubeList(filtered_cubes), self.new_name)
 
 
+def masked_add(
+    masked_array: ma.MaskedArray, masked_array_2: ma.MaskedArray
+) -> ma.MaskedArray:
+    """
+    Operation to add two masked arrays treating masked points as 0.
+
+    Args:
+        masked_array (numpy.ma.MaskedArray):
+            An array that may be masked.
+        masked_array_2 (numpy.ma.MaskedArray):
+            An array that may be masked.
+
+    Returns:
+        numpy.ma.MaskedArray:
+            The sum of the two masked arrays with masked points treated as 0.
+    """
+    new_array_1 = np.where(np.ma.getmask(masked_array), 0, masked_array)
+    new_array_2 = np.where(np.ma.getmask(masked_array_2), 0, masked_array_2)
+
+    new_mask = np.where(
+        np.ma.getmask(masked_array) * np.ma.getmask(masked_array_2) == 1, True, False
+    )
+
+    summed_cube = ma.MaskedArray(np.add(new_array_1, new_array_2), mask=new_mask)
+
+    return summed_cube
+
+
 class CubeCombiner(BasePlugin):
     """Plugin for combining cubes using linear operators"""
 
@@ -141,6 +170,7 @@ class CubeCombiner(BasePlugin):
         "max": np.maximum,
         "min": np.minimum,
         "mean": np.add,
+        "masked_add": masked_add,  # masked_add sums arrays but treats masked points as 0
     }  # mean is calculated in two steps: sum and normalise
 
     def __init__(

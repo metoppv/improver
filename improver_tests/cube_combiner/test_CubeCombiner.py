@@ -9,12 +9,13 @@ from datetime import datetime
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.exceptions import CoordinateNotFoundError
 from iris.tests import IrisTest
 
-from improver.cube_combiner import Combine, CubeCombiner
+from improver.cube_combiner import Combine, CubeCombiner, masked_add
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_probability_cube,
@@ -497,3 +498,53 @@ class Test_process(CombinerTest):
 
 if __name__ == "__main__":
     unittest.main()
+
+
+@pytest.fixture
+def cube1():
+    data = np.full((1, 2, 2), 0.5, dtype=np.float32)
+    cube1 = set_up_probability_cube(
+        data,
+        np.array([0.001], dtype=np.float32),
+        variable_name="lwe_thickness_of_precipitation_amount",
+        time=datetime(2015, 11, 19, 0),
+        time_bounds=(datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0)),
+        frt=datetime(2015, 11, 18, 22),
+    )
+    return cube1
+
+
+@pytest.fixture
+def cube2():
+    data = np.full((1, 2, 2), 0.6, dtype=np.float32)
+    cube2 = set_up_probability_cube(
+        data,
+        np.array([0.001], dtype=np.float32),
+        variable_name="lwe_thickness_of_precipitation_amount",
+        time=datetime(2015, 11, 19, 0),
+        time_bounds=(datetime(2015, 11, 18, 23), datetime(2015, 11, 19, 0)),
+        frt=datetime(2015, 11, 18, 22),
+    )
+    return cube2
+
+
+@pytest.mark.parametrize("cube1_mask", [False, True])
+@pytest.mark.parametrize("cube2_mask", [False, True])
+def test_masked_add(cube1, cube2, cube1_mask, cube2_mask):
+    mask = [[False, True], [False, False]]
+    expected_output = np.array(np.full((2, 2), 1.1, dtype=np.float32))
+    expected_mask = [[False, False], [False, False]]
+
+    if cube1_mask:
+        cube1.data = np.ma.MaskedArray(cube1.data, mask=mask)
+        expected_output[0][1] = 0.6
+    if cube2_mask:
+        cube2.data = np.ma.MaskedArray(cube2.data, mask=mask)
+        if cube1_mask:
+            expected_mask = [[False, True], [False, False]]
+            expected_output[0][1] = 0.0
+        else:
+            expected_output[0][1] = 0.5
+    result = masked_add(cube1.data, cube2.data)
+    assert np.allclose(result.data, expected_output)
+    assert np.allclose(result.mask, expected_mask)
