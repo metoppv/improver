@@ -734,13 +734,13 @@ class MetaNeighbourhood(BasePlugin):
         self,
         neighbourhood_output: str,
         radii: List[float],
-        lead_times: List[int],
+        lead_times: Optional[List[int]] = None,
         neighbourhood_shape: str = "square",
         degrees_as_complex: bool = False,
         weighted_mode: bool = False,
         area_sum: bool = False,
-        percentiles: float = DEFAULT_PERCENTILES,
-        halo_radius: float = None,
+        percentiles: List[float] = DEFAULT_PERCENTILES,
+        halo_radius: Optional[float] = None,
     ) -> None:
         """
         Initialise the MetaNeighbourhood class.
