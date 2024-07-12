@@ -1,0 +1,21 @@
+#!/bin/bash
+
+found_error=0
+script_root=$(dirname "$0")
+
+for dirpath in "$@"; do
+    if [[ "$dirpath" != improver* && "$dirpath" != improver_tests* ]]; then
+        continue
+    fi
+    if [ ! -d "$dirpath" ]; then
+        dirpath=$(dirname "$dirpath")
+    fi
+    if [ ! -f "$dirpath/__init__.py" ]; then
+        found_error=1
+        echo "Missing __init__.py in $dirpath, adding it now..."
+        touch "$dirpath/__init__.py"
+    fi
+done
+
+exit ${found_error}
+
