@@ -7,13 +7,12 @@ Unit tests for the function "cube_manipulation.height_of_maximum".
 """
 
 import numpy as np
-import pytest
-from iris.cube import Cube
+from numpy.testing import assert_allclose
 
 import pytest
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import height_of_maximum
-from numpy.testing import assert_allclose
+from iris.cube import Cube
 
 
 @pytest.fixture(name="input_cube")
@@ -79,6 +78,7 @@ def test_lowest(input_cube, max_cube, low_cube):
     when looking for the lowest level (this is the default)."""
     output_cube = height_of_maximum(input_cube, max_cube)
     assert_allclose(output_cube.data, low_cube.data)
+
 
 def test_no_high_or_low(input_cube, max_cube):
     """Test that only high or low can be input for high_or_low, and 
