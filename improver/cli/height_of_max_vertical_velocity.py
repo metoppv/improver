@@ -15,8 +15,8 @@ def process(
     cube: cli.inputcube,
     max_cube: cli.inputcube,
     *,
-    high_or_low: str = 'low',
-    new_name: str = 'height_of_maximum_vertical_velocity',
+    high_or_low: str = "low",
+    new_name: str = "height_of_maximum_vertical_velocity",
 ):
     """Calculates the height level at which the maximum vertical velocity occurs for each 
     grid point. It requires an input cube of vertical velocity and a cube with the maximum
@@ -42,9 +42,4 @@ def process(
 
     from improver.utilities.cube_manipulation import height_of_maximum
 
-    return height_of_maximum(
-        cube,
-        max_cube,
-        high_or_low = 'low',
-        new_name=new_name,
-    )
+    return height_of_maximum(cube, max_cube, high_or_low="low", new_name=new_name,)

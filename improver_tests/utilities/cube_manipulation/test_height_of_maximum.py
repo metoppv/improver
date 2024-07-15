@@ -7,23 +7,19 @@ Unit tests for the function "cube_manipulation.height_of_maximum".
 """
 
 import numpy as np
+import pytest
+from iris.cube import Cube
 from numpy.testing import assert_allclose
 
-import pytest
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.cube_manipulation import height_of_maximum
-from iris.cube import Cube
 
 
 @pytest.fixture(name="input_cube")
 def input_cube() -> Cube:
     """Test cube of vertical velocity  on height levels"""
     data = np.array(
-        [
-            [[2, 4, 9], [3, 4, 8]],
-            [[5, 3, 3], [4, 2, 7]],
-            [[9, 5, 1], [2, 5, 8]],
-        ]
+        [[[2, 4, 9], [3, 4, 8]], [[5, 3, 3], [4, 2, 7]], [[9, 5, 1], [2, 5, 8]],]
     )
     cube = set_up_variable_cube(
         data=data, name="vertical_velocity", height_levels=[5, 75, 300]
@@ -35,8 +31,7 @@ def input_cube() -> Cube:
 def max_cube() -> Cube:
     """Test cube of maximum vertical velocities over the height levels"""
     data = np.array([[9, 5, 9], [4, 5, 8]])
-    cube = set_up_variable_cube(
-        data=data, name="vertical_velocity", height_levels=[1])
+    cube = set_up_variable_cube(data=data, name="vertical_velocity", height_levels=[1])
     return cube
 
 
@@ -45,7 +40,8 @@ def high_cube() -> Cube:
     """Test cube when we want the highest maximum"""
     data_high = np.array([[300, 300, 5], [75, 300, 300]])
     cube = set_up_variable_cube(
-        data=data_high, name="vertical_velocity", height_levels=[1])
+        data=data_high, name="vertical_velocity", height_levels=[1]
+    )
     return cube
 
 
@@ -54,22 +50,22 @@ def low_cube() -> Cube:
     """Test cube when we want the lowest maximum"""
     data_low = np.array([[300, 300, 5], [75, 300, 5]])
     cube = set_up_variable_cube(
-        data=data_low, name="vertical_velocity", height_levels=[1])
+        data=data_low, name="vertical_velocity", height_levels=[1]
+    )
     return cube
 
 
 def test_new_name(input_cube, max_cube):
     """Tests that the name of the cube will be correctly updated"""
     expected_name = "height_of_maximum"
-    result = height_of_maximum(
-        input_cube, max_cube, new_name="height_of_maximum")
+    result = height_of_maximum(input_cube, max_cube, new_name="height_of_maximum")
     assert expected_name == result.name()
 
 
 def test_highest(input_cube, max_cube, high_cube):
     """Test the heights of the maximum vertical velocity are correct
     when looking for the highest level."""
-    output_cube = height_of_maximum(input_cube, max_cube, high_or_low='high')
+    output_cube = height_of_maximum(input_cube, max_cube, high_or_low="high")
     assert_allclose(output_cube.data, high_cube.data)
 
 
@@ -85,7 +81,7 @@ def test_no_high_or_low(input_cube, max_cube):
     to raise an error if anything else is tried."""
     msg = "Only high or low is valid"
     with pytest.raises(ValueError, match=msg):
-        height_of_maximum(input_cube, max_cube, high_or_low='middle')
+        height_of_maximum(input_cube, max_cube, high_or_low="middle")
 
 
 def test_one_height(input_cube):
