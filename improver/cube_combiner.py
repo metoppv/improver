@@ -168,7 +168,7 @@ class CubeCombiner(BasePlugin):
         "multiply": np.multiply,
         "max": np.maximum,
         "min": np.minimum,
-        "mean": np.add, # mean is calculated in two steps: sum and normalise
+        "mean": np.add,  # mean is calculated in two steps: sum and normalise
         "masked_add": masked_add,  # masked_add sums arrays but treats masked points as 0
     }
 
