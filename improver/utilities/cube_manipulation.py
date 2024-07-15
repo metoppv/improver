@@ -805,20 +805,18 @@ def height_of_maximum(
             high_or_low value.
     """
     height_of_max = max_cube.copy()
-    
+    height_range = range(len(cube.coord('height').points))
     if len(cube.coord("height").points) == 1:
-        raise ValueError(
-            f"""More than 1 height level is required."""
-        )
-
+        raise ValueError("More than 1 height level is required.")
     if high_or_low == 'high':
-        for height in range(len(cube.coord('height').points)):
-            height_of_max.data = np.where(cube[height].data == max_cube.data,
-                                       cube[height].coord('height').points[0], height_of_max.data)
-    if high_or_low == 'low':
-        for height in range(len(cube.coord('height').points)-1, -1, -1):
-            height_of_max.data = np.where(cube[height].data == max_cube.data,
-                                       cube[height].coord('height').points[0], height_of_max.data)
+        height_points = height_range
+    elif high_or_low == 'low':
+        height_points = reversed(height_range)
+    else:
+        raise ValueError("Only high or low is valid.")
+    for height in height_points:
+        height_of_max.data = np.where(cube[height].data == max_cube.data,
+                                   cube[height].coord('height').points[0], height_of_max.data)
     if new_name:
         height_of_max.rename(new_name)
     return height_of_max

@@ -32,7 +32,6 @@ def input_cube() -> Cube:
     return cube
 
 
-@pytest.mark.parametrize("new_name", (None, "vertical_velocity"))
 @pytest.fixture(name="max_cube")
 def max_cube() -> Cube:
     """Test cube of maximum vertical velocities over the height levels"""
@@ -60,6 +59,14 @@ def low_cube() -> Cube:
     return cube
 
 
+def test_new_name(input_cube, max_cube):
+    """Tests that the name of the cube will be correctly updated"""
+    expected_name = "height_of_maximum"
+    result = height_of_maximum(
+        input_cube, max_cube, new_name="height_of_maximum")
+    assert expected_name == result.name()
+
+
 def test_highest(input_cube, max_cube, high_cube):
     """Test the heights of the maximum vertical velocity are correct
     when looking for the highest level."""
@@ -72,6 +79,13 @@ def test_lowest(input_cube, max_cube, low_cube):
     when looking for the lowest level (this is the default)."""
     output_cube = height_of_maximum(input_cube, max_cube)
     assert_allclose(output_cube.data, low_cube.data)
+
+def test_no_high_or_low(input_cube, max_cube):
+    """Test that only high or low can be input for high_or_low, and 
+    to raise an error if anything else is tried."""
+    msg = "Only high or low is valid"
+    with pytest.raises(ValueError, match=msg):
+        height_of_maximum(input_cube, max_cube, high_or_low='middle')
 
 
 def test_one_height(input_cube):
