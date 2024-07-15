@@ -18,7 +18,7 @@ def process(
     high_or_low: str = "low",
     new_name: str = "height_of_maximum_vertical_velocity",
 ):
-    """Calculates the height level at which the maximum vertical velocity occurs for each 
+    """Calculates the height level at which the maximum vertical velocity occurs for each
     grid point. It requires an input cube of vertical velocity and a cube with the maximum
     vertical velocity values at each grid point. For this case we are looking for the
     lowest height at which the maximum occurs.

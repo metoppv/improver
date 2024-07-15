@@ -19,7 +19,7 @@ from improver.utilities.cube_manipulation import height_of_maximum
 def input_cube() -> Cube:
     """Test cube of vertical velocity  on height levels"""
     data = np.array(
-        [[[2, 4, 9], [3, 4, 8]], [[5, 3, 3], [4, 2, 7]], [[9, 5, 1], [2, 5, 8]],]
+        [[[2, 4, 9], [3, 4, 8]], [[5, 3, 3], [4, 2, 7]], [[9, 5, 1], [2, 5, 8]], ]
     )
     cube = set_up_variable_cube(
         data=data, name="vertical_velocity", height_levels=[5, 75, 300]
@@ -77,7 +77,7 @@ def test_lowest(input_cube, max_cube, low_cube):
 
 
 def test_no_high_or_low(input_cube, max_cube):
-    """Test that only high or low can be input for high_or_low, and 
+    """Test that only high or low can be input for high_or_low, and
     to raise an error if anything else is tried."""
     msg = "Only high or low is valid"
     with pytest.raises(ValueError, match=msg):

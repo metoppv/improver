@@ -779,27 +779,28 @@ def height_of_maximum(
 ) -> Cube:
     """Calculates the height level at which the maximum value has been calculated. This
     takes in a cube with values at different heights, and also a cube with the maximum
-    of these heights. It compares these (default is to start at the lowest height and 
-    work down through the height levels), and then outputs the height it reaches the maximum value.
+    of these heights. It compares these (default is to start at the lowest height and
+    work down through the height levels), and then outputs the height it reaches the
+    maximum value.
 
     Args:
         cube:
             A cube with a height coordinate.
         max_cube:
             A cube of the maximum value over the height coordinate.
-        high_or_low: 
-            Whether we are looking for the highest or lowest maximum height (for the case where the
-            maximum occurs at more than one height)
+        high_or_low:
+            Whether we are looking for the highest or lowest maximum height (for the case
+            where the maximum occurs at more than one height).
         new_name:
-            The new name to be assigned to the output cube. If unspecified the name of the original
-            cube is used.
+            The new name to be assigned to the output cube. If unspecified the name of the
+        original cube is used.
     Returns:
         A cube of heights at which the maximum values occur.
 
     Raises:
         ValueError:
-            If the cube has only 1 height level or if an input other than high or low is tried for the 
-            high_or_low value.
+            If the cube has only 1 height level or if an input other than high or low is
+            tried for the high_or_low value.
     """
     height_of_max = max_cube.copy()
     height_range = range(len(cube.coord("height").points))
