@@ -30,11 +30,8 @@ def process(wet_bulb_temperature: cli.inputcube):
             Cube of wet-bulb freezing level.
 
     """
-    from improver.utilities.cube_extraction import ExtractLevel
+    from improver.psychrometric_calculations.wet_bulb_temperature import (
+        MetaWetBulbFreezingLevel,
+    )
 
-    wet_bulb_freezing_level = ExtractLevel(
-        positive_correlation=False, value_of_level=273.15
-    )(wet_bulb_temperature)
-    wet_bulb_freezing_level.rename("wet_bulb_freezing_level_altitude")
-
-    return wet_bulb_freezing_level
+    return MetaWetBulbFreezingLevel()(wet_bulb_temperature)

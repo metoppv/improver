@@ -854,7 +854,7 @@ class PhaseChangeLevel(BasePlugin):
             name, "m", template, attributes, data=phase_change_level
         )
 
-    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
+    def process(self, *cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Use the wet bulb temperature integral to find the altitude at which a
         phase change occurs (e.g. snow to sleet). This is achieved by finding
@@ -882,7 +882,7 @@ class PhaseChangeLevel(BasePlugin):
             ValueError: Raise exception if the model_id_attr attribute does not
                 match on the input cubes.
         """
-
+        cubes = as_cubelist(*cubes)
         names_to_extract = [
             "wet_bulb_temperature",
             "wet_bulb_temperature_integral",

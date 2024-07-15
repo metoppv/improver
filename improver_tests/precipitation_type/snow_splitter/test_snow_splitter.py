@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the SnowSplitter plugin"""
 from datetime import datetime
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -17,6 +18,24 @@ LOCAL_MANDATORY_ATTRIBUTES = {
     "source": "unit test",
     "institution": "somewhere",
 }
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.precipitation_type.snow_splitter.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        SnowSplitter(output_is_rain=sentinel.output_is_rain)(
+            sentinel.cube1, sentinel.cube2, sentinel.cube3
+        )
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 @pytest.fixture()

@@ -17,6 +17,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -49,7 +50,7 @@ class PrecipPhaseProbability(BasePlugin):
     probability will be determined at each site's specific altitude.
     """
 
-    def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
+    def _extract_input_cubes(self, cubes: CubeList) -> None:
         """
         Separates the input list into the required cubes for this plugin,
         detects whether snow, rain from hail or rain are required from the input
@@ -77,8 +78,6 @@ class PrecipPhaseProbability(BasePlugin):
             ValueError: If the extracted cubes do not have matching spatial
                         coordinates.
         """
-        if isinstance(cubes, list):
-            cubes = iris.cube.CubeList(cubes)
         if len(cubes) != 2:
             raise ValueError(f"Expected 2 cubes, found {len(cubes)}")
 
@@ -137,7 +136,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(altitude_units)
 
-    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
+    def process(self, *cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Derives the probability of a precipitation phase at the surface /
         site altitude. If the snow-sleet falling-level is supplied, this is
@@ -165,6 +164,7 @@ class PrecipPhaseProbability(BasePlugin):
             precipitation to be divided uniquely between snow, sleet and
             rain phases.
         """
+        cubes = as_cubelist(*cubes)
         self._extract_input_cubes(cubes)
 
         result_data = np.where(

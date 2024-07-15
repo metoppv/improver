@@ -12,7 +12,7 @@ from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.wind_calculations.wind_direction import WindDirection
+from improver.wind_calculations.wind_direction import WindDirection, deg_to_complex
 
 # Data to test complex/degree handling functions.
 # Complex angles equivalent to np.arange(0., 360, 10) degrees.
@@ -179,78 +179,6 @@ class Test__repr__(IrisTest):
         self.assertEqual(result, msg)
 
 
-# Test the complex number handling functions.
-class Test_deg_to_complex(IrisTest):
-    """Test the deg_to_complex function."""
-
-    def test_converts_single(self):
-        """Tests that degree angle value is converted to complex."""
-        expected_out = 0.707106781187 + 0.707106781187j
-        result = WindDirection().deg_to_complex(45.0)
-        self.assertAlmostEqual(result, expected_out)
-
-    def test_handles_angle_wrap(self):
-        """Test that code correctly handles 360 and 0 degrees."""
-        expected_out = 1 + 0j
-        result = WindDirection().deg_to_complex(0)
-        self.assertAlmostEqual(result, expected_out)
-
-        expected_out = 1 - 0j
-        result = WindDirection().deg_to_complex(360)
-        self.assertAlmostEqual(result, expected_out)
-
-    def test_converts_array(self):
-        """Tests that array of floats is converted to complex array."""
-        result = WindDirection().deg_to_complex(np.arange(0.0, 360, 10))
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
-
-
-class Test_complex_to_deg(IrisTest):
-    """Test the complex_to_deg function."""
-
-    def test_fails_if_data_is_not_array(self):
-        """Test code raises a Type Error if input data not an array."""
-        input_data = 0 - 1j
-        msg = "Input data is not a numpy array, but {}".format(type(input_data))
-        with self.assertRaisesRegex(TypeError, msg):
-            WindDirection().complex_to_deg(input_data)
-
-    def test_handles_angle_wrap(self):
-        """Test that code correctly handles 360 and 0 degrees."""
-        # Input is complex for 0 and 360 deg - both should return 0.0.
-        input_data = np.array([1 + 0j, 1 - 0j])
-        result = WindDirection().complex_to_deg(input_data)
-        self.assertTrue((result == 0.0).all())
-
-    def test_converts_array(self):
-        """Tests that array of complex values are converted to degrees."""
-        result = WindDirection().complex_to_deg(COMPLEX_ANGLES)
-        self.assertIsInstance(result, np.ndarray)
-        self.assertArrayAlmostEqual(result, np.arange(0.0, 360, 10))
-
-
-class Test_complex_to_deg_roundtrip(IrisTest):
-    """Test the complex_to_deg and deg_to_complex functions together."""
-
-    def setUp(self):
-        """Initialise plugin and supply data for tests"""
-        self.plugin = WindDirection()
-        self.cube = make_wdir_cube_534()
-
-    def test_from_deg(self):
-        """Tests that array of values are converted to complex and back."""
-        tmp_complex = self.plugin.deg_to_complex(self.cube.data)
-        result = self.plugin.complex_to_deg(tmp_complex)
-        self.assertArrayAlmostEqual(result, self.cube.data, decimal=4)
-
-    def test_from_complex(self):
-        """Tests that array of values are converted to degrees and back."""
-        tmp_degrees = self.plugin.complex_to_deg(COMPLEX_ANGLES)
-        result = self.plugin.deg_to_complex(tmp_degrees)
-        self.assertArrayAlmostEqual(result, COMPLEX_ANGLES)
-
-
 class Test_calc_wind_dir_mean(IrisTest):
     """Test the calc_wind_dir_mean function."""
 
@@ -259,7 +187,7 @@ class Test_calc_wind_dir_mean(IrisTest):
         self.plugin = WindDirection()
         # 5x3x4 3D Array containing wind direction in angles.
         cube = make_wdir_cube_534()
-        self.plugin.wdir_complex = self.plugin.deg_to_complex(cube.data)
+        self.plugin.wdir_complex = deg_to_complex(cube.data)
         self.plugin.wdir_slice_mean = next(cube.slices_over("realization"))
         self.plugin.realization_axis = 0
 
@@ -276,7 +204,7 @@ class Test_calc_wind_dir_mean(IrisTest):
         """Test that the function defines correct complex mean."""
         self.plugin.calc_wind_dir_mean()
         result = self.plugin.wdir_mean_complex
-        expected_complex = self.plugin.deg_to_complex(
+        expected_complex = deg_to_complex(
             self.expected_wind_mean, radius=np.absolute(result)
         )
         self.assertArrayAlmostEqual(result, expected_complex)
@@ -344,9 +272,7 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.wdir_slice_mean = cube[0].copy(
             data=np.array([[180.0, 55.0], [280.0, 0.0]])
         )
-        self.plugin.wdir_mean_complex = self.plugin.deg_to_complex(
-            self.plugin.wdir_slice_mean.data
-        )
+        self.plugin.wdir_mean_complex = deg_to_complex(self.plugin.wdir_slice_mean.data)
         expected_out = np.array([[90.0, 55.0], [280.0, 0.0]])
         where_low_r = np.array([[True, False], [False, False]])
         self.plugin.wind_dir_decider(where_low_r, cube)
@@ -376,7 +302,7 @@ class Test_wind_dir_decider(IrisTest):
         self.plugin.realization_axis = 0
         self.plugin.n_realizations = 1
         self.plugin.wdir_mean_complex = np.pad(
-            self.plugin.deg_to_complex(wind_dir_deg_mean),
+            deg_to_complex(wind_dir_deg_mean),
             ((4, 4), (4, 4)),
             "constant",
             constant_values=(0.0, 0.0),
