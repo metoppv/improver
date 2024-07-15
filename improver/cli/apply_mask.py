@@ -31,4 +31,4 @@ def process(*cubes: cli.inputcube, mask_name: str, invert_mask: bool = "False"):
     """
     from improver.utilities.mask import apply_mask
 
-    return apply_mask(cubes, mask_name, invert_mask)
+    return apply_mask(*cubes, mask_name=mask_name, invert_mask=invert_mask)

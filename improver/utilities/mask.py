@@ -4,9 +4,12 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module for applying mask to a cube."""
 
+from typing import Union
+
 import iris
 import numpy as np
 
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import find_dimension_coordinate_mismatch
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
@@ -15,7 +18,9 @@ from improver.utilities.cube_manipulation import (
 
 
 def apply_mask(
-    cubes: iris.cube.CubeList, mask_name: str, invert_mask: bool = False
+    *cubes: Union[iris.cube.CubeList, iris.cube.Cube],
+    mask_name: str,
+    invert_mask: bool = False,
 ) -> iris.cube.Cube:
     """
     Apply a provided mask to a cube. If invert_mask is True, the mask will be inverted.
@@ -36,7 +41,7 @@ def apply_mask(
     ValueError: If the number of cubes provided is not equal to 2.
 
     """
-    cubes = iris.cube.CubeList(cubes)
+    cubes = as_cubelist(*cubes)
     cube_names = [cube.name() for cube in cubes]
     if len(cubes) != 2:
         raise ValueError(

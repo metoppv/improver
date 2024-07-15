@@ -49,7 +49,9 @@ def test_basic(wind_gust_cube, mask, switch_coord_order, invert_mask):
     input_list = [wind_gust_cube, mask]
 
     result = apply_mask(
-        iris.cube.CubeList(input_list), "land_sea_mask", invert_mask=invert_mask
+        iris.cube.CubeList(input_list),
+        mask_name="land_sea_mask",
+        invert_mask=invert_mask,
     )
 
     assert np.allclose(result.data, expected_data)
@@ -64,7 +66,7 @@ def test_different_dimensions(wind_gust_cube, mask):
     with pytest.raises(
         ValueError, match="Input cube and mask cube must have the same dimensions"
     ):
-        apply_mask(iris.cube.CubeList(input_list), "land_sea_mask")
+        apply_mask(iris.cube.CubeList(input_list), mask_name="land_sea_mask")
 
 
 def test_too_many_cubes(wind_gust_cube, mask):
@@ -73,4 +75,4 @@ def test_too_many_cubes(wind_gust_cube, mask):
     """
     input_list = [wind_gust_cube, wind_gust_cube, wind_gust_cube]
     with pytest.raises(ValueError, match="Two cubes are required for masking"):
-        apply_mask(iris.cube.CubeList(input_list), "land_sea_mask")
+        apply_mask(iris.cube.CubeList(input_list), mask_name="land_sea_mask")
