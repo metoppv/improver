@@ -76,6 +76,31 @@ class Test_create_difference_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
         self.assertArrayEqual(result.data, expected_diff_array)
 
+    def test_x_dimension_for_circular_latlon_cube_360_degree_coord(self):
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
+        test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
+        test_cube_x_grid_spacing = 120
+        test_cube = set_up_variable_cube(
+            test_cube_data,
+            "latlon",
+            x_grid_spacing=test_cube_x_grid_spacing,
+            name="wind_speed",
+            units="m s-1",
+        )
+        test_cube.coord(axis="x").bounds = [[0, 120], [120, 240], [240, 360]]
+        test_cube.coord(axis="x").points = [60, 120, 300]
+        test_cube.coord(axis="x").circular = True
+        expected_diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
+        expected_x_coords = np.array(
+            [90, 210, 360]
+        )  # Original data are at [-120, 0, 120], therefore differences are at [-60, 60, 180].
+        result = self.plugin.create_difference_cube(
+            test_cube, "longitude", expected_diff_array
+        )
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
+        self.assertArrayEqual(result.data, expected_diff_array)
+
     def test_othercoords(self):
         """Test that other coords are transferred properly"""
         time_coord = self.cube.coord("time")
@@ -121,7 +146,6 @@ class Test_calculate_difference(IrisTest):
         """Test differences calculated along the x dimension for a cube which is circular in x."""
         self.cube.coord(axis="x").circular = True
         self.cube.transpose()
-        # expected = np.array([[1, 2, 5], [1, 2, -1], [-4, -4, -4]])
         expected = np.array([[1, 1, 1, -3], [2, 2, 2, -6], [5, 5, 5, -15]]).transpose()
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="x").name()

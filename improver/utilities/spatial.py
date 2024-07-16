@@ -195,15 +195,15 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         returns:
             The x value of the midpoint between the two x coordinate points nearest the meridian.
         """
-        if np.min(points) < 0:
-            min_azimuth = -180
-            max_azimuth = 180
-        else:
-            min_azimuth = 0
-            max_azimuth - 360
+        # The values of max and min azimuth doesn't matter as long as there is 360 degrees
+        # between them.
+        min_azimuth = -180
+        max_azimuth = 180
         extra_mean_point = circmean([points[-1], points[0]], max_azimuth, min_azimuth)
-        if np.isclose(extra_mean_point, -180, atol=1e-4):
-            extra_mean_point = 180
+        extra_mean_point = np.round(extra_mean_point, 4)
+        if extra_mean_point < points[-1]:
+            # Ensures that the longitudinal coordinate is monotonically increasing
+            extra_mean_point += 360
         return extra_mean_point
 
     @staticmethod
