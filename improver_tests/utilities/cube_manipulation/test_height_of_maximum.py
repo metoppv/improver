@@ -19,7 +19,7 @@ from improver.utilities.cube_manipulation import height_of_maximum
 def input_cube() -> Cube:
     """Test cube of vertical velocity  on height levels"""
     data = np.array(
-        [[[2, 4, 9], [3, 4, 8]], [[5, 3, 3], [4, 2, 7]], [[9, 5, 1], [2, 5, 8]], ]
+        [[[2, 4, 9], [3, 4, 8]], [[5, 3, 3], [4, 2, 7]], [[9, 5, 1], [2, 5, 8]],]
     )
     cube = set_up_variable_cube(
         data=data, name="vertical_velocity", height_levels=[5, 75, 300]
