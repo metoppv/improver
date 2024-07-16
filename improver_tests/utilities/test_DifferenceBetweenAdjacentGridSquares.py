@@ -93,7 +93,7 @@ class Test_create_difference_cube(IrisTest):
         expected_diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
         expected_x_coords = np.array(
             [90, 210, 360]
-        )  # Original data are at [-120, 0, 120], therefore differences are at [-60, 60, 180].
+        ) # Original data are at [60, 120, 300], therefore differences are at [90, 210, 360].
         result = self.plugin.create_difference_cube(
             test_cube, "longitude", expected_diff_array
         )
