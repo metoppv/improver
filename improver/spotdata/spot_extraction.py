@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 
 """Spot data extraction from diagnostic fields using neighbour cubes."""
 
@@ -36,13 +10,13 @@ from typing import List, Optional, Tuple, Union
 import iris
 import numpy as np
 from iris.coords import AuxCoord, DimCoord
-from iris.cube import Cube, CubeList
+from iris.cube import Cube
 from numpy import ndarray
 
 from improver import BasePlugin
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.constants.mo_attributes import MOSG_GRID_ATTRIBUTES
-from improver.metadata.utilities import create_coordinate_hash
+from improver.metadata.utilities import check_grid_match
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
@@ -367,40 +341,3 @@ class SpotExtraction(BasePlugin):
         spotdata_cube.cell_methods = diagnostic_cube.cell_methods
 
         return spotdata_cube
-
-
-def check_grid_match(cubes: Union[List[Cube], CubeList]) -> None:
-    """
-    Checks that cubes are on, or originate from, compatible coordinate grids.
-    Each cube is first checked for an existing 'model_grid_hash' which can be
-    used to encode coordinate information on cubes that do not themselves
-    contain a coordinate grid (e.g. spotdata cubes). If this is not found a new
-    hash is generated to enable comparison. If the cubes are not compatible, an
-    exception is raised to prevent the use of unmatched cubes.
-
-    Args:
-        cubes:
-            A list of cubes to check for grid compatibility.
-
-    Raises:
-        ValueError: Raised if the cubes are not on matching grids as
-                    identified by the model_grid_hash.
-    """
-
-    def _get_grid_hash(cube):
-        try:
-            cube_hash = cube.attributes["model_grid_hash"]
-        except KeyError:
-            cube_hash = create_coordinate_hash(cube)
-        return cube_hash
-
-    cubes = iter(cubes)
-    reference_hash = _get_grid_hash(next(cubes))
-
-    for cube in cubes:
-        cube_hash = _get_grid_hash(cube)
-        if cube_hash != reference_hash:
-            raise ValueError(
-                "Cubes do not share or originate from the same "
-                "grid, so cannot be used together."
-            )

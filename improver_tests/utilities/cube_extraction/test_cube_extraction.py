@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """ Unit tests for cube extraction utilities """
 
 import collections
@@ -88,7 +62,8 @@ def set_up_precip_probability_cube():
         variable_name="precipitation_rate",
         threshold_units="m s-1",
         spatial_grid="equalarea",
-        grid_spacing=1,
+        x_grid_spacing=1,
+        y_grid_spacing=1,
         domain_corner=(0, 0),
     )
 
@@ -106,7 +81,8 @@ def set_up_global_gridded_cube():
         units="degC",
         spatial_grid="latlon",
         domain_corner=(45, -2),
-        grid_spacing=2,
+        x_grid_spacing=2,
+        y_grid_spacing=2,
     )
 
 
@@ -117,7 +93,8 @@ def set_up_uk_gridded_cube():
         units="degC",
         spatial_grid="equalarea",
         domain_corner=(-5000, -5000),
-        grid_spacing=2000,
+        x_grid_spacing=2000,
+        y_grid_spacing=2000,
     )
 
 
@@ -460,7 +437,8 @@ class Test_apply_extraction(IrisTest):
             units="degC",
             spatial_grid="latlon",
             domain_corner=(0, 175),
-            grid_spacing=2,
+            x_grid_spacing=2,
+            y_grid_spacing=2,
         )
         lower_bound = -1.0e-7
         upper_bound = 4 + 1.0e-7

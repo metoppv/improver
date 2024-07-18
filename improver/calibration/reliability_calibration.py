@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Reliability calibration plugins."""
 
 import operator
@@ -339,25 +313,41 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             dimension(s) of the forecast and truth cubes (which are
             equivalent).
         """
-        observation_counts = []
-        forecast_probabilities = []
-        forecast_counts = []
 
-        for bin_min, bin_max in self.probability_bins:
-            observation_mask = (
-                ((forecast >= bin_min) & (forecast <= bin_max)) & (np.isclose(truth, 1))
-            ).astype(int)
-            forecast_mask = ((forecast >= bin_min) & (forecast <= bin_max)).astype(int)
-            forecasts_probability_values = forecast * forecast_mask
+        bin_edges = np.concatenate(
+            [
+                np.array(self.probability_bins[:, 0]),
+                np.array([self.probability_bins[-1, 1] + self.single_value_tolerance]),
+            ]
+        ).astype(self.probability_bins.dtype)
+        bin_index = np.searchsorted(bin_edges, forecast, side="right") - 1
+        # nan values have index len(bin_edges) - 1, which is one more than the number of bins.
+        # Therefore, to make put_along_axis work, we also make the first dimension of the new shape
+        # one more than the number of bins, and discard the last slice of the first dimension later.
+        new_shape = (len(bin_edges),) + forecast.shape
+        forecast_mask = np.broadcast_to(
+            np.expand_dims(np.ma.getmask(forecast), 0), new_shape
+        )
+        forecast_probabilities = np.zeros(new_shape, dtype=forecast.dtype)
+        np.put_along_axis(
+            forecast_probabilities, np.expand_dims(bin_index, 0), forecast, axis=0
+        )
+        forecast_probabilities = np.ma.array(
+            forecast_probabilities, mask=forecast_mask, copy=False
+        )
+        forecast_counts = np.zeros_like(forecast_probabilities)
+        np.put_along_axis(forecast_counts, np.expand_dims(bin_index, 0), 1, axis=0)
+        forecast_counts = np.ma.array(forecast_counts, mask=forecast_mask, copy=False)
+        observation_counts = (
+            np.expand_dims(np.isclose(truth, 1), 0) & forecast_counts.astype(bool)
+        ).astype(int)
 
-            observation_counts.append(observation_mask)
-            forecast_probabilities.append(forecasts_probability_values)
-            forecast_counts.append(forecast_mask)
+        # discard last index in first dimension because it contains data from forecast nans
         reliability_table = np.ma.stack(
             [
-                np.ma.stack(observation_counts),
-                np.ma.stack(forecast_probabilities),
-                np.ma.stack(forecast_counts),
+                observation_counts[:-1, :],
+                forecast_probabilities[:-1, :],
+                forecast_counts[:-1, :],
             ]
         )
 
@@ -1268,10 +1258,26 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         forecast_probabilities = np.ma.getdata(forecast_threshold).flatten()
 
+        # Interpolate using scipy first to get extrapolated values at endpoints
+        # since np.interp does not allow extrapolation. We would need to change back
+        # to scipy.interpolate if we want non-linear interpolation in future.
         interpolation_function = scipy.interpolate.interp1d(
             reliability_probabilities, observation_frequencies, fill_value="extrapolate"
         )
-        interpolated = interpolation_function(forecast_probabilities.data)
+        y_0, y_1 = interpolation_function([0, 1])
+        xp = np.copy(reliability_probabilities)
+        # Extrapolation preserves the slope of the first and last segments of the piecewise
+        # linear function. Thus the slope betweeen [0, y_0] and [xp[0], fp[0]] is the same as that
+        # between [xp[0], fp[0]] and [xp[1], fp[1]], so we can replace
+        # [xp[0], fp[0]] with [0, y_0] to extend the width of the first segment of the
+        # piecewise linear function. A similar argument applies for the last segment.
+        xp[0] = 0
+        xp[-1] = 1
+        fp = np.copy(observation_frequencies)
+        fp[0] = y_0
+        fp[-1] = y_1
+
+        interpolated = np.interp(forecast_probabilities.data, xp, fp)
 
         interpolated = interpolated.reshape(shape).astype(np.float32)
 

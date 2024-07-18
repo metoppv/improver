@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ConstructReliabilityCalibrationTables plugin."""
 
 import iris
@@ -320,6 +294,50 @@ def test_process_table_values(create_rel_table_inputs, expected_table):
     assert_array_equal(
         result[0].data, expected.reshape(create_rel_table_inputs.expected_shape)
     )
+
+
+def test_process_table_values_nan_or_masked_forecast(
+    create_rel_table_inputs, expected_table
+):
+    """Test that nan or masked values in the forecast are not counted."""
+
+    forecast, truth = create_rel_table_inputs.forecast, create_rel_table_inputs.truth
+    nan_ind = list(range(0, forecast.data.size, 2))
+    nan_ind_bool = np.zeros_like(forecast.data).astype(bool)
+    nan_ind_bool.flat[nan_ind] = 1
+    # split the forecast into 2 parts, which have inverse patterns of nans
+    forecast_1 = forecast.copy(data=np.where(nan_ind_bool, np.nan, forecast.data))
+    forecast_2 = forecast.copy(data=np.where(nan_ind_bool, forecast.data, np.nan))
+    expected = np.reshape(
+        np.sum([expected_table, expected_table], axis=0),
+        create_rel_table_inputs.expected_shape,
+    )
+    plugin = Plugin(single_value_lower_limit=True, single_value_upper_limit=True)
+    result_1 = plugin.process(forecast_1, truth)[0]
+    result_2 = plugin.process(forecast_2, truth)[0]
+    sum_result = result_1 + result_2
+    assert_array_equal(sum_result.data, expected)
+    # mask nan values and fill with random data
+    forecast_masked = forecast.copy(data=np.ma.masked_invalid(forecast_1.data))
+    forecast_masked.data = np.where(
+        np.ma.getmask(forecast_1.data),
+        np.random.random(forecast_1.data.shape),
+        forecast_1.data,
+    )
+    result = plugin.process(forecast_masked, truth)[0]
+    # check masks are preserved
+    assert_array_equal(
+        np.ma.getmask(result.data),
+        np.broadcast_to(np.ma.getmask(forecast_masked.data), result.shape),
+    )
+    expected = result_1.copy(
+        data=np.ma.masked_where(
+            result_1.data,
+            np.broadcast_to(np.ma.getmask(forecast_masked), result_1.shape),
+        )
+    )
+    # check masked data is not counted in reliability table
+    assert_array_equal(result.data, expected.data)
 
 
 def test_table_values_masked_truth(

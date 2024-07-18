@@ -1,39 +1,12 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Tests for the improver.metadata.amend module"""
 import re
 import unittest
 from datetime import datetime as dt
 
-import iris
 import numpy as np
 import pytest
 from iris.coords import CellMethod
@@ -44,7 +17,6 @@ from improver.metadata.amend import (
     set_history_attribute,
     update_diagnostic_name,
     update_model_id_attr_attribute,
-    update_stage_v110_metadata,
 )
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
@@ -85,37 +57,6 @@ def create_cube_with_threshold(data=None, threshold_values=None):
 
     cube.data = data
     return cube
-
-
-class Test_update_stage_v110_metadata(IrisTest):
-    """Test the update_stage_v110_metadata function"""
-
-    def setUp(self):
-        """Set up variables for use in testing."""
-        data = 275.0 * np.ones((3, 3), dtype=np.float32)
-        self.cube = set_up_variable_cube(data)
-
-    def test_basic(self):
-        """Test that cube is unchanged and function returns False"""
-        result = self.cube.copy()
-        update_stage_v110_metadata(result)
-        self.assertIsInstance(result, iris.cube.Cube)
-        self.assertArrayEqual(result.data, self.cube.data)
-        self.assertEqual(result.attributes, self.cube.attributes)
-
-    def test_update_ukv(self):
-        """Test that cube attributes from ukv 1.1.0 are updated"""
-        self.cube.attributes["grid_id"] = "ukvx_standard_v1"
-        update_stage_v110_metadata(self.cube)
-        self.assertTrue("mosg__grid_type" in self.cube.attributes.keys())
-        self.assertTrue("mosg__model_configuration" in self.cube.attributes.keys())
-        self.assertTrue("mosg__grid_domain" in self.cube.attributes.keys())
-        self.assertTrue("mosg__grid_version" in self.cube.attributes.keys())
-        self.assertFalse("grid_id" in self.cube.attributes.keys())
-        self.assertEqual("standard", self.cube.attributes["mosg__grid_type"])
-        self.assertEqual("uk_det", self.cube.attributes["mosg__model_configuration"])
-        self.assertEqual("uk_extended", self.cube.attributes["mosg__grid_domain"])
-        self.assertEqual("1.1.0", self.cube.attributes["mosg__grid_version"])
 
 
 class Test_amend_attributes(IrisTest):

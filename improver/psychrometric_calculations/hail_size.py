@@ -1,40 +1,14 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """module to calculate hail_size"""
 
 from bisect import bisect_right
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -47,6 +21,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_extraction import ExtractLevel
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -492,31 +467,41 @@ class HailSize(BasePlugin):
         )
         return hail_size_cube
 
-    def process(
-        self,
-        ccl_temperature: Cube,
-        ccl_pressure: Cube,
-        temperature_on_pressure: Cube,
-        wet_bulb_zero_height_asl: Cube,
-        orography: Cube,
-    ) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Main entry point of this class
 
         Args:
-            ccl_temperature:
-                Cube of the cloud condensation level temperature
-            ccl_pressure:
-                Cube of the cloud condensation level pressure.
-            temperature_on_pressure:
-                Cube of temperature on pressure levels
-            wet_bulb_zero_height_asl:
-                Cube of the height of the wet-bulb freezing level above sea level
-            orography:
-                Cube of the orography height.
+            cubes
+                air_temperature:
+                    Cube of the cloud condensation level temperature
+                air_pressure_at_condensation_level:
+                    Cube of the cloud condensation level pressure.
+                air_temperature_at_condensation_level:
+                    Cube of temperature on pressure levels
+                wet_bulb_freezing_level_altitude:
+                    Cube of the height of the wet-bulb freezing level above sea level
+                surface_altitude:
+                    Cube of the orography height.
         Returns:
             Cube of hail diameter (m)
         """
+        cubes = as_cubelist(*cubes)
+        (
+            temperature_on_pressure,
+            ccl_pressure,
+            ccl_temperature,
+            wet_bulb_zero_height_asl,
+            orography,
+        ) = cubes.extract(
+            [
+                "air_temperature",
+                "air_pressure_at_condensation_level",
+                "air_temperature_at_condensation_level",
+                "wet_bulb_freezing_level_altitude",
+                "surface_altitude",
+            ]
+        )
 
         self.check_cubes(
             ccl_temperature,

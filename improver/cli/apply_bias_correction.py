@@ -1,34 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """CLI to apply simple bias correction to ensemble members based on bias from the
 reference forecast dataset."""
 
@@ -38,8 +12,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    forecast_cube: cli.inputcube,
-    *bias_cubes: cli.inputcube,
+    *input_cubes: cli.inputcube,
     lower_bound: float = None,
     upper_bound: float = None,
     fill_masked_bias_data: bool = False,
@@ -55,14 +28,15 @@ def process(
     forecasts (from which the mean value is evaluated), or as a single bias value
     evaluated over a series of reference forecasts.
 
-    A lower bound can be set to ensure that corrected values are physically sensible
-    post-bias correction.
+    A lower bound or upper bound can be set to ensure that corrected values are physically
+    sensible post-bias correction.
 
     Args:
-        forecast_cube (iris.cube.Cube):
-            Cube containing the forecast to apply bias correction to.
-        bias_cubes (iris.cube.Cube or list of iris.cube.Cube):
-            A cube or list of cubes containing forecast bias data over the a specified
+        input_cubes (iris.cube.Cube or list of iris.cube.Cube):
+            A list of cubes containing:
+            - A Cube containing the forecast to be calibrated. The input format is expected
+            to be realizations.
+            - A cube or cubelist containing forecast bias data over a specified
             set of forecast reference times. If a list of cubes is passed in, each cube
             should represent the forecast error for a single forecast reference time; the
             mean value will then be evaluated over the forecast_reference_time coordinate.
@@ -78,13 +52,24 @@ def process(
         iris.cube.Cube:
             Forecast cube with bias correction applied on a per member basis.
     """
+    import warnings
+
     import iris
 
+    from improver.calibration import add_warning_comment, split_forecasts_and_bias_files
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
+
+    forecast_cube, bias_cubes = split_forecasts_and_bias_files(input_cubes)
 
     # Check whether bias data supplied, if not then return unadjusted input cube.
     # This behaviour is to allow spin-up of the bias-correction terms.
     if not bias_cubes:
+        msg = (
+            "There are no forecast_error (bias) cubes provided for calibration. "
+            "The uncalibrated forecast will be returned."
+        )
+        warnings.warn(msg)
+        forecast_cube = add_warning_comment(forecast_cube)
         return forecast_cube
     else:
         bias_cubes = iris.cube.CubeList(bias_cubes)

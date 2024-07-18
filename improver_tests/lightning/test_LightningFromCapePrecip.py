@@ -1,36 +1,10 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Test methods in lightning.LightningFromCapePrecip"""
-
 from datetime import datetime
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -43,6 +17,22 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.lightning.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        LightningFromCapePrecip()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 @pytest.fixture(name="cape_cube")
@@ -62,7 +52,8 @@ def cape_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-60, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -85,7 +76,8 @@ def precip_cube_fixture() -> Cube:
         attributes=None,
         standard_grid_metadata="gl_ens",
         domain_corner=(-60, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     return cube
 
@@ -107,7 +99,8 @@ def expected_cube_fixture() -> Cube:
         time_bounds=(datetime(2017, 11, 10, 4, 0), datetime(2017, 11, 10, 5, 0)),
         attributes=MANDATORY_ATTRIBUTE_DEFAULTS,
         domain_corner=(-60, 0),
-        grid_spacing=20,
+        x_grid_spacing=20,
+        y_grid_spacing=20,
     )
     cube = add_coordinate(
         cube,
@@ -146,8 +139,8 @@ def test_3h_cubes(cape_cube, precip_cube, expected_cube):
 def test_with_model_attribute(cape_cube, precip_cube, expected_cube):
     """Run the plugin with model_id_attr and check the result cube matches the expected_cube"""
     expected_cube.attributes["mosg__model_configuration"] = "gl_ens"
-    result = LightningFromCapePrecip()(
-        CubeList([cape_cube, precip_cube]), model_id_attr="mosg__model_configuration"
+    result = LightningFromCapePrecip(model_id_attr="mosg__model_configuration")(
+        CubeList([cape_cube, precip_cube])
     )
     assert result.xml().splitlines(keepends=True) == expected_cube.xml().splitlines(
         keepends=True

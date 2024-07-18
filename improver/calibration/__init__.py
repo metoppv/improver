@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """init for calibration that contains functionality to split forecast, truth
 and coefficient inputs.
 """
@@ -207,6 +181,45 @@ def split_forecasts_and_coeffs(
         land_sea_mask,
         prob_template,
     )
+
+
+def split_forecasts_and_bias_files(cubes: CubeList) -> Tuple[Cube, Optional[CubeList]]:
+    """Split the input forecast from the forecast error files used for bias-correction.
+
+    Args:
+        cubes:
+            A list of input cubes which will be split into forecast and forecast errors.
+
+    Returns:
+        - A cube containing the current forecast.
+        - If found, a cube or cubelist containing the bias correction files.
+
+    Raises:
+        ValueError: If multiple forecast cubes provided, when only one is expected.
+        ValueError: If no forecast is found.
+    """
+    forecast_cube = None
+    bias_cubes = CubeList()
+
+    for cube in cubes:
+        if "forecast_error" in cube.name():
+            bias_cubes.append(cube)
+        else:
+            if forecast_cube is None:
+                forecast_cube = cube
+            else:
+                msg = (
+                    "Multiple forecast inputs have been provided. Only one is expected."
+                )
+                raise ValueError(msg)
+
+    if forecast_cube is None:
+        msg = "No forecast is present. A forecast cube is required."
+        raise ValueError(msg)
+
+    bias_cubes = bias_cubes if bias_cubes else None
+
+    return forecast_cube, bias_cubes
 
 
 def validity_time_check(forecast: Cube, validity_times: List[str]) -> bool:

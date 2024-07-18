@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Module to contain interpolation functions."""
 
 import warnings
@@ -41,6 +15,7 @@ from scipy.interpolate import griddata
 from scipy.spatial.qhull import QhullError
 
 from improver import BasePlugin
+from improver.utilities.common_input_handle import as_cube
 
 
 def interpolate_missing_data(
@@ -79,7 +54,7 @@ def interpolate_missing_data(
         was possible to fill these in.
     """
     if valid_points is None:
-        valid_points = np.full_like(data, True, dtype=np.bool)
+        valid_points = np.full_like(data, True, dtype=bool)
 
     # Interpolate linearly across the remaining points
     index = ~np.isnan(data)
@@ -125,6 +100,19 @@ class InterpolateUsingDifference(BasePlugin):
     field.
     """
 
+    def __init__(self, limit_as_maximum: bool = True) -> None:
+        """
+        Initialise the plugin.
+
+        Args:
+            limit_as_maximum:
+                If True the test against the values allowed by the limit array
+                is that if the interpolated values exceed the limit they should
+                be set to the limit value. If False, the test is whether the
+                interpolated values fall below the limit value.
+        """
+        self._limit_as_maximum = limit_as_maximum
+
     def __repr__(self) -> str:
         """String representation of plugin."""
         return "<InterpolateUsingDifference>"
@@ -151,11 +139,7 @@ class InterpolateUsingDifference(BasePlugin):
             )
 
     def process(
-        self,
-        cube: Cube,
-        reference_cube: Cube,
-        limit: Optional[Cube] = None,
-        limit_as_maximum: bool = True,
+        self, cube: Cube, reference_cube: Cube, limit: Optional[Cube] = None
     ) -> Cube:
         """
         Apply plugin to input data.
@@ -166,7 +150,7 @@ class InterpolateUsingDifference(BasePlugin):
                 regions.
             reference_cube:
                 A cube that covers the entire domain that it shares with
-                cube.
+                cube. This cube is used to calculate the difference field.
             limit:
                 A cube of limiting values to apply to the cube that is being
                 filled in. This can be used to ensure that the resulting values
@@ -174,11 +158,6 @@ class InterpolateUsingDifference(BasePlugin):
                 limit values should be used as a minima or maxima is
                 determined by the limit_as_maximum option. These values should
                 be on an x-y grid of the same size as an x-y slice of cube.
-            limit_as_maximum:
-                If True the test against the values allowed by the limit array
-                is that if the interpolated values exceed the limit they should
-                be set to the limit value. If False, the test is whether the
-                interpolated values fall below the limit value.
 
         Return:
             A copy of the input cube in which the missing data has been
@@ -190,6 +169,10 @@ class InterpolateUsingDifference(BasePlugin):
             ValueError: If the reference cube is not complete across the
                         entire domain.
         """
+        cube = as_cube(cube)
+        reference_cube = as_cube(reference_cube)
+        if limit:
+            limit = as_cube(limit)
         if not np.ma.is_masked(cube.data):
             warnings.warn(
                 "Input cube unmasked, no data to fill in, returning unchanged."
@@ -213,6 +196,8 @@ class InterpolateUsingDifference(BasePlugin):
                 out=np.full(cslice.shape, np.nan),
                 where=valid_points,
             )
+            min_difference = np.nanmin(difference_field)
+            max_difference = np.nanmax(difference_field)
             interpolated_difference = interpolate_missing_data(
                 difference_field, valid_points=valid_points
             )
@@ -224,6 +209,11 @@ class InterpolateUsingDifference(BasePlugin):
                 interpolated_difference = interpolate_missing_data(
                     difference_field, valid_points=~remain_invalid, method="nearest"
                 )
+            # It is possible for the interpolated differences to be outside of the range
+            # of the source data (machine-precision). Enforce the original data range.
+            interpolated_difference = np.clip(
+                interpolated_difference, min_difference, max_difference
+            )
 
             result = cslice.copy()
             result.data[invalid_points] = (
@@ -231,7 +221,7 @@ class InterpolateUsingDifference(BasePlugin):
             )
 
             if limit is not None:
-                if limit_as_maximum:
+                if self._limit_as_maximum:
                     result.data[invalid_points] = np.clip(
                         result.data[invalid_points], None, limit.data[invalid_points]
                     )

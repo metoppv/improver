@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the RegridWithLandSeaMask class"""
 # set up a special data set and corresponding land-sea mask info
 # set up target grid and its land-sea mask info
@@ -88,9 +62,9 @@ def define_source_target_grid_data():
     out_mask[1, 0] = 0
 
     # create cube with default spacing
-    cube_in = set_up_variable_cube(data, "air_temperature", "Celsius")
-    cube_in_mask = set_up_variable_cube(in_mask, "Land_Binary_Mask", "1")
-    cube_out_mask = set_up_variable_cube(out_mask, "Land_Binary_Mask", "1")
+    cube_in = set_up_variable_cube(data, name="air_temperature", units="Celsius")
+    cube_in_mask = set_up_variable_cube(in_mask, name="Land_Binary_Mask", units="1")
+    cube_out_mask = set_up_variable_cube(out_mask, name="Land_Binary_Mask", units="1")
 
     # modify cube coordinates to the designed value
     cube_in = modify_cube_coordinate_value(cube_in, in_lons, in_lats)
@@ -130,9 +104,9 @@ def define_source_target_grid_data_same_domain():
     out_mask[1, 0] = 0
 
     # create cube with default spacing
-    cube_in = set_up_variable_cube(data, "air_temperature", "Celsius")
-    cube_in_mask = set_up_variable_cube(in_mask, "Land_Binary_Mask", "1")
-    cube_out_mask = set_up_variable_cube(out_mask, "Land_Binary_Mask", "1")
+    cube_in = set_up_variable_cube(data, name="air_temperature", units="Celsius")
+    cube_in_mask = set_up_variable_cube(in_mask, name="Land_Binary_Mask", units="1")
+    cube_out_mask = set_up_variable_cube(out_mask, name="Land_Binary_Mask", units="1")
 
     # modify cube coordinates to the designed value
     cube_in = modify_cube_coordinate_value(cube_in, in_lons, in_lats)

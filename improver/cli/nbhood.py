@@ -1,34 +1,8 @@
 #!/usr/bin/env python
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Script to run neighbourhood processing."""
 
 from improver import cli
@@ -122,51 +96,17 @@ def process(
         RuntimeError:
             If degree_as_complex is used with neighbourhood_shape='circular'.
     """
-    from improver.nbhood import radius_by_lead_time
-    from improver.nbhood.nbhood import (
-        GeneratePercentilesFromANeighbourhood,
-        NeighbourhoodProcessing,
+    from improver.nbhood.nbhood import MetaNeighbourhood
+
+    plugin = MetaNeighbourhood(
+        neighbourhood_output=neighbourhood_output,
+        neighbourhood_shape=neighbourhood_shape,
+        radii=radii,
+        lead_times=lead_times,
+        degrees_as_complex=degrees_as_complex,
+        weighted_mode=weighted_mode,
+        area_sum=area_sum,
+        percentiles=percentiles,
+        halo_radius=halo_radius,
     )
-    from improver.utilities.pad_spatial import remove_cube_halo
-    from improver.wind_calculations.wind_direction import WindDirection
-
-    if neighbourhood_output == "percentiles":
-        if weighted_mode:
-            raise RuntimeError(
-                "weighted_mode cannot be used with" 'neighbourhood_output="percentiles"'
-            )
-        if degrees_as_complex:
-            raise RuntimeError("Cannot generate percentiles from complex numbers")
-
-    if neighbourhood_shape == "circular":
-        if degrees_as_complex:
-            raise RuntimeError(
-                "Cannot process complex numbers with circular neighbourhoods"
-            )
-
-    if degrees_as_complex:
-        # convert cube data into complex numbers
-        cube.data = WindDirection.deg_to_complex(cube.data)
-
-    radius_or_radii, lead_times = radius_by_lead_time(radii, lead_times)
-
-    if neighbourhood_output == "probabilities":
-        result = NeighbourhoodProcessing(
-            neighbourhood_shape,
-            radius_or_radii,
-            lead_times=lead_times,
-            weighted_mode=weighted_mode,
-            sum_only=area_sum,
-            re_mask=True,
-        )(cube, mask_cube=mask)
-    elif neighbourhood_output == "percentiles":
-        result = GeneratePercentilesFromANeighbourhood(
-            radius_or_radii, lead_times=lead_times, percentiles=percentiles,
-        )(cube)
-
-    if degrees_as_complex:
-        # convert neighbourhooded cube back to degrees
-        result.data = WindDirection.complex_to_deg(result.data)
-    if halo_radius is not None:
-        result = remove_cube_halo(result, halo_radius)
-    return result
+    return plugin(cube, mask=mask)

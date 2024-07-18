@@ -1,34 +1,9 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the HailSize plugin"""
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
@@ -46,13 +21,29 @@ LOCAL_MANDATORY_ATTRIBUTES = {
 pytest.importorskip("stratify")
 
 
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.hail_size.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        HailSize()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
+
+
 @pytest.fixture
 def ccl_temperature() -> Cube:
     """Set up a r, y, x cube of cloud condensation level temperature data"""
     data = np.full((2, 3, 2), fill_value=300, dtype=np.float32)
     ccl_temperature_cube = set_up_variable_cube(
         data,
-        name="temperature_at_cloud_condensation_level",
+        name="air_temperature_at_condensation_level",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -65,7 +56,7 @@ def ccl_pressure() -> Cube:
     data = np.full((2, 3, 2), fill_value=97500, dtype=np.float32)
     ccl_pressure_cube = set_up_variable_cube(
         data,
-        name="pressure_at_cloud_condensation_level",
+        name="air_pressure_at_condensation_level",
         units="Pa",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -106,7 +97,7 @@ def temperature_on_pressure_levels() -> Cube:
         data,
         pressure=True,
         height_levels=np.arange(100000, 29999, -10000),
-        name="temperature_on_pressure_levels",
+        name="air_temperature",
         units="K",
         attributes=LOCAL_MANDATORY_ATTRIBUTES,
     )
@@ -262,9 +253,9 @@ def test_spatial_coord_mismatch(variable, request):
     cubes = CubeList(request.getfixturevalue(fix) for fix in fixtures)
     cubes.append(variable_slice)
 
-    (ccl_temperature,) = cubes.extract("temperature_at_cloud_condensation_level")
-    (ccl_pressure,) = cubes.extract("pressure_at_cloud_condensation_level")
-    (temperature_on_pressure,) = cubes.extract("temperature_on_pressure_levels")
+    (ccl_temperature,) = cubes.extract("air_temperature_at_condensation_level")
+    (ccl_pressure,) = cubes.extract("air_pressure_at_condensation_level")
+    (temperature_on_pressure,) = cubes.extract("air_temperature")
     (wet_bulb_freezing,) = cubes.extract("wet_bulb_freezing_level_altitude")
     (orography,) = cubes.extract("surface_altitude")
 

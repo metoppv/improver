@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Module for calculating the probability of specific precipitation phases."""
 
 import operator
@@ -43,6 +17,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import spatial_coords_match
 
 
@@ -75,7 +50,7 @@ class PrecipPhaseProbability(BasePlugin):
     probability will be determined at each site's specific altitude.
     """
 
-    def _extract_input_cubes(self, cubes: Union[CubeList, List[Cube]]) -> None:
+    def _extract_input_cubes(self, cubes: CubeList) -> None:
         """
         Separates the input list into the required cubes for this plugin,
         detects whether snow, rain from hail or rain are required from the input
@@ -103,8 +78,6 @@ class PrecipPhaseProbability(BasePlugin):
             ValueError: If the extracted cubes do not have matching spatial
                         coordinates.
         """
-        if isinstance(cubes, list):
-            cubes = iris.cube.CubeList(cubes)
         if len(cubes) != 2:
             raise ValueError(f"Expected 2 cubes, found {len(cubes)}")
 
@@ -163,7 +136,7 @@ class PrecipPhaseProbability(BasePlugin):
             self.falling_level_cube = self.falling_level_cube.copy()
             self.falling_level_cube.convert_units(altitude_units)
 
-    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
+    def process(self, *cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Derives the probability of a precipitation phase at the surface /
         site altitude. If the snow-sleet falling-level is supplied, this is
@@ -191,6 +164,7 @@ class PrecipPhaseProbability(BasePlugin):
             precipitation to be divided uniquely between snow, sleet and
             rain phases.
         """
+        cubes = as_cubelist(*cubes)
         self._extract_input_cubes(cubes)
 
         result_data = np.where(

@@ -1,46 +1,38 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the InterpolateUsingDifference plugin."""
-
 import unittest
+from unittest.mock import patch, sentinel
 
 import numpy as np
 import pytest
-from numpy.testing import assert_array_equal
+from numpy.testing import assert_array_almost_equal, assert_array_equal
 
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
 from improver.utilities.interpolation import InterpolateUsingDifference
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.utilities.interpolation.as_cube")
+def test_as_cube_called(mock_as_cube):
+    mock_as_cube.side_effect = [None, None, HaltExecution]  # halt execution on 2nd call
+    try:
+        InterpolateUsingDifference()(
+            sentinel.cube, sentinel.reference_cube, limit=sentinel.limit_cube
+        )
+    except HaltExecution:
+        pass
+    mock_as_cube.assert_any_call(sentinel.cube)
+    mock_as_cube.assert_any_call(sentinel.limit_cube)
+    mock_as_cube.assert_any_call(sentinel.reference_cube)
 
 
 class Test_Setup(unittest.TestCase):
@@ -89,9 +81,9 @@ class Test_repr(unittest.TestCase):
         )
 
 
-class Test__check_inputs(Test_Setup):
+class Test_process_check_inputs(Test_Setup):
 
-    """Tests for the private _check_inputs method."""
+    """Tests for input check behaviour of process method."""
 
     def test_incomplete_reference_data(self):
         """Test an exception is raised if the reference field is incomplete."""
@@ -99,9 +91,7 @@ class Test__check_inputs(Test_Setup):
         self.snow_sleet.data[1, 1] = np.nan
         msg = "The reference cube contains np.nan data"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, None
-            )
+            InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
     def test_incompatible_reference_cube_units(self):
         """Test an exception is raised if the reference cube has units that
@@ -110,9 +100,7 @@ class Test__check_inputs(Test_Setup):
         self.snow_sleet.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, None
-            )
+            InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
 
     def test_incompatible_limit_units(self):
         """Test an exception is raised if the limit cube has units that
@@ -121,8 +109,8 @@ class Test__check_inputs(Test_Setup):
         self.limit.units = "s"
         msg = "Reference cube and/or limit do not have units compatible"
         with self.assertRaisesRegex(ValueError, msg):
-            InterpolateUsingDifference()._check_inputs(
-                self.sleet_rain, self.snow_sleet, limit=self.limit
+            InterpolateUsingDifference().process(
+                self.sleet_rain, self.snow_sleet, limit=self.limit,
             )
 
     def test_convert_units(self):
@@ -164,8 +152,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [8.5, 8.0, 6.0], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit, limit_as_maximum=True
+        result = InterpolateUsingDifference(limit_as_maximum=True).process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result.data, expected)
@@ -181,8 +169,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit, limit_as_maximum=False
+        result = InterpolateUsingDifference(limit_as_maximum=False).process(
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result.data, expected)
@@ -202,8 +190,8 @@ class Test_process(Test_Setup):
             [[4.0, 4.0, 4.0], [10.0, 8.5, 8.5], [3.0, 3.0, 3.0]], dtype=np.float32
         )
 
-        result = InterpolateUsingDifference().process(
-            sleet_rain, snow_sleet, limit=self.limit, limit_as_maximum=False
+        result = InterpolateUsingDifference(limit_as_maximum=False).process(
+            sleet_rain, snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result[0].data, expected)
@@ -244,11 +232,8 @@ class Test_process(Test_Setup):
             self.sleet_rain, self.snow_sleet
         )
 
-        result_limited = InterpolateUsingDifference().process(
-            self.sleet_rain,
-            self.snow_sleet,
-            limit=self.snow_sleet,
-            limit_as_maximum=False,
+        result_limited = InterpolateUsingDifference(limit_as_maximum=False).process(
+            self.sleet_rain, self.snow_sleet, limit=self.snow_sleet,
         )
 
         assert_array_equal(result_unlimited.data, expected_unlimited)
@@ -305,12 +290,47 @@ class Test_process(Test_Setup):
         self.limit.convert_units("cm")
 
         result = InterpolateUsingDifference().process(
-            self.sleet_rain, self.snow_sleet, limit=self.limit
+            self.sleet_rain, self.snow_sleet, limit=self.limit,
         )
 
         assert_array_equal(result.data, expected)
         self.assertEqual(result.coords(), self.sleet_rain.coords())
         self.assertEqual(result.metadata, self.sleet_rain.metadata)
+
+    def test_range_enforcement(self):
+        """Test interpolation on a case where the result is known to be outside of the
+        input data range."""
+        data = np.zeros(
+            (18, 18), dtype=np.float32
+        )  # The smallest array where this behaviour has been found
+        data[1:-1, 1:-1] = np.nan
+        data[0, 4] = 100
+        sleet_rain = np.ma.masked_invalid(data)
+
+        self.snow_sleet = set_up_variable_cube(
+            np.zeros_like(data),
+            name="altitude_of_snow_falling_level",
+            units="m",
+            spatial_grid="equalarea",
+        )
+        self.sleet_rain = set_up_variable_cube(
+            sleet_rain,
+            name="altitude_of_rain_falling_level",
+            units="m",
+            spatial_grid="equalarea",
+        )
+
+        expected = np.zeros_like(data)
+        expected[0, 4] = 100
+        expected[1, 3] = 75
+        expected[2, 2] = 50
+        expected[3, 1] = 25
+
+        result = InterpolateUsingDifference().process(self.sleet_rain, self.snow_sleet)
+
+        assert_array_almost_equal(result.data, expected, decimal=5)
+        assert (result.data >= np.nanmin(self.sleet_rain.data)).all()
+        assert (result.data <= np.nanmax(self.sleet_rain.data)).all()
 
 
 if __name__ == "__main__":

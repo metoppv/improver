@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the functions within interpolation.py"""
 
 import unittest
@@ -68,6 +42,30 @@ class Test_interpolate_missing_data(IrisTest):
 
         self.valid_data_for_limit_test = np.full((5, 5), True)
         self.valid_data_for_limit_test[:, 1:4] = False
+
+    def test_mostly_zeros(self):
+        """Test when all-but-one of the points around the missing data are the same.
+        The point of this test is to highlight a case where values outside of the max:min
+        range of the input can be found, if the test tolerance is sufficiently tight.
+        If this test fails with a newer version of Scipy, then the enforcement of this range
+        in improver.utilitiess.interpolation.InterpolateUsingDifference needs revisiting."""
+        data = np.zeros(
+            (18, 18)
+        )  # The smallest array where this behaviour has been found
+        data[1:-1, 1:-1] = np.nan
+        data[0, 4] = 100
+        expected = np.zeros_like(data)
+        expected[0, 4] = 100
+        expected[1, 3] = 75
+        expected[2, 2] = 50
+        expected[3, 1] = 25
+        expected[2, 3] = -1.11022302e-14
+        expected[3, 2] = -4.44089210e-14
+        expected[4, 1] = -2.22044605e-14
+
+        data_updated = interpolate_missing_data(data)
+
+        self.assertArrayAlmostEqual(data_updated, expected, decimal=21)
 
     def test_basic_linear(self):
         """Test when all the points around the missing data are the same."""

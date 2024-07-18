@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Module to contain Psychrometric Calculations."""
 
 import functools
@@ -47,6 +21,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_manipulation import sort_coord_in_cube
 from improver.utilities.interpolation import interpolate_missing_data
 from improver.utilities.mathematical_operations import fast_linear_fit
@@ -340,20 +315,26 @@ class HumidityMixingRatio(BasePlugin):
         )
         return cube
 
-    def process(self, cubes: List[Cube]) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Calculates the humidity mixing ratio from the inputs.
 
         Args:
             cubes:
-                Cubes, in this order, of temperature (K), pressure (Pa) and relative humidity (1)
+                Cubes of temperature (K), pressure (Pa) and relative humidity (1)
 
         Returns:
             Cube of humidity mixing ratio
 
         """
-        self.mandatory_attributes = generate_mandatory_attributes(cubes)
-        self.temperature, self.pressure, self.rel_humidity = cubes
+        cubes = as_cubelist(*cubes)
+        (self.temperature, self.pressure, self.rel_humidity,) = cubes.extract_cubes(
+            ["air_temperature", "surface_air_pressure", "relative_humidity"]
+        )
+
+        self.mandatory_attributes = generate_mandatory_attributes(
+            [self.temperature, self.pressure, self.rel_humidity]
+        )
         humidity = (
             saturated_humidity(self.temperature.data, self.pressure.data)
             * self.rel_humidity.data
@@ -873,7 +854,7 @@ class PhaseChangeLevel(BasePlugin):
             name, "m", template, attributes, data=phase_change_level
         )
 
-    def process(self, cubes: Union[CubeList, List[Cube]]) -> Cube:
+    def process(self, *cubes: Union[CubeList, List[Cube]]) -> Cube:
         """
         Use the wet bulb temperature integral to find the altitude at which a
         phase change occurs (e.g. snow to sleet). This is achieved by finding
@@ -901,7 +882,7 @@ class PhaseChangeLevel(BasePlugin):
             ValueError: Raise exception if the model_id_attr attribute does not
                 match on the input cubes.
         """
-
+        cubes = as_cubelist(*cubes)
         names_to_extract = [
             "wet_bulb_temperature",
             "wet_bulb_temperature_integral",

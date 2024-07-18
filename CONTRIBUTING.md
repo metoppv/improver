@@ -38,6 +38,7 @@ below:
  - Benjamin Ayliffe (Met Office, UK)
  - Mark Baker (Met Office, UK)
  - Laurence Beard (Met Office, UK)
+ - Tim Bonin (MIT Lincoln Laboratory, USA)
  - Anna Booton (Met Office, UK)
  - Prajwal Borkar
  - James Canvin (Bureau of Meteorology, Australia)
@@ -55,6 +56,7 @@ below:
  - Katharine Hurst (Met Office, UK)
  - Simon Jackson (Met Office, UK)
  - Caroline Jones (Met Office, UK)
+ - Peter Jordan (Met Office, UK)
  - Bruno P. Kinoshita (NIWA, NZ)
  - Lucy Liu (Bureau of Meteorology, Australia)
  - Daniel Mentiplay (Bureau of Meteorology, Australia)

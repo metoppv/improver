@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Class for Temporal Interpolation calculations."""
 
 from datetime import datetime, timedelta
@@ -42,12 +16,12 @@ from numpy import ndarray
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE
 from improver.metadata.constants.time_types import TIME_COORDS
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.round import round_close
 from improver.utilities.solar import DayNightMask, calc_solar_elevation
 from improver.utilities.spatial import lat_lon_determine, transform_grid_to_lat_lon
 from improver.utilities.temporal import iris_time_to_datetime
-from improver.wind_calculations.wind_direction import WindDirection
 
 
 class TemporalInterpolation(BasePlugin):
@@ -654,8 +628,8 @@ class TemporalInterpolation(BasePlugin):
         # interpolations (esp. the 0/360 wraparound) are handled in a sane
         # fashion.
         if cube_t0.units == "degrees" and cube_t1.units == "degrees":
-            cube_t0.data = WindDirection.deg_to_complex(cube_t0.data)
-            cube_t1.data = WindDirection.deg_to_complex(cube_t1.data)
+            cube_t0.data = deg_to_complex(cube_t0.data)
+            cube_t1.data = deg_to_complex(cube_t1.data)
 
         # Convert accumulations into rates to allow interpolation using trends
         # in the data and to accommodate non-uniform output intervals. This also
@@ -672,9 +646,7 @@ class TemporalInterpolation(BasePlugin):
 
         interpolated_cube = cube.interpolate(time_list, iris.analysis.Linear())
         if cube_t0.units == "degrees" and cube_t1.units == "degrees":
-            interpolated_cube.data = WindDirection.complex_to_deg(
-                interpolated_cube.data
-            )
+            interpolated_cube.data = complex_to_deg(interpolated_cube.data)
 
         if self.period_inputs:
             # Add bounds to the time coordinates of the interpolated outputs

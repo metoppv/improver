@@ -1,34 +1,9 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Tests for the HailFraction plugin."""
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -44,13 +19,29 @@ COMMON_ATTRS = {
 }
 
 
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.precipitation_type.hail_fraction.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        HailFraction()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
+
+
 def setup_cubes():
     """Set up cubes for testing."""
     vertical_updraught_data = np.zeros((2, 2), dtype=np.float32)
     vertical_updraught = set_up_variable_cube(
         vertical_updraught_data,
-        "maximum_vertical_updraught",
-        "m s-1",
+        name="maximum_vertical_updraught",
+        units="m s-1",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -59,8 +50,8 @@ def setup_cubes():
     hail_size_data = np.zeros((2, 2), dtype=np.float32)
     hail_size = set_up_variable_cube(
         hail_size_data,
-        "size_of_hail_stones",
-        "m",
+        name="diameter_of_hail_stones",
+        units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -69,8 +60,8 @@ def setup_cubes():
     cloud_condensation_level_data = np.zeros((2, 2), dtype=np.float32)
     cloud_condensation_level = set_up_variable_cube(
         cloud_condensation_level_data,
-        "air_temperature_at_condensation_level",
-        "K",
+        name="air_temperature_at_condensation_level",
+        units="K",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -79,8 +70,8 @@ def setup_cubes():
     convective_cloud_top_data = np.zeros((2, 2), dtype=np.float32)
     convective_cloud_top = set_up_variable_cube(
         convective_cloud_top_data,
-        "air_temperature_at_convective_cloud_top",
-        "K",
+        name="air_temperature_at_convective_cloud_top",
+        units="K",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -89,8 +80,8 @@ def setup_cubes():
     hail_melting_level_data = np.zeros((2, 2), dtype=np.float32)
     hail_melting_level = set_up_variable_cube(
         hail_melting_level_data,
-        "altitude_of_rain_from_hail_falling_level",
-        "m",
+        name="altitude_of_rain_from_hail_falling_level",
+        units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",
@@ -99,8 +90,8 @@ def setup_cubes():
     altitude_data = np.zeros((2, 2), dtype=np.float32)
     altitude = set_up_variable_cube(
         altitude_data,
-        "altitude",
-        "m",
+        name="surface_altitude",
+        units="m",
         spatial_grid="equalarea",
         attributes=COMMON_ATTRS,
         standard_grid_metadata="gl_ens",

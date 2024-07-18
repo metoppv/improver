@@ -1,33 +1,7 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """General utilities for parsing and extracting cubes at times"""
 
 import warnings
@@ -39,16 +13,16 @@ import iris
 import numpy as np
 from cftime import DatetimeGregorian
 from iris import Constraint
-from iris.coords import Coord
+from iris.coords import CellMethod, Coord
 from iris.cube import Cube, CubeList
 from iris.time import PartialDateTime
 from numpy import int64
 
-from improver.metadata.constants.time_types import TIME_COORDS
+from improver.metadata.constants.time_types import DT_FORMAT, TIME_COORDS
 
 
 def cycletime_to_datetime(
-    cycletime: str, cycletime_format: str = "%Y%m%dT%H%MZ"
+    cycletime: str, cycletime_format: str = DT_FORMAT
 ) -> datetime:
     """Convert a string representating the cycletime of the
     format YYYYMMDDTHHMMZ into a datetime object.
@@ -67,7 +41,7 @@ def cycletime_to_datetime(
 
 
 def datetime_to_cycletime(
-    adatetime: datetime, cycletime_format: str = "%Y%m%dT%H%MZ"
+    adatetime: datetime, cycletime_format: str = DT_FORMAT
 ) -> str:
     """Convert a datetime object into a string representing the cycletime
     of the format YYYYMMDDTHHMMZ.
@@ -87,7 +61,7 @@ def datetime_to_cycletime(
 
 def cycletime_to_number(
     cycletime: str,
-    cycletime_format: str = "%Y%m%dT%H%MZ",
+    cycletime_format: str = DT_FORMAT,
     time_unit: str = "hours since 1970-01-01 00:00:00",
     calendar: str = "gregorian",
 ) -> float:
@@ -307,3 +281,69 @@ def relabel_to_period(cube: Cube, period: Optional[int] = None):
             dtype=TIME_COORDS[coord].dtype,
         )
     return cube
+
+
+def integrate_time(cube: Cube, new_name: str = None) -> Cube:
+    """
+    Multiply a frequency or rate cube by the time period given by the
+    time bounds over which it is defined to return a count or accumulation.
+    The frequency or rate must be defined with time bounds, e.g. an average
+    frequency across the period. This function will handle a cube with a
+    non-scalar time coordinate, multiplying each time in the coordinate by the
+    related bounds.
+
+    The returned cube has units equivalent to the input cube multiplied by
+    seconds.
+
+    Any time related cell methods are removed from the output cube and a new
+    "sum" over time cell method is added.
+
+    Args:
+        Cube:
+            A cube of average frequency or rate within a defined period.
+        new_name:
+            A new name for the resulting diagnostic.
+
+    Returns:
+        The cube with the data multiplied by the period in seconds defined
+        by the bounds on the time coordinate.
+
+    Raises:
+        ValueError: If the input cube time coordinate does not have time
+                    bounds.
+    """
+    # Ensure cube has a time coordinate with bounds
+    if not cube.coord("time").has_bounds():
+        raise ValueError(
+            "time coordinate must have bounds to apply this time-bounds integration"
+        )
+
+    # For each grid of data associated with a time, multiply the rate / frequency
+    # by the associated time interval to get an accumulation / count over the
+    # period.
+    integrated_cube = iris.cube.CubeList()
+    for cslice in cube.slices_over("time"):
+        (multiplier,) = np.diff(cslice.coord("time").cell(0).bound)
+        multiplier = multiplier.total_seconds()
+        cslice.data *= multiplier
+        integrated_cube.append(cslice)
+
+    integrated_cube = integrated_cube.merge_cube()
+
+    # Modify the cube units to reflect the multiplication by time.
+    integrated_cube.units *= cf_units.Unit("s")
+    if new_name is not None:
+        integrated_cube.rename(new_name)
+
+    # Add a suitable cell method to describe what has been done and remove
+    # former cell methods associated with the time coordinate which are now
+    # out of date.
+    new_cell_method = CellMethod("sum", coords=["time"])
+    new_cell_methods = [new_cell_method]
+    for cm in integrated_cube.cell_methods:
+        if "time" not in cm.coord_names:
+            new_cell_methods.append(cm)
+
+    integrated_cube.cell_methods = new_cell_methods
+
+    return integrated_cube

@@ -1,37 +1,8 @@
-# -*- coding: utf-8 -*-
-# -----------------------------------------------------------------------------
-# (C) British Crown copyright. The Met Office.
-# All rights reserved.
+# (C) Crown copyright, Met Office. All rights reserved.
 #
-# Redistribution and use in source and binary forms, with or without
-# modification, are permitted provided that the following conditions are met:
-#
-# * Redistributions of source code must retain the above copyright notice, this
-#   list of conditions and the following disclaimer.
-#
-# * Redistributions in binary form must reproduce the above copyright notice,
-#   this list of conditions and the following disclaimer in the documentation
-#   and/or other materials provided with the distribution.
-#
-# * Neither the name of the copyright holder nor the names of its
-#   contributors may be used to endorse or promote products derived from
-#   this software without specific prior written permission.
-#
-# THIS SOFTWARE IS PROVIDED BY THE COPYRIGHT HOLDERS AND CONTRIBUTORS "AS IS"
-# AND ANY EXPRESS OR IMPLIED WARRANTIES, INCLUDING, BUT NOT LIMITED TO, THE
-# IMPLIED WARRANTIES OF MERCHANTABILITY AND FITNESS FOR A PARTICULAR PURPOSE
-# ARE DISCLAIMED. IN NO EVENT SHALL THE COPYRIGHT HOLDER OR CONTRIBUTORS BE
-# LIABLE FOR ANY DIRECT, INDIRECT, INCIDENTAL, SPECIAL, EXEMPLARY, OR
-# CONSEQUENTIAL DAMAGES (INCLUDING, BUT NOT LIMITED TO, PROCUREMENT OF
-# SUBSTITUTE GOODS OR SERVICES; LOSS OF USE, DATA, OR PROFITS; OR BUSINESS
-# INTERRUPTION) HOWEVER CAUSED AND ON ANY THEORY OF LIABILITY, WHETHER IN
-# CONTRACT, STRICT LIABILITY, OR TORT (INCLUDING NEGLIGENCE OR OTHERWISE)
-# ARISING IN ANY WAY OUT OF THE USE OF THIS SOFTWARE, EVEN IF ADVISED OF THE
-# POSSIBILITY OF SUCH DAMAGE.
+# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# See LICENSE in the root of the repository for full licensing details.
 """Module containing wind direction averaging plugins."""
-
-from typing import Union
-
 import iris
 import numpy as np
 from iris.coords import CellMethod
@@ -40,6 +11,7 @@ from numpy import ndarray
 
 from improver import PostProcessingPlugin
 from improver.nbhood.nbhood import NeighbourhoodProcessing
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -130,68 +102,6 @@ class WindDirection(PostProcessingPlugin):
         self.wdir_mean_complex = None
         self.r_vals_slice = None
 
-    @staticmethod
-    def deg_to_complex(
-        angle_deg: Union[ndarray, float], radius: Union[ndarray, float] = 1
-    ) -> Union[ndarray, float]:
-        """Converts degrees to complex values.
-
-        The radius value can be used to weigh values - but it is set
-        to 1 for now.
-
-        Args:
-            angle_deg:
-                3D array or float - wind direction angles in degrees.
-            radius:
-                3D array or float - radius value for each point, default=1.
-
-        Returns:
-            3D array or float - wind direction translated to
-            complex numbers.
-        """
-        # Convert from degrees to radians.
-        angle_rad = np.deg2rad(angle_deg)
-        # Derive real and imaginary components (also known as a and b)
-        real = radius * np.cos(angle_rad)
-        imag = radius * np.sin(angle_rad)
-
-        # Combine components into a complex number and return.
-        return real + 1j * imag
-
-    @staticmethod
-    def complex_to_deg(complex_in: ndarray) -> ndarray:
-        """Converts complex to degrees.
-
-        The "np.angle" function returns negative numbers when the input
-        is greater than 180. Therefore additional processing is needed
-        to ensure that the angle is between 0-359.
-
-        Args:
-            complex_in:
-                3D array - wind direction angles in
-                complex number form.
-
-        Returns:
-            3D array - wind direction in angle form
-
-        Raises:
-            TypeError: If complex_in is not an array.
-        """
-
-        if not isinstance(complex_in, np.ndarray):
-            msg = "Input data is not a numpy array, but {}"
-            raise TypeError(msg.format(type(complex_in)))
-
-        angle = np.angle(complex_in, deg=True)
-
-        # Convert angles so they are in the range [0, 360)
-        angle = np.mod(np.float32(angle), 360)
-
-        # We don't need 64 bit precision.
-        angle = angle.astype(np.float32)
-
-        return angle
-
     def calc_wind_dir_mean(self) -> None:
         """Find the mean wind direction using complex average which actually
            signifies a point between all of the data points in POLAR
@@ -212,7 +122,7 @@ class WindDirection(PostProcessingPlugin):
                 along an axis using np.mean().
         """
         self.wdir_mean_complex = np.mean(self.wdir_complex, axis=self.realization_axis)
-        self.wdir_slice_mean.data = self.complex_to_deg(self.wdir_mean_complex)
+        self.wdir_slice_mean.data = complex_to_deg(self.wdir_mean_complex)
 
     def find_r_values(self) -> None:
         """Find radius values from complex numbers.
@@ -335,7 +245,7 @@ class WindDirection(PostProcessingPlugin):
         ):
             self._reset()
             # Extract wind direction data.
-            self.wdir_complex = self.deg_to_complex(wdir_slice.data)
+            self.wdir_complex = deg_to_complex(wdir_slice.data)
             (self.realization_axis,) = wdir_slice.coord_dims("realization")
             # Copies input cube and remove realization dimension to create
             # cubes for storing results.
