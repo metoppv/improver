@@ -5,6 +5,7 @@
 """ Provides support utilities."""
 
 import copy
+import warnings
 from typing import List, Optional, Tuple, Union
 from abc import ABC, abstractmethod
 
@@ -16,7 +17,8 @@ from numpy import ndarray
 from numpy.ma import MaskedArray
 from cf_units import Unit
 import iris
-from iris.coords import Coord, DimCoord, AuxCoord, CellMethod
+from iris.coord_systems import GeogCS
+from iris.coords import AuxCoord, CellMethod, Coord, DimCoord
 from iris.cube import Cube, CubeList
 from iris.coord_systems import (
     CoordSystem,
@@ -24,6 +26,7 @@ from iris.coord_systems import (
 )
 
 from scipy.ndimage.filters import maximum_filter
+from scipy.stats import circmean
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
@@ -453,8 +456,43 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
             return 2 * np.pi * axis.coord_system.semi_major_axis  # Planet circumference
 
     @staticmethod
-    def _axis_wraps_around_meridian(axis: Coord, cube: Cube):
+    def _axis_wraps_around_meridian(axis: Coord, cube: Cube) -> bool:
+        """Returns true if the cube is 'circular' with the given axis wrapping around, i.e. if there
+        is a smooth transition between 180 degrees and -180 degrees on the axis.
+
+        Args:
+            axis:
+                Axis to check for circularity.
+            cube:
+                The cube to which the axis belongs.
+
+        Returns:
+            True if the axis wraps around the meridian; false otherwise.
+        """
         return axis.circular and axis == cube.coord(axis="x")
+
+    @staticmethod
+    def _get_wrap_around_mean_point(points: ndarray) -> float:
+        """
+        Calculates the midpoint between the two x coordinate points nearest the meridian.
+
+        args:
+            points:
+                The x coordinate points of the cube.
+
+        returns:
+            The x value of the midpoint between the two x coordinate points nearest the meridian.
+        """
+        # The values of max and min azimuth doesn't matter as long as there is 360 degrees
+        # between them.
+        min_azimuth = -180
+        max_azimuth = 180
+        extra_mean_point = circmean([points[-1], points[0]], max_azimuth, min_azimuth)
+        extra_mean_point = np.round(extra_mean_point, 4)
+        if extra_mean_point < points[-1]:
+            # Ensures that the longitudinal coordinate is monotonically increasing
+            extra_mean_point += 360
+        return extra_mean_point
 
     @staticmethod
     def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str) -> None:
@@ -475,12 +513,11 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_cube.attributes["form_of_difference"] = "forward_difference"
         diff_cube.rename("difference_of_" + cube_name)
 
-    def create_difference_cube(self,
-        cube: Cube, coord_name: str, diff_along_axis: ndarray
+    def create_difference_cube(
+        self, cube: Cube, coord_name: str, diff_along_axis: ndarray
     ) -> Cube:
         """
-        Put the difference array into a cube with the appropriate
-        metadata.
+        Put the difference array into a cube with the appropriate metadata.
 
         Args:
             cube:
@@ -499,9 +536,18 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         points = axis.points
         mean_points = (points[1:] + points[:-1]) / 2
         if self._axis_wraps_around_meridian(axis, cube):
-            max_value = self._get_max_x_axis_value(cube)
-            extra_mean_point = np.mean([points[-1], (points[0] + max_value)]) % max_value
-            mean_points = np.hstack([mean_points, extra_mean_point])
+            if type(axis.coord_system) != GeogCS:
+                warnings.warn(
+                    "DifferenceBetweenAdjacentGridSquares does not fully support cubes with "
+                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system. "
+                    "Such cubes will be handled as if they were not circular, meaning that the "
+                    "differences cube returned will have one fewer points along the specified axis"
+                    "than the input cube."
+                )
+            else:
+                max_value = self._get_max_x_axis_value(cube)
+                extra_mean_point = np.mean([points[-1], (points[0] + max_value)]) % max_value
+                mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
         # Create a new coordinate for the coordinate along which the
@@ -541,10 +587,17 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         diff_axis_number = cube.coord_dims(coord_name)[0]
         diff_along_axis = np.diff(cube.data, axis=diff_axis_number)
         if self._axis_wraps_around_meridian(diff_axis, cube):
-            first_column = cube.data[:, :1]
-            last_column = cube.data[:,- 1:]
-            wrap_around_diff = np.diff(np.hstack([last_column, first_column]), axis=diff_axis_number)
-            diff_along_axis = np.hstack([diff_along_axis, wrap_around_diff])  # Todo: order is wrong.
+            # Get wrap-around difference:
+            first_column = np.take(cube.data, indices=0, axis=diff_axis_number)
+            last_column = np.take(cube.data, indices=-1, axis=diff_axis_number)
+            wrap_around_diff = first_column - last_column
+            # Apply wrap-around difference vector to diff array:
+            if diff_axis_number == 0:
+                diff_along_axis = np.vstack([diff_along_axis, wrap_around_diff])
+            elif diff_axis_number == 1:
+                diff_along_axis = np.hstack(
+                    [diff_along_axis, wrap_around_diff.reshape([-1, 1])]
+                )
         return diff_along_axis
 
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
@@ -567,9 +620,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         for axis in ["x", "y"]:
             coord_name = cube.coord(axis=axis).name()
             difference = self.calculate_difference(cube, coord_name)
-            diff_cube = self.create_difference_cube(
-                cube, coord_name, difference
-            )
+            diff_cube = self.create_difference_cube(cube, coord_name, difference)
             self._update_metadata(diff_cube, coord_name, cube.name())
             diffs.append(diff_cube)
         return tuple(diffs)

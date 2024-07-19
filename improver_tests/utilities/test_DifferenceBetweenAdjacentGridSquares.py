@@ -54,19 +54,52 @@ class Test_create_difference_cube(IrisTest):
         self.assertArrayEqual(result.data, diff_array)
 
     def test_x_dimension_for_circular_latlon_cube(self):
-        """Test differences calculated along the x dimension."""
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
         test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
         test_cube_x_grid_spacing = 120
-        test_cube = set_up_variable_cube(test_cube_data, "wind_speed", "m s-1", "latlon", x_grid_spacing=test_cube_x_grid_spacing)
+        test_cube = set_up_variable_cube(
+            test_cube_data,
+            "latlon",
+            x_grid_spacing=test_cube_x_grid_spacing,
+            name="wind_speed",
+            units="m s-1",
+        )
         test_cube.coord(axis="x").circular = True
-        diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
-        expected_x_coords = np.array([-60, 60, 180])  # Original data at [-120, 0, 120], therefore differences are at [-60, 60, 180].
+        expected_diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
+        expected_x_coords = np.array(
+            [-60, 60, 180]
+        )  # Original data are at [-120, 0, 120], therefore differences are at [-60, 60, 180].
         result = self.plugin.create_difference_cube(
-            test_cube, "longitude", diff_array
+            test_cube, "longitude", expected_diff_array
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
-        self.assertArrayEqual(result.data, diff_array)
+        self.assertArrayEqual(result.data, expected_diff_array)
+
+    def test_x_dimension_for_circular_latlon_cube_360_degree_coord(self):
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
+        test_cube_data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
+        test_cube_x_grid_spacing = 120
+        test_cube = set_up_variable_cube(
+            test_cube_data,
+            "latlon",
+            x_grid_spacing=test_cube_x_grid_spacing,
+            name="wind_speed",
+            units="m s-1",
+        )
+        test_cube.coord(axis="x").bounds = [[0, 120], [120, 240], [240, 360]]
+        test_cube.coord(axis="x").points = [60, 120, 300]
+        test_cube.coord(axis="x").circular = True
+        expected_diff_array = np.array([[1, 1, -2], [2, 2, -4], [5, 5, -10]])
+        expected_x_coords = np.array(
+            [90, 210, 360]
+        )  # Original data are at [60, 120, 300], therefore differences are at [90, 210, 360].
+        result = self.plugin.create_difference_cube(
+            test_cube, "longitude", expected_diff_array
+        )
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
+        self.assertArrayEqual(result.data, expected_diff_array)
 
         # TOdo: FAILS FOR equal area cubes. Is this a problem? Which projections is it worth coding against?
 
@@ -82,20 +115,40 @@ class Test_create_difference_cube(IrisTest):
 
 
 class Test_calculate_difference(IrisTest):
-
     """Test the calculate_difference method."""
 
     def setUp(self):
         """Set up cube."""
-        data = np.array([[1, 2, 3], [2, 4, 6], [5, 10, 15]])
+        data = np.array([[1, 2, 3, 4], [2, 4, 6, 8], [5, 10, 15, 20]])
         self.cube = set_up_variable_cube(
-            data, name="wind_speed", units="m s-1", spatial_grid="equalarea",
+            data, "equalarea", name="wind_speed", units="m s-1",
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
     def test_x_dimension(self):
         """Test differences calculated along the x dimension."""
-        expected = np.array([[1, 1], [2, 2], [5, 5]])
+        expected = np.array([[1, 1, 1], [2, 2, 2], [5, 5, 5]])
+        result = self.plugin.calculate_difference(
+            self.cube, self.cube.coord(axis="x").name()
+        )
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayEqual(result, expected)
+
+    def test_x_dimension_wraps_around_meridian(self):
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
+        self.cube.coord(axis="x").circular = True
+        expected = np.array([[1, 1, 1, -3], [2, 2, 2, -6], [5, 5, 5, -15]])
+        result = self.plugin.calculate_difference(
+            self.cube, self.cube.coord(axis="x").name()
+        )
+        self.assertIsInstance(result, np.ndarray)
+        self.assertArrayEqual(result, expected)
+
+    def test_x_dimension_wraps_around_meridian_cube_axes_flipped(self):
+        """Test differences calculated along the x dimension for a cube which is circular in x."""
+        self.cube.coord(axis="x").circular = True
+        self.cube.transpose()
+        expected = np.array([[1, 1, 1, -3], [2, 2, 2, -6], [5, 5, 5, -15]]).transpose()
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="x").name()
         )
@@ -114,7 +167,7 @@ class Test_calculate_difference(IrisTest):
 
     def test_y_dimension(self):
         """Test differences calculated along the y dimension."""
-        expected = np.array([[1, 2, 3], [3, 6, 9]])
+        expected = np.array([[1, 2, 3, 4], [3, 6, 9, 12]])
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="y").name()
         )
@@ -123,9 +176,11 @@ class Test_calculate_difference(IrisTest):
 
     def test_missing_data(self):
         """Test that the result is as expected when data is missing."""
-        data = np.array([[1, 2, 3], [np.nan, 4, 6], [5, 10, 15]], dtype=np.float32)
+        data = np.array(
+            [[1, 2, 3, 4], [np.nan, 4, 6, 8], [5, 10, 15, 20]], dtype=np.float32
+        )
         self.cube.data = data
-        expected = np.array([[np.nan, 2, 3], [np.nan, 6, 9]])
+        expected = np.array([[np.nan, 2, 3, 4], [np.nan, 6, 9, 12]])
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="y").name()
         )
@@ -135,10 +190,13 @@ class Test_calculate_difference(IrisTest):
     def test_masked_data(self):
         """Test that the result is as expected when data is masked."""
         data = ma.array(
-            [[1, 2, 3], [2, 4, 6], [5, 10, 15]], mask=[[0, 0, 0], [1, 0, 0], [0, 0, 0]]
+            [[1, 2, 3, 4], [2, 4, 6, 8], [5, 10, 15, 20]],
+            mask=[[0, 0, 0, 0], [1, 0, 0, 0], [0, 0, 0, 0]],
         )
         self.cube.data = data
-        expected = ma.array([[1, 2, 3], [3, 6, 9]], mask=[[1, 0, 0], [1, 0, 0]])
+        expected = ma.array(
+            [[1, 2, 3, 4], [3, 6, 9, 12]], mask=[[1, 0, 0, 0], [1, 0, 0, 0]]
+        )
         result = self.plugin.calculate_difference(
             self.cube, self.cube.coord(axis="y").name()
         )
@@ -148,7 +206,6 @@ class Test_calculate_difference(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process method."""
 
     def setUp(self):
@@ -211,6 +268,11 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result[0].data, expected_x)
         self.assertIsInstance(result[1], iris.cube.Cube)
         self.assertArrayEqual(result[1].data, expected_y)
+
+    def test_circular_non_geographic_cube_raises_approprate_exception(self):
+        self.cube.coord(axis="x").circular = True
+        with self.assertRaises(ValueError):
+            self.plugin.process(self.cube)
 
 
 if __name__ == "__main__":
