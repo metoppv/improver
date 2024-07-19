@@ -447,15 +447,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
     """
 
     @staticmethod
-    def _get_max_x_axis_value(cube):
-        axis = cube.coord(axis="x")
-        units = axis.units
-        if axis.units == "Degrees":
-            return 360
-        else:
-            return 2 * np.pi * axis.coord_system.semi_major_axis  # Planet circumference
-
-    @staticmethod
     def _axis_wraps_around_meridian(axis: Coord, cube: Cube) -> bool:
         """Returns true if the cube is 'circular' with the given axis wrapping around, i.e. if there
         is a smooth transition between 180 degrees and -180 degrees on the axis.
@@ -545,8 +536,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     "than the input cube."
                 )
             else:
-                max_value = self._get_max_x_axis_value(cube)
-                extra_mean_point = np.mean([points[-1], (points[0] + max_value)]) % max_value
+                extra_mean_point = self._get_wrap_around_mean_point(points)
                 mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
