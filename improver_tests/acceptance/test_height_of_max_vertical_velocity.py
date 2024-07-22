@@ -17,8 +17,7 @@ def test_basic(tmp_path):
     """Test height_of_max_vertical_velocity computation"""
     kgo_dir = acc.kgo_root() / "height-of-max-vertical-velocity"
     input_file1 = kgo_dir / "vertical_velocity_on_height_levels.nc"
-    input_file2 = kgo_dir / "max.nc"
-#    output_path = "/data/users/khoward/EPP_data/max_vertical_velocity/output.nc"
+    input_file2 = kgo_dir / "kgo.nc"
     output_path = tmp_path / "output.nc"
     args = [
         input_file1,
