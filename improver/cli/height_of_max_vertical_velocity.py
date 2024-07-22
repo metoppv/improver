@@ -42,4 +42,4 @@ def process(
 
     from improver.utilities.cube_manipulation import height_of_maximum
 
-    return height_of_maximum(cube, max_cube, high_or_low="low", new_name=new_name,)
+    return height_of_maximum(cube, max_cube, high_or_low, new_name)
