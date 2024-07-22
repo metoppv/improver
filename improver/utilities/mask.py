@@ -39,6 +39,7 @@ def apply_mask(
 
     Raises:
     ValueError: If the number of cubes provided is not equal to 2.
+    ValueError: If the input cube and mask cube have different dimensions.
 
     """
     cubes = as_cubelist(*cubes)
