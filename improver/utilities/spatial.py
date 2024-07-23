@@ -132,7 +132,7 @@ def distance_to_number_of_grid_cells(
     if distance <= 0:
         raise ValueError(f"Please specify a positive distance in metres. {d_error}")
     # calculate grid spacing along chosen axis
-    grid_spacing_metres = calculate_grid_spacing(cube, "metres", axis=axis)
+    grid_spacing_metres = calculate_grid_spacing(cube, "m", axis=axis)
     grid_cells = distance / abs(grid_spacing_metres)
 
     if return_int:
@@ -192,7 +192,7 @@ class BaseDistanceCalculator(ABC):
         return Cube(
             distances,
             long_name=f"{axis}_distance_between_grid_points",
-            units="metres",
+            units="m",
             dim_coords_and_dims=dims,
         )
 
@@ -342,7 +342,7 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the x-axis distances between the grid points of the input
             cube in metres.
         """
-        x_distances = calculate_grid_spacing(self.cube, axis="x", units="metres")
+        x_distances = calculate_grid_spacing(self.cube, axis="x", units="m")
         data = np.full(
             (self.cube.shape[0], len(self.x_separations_axis.points)), x_distances
         )
@@ -361,7 +361,7 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the vertical distances between the grid points of the input
             cube in metres.
         """
-        y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="metres")
+        y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="m")
         data = np.full(
             (len(self.y_separation_axis.points), self.cube.data.shape[1]),
             y_grid_spacing,
@@ -433,8 +433,8 @@ class DistanceBetweenGridSquares(BasePlugin):
             Boolean representing whether the cube has x and y axes defined in a distance unit.
         """
         try:
-            cube.coord(axis="x").convert_units("metres")
-            cube.coord(axis="y").convert_units("metres")
+            cube.coord(axis="x").convert_units("m")
+            cube.coord(axis="y").convert_units("m")
             return True
         except (
             TypeError,
