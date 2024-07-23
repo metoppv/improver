@@ -10,13 +10,14 @@ repos:
     - id: ruff-format
 - repo: local
   hooks:
-    - id: copyright
+    - id: copyright_check
       name: Check copyright header
-      files: '\.py$'
+      types: [python]
       language: system
       entry: ./copyright_check
-    - id: initcheck
+    - id: init_check
       name: Check for missing __init__.py files
-      files: '\.py$'
+      types: [python]
       language: system
       entry: ./init_check
+      files: ^(improver/|improver_tests/)

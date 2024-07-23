@@ -1,5 +1,8 @@
 #!/bin/bash
 
+# debug information
+DEBUG=false
+
 copyright_header="\
 # (C) Crown Copyright, Met Office. All rights reserved.\n\
 #\n\
@@ -25,9 +28,16 @@ show_help() {
 }
 
 if [[ " $@ " =~ " --help " || " $@ " =~ " -h " ]]; then
+    echo "Showing help..."
     show_help
     exit 0
 fi
+if [[ " $@ " =~ " --fix " ]]; then
+    # Remove the --fix argument from $@
+    set -- "${@/--fix/}"
+    echo fix argument provided
+fi
+echo "$@"
 
 contains_copyright() {
     grep -qi '# .*copyright' $1
@@ -60,27 +70,30 @@ trap 'cleanup "$@"' EXIT
 
 found_error=0
 for filepath in "$@"; do
+    echo checking ${filepath}
     if contains_copyright "${filepath}"; then
-        #echo "File '${filepath}' already contains Crown Copyright"
+        [[ ${DEBUG} == true ]] && echo "File '${filepath}' appears to already contain a Copyright"
         if correct_copyright "${copyright_header}" "${filepath}"; then
+            [[ ${DEBUG} == true ]] && echo "Copyright verified"
             continue
         else
             echo "Incorrect Copyright header in '${filepath}'"
+            [[ ${DEBUG} == true ]] && diff <(echo $copyright_header | sed s'~\\n~\n~'g) <(grep -i -A3 '# .*copyright' ${filepath})
             found_error=1
         fi
     elif [ -s "${filepath}" ]; then  # skip empty files
         echo "Adding missing Copyright to '${filepath}'"
-        tmp_file="${filepath}.tmp"
-        if defines_hash_bang "${filepath}"; then
-            head -n 1 ${filepath} > ${tmp_file}
-            echo -e ${copyright_header} >> ${tmp_file}
-            tail -n +2 ${filepath} >> ${tmp_file}
-        else
-            echo -e ${copyright_header} > ${tmp_file}
-            cat ${filepath} >> ${tmp_file}
-        fi
-        mv ${tmp_file} ${filepath}
-        found_error=1
+                    tmp_file="${filepath}.tmp"
+            if defines_hash_bang "${filepath}"; then
+                head -n 1 ${filepath} > ${tmp_file}
+                echo -e ${copyright_header} >> ${tmp_file}
+                tail -n +2 ${filepath} >> ${tmp_file}
+            else
+                echo -e ${copyright_header} > ${tmp_file}
+                cat ${filepath} >> ${tmp_file}
+            fi
+            mv ${tmp_file} ${filepath}
+                found_error=1
     fi
 done
 
