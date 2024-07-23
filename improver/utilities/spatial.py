@@ -205,16 +205,26 @@ class BaseDistanceCalculator(ABC):
 
         if axis.circular:
             endpoints_mean = np.deg2rad((axis.points[0] + axis.points[-1]) / 2)
-            extra_point = np.arctan(np.sin(endpoints_mean) / np.cos(endpoints_mean))  # Forces angle to sit on the upper quadrant so that eg. for endpoints of 10 degrees, and 350 degrees, midpoint is zero degrees rather than 180.
-            midpoints = np.sort(np.hstack((np.array(extra_point), midpoints)), kind='stable')  # Stable sort fasted in this case, where list is already nearly sorted with only the one out-of-order element.
+            extra_point = np.rad2deg(
+                np.arctan(np.sin(endpoints_mean) / np.cos(endpoints_mean))
+            )  # Forces angle to sit on the upper quadrant so that eg. for endpoints of 10 degrees, and 350 degrees, midpoint is zero degrees rather than 180.
+            if extra_point < 0:
+                extra_point += 360  # Forces angle to be between 0 and 360
+            midpoints = np.sort(
+                np.hstack((midpoints, np.array(extra_point))), kind="stable"
+            )  # Stable sort fasted in this case, where list is already nearly sorted with only the one out-of-order element.
 
-        return midpoints
+        return midpoints.astype(axis.dtype)
 
     def get_difference_axes(self):
         input_cube_x_axis = self.cube.coord(axis="x")
         input_cube_y_axis = self.cube.coord(axis="y")
-        distance_cube_x_axis = input_cube_x_axis.copy(points=self.get_midpoints(input_cube_x_axis))
-        distance_cube_y_axis = input_cube_y_axis.copy(points=self.get_midpoints(input_cube_y_axis))
+        distance_cube_x_axis = input_cube_x_axis.copy(
+            points=self.get_midpoints(input_cube_x_axis)
+        )
+        distance_cube_y_axis = input_cube_y_axis.copy(
+            points=self.get_midpoints(input_cube_y_axis)
+        )
         return distance_cube_x_axis, distance_cube_y_axis
 
     @abstractmethod
@@ -291,14 +301,17 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         lon_diffs = np.diff(self.longs)
 
         if self.cube_wraps_around_x_axis():
-            lon_diffs = np.hstack([lon_diffs, np.array(self.longs[0] + (360 - self.longs[-1]))])
+            lon_diffs = np.hstack(
+                [lon_diffs, np.array(self.longs[0] + (360 - self.longs[-1]))]
+            )
 
         x_distances = (
-            self.sphere_radius * np.cos(np.deg2rad(lats_as_col.astype(np.float64)))
+            self.sphere_radius
+            * np.cos(np.deg2rad(lats_as_col.astype(np.float64)))
             * np.deg2rad(lon_diffs.astype(np.float64))
         )  # Using 64 bit floats for this calculation improves precision by 0.1% TODO: check this.
 
-        dims = [(self.cube.coord(axis='y'), 0), (self.x_separations_axis, 1)]
+        dims = [(self.cube.coord(axis="y"), 0), (self.x_separations_axis, 1)]
         return self.build_distances_cube(x_distances, dims, "x")
 
     def _get_y_distances(self) -> Cube:
@@ -315,7 +328,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         y_distances = self.sphere_radius * np.deg2rad(lat_diffs)
 
         y_distances_grid = np.tile(np.expand_dims(y_distances, axis=1), len(self.longs))
-        dims = [(self.y_separation_axis, 0), (self.cube.coord(axis='x'), 1)]
+        dims = [(self.y_separation_axis, 0), (self.cube.coord(axis="x"), 1)]
         return self.build_distances_cube(y_distances_grid, dims, "y")
 
 
@@ -330,7 +343,9 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             cube in metres.
         """
         x_distances = calculate_grid_spacing(self.cube, axis="x", units="metres")
-        data = np.full((self.cube.shape[0], len(self.x_separations_axis.points)), x_distances)
+        data = np.full(
+            (self.cube.shape[0], len(self.x_separations_axis.points)), x_distances
+        )
         dims = [
             (self.cube.coord("projection_y_coordinate"), 0),
             (self.x_separations_axis, 1),
@@ -347,7 +362,10 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             cube in metres.
         """
         y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="metres")
-        data = np.full((len(self.y_separation_axis.points), self.cube.data.shape[1]), y_grid_spacing)
+        data = np.full(
+            (len(self.y_separation_axis.points), self.cube.data.shape[1]),
+            y_grid_spacing,
+        )
         dims = [
             (self.y_separation_axis, 0),
             (self.cube.coord("projection_x_coordinate"), 1),
