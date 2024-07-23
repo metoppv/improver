@@ -114,8 +114,9 @@ def make_latlon_test_cube(
         ([0, 10], False),
         ([0, 20], False),
         ([-20, 20], False),
-        ([0, 30, 60, 90, 120], False)
-        # Todo: try a non-uniform grid.
+        ([0, 30, 60, 90, 120], False),
+        ([0, 120, 180, 300], False),
+        ([0, 120, 180, 300], True),
     ),
 )
 def test_latlon_cube(longitudes, is_circular):
