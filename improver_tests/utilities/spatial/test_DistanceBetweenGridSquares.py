@@ -37,8 +37,6 @@ ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES = np.array(
 
 TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Metres
 
-# Todo: change all references to 'full haversine'
-
 
 def make_equalarea_test_cube(shape, grid_spacing, units="metres"):
     """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
