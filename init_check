@@ -4,9 +4,6 @@ found_error=0
 script_root=$(dirname "$0")
 
 for dirpath in "$@"; do
-    if [[ "$dirpath" != improver* && "$dirpath" != improver_tests* ]]; then
-        continue
-    fi
     if [ ! -d "$dirpath" ]; then
         dirpath=$(dirname "$dirpath")
     fi
