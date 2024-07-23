@@ -7,18 +7,18 @@
 import numpy as np
 import pytest
 from iris.cube import Cube
-from iris.coords import DimCoord
-from iris.coord_systems import CoordSystem
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
-EXAMPLE_INPUT_DATA_1 = np.array([[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32)
+EXAMPLE_INPUT_DATA_1 = np.array(
+    [[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32
+)
 
 EXAMPLE_INPUT_DATA_2 = np.array(
-        [[0, 1, 2], [1095014, 0, -1095014], [4, 5, 6]], dtype=np.float32
+    [[0, 1, 2], [1095014, 0, -1095014], [4, 5, 6]], dtype=np.float32
 )
 
 EXAMPLE_INPUT_DATA_3 = np.array(
@@ -32,15 +32,19 @@ EXAMPLE_INPUT_DATA_4 = np.array(
 
 EQUAL_AREA_GRID_SPACING = 1000  # Metres
 LATITUDE_GRID_SPACING = 10  # Degrees
-LONGITUDE_GRID_SPACING = 120 # 5 # 10 # 120  # Degrees
+LONGITUDE_GRID_SPACING = 120  # 5 # 10 # 120  # Degrees
 # Distances covered when travelling degrees north-south or east-west:
 DISTANCE_PER_DEGREE_AT_EQUATOR = 111319.49079327357
 DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH = 109639.32210546243
 DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH = 104646.93093328059
 
 X_GRID_SPACING_AT_EQUATOR = DISTANCE_PER_DEGREE_AT_EQUATOR * LONGITUDE_GRID_SPACING
-X_GRID_SPACING_AT_10_DEGREES_NORTH = DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH * LONGITUDE_GRID_SPACING
-X_GRID_SPACING_AT_20_DEGREES_NORTH = DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH * LONGITUDE_GRID_SPACING
+X_GRID_SPACING_AT_10_DEGREES_NORTH = (
+    DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH * LONGITUDE_GRID_SPACING
+)
+X_GRID_SPACING_AT_20_DEGREES_NORTH = (
+    DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH * LONGITUDE_GRID_SPACING
+)
 
 Y_GRID_SPACING = 1111949  # Metres/10 degrees
 
@@ -127,7 +131,9 @@ def get_expected_gradients(
 def make_expected_fixture() -> callable:
     """Factory as fixture for generating a cube of varying size."""
 
-    def _make_expected(values, spatial_grid_type, x_grid_spacing, y_grid_spacing) -> Cube:
+    def _make_expected(
+        values, spatial_grid_type, x_grid_spacing, y_grid_spacing
+    ) -> Cube:
         """Create a cube filled with data of a specific shape and value."""
         data = np.array(values, dtype=np.float32)
         cube = set_up_variable_cube(
@@ -149,7 +155,9 @@ def make_expected_fixture() -> callable:
 def make_wind_speed_fixture() -> callable:
     """Factory as fixture for generating a wind speed cube as test input."""
 
-    def _make_input(data, spatial_grid, x_grid_spacing, y_grid_spacing, wrap_around_meridian=False) -> Cube:
+    def _make_input(
+        data, spatial_grid, x_grid_spacing, y_grid_spacing, wrap_around_meridian=False
+    ) -> Cube:
         """Wind speed in m/s"""
 
         cube = set_up_variable_cube(
@@ -188,7 +196,7 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
     """
     Check calculating the gradient with and without regridding for equal area coordinate systems
     """
-    #todo: This seems very complicated. Think about what actually needs testing and stick to that!
+    # todo: This seems very complicated. Think about what actually needs testing and stick to that!
     # What I'm concerned about is that the expected values are calculated by another method.
     x_distances = np.full(
         (input_data.shape[0], input_data.shape[1] - 1), EQUAL_AREA_GRID_SPACING
@@ -203,10 +211,16 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
         input_data, "equalarea", EQUAL_AREA_GRID_SPACING, EQUAL_AREA_GRID_SPACING
     )
     expected_x = make_expected(
-        expected_x_gradients, "equalarea", EQUAL_AREA_GRID_SPACING, EQUAL_AREA_GRID_SPACING
+        expected_x_gradients,
+        "equalarea",
+        EQUAL_AREA_GRID_SPACING,
+        EQUAL_AREA_GRID_SPACING,
     )
     expected_y = make_expected(
-        expected_y_gradients, "equalarea", EQUAL_AREA_GRID_SPACING, EQUAL_AREA_GRID_SPACING
+        expected_y_gradients,
+        "equalarea",
+        EQUAL_AREA_GRID_SPACING,
+        EQUAL_AREA_GRID_SPACING,
     )
     gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=grid["regrid"])(
         wind_speed
@@ -235,12 +249,20 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
     ],
 )
 @pytest.mark.parametrize("wrap_around_meridian", [False, True])
-def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data, wrap_around_meridian):
+def test_gradient_lat_lon_coords(
+    make_input, make_expected, grid, input_data, wrap_around_meridian
+):
     """
     Check calculating the gradient with and without regridding
     for global latitude/longitude coordinate system
     """
-    wind_speed = make_input(input_data, "latlon", LONGITUDE_GRID_SPACING, LATITUDE_GRID_SPACING, wrap_around_meridian)
+    wind_speed = make_input(
+        input_data,
+        "latlon",
+        LONGITUDE_GRID_SPACING,
+        LATITUDE_GRID_SPACING,
+        wrap_around_meridian,
+    )
     x_separations = np.array(
         [
             [X_GRID_SPACING_AT_EQUATOR, X_GRID_SPACING_AT_EQUATOR],
@@ -255,8 +277,12 @@ def test_gradient_lat_lon_coords(make_input, make_expected, grid, input_data, wr
         input_data, x_separations, y_separations, grid["regrid"], wrap_around_meridian
     )
 
-    expected_x = make_expected(expected_x_gradients, "latlon", LONGITUDE_GRID_SPACING, LATITUDE_GRID_SPACING)
-    expected_y = make_expected(expected_y_gradients, "latlon", LONGITUDE_GRID_SPACING, LATITUDE_GRID_SPACING)
+    expected_x = make_expected(
+        expected_x_gradients, "latlon", LONGITUDE_GRID_SPACING, LATITUDE_GRID_SPACING
+    )
+    expected_y = make_expected(
+        expected_y_gradients, "latlon", LONGITUDE_GRID_SPACING, LATITUDE_GRID_SPACING
+    )
     gradient_x, gradient_y = GradientBetweenAdjacentGridSquares(regrid=grid["regrid"])(
         wind_speed
     )
