@@ -5,17 +5,16 @@
 """ Tests of DifferenceBetweenAdjacentGridSquares plugin, which encompasses all paths through
 LatLonCubeDistanceCalculator, ProjectionCubeDistanceCalculator and BaseDistanceCalculator."""
 from typing import Tuple
-import pytest
 
 import numpy as np
-from iris.cube import Cube
-from iris.coords import DimCoord
+import pytest
 from iris.coord_systems import CoordSystem, GeogCS, TransverseMercator
+from iris.coords import DimCoord
+from iris.cube import Cube
 from iris.tests import IrisTest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import DistanceBetweenGridSquares
-
 
 EARTH_RADIUS = 6371229.0  # metres
 
