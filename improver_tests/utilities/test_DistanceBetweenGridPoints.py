@@ -207,7 +207,7 @@ def test_equalarea_cube(test_case):
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "metres"
+        assert result.units == "m"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
 
@@ -227,7 +227,7 @@ def test_equalarea_cube_nonstandard_units():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "metres"
+        assert result.units == "m"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
 
@@ -250,7 +250,7 @@ def test_transverse_mercator_cube():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "metres"
+        assert result.units == "m"
         np.testing.assert_allclose(
             result.data, expected.data, rtol=2e-3, atol=0
         )  # Allowing 0.2% error for spherical earth approximation.
@@ -280,7 +280,7 @@ def test_distance_cube_with_no_coordinate_system():
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "metres"
+        assert result.units == "m"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
 
 
