@@ -6,24 +6,20 @@
 
 import copy
 import warnings
-from typing import List, Optional, Tuple, Union
 from abc import ABC, abstractmethod
+from typing import List, Optional, Tuple, Union
 
 import cartopy.crs as ccrs
-from cartopy.crs import CRS
+import iris
 import netCDF4
 import numpy as np
+from cartopy.crs import CRS
+from cf_units import Unit
+from iris.coord_systems import CoordSystem, GeogCS
+from iris.coords import AuxCoord, CellMethod, Coord, DimCoord
+from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
-from cf_units import Unit
-import iris
-from iris.coords import Coord, DimCoord, AuxCoord, CellMethod
-from iris.cube import Cube, CubeList
-from iris.coord_systems import (
-    CoordSystem,
-    GeogCS,
-)
-
 from scipy.ndimage.filters import maximum_filter
 from scipy.stats import circmean
 
@@ -202,14 +198,18 @@ class BaseDistanceCalculator(ABC):
 
         if axis.circular:
             endpoints_mean = np.deg2rad((axis.points[0] + axis.points[-1]) / 2)
+            # Force angle to sit on the upper quadrant so that eg. for endpoints of 10 degrees,
+            # and 350 degrees, midpoint is zero degrees rather than 180.
             extra_point = np.rad2deg(
                 np.arctan(np.sin(endpoints_mean) / np.cos(endpoints_mean))
-            )  # Forces angle to sit on the upper quadrant so that eg. for endpoints of 10 degrees, and 350 degrees, midpoint is zero degrees rather than 180.
+            )
             if extra_point < 0:
                 extra_point += 360  # Forces angle to be between 0 and 360
+            # Stable sort fasted in this case, where list is already nearly sorted with only the
+            # one out-of-order element.
             midpoints = np.sort(
                 np.hstack((midpoints, np.array(extra_point))), kind="stable"
-            )  # Stable sort fasted in this case, where list is already nearly sorted with only the one out-of-order element.
+            )
 
         return midpoints.astype(axis.dtype)
 

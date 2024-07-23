@@ -12,7 +12,6 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
-
 EXAMPLE_INPUT_DATA_1 = np.array(
     [[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32
 )
