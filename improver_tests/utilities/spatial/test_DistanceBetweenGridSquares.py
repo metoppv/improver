@@ -2,7 +2,8 @@
 #
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Tests of DifferenceBetweenAdjacentGridSquares plugin."""
+""" Tests of DifferenceBetweenAdjacentGridSquares plugin, which encompasses all paths through
+LatLonCubeDistanceCalculator, ProjectionCubeDistanceCalculator and BaseDistanceCalculator."""
 from typing import Tuple
 import pytest
 

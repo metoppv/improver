@@ -196,11 +196,9 @@ class BaseDistanceCalculator(ABC):
             dim_coords_and_dims=dims,
         )
 
-    def cube_wraps_around_x_axis(self):
-        return self.cube.coord(axis="x").circular
-
     @staticmethod
     def get_midpoints(axis: Coord) -> np.ndarray:
+        """Returns the midpoints along the supplied axis"""
         midpoints = (axis.points[:-1] + axis.points[1:]) / 2
 
         if axis.circular:
@@ -216,7 +214,8 @@ class BaseDistanceCalculator(ABC):
 
         return midpoints.astype(axis.dtype)
 
-    def get_difference_axes(self):
+    def get_difference_axes(self) -> Tuple[DimCoord, DimCoord]:
+        """Derives and returns the x and y coords for a difference cube"""
         input_cube_x_axis = self.cube.coord(axis="x")
         input_cube_y_axis = self.cube.coord(axis="y")
         distance_cube_x_axis = input_cube_x_axis.copy(
@@ -300,7 +299,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         lats_as_col = np.expand_dims(self.lats, axis=1)
         lon_diffs = np.diff(self.longs)
 
-        if self.cube_wraps_around_x_axis():
+        if self.cube.coord(axis="x").circular:
             lon_diffs = np.hstack(
                 [lon_diffs, np.array(self.longs[0] + (360 - self.longs[-1]))]
             )
