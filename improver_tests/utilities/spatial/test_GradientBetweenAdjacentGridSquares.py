@@ -100,12 +100,17 @@ def get_expected_gradients(
     Calculates the gradient of a 2d numpy array along the x and y axes, accounting for distance
     between the points.
     Gradients are calculated between grid points, meaning that the resulting arrays will be smaller
-    by one dimension along the axis of differentiation.
+    by one dimension along the axis of differentiation unless wrap_around_meridian=True in which
+    case the x coord will be the same length and the first value will be repeated at the end.
     """
     if wrap_around_meridian:
         wrapped_param_array = np.hstack((param_array, param_array[:, [0]]))
         x_diff = np.diff(wrapped_param_array, axis=1)
-        x_separations = np.hstack((x_separations, x_separations[:, [0]])) # Todo: this is a bit confusing. I need to extend x-separations by one to account for the distance between first and last points wrapped around the back of the earth/west of the prime meridian, but this may not be the best place. x-separations currently hard coded in test, so maybe can parameterise also.
+        x_separations = np.hstack((x_separations, x_separations[:, [0]]))
+        # Todo: this is a bit confusing. I need to extend x-separations by one to account for the
+        #  distance between first and last points wrapped around the back of the earth/west of the
+        #  prime meridian, but this may not be the best place. x-separations currently hard coded
+        #  in test, so maybe can parameterise also.
     else:
         x_diff = np.diff(param_array, axis=1)
 
@@ -183,6 +188,8 @@ def test_gradient_equal_area_coords(make_input, make_expected, grid, input_data)
     """
     Check calculating the gradient with and without regridding for equal area coordinate systems
     """
+    #todo: This seems very complicated. Think about what actually needs testing and stick to that!
+    # What I'm concerned about is that the expected values are calculated by another method.
     x_distances = np.full(
         (input_data.shape[0], input_data.shape[1] - 1), EQUAL_AREA_GRID_SPACING
     )
