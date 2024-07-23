@@ -30,8 +30,8 @@ class Test_create_difference_cube(IrisTest):
         )
         self.plugin = DifferenceBetweenAdjacentGridSquares()
 
-    def test_y_dimension(self):
-        """Test differences calculated along the y dimension."""
+    def test_y_dimension_equalarea(self):
+        """Test differences calculated along the y dimension, equalarea grid."""
         points = self.cube.coord(axis="y").points
         expected_y_coords = (points[1:] + points[:-1]) / 2
         result = self.plugin.create_difference_cube(
@@ -41,11 +41,24 @@ class Test_create_difference_cube(IrisTest):
         self.assertArrayAlmostEqual(result.coord(axis="y").points, expected_y_coords)
         self.assertArrayEqual(result.data, self.diff_in_y_array)
 
-    def test_x_dimension(self):
-        """Test differences calculated along the x dimension."""
+    def test_x_dimension_equalarea(self):
+        """Test differences calculated along the x dimension, equalarea grid."""
         diff_array = np.array([[1, 1], [2, 2], [5, 5]])
         points = self.cube.coord(axis="x").points
         expected_x_coords = (points[1:] + points[:-1]) / 2
+        result = self.plugin.create_difference_cube(
+            self.cube, "projection_x_coordinate", diff_array
+        )
+        self.assertIsInstance(result, Cube)
+        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
+        self.assertArrayEqual(result.data, diff_array)
+
+    def test_x_dimension_equalarea_circular(self):
+        """Test differences calculated along the x dimension when x is circular, equalarea grid."""
+        diff_array = np.array([[1, 1], [2, 2], [5, 5]])
+        points = self.cube.coord(axis="x").points
+        expected_x_coords = (points[1:] + points[:-1]) / 2
+        self.cube.coord(axis="x").circular = True
         result = self.plugin.create_difference_cube(
             self.cube, "projection_x_coordinate", diff_array
         )
