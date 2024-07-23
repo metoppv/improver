@@ -174,7 +174,6 @@ class BaseDistanceCalculator(ABC):
                 Cube for which the distances will be calculated.
         """
         self.cube = cube
-        # self.x_diff, self.y_diff = diffs # Todo: yes this breaks the distance child class. Plan to fix.
         self.x_separations_axis, self.y_separation_axis = self.get_difference_axes()
 
     @staticmethod
@@ -341,6 +340,11 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the x-axis distances between the grid points of the input
             cube in metres.
         """
+        if self.cube.coord(axis="x").circular:
+            raise NotImplementedError(
+                "Cannot calculate distances between bounding points of a circular projected "
+                "coordinate."
+            )
         x_distances = calculate_grid_spacing(self.cube, axis="x", units="m")
         data = np.full(
             (self.cube.shape[0], len(self.x_separations_axis.points)), x_distances

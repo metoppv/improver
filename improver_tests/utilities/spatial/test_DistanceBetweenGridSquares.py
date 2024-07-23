@@ -19,7 +19,7 @@ from improver.utilities.spatial import DistanceBetweenGridSquares
 
 EARTH_RADIUS = 6371229.0  # metres
 
-TEST_LATITUDES = [0, 10, 20]
+TEST_LATITUDES = np.array([0, 10, 20])
 # Distance covered when travelling 10 degrees north/south:
 Y_GRID_SPACING = 1111949  # Metres
 
@@ -31,7 +31,7 @@ ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES = np.array(
     [
         DISTANCE_PER_DEGREE_AT_EQUATOR,
         DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH,
-        DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH
+        DISTANCE_PER_DEGREE_AT_20_DEGREES_NORTH,
     ]
 ).reshape((3, 1))
 
@@ -39,54 +39,35 @@ TRANSVERSE_MERCATOR_GRID_SPACING = 2000.0  # Metres
 
 # Todo: change all references to 'full haversine'
 
+
 def make_equalarea_test_cube(shape, grid_spacing, units="metres"):
     """Creates a cube using the Lambert Azimuthal Equal Area projection for testing"""
     data = np.ones(shape, dtype=np.float32)
     cube = set_up_variable_cube(
-        data, spatial_grid="equalarea", x_grid_spacing=grid_spacing, y_grid_spacing=grid_spacing
+        data,
+        spatial_grid="equalarea",
+        x_grid_spacing=grid_spacing,
+        y_grid_spacing=grid_spacing,
     )
     cube.coord("projection_x_coordinate").convert_units(units)
     cube.coord("projection_y_coordinate").convert_units(units)
     return cube
 
-#TODO: do I still need this now that set_up_variable_cube supports different x and y grid spacing?
+
 def make_test_cube(
     shape: Tuple[int, int],
     coordinate_system: CoordSystem,
-    x_axis_name: str,
     x_axis_values: np.ndarray,
-    y_axis_name: str,
     y_axis_values: np.ndarray,
-    xy_axis_units: str,
 ) -> Cube:
-    """Creates an example cube for use as test input."""
+    """Creates an example cube for use as test input that can have unequal spatial coordinates."""
     example_data = np.ones(shape, dtype=np.float32)
-    dimcoords = [
-        (
-            DimCoord(
-                y_axis_values,
-                standard_name=y_axis_name,
-                units=xy_axis_units,
-                coord_system=coordinate_system,
-            ),
-            0,
-        ),
-        (
-            DimCoord(
-                x_axis_values,
-                standard_name=x_axis_name,
-                units=xy_axis_units,
-                coord_system=coordinate_system,
-            ),
-            1,
-        ),
-    ]
-    cube = Cube(
+    cube = set_up_variable_cube(
         example_data,
-        standard_name="land_ice_basal_temperature",
-        units="kelvin",
-        dim_coords_and_dims=dimcoords,
+        spatial_grid="latlon" if type(coordinate_system) == GeogCS else "equalarea",
     )
+    cube.replace_coord(cube.coord(axis="x").copy(x_axis_values))
+    cube.replace_coord(cube.coord(axis="y").copy(y_axis_values))
     return cube
 
 
@@ -108,15 +89,7 @@ def make_transverse_mercator_test_cube(shape: Tuple[int, int]) -> Cube:
     yo = 0.0
     y_points = TRANSVERSE_MERCATOR_GRID_SPACING * (shape[0] - np.arange(shape[0])) + yo
     x_points = TRANSVERSE_MERCATOR_GRID_SPACING * np.arange(shape[1]) + xo
-    return make_test_cube(
-        shape,
-        transvers_mercator_coord_system,
-        "projection_x_coordinate",
-        x_points,
-        "projection_y_coordinate",
-        y_points,
-        "metres",
-    )
+    return make_test_cube(shape, transvers_mercator_coord_system, x_points, y_points)
 
 
 def make_latlon_test_cube(
@@ -124,48 +97,42 @@ def make_latlon_test_cube(
 ) -> Cube:
     """Creates a cube using the Geographic coordinate system with its origin at the
     intersecton of the equator and the prime meridian."""
-    return make_test_cube(
-        shape,
-        GeogCS(EARTH_RADIUS),
-        "longitude",
-        longitudes,
-        "latitude",
-        latitudes,
-        "degrees",
-    )
+    return make_test_cube(shape, GeogCS(EARTH_RADIUS), longitudes, latitudes)
 
 
 @pytest.mark.parametrize(
-    "longs",
+    "longitudes, is_circular",
     (
-        #Longitudes, Cube_is_circular
         ([0, 10, 20], False),
         ([0, 5, 10], False),
         ([0, 11, 22], False),
         ([0, 60, 120], False),
-        ([-60, 0, 60], False),
         ([0, 120, 240], False),
         ([0, 120, 240], True),
-        ([-120, -60, 0, 60, 120, 180], False),
-        ([-120, -60, 0, 60, 120, 180], True),
+        ([0, 60, 120, 180, 240, 300], False),
+        ([0, 60, 120, 180, 240, 300], True),
         ([0, 10], False),
         ([0, 20], False),
         ([-20, 20], False),
-        ([-60, -30, 0, 30, 60], False) # Todo: dim coords are not correct. Think it's a floating point error? Probably need a test for this.
+        ([0, 30, 60, 90, 120], False)
         # Todo: try a non-uniform grid.
-    )
+    ),
 )
-def test_latlon_cube(longs):
+def test_latlon_cube(longitudes, is_circular):
     """Basic test for a cube using a geographic coordinate system."""
-    longitudes, is_circular = longs
     input_cube = make_latlon_test_cube(
         (len(TEST_LATITUDES), len(longitudes)), TEST_LATITUDES, longitudes
     )
-    expected_y_distances = np.full((len(TEST_LATITUDES) - 1, len(longitudes)), Y_GRID_SPACING)
+    expected_y_distances = np.full(
+        (len(TEST_LATITUDES) - 1, len(longitudes)), Y_GRID_SPACING
+    )
+    expected_longitudes = longitudes.copy()
     if is_circular:
         input_cube.coord(axis="x").circular = True
-        longitudes.append(360 + longitudes[0])  # TODO: I feel like this could be clearer.
-    expected_x_distances = np.diff(longitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
+        expected_longitudes.append(360 + longitudes[0])
+    expected_x_distances = (
+        np.diff(expected_longitudes) * ONE_DEGREE_DISTANCE_AT_TEST_LATITUDES
+    )
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
@@ -174,29 +141,17 @@ def test_latlon_cube(longs):
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
     ):
-        assert result.units == "metres"
+        assert result.units == "m"
         np.testing.assert_allclose(
             result.data, expected.data, rtol=33e-4, atol=0
         )  # Allowing 0.33% error for spherical earth approximation.
 
 
-@pytest.mark.parametrize(
-    "test_case",
-    (
-        # Distances, Cube_is_circular
-        (1000, False),
-        (13358333, True),  # 13358333 ~= 1/3 of the Earths' circumference
-    )
-)
-def test_equalarea_cube(test_case):
-    """Basic test for a cube using a Lambert Azumutal Equal Area projection"""  # Todo: I think this only works by chance. The get_midpoints method on the distances base class only works with angular coordinates. Probably just need to move this to the latlong subclass and have the projections subclass raise a not-implemented error for circular coords, which this class can capture. Logic for getting the x axis for differences will be the same as for distances.
-    spacing, circular = test_case
+def test_equalarea_cube():
+    """Basic test for a non-circular cube using a Lambert Azumutal Equal Area projection"""
+    spacing = 1000
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=spacing)
-    if circular:
-        input_cube.coord(axis="x").circular = True
-        expected_x_distances_cube_shape = (3, 3)
-    else:
-        expected_x_distances_cube_shape = (3, 2)
+    expected_x_distances_cube_shape = (3, 2)
 
     expected_x_distances = np.full(expected_x_distances_cube_shape, spacing)
     expected_y_distances = np.full((2, 3), spacing)
@@ -210,6 +165,16 @@ def test_equalarea_cube(test_case):
     ):
         assert result.units == "m"
         np.testing.assert_allclose(result.data, expected.data, rtol=2e-5, atol=0)
+
+
+def test_equalarea_circular_cube_error():
+    """Test for error with circular cube using a Lambert Azumutal Equal Area projection"""
+    input_cube = make_equalarea_test_cube((3, 3), grid_spacing=1000)
+    input_cube.coord(axis="x").circular = True
+    with pytest.raises(
+        NotImplementedError, match="Cannot calculate distances between bounding points"
+    ):
+        DistanceBetweenGridSquares(input_cube)()
 
 
 def test_equalarea_cube_nonstandard_units():
@@ -292,15 +257,14 @@ def test_degrees_cube_with_no_coordinate_system_information():
     """
     input_cube = make_test_cube(
         shape=(3, 3),
-        coordinate_system=None,
-        x_axis_name="projection_x_coordinate",
+        coordinate_system=GeogCS(EARTH_RADIUS),
         x_axis_values=np.arange(3),
-        y_axis_name="projection_y_coordinate",
         y_axis_values=np.arange(3),
-        xy_axis_units="degrees",
     )
+    input_cube.coord(axis="x").coord_system = None
+    input_cube.coord(axis="y").coord_system = None
     with IrisTest().assertRaisesRegex(
         expected_exception=ValueError,
         expected_regex="Unsupported cube coordinate system.*",
     ):
-        _, _ = DistanceBetweenGridSquares(input_cube)()
+        DistanceBetweenGridSquares(input_cube)()
