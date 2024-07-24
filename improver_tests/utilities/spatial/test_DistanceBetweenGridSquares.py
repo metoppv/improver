@@ -266,3 +266,26 @@ def test_degrees_cube_with_no_coordinate_system_information():
         expected_regex="Unsupported cube coordinate system.*",
     ):
         DistanceBetweenGridSquares(input_cube)()
+
+
+def test_latlon_cube_with_no_coordinate_units_error():
+    """
+    Tests that a cube with latlon projection that cannot be coerced into units of degrees
+    is handled correctly.
+    """
+    input_cube = make_test_cube(
+        shape=(3, 3),
+        coordinate_system=GeogCS(EARTH_RADIUS),
+        x_axis_values=np.arange(3),
+        y_axis_values=np.arange(3),
+    )
+    input_cube.coord(axis="x").units = "1"
+    input_cube.coord(axis="y").units = "1"
+    with pytest.raises(
+        ValueError,
+        match=(
+            "Cannot parse spatial axes of the cube provided. "
+            "Expected lat-long cube with units of degrees."
+        ),
+    ):
+        DistanceBetweenGridSquares(input_cube)()
