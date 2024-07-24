@@ -282,12 +282,12 @@ def test_process(
             forecast_cube.data, dtype=forecast_cube.data.dtype
         )
         forecast_cube.data.mask = MASK
-    result = ApplyBiasCorrection().process(
-        forecast_cube,
-        input_bias_cubelist,
+    result = ApplyBiasCorrection(
         lower_bound=lower_bound,
+        upper_bound=upper_bound,
         fill_masked_bias_values=fill_masked_bias_data,
-    )
+    ).process(forecast_cube, input_bias_cubelist)
+
     expected = TEST_FCST_DATA - MEAN_BIAS_DATA
     if fill_masked_bias_data and masked_bias_data:
         expected = np.where(MASK, TEST_FCST_DATA, expected)
