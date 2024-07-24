@@ -17,8 +17,8 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class ExtractValueFromTable(BasePlugin):
-    """ Plugin to extract values from a DataFrame using the provided inputs cubes to select which rows
-    and columns to extract.
+    """ Plugin to extract values from a DataFrame using the provided inputs cubes to select which
+    rows and columns to extract.
 
     The table is expected to contain numerical labels for every row and column. These labels will be
     sorted into ascending order.
@@ -68,7 +68,7 @@ class ExtractValueFromTable(BasePlugin):
         # we need to check if the values are within a tolerance of the table_labels and correct the
         # index if necessary.
         tol = 1e-5
-        condition = np.abs(sorted_table_labels[:, None] - values) < tol
+        condition = np.abs(np.array(sorted_table_labels)[:, None] - values) < tol
         true_index, index = np.where(condition)
 
         sorted_index[index] = true_index
@@ -149,8 +149,8 @@ class ExtractValueFromTable(BasePlugin):
 
         if len(cubes) != 2:
             raise ValueError(
-                f"""Exactly 2 cubes should be provided, one for indexing columns and one for indexing rows.
-                                Provided cubes are {[cube.name() for cube in cubes]}"""
+                f"""Exactly 2 cubes should be provided, one for indexing columns and one for
+                indexing rows. Provided cubes are {[cube.name() for cube in cubes]}"""
             )
 
         row_cube = cubes.extract_cube(self.row_name)
