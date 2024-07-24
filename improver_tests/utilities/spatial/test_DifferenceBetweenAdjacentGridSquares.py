@@ -8,6 +8,7 @@ import unittest
 
 import iris
 import numpy as np
+import pytest
 from iris.coords import CellMethod
 from iris.cube import Cube
 from iris.tests import IrisTest
@@ -56,15 +57,15 @@ class Test_create_difference_cube(IrisTest):
     def test_x_dimension_equalarea_circular(self):
         """Test differences calculated along the x dimension when x is circular, equalarea grid."""
         diff_array = np.array([[1, 1], [2, 2], [5, 5]])
-        points = self.cube.coord(axis="x").points
-        expected_x_coords = (points[1:] + points[:-1]) / 2
         self.cube.coord(axis="x").circular = True
-        result = self.plugin.create_difference_cube(
-            self.cube, "projection_x_coordinate", diff_array
-        )
-        self.assertIsInstance(result, Cube)
-        self.assertArrayAlmostEqual(result.coord(axis="x").points, expected_x_coords)
-        self.assertArrayEqual(result.data, diff_array)
+        with pytest.raises(
+            NotImplementedError,
+            match="DifferenceBetweenAdjacentGridSquares does not support cubes with circular "
+                  "x-axis that do not use a geographic",
+        ):
+            self.plugin.create_difference_cube(
+                self.cube, "projection_x_coordinate", diff_array
+            )
 
     def test_x_dimension_for_circular_latlon_cube(self):
         """Test differences calculated along the x dimension for a cube which is circular in x."""
@@ -272,7 +273,7 @@ class Test_process(IrisTest):
 
     def test_circular_non_geographic_cube_raises_approprate_exception(self):
         self.cube.coord(axis="x").circular = True
-        with self.assertRaises(ValueError):
+        with self.assertRaises(NotImplementedError):
             self.plugin.process(self.cube)
 
 
