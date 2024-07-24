@@ -72,5 +72,5 @@ def process(
         horizontal_interpolation=horizontal_interpolation,
         model_id_attr=model_id_attr,
     )
-    result = plugin(cubes)
+    result = plugin(*cubes)
     return result

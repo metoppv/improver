@@ -5,10 +5,10 @@
 """module to calculate hail_size"""
 
 from bisect import bisect_right
-from typing import List, Tuple
+from typing import List, Tuple, Union
 
 import numpy as np
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -21,6 +21,7 @@ from improver.psychrometric_calculations.psychrometric_calculations import (
     dry_adiabatic_temperature,
     saturated_humidity,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import assert_spatial_coords_match
 from improver.utilities.cube_extraction import ExtractLevel
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
@@ -466,31 +467,41 @@ class HailSize(BasePlugin):
         )
         return hail_size_cube
 
-    def process(
-        self,
-        ccl_temperature: Cube,
-        ccl_pressure: Cube,
-        temperature_on_pressure: Cube,
-        wet_bulb_zero_height_asl: Cube,
-        orography: Cube,
-    ) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """
         Main entry point of this class
 
         Args:
-            ccl_temperature:
-                Cube of the cloud condensation level temperature
-            ccl_pressure:
-                Cube of the cloud condensation level pressure.
-            temperature_on_pressure:
-                Cube of temperature on pressure levels
-            wet_bulb_zero_height_asl:
-                Cube of the height of the wet-bulb freezing level above sea level
-            orography:
-                Cube of the orography height.
+            cubes
+                air_temperature:
+                    Cube of the cloud condensation level temperature
+                air_pressure_at_condensation_level:
+                    Cube of the cloud condensation level pressure.
+                air_temperature_at_condensation_level:
+                    Cube of temperature on pressure levels
+                wet_bulb_freezing_level_altitude:
+                    Cube of the height of the wet-bulb freezing level above sea level
+                surface_altitude:
+                    Cube of the orography height.
         Returns:
             Cube of hail diameter (m)
         """
+        cubes = as_cubelist(*cubes)
+        (
+            temperature_on_pressure,
+            ccl_pressure,
+            ccl_temperature,
+            wet_bulb_zero_height_asl,
+            orography,
+        ) = cubes.extract(
+            [
+                "air_temperature",
+                "air_pressure_at_condensation_level",
+                "air_temperature_at_condensation_level",
+                "wet_bulb_freezing_level_altitude",
+                "surface_altitude",
+            ]
+        )
 
         self.check_cubes(
             ccl_temperature,

@@ -3,8 +3,8 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for psychrometric_calculations WetBulbTemperature"""
-
 import unittest
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -14,6 +14,25 @@ from iris.tests import IrisTest
 
 from improver.psychrometric_calculations.wet_bulb_temperature import WetBulbTemperature
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.psychrometric_calculations.wet_bulb_temperature.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        WetBulbTemperature(
+            precision=sentinel.convergence_condition,
+            model_id_attr=sentinel.model_id_attr,
+        )(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 class Test_psychrometric_variables(IrisTest):
@@ -214,11 +233,11 @@ class Test_process(Test_WetBulbTemperature):
         with self.assertRaisesRegex(ValueError, msg):
             WetBulbTemperature().process(CubeList([temp, humid, pressure, temp]))
 
-    def test_empty_cube_list(self):
-        """Tests that an error is raised if there is an empty list."""
+    def test_too_few_cubes(self):
+        """Tests that an error is raised if there isn't 3 cubes provided."""
         msg = "Expected 3"
         with self.assertRaisesRegex(ValueError, msg):
-            WetBulbTemperature().process(CubeList([]))
+            WetBulbTemperature().process(CubeList([self.temperature]))
 
 
 if __name__ == "__main__":

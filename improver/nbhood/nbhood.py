@@ -12,9 +12,12 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from scipy.ndimage.filters import correlate
 
-from improver import PostProcessingPlugin
+from improver import BasePlugin, PostProcessingPlugin
 from improver.constants import DEFAULT_PERCENTILES
 from improver.metadata.forecast_times import forecast_period_coord
+from improver.nbhood import radius_by_lead_time
+from improver.utilities.common_input_handle import as_cube
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_checker import (
     check_cube_coordinates,
     find_dimension_coordinate_mismatch,
@@ -718,4 +721,141 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
         # This is required when self.percentiles is length 1.
         if result.coord_dims(pct_coord_name) == ():
             result = iris.util.new_axis(result, scalar_coord=pct_coord_name)
+        return result
+
+
+class MetaNeighbourhood(BasePlugin):
+    """
+    Meta-processing module which handles probabilities and percentiles
+    neighbourhood processing.
+    """
+
+    def __init__(
+        self,
+        neighbourhood_output: str,
+        radii: List[float],
+        lead_times: Optional[List[int]] = None,
+        neighbourhood_shape: str = "square",
+        degrees_as_complex: bool = False,
+        weighted_mode: bool = False,
+        area_sum: bool = False,
+        percentiles: List[float] = DEFAULT_PERCENTILES,
+        halo_radius: Optional[float] = None,
+    ) -> None:
+        """
+        Initialise the MetaNeighbourhood class.
+
+        Args:
+            neighbourhood_output:
+                The form of the results generated using neighbourhood processing.
+                If "probabilities" is selected, the mean probability with a
+                neighbourhood is calculated. If "percentiles" is selected, then
+                the percentiles are calculated with a neighbourhood. Calculating
+                percentiles from a neighbourhood is only supported for a circular
+                neighbourhood, and the input cube should be ensemble realizations.
+                The calculation of percentiles from a neighbourhood is notably slower
+                than neighbourhood processing using a thresholded probability field.
+                Options: "probabilities", "percentiles".
+            radii:
+                The radius or a list of radii in metres of the neighbourhood to
+                apply.
+                If it is a list, it must be the same length as lead_times, which
+                defines at which lead time to use which nbhood radius. The radius
+                will be interpolated for intermediate lead times.
+            lead_times:
+                The lead times in hours that correspond to the radii to be used.
+                If lead_times are set, radii must be a list the same length as
+                lead_times.
+            neighbourhood_shape:
+                Name of the neighbourhood method to use. Only a "circular"
+                neighbourhood shape is applicable for calculating "percentiles"
+                output.
+                Options: "circular", "square".
+                Default: "square".
+            degrees_as_complex:
+                Include this option to process angles as complex numbers.
+                Not compatible with circular kernel or percentiles.
+            weighted_mode:
+                Include this option to set the weighting to decrease with radius.
+                Otherwise a constant weighting is assumed.
+                weighted_mode is only applicable for calculating "probability"
+                neighbourhood output using the circular kernel.
+            area_sum:
+                Return sum rather than fraction over the neighbourhood area.
+            percentiles:
+                Calculates value at the specified percentiles from the
+                neighbourhood surrounding each grid point. This argument has no
+                effect if the output is probabilities.
+            halo_radius:
+                Set this radius in metres to define the excess halo to clip. Used
+                where a larger grid was defined than the standard grid and we want
+                to clip the grid back to the standard grid. Otherwise no clipping
+                is applied.
+        """
+        self._neighbourhood_output = neighbourhood_output
+        self._neighbourhood_shape = neighbourhood_shape
+        self._radius_or_radii, self._lead_times = radius_by_lead_time(radii, lead_times)
+        self._degrees_as_complex = degrees_as_complex
+        self._weighted_mode = weighted_mode
+        self._area_sum = area_sum
+        self._percentiles = percentiles
+        self._halo_radius = halo_radius
+
+        if neighbourhood_output == "percentiles":
+            if weighted_mode:
+                raise RuntimeError(
+                    "weighted_mode cannot be used with"
+                    'neighbourhood_output="percentiles"'
+                )
+            if degrees_as_complex:
+                raise RuntimeError("Cannot generate percentiles from complex numbers")
+
+        if neighbourhood_shape == "circular":
+            if degrees_as_complex:
+                raise RuntimeError(
+                    "Cannot process complex numbers with circular neighbourhoods"
+                )
+
+    def process(self, cube: Cube, mask: Cube = None) -> Cube:
+        """
+        Apply neighbourhood processing to the input cube.
+
+        Args:
+            cube: The input cube.
+            mask: The mask cube.
+
+        Returns:
+            iris.cube.Cube: The processed cube.
+        """
+        cube = as_cube(cube)
+        if mask:
+            mask = as_cube(mask)
+
+        if self._degrees_as_complex:
+            # convert cube data into complex numbers
+            cube.data = deg_to_complex(cube.data)
+
+        if self._neighbourhood_output == "probabilities":
+            result = NeighbourhoodProcessing(
+                self._neighbourhood_shape,
+                self._radius_or_radii,
+                lead_times=self._lead_times,
+                weighted_mode=self._weighted_mode,
+                sum_only=self._area_sum,
+                re_mask=True,
+            )(cube, mask_cube=mask)
+        elif self._neighbourhood_output == "percentiles":
+            result = GeneratePercentilesFromANeighbourhood(
+                self._radius_or_radii,
+                lead_times=self._lead_times,
+                percentiles=self._percentiles,
+            )(cube)
+
+        if self._degrees_as_complex:
+            # convert neighbourhooded cube back to degrees
+            result.data = complex_to_deg(result.data)
+        if self._halo_radius is not None:
+            from improver.utilities.pad_spatial import remove_cube_halo
+
+            result = remove_cube_halo(result, self._halo_radius)
         return result

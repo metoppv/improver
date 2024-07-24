@@ -21,6 +21,7 @@ from improver.blending import MODEL_BLEND_COORD, MODEL_NAME_COORD
 from improver.blending.utilities import find_blend_dim_coord, store_record_run_as_coord
 from improver.metadata.constants import FLOAT_DTYPE, PERC_COORD
 from improver.metadata.forecast_times import rebadge_forecasts_as_latest_cycle
+from improver.utilities.complex_conversion import complex_to_deg, deg_to_complex
 from improver.utilities.cube_manipulation import (
     MergeCubes,
     collapsed,
@@ -29,7 +30,6 @@ from improver.utilities.cube_manipulation import (
     get_dim_coord_names,
     sort_coord_in_cube,
 )
-from improver.wind_calculations.wind_direction import WindDirection
 
 
 class MergeCubesForWeightedBlending(BasePlugin):
@@ -631,7 +631,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         # If units are degrees, convert degrees to complex numbers.
         if cube.units == "degrees":
-            cube.data = WindDirection.deg_to_complex(cube.data)
+            cube.data = deg_to_complex(cube.data)
 
         weights_array = self.get_weights_array(cube, weights)
 
@@ -658,7 +658,7 @@ class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
 
         # If units are degrees, convert complex numbers back to degrees.
         if cube.units == "degrees":
-            result.data = WindDirection.complex_to_deg(result.data)
+            result.data = complex_to_deg(result.data)
 
         return result
 

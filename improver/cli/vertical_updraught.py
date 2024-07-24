@@ -33,4 +33,4 @@ def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """
     from improver.wind_calculations.vertical_updraught import VerticalUpdraught
 
-    return VerticalUpdraught(model_id_attr=model_id_attr)(cubes)
+    return VerticalUpdraught(model_id_attr=model_id_attr)(*cubes)

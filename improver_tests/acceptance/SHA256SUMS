@@ -70,6 +70,10 @@ c7eb9bab2ad43ac19ecc071730479a9f27a58992fcb22050743d34cdf2ad9639  ./apply-lapse-
 6eb89848a2a36007d9a2210e2ff4cb459921502329eb4bb6ef0bde74701d0c27  ./apply-lapse-rate/realizations/enukx_orography.nc
 25eeaa6b86b95354efd9406b1f9f1b5b43f0a7dd46f75fc5f3d144f52a30059e  ./apply-lapse-rate/realizations/enukx_temperature.nc
 a747cf91ea8a2b720e1a22a9569cc1a2c22bb7ad28282e661127413470ba0392  ./apply-lapse-rate/realizations/kgo.nc
+e455d391d15c30fe3cf3680fa0c355a3d4f0a9a84450f685f618655eb962ff52  ./apply-mask/kgo.nc
+a3aca2f841ff96a7780cb98a5ccf874001905f18db0c6166dffcf116a3f1b319  ./apply-mask/kgo_inverted.nc
+f33c0f3d10846ee69edd24fb318bebd4a2645363c89a434f56aeff24313fc886  ./apply-mask/mask.nc
+9fba2a41268f30c530e9362bf15ef34c781d24b5e580589cec7715b1a6d25b27  ./apply-mask/wind_speed.nc
 3a3d1b902e9e97f6ec7c74937e43dfce460c6599ef1890ac90f711959415f6ed  ./apply-night-mask/global_basic/input.nc
 65ba596b39ae589e1033b8e35fcb71f341b2fe64337fc2e4d88edff4331925e9  ./apply-night-mask/global_basic/kgo.nc
 c5860ce0801d097e1705130d6e3f49b19c43fa399041bd7726b7a1257335f2fb  ./apply-night-mask/uk_basic/input.nc
