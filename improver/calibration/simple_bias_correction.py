@@ -259,6 +259,7 @@ class ApplyBiasCorrection(BasePlugin):
     ):
         """
         Initialise class for applying simple bias correction.
+
         Args:
             lower_bound:
                 A lower bound below which all values will be remapped to
@@ -277,19 +278,17 @@ class ApplyBiasCorrection(BasePlugin):
 
     def _split_forecasts_and_bias(self, cubes: CubeList):
         """
-        wrapper for the split_forecasts_and_bias_files function
+        Wrapper for the split_forecasts_and_bias_files function.
 
         Args:
             cubes:
                 Cubelist containing the input forecast and bias cubes.
+        
         Return:
-            forecast_cube:
-                Cube containing the forecast data to be bias-corrected.
-            bias_cubes:
-                Cubelist containing the bias data to use in bias-correction.
-                Or None if no bias data is provided.
+            - Cube containing the forecast data to be bias-corrected.
+            - Cubelist containing the bias data to use in bias-correction.
+              Or None if no bias data is provided.
         """
-
         forecast_cube, bias_cubes = split_forecasts_and_bias_files(cubes)
 
         # Check whether bias data supplied, if not then return unadjusted input cube.
