@@ -228,12 +228,10 @@ class BaseDistanceCalculator(ABC):
     @abstractmethod
     def _get_x_distances(self) -> Cube:
         """Abstract method for calculating distances along the x axis of the input cube"""
-        pass
 
     @abstractmethod
     def _get_y_distances(self) -> Cube:
         """Abstract method for calculating distances along the y axis of the input cube"""
-        pass
 
     def get_distances(self) -> Tuple[Cube, Cube]:
         """
