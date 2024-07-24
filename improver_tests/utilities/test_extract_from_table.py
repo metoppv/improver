@@ -71,7 +71,6 @@ def test_read_table(
 
     if new_name:
         expected_cube.rename(new_name)
-    print(result.data)
     np.testing.assert_array_almost_equal(result.data, expected_cube.data)
     assert result == expected_cube
 

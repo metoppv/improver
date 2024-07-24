@@ -96,7 +96,6 @@ class ExtractValueFromTable(BasePlugin):
 
         columns_data = columns_cube.data.flatten()
         row_data = row_cube.data.flatten()
-        print(table.columns)
         column_index = self.nearest_lower_index(
             values=columns_data, sorted_table_labels=table.columns
         )
