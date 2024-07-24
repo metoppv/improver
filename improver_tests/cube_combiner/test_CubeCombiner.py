@@ -502,6 +502,7 @@ if __name__ == "__main__":
 
 @pytest.fixture
 def cube1():
+    """Set up a probability cube with data for testing"""
     data = np.full((1, 2, 2), 0.5, dtype=np.float32)
     cube1 = set_up_probability_cube(
         data,
@@ -516,6 +517,7 @@ def cube1():
 
 @pytest.fixture
 def cube2():
+    """Set up a second probability cube with data for testing"""
     data = np.full((1, 2, 2), 0.6, dtype=np.float32)
     cube2 = set_up_probability_cube(
         data,
@@ -531,6 +533,7 @@ def cube2():
 @pytest.mark.parametrize("cube1_mask", [False, True])
 @pytest.mark.parametrize("cube2_mask", [False, True])
 def test_masked_add(cube1, cube2, cube1_mask, cube2_mask):
+    """Tests the plugin works with the masked_add option"""
     mask = [[False, True], [False, False]]
     expected_output = np.array(np.full((2, 2), 1.1, dtype=np.float32))
     expected_mask = [[False, False], [False, False]]
@@ -548,3 +551,4 @@ def test_masked_add(cube1, cube2, cube1_mask, cube2_mask):
     result = masked_add(cube1.data, cube2.data)
     assert np.allclose(result.data, expected_output)
     assert np.allclose(result.mask, expected_mask)
+    assert result.dtype == np.float32
