@@ -283,7 +283,7 @@ class ApplyBiasCorrection(BasePlugin):
         Args:
             cubes:
                 Cubelist containing the input forecast and bias cubes.
-        
+
         Return:
             - Cube containing the forecast data to be bias-corrected.
             - Cubelist containing the bias data to use in bias-correction.
