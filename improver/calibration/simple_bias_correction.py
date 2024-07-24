@@ -276,6 +276,20 @@ class ApplyBiasCorrection(BasePlugin):
         self.fill_masked_bias_values = fill_masked_bias_values
 
     def _split_forecasts_and_bias(self, cubes: CubeList):
+        """
+        wrapper for the split_forecasts_and_bias_files function
+
+        Args:
+            cubes:
+                Cubelist containing the input forecast and bias cubes.
+        Return:
+            forecast_cube:
+                Cube containing the forecast data to be bias-corrected.
+            bias_cubes:
+                Cubelist containing the bias data to use in bias-correction. 
+                Or None if no bias data is provided.
+
+        """
 
         forecast_cube, bias_cubes = split_forecasts_and_bias_files(cubes)
 
