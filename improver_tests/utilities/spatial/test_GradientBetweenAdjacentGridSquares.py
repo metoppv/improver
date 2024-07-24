@@ -11,7 +11,6 @@ from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
-
 EQUAL_AREA_GRID_SPACING = 2000  # Metres
 # Distances covered when travelling degrees north-south or east-west:
 DISTANCE_PER_DEGREE_AT_EQUATOR = 111198.9234485458
