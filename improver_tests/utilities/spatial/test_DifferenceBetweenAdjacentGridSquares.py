@@ -61,7 +61,7 @@ class Test_create_difference_cube(IrisTest):
         with pytest.raises(
             NotImplementedError,
             match="DifferenceBetweenAdjacentGridSquares does not support cubes with circular "
-                  "x-axis that do not use a geographic",
+            "x-axis that do not use a geographic",
         ):
             self.plugin.create_difference_cube(
                 self.cube, "projection_x_coordinate", diff_array
@@ -272,8 +272,13 @@ class Test_process(IrisTest):
         self.assertArrayEqual(result[1].data, expected_y)
 
     def test_circular_non_geographic_cube_raises_approprate_exception(self):
+        """Check for error and message with projection coord and circular x axis"""
         self.cube.coord(axis="x").circular = True
-        with self.assertRaises(NotImplementedError):
+        with self.assertRaises(
+            NotImplementedError,
+            match="DifferenceBetweenAdjacentGridSquares does not support cubes with "
+            "circular x-axis that do not use a geographic (i.e. latlon) coordinate system.",
+        ):
             self.plugin.process(self.cube)
 
 
