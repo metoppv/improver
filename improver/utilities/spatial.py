@@ -26,9 +26,8 @@ from scipy.stats import circmean
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
 from improver.metadata.constants import FLOAT_DTYPE
-from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.metadata.probabilistic import in_vicinity_name_format, is_probability
-from improver.metadata.utilities import create_new_diagnostic_cube
+from improver.metadata.utilities import create_new_diagnostic_cube, generate_mandatory_attributes
 from improver.utilities.cube_checker import check_cube_coordinates, spatial_coords_match
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
@@ -642,7 +641,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
             name,
             gradient.units,
             gradient,
-            {},
+            generate_mandatory_attributes([gradient]),
             optional_attributes=attributes,
             data=gradient.data,
         )
