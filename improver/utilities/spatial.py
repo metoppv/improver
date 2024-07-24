@@ -194,24 +194,13 @@ class BaseDistanceCalculator(ABC):
     @staticmethod
     def get_midpoints(axis: Coord) -> np.ndarray:
         """Returns the midpoints along the supplied axis"""
-        midpoints = (axis.points[:-1] + axis.points[1:]) / 2
+        points = axis.points
 
         if axis.circular:
-            endpoints_mean = np.deg2rad((axis.points[0] + axis.points[-1]) / 2)
-            # Force angle to sit on the upper quadrant so that eg. for endpoints of 10 degrees,
-            # and 350 degrees, midpoint is zero degrees rather than 180.
-            extra_point = np.rad2deg(
-                np.arctan(np.sin(endpoints_mean) / np.cos(endpoints_mean))
-            )
-            if extra_point < 0:
-                extra_point += 360  # Forces angle to be between 0 and 360
-            # Stable sort fasted in this case, where list is already nearly sorted with only the
-            # one out-of-order element.
-            midpoints = np.sort(
-                np.hstack((midpoints, np.array(extra_point))), kind="stable"
-            )
+            points = np.hstack((points, 360 + points[0]))
+        mean_points = (points[1:] + points[:-1]) / 2
 
-        return midpoints.astype(axis.dtype)
+        return mean_points.astype(axis.dtype)
 
     def get_difference_axes(self) -> Tuple[DimCoord, DimCoord]:
         """Derives and returns the x and y coords for a difference cube"""
@@ -294,12 +283,12 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
             cube in metres.
         """
         lats_as_col = np.expand_dims(self.lats, axis=1)
-        lon_diffs = np.diff(self.longs)
 
         if self.cube.coord(axis="x").circular:
-            lon_diffs = np.hstack(
-                [lon_diffs, np.array(self.longs[0] + (360 - self.longs[-1]))]
-            )
+            longs = np.hstack([self.longs, 360 + self.longs[0]])
+        else:
+            longs = self.longs
+        lon_diffs = np.diff(longs)
 
         x_distances = (
             self.sphere_radius
@@ -329,6 +318,19 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
 
 
 class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
+    def __init__(self, cube: Cube):
+        """
+        Args:
+            cube:
+                Cube for which the distances will be calculated.
+        """
+        if cube.coord(axis="x").circular:
+            raise NotImplementedError(
+                "Cannot calculate distances between bounding points of a circular projected "
+                "coordinate."
+            )
+        super().__init__(cube)
+
     def _get_x_distances(self) -> Cube:
         """
         Calculates the x-axis distances between adjacent grid points of a cube which uses
@@ -338,11 +340,6 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
             A cube containing the x-axis distances between the grid points of the input
             cube in metres.
         """
-        if self.cube.coord(axis="x").circular:
-            raise NotImplementedError(
-                "Cannot calculate distances between bounding points of a circular projected "
-                "coordinate."
-            )
         x_distances = calculate_grid_spacing(self.cube, axis="x", units="m")
         data = np.full(
             (self.cube.shape[0], len(self.x_separations_axis.points)), x_distances
@@ -481,29 +478,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         return axis.circular and axis == cube.coord(axis="x")
 
     @staticmethod
-    def _get_wrap_around_mean_point(points: ndarray) -> float:
-        """
-        Calculates the midpoint between the two x coordinate points nearest the meridian.
-
-        args:
-            points:
-                The x coordinate points of the cube.
-
-        returns:
-            The x value of the midpoint between the two x coordinate points nearest the meridian.
-        """
-        # The values of max and min azimuth doesn't matter as long as there is 360 degrees
-        # between them.
-        min_azimuth = -180
-        max_azimuth = 180
-        extra_mean_point = circmean([points[-1], points[0]], max_azimuth, min_azimuth)
-        extra_mean_point = np.round(extra_mean_point, 4)
-        if extra_mean_point < points[-1]:
-            # Ensures that the longitudinal coordinate is monotonically increasing
-            extra_mean_point += 360
-        return extra_mean_point
-
-    @staticmethod
     def _update_metadata(diff_cube: Cube, coord_name: str, cube_name: str) -> None:
         """Rename cube, add attribute and cell method to describe difference.
 
@@ -543,19 +517,14 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         """
         axis = cube.coord(coord_name)
         points = axis.points
-        mean_points = (points[1:] + points[:-1]) / 2
         if self._axis_wraps_around_meridian(axis, cube):
+            points = np.hstack((points, 360 + points[0]))
             if type(axis.coord_system) != GeogCS:
-                warnings.warn(
-                    "DifferenceBetweenAdjacentGridSquares does not fully support cubes with "
-                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system. "
-                    "Such cubes will be handled as if they were not circular, meaning that the "
-                    "differences cube returned will have one fewer points along the specified axis"
-                    "than the input cube."
+                raise NotImplementedError(
+                    "DifferenceBetweenAdjacentGridSquares does not support cubes with "
+                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
                 )
-            else:
-                extra_mean_point = self._get_wrap_around_mean_point(points)
-                mean_points = np.hstack([mean_points, extra_mean_point])
+        mean_points = (points[1:] + points[:-1]) / 2
 
         # Copy cube metadata and coordinates into a new cube.
         # Create a new coordinate for the coordinate along which the
@@ -634,7 +603,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
         return tuple(diffs)
 
 
-class GradientBetweenAdjacentGridSquares(BasePlugin):
+class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
 
     """Calculate the gradient between adjacent grid squares within
     a cube. The gradient is calculated along the x and y axis
@@ -655,7 +624,8 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
     @staticmethod
     def _create_output_cube(gradient: Cube, name: str) -> Cube:
         """
-        Create the output gradient cube.
+        Create the output gradient cube, inheriting all metadata from source, but discarding
+        the "form_of_difference" attribute.
 
         Args:
             gradient:
@@ -666,11 +636,14 @@ class GradientBetweenAdjacentGridSquares(BasePlugin):
         Returns:
             A cube of the gradients in the coordinate direction specified.
         """
+        attributes = gradient.attributes
+        attributes.pop("form_of_difference")
         grad_cube = create_new_diagnostic_cube(
             name,
             gradient.units,
             gradient,
-            MANDATORY_ATTRIBUTE_DEFAULTS,
+            {},
+            optional_attributes=attributes,
             data=gradient.data,
         )
         return grad_cube
