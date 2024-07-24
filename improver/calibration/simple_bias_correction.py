@@ -286,9 +286,8 @@ class ApplyBiasCorrection(BasePlugin):
             forecast_cube:
                 Cube containing the forecast data to be bias-corrected.
             bias_cubes:
-                Cubelist containing the bias data to use in bias-correction. 
+                Cubelist containing the bias data to use in bias-correction.
                 Or None if no bias data is provided.
-
         """
 
         forecast_cube, bias_cubes = split_forecasts_and_bias_files(cubes)
