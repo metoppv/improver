@@ -144,10 +144,10 @@ def masked_add(
         numpy.ma.MaskedArray:
             The sum of the two masked arrays with masked points treated as 0.
     """
-    new_array_1 = np.ma.filled(masked_array,0)
-    new_array_2 = np.ma.filled(masked_array_2,0)
+    new_array_1 = np.ma.filled(masked_array, 0)
+    new_array_2 = np.ma.filled(masked_array_2, 0)
 
-    new_mask =np.ma.getmask(masked_array) * np.ma.getmask(masked_array_2)
+    new_mask = np.ma.getmask(masked_array) * np.ma.getmask(masked_array_2)
 
     summed_cube = np.ma.MaskedArray(np.add(new_array_1, new_array_2), mask=new_mask)
 
