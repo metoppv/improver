@@ -257,7 +257,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))
 @pytest.mark.parametrize("single_input_frt", (False, True))
 @pytest.mark.parametrize("lower_bound", (None, 1))
-@pytest.mark.parametrize("upper_bound", (None, 5))
+@pytest.mark.parametrize("upper_bound", (None, 4))
 @pytest.mark.parametrize("masked_input_data", (True, False))
 @pytest.mark.parametrize("masked_bias_data", (True, False))
 @pytest.mark.parametrize("fill_masked_bias_data", (True, False))
