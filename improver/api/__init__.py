@@ -125,5 +125,7 @@ PROCESSING_MODULES = {
 
 
 def __getattr__(name):
+    if name.startswith("__") and name.endswith("__"):
+        raise AttributeError(f"{name} is not a valid attribute")
     mod = import_module(PROCESSING_MODULES[name])
     return getattr(mod, name)
