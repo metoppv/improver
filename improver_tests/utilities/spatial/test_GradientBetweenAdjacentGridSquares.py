@@ -14,60 +14,88 @@ from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 EQUAL_AREA_GRID_SPACING = 2000  # Metres
 # Distances covered when travelling degrees north-south or east-west:
 DISTANCE_PER_DEGREE_AT_EQUATOR = 111198.9234485458
-DISTANCE_PER_DEGREE_AT_5_DEGREES_NORTH = 110775.77797295121
 DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH = 109509.56193873892
 
-# Values increase from east to west, and therefore decrease across the meridian.
-# Values also increase from south to north.
+# Values cycle from east to west (sine wave). Values also decrease from equator to pole.
 INPUT_DATA = (
-    np.array([[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32),
+    np.array(
+        [[0, 100, 0, -100], [0, 200, 0, -200], [0, 100, 0, -100]], dtype=np.float32
+    ),
 )
+# The standard calculations return these values (last column of x omitted for non-circular data).
+# These are not a cosine wave because we don't have sufficient data points.
 EXPECTED_DATA = (
     np.array(
         [
-            [0.05, 0.05, -0.00294436568],
-            [0.05, 0.05, -0.00294436568],
-            [0.05, 0.05, -0.00294436568],
+            [0.05, -0.05, -0.05, 0.05],
+            [0.1, -0.1, -0.1, 0.1],
+            [0.05, -0.05, -0.05, 0.05],
         ],
         dtype=np.float32,
     ),
-    np.array([[0.15, 0.15, 0.15], [0.05, 0.05, 0.05]], dtype=np.float32),
+    np.array([[0.0, 0.05, 0.0, -0.05], [0.0, -0.05, 0.0, 0.05]], dtype=np.float32),
 )
+# These data are expected when the above are regridded back to the source grid and the source
+# data are not circular.
 REGRIDDED_DATA = (
     np.array(
-        [[0.05, 0.05, 0.05], [0.05, 0.05, 0.05], [0.05, 0.05, 0.05]], dtype=np.float32,
+        [[0.1, 0, -0.05, -0.05], [0.2, 0, -0.1, -0.1], [0.1, 0, -0.05, -0.05]],
+        dtype=np.float32,
     ),
-    np.array([[0.2, 0.2, 0.2], [0.1, 0.1, 0.1], [0.0, 0.0, 0.0]], dtype=np.float32),
+    np.array(
+        [[0.0, 0.1, 0.0, -0.1], [0.0, 0.0, 0.0, 0.0], [0.0, -0.1, 0.0, 0.1]],
+        dtype=np.float32,
+    ),
+)
+# These data are expected when the EXPECTED_DATA are regridded back to the source grid and the
+# source data are circular, which gives us a cosine wave.
+CIRCULAR_DATA = (
+    np.array(
+        [[0.05, 0, -0.05, 0.0], [0.1, 0, -0.1, 0.0], [0.05, 0, -0.05, 0.0]],
+        dtype=np.float32,
+    ),
+    np.array(
+        [[0.0, 0.1, 0.0, -0.1], [0.0, 0.0, 0.0, 0.0], [0.0, -0.1, 0.0, 0.1]],
+        dtype=np.float32,
+    ),
 )
 
 
 @pytest.mark.parametrize(
-    "regrid, example_x, example_y",
+    "projected, circular, regrid, example_x, example_y",
     (
-        (False, EXPECTED_DATA[0], EXPECTED_DATA[1]),
-        (True, REGRIDDED_DATA[0], REGRIDDED_DATA[1]),
+        (False, False, False, EXPECTED_DATA[0], EXPECTED_DATA[1]),
+        (False, False, True, REGRIDDED_DATA[0], REGRIDDED_DATA[1]),
+        (False, True, False, EXPECTED_DATA[0], EXPECTED_DATA[1]),
+        (False, True, True, CIRCULAR_DATA[0], CIRCULAR_DATA[1]),
+        (True, False, False, EXPECTED_DATA[0], EXPECTED_DATA[1]),
+        (True, False, True, REGRIDDED_DATA[0], REGRIDDED_DATA[1]),
     ),
-)
-@pytest.mark.parametrize(
-    "projected, circular", ((False, False), (False, True), (True, False))
 )
 def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA[0]):
     """Tests that the plugin produces the expected data when regrid mode is off"""
+    x_grid_spacing = EQUAL_AREA_GRID_SPACING if projected else 90
     cube = set_up_variable_cube(
-        data, spatial_grid="equalarea" if projected else "latlon"
+        data,
+        spatial_grid="equalarea" if projected else "latlon",
+        x_grid_spacing=x_grid_spacing,
     )
     expected_x = example_x.copy()
     expected_y = example_y.copy()
-    x_precision = 5e-2 if circular and regrid else 1e-7
+    x_precision = 1e-7 if circular and regrid else 1e-7
     if circular:
         cube.coord(axis="x").circular = True
     elif not regrid:  # Drop final column
         expected_x = expected_x[..., :-1]
     if not projected:  # Adjust expected values to represent 10 degrees rather than 2km
         expected_x[0::2] /= (
-            10 * DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH / EQUAL_AREA_GRID_SPACING
+            x_grid_spacing
+            * DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH
+            / EQUAL_AREA_GRID_SPACING
         )
-        expected_x[1] /= 10 * DISTANCE_PER_DEGREE_AT_EQUATOR / EQUAL_AREA_GRID_SPACING
+        expected_x[1] /= (
+            x_grid_spacing * DISTANCE_PER_DEGREE_AT_EQUATOR / EQUAL_AREA_GRID_SPACING
+        )
         expected_y /= 10 * DISTANCE_PER_DEGREE_AT_EQUATOR / EQUAL_AREA_GRID_SPACING
     plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
     result_x, result_y = plugin(cube)
