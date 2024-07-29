@@ -19,8 +19,10 @@ DISTANCE_PER_DEGREE_AT_10_DEGREES_NORTH = 109509.56193873892
 
 # Values increase from east to west, and therefore decrease across the meridian.
 # Values also increase from south to north.
-EXAMPLE_DATA = (
+INPUT_DATA = (
     np.array([[0, 100, 200], [300, 400, 500], [400, 500, 600]], dtype=np.float32),
+)
+EXPECTED_DATA = (
     np.array(
         [
             [0.05, 0.05, -0.00294436568],
@@ -31,22 +33,35 @@ EXAMPLE_DATA = (
     ),
     np.array([[0.15, 0.15, 0.15], [0.05, 0.05, 0.05]], dtype=np.float32),
 )
+REGRIDDED_DATA = (
+    np.array(
+        [[0.05, 0.05, 0.05], [0.05, 0.05, 0.05], [0.05, 0.05, 0.05]], dtype=np.float32,
+    ),
+    np.array([[0.2, 0.2, 0.2], [0.1, 0.1, 0.1], [0.0, 0.0, 0.0]], dtype=np.float32),
+)
 
 
 @pytest.mark.parametrize(
+    "regrid, example_x, example_y",
+    (
+        (False, EXPECTED_DATA[0], EXPECTED_DATA[1]),
+        (True, REGRIDDED_DATA[0], REGRIDDED_DATA[1]),
+    ),
+)
+@pytest.mark.parametrize(
     "projected, circular", ((False, False), (False, True), (True, False))
 )
-@pytest.mark.parametrize("data, example_x, example_y", (EXAMPLE_DATA,))
-def test_data(data, example_x, example_y, projected, circular):
+def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA[0]):
     """Tests that the plugin produces the expected data when regrid mode is off"""
     cube = set_up_variable_cube(
         data, spatial_grid="equalarea" if projected else "latlon"
     )
     expected_x = example_x.copy()
     expected_y = example_y.copy()
+    x_precision = 5e-2 if circular and regrid else 1e-7
     if circular:
         cube.coord(axis="x").circular = True
-    else:  # Drop final column
+    elif not regrid:  # Drop final column
         expected_x = expected_x[..., :-1]
     if not projected:  # Adjust expected values to represent 10 degrees rather than 2km
         expected_x[0::2] /= (
@@ -54,9 +69,9 @@ def test_data(data, example_x, example_y, projected, circular):
         )
         expected_x[1] /= 10 * DISTANCE_PER_DEGREE_AT_EQUATOR / EQUAL_AREA_GRID_SPACING
         expected_y /= 10 * DISTANCE_PER_DEGREE_AT_EQUATOR / EQUAL_AREA_GRID_SPACING
-    plugin = GradientBetweenAdjacentGridSquares(regrid=False)
+    plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
     result_x, result_y = plugin(cube)
-    assert np.allclose(expected_x, result_x.data)
+    assert np.allclose(expected_x, result_x.data, rtol=x_precision)
     assert np.allclose(expected_y, result_y.data)
 
 
@@ -74,9 +89,11 @@ latlon_x_coord_points = [-5, 5, 180]
         (True, False, projected_x_coord_points, projected_y_coord_points),
     ),
 )
-@pytest.mark.parametrize("data", (EXAMPLE_DATA[0],))
+@pytest.mark.parametrize("data", (INPUT_DATA[0],))
 @pytest.mark.parametrize("regrid", (True, False))
-def test_metadata(data, projected, circular, expected_x_points, expected_y_points, regrid):
+def test_metadata(
+    data, projected, circular, expected_x_points, expected_y_points, regrid
+):
     """Tests that the plugin produces cubes with the right metadata"""
     cube = set_up_variable_cube(
         data,
@@ -109,7 +126,7 @@ def test_metadata(data, projected, circular, expected_x_points, expected_y_point
 
 
 @pytest.mark.parametrize("regrid", (True, False))
-def test_error(regrid, data=EXAMPLE_DATA[0], projected=True, circular=True):
+def test_error(regrid, data=INPUT_DATA[0], projected=True, circular=True):
     """Tests that an error is raised if a projected cube has a circular x coordinate"""
     cube = set_up_variable_cube(
         data, spatial_grid="equalarea" if projected else "latlon"
