@@ -82,7 +82,6 @@ def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA
     )
     expected_x = example_x.copy()
     expected_y = example_y.copy()
-    x_precision = 1e-7 if circular and regrid else 1e-7
     if circular:
         cube.coord(axis="x").circular = True
     elif not regrid:  # Drop final column
@@ -99,7 +98,7 @@ def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA
         expected_y /= 10 * DISTANCE_PER_DEGREE_AT_EQUATOR / EQUAL_AREA_GRID_SPACING
     plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
     result_x, result_y = plugin(cube)
-    assert np.allclose(expected_x, result_x.data, rtol=x_precision)
+    assert np.allclose(expected_x, result_x.data)
     assert np.allclose(expected_y, result_y.data)
 
 
