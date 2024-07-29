@@ -73,7 +73,7 @@ CIRCULAR_DATA = (
     ),
 )
 def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA[0]):
-    """Tests that the plugin produces the expected data when regrid mode is off"""
+    """Tests that the plugin produces the expected data for valid projections"""
     x_grid_spacing = EQUAL_AREA_GRID_SPACING if projected else 90
     cube = set_up_variable_cube(
         data,
