@@ -75,7 +75,8 @@ latlon_x_coord_points = [-5, 5, 180]
     ),
 )
 @pytest.mark.parametrize("data", (EXAMPLE_DATA[0],))
-def test_metadata(data, projected, circular, expected_x_points, expected_y_points):
+@pytest.mark.parametrize("regrid", (True, False))
+def test_metadata(data, projected, circular, expected_x_points, expected_y_points, regrid):
     """Tests that the plugin produces cubes with the right metadata"""
     cube = set_up_variable_cube(
         data,
@@ -87,27 +88,34 @@ def test_metadata(data, projected, circular, expected_x_points, expected_y_point
         cube.coord(axis="x").circular = True
     expected_x_coord = cube.coord(axis="x").copy(expected_x_points)
     expected_y_coord = cube.coord(axis="y").copy(expected_y_points)
-    plugin = GradientBetweenAdjacentGridSquares(regrid=False)
+    plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
     result_x, result_y = plugin(cube)
     for result in (result_x, result_y):
         assert result.name() == "gradient_of_air_temperature"
         assert result.units == "K m-1"
         assert result.attributes == cube.attributes
-    assert result_x.coord(axis="y") == cube.coord(axis="y")
-    assert result_y.coord(axis="x") == cube.coord(axis="x")
-    assert result_x.coord(axis="x") == expected_x_coord
-    assert result_y.coord(axis="y") == expected_y_coord
+    if regrid:
+        # In regrid mode, we expect the original spatial coords
+        for axis in "xy":
+            assert result_x.coord(axis=axis) == cube.coord(axis=axis)
+            assert result_y.coord(axis=axis) == cube.coord(axis=axis)
+    else:
+        # Regrid=False => expected coords apply to one coord of one result
+        # (the one that the gradient has been calculated along)
+        assert result_x.coord(axis="y") == cube.coord(axis="y")
+        assert result_y.coord(axis="x") == cube.coord(axis="x")
+        assert result_x.coord(axis="x") == expected_x_coord
+        assert result_y.coord(axis="y") == expected_y_coord
 
 
-@pytest.mark.parametrize("projected, circular", ((True, True),))
-@pytest.mark.parametrize("data", (EXAMPLE_DATA[0],))
-def test_error(data, projected, circular):
+@pytest.mark.parametrize("regrid", (True, False))
+def test_error(regrid, data=EXAMPLE_DATA[0], projected=True, circular=True):
     """Tests that an error is raised if a projected cube has a circular x coordinate"""
     cube = set_up_variable_cube(
         data, spatial_grid="equalarea" if projected else "latlon"
     )
     if circular:
         cube.coord(axis="x").circular = True
-    plugin = GradientBetweenAdjacentGridSquares(regrid=False)
+    plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
     with pytest.raises(NotImplementedError):
         plugin(cube)
