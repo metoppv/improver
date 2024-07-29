@@ -54,5 +54,6 @@ def process(
     """
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
 
-    plugin = ApplyBiasCorrection(lower_bound, upper_bound, fill_masked_bias_data)
-    return plugin.process(*cubes)
+    return ApplyBiasCorrection(lower_bound, upper_bound, fill_masked_bias_data).process(
+        *cubes
+    )

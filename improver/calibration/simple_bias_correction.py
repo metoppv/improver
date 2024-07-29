@@ -271,10 +271,10 @@ class ApplyBiasCorrection(BasePlugin):
                 Flag to specify whether masked areas in the bias data
                 should be filled to an appropriate fill value.
         """
-        self.correction_method = apply_additive_correction
-        self.lower_bound = lower_bound
-        self.upper_bound = upper_bound
-        self.fill_masked_bias_values = fill_masked_bias_values
+        self._correction_method = apply_additive_correction
+        self._lower_bound = lower_bound
+        self._upper_bound = upper_bound
+        self._fill_masked_bias_values = fill_masked_bias_values
 
     def _split_forecasts_and_bias(self, cubes: CubeList):
         """
@@ -353,6 +353,10 @@ class ApplyBiasCorrection(BasePlugin):
         """Check that forecast and bias values are defined over the same
         valid-hour and forecast-period.
 
+        Checks that between the bias_data Cubes there is a single coordinate forecast_reference_time
+        and single coordinate forecast_period. Then check forecast Cube contains the same single
+        coordinate forecast_reference_time and single coordinate forecast_period.
+
         Args:
             forecast:
                 Cube containing forecast data to be bias-corrected.
@@ -427,13 +431,13 @@ class ApplyBiasCorrection(BasePlugin):
         bias = self._get_mean_bias(bias_cubes)
 
         corrected_forecast = forecast.copy()
-        corrected_forecast.data = self.correction_method(
-            forecast, bias, self.fill_masked_bias_values
+        corrected_forecast.data = self._correction_method(
+            forecast, bias, self._fill_masked_bias_values
         )
 
-        if (self.lower_bound is not None) or (self.upper_bound is not None):
+        if (self._lower_bound is not None) or (self._upper_bound is not None):
             corrected_forecast = clip_cube_data(
-                corrected_forecast, self.lower_bound, self.upper_bound
+                corrected_forecast, self._lower_bound, self._upper_bound
             )
 
         return corrected_forecast

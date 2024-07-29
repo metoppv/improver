@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 from datetime import datetime, timedelta
+from unittest.mock import patch, sentinel
 
 import iris
 import numpy as np
@@ -155,7 +156,7 @@ def test_apply_additive_correction(
 def test__init__():
     """Test that the class functions are set to the expected values."""
     plugin = ApplyBiasCorrection()
-    assert plugin.correction_method == apply_additive_correction
+    assert plugin._correction_method == apply_additive_correction
 
 
 @pytest.mark.parametrize("single_input_frt", (False, True))
@@ -314,3 +315,19 @@ def test_process(
     # Check coords and attributes are consistent
     assert result.coords() == forecast_cube.coords()
     assert result.attributes == forecast_cube.attributes
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.calibration.simple_bias_correction.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        ApplyBiasCorrection()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
