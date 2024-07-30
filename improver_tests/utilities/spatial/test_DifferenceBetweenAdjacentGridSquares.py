@@ -274,10 +274,10 @@ class Test_process(IrisTest):
     def test_circular_non_geographic_cube_raises_approprate_exception(self):
         """Check for error and message with projection coord and circular x axis"""
         self.cube.coord(axis="x").circular = True
-        with self.assertRaises(
+        with self.assertRaisesRegex(
             NotImplementedError,
-            match="DifferenceBetweenAdjacentGridSquares does not support cubes with "
-            "circular x-axis that do not use a geographic (i.e. latlon) coordinate system.",
+            "DifferenceBetweenAdjacentGridSquares does not support cubes with "
+            r"circular x-axis that do not use a geographic \(i.e. latlon\) coordinate system.",
         ):
             self.plugin.process(self.cube)
 
