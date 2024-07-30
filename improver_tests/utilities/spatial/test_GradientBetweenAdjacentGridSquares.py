@@ -102,10 +102,12 @@ def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA
     assert np.allclose(expected_y, result_y.data)
 
 
+# By default, projected cubes have a spacing of 2000, and 10 for latlon.
+# Coords are centred on zero.
 projected_y_coord_points = [-1000, 1000]
-projected_x_coord_points = [-1000, 1000]
+projected_x_coord_points = [-2000, 0, 2000]
 latlon_y_coord_points = [-5, 5]
-latlon_x_coord_points = [-5, 5, 180]
+latlon_x_coord_points = [-10, 0, 10, 180]
 
 
 @pytest.mark.parametrize(
