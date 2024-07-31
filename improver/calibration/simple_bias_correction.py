@@ -255,7 +255,7 @@ class ApplyBiasCorrection(BasePlugin):
         self,
         lower_bound: Optional[float] = None,
         upper_bound: Optional[float] = None,
-        fill_masked_bias_values: Optional[bool] = False,
+        fill_masked_bias_values: bool = False,
     ):
         """
         Initialise class for applying simple bias correction.
@@ -395,7 +395,7 @@ class ApplyBiasCorrection(BasePlugin):
             )
 
     def process(self, *cubes: Union[Cube, CubeList],) -> Cube:
-        """        Split then apply bias correction using the specified bias values.
+        """Split then apply bias correction using the specified bias values.
 
         Where the bias data is defined point-by-point, the bias-correction will also
         be applied in this way enabling a form of statistical downscaling where coherent
@@ -408,6 +408,8 @@ class ApplyBiasCorrection(BasePlugin):
         If fill_masked_bias_values is True, the masked areas in bias data will be
         filled using an appropriate fill value to leave the forecast data unchanged
         in the masked areas.
+
+        If no bias correction is provided, then the forecast is returned, unaltered.
 
         Args:
             cubes:

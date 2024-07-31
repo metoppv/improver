@@ -331,3 +331,46 @@ def test_as_cubelist_called(mock_as_cubelist):
     mock_as_cubelist.assert_called_once_with(
         sentinel.cube1, sentinel.cube2, sentinel.cube3
     )
+
+
+def test_no_bias_file(forecast_cube):
+    """
+    Test case where no bias values are passed in. Expected behaviour is to
+    return the forecast value.
+    """
+    with pytest.warns(UserWarning, match=".*no forecast_error.*"):
+        result = ApplyBiasCorrection()(forecast_cube)
+    assert (
+        "Warning: Calibration of this forecast has been attempted"
+        in result.attributes["comment"]
+    )
+
+
+def test_missing_fcst_file():
+    """
+    Test case where no forecast value has been passed in. This should raise
+    a ValueError.
+    """
+    bias_cubes = generate_bias_cubelist(
+        3,
+        last_valid_time=VALID_TIME + timedelta(hours=3),
+        single_frt_with_bounds=False,
+    )
+
+    with pytest.raises(ValueError, match="No forecast"):
+        ApplyBiasCorrection()(bias_cubes)
+
+
+def test_multiple_fcst_files(forecast_cube):
+    """
+    Test case where multiple forecast values are passed in. This should raise a
+    ValueError.
+    """
+    bias_cubes = generate_bias_cubelist(
+        3,
+        last_valid_time=VALID_TIME + timedelta(hours=3),
+        single_frt_with_bounds=False,
+    )
+
+    with pytest.raises(ValueError, match="Multiple forecast"):
+        ApplyBiasCorrection()(forecast_cube, forecast_cube, bias_cubes)
