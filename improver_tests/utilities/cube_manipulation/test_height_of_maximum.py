@@ -54,17 +54,20 @@ def low_cube() -> Cube:
     )
     return cube
 
+
 @pytest.mark.parametrize("new_name", [None, "height_of_maximum"])
 @pytest.mark.parametrize("find_lowest", ["True", "False"])
-def test_basic(input_cube, max_cube,new_name,find_lowest,high_cube,low_cube):
+def test_basic(input_cube, max_cube, new_name, find_lowest, high_cube, low_cube):
     """Tests that the name of the cube will be correctly updated. Test that
     if find_lowest is true the lowest maximum height will be found"""
 
-    expected_name=new_name if new_name else input_cube.name()
-    expected_cube=high_cube if find_lowest else low_cube
+    expected_name = new_name if new_name else input_cube.name()
+    expected_cube = high_cube if find_lowest else low_cube
 
-    output_cube = height_of_maximum(input_cube, max_cube, new_name=new_name, find_lowest=find_lowest)
-    
+    output_cube = height_of_maximum(
+        input_cube, max_cube, new_name=new_name, find_lowest=find_lowest
+    )
+
     assert expected_name == output_cube.name()
     assert output_cube.units == "m"
     assert_allclose(output_cube.data, expected_cube.data)

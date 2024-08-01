@@ -30,7 +30,7 @@ def process(
             A cube containing the maximum values of vertical velocity over all heights.
         find_lowest (bool):
             If true then the lowest maximum height will be found (for cases where
-            there are two heights with the maximum vertical velocity.) Otherwise the highest 
+            there are two heights with the maximum vertical velocity.) Otherwise the highest
             height will be found.
         new_name (str):
             The new name to be assigned to the output cube. In this case it will become
