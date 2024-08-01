@@ -12,7 +12,7 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *input_cubes: cli.inputcube,
+    *cubes: cli.inputcube,
     lower_bound: float = None,
     upper_bound: float = None,
     fill_masked_bias_data: bool = False,
@@ -32,7 +32,7 @@ def process(
     sensible post-bias correction.
 
     Args:
-        input_cubes (iris.cube.Cube or list of iris.cube.Cube):
+        cubes (iris.cube.Cube or list of iris.cube.Cube):
             A list of cubes containing:
             - A Cube containing the forecast to be calibrated. The input format is expected
             to be realizations.
@@ -52,28 +52,8 @@ def process(
         iris.cube.Cube:
             Forecast cube with bias correction applied on a per member basis.
     """
-    import warnings
-
-    import iris
-
-    from improver.calibration import add_warning_comment, split_forecasts_and_bias_files
     from improver.calibration.simple_bias_correction import ApplyBiasCorrection
 
-    forecast_cube, bias_cubes = split_forecasts_and_bias_files(input_cubes)
-
-    # Check whether bias data supplied, if not then return unadjusted input cube.
-    # This behaviour is to allow spin-up of the bias-correction terms.
-    if not bias_cubes:
-        msg = (
-            "There are no forecast_error (bias) cubes provided for calibration. "
-            "The uncalibrated forecast will be returned."
-        )
-        warnings.warn(msg)
-        forecast_cube = add_warning_comment(forecast_cube)
-        return forecast_cube
-    else:
-        bias_cubes = iris.cube.CubeList(bias_cubes)
-        plugin = ApplyBiasCorrection()
-        return plugin.process(
-            forecast_cube, bias_cubes, lower_bound, upper_bound, fill_masked_bias_data
-        )
+    return ApplyBiasCorrection(lower_bound, upper_bound, fill_masked_bias_data).process(
+        *cubes
+    )
