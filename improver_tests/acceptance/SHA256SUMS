@@ -539,7 +539,7 @@ caa759d708afc535223bcf35924e98962675f6e3f690fe1f82c5de5ba08302b4  ./hail-size/te
 c4451e5a94a946215e5a3e09787b0d25c215aa4511110f46b6015c1c5aab13c9  ./hail-size/wet_bulb_freezing_altitude.nc
 0af18a52713334627696679bb369bb00332e5cb8f8a1a82ca9a2a7612071e6d3  ./hail-size/with_id_attr/kgo.nc
 76d84b674d8c0c9bed8bd27fad6697be7559c9ebe1c13296363717cbcd888add  ./hail-size/without_id_attr/kgo.nc
-7c86028bf1b979afe40dfda23882254eaee33e706a6bfe52ab67966015f9f9d6  ./height-of-max-vertical-velocity/kgo.nc
+e4ad2774923662fad733e3d95730416993abd94486aa9e032256e9d60d4b1bc0  ./height-of-max-vertical-velocity/kgo.nc
 90ac17c415ba2b0249de3f304bf2f511a9a294710e0577dac9231b6ab822660d  ./height-of-max-vertical-velocity/max_vertical_velocity.nc
 929f98fa947ca8b635d76f6d3509b368fe7780019af76172dddbae4fef21822d  ./height-of-max-vertical-velocity/vertical_velocity_on_height_levels.nc
 cebc2ccbe6c8e33b3e39d65f07d189172133a3fc6c22e3567c61572e14750cef  ./integrate-time-bounds/basic/kgo.nc

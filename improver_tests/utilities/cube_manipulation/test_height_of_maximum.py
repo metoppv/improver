@@ -66,6 +66,7 @@ def test_basic(input_cube, max_cube,new_name,find_lowest,high_cube,low_cube):
     output_cube = height_of_maximum(input_cube, max_cube, new_name=new_name, find_lowest=find_lowest)
     
     assert expected_name == output_cube.name()
+    assert output_cube.units == "m"
     assert_allclose(output_cube.data, expected_cube.data)
 
 

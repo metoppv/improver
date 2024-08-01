@@ -796,7 +796,7 @@ def height_of_maximum(
             height will be found.
         new_name:
             The new name to be assigned to the output cube. If unspecified the name of the
-        original cube is used.
+            original cube is used.
     Returns:
         A cube of heights at which the maximum values occur.
 
@@ -822,4 +822,5 @@ def height_of_maximum(
         )
     if new_name:
         height_of_max.rename(new_name)
+    height_of_max.units = cube.coord("height").units
     return height_of_max
