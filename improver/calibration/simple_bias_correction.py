@@ -353,9 +353,10 @@ class ApplyBiasCorrection(BasePlugin):
         """Check that forecast and bias values are defined over the same
         valid-hour and forecast-period.
 
-        Checks that between the bias_data Cubes there is a single coordinate forecast_reference_time
-        and single coordinate forecast_period. Then check forecast Cube contains the same single
-        coordinate forecast_reference_time and single coordinate forecast_period.
+        Checks that between the bias_data Cubes there is a common hour value for the
+        forecast_reference_time and single coordinate value for forecast_period. Then check
+        forecast Cube contains the same hour value for the forecast_reference_time and the
+        same forecast_period coordinate value.
 
         Args:
             forecast:

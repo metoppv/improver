@@ -32,7 +32,7 @@ def process(
     sensible post-bias correction.
 
     Args:
-        input_cubes (iris.cube.Cube or list of iris.cube.Cube):
+        cubes (iris.cube.Cube or list of iris.cube.Cube):
             A list of cubes containing:
             - A Cube containing the forecast to be calibrated. The input format is expected
             to be realizations.
