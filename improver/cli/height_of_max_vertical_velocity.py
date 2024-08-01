@@ -15,8 +15,8 @@ def process(
     cube: cli.inputcube,
     max_cube: cli.inputcube,
     *,
-    high_or_low: str = "low",
-    new_name: str = "height_of_maximum_vertical_velocity",
+    find_lowest: bool = True,
+    new_name: str = "height_of_maximum_upward_air_velocity",
 ):
     """Calculates the height level at which the maximum vertical velocity occurs for each
     grid point. It requires an input cube of vertical velocity and a cube with the maximum
@@ -28,12 +28,13 @@ def process(
             A cube containing vertical velocity.
         max_cube (iris.cube.Cube):
             A cube containing the maximum values of vertical velocity over all heights.
-        high_or_low (str):
-            Whether we are looking for the highest or lowest maximum height (for cases where
-            there are two heights with the maximum vertical velocity.)
+        find_lowest (bool):
+            If true then the lowest maximum height will be found (for cases where
+            there are two heights with the maximum vertical velocity.) Otherwise the highest 
+            height will be found.
         new_name (str):
             The new name to be assigned to the output cube. In this case it will become
-            height_of_maximum_vertical_velocity. If unspecified the name of the original
+            height_of_maximum_upward_air_velocity. If unspecified the name of the original
             cube is used.
 
     Returns:
@@ -42,4 +43,4 @@ def process(
 
     from improver.utilities.cube_manipulation import height_of_maximum
 
-    return height_of_maximum(cube, max_cube, high_or_low, new_name)
+    return height_of_maximum(cube, max_cube, find_lowest, new_name)

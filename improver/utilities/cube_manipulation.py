@@ -777,7 +777,7 @@ def maximum_in_height(
 
 
 def height_of_maximum(
-    cube: Cube, max_cube: Cube, high_or_low: str = "low", new_name: str = None,
+    cube: Cube, max_cube: Cube, find_lowest: bool = True, new_name: str = None,
 ) -> Cube:
     """Calculates the height level at which the maximum value has been calculated. This
     takes in a cube with values at different heights, and also a cube with the maximum
@@ -790,9 +790,10 @@ def height_of_maximum(
             A cube with a height coordinate.
         max_cube:
             A cube of the maximum value over the height coordinate.
-        high_or_low:
-            Whether we are looking for the highest or lowest maximum height (for the case
-            where the maximum occurs at more than one height).
+        find_lowest:
+            If true then the lowest maximum height will be found (for cases where
+            there are two heights with the maximum vertical velocity.) Otherwise the highest 
+            height will be found.
         new_name:
             The new name to be assigned to the output cube. If unspecified the name of the
         original cube is used.
@@ -808,12 +809,11 @@ def height_of_maximum(
     height_range = range(len(cube.coord("height").points))
     if len(cube.coord("height").points) == 1:
         raise ValueError("More than 1 height level is required.")
-    if high_or_low == "high":
+    if find_lowest:
         height_points = height_range
-    elif high_or_low == "low":
-        height_points = reversed(height_range)
     else:
-        raise ValueError("Only high or low is valid.")
+        height_points = reversed(height_range)
+
     for height in height_points:
         height_of_max.data = np.where(
             cube[height].data == max_cube.data,

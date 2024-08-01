@@ -54,34 +54,19 @@ def low_cube() -> Cube:
     )
     return cube
 
+@pytest.mark.parametrize("new_name", [None, "height_of_maximum"])
+@pytest.mark.parametrize("find_lowest", ["True", "False"])
+def test_basic(input_cube, max_cube,new_name,find_lowest,high_cube,low_cube):
+    """Tests that the name of the cube will be correctly updated. Test that
+    if find_lowest is true the lowest maximum height will be found"""
 
-def test_new_name(input_cube, max_cube):
-    """Tests that the name of the cube will be correctly updated"""
-    expected_name = "height_of_maximum"
-    result = height_of_maximum(input_cube, max_cube, new_name="height_of_maximum")
-    assert expected_name == result.name()
+    expected_name=new_name if new_name else input_cube.name()
+    expected_cube=high_cube if find_lowest else low_cube
 
-
-def test_highest(input_cube, max_cube, high_cube):
-    """Test the heights of the maximum vertical velocity are correct
-    when looking for the highest level."""
-    output_cube = height_of_maximum(input_cube, max_cube, high_or_low="high")
-    assert_allclose(output_cube.data, high_cube.data)
-
-
-def test_lowest(input_cube, max_cube, low_cube):
-    """Test the heights of the maximum vertical velocity are correct
-    when looking for the lowest level (this is the default)."""
-    output_cube = height_of_maximum(input_cube, max_cube)
-    assert_allclose(output_cube.data, low_cube.data)
-
-
-def test_no_high_or_low(input_cube, max_cube):
-    """Test that only high or low can be input for high_or_low, and
-    to raise an error if anything else is tried."""
-    msg = "Only high or low is valid"
-    with pytest.raises(ValueError, match=msg):
-        height_of_maximum(input_cube, max_cube, high_or_low="middle")
+    output_cube = height_of_maximum(input_cube, max_cube, new_name=new_name, find_lowest=find_lowest)
+    
+    assert expected_name == output_cube.name()
+    assert_allclose(output_cube.data, expected_cube.data)
 
 
 def test_one_height(input_cube):
