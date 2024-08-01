@@ -15,6 +15,7 @@ def process(
     smoothing_coefficients: cli.inputcubelist,
     *,
     iterations: int = 1,
+    variable_mask: bool = False,
 ):
     """Module to apply a recursive filter to neighbourhooded data.
 
@@ -44,6 +45,11 @@ def process(
             and y directions.
         iterations (int):
             Number of times to apply the filter.
+        variable_mask (bool):
+            Determines whether each spatial slice of the input cube can have a
+            different mask. If False and cube is masked, a check will be made that
+            the same mask is present on each spatial slice. If True, each spatial
+            slice of cube may contain a different spatial mask.
 
     Returns:
         iris.cube.Cube:
@@ -52,4 +58,4 @@ def process(
     from improver.nbhood.recursive_filter import RecursiveFilter
 
     plugin = RecursiveFilter(iterations=iterations)
-    return plugin(cube, smoothing_coefficients=smoothing_coefficients)
+    return plugin(cube, smoothing_coefficients=smoothing_coefficients, variable_mask=variable_mask)
