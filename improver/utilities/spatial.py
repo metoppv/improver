@@ -381,7 +381,7 @@ class DistanceBetweenGridSquares(BasePlugin):
     This causes a < 0.15% error compared with the full haversine formula.
     """
 
-    def __init__(self, cube: Cube):
+    def _select_distance_calculator(self, cube: Cube):
         """
         Args:
             cube:
@@ -442,15 +442,20 @@ class DistanceBetweenGridSquares(BasePlugin):
         ):
             return False
 
-    def process(self) -> Tuple[Cube, Cube]:
+    def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
         Calculate the distances between grid points along the x and y axes
         and return the result in separate cubes.
+
+        Args:
+            cube:
+                Cube for which the distances will be calculated.
 
         Returns:
             - Cube of x-axis distances.
             - Cube of y-axis distances.
         """
+        self._select_distance_calculator(cube)
         return self.distance_calculator.get_distances()
 
 
@@ -667,7 +672,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
         """
         gradients = []
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
-        distances = DistanceBetweenGridSquares(cube)()
+        distances = DistanceBetweenGridSquares()(cube)
         for diff, distance in zip(diffs, distances):
             gradient = diff / distance
             grad_cube = self._create_output_cube(gradient, "gradient_of_" + cube.name())
