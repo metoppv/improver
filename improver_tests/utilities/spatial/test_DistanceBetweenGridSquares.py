@@ -134,7 +134,7 @@ def test_latlon_cube(longitudes, is_circular):
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares(input_cube)()
+    ) = DistanceBetweenGridSquares()(input_cube)
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -156,7 +156,7 @@ def test_equalarea_cube():
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares(input_cube)()
+    ) = DistanceBetweenGridSquares()(input_cube)
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -172,7 +172,7 @@ def test_equalarea_circular_cube_error():
     with pytest.raises(
         NotImplementedError, match="Cannot calculate distances between bounding points"
     ):
-        DistanceBetweenGridSquares(input_cube)()
+        DistanceBetweenGridSquares()(input_cube)
 
 
 def test_equalarea_cube_nonstandard_units():
@@ -186,7 +186,7 @@ def test_equalarea_cube_nonstandard_units():
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares(input_cube)()
+    ) = DistanceBetweenGridSquares()(input_cube)
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -209,7 +209,7 @@ def test_transverse_mercator_cube():
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares(input_cube)()
+    ) = DistanceBetweenGridSquares()(input_cube)
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -239,7 +239,7 @@ def test_distance_cube_with_no_coordinate_system():
     (
         calculated_x_distances_cube,
         calculated_y_distances_cube,
-    ) = DistanceBetweenGridSquares(input_cube)()
+    ) = DistanceBetweenGridSquares()(input_cube)
     for result, expected in zip(
         (calculated_x_distances_cube, calculated_y_distances_cube),
         (expected_x_distances, expected_y_distances),
@@ -265,7 +265,7 @@ def test_degrees_cube_with_no_coordinate_system_information():
         expected_exception=ValueError,
         expected_regex="Unsupported cube coordinate system.*",
     ):
-        DistanceBetweenGridSquares(input_cube)()
+        DistanceBetweenGridSquares()(input_cube)
 
 
 def test_latlon_cube_with_no_coordinate_units_error():
@@ -288,4 +288,4 @@ def test_latlon_cube_with_no_coordinate_units_error():
             "Expected lat-long cube with units of degrees."
         ),
     ):
-        DistanceBetweenGridSquares(input_cube)()
+        DistanceBetweenGridSquares()(input_cube)
