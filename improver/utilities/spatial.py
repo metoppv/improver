@@ -291,10 +291,8 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         lon_diffs = np.diff(longs)
 
         x_distances = (
-            self.sphere_radius
-            * np.cos(np.deg2rad(lats_as_col.astype(np.float64)))
-            * np.deg2rad(lon_diffs.astype(np.float64))
-        )  # Using 64 bit floats for this calculation improves precision by 0.1% TODO: check this.
+            self.sphere_radius * np.cos(np.deg2rad(lats_as_col)) * np.deg2rad(lon_diffs)
+        )
 
         dims = [(self.cube.coord(axis="y"), 0), (self.x_separations_axis, 1)]
         return self.build_distances_cube(x_distances, dims, "x")
