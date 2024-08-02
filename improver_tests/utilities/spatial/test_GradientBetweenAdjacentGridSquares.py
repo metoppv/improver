@@ -156,7 +156,8 @@ def test_metadata(
 
 @pytest.mark.parametrize("regrid", (True, False))
 def test_error(regrid, data=INPUT_DATA[0], projected=True, circular=True):
-    """Tests that an error is raised if a projected cube has a circular x coordinate"""
+    """Tests that an error is raised if a projected cube has a circular x coordinate.
+    The content of the error is checked in the tests for the class that raises it."""
     cube = set_up_variable_cube(
         data, spatial_grid="equalarea" if projected else "latlon"
     )
