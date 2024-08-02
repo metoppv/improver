@@ -318,6 +318,12 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
 
 
 class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
+    """
+    Distance calculator for cubes using a projected coordinate system.
+    Assumes that x and y coordinates can be expressed in metres.
+    Distances are calculated assuming an equal-area projection.
+    """
+
     def __init__(self, cube: Cube):
         """
         Args:
