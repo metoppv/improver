@@ -5,11 +5,12 @@
 """ Provides ability to extract values from table."""
 
 
-from typing import Union
+from typing import List
 
 import iris
 import numpy as np
 from pandas import DataFrame
+from iris.cube import Cube
 
 from improver import BasePlugin
 from improver.utilities.common_input_handle import as_cubelist
@@ -119,7 +120,7 @@ class ExtractValueFromTable(BasePlugin):
 
         return table
 
-    def process(self, *cubes: Union[iris.cube.CubeList, iris.cube.Cube], table: dict):
+    def process(self, *cubes: List[Cube], table: dict):
         """
         Process the input cubes and extract values from a table based on the provided row and
         column indices. The row name is used to identify the cube used for indexing the rows
@@ -133,7 +134,10 @@ class ExtractValueFromTable(BasePlugin):
                 the columns.
             table:
                 A dictionary representing the table from which values are extracted. Dictionary
-                should be in the form: {column_name_1:{row_name_1:value, row_name_2:value},...}
+                should be in the form:
+                {"data":{column_name_1:{row_name_1:value, row_name_2:value},...},"metadata":{"units":table_units}
+                Other metadata can be included in the metadata dictionary such as a title for the table but this
+                will be ignored.
 
         Returns:
             Cube of the same shape and metadata as the row input cubes with values extracted
@@ -165,11 +169,13 @@ class ExtractValueFromTable(BasePlugin):
                 {column_cube.shape}, row cube shape: {row_cube.shape}"""
             )
 
-        table = self.convert_dict_to_dataframe(table)
-        result = self.extract_table_values(table, column_cube, row_cube)
+        table_df = self.convert_dict_to_dataframe(table["data"])
+        result = self.extract_table_values(table_df, column_cube, row_cube)
+
         if result.dtype == np.float64:
             result = result.astype(np.float32)
         result_cube = row_cube.copy(data=result)
         if self.new_name:
             result_cube.rename(self.new_name)
+        result_cube.units=table["metadata"]["units"]
         return result_cube

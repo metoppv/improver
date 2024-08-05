@@ -15,11 +15,13 @@ from improver.utilities.extract_from_table import ExtractValueFromTable
 def table():
     """Set up a dictionary representing a table of data"""
 
-    # table_dict={1:{0:0.95, 10.19:0.9, 15.43:0.85}, 2:{0:0.9, 10.19:0.85, 15.43:0.8}}
     table_dict = {
-        0: {1: 0.95, 2: 0.9},
-        10.19: {1: 0.9, 2: 0.85},
-        15.43: {1: 0.85, 2: 0.8},
+        "data": {
+            0: {1: 0.95, 2: 0.9},
+            10.19: {1: 0.9, 2: 0.85},
+            15.43: {1: 0.85, 2: 0.8},
+        },
+        "metadata": {"name": "Gust Factor", "units": "1"}
     }
     return table_dict
 
@@ -27,14 +29,14 @@ def table():
 @pytest.fixture
 def lapse_class():
     """Set up a cube containing lapse class"""
-    data = np.array([[1, 2], [2, 2]])
+    data = np.full((2, 2),0,dtype=np.float32)# Values will be overwritten in the test
     return set_up_variable_cube(data=data, name="lapse_class")
 
 
 @pytest.fixture
 def wind_gust_900m():
     """Set up cube containing 900m wind gust data"""
-    data = np.array([[10.19, 12], [17, 7]], dtype="float32")
+    data = np.full((2, 2),0,dtype=np.float32) # Values will be overwritten in the test
     return set_up_variable_cube(data=data, name="900m_wind_gust")
 
 
@@ -65,10 +67,9 @@ def test_read_table(
     result = ExtractValueFromTable(row_name="lapse_class", new_name=new_name)(
         wind_gust_900m, lapse_class, table=table
     )
-
-    expected_data = np.array([[expected, expected], [expected, expected]])
+    expected_data = np.full_like(lapse_class.data, fill_value=expected,dtype=np.float32)
     expected_cube = lapse_class.copy(data=expected_data)
-
+    expected_cube.units = "1"
     if new_name:
         expected_cube.rename(new_name)
     np.testing.assert_array_almost_equal(result.data, expected_cube.data)
