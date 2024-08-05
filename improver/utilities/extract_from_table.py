@@ -9,8 +9,8 @@ from typing import List
 
 import iris
 import numpy as np
-from pandas import DataFrame
 from iris.cube import Cube
+from pandas import DataFrame
 
 from improver import BasePlugin
 from improver.utilities.common_input_handle import as_cubelist
@@ -135,9 +135,10 @@ class ExtractValueFromTable(BasePlugin):
             table:
                 A dictionary representing the table from which values are extracted. Dictionary
                 should be in the form:
-                {"data":{column_name_1:{row_name_1:value, row_name_2:value},...},"metadata":{"units":table_units}
-                Other metadata can be included in the metadata dictionary such as a title for the table but this
-                will be ignored.
+                {"data":{column_name_1:{row_name_1:value, row_name_2:value},...},
+                 "metadata":{"units":table_units}}
+                Other metadata can be included in the metadata dictionary such as a title for
+                the table but this will be ignored.
 
         Returns:
             Cube of the same shape and metadata as the row input cubes with values extracted
@@ -177,5 +178,5 @@ class ExtractValueFromTable(BasePlugin):
         result_cube = row_cube.copy(data=result)
         if self.new_name:
             result_cube.rename(self.new_name)
-        result_cube.units=table["metadata"]["units"]
+        result_cube.units = table["metadata"]["units"]
         return result_cube
