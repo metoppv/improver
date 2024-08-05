@@ -136,7 +136,7 @@ class ExtractValueFromTable(BasePlugin):
                 A dictionary representing the table from which values are extracted. Dictionary
                 should be in the form:
                 {"data":{column_name_1:{row_name_1:value, row_name_2:value},...},
-                 "metadata":{"units":table_units}}
+                "metadata":{"units":table_units}}
                 Other metadata can be included in the metadata dictionary such as a title for
                 the table but this will be ignored.
 
