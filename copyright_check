@@ -1,0 +1,87 @@
+#!/bin/bash
+
+copyright_header="\
+# (C) Crown Copyright, Met Office. All rights reserved.\n\
+#\n\
+# This file is part of IMPROVER and is released under the BSD 3-Clause license.\n\
+# See LICENSE in the root of the repository for full licensing details.\
+"
+
+show_help() {
+    echo "info: Check the copyright header in the specified files."
+    echo "    If the non-empty file does not contain the copyright header, it "
+    echo "    will be added. If a file looks like it does contain a copyright "
+    echo "    header, it will verified that it matches exactly."
+    echo "    Hash bangs are preserved."
+    echo ''
+    echo "usage: $0 FILEPATH..."
+    echo ''
+    echo 'positional arguments:'
+    echo '  FILEPATH...    The file(s) to check'
+    echo ""
+    echo "options:"
+    echo "  -h|--help     Show this help message and exit"
+    echo ""
+}
+
+if [[ " $@ " =~ " --help " || " $@ " =~ " -h " ]]; then
+    show_help
+    exit 0
+fi
+
+contains_copyright() {
+    grep -qi '# .*copyright' $1
+}
+
+
+defines_hash_bang() {
+    grep -q '^#!' $1
+}
+
+
+correct_copyright() {
+    python -c 'import sys; sys.exit(0 if "'"$1"'" in open("'"$2"'", "r").read() else 1)'
+}
+
+
+# Function to delete temporary files
+cleanup() {
+    for filepath in "$@"; do
+        tmp_file="${filepath}.tmp"
+        if [ -f "$tmp_file" ]; then
+            echo "Deleting temporary file: $tmp_file"
+            rm -f "$tmp_file" 2&> /dev/null
+        fi
+    done
+}
+
+# Trap the EXIT signal to call the cleanup function
+trap 'cleanup "$@"' EXIT
+
+found_error=0
+for filepath in "$@"; do
+    if contains_copyright "${filepath}"; then
+        #echo "File '${filepath}' already contains Crown Copyright"
+        if correct_copyright "${copyright_header}" "${filepath}"; then
+            continue
+        else
+            echo "Incorrect Copyright header in '${filepath}'"
+            found_error=1
+        fi
+    elif [ -s "${filepath}" ]; then  # skip empty files
+        echo "Adding missing Copyright to '${filepath}'"
+        tmp_file="${filepath}.tmp"
+        if defines_hash_bang "${filepath}"; then
+            head -n 1 ${filepath} > ${tmp_file}
+            echo -e ${copyright_header} >> ${tmp_file}
+            tail -n +2 ${filepath} >> ${tmp_file}
+        else
+            echo -e ${copyright_header} > ${tmp_file}
+            cat ${filepath} >> ${tmp_file}
+        fi
+        mv ${tmp_file} ${filepath}
+        found_error=1
+    fi
+done
+
+exit ${found_error}
