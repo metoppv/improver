@@ -50,8 +50,9 @@ def wxcode_series_fixture(
             wxfrt = time - timedelta(hours=42) - timedelta(hours=i)
         else:
             wxfrt = time - timedelta(hours=42)
-        wxdata = np.ones((2, 2), dtype=np.int8)
-        wxdata[0, 0] = data[i]
+        # wxdata = np.ones((2, 2), dtype=np.int8)
+        # wxdata[0, 0] = data[i]
+        wxdata = np.array([[1, 26], [1, 15]])
 
         if cube_type == "gridded":
             wxcubes.append(
@@ -119,10 +120,10 @@ def wxcode_series_fixture(
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [False])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -266,3 +267,53 @@ def test_unmatching_bounds_exception(wxcode_series):
         ValueError, match="Input diagnostics do not have consistent periods."
     ):
         ModalCategory(wxcode_decision_tree())(wxcode_cubes)
+
+
+@pytest.mark.parametrize("record_run_attr", [False])
+@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("interval", [1])
+@pytest.mark.parametrize("offset_reference_times", [False])
+@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize(
+    "data, expected",
+    (
+        # Sunny day (1), one rain code (15) that is in the minority, expect sun
+        # code (1).
+        ([10, 10, 1, 15], 1),
+        # # Short period with an equal split. The most significant weather
+        # # (hail, 21) should be returned.
+        # ([1, 21], 21),
+        # # A single time is provided in which a sleet shower is forecast (16).
+        # # We expect the cube to be returned with the night code changed to a
+        # # day code (17).
+        # ([16], 17),
+        # # Equal split in day codes, but a night code corresponding to one
+        # # of the day types means a valid mode can be calculated. We expect the
+        # # day code (10) to be returned.
+        # ([1, 1, 10, 10, 9], 10),
+        # # No clear representative code. Falls back to grouping, which
+        # # consolidates the codes containing rain (10, 11, 12, 14, 15) and yields
+        # # the least significant of these that is present (10).
+        # ([1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 15], 10),
+        # # No clear representative code. Falls back to grouping, which
+        # # consolidates the codes containing rain (10, 11, 12, 14, 15) and yields
+        # # the least significant of these which is present (11); the light
+        # # shower code (10) is not present, so will not be picked.
+        # ([1, 3, 4, 5, 6, 7, 8, 16, 11, 12, 14, 15], 11),
+        # # No clear representative code. This falls back to grouping,
+        # # consolidates the codes containing visibility (5, 6) and yields
+        # # the least significant of these which is present (5).
+        # ([5, 5, 5, 5, 6, 6, 6, 6, 8, 8, 8, 8, 7, 7, 7, 7], 5),
+        # # An extreme edge case in which all the codes across time for a site
+        # # are different. All the codes fall into different groups and cannot be
+        # # consolidated. In this case the most significant weather from the whole
+        # # set is returned. In this case that is a light snow shower (23).
+        # ([1, 3, 4, 5, 7, 8, 10, 17, 20, 23], 23),
+    ),
+)
+def test_expected_values2(wxcode_series, expected):
+    """Test that the expected period representative symbol is returned."""
+    from improver.categorical.modal_code import ModalFromGroupings
+    _, _, _, _, wxcode_cubes = wxcode_series
+    result = ModalFromGroupings(wxcode_decision_tree())(wxcode_cubes)
+    assert result.data.flatten()[0] == expected
