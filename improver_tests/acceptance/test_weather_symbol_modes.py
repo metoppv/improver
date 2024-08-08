@@ -40,11 +40,22 @@ def test_expected(tmp_path, test_path):
     kgo_path = kgo_dir / "kgo.nc"
     input_paths = (kgo_dir).glob("202012*.nc")
     wxtree = acc.kgo_root() / "weather-symbol-modes" / "wx_decision_tree.json"
+    broad_categories = acc.kgo_root() / "weather-symbol-modes" / "broad_categories.json"
+    wet_categories = acc.kgo_root() / "weather-symbol-modes" / "wet_categories.json"
+    intensity_categories = (
+        acc.kgo_root() / "weather-symbol-modes" / "intensity_categories.json"
+    )
     output_path = tmp_path / "output.nc"
     args = [
         *input_paths,
         "--decision-tree",
         wxtree,
+        "--broad-categories",
+        broad_categories,
+        "--wet-categories",
+        wet_categories,
+        "--intensity-categories",
+        intensity_categories,
         "--model-id-attr",
         "mosg__model_configuration",
         "--record-run-attr",
@@ -59,10 +70,21 @@ def test_expected(tmp_path, test_path):
 def test_no_input(tmp_path):
     """Test an exceptions is raised by the CLI if no cubes are provided."""
     wxtree = acc.kgo_root() / "weather-symbol-modes" / "wx_decision_tree.json"
+    broad_categories = acc.kgo_root() / "weather-symbol-modes" / "broad_categories.json"
+    wet_categories = acc.kgo_root() / "weather-symbol-modes" / "wet_categories.json"
+    intensity_categories = (
+        acc.kgo_root() / "weather-symbol-modes" / "intensity_categories.json"
+    )
     output_path = tmp_path / "output.nc"
     args = [
         "--decision-tree",
         wxtree,
+        "--broad-categories",
+        broad_categories,
+        "--wet-categories",
+        wet_categories,
+        "--intensity-categories",
+        intensity_categories,
         "--output",
         output_path,
     ]

@@ -107,7 +107,7 @@ def test_expected_values(wxcode_series, expected):
 @pytest.mark.parametrize(
     "data, wet_bias, expected",
     (
-        # More dry codes (6) than wet codes (4),the most significant dry symbol
+        # More dry codes (6) than wet codes (4), the most significant dry symbol
         # is selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 1, 8),
         # With a wet bias of 2, there are more wet codes than dry codes, so the modal

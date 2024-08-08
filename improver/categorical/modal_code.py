@@ -475,7 +475,9 @@ class ModalFromGroupings(BaseModalCategory):
         )
         return dry_counts > self.wet_bias * wet_counts
 
-    def _find_most_significant_dry_code(self, cube: Cube, result: Cube, dry_indices: np.ndarray, time_axis: int) -> Cube:
+    def _find_most_significant_dry_code(
+        self, cube: Cube, result: Cube, dry_indices: np.ndarray, time_axis: int
+    ) -> Cube:
         """Find the most significant dry weather code at each point.
 
         Args:
