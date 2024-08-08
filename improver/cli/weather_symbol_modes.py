@@ -61,8 +61,15 @@ def process(
         raise RuntimeError("Not enough input arguments. See help for more information.")
 
     return ModalFromGroupings(
-        decision_tree, broad_categories, wet_categories, intensity_categories,
-        day_weighting, day_start, day_end, wet_bias, ignore_intensity,
+        decision_tree,
+        broad_categories,
+        wet_categories,
+        intensity_categories,
+        day_weighting,
+        day_start,
+        day_end,
+        wet_bias,
+        ignore_intensity,
         model_id_attr=model_id_attr,
         record_run_attr=record_run_attr,
     )(cubes)
