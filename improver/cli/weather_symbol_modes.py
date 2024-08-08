@@ -24,11 +24,10 @@ def process(
     model_id_attr: str = None,
     record_run_attr: str = None,
 ):
-    """Generates a modal category for the period covered by the input
+    """Generates a modal weather code for the period covered by the input
     categorical cubes. Where there are different categories available
     for night and day, the modal code returned is always a day code, regardless
     of the times covered by the input files.
-    Designed for use with weather symbol data.
 
     Args:
         cubes (iris.cube.CubeList):
@@ -53,7 +52,7 @@ def process(
 
     Returns:
         iris.cube.Cube:
-            A cube of modal categories over a period.
+            A cube of modal weather codes over a period.
     """
     from improver.categorical.modal_code import ModalFromGroupings
 

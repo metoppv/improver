@@ -26,6 +26,8 @@ from .utilities import day_night_map
 
 
 class BaseModalCategory(BasePlugin):
+    """Base plugin for modal weather symbol plugins."""
+
     def _unify_day_and_night(self, cube: Cube):
         """Remove distinction between day and night codes so they can each
         contribute when calculating the modal code. The cube of categorical data
@@ -37,6 +39,90 @@ class BaseModalCategory(BasePlugin):
         """
         for day, night in self.day_night_map.items():
             cube.data[cube.data == night] = day
+
+    def _prepare_input_cubes(
+        self,
+        cubes: CubeList,
+        record_run_attr: Optional[str] = None,
+        model_id_attr: Optional[str] = None,
+    ) -> Cube:
+        """
+
+        Args:
+            cubes: Input cubes on which to store the metadata required.
+            record_run_attr: Attribute to record the run information.
+                Defaults to None.
+            model_id_attr: Attribute to record the model_id information.
+                Defaults to None.
+
+        Returns:
+            Merged cube with metadata added as required.
+        """
+        # Store the information for the record_run attribute on the cubes.
+        if record_run_attr and model_id_attr:
+            store_record_run_as_coord(cubes, record_run_attr, model_id_attr)
+        return MergeCubes()(cubes)
+
+    def _prepare_result_cube(
+        self,
+        cube: Cube,
+        cubes: CubeList,
+        result: Cube,
+        record_run_attr: Optional[str] = None,
+        model_id_attr: Optional[str] = None,
+    ) -> Cube:
+        """Update the result cube with metadata from the input cubes.
+
+        Args:
+            cube: Input cube
+            cubes: Input cubelist.
+            result: Result cube.
+            record_run_attr: Attribute to record the run information.
+                Defaults to None.
+            model_id_attr: Attribute to record the model_id information.
+                Defaults to None.
+
+        Raises:
+            ValueError: If the time coordinate on the input cube does not represent
+                consistent periods.
+
+        Returns:
+            Cube with updated metadata.
+        """
+        # Create the expected cell method. Manually create a cell method ensuring to
+        # preserve any existing cell methods.
+        cell_methods = list(cube.cell_methods)
+        try:
+            (input_data_period,) = np.unique(np.diff(cube.coord("time").bounds)) / 3600
+        except ValueError as err:
+            raise ValueError(
+                "Input diagnostics do not have consistent periods."
+            ) from err
+        cell_methods.append(
+            iris.coords.CellMethod(
+                "mode", coords="time", intervals=f"{int(input_data_period)} hour"
+            )
+        )
+        result.cell_methods = None
+        for cell_method in cell_methods:
+            result.add_cell_method(cell_method)
+
+        if model_id_attr:
+            # Update contributing models
+            contributing_models = set()
+            for source_cube in cubes:
+                for model in source_cube.attributes[model_id_attr].split(" "):
+                    contributing_models.update([model])
+            result.attributes[model_id_attr] = " ".join(
+                sorted(list(contributing_models))
+            )
+
+        if record_run_attr and model_id_attr:
+            record_run_coord_to_attr(
+                result, cube, record_run_attr, discard_weights=True
+            )
+            result.remove_coord(RECORD_COORD)
+        return result
 
 
 class ModalCategory(BaseModalCategory):
@@ -207,26 +293,8 @@ class ModalCategory(BaseModalCategory):
             A single categorical cube with time bounds that span those of
             the input categorical cubes.
         """
-        # Store the information for the record_run attribute on the cubes.
-        if self.record_run_attr and self.model_id_attr:
-            store_record_run_as_coord(cubes, self.record_run_attr, self.model_id_attr)
-
-        cube = MergeCubes()(cubes)
-
-        # Create the expected cell method. The aggregator adds a cell method
-        # but cannot include an interval, so we create it here manually,
-        # ensuring to preserve any existing cell methods.
-        cell_methods = list(cube.cell_methods)
-        try:
-            (input_data_period,) = np.unique(np.diff(cube.coord("time").bounds)) / 3600
-        except ValueError as err:
-            raise ValueError(
-                "Input diagnostics do not have consistent periods."
-            ) from err
-        cell_methods.append(
-            iris.coords.CellMethod(
-                "mode", coords="time", intervals=f"{int(input_data_period)} hour"
-            )
+        cube = self._prepare_input_cubes(
+            cubes, self.record_run_attr, self.model_id_attr
         )
 
         self._unify_day_and_night(cube)
@@ -237,31 +305,15 @@ class ModalCategory(BaseModalCategory):
         else:
             result = cube.collapsed("time", self.aggregator_instance)
 
+        self._set_blended_times(result)
+
+        result = self._prepare_result_cube(
+            cube, cubes, result, self.record_run_attr, self.model_id_attr
+        )
+
         # Handle any unset points where it was hard to determine a suitable mode
         if (result.data == self.unset_code_indicator).any():
             self._group_codes(result, cube)
-
-        self._set_blended_times(result)
-
-        result.cell_methods = None
-        for cell_method in cell_methods:
-            result.add_cell_method(cell_method)
-
-        if self.model_id_attr:
-            # Update contributing models
-            contributing_models = set()
-            for source_cube in cubes:
-                for model in source_cube.attributes[self.model_id_attr].split(" "):
-                    contributing_models.update([model])
-            result.attributes[self.model_id_attr] = " ".join(
-                sorted(list(contributing_models))
-            )
-
-        if self.record_run_attr and self.model_id_attr:
-            record_run_coord_to_attr(
-                result, cube, self.record_run_attr, discard_weights=True
-            )
-            result.remove_coord(RECORD_COORD)
 
         return result
 
@@ -493,8 +545,7 @@ class ModalFromGroupings(BaseModalCategory):
             weather code is used, assuming higher values for the weather code indicate
             more significant weather.
         """
-        # Ensure that the dry indices are filled with the most common symbols
-        # without considering the wet categories.
+        # Clip the weather codes to be within the range given by the dry weather codes.
         cube_min = np.min(cube.data, axis=time_axis)
         cube_max = np.max(cube.data, axis=time_axis)
         min_clip_value = np.max(
@@ -514,8 +565,11 @@ class ModalFromGroupings(BaseModalCategory):
         uniques, counts = np.unique(
             np.clip(cube.data, min_clip_value, max_clip_value),
             return_counts=True,
-            axis=0,
+            axis=time_axis,
         )
+        # Flip the unique values and the counts to be in descending order, so that
+        # the argmax will use the weather code with the lowest index in the event of
+        # a tie.
         uniques = np.flip(uniques, axis=time_axis)
         counts = np.flip(counts, axis=time_axis)
         result.data[dry_indices] = uniques[np.argmax(counts)][dry_indices]
@@ -569,7 +623,7 @@ class ModalFromGroupings(BaseModalCategory):
             A result cube containing the most appropriate weather code following
             categorisation.
         """
-        # Identify the most likely weather code within each of the wet categories.
+        # Identify the most likely weather code within each of the subcategory.
         category_counter = []
         most_likely_subcategory = {}
         for key in categories.keys():
@@ -587,11 +641,10 @@ class ModalFromGroupings(BaseModalCategory):
                 np.argmax(subcategory_counter, axis=time_axis)
             ]
 
-        # Find the most likely wet category.
+        # Identify which category is most likely.
         most_likely_category = np.argmax(category_counter, axis=time_axis)
 
-        # For each wet category, if that wet category is the most likely, assign
-        # the most likely weather code from that specific wet category as the result.
+        # Use the most likely subcategory from the most likely category.
         for index, key in enumerate(categories.keys()):
             category_index = np.logical_and(
                 ~indices_to_ignore, most_likely_category == index
@@ -615,7 +668,6 @@ class ModalFromGroupings(BaseModalCategory):
                 c.name() for c in cube.coords()
             ]:
                 coord = cube.coord(coord_name)
-                # if coord.has_bounds():
                 coord = coord.copy(coord.points[-1])
                 result.replace_coord(coord)
 
@@ -629,7 +681,7 @@ class ModalFromGroupings(BaseModalCategory):
             result.replace_coord(new_coord)
 
     def process(self, cubes: CubeList) -> Cube:
-        """Calculate the modal categorical code, with handling for edge cases.
+        """Calculate the modal categorical code by grouping weather codes.
 
         Args:
             cubes:
@@ -642,26 +694,8 @@ class ModalFromGroupings(BaseModalCategory):
             A single categorical cube with time bounds that span those of
             the input categorical cubes.
         """
-        # Store the information for the record_run attribute on the cubes.
-        if self.record_run_attr and self.model_id_attr:
-            store_record_run_as_coord(cubes, self.record_run_attr, self.model_id_attr)
-
-        cube = MergeCubes()(cubes)
-
-        # Create the expected cell method. The aggregator adds a cell method
-        # but cannot include an interval, so we create it here manually,
-        # ensuring to preserve any existing cell methods.
-        cell_methods = list(cube.cell_methods)
-        try:
-            (input_data_period,) = np.unique(np.diff(cube.coord("time").bounds)) / 3600
-        except ValueError as err:
-            raise ValueError(
-                "Input diagnostics do not have consistent periods."
-            ) from err
-        cell_methods.append(
-            iris.coords.CellMethod(
-                "mode", coords="time", intervals=f"{int(input_data_period)} hour"
-            )
+        cube = self._prepare_input_cubes(
+            cubes, self.record_run_attr, self.model_id_attr
         )
 
         self._unify_day_and_night(cube)
@@ -703,24 +737,8 @@ class ModalFromGroupings(BaseModalCategory):
 
         self._set_blended_times(cube, result)
 
-        result.cell_methods = None
-        for cell_method in cell_methods:
-            result.add_cell_method(cell_method)
-
-        if self.model_id_attr:
-            # Update contributing models
-            contributing_models = set()
-            for source_cube in cubes:
-                for model in source_cube.attributes[self.model_id_attr].split(" "):
-                    contributing_models.update([model])
-            result.attributes[self.model_id_attr] = " ".join(
-                sorted(list(contributing_models))
-            )
-
-        if self.record_run_attr and self.model_id_attr:
-            record_run_coord_to_attr(
-                result, cube, self.record_run_attr, discard_weights=True
-            )
-            result.remove_coord(RECORD_COORD)
+        result = self._prepare_result_cube(
+            cube, cubes, result, self.record_run_attr, self.model_id_attr
+        )
 
         return result

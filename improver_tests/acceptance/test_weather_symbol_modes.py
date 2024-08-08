@@ -68,7 +68,7 @@ def test_expected(tmp_path, test_path):
 
 
 def test_no_input(tmp_path):
-    """Test an exceptions is raised by the CLI if no cubes are provided."""
+    """Test an exception is raised by the CLI if no cubes are provided."""
     wxtree = acc.kgo_root() / "weather-symbol-modes" / "wx_decision_tree.json"
     broad_categories = acc.kgo_root() / "weather-symbol-modes" / "broad_categories.json"
     wet_categories = acc.kgo_root() / "weather-symbol-modes" / "wet_categories.json"
