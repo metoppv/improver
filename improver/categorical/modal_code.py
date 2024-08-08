@@ -293,6 +293,9 @@ class ModalFromGroupings(BaseModalCategory):
     def __init__(
         self,
         decision_tree: Dict,
+        broad_categories: Dict[str, int],
+        wet_categories: Dict[str, int],
+        intensity_categories: Dict[str, int],
         day_weighting: Optional[int] = 1,
         day_start: Optional[int] = 6,
         day_end: Optional[int] = 18,
@@ -308,6 +311,16 @@ class ModalFromGroupings(BaseModalCategory):
             decision_tree:
                 The decision tree used to generate the categories and which contains the
                 mapping of day and night categories and of category groupings.
+            broad_categories:
+                Dictionary defining the broad categories for grouping the weather
+                symbol codes. This is expected to have the keys: "dry" and "wet".
+            wet_categories:
+                Dictionary defining groupings for the wet categories. No specific
+                names for the keys are required. Values within the dictionary should
+                be ordered in terms of descending priority.
+            intensity_categories:
+                Dictionary defining intensity groupings. Values should be ordered in
+                terms of descending priority.
             day_weighting:
                 Weighting to provide day time weather codes. A weighting of 1 indicates
                 the default weighting. A weighting of 2 indicates that the weather codes
@@ -337,7 +350,9 @@ class ModalFromGroupings(BaseModalCategory):
                 constructing the categories.
         """
         self.decision_tree = decision_tree
-
+        self.broad_categories = broad_categories
+        self.wet_categories = wet_categories
+        self.intensity_categories = intensity_categories
         self.day_weighting = day_weighting
         self.day_start = day_start
         self.day_end = day_end
@@ -347,25 +362,7 @@ class ModalFromGroupings(BaseModalCategory):
         self.record_run_attr = record_run_attr
         self.day_night_map = day_night_map(self.decision_tree)
 
-        self.broad_categories = {
-            "wet": np.arange(9, 31),
-            "dry": np.arange(0, 9),
-        }
-        # Priority ordered categories (keys) in case of ties
-        self.wet_categories = {
-            "extreme_convection": [30, 29, 28, 21, 20, 19],
-            "frozen": [27, 26, 25, 24, 23, 22, 18, 17, 16],
-            "liquid": [15, 14, 13, 12, 11, 10, 9],
-        }
-        self.intensity_categories = {
-            "rain_shower": [10, 14],
-            "rain": [12, 15],
-            "snow_shower": [23, 26],
-            "snow": [24, 27],
-            "thunder": [29, 30],
-        }
-
-    def _consolidate_intensity_categories(self, cube):
+    def _consolidate_intensity_categories(self, cube: Cube) -> Cube:
         """Consolidate weather codes representing different intensities of
         precipitation. This can help with computing a representative weather code.
 
@@ -386,7 +383,7 @@ class ModalFromGroupings(BaseModalCategory):
         return cube
 
     @staticmethod
-    def _promote_time_coords(cube, template_cube):
+    def _promote_time_coords(cube: Cube, template_cube: Cube) -> Cube:
         """Promote the time coordinate, so that cubes can be concatenated along the
         time coordinate. Concatenation, rather than merging, helps to ensure
         consistent output, as merging can lead to other coordinates e.g.
@@ -417,7 +414,7 @@ class ModalFromGroupings(BaseModalCategory):
                 cube.add_aux_coord(coord, data_dims=time_dim)
         return cube
 
-    def _emphasise_day_period(self, cube):
+    def _emphasise_day_period(self, cube: Cube) -> Cube:
         """Use a day weighting, plus the hour of the day defining the day start and
         day end, so the daytime hours are weighted more heavily when computing the
         weather symbol. The time and forecast_period coordinates are incremented
@@ -458,7 +455,7 @@ class ModalFromGroupings(BaseModalCategory):
         cube = day_cubes.concatenate_cube()
         return cube
 
-    def _find_dry_indices(self, cube, time_axis):
+    def _find_dry_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
         """Find the indices indicating dry weather codes. This can include a wet bias
         if supplied.
 
@@ -478,7 +475,7 @@ class ModalFromGroupings(BaseModalCategory):
         )
         return dry_counts > self.wet_bias * wet_counts
 
-    def _find_most_significant_dry_code(self, cube, result, dry_indices, time_axis):
+    def _find_most_significant_dry_code(self, cube: Cube, result: Cube, dry_indices: np.ndarray, time_axis: int) -> Cube:
         """Find the most significant dry weather code at each point.
 
         Args:
@@ -522,7 +519,7 @@ class ModalFromGroupings(BaseModalCategory):
         result.data[dry_indices] = uniques[np.argmax(counts)][dry_indices]
         return result
 
-    def _find_non_intensity_indices(self, cube, time_axis):
+    def _find_non_intensity_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
         """Find which points have predictions for weather codes from any of the
         intensity categories.
 
@@ -540,12 +537,12 @@ class ModalFromGroupings(BaseModalCategory):
 
     def _get_most_likely_following_grouping(
         self,
-        cube,
-        result,
-        categories,
-        indices_to_ignore,
-        time_axis,
-        categorise_using_modal,
+        cube: Cube,
+        result: Cube,
+        categories: Dict,
+        indices_to_ignore: np.ndarray,
+        time_axis: int,
+        categorise_using_modal: bool,
     ):
         """Determine the most likely category and subcategory using a dictionary
         defining the categorisation. The category could be a group of weather codes

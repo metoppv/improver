@@ -20,6 +20,23 @@ from improver_tests.categorical.modal_code.test_ModalCategory import (
 MODEL_ID_ATTR = "mosg__model_configuration"
 RECORD_RUN_ATTR = "mosg__model_run"
 TARGET_TIME = dt(2020, 6, 15, 18)
+BROAD_CATEGORIES = {
+    "wet": np.arange(9, 31),
+    "dry": np.arange(0, 9),
+}
+# Priority ordered categories (keys) in case of ties
+WET_CATEGORIES = {
+    "extreme_convection": [30, 29, 28, 21, 20, 19],
+    "frozen": [27, 26, 25, 24, 23, 22, 18, 17, 16],
+    "liquid": [15, 14, 13, 12, 11, 10, 9],
+}
+INTENSITY_CATEGORIES = {
+    "rain_shower": [10, 14],
+    "rain": [12, 15],
+    "snow_shower": [23, 26],
+    "snow": [24, 27],
+    "thunder": [29, 30],
+}
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
@@ -76,7 +93,9 @@ TARGET_TIME = dt(2020, 6, 15, 18)
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
-    result = ModalFromGroupings(wxcode_decision_tree())(wxcode_cubes)
+    result = ModalFromGroupings(
+        wxcode_decision_tree(), BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES
+    )(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
@@ -109,7 +128,13 @@ def test_expected_values(wxcode_series, expected):
 def test_expected_values_wet_bias(wxcode_series, wet_bias, expected):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
-    result = ModalFromGroupings(wxcode_decision_tree(), wet_bias=wet_bias)(wxcode_cubes)
+    result = ModalFromGroupings(
+        wxcode_decision_tree(),
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
+        wet_bias=wet_bias,
+    )(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
 
@@ -142,6 +167,9 @@ def test_expected_values_day_weighting(
     _, _, _, _, wxcode_cubes = wxcode_series
     result = ModalFromGroupings(
         wxcode_decision_tree(),
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
         day_weighting=day_weighting,
         day_start=day_start,
         day_end=day_end,
@@ -167,7 +195,11 @@ def test_expected_values_ignore_intensity(wxcode_series, ignore_intensity, expec
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
     result = ModalFromGroupings(
-        wxcode_decision_tree(), ignore_intensity=ignore_intensity
+        wxcode_decision_tree(),
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
+        ignore_intensity=ignore_intensity,
     )(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
@@ -199,17 +231,26 @@ def test_expected_values_ignore_intensity(wxcode_series, ignore_intensity, expec
     ),
 )
 def test_expected_values_interactions(
-    wxcode_series, wet_bias, day_weighting, day_start, day_end, ignore_intensity, expected
+    wxcode_series,
+    wet_bias,
+    day_weighting,
+    day_start,
+    day_end,
+    ignore_intensity,
+    expected,
 ):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
     result = ModalFromGroupings(
         wxcode_decision_tree(),
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
         wet_bias=wet_bias,
         day_weighting=day_weighting,
         day_start=day_start,
         day_end=day_end,
-        ignore_intensity=ignore_intensity
+        ignore_intensity=ignore_intensity,
     )(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
@@ -248,7 +289,13 @@ def test_metadata(wxcode_series):
     if record_run_attr:
         kwargs.update({"record_run_attr": RECORD_RUN_ATTR})
 
-    result = ModalFromGroupings(wxcode_decision_tree(), **kwargs)(wxcode_cubes)
+    result = ModalFromGroupings(
+        wxcode_decision_tree(),
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
+        **kwargs,
+    )(wxcode_cubes)
 
     n_times = len(wxcode_cubes)
     expected_time = TARGET_TIME
@@ -312,4 +359,9 @@ def test_unmatching_bounds_exception(wxcode_series):
     with pytest.raises(
         ValueError, match="Input diagnostics do not have consistent periods."
     ):
-        ModalFromGroupings(wxcode_decision_tree())(wxcode_cubes)
+        ModalFromGroupings(
+            wxcode_decision_tree(),
+            BROAD_CATEGORIES,
+            WET_CATEGORIES,
+            INTENSITY_CATEGORIES,
+        )(wxcode_cubes)
