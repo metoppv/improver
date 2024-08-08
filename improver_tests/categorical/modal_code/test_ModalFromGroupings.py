@@ -13,7 +13,7 @@ import pytest
 
 from improver.categorical.modal_code import ModalFromGroupings
 from improver_tests.categorical.decision_tree import wxcode_decision_tree
-from improver_tests.categorical.modal_code.test_ModalCategory import (
+from improver_tests.categorical.modal_code.test_ModalCategory import (  # noqa: F401
     wxcode_series_fixture,
 )
 
