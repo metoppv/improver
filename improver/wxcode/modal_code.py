@@ -77,13 +77,16 @@ class BaseModalCategory(BasePlugin):
         record_run_attr: Optional[str] = None,
         model_id_attr: Optional[str] = None,
     ) -> Cube:
-        """
+        """Prepare the input cubes by adding supplementary coordinates as required
+        and merging the input cubes.
+
         Args:
             cubes: Input cubes on which to store the metadata required.
             record_run_attr: Attribute to record the run information.
                 Defaults to None.
             model_id_attr: Attribute to record the model_id information.
                 Defaults to None.
+
         Returns:
             Merged cube with metadata added as required.
         """
@@ -101,6 +104,7 @@ class BaseModalCategory(BasePlugin):
         model_id_attr: Optional[str] = None,
     ) -> Cube:
         """Update the result cube with metadata from the input cubes.
+
         Args:
             cube: Input cube
             cubes: Input cubelist.
@@ -109,9 +113,11 @@ class BaseModalCategory(BasePlugin):
                 Defaults to None.
             model_id_attr: Attribute to record the model_id information.
                 Defaults to None.
+
         Raises:
             ValueError: If the time coordinate on the input cube does not represent
                 consistent periods.
+
         Returns:
             Cube with updated metadata.
         """
