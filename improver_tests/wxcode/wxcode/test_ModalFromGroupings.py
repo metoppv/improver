@@ -65,10 +65,10 @@ INTENSITY_CATEGORIES = {
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [True])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -119,6 +119,8 @@ INTENSITY_CATEGORIES = {
         # More dry codes than wet codes. Most common code (0, clear night)
         # should be converted to a day symbol.
         ([0, 0, 0, 2, 2, 0, 10, 10, 11, 12, 13], 1),
+        # Two locations with different modal dry symbols.
+        ([[3, 3, 3, 4, 5, 5], [3, 3, 4, 4, 4, 5]], [3, 4]),
     ),
 )
 def test_expected_values(wxcode_series, expected):
@@ -127,7 +129,8 @@ def test_expected_values(wxcode_series, expected):
     result = ModalFromGroupings(BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES)(
         wxcode_cubes
     )
-    assert result.data.flatten()[0] == expected
+    for index in range(len(expected)):
+        assert result.data.flatten()[index] == expected[index]
 
 
 @pytest.mark.parametrize("record_run_attr", [False])

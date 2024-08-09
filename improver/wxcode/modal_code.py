@@ -549,7 +549,7 @@ class ModalFromGroupings(BaseModalCategory):
 
     @staticmethod
     def counts_per_category(data: np.ndarray) -> np.ndarray:
-        """Implemented following https://stackoverflow.com/questions/46256279/bin-elements-per-row-vectorized-2d-bincount-for-numpy/46256361#46256361
+        """Implemented following https://stackoverflow.com/questions/46256279/bin-elements-per-row-vectorized-2d-bincount-for-numpy/46256361#46256361  # noqa: E501
         Use np.bincount to count the number of occurrences within each category, so that
         the most common occurrence can then be found.
 
