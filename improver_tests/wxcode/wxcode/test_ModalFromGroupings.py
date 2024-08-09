@@ -170,25 +170,25 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected):
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, day_weighting, day_start, day_end, expected",
     (
-        # First time is valid at 18Z. Subsequent codes are backwards in time from 18Z.
+        # All weather codes supplied are considered as daytime.
         # There are more light shower codes, so this is the modal code.
-        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 6, 18, 10),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 0, 9, 10),
         # A day weighting of 2 results in the number of clear day codes doubling,
         # and one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 2, 6, 18, 1),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 2, 5, 7, 1),
         # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
         # so the resulting code is wet.
-        ([10, 10, 10, 10, 1, 1, 1], 2, 6, 18, 10),
-        # Increasing the day weighting to 3 results in 9 dry codes and 8 wet codes, so
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 2, 4, 7, 10),
+        # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
         # the resulting code is dry.
-        ([10, 10, 10, 10, 1, 1, 1], 3, 6, 18, 1),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 3, 4, 7, 1),
     ),
 )
 def test_expected_values_day_weighting(
