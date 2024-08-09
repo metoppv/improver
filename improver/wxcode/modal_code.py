@@ -488,7 +488,6 @@ class ModalFromGroupings(BaseModalCategory):
         # end_file = np.clip((n_symbols - self.day_start), 0, None)
         #  = cube[start_file:end_file] * (self.day_weighting - 1)
 
-
         day_start_pdt = iris.time.PartialDateTime(hour=self.day_start)
         day_end_pdt = iris.time.PartialDateTime(hour=self.day_end)
         constr = iris.Constraint(
@@ -554,25 +553,11 @@ class ModalFromGroupings(BaseModalCategory):
             weather code is used, assuming higher values for the weather code indicate
             more significant weather.
         """
-        # Clip the weather codes to be within the range given by the dry weather codes.
-        cube_min = np.min(cube.data, axis=time_axis)
-        cube_max = np.max(cube.data, axis=time_axis)
-        min_clip_value = np.max(
-            [
-                np.broadcast_to(np.min(self.broad_categories["dry"]), cube_min.shape),
-                cube_min,
-            ],
-            axis=time_axis,
-        )
-        max_clip_value = np.min(
-            [
-                np.broadcast_to(np.max(self.broad_categories["dry"]), cube_max.shape),
-                cube_max,
-            ],
-            axis=time_axis,
-        )
+        data = cube.data.copy()
+        data = data.astype("float16")
+        data[~np.isin(cube.data, self.broad_categories["dry"])] = np.nan
         uniques, counts = np.unique(
-            np.clip(cube.data, min_clip_value, max_clip_value),
+            data,
             return_counts=True,
             axis=time_axis,
         )
@@ -597,7 +582,10 @@ class ModalFromGroupings(BaseModalCategory):
             are found at a given point, otherwise False.
         """
         values = np.sum(
-            np.isin(cube.data, [v for l in self.intensity_categories.values() for v in l]), axis=time_axis
+            np.isin(
+                cube.data, [v for l in self.intensity_categories.values() for v in l]
+            ),
+            axis=time_axis,
         )
         return ~values.astype(bool)
 
@@ -735,7 +723,9 @@ class ModalFromGroupings(BaseModalCategory):
             )
 
             if self.ignore_intensity:
-                non_intensity_indices = self._find_non_intensity_indices(cube, time_axis)
+                non_intensity_indices = self._find_non_intensity_indices(
+                    cube, time_axis
+                )
                 result = self._get_most_likely_following_grouping(
                     original_cube,
                     result,

@@ -113,6 +113,12 @@ INTENSITY_CATEGORIES = {
         # All wet codes. Two frozen preciptiation and two liquid precipitation.
         # Frozen precipitation chosen in preference.
         ([10, 10, 26, 26], 26),
+        # More dry codes than wet codes. Most common code (2, partly cloudy night)
+        # should be converted to a day symbol.
+        ([2, 2, 2, 0, 0, 2, 10, 10, 11, 12, 13], 3),
+        # More dry codes than wet codes. Most common code (0, clear night)
+        # should be converted to a day symbol.
+        ([0, 0, 0, 2, 2, 0, 10, 10, 11, 12, 13], 1),
     ),
 )
 def test_expected_values(wxcode_series, expected):
