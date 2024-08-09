@@ -333,17 +333,16 @@ class ModalFromGroupings(BaseModalCategory):
     so that wet weather codes can be grouped further. These groupings can be controlled
     as follows. Firstly, a day weighting functionality is provided so that daytime
     hours can be weighted more heavily. A wet bias can also be provided, so that
-    wet symbols are given a larger weight as they are considered more impactful.
-    A second categorisation is then available for the wet symbols. This is most
-    useful when e.g. a period is best represented using a variety of frozen
-    precipitation weather symbols. Grouping the codes helps to ensure that the most
-    significant weather within a given category is highlighted e.g. snow, rather
-    than sleet. The ignore intensity option allows light and heavy weather types to be
+    wet codes are given a larger weight as they are considered more impactful.
+    A second categorisation is then available for the wet codes. This useful when
+    e.g. a period is represented using a variety of frozen precipitation weather codes.
+    Grouping the codes helps to ensure that the most significant weather is emphasised.
+    The ignore intensity option allows light and heavy weather types to be
     considered together when ascertaining the most common weather type. The final
-    daily symbol will be the most common of the light and heavy input symbols of
+    daily symbol will be the most common of the light and heavy input codes of
     the chosen type.
 
-    The ordering of the codes within the category dictionaries provided guides which
+    The ordering of the codes within the category dictionaries guides which
     category is selected in the event of the tie with preference given to the lowest
     index. Incrementing the codes within the category dictionaries from most significant
     code to least significant code helps to ensure that the most significant code is
@@ -395,7 +394,8 @@ class ModalFromGroupings(BaseModalCategory):
                 default weighting, where half of the codes need to be a wet code,
                 in order to generate a wet code. A weighting of 3 indicates that
                 only a quarter of codes are required to be wet, in order to generate
-                a wet symbol.
+                a wet symbol. To generate a wet symbol, the fraction of wet symbols
+                therefore need to be greater than or equal to 1 / (1 + wet_bias).
             ignore_intensity:
                 Boolean indicating whether weather codes of different intensities
                 should be grouped together when establishing the most representative
