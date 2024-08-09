@@ -483,24 +483,21 @@ class ModalFromGroupings(BaseModalCategory):
             Cube with more times during the daytime period, so that daytime hours
             are emphasised, depending upon the day_weighting chosen.
         """
-        # n_symbols = len(cube.coord("time")).points
-        # start_file = np.clip((n_symbols - self.day_end), 0, None)
-        # end_file = np.clip((n_symbols - self.day_start), 0, None)
-        #  = cube[start_file:end_file] * (self.day_weighting - 1)
-
-        day_start_pdt = iris.time.PartialDateTime(hour=self.day_start)
-        day_end_pdt = iris.time.PartialDateTime(hour=self.day_end)
-        constr = iris.Constraint(
-            time=lambda cell: day_start_pdt <= cell.point <= day_end_pdt
-        )
-        day_cube = cube.extract(constr)
-
         day_cubes = iris.cube.CubeList()
         for cube_slice in cube.slices_over("time"):
             cube_slice = self._promote_time_coords(cube_slice, cube)
             day_cubes.append(cube_slice)
+
+        time_coord = cube.coord("time").copy()
+        time_coord.convert_units("hours since 1970-01-01 00:00:00")
+        interval = time_coord.bounds[0][1] - time_coord.bounds[0][0]
+
+        n_times = len(day_cubes)
+        start_file = np.clip((n_times - int(self.day_end/interval)), 0, None)
+        end_file = np.clip((n_times - int(self.day_start/interval)), 0, None)
         for increment in range(1, self.day_weighting):
-            for day_slice in day_cube.slices_over("time"):
+            for day_slice in day_cubes[start_file:end_file]:
+                day_slice = day_slice.copy()
                 for coord in ["time", "forecast_period"]:
                     if len(cube.coord_dims(coord)) > 0:
                         day_slice.coord(coord).points = (
@@ -509,11 +506,8 @@ class ModalFromGroupings(BaseModalCategory):
                         bounds = day_slice.coord(coord).bounds.copy()
                         bounds[0] = bounds[0] + increment
                         day_slice.coord(coord).bounds = bounds
-                day_slice = self._promote_time_coords(day_slice, cube)
                 day_cubes.append(day_slice)
-
-        cube = day_cubes.concatenate_cube()
-        return cube
+        return day_cubes.concatenate_cube()
 
     def _find_dry_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
         """Find the indices indicating dry weather codes. This can include a wet bias
