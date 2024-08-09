@@ -217,7 +217,7 @@ def test_expected_values_day_weighting(
         ([23, 23, 23, 26, 17, 17, 17, 17], True, 23),
         # Use ignore intensity option, with wet symbols that do not have intensity
         # variants.
-        ([11,11, 11, 11, 11, 11, 11, 11], True, 11),
+        ([11, 11, 11, 11, 11, 11, 11, 11], True, 11),
     ),
 )
 def test_expected_values_ignore_intensity(wxcode_series, ignore_intensity, expected):

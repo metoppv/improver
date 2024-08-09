@@ -376,8 +376,8 @@ class ModalFromGroupings(BaseModalCategory):
                 symbol codes. This is expected to have the keys: "dry" and "wet".
             wet_categories:
                 Dictionary defining groupings for the wet categories. No specific
-                names for the keys are required. Values within the dictionary should
-                be ordered in terms of descending priority.
+                names for the keys are required. Key and values within the dictionary
+                should both be ordered in terms of descending priority.
             intensity_categories:
                 Dictionary defining intensity groupings. Values should be ordered in
                 terms of descending priority.
@@ -497,8 +497,8 @@ class ModalFromGroupings(BaseModalCategory):
         interval = time_coord.bounds[0][1] - time_coord.bounds[0][0]
 
         n_times = len(day_cubes)
-        start_file = np.clip((n_times - int(self.day_end/interval)), 0, None)
-        end_file = np.clip((n_times - int(self.day_start/interval)), 0, None)
+        start_file = np.clip((n_times - int(self.day_end / interval)), 0, None)
+        end_file = np.clip((n_times - int(self.day_start / interval)), 0, None)
         for increment in range(1, self.day_weighting):
             for day_slice in day_cubes[start_file:end_file]:
                 day_slice = day_slice.copy()
@@ -554,11 +554,7 @@ class ModalFromGroupings(BaseModalCategory):
         data = cube.data.copy()
         data = data.astype("float16")
         data[~np.isin(cube.data, self.broad_categories["dry"])] = np.nan
-        uniques, counts = np.unique(
-            data,
-            return_counts=True,
-            axis=time_axis,
-        )
+        uniques, counts = np.unique(data, return_counts=True, axis=time_axis,)
         # Flip the unique values and the counts to be in descending order, so that
         # the argmax will use the weather code with the lowest index in the event of
         # a tie.
@@ -581,7 +577,7 @@ class ModalFromGroupings(BaseModalCategory):
         """
         values = np.sum(
             np.isin(
-                cube.data, [v for l in self.intensity_categories.values() for v in l]
+                cube.data, [x for v in self.intensity_categories.values() for x in v]
             ),
             axis=time_axis,
         )
@@ -599,7 +595,10 @@ class ModalFromGroupings(BaseModalCategory):
         """Determine the most likely category and subcategory using a dictionary
         defining the categorisation. The category could be a group of weather codes
         representing frozen precipitation, where the subcategory would be the individual
-        weather codes.
+        weather codes. If a category or subcategory is tied, then the first as defined
+        within the categories dictionary is taken. As the categories and subcategories
+        within the dictionary are expected to be in descending priority order, this
+        will ensure that the highest priority item is chosen in the event of a tie.
 
         Args:
             cube: Weather codes cube.
