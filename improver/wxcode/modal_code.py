@@ -547,6 +547,25 @@ class ModalFromGroupings(BaseModalCategory):
         )
         return dry_counts > self.wet_bias * wet_counts
 
+    @staticmethod
+    def counts_per_category(data: np.ndarray) -> np.ndarray:
+        """Implemented following https://stackoverflow.com/questions/46256279/bin-elements-per-row-vectorized-2d-bincount-for-numpy/46256361#46256361
+        Use np.bincount to count the number of occurrences within each category, so that
+        the most common occurrence can then be found.
+
+        Args:
+            data: Array where occurrences of each possible integer value between 0
+                and data.max() will be counted.
+
+        Returns:
+            An array of counts for the occurrence of each category within each row.
+        """
+        n_cat = data.max() + 1
+        a_offs = data + np.arange(data.shape[0])[:, None] * n_cat
+        return np.bincount(a_offs.ravel(), minlength=data.shape[0] * n_cat).reshape(
+            -1, n_cat
+        )
+
     def _find_most_significant_dry_code(
         self, cube: Cube, result: Cube, dry_indices: np.ndarray, time_axis: int
     ) -> Cube:
@@ -566,16 +585,11 @@ class ModalFromGroupings(BaseModalCategory):
             more significant weather.
         """
         data = cube.data.copy()
-        data = data.astype("float16")
-        data[~np.isin(cube.data, self.broad_categories["dry"])] = np.nan
-        uniques, counts = np.unique(data, return_counts=True, axis=time_axis,)
-
-        # Flip the unique values and the counts to be in descending order, so that
-        # the argmax will use the weather code with the lowest index in the event of
-        # a tie.
-        uniques = np.flip(uniques, axis=time_axis)
-        counts = np.flip(counts, axis=time_axis)
-        result.data[dry_indices] = uniques[np.argmax(counts)][dry_indices]
+        data = np.ma.masked_where(
+            ~np.isin(cube.data.copy(), self.broad_categories["dry"]), data
+        )
+        counts = self.counts_per_category(data.T)
+        result.data[dry_indices] = np.argmax(counts, axis=1)[dry_indices]
         return result
 
     def _find_non_intensity_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
