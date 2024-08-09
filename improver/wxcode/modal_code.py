@@ -459,8 +459,7 @@ class ModalFromGroupings(BaseModalCategory):
         time_dim = cube.coord_dims("time")
 
         associated_coords = [
-            c.name()
-            for c in template_cube.coords(dimensions=time_dim, dim_coords=False)
+            c.name() for c in template_cube.coords(dimensions=time_dim)
         ]
 
         for coord in associated_coords:
@@ -471,6 +470,7 @@ class ModalFromGroupings(BaseModalCategory):
                 coord.points = coord.points.astype(template_cube.coord(coord).dtype)
                 cube.remove_coord(coord)
                 cube.add_aux_coord(coord, data_dims=time_dim)
+        iris.util.promote_aux_coord_to_dim_coord(cube, "time")
         return cube
 
     def _emphasise_day_period(self, cube: Cube) -> Cube:
