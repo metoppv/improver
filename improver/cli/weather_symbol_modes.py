@@ -51,7 +51,8 @@ def process(
     """Generates a modal weather code for the period covered by the input
     categorical cubes. Where there are different categories available
     for night and day, the modal code returned is always a day code, regardless
-    of the times covered by the input files.
+    of the times covered by the input files. The weather codes provided are expected
+    to end at midnight, so that either a full day or a partial day.
 
     Args:
         cubes (iris.cube.CubeList):
@@ -64,6 +65,28 @@ def process(
             A JSON file containing a definition for a wet category grouping.
         intensity_categories (dict):
             A JSON file containing a definition for a intensity category grouping.
+        day_weighting:
+            Weighting to provide day time weather codes. A weighting of 1 indicates
+            the default weighting. A weighting of 2 indicates that the weather codes
+            during the day time period will be duplicated, so that they count twice
+            as much when computing a representative weather code.
+        day_start:
+            Hour defining the start of the daytime period.
+        day_end:
+            Hour defining the end of the daytime period.
+        wet_bias:
+            Weighting to provide wet weather codes. A weighting of 1 indicates the
+            default weighting, where half of the codes need to be a wet code,
+            in order to generate a wet code. A weighting of 3 indicates that
+            only a quarter of codes are required to be wet, in order to generate
+            a wet symbol. To generate a wet symbol, the fraction of wet symbols
+            therefore need to be greater than or equal to 1 / (1 + wet_bias).
+        ignore_intensity:
+            Boolean indicating whether weather codes of different intensities
+            should be grouped together when establishing the most representative
+            weather code. The most common weather code from the options available
+            representing different intensities will be used as the representative
+            weather code.
         model_id_attr (str):
             Name of attribute recording source models that should be
             inherited by the output cube. The source models are expected as

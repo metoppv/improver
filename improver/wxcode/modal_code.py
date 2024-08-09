@@ -474,11 +474,25 @@ class ModalFromGroupings(BaseModalCategory):
         return cube
 
     def _emphasise_day_period(self, cube: Cube) -> Cube:
-        """Use a day weighting, plus the hour of the day defining the day start and
-        day end, so the daytime hours are weighted more heavily when computing the
-        weather symbol. The time and forecast_period coordinates are incremented
-        by the the minimum arbitrary amount (1 second) to ensure non-duplicate
-        coordinates.
+        """A day weighting can be set which biases the forecasts towards the hours of
+        e.g. 6am-6pm. This is achieved by counting the number of input times available
+        e.g. hourly and taking those that are 18 times from the end up to those
+        that are 6 from the end and duplicating these symbols by the integer weighting.
+        This approach is taken to accommodate different timezones without the need for
+        any timezone awareness. Inputs are always provided from midnight to midnight, or
+        ending at midnight if a partial day is provided. The middle of the set of input
+        times therefore corresponds to the local middle of the day. The count back
+        from the end of the period is done to accommodate partial periods (same day
+        updates). The index counted backwards is clipped to 0, meaning if there are
+        only 12 files being passed in (because we're around midday when we perform
+        the update), the first index will be 0, rather than -6, and only symbols from
+        6 periods will be multiplied up by the day_weighting.
+
+        Metadata is not used to select the day period as the times recorded
+        within the cubes are all UTC, rather than local time, so the local day period
+        can not be identified. The time and forecast_period coordinates are
+        incremented by the the minimum arbitrary amount (1 second) to ensure
+        non-duplicate coordinates.
 
         Args:
             cube: Weather codes cube.
@@ -555,6 +569,7 @@ class ModalFromGroupings(BaseModalCategory):
         data = data.astype("float16")
         data[~np.isin(cube.data, self.broad_categories["dry"])] = np.nan
         uniques, counts = np.unique(data, return_counts=True, axis=time_axis,)
+
         # Flip the unique values and the counts to be in descending order, so that
         # the argmax will use the weather code with the lowest index in the event of
         # a tie.
