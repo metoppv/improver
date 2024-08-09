@@ -333,11 +333,15 @@ class ModalFromGroupings(BaseModalCategory):
     so that wet weather codes can be grouped further. These groupings can be controlled
     as follows. Firstly, a day weighting functionality is provided so that daytime
     hours can be weighted more heavily. A wet bias can also be provided, so that
-    wet symbols are given a larger weight as they are considered more impactful. The
-    intensity of the codes can also be ignored. This is most useful when e.g. a period
-    is best represented using a variety of frozen precipitation weather symbols.
-    Grouping the codes, ignoring the intensities, helps to ensure that the most
-    significant weather is highlighted e.g. snow, rather than sleet.
+    wet symbols are given a larger weight as they are considered more impactful.
+    A second categorisation is then available for the wet symbols. This is most
+    useful when e.g. a period is best represented using a variety of frozen
+    precipitation weather symbols. Grouping the codes helps to ensure that the most
+    significant weather within a given category is highlighted e.g. snow, rather
+    than sleet. The ignore intensity option allows light and heavy weather types to be
+    considered together when ascertaining the most common weather type. The final
+    daily symbol will be the most common of the light and heavy input symbols of
+    the chosen type.
 
     The ordering of the codes within the category dictionaries provided guides which
     category is selected in the event of the tie with preference given to the lowest

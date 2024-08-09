@@ -65,10 +65,10 @@ INTENSITY_CATEGORIES = {
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -166,10 +166,10 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected):
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, day_weighting, day_start, day_end, expected",
     (
@@ -204,10 +204,10 @@ def test_expected_values_day_weighting(
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, ignore_intensity, expected",
     (
@@ -241,21 +241,23 @@ def test_expected_values_ignore_intensity(wxcode_series, ignore_intensity, expec
     "data, wet_bias, day_weighting, day_start, day_end, ignore_intensity, expected",
     (
         # The sleet code is the most common, so this is the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 1, 11, 15, False, 17),
-        # A day weighting of 10 at 15Z emphasises the heavy snow shower, and this code
-        # is therefore the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 15, 15, False, 26),
-        # Without any weighting, there would be a dry symbol. A day weighting of 2
-        # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
-        # and 10 wet codes.
-        ([1, 1, 1, 1, 1, 17, 17, 17], 2, 2, 12, 14, False, 17),
-        # All precipitation is frozen. Ignoring the intensities means that a
-        # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
-        # A wet bias results in 16 sleet codes and 16 light snow shower codes.
-        # The snow code is chosen as it is the most significant frozen precipitation,
-        # and ignoring intensity option ensures that the modal code is set to the most
-        # common snow shower code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 2, 2, 11, 18, True, 23),
+        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 1, 0, 12, False, 17),
+        # The day weighting with the day start and day end set to same value has no
+        # impact on the modal code.
+        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 3, False, 17),
+        # The day weighting is set to emphasise the heavy snow shower (26).
+        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 4, False, 26),
+        # # Without any weighting, there would be a dry symbol. A day weighting of 2
+        # # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
+        # # and 10 wet codes.
+        ([1, 1, 1, 1, 1, 17, 17, 17], 2, 2, 5, 7, False, 17),
+        # # All precipitation is frozen. Ignoring the intensities means that a
+        # # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
+        # # A wet bias results in 16 sleet codes and 16 light snow shower codes.
+        # # The snow code is chosen as it is the most significant frozen precipitation,
+        # # and ignoring intensity option ensures that the modal code is set to the most
+        # # common snow shower code.
+        ([23, 23, 23, 26, 17, 17, 17, 17], 2, 2, 0, 12, True, 23),
     ),
 )
 def test_expected_values_interactions(
