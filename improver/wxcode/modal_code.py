@@ -335,9 +335,9 @@ class ModalFromGroupings(BaseModalCategory):
     hours can be weighted more heavily. A wet bias can also be provided, so that
     wet codes are given a larger weight as they are considered more impactful.
     A second categorisation is then available for the wet codes. This useful when
-    e.g. a period is represented using a variety of frozen precipitation weather codes.
-    Grouping the codes helps to ensure that the most significant weather is emphasised.
-    The ignore intensity option allows light and heavy weather types to be
+    e.g. a period is represented using a variety of frozen precipitation weather codes,
+    so that a frozen precipitation weather code can be diagnosed as an appropriate
+    summary. The ignore intensity option allows light and heavy weather types to be
     considered together when ascertaining the most common weather type. The final
     daily symbol will be the most common of the light and heavy input codes of
     the chosen type.
