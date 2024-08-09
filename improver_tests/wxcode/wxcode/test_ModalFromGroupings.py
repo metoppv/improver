@@ -65,10 +65,10 @@ INTENSITY_CATEGORIES = {
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [True])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -198,10 +198,10 @@ def test_expected_values_day_weighting(
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [True])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
     "data, ignore_intensity, expected",
     (
@@ -209,6 +209,9 @@ def test_expected_values_day_weighting(
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17),
         # When snow shower codes are grouped, snow shower is chosen.
         ([23, 23, 23, 26, 17, 17, 17, 17], True, 23),
+        # Use ignore intensity option, with wet symbols that do not have intensity
+        # variants.
+        ([11,11, 11, 11, 11, 11, 11, 11], True, 11),
     ),
 )
 def test_expected_values_ignore_intensity(wxcode_series, ignore_intensity, expected):

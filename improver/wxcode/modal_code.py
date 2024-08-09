@@ -388,9 +388,10 @@ class ModalFromGroupings(BaseModalCategory):
                 Hour defining the end of the daytime period for the time coordinate.
             wet_bias:
                 Weighting to provide wet weather codes. A weighting of 1 indicates the
-                default weighting. A weighting of 2 indicates that the wet weather
-                codes will be duplicated, so that they count twice as much when
-                computing a representative weather code.
+                default weighting, where half of the codes need to be a wet code,
+                in order to generate a wet code. A weighting of 3 indicates that
+                only a quarter of codes are required to be wet, in order to generate
+                a wet symbol.
             ignore_intensity:
                 Boolean indicating whether weather codes of different intensities
                 should be grouped together when establishing the most representative
@@ -482,6 +483,12 @@ class ModalFromGroupings(BaseModalCategory):
             Cube with more times during the daytime period, so that daytime hours
             are emphasised, depending upon the day_weighting chosen.
         """
+        # n_symbols = len(cube.coord("time")).points
+        # start_file = np.clip((n_symbols - self.day_end), 0, None)
+        # end_file = np.clip((n_symbols - self.day_start), 0, None)
+        #  = cube[start_file:end_file] * (self.day_weighting - 1)
+
+
         day_start_pdt = iris.time.PartialDateTime(hour=self.day_start)
         day_end_pdt = iris.time.PartialDateTime(hour=self.day_end)
         constr = iris.Constraint(
@@ -586,12 +593,13 @@ class ModalFromGroupings(BaseModalCategory):
             time_axis: The time coordinate dimension.
 
         Returns:
-            Boolean that is True is any weather code from the intensity categories
+            Boolean that is True if any weather code from the intensity categories
             are found at a given point, otherwise False.
         """
-        return ~np.sum(
-            np.isin(cube.data, self.intensity_categories.values()), axis=time_axis
+        values = np.sum(
+            np.isin(cube.data, [v for l in self.intensity_categories.values() for v in l]), axis=time_axis
         )
+        return ~values.astype(bool)
 
     def _get_most_likely_following_grouping(
         self,
@@ -726,8 +734,8 @@ class ModalFromGroupings(BaseModalCategory):
                 categorise_using_modal=False,
             )
 
-            non_intensity_indices = self._find_non_intensity_indices(cube, time_axis)
             if self.ignore_intensity:
+                non_intensity_indices = self._find_non_intensity_indices(cube, time_axis)
                 result = self._get_most_likely_following_grouping(
                     original_cube,
                     result,
