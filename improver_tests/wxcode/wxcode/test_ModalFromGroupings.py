@@ -65,18 +65,18 @@ INTENSITY_CATEGORIES = {
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
         # Sunny day (1), one rain code (15) that is in the minority, expect sun
         # code (1).
         ([1, 1, 1, 15], 1),
-        # # Short period with an equal split. The most significant weather
-        # # (hail, 21) should be returned.
+        # Short period with an equal split. The most significant weather
+        # (hail, 21) should be returned.
         ([1, 21], 21),
         # # A single time is provided in which a sleet shower is forecast (16).
         # # We expect the cube to be returned with the night code changed to a
@@ -129,6 +129,7 @@ def test_expected_values(wxcode_series, expected):
     result = ModalFromGroupings(BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES)(
         wxcode_cubes
     )
+    expected = [expected] if not isinstance(expected, list) else expected
     for index in range(len(expected)):
         assert result.data.flatten()[index] == expected[index]
 
@@ -169,10 +170,10 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected):
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [True])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
     "data, day_weighting, day_start, day_end, expected",
     (

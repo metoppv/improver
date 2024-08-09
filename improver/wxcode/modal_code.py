@@ -562,9 +562,10 @@ class ModalFromGroupings(BaseModalCategory):
         """
         n_cat = data.max() + 1
         a_offs = data + np.arange(data.shape[0])[:, None] * n_cat
-        return np.bincount(a_offs.ravel(), minlength=data.shape[0] * n_cat).reshape(
-            -1, n_cat
-        )
+        # Use compressed() to avoid counting masked values.
+        return np.bincount(
+            a_offs.ravel().compressed(), minlength=data.shape[0] * n_cat
+        ).reshape(-1, n_cat)
 
     def _find_most_significant_dry_code(
         self, cube: Cube, result: Cube, dry_indices: np.ndarray, time_axis: int
@@ -588,8 +589,16 @@ class ModalFromGroupings(BaseModalCategory):
         data = np.ma.masked_where(
             ~np.isin(cube.data.copy(), self.broad_categories["dry"]), data
         )
-        counts = self.counts_per_category(data.T)
-        result.data[dry_indices] = np.argmax(counts, axis=1)[dry_indices]
+
+        reshaped_data = data.T.reshape(-1, len(cube.coord("time").points), order="F")
+        counts = self.counts_per_category(reshaped_data)
+        # Add 1 to the final column, so that the highest index dry weather code is
+        # preferenced. This only has an effect in the event of ties. If adding 1
+        # creates a tie artifically, np.argmax will still automatically choose the
+        # lowest index result.
+        counts[:, -1] += 1
+        reshaped_counts = counts.reshape(*data.shape[1:], -1)
+        result.data[dry_indices] = np.argmax(reshaped_counts, axis=-1)[dry_indices]
         return result
 
     def _find_non_intensity_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
