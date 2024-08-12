@@ -18,7 +18,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
     set_up_variable_cube,
 )
-
+from logging import debug
 
 class Test_make_percentile_cube(IrisTest):
 
@@ -299,6 +299,7 @@ class Test_pad_and_unpad_cube(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             2000, percentiles=percentiles
         ).pad_and_unpad_cube(self.cube, kernel)
+        debug(result.data)
         self.assertArrayAlmostEqual(result.data, expected)
 
 
@@ -558,6 +559,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(self.cube)
+        debug(result.data)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_point_pair(self):
@@ -660,6 +662,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
+        debug(result.data)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_number_of_points_half_of_number_of_percentiles(self):
@@ -769,6 +772,7 @@ class Test_process(IrisTest):
         result = GeneratePercentilesFromANeighbourhood(
             radius, percentiles=percentiles
         ).process(cube)
+        debug(result.data)
         self.assertArrayAlmostEqual(result.data, expected)
 
     def test_circle_bigger_than_domain(self):

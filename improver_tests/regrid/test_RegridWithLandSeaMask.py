@@ -17,7 +17,7 @@ from improver.regrid.grid import calculate_input_grid_spacing, latlon_from_cube
 from improver.regrid.landsea import RegridLandSea
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.pad_spatial import pad_cube_with_halo
-
+from logging import debug
 
 def modify_cube_coordinate_value(cube, coord_x, coord_y):
     """modify x(longitude) & y(latitude) andcoordinates for a cube"""
@@ -207,7 +207,7 @@ def test_regrid_nearest_with_mask_2():
     np.testing.assert_allclose(
         regrid_nearest_with_mask.data, expected_results, atol=1e-3
     )
-
+    debug(regrid_nearest_with_mask.data)
     # consider constant field
     cube_in.data = np.repeat(1.0, 20).reshape(4, 5).astype(np.float32)
     regrid_nearest_with_mask = RegridLandSea(
@@ -260,7 +260,7 @@ def test_regrid_bilinear_with_mask_2():
     np.testing.assert_allclose(
         regrid_bilinear_with_mask.data, expected_results, atol=1e-3
     )
-
+    debug(regrid_bilinear_with_mask.data)
     # consider constant field
     cube_in.data = np.repeat(1.0, 20).reshape(4, 5).astype(np.float32)
     regrid_bilinear_with_mask = RegridLandSea(

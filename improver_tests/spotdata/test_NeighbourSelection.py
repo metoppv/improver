@@ -15,7 +15,7 @@ from iris.tests import IrisTest
 
 from improver.metadata.utilities import create_coordinate_hash
 from improver.spotdata.neighbour_finding import NeighbourSelection
-
+from logging import debug
 
 class Test_NeighbourSelection(IrisTest):
 
@@ -870,7 +870,7 @@ class Test_process(Test_NeighbourSelection):
             self.global_sites, self.global_orography, self.global_land_mask
         )
         expected = [[[2], [4], [2]]]
-
+        debug(result.data)        
         self.assertArrayEqual(result.data, expected)
 
     def test_global_tied_case_nearest_land(self):
@@ -909,7 +909,7 @@ class Test_process(Test_NeighbourSelection):
             self.global_sites, self.global_orography, self.global_land_mask
         )
         expected = [[[4], [4], [0]]]
-
+        debug(result.data)
         self.assertArrayEqual(result.data, expected)
 
 
