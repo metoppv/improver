@@ -45,9 +45,9 @@ from improver.blending.utilities import (
     record_run_coord_to_attr,
     store_record_run_as_coord,
 )
+from improver.constants import HOURS_IN_DAY
 from improver.utilities.cube_manipulation import MergeCubes
 
-from improver.constants import HOURS_IN_DAY
 from ..metadata.forecast_times import forecast_period_coord
 from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 
@@ -515,8 +515,12 @@ class ModalFromGroupings(BaseModalCategory):
         interval = time_coord.bounds[0][1] - time_coord.bounds[0][0]
 
         n_times = len(day_cubes)
-        start_file = np.clip((n_times - int(self.DAY_LENGTH - self.day_start / interval)), 0, None)
-        end_file = np.clip((n_times - int(self.DAY_LENGTH - self.day_end / interval)), 0, None)
+        start_file = np.clip(
+            (n_times - int(self.DAY_LENGTH - self.day_start / interval)), 0, None
+        )
+        end_file = np.clip(
+            (n_times - int(self.DAY_LENGTH - self.day_end / interval)), 0, None
+        )
 
         for increment in range(1, self.day_weighting):
             for day_slice in day_cubes[start_file:end_file]:
@@ -605,7 +609,9 @@ class ModalFromGroupings(BaseModalCategory):
         counts = np.fliplr(counts)
         reshaped_counts = counts.reshape(*data.shape[1:], -1)
 
-        result.data[dry_indices] = (bin_max - np.argmax(reshaped_counts, axis=-1))[dry_indices]
+        result.data[dry_indices] = (bin_max - np.argmax(reshaped_counts, axis=-1))[
+            dry_indices
+        ]
         return result
 
     def _find_intensity_indices(self, cube: Cube) -> np.ndarray:
@@ -620,8 +626,8 @@ class ModalFromGroupings(BaseModalCategory):
             are found at a given point, otherwise False.
         """
         values = np.isin(
-                cube.data, [x for v in self.intensity_categories.values() for x in v]
-            )
+            cube.data, [x for v in self.intensity_categories.values() for x in v]
+        )
         return values.astype(bool)
 
     def _get_most_likely_following_grouping(
@@ -746,9 +752,7 @@ class ModalFromGroupings(BaseModalCategory):
             (time_axis,) = cube.coord_dims("time")
 
             wet_indices = self._find_wet_indices(cube, time_axis)
-            result = self._find_most_significant_dry_code(
-                cube, result, ~wet_indices
-            )
+            result = self._find_most_significant_dry_code(cube, result, ~wet_indices)
 
             result = self._get_most_likely_following_grouping(
                 cube,
@@ -760,9 +764,7 @@ class ModalFromGroupings(BaseModalCategory):
             )
 
             if self.ignore_intensity:
-                intensity_indices = self._find_intensity_indices(
-                    result
-                )
+                intensity_indices = self._find_intensity_indices(result)
                 result = self._get_most_likely_following_grouping(
                     original_cube,
                     result,
