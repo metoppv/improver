@@ -334,7 +334,7 @@ class ModalFromGroupings(BaseModalCategory):
     as follows. Firstly, a day weighting functionality is provided so that daytime
     hours can be weighted more heavily. A wet bias can also be provided, so that
     wet codes are given a larger weight as they are considered more impactful.
-    A second categorisation is then available for the wet codes. This useful when
+    A second categorisation is then available for the wet codes. This is useful when
     e.g. a period is represented using a variety of frozen precipitation weather codes,
     so that a frozen precipitation weather code can be diagnosed as an appropriate
     summary. The ignore intensity option allows light and heavy weather types to be
@@ -386,9 +386,9 @@ class ModalFromGroupings(BaseModalCategory):
                 during the day time period will be duplicated, so that they count twice
                 as much when computing a representative weather code.
             day_start:
-                Hour defining the start of the daytime period for the time coordinate.
+                Hour defining the start of the daytime period.
             day_end:
-                Hour defining the end of the daytime period for the time coordinate.
+                Hour defining the end of the daytime period.
             wet_bias:
                 Weighting to provide wet weather codes. A weighting of 1 indicates the
                 default weighting, where half of the codes need to be a wet code,
