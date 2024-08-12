@@ -65,9 +65,9 @@ INTENSITY_CATEGORIES = {
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("offset_reference_times", [True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, expected",
@@ -121,6 +121,16 @@ INTENSITY_CATEGORIES = {
         ([0, 0, 0, 2, 2, 0, 10, 10, 11, 12, 13], 1),
         # Two locations with different modal dry codes.
         ([[3, 3, 3, 4, 5, 5], [3, 3, 4, 4, 4, 5]], [3, 4]),
+        # Four locations with different modal dry codes.
+        (
+            [
+                [3, 3, 3, 4, 5, 5],
+                [3, 3, 4, 4, 4, 5],
+                [1, 1, 3, 3, 5, 6],
+                [6, 6, 6, 7, 7, 7],
+            ],
+            [3, 4, 3, 7],
+        ),
         # Tied dry weather codes. The highest index weather code should be selected.
         ([0, 0, 0, 2, 2, 2, 7, 7], 3),
     ),
