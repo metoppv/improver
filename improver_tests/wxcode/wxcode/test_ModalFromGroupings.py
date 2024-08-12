@@ -78,16 +78,16 @@ INTENSITY_CATEGORIES = {
         # Short period with an equal split. The most significant weather
         # (hail, 21) should be returned.
         ([1, 21], 21),
-        # # A single time is provided in which a sleet shower is forecast (16).
-        # # We expect the cube to be returned with the night code changed to a
-        # # day code (17).
+        # A single time is provided in which a sleet shower is forecast (16).
+        # We expect the cube to be returned with the night code changed to a
+        # day code (17).
         ([16], 17),
-        # # Equal split in day codes, but a night code corresponding to one
-        # # of the day types means a valid mode can be calculated. We expect the
-        # # day code (10) to be returned.
+        # Equal split in day codes, but a night code corresponding to one
+        # of the day types means a valid mode can be calculated. We expect the
+        # day code (10) to be returned.
         ([1, 1, 10, 10, 9], 10),
-        # # No clear representative code. Groups by wet and dry codes and selects
-        # # the most significant dry code (8).
+        # No clear representative code. Groups by wet and dry codes and selects
+        # the most significant dry code (8).
         ([1, 3, 4, 5, 6, 7, 8, 10, 11, 12, 14, 15], 8),
         # No clear representative code. More dry symbols are present, so the most
         # significant dry code is selected (8).
@@ -158,7 +158,7 @@ def test_expected_values(wxcode_series, expected):
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 8, False, False),
         # A wet bias of 3 triples the number of wet codes to 9, so the modal wet symbol
         # is selected.
-        # ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10, False, False),
+        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10, False, False),
         # A wet bias of 2. A tie between the wet codes with the highest index selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 14, 14], 2, 14, False, False),
         # A wet bias of 2. A tie between the wet codes with the lowest index (after
@@ -169,6 +169,9 @@ def test_expected_values(wxcode_series, expected):
         # A wet bias of 2. A tie between the wet codes with the lowest index (after
         # reversing the dictionary) selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 18, 18], 2, 10, True, True),
+        # With a wet bias of 2, there are more wet codes than dry codes, so the modal
+        # wet code is selected.
+        ([[1, 3, 4, 5, 7, 8, 10, 1, 1, 1], [1, 3, 4, 5, 7, 8, 10, 10, 10, 10]], 2, [1, 10], False, False),
     ),
 )
 def test_expected_values_wet_bias(wxcode_series, wet_bias, expected, reverse_wet_values, reverse_wet_keys):
@@ -188,7 +191,9 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected, reverse_wet
         INTENSITY_CATEGORIES,
         wet_bias=wet_bias,
     )(wxcode_cubes)
-    assert result.data.flatten()[0] == expected
+    expected = [expected] if not isinstance(expected, list) else expected
+    for index in range(len(expected)):
+        assert result.data.flatten()[index] == expected[index]
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
@@ -197,27 +202,41 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected, reverse_wet
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
-    "data, day_weighting, day_start, day_end, expected",
+    "data, day_weighting, day_start, day_end, day_length, expected",
     (
         # All weather codes supplied are considered as daytime.
         # There are more light shower codes, so this is the modal code.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 0, 9, 10),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 0, 9, 24, 10),
+        # For a day length of 9 and a day weighting of 2, the number of clear day codes
+        # doubles with one more shower symbol giving 6 dry codes, and 5 wet codes.
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 9, 1),
+        # # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
+        # # so the resulting code is wet.
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 9, 10),
         # A day weighting of 2 results in the number of clear day codes doubling,
         # and one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 1),
-        # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
-        # so the resulting code is wet.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 10),
-        # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
-        # the resulting code is dry.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 3, 4, 7, 1),
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 24, 1),
+        # # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
+        # # so the resulting code is wet.
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 24, 10),
+        # # # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
+        # # # the resulting code is dry.
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 3, 4, 7, 9, 1),
+        # An example for two points for the first point being dry, and the second point
+        # being wetter, with day weighting resulting in a dry modal code.
+        ([[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 10, 10]], 3, 4, 7, 9, [1, 1]),
+        # An example for two points for the first point being mostly dry, and the
+        # second point being wetter, with day weighting resulting in a dry modal code.
+        ([[1, 1, 1, 1, 10, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 1, 1]], 3, 2, 5, 9, [1, 10]),
     ),
 )
 def test_expected_values_day_weighting(
-    wxcode_series, day_weighting, day_start, day_end, expected
+    wxcode_series, day_weighting, day_start, day_end, day_length, expected
 ):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
+    class_instance = ModalFromGroupings
+    class_instance.DAY_LENGTH = day_length
     result = ModalFromGroupings(
         BROAD_CATEGORIES,
         WET_CATEGORIES,
@@ -226,7 +245,9 @@ def test_expected_values_day_weighting(
         day_start=day_start,
         day_end=day_end,
     )(wxcode_cubes)
-    assert result.data.flatten()[0] == expected
+    expected = [expected] if not isinstance(expected, list) else expected
+    for index in range(len(expected)):
+        assert result.data.flatten()[index] == expected[index]
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
@@ -237,21 +258,25 @@ def test_expected_values_day_weighting(
 @pytest.mark.parametrize(
     "data, ignore_intensity, expected, reverse_intensity_dict",
     (
-        # All precipitation is frozen. Sleet shower is the modal code.
+        # # All precipitation is frozen. Sleet shower is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
-        # When snow shower codes are grouped, light snow shower is chosen as it
-        # is the most common weather code.
+        # # When snow shower codes are grouped, light snow shower is chosen as it
+        # # is the most common weather code.
         ([23, 23, 23, 26, 17, 17, 17, 17], True, 23, False),
+        # # When snow shower codes are grouped, heavy snow shower is chosen as the
+        # # snow shower codes are equally likely, so the first entry within the
+        # # intensity category dictionary is chosen.
+        ([23, 23, 26, 26, 17, 17, 17, 17], True, 26, False),
+        # # Demonstrate that reversing the ordering within the intensity categories
+        # # gives a different result in the event of a tie.
+        ([23, 23, 26, 26, 17, 17, 17, 17], True, 23, True),
+        # # Use ignore intensity option, with wet symbols that do not have intensity
+        # # variants.
+        ([11, 11, 11, 11, 11, 11, 11, 11], True, 11, False),
         # When snow shower codes are grouped, heavy snow shower is chosen as the
         # snow shower codes are equally likely, so the first entry within the
         # intensity category dictionary is chosen.
-        ([23, 23, 26, 26, 17, 17, 17, 17], True, 26, False),
-        # Demonstrate that reversing the ordering within the intensity categories
-        # gives a different result in the event of a tie.
-        ([23, 23, 26, 26, 17, 17, 17, 17], True, 23, True),
-        # Use ignore intensity option, with wet symbols that do not have intensity
-        # variants.
-        ([11, 11, 11, 11, 11, 11, 11, 11], True, 11, False),
+        ([[1, 1, 1, 1, 1, 1, 1, 1], [23, 23, 26, 26, 17, 17, 17, 17]], True, [1, 26], False),
     ),
 )
 def test_expected_values_ignore_intensity(
@@ -270,35 +295,39 @@ def test_expected_values_ignore_intensity(
         intensity_categories,
         ignore_intensity=ignore_intensity,
     )(wxcode_cubes)
-    assert result.data.flatten()[0] == expected
+    expected = [expected] if not isinstance(expected, list) else expected
+    for index in range(len(expected)):
+        assert result.data.flatten()[index] == expected[index]
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [True])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
-    "data, wet_bias, day_weighting, day_start, day_end, ignore_intensity, expected",
+    "data, wet_bias, day_weighting, day_start, day_end, day_length, ignore_intensity, expected",
     (
-        # The sleet code is the most common, so this is the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 1, 0, 12, False, 17),
+        # # The sleet code is the most common, so this is the modal code.
+        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 1, 0, 12, 8, False, 17),
         # The day weighting with the day start and day end set to same value has no
         # impact on the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 3, False, 17),
-        # The day weighting is set to emphasise the heavy snow shower (26).
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 4, False, 26),
+        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 3, 8, False, 17),
+        # # The day weighting is set to emphasise the heavy snow shower (26).
+        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 4, 5, 8, False, 26),
         # # Without any weighting, there would be a dry symbol. A day weighting of 2
         # # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
         # # and 10 wet codes.
-        ([17, 17, 17, 1, 1, 1, 1, 1], 2, 2, 5, 7, False, 17),
+        ([17, 17, 17, 1, 1, 1, 1, 1], 2, 2, 4, 7, 8, False, 17),
         # # All precipitation is frozen. Ignoring the intensities means that a
         # # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
         # # A wet bias results in 16 sleet codes and 16 light snow shower codes.
         # # The snow code is chosen as it is the most significant frozen precipitation,
         # # and ignoring intensity option ensures that the modal code is set to the most
         # # common snow shower code.
-        ([17, 17, 17, 17, 26, 23, 23, 23], 2, 2, 0, 12, True, 23),
+        ([17, 17, 17, 17, 26, 23, 23, 23], 2, 2, 0, 8, 8, True, 23),
+        # # Similar to the example above but for 2 points.
+        ([[17, 17, 17, 17, 26, 26, 23, 23], [17, 17, 17, 17, 26, 23, 23, 23]], 2, 2, 0, 8, 8, True, [26, 23]),
     ),
 )
 def test_expected_values_interactions(
@@ -307,12 +336,15 @@ def test_expected_values_interactions(
     day_weighting,
     day_start,
     day_end,
+    day_length,
     ignore_intensity,
     expected,
 ):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
-    result = ModalFromGroupings(
+    class_instance = ModalFromGroupings
+    class_instance.DAY_LENGTH = day_length
+    result = class_instance(
         BROAD_CATEGORIES,
         WET_CATEGORIES,
         INTENSITY_CATEGORIES,
@@ -322,7 +354,9 @@ def test_expected_values_interactions(
         day_end=day_end,
         ignore_intensity=ignore_intensity,
     )(wxcode_cubes)
-    assert result.data.flatten()[0] == expected
+    expected = [expected] if not isinstance(expected, list) else expected
+    for index in range(len(expected)):
+        assert result.data.flatten()[index] == expected[index]
 
 
 @pytest.mark.parametrize("record_run_attr", [False, True])

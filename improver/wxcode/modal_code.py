@@ -47,6 +47,7 @@ from improver.blending.utilities import (
 )
 from improver.utilities.cube_manipulation import MergeCubes
 
+from improver.constants import HOURS_IN_DAY
 from ..metadata.forecast_times import forecast_period_coord
 from .utilities import DAYNIGHT_CODES, GROUPED_CODES
 
@@ -353,6 +354,9 @@ class ModalFromGroupings(BaseModalCategory):
     covered by the input files.
     """
 
+    # Day length set to aid testing.
+    DAY_LENGTH = HOURS_IN_DAY
+
     def __init__(
         self,
         broad_categories: Dict[str, int],
@@ -511,10 +515,8 @@ class ModalFromGroupings(BaseModalCategory):
         interval = time_coord.bounds[0][1] - time_coord.bounds[0][0]
 
         n_times = len(day_cubes)
-        available_n_times = np.amin([24 / interval, n_times])
-
-        start_file = np.clip((n_times - int(available_n_times - self.day_start / interval)), 0, None)
-        end_file = np.clip((n_times - int(available_n_times - self.day_end / interval)), 0, None)
+        start_file = np.clip((n_times - int(self.DAY_LENGTH - self.day_start / interval)), 0, None)
+        end_file = np.clip((n_times - int(self.DAY_LENGTH - self.day_end / interval)), 0, None)
 
         for increment in range(1, self.day_weighting):
             for day_slice in day_cubes[start_file:end_file]:
@@ -528,12 +530,10 @@ class ModalFromGroupings(BaseModalCategory):
                         bounds[0] = bounds[0] + increment
                         day_slice.coord(coord).bounds = bounds
                 day_cubes.append(day_slice)
-        for day_cube in day_cubes:
-            print(day_cube.data)
         return day_cubes.concatenate_cube()
 
-    def _find_dry_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
-        """Find the indices indicating dry weather codes. This can include a wet bias
+    def _find_wet_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
+        """Find the indices indicating wet weather codes. This can include a wet bias
         if supplied.
 
         Args:
@@ -541,7 +541,7 @@ class ModalFromGroupings(BaseModalCategory):
             time_axis: The time coordinate dimension.
 
         Returns:
-            Boolean array that is true if the weather codes are dry or False otherwise.
+            Boolean array that is true if the weather codes are wet or False otherwise.
         """
         # Find indices corresponding to dry weather codes inclusive of a wet bias.
         dry_counts = np.sum(
@@ -550,7 +550,7 @@ class ModalFromGroupings(BaseModalCategory):
         wet_counts = np.sum(
             np.isin(cube.data, self.broad_categories["wet"]), axis=time_axis
         )
-        return dry_counts > self.wet_bias * wet_counts
+        return (self.wet_bias * wet_counts) >= dry_counts
 
     @staticmethod
     def counts_per_category(data: np.ndarray, bin_max: int) -> np.ndarray:
@@ -573,7 +573,7 @@ class ModalFromGroupings(BaseModalCategory):
         ).reshape(-1, n_cat)
 
     def _find_most_significant_dry_code(
-        self, cube: Cube, result: Cube, dry_indices: np.ndarray, time_axis: int
+        self, cube: Cube, result: Cube, dry_indices: np.ndarray
     ) -> Cube:
         """Find the most significant dry weather code at each point.
 
@@ -582,7 +582,6 @@ class ModalFromGroupings(BaseModalCategory):
             result: Cube into which to put the result.
             dry_indices: Boolean, which is true if the weather codes at that point,
                 are dry.
-            time_axis: The time coordinate dimension.
 
         Returns:
             Cube where points that are dry are filled with the most common dry
@@ -609,32 +608,28 @@ class ModalFromGroupings(BaseModalCategory):
         result.data[dry_indices] = (bin_max - np.argmax(reshaped_counts, axis=-1))[dry_indices]
         return result
 
-    def _find_non_intensity_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
-        """Find which points have predictions for weather codes from any of the
-        intensity categories.
+    def _find_intensity_indices(self, cube: Cube) -> np.ndarray:
+        """Find which points / sites include any weather code predictions that fall
+        within the intensity categories.
 
         Args:
             cube: Weather code cube.
-            time_axis: The time coordinate dimension.
 
         Returns:
             Boolean that is True if any weather code from the intensity categories
             are found at a given point, otherwise False.
         """
-        values = np.sum(
-            np.isin(
+        values = np.isin(
                 cube.data, [x for v in self.intensity_categories.values() for x in v]
-            ),
-            axis=time_axis,
-        )
-        return ~values.astype(bool)
+            )
+        return values.astype(bool)
 
     def _get_most_likely_following_grouping(
         self,
         cube: Cube,
         result: Cube,
         categories: Dict,
-        indices_to_ignore: np.ndarray,
+        required_indices: np.ndarray,
         time_axis: int,
         categorise_using_modal: bool,
     ):
@@ -652,7 +647,7 @@ class ModalFromGroupings(BaseModalCategory):
             categories: Dictionary defining the categories (keys) and
                 subcategories (values). The most likely category and then the most
                 likely value for the subcategory is put into the result cube.
-            indices_to_ignore: Boolean indicating which indices within the result cube
+            required_indices: Boolean indicating which indices within the result cube
                 to fill.
             time_axis: The time coordinate dimension.
             categorise_using_modal: Boolean defining whether the top level
@@ -684,11 +679,10 @@ class ModalFromGroupings(BaseModalCategory):
 
         # Identify which category is most likely.
         most_likely_category = np.argmax(category_counter, axis=time_axis)
-
         # Use the most likely subcategory from the most likely category.
         for index, key in enumerate(categories.keys()):
             category_index = np.logical_and(
-                ~indices_to_ignore, most_likely_category == index
+                required_indices, most_likely_category == index
             )
             result.data[category_index] = most_likely_subcategory[key][category_index]
         return result
@@ -751,29 +745,29 @@ class ModalFromGroupings(BaseModalCategory):
             result = cube[0].copy()
             (time_axis,) = cube.coord_dims("time")
 
-            dry_indices = self._find_dry_indices(cube, time_axis)
+            wet_indices = self._find_wet_indices(cube, time_axis)
             result = self._find_most_significant_dry_code(
-                cube, result, dry_indices, time_axis
+                cube, result, ~wet_indices
             )
 
             result = self._get_most_likely_following_grouping(
                 cube,
                 result,
                 self.wet_categories,
-                dry_indices,
+                wet_indices,
                 time_axis,
                 categorise_using_modal=False,
             )
 
             if self.ignore_intensity:
-                non_intensity_indices = self._find_non_intensity_indices(
-                    cube, time_axis
+                intensity_indices = self._find_intensity_indices(
+                    result
                 )
                 result = self._get_most_likely_following_grouping(
                     original_cube,
                     result,
                     self.intensity_categories,
-                    non_intensity_indices,
+                    intensity_indices,
                     time_axis,
                     categorise_using_modal=True,
                 )
