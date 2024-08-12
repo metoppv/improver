@@ -142,32 +142,49 @@ def test_expected_values(wxcode_series, expected):
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
-    "data, wet_bias, expected",
+    "data, wet_bias, expected, reverse_wet_values, reverse_wet_keys",
     (
         # More dry codes (6) than wet codes (4), the most significant dry symbol
         # is selected.
-        ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 1, 8),
+        ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 1, 8, False, False),
         # With a wet bias of 2, there are more wet codes than dry codes, so the modal
         # wet code is selected.
-        ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 2, 10),
+        ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 2, 10, False, False),
         # More dry codes (7) than wet codes (3),the most significant dry symbol
         # is selected.
-        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 1, 8),
+        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 1, 8, False, False),
         # A wet bias of 2 doubles the number of wet codes to 6, however, this is
         # still fewer than the number of dry codes.
-        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 8),
+        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 8, False, False),
         # A wet bias of 3 triples the number of wet codes to 9, so the modal wet symbol
         # is selected.
-        ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10),
-        #
+        # ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10, False, False),
+        # A wet bias of 2. A tie between the wet codes with the highest index selected.
+        ([1, 3, 4, 5, 7, 8, 10, 10, 14, 14], 2, 14, False, False),
+        # A wet bias of 2. A tie between the wet codes with the lowest index (after
+        # reversing the dictionary) selected.
+        ([1, 3, 4, 5, 7, 8, 10, 10, 14, 14], 2, 10, True, False),
+        # # A wet bias of 2. A tie between the wet codes with the highest index selected.
+        ([1, 3, 4, 5, 7, 8, 10, 10, 18, 18], 2, 18, True, False),
+        # A wet bias of 2. A tie between the wet codes with the lowest index (after
+        # reversing the dictionary) selected.
+        ([1, 3, 4, 5, 7, 8, 10, 10, 18, 18], 2, 10, True, True),
     ),
 )
-def test_expected_values_wet_bias(wxcode_series, wet_bias, expected):
+def test_expected_values_wet_bias(wxcode_series, wet_bias, expected, reverse_wet_values, reverse_wet_keys):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
+    wet_categories = WET_CATEGORIES.copy()
+    if reverse_wet_values:
+        wet_categories = {}
+        for key in WET_CATEGORIES.keys():
+            wet_categories[key] = [i for i in reversed(WET_CATEGORIES[key])]
+    if reverse_wet_keys:
+        wet_categories = dict(reversed(list(wet_categories.items())))
+
     result = ModalFromGroupings(
         BROAD_CATEGORIES,
-        WET_CATEGORIES,
+        wet_categories,
         INTENSITY_CATEGORIES,
         wet_bias=wet_bias,
     )(wxcode_cubes)
@@ -241,8 +258,8 @@ def test_expected_values_ignore_intensity(
     wxcode_series, ignore_intensity, expected, reverse_intensity_dict
 ):
     """Test that the expected period representative symbol is returned."""
-    intensity_categories = INTENSITY_CATEGORIES.copy()
     _, _, _, _, wxcode_cubes = wxcode_series
+    intensity_categories = INTENSITY_CATEGORIES.copy()
     if reverse_intensity_dict:
         intensity_categories = {}
         for key in INTENSITY_CATEGORIES.keys():
