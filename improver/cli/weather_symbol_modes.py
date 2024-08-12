@@ -52,7 +52,7 @@ def process(
     categorical cubes. Where there are different categories available
     for night and day, the modal code returned is always a day code, regardless
     of the times covered by the input files. The weather codes provided are expected
-    to end at midnight, so that either a full day or a partial day.
+    to end at midnight and therefore represent either a full day or a partial day.
 
     Args:
         cubes (iris.cube.CubeList):
