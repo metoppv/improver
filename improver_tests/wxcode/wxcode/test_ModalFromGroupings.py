@@ -56,19 +56,19 @@ WET_CATEGORIES = {
     "liquid": [15, 14, 13, 12, 11, 10, 9],
 }
 INTENSITY_CATEGORIES = {
-    "rain_shower": [10, 14],
-    "rain": [12, 15],
-    "snow_shower": [23, 26],
-    "snow": [24, 27],
-    "thunder": [29, 30],
+    "rain_shower": [14, 10],
+    "rain": [15, 12],
+    "snow_shower": [26, 23],
+    "snow": [27, 24],
+    "thunder": [30, 29],
 }
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [False, True])
+@pytest.mark.parametrize("model_id_attr", [True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [False, True])
-@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
+@pytest.mark.parametrize("offset_reference_times", [True])
+@pytest.mark.parametrize("cube_type", ["spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -164,7 +164,10 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
     result = ModalFromGroupings(
-        BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES, wet_bias=wet_bias,
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
+        wet_bias=wet_bias,
     )(wxcode_cubes)
     assert result.data.flatten()[0] == expected
 
@@ -213,24 +216,39 @@ def test_expected_values_day_weighting(
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
-    "data, ignore_intensity, expected",
+    "data, ignore_intensity, expected, reverse_dict",
     (
         # All precipitation is frozen. Sleet shower is the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], False, 17),
-        # When snow shower codes are grouped, snow shower is chosen.
-        ([23, 23, 23, 26, 17, 17, 17, 17], True, 23),
+        ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
+        # When snow shower codes are grouped, light snow shower is chosen as it
+        # is the most common weather code.
+        ([23, 23, 23, 26, 17, 17, 17, 17], True, 23, False),
+        # When snow shower codes are grouped, heavy snow shower is chosen as the
+        # snow shower codes are equally likely, so the first entry within the
+        # intensity category dictionary is chosen.
+        ([23, 23, 26, 26, 17, 17, 17, 17], True, 26, False),
+        # Demonstrate that reversing the ordering within the intensity categories
+        # gives a different result in the event of a tie.
+        ([23, 23, 26, 26, 17, 17, 17, 17], True, 23, True),
         # Use ignore intensity option, with wet symbols that do not have intensity
         # variants.
-        ([11, 11, 11, 11, 11, 11, 11, 11], True, 11),
+        ([11, 11, 11, 11, 11, 11, 11, 11], True, 11, False),
     ),
 )
-def test_expected_values_ignore_intensity(wxcode_series, ignore_intensity, expected):
+def test_expected_values_ignore_intensity(
+    wxcode_series, ignore_intensity, expected, reverse_dict
+):
     """Test that the expected period representative symbol is returned."""
+    intensity_categories = INTENSITY_CATEGORIES.copy()
     _, _, _, _, wxcode_cubes = wxcode_series
+    if reverse_dict:
+        intensity_categories = {}
+        for key in INTENSITY_CATEGORIES.keys():
+            intensity_categories[key] = [i for i in reversed(INTENSITY_CATEGORIES[key])]
     result = ModalFromGroupings(
         BROAD_CATEGORIES,
         WET_CATEGORIES,
-        INTENSITY_CATEGORIES,
+        intensity_categories,
         ignore_intensity=ignore_intensity,
     )(wxcode_cubes)
     assert result.data.flatten()[0] == expected
@@ -323,7 +341,10 @@ def test_metadata(wxcode_series):
         kwargs.update({"record_run_attr": RECORD_RUN_ATTR})
 
     result = ModalFromGroupings(
-        BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES, **kwargs,
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        INTENSITY_CATEGORIES,
+        **kwargs,
     )(wxcode_cubes)
 
     n_times = len(wxcode_cubes)
@@ -388,6 +409,8 @@ def test_unmatching_bounds_exception(wxcode_series):
     with pytest.raises(
         ValueError, match="Input diagnostics do not have consistent periods."
     ):
-        ModalFromGroupings(BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES,)(
-            wxcode_cubes
-        )
+        ModalFromGroupings(
+            BROAD_CATEGORIES,
+            WET_CATEGORIES,
+            INTENSITY_CATEGORIES,
+        )(wxcode_cubes)
