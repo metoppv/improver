@@ -598,6 +598,8 @@ class ModalFromGroupings(BaseModalCategory):
             ~np.isin(cube.data.copy(), self.broad_categories["dry"]), data
         )
 
+        # If required, reshape a 3D dataset e.g. a gridded dataset to 2D.
+        # 2D datasets e.g. site datasets will be unchanged.
         reshaped_data = data.T.reshape(-1, len(cube.coord("time").points), order="F")
         bins = [i for v in self.broad_categories.values() for i in v]
         bin_max = np.amax(bins)
@@ -607,6 +609,9 @@ class ModalFromGroupings(BaseModalCategory):
         # Flip counts with the aim that the counts for the higher index weather codes
         # are on the left, and will therefore be selected by argmax.
         counts = np.fliplr(counts)
+
+        # Reshape the 2D counts back to a 3D dataset, if required. If the input
+        # data is 2D, this reshape will have no impact.
         reshaped_counts = counts.reshape(*data.shape[1:], -1)
 
         result.data[dry_indices] = (bin_max - np.argmax(reshaped_counts, axis=-1))[

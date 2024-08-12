@@ -164,7 +164,7 @@ def test_expected_values(wxcode_series, expected):
         # A wet bias of 2. A tie between the wet codes with the lowest index (after
         # reversing the dictionary) selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 14, 14], 2, 10, True, False),
-        # # A wet bias of 2. A tie between the wet codes with the highest index selected.
+        # A wet bias of 2. A tie between the wet codes with the highest index selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 18, 18], 2, 18, True, False),
         # A wet bias of 2. A tie between the wet codes with the lowest index (after
         # reversing the dictionary) selected.
@@ -215,17 +215,17 @@ def test_expected_values_wet_bias(
         # For a day length of 9 and a day weighting of 2, the number of clear day codes
         # doubles with one more shower symbol giving 6 dry codes, and 5 wet codes.
         ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 9, 1),
-        # # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
-        # # so the resulting code is wet.
+        # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
+        # so the resulting code is wet.
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 9, 10),
         # A day weighting of 2 results in the number of clear day codes doubling,
         # and one more shower symbol giving 6 dry codes, and 5 wet codes.
         ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 24, 1),
-        # # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
-        # # so the resulting code is wet.
+        # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
+        # so the resulting code is wet.
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 24, 10),
-        # # # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
-        # # # the resulting code is dry.
+        # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
+        # the resulting code is dry.
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 3, 4, 7, 9, 1),
         # An example for two points for the first point being dry, and the second point
         # being wetter, with day weighting resulting in a dry modal code.
@@ -277,20 +277,20 @@ def test_expected_values_day_weighting(
 @pytest.mark.parametrize(
     "data, ignore_intensity, expected, reverse_intensity_dict",
     (
-        # # All precipitation is frozen. Sleet shower is the modal code.
+        # All precipitation is frozen. Sleet shower is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
-        # # When snow shower codes are grouped, light snow shower is chosen as it
-        # # is the most common weather code.
+        # When snow shower codes are grouped, light snow shower is chosen as it
+        # is the most common weather code.
         ([23, 23, 23, 26, 17, 17, 17, 17], True, 23, False),
-        # # When snow shower codes are grouped, heavy snow shower is chosen as the
-        # # snow shower codes are equally likely, so the first entry within the
-        # # intensity category dictionary is chosen.
+        # When snow shower codes are grouped, heavy snow shower is chosen as the
+        # snow shower codes are equally likely, so the first entry within the
+        # intensity category dictionary is chosen.
         ([23, 23, 26, 26, 17, 17, 17, 17], True, 26, False),
-        # # Demonstrate that reversing the ordering within the intensity categories
-        # # gives a different result in the event of a tie.
+        # Demonstrate that reversing the ordering within the intensity categories
+        # gives a different result in the event of a tie.
         ([23, 23, 26, 26, 17, 17, 17, 17], True, 23, True),
-        # # Use ignore intensity option, with wet symbols that do not have intensity
-        # # variants.
+        # Use ignore intensity option, with wet symbols that do not have intensity
+        # variants.
         ([11, 11, 11, 11, 11, 11, 11, 11], True, 11, False),
         # When snow shower codes are grouped, heavy snow shower is chosen as the
         # snow shower codes are equally likely, so the first entry within the
@@ -325,32 +325,32 @@ def test_expected_values_ignore_intensity(
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, wet_bias, day_weighting, day_start, day_end, day_length, ignore_intensity, expected",
     (
-        # # The sleet code is the most common, so this is the modal code.
+        # The sleet code is the most common, so this is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], 1, 1, 0, 12, 8, False, 17),
         # The day weighting with the day start and day end set to same value has no
         # impact on the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 3, 8, False, 17),
-        # # The day weighting is set to emphasise the heavy snow shower (26).
+        # The day weighting is set to emphasise the heavy snow shower (26).
         ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 4, 5, 8, False, 26),
-        # # Without any weighting, there would be a dry symbol. A day weighting of 2
-        # # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
-        # # and 10 wet codes.
+        # Without any weighting, there would be a dry symbol. A day weighting of 2
+        # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
+        # and 10 wet codes.
         ([17, 17, 17, 1, 1, 1, 1, 1], 2, 2, 4, 7, 8, False, 17),
-        # # All precipitation is frozen. Ignoring the intensities means that a
-        # # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
-        # # A wet bias results in 16 sleet codes and 16 light snow shower codes.
-        # # The snow code is chosen as it is the most significant frozen precipitation,
-        # # and ignoring intensity option ensures that the modal code is set to the most
-        # # common snow shower code.
+        # All precipitation is frozen. Ignoring the intensities means that a
+        # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
+        # A wet bias results in 16 sleet codes and 16 light snow shower codes.
+        # The snow code is chosen as it is the most significant frozen precipitation,
+        # and ignoring intensity option ensures that the modal code is set to the most
+        # common snow shower code.
         ([17, 17, 17, 17, 26, 23, 23, 23], 2, 2, 0, 8, 8, True, 23),
-        # # Similar to the example above but for 2 points.
+        # Similar to the example above but for 2 points.
         (
             [[17, 17, 17, 17, 26, 26, 23, 23], [17, 17, 17, 17, 26, 23, 23, 23]],
             2,
