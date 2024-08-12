@@ -201,16 +201,16 @@ def test_expected_values_wet_bias(wxcode_series, wet_bias, expected, reverse_wet
     (
         # All weather codes supplied are considered as daytime.
         # There are more light shower codes, so this is the modal code.
-        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 0, 9, 10),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 0, 9, 10),
         # A day weighting of 2 results in the number of clear day codes doubling,
         # and one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 2, 5, 7, 1),
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 1),
         # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
         # so the resulting code is wet.
-        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 2, 4, 7, 10),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 10),
         # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
         # the resulting code is dry.
-        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 3, 4, 7, 1),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 3, 4, 7, 1),
     ),
 )
 def test_expected_values_day_weighting(
@@ -291,14 +291,14 @@ def test_expected_values_ignore_intensity(
         # # Without any weighting, there would be a dry symbol. A day weighting of 2
         # # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
         # # and 10 wet codes.
-        ([1, 1, 1, 1, 1, 17, 17, 17], 2, 2, 5, 7, False, 17),
+        ([17, 17, 17, 1, 1, 1, 1, 1], 2, 2, 5, 7, False, 17),
         # # All precipitation is frozen. Ignoring the intensities means that a
         # # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
         # # A wet bias results in 16 sleet codes and 16 light snow shower codes.
         # # The snow code is chosen as it is the most significant frozen precipitation,
         # # and ignoring intensity option ensures that the modal code is set to the most
         # # common snow shower code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 2, 2, 0, 12, True, 23),
+        ([17, 17, 17, 17, 26, 23, 23, 23], 2, 2, 0, 12, True, 23),
     ),
 )
 def test_expected_values_interactions(

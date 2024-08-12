@@ -511,8 +511,11 @@ class ModalFromGroupings(BaseModalCategory):
         interval = time_coord.bounds[0][1] - time_coord.bounds[0][0]
 
         n_times = len(day_cubes)
-        start_file = np.clip((n_times - int(24 - self.day_end / interval)), 0, None)
-        end_file = np.clip((n_times - int(24 - self.day_start / interval)), 0, None)
+        available_n_times = np.amin([24 / interval, n_times])
+
+        start_file = np.clip((n_times - int(available_n_times - self.day_start / interval)), 0, None)
+        end_file = np.clip((n_times - int(available_n_times - self.day_end / interval)), 0, None)
+
         for increment in range(1, self.day_weighting):
             for day_slice in day_cubes[start_file:end_file]:
                 day_slice = day_slice.copy()
@@ -525,6 +528,8 @@ class ModalFromGroupings(BaseModalCategory):
                         bounds[0] = bounds[0] + increment
                         day_slice.coord(coord).bounds = bounds
                 day_cubes.append(day_slice)
+        for day_cube in day_cubes:
+            print(day_cube.data)
         return day_cubes.concatenate_cube()
 
     def _find_dry_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
