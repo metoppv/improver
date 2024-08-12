@@ -65,10 +65,10 @@ INTENSITY_CATEGORIES = {
 
 
 @pytest.mark.parametrize("record_run_attr", [False])
-@pytest.mark.parametrize("model_id_attr", [True])
+@pytest.mark.parametrize("model_id_attr", [False, True])
 @pytest.mark.parametrize("interval", [1])
-@pytest.mark.parametrize("offset_reference_times", [True])
-@pytest.mark.parametrize("cube_type", ["spot"])
+@pytest.mark.parametrize("offset_reference_times", [False, True])
+@pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
     "data, expected",
     (
@@ -119,8 +119,10 @@ INTENSITY_CATEGORIES = {
         # More dry codes than wet codes. Most common code (0, clear night)
         # should be converted to a day symbol.
         ([0, 0, 0, 2, 2, 0, 10, 10, 11, 12, 13], 1),
-        # Two locations with different modal dry symbols.
+        # Two locations with different modal dry codes.
         ([[3, 3, 3, 4, 5, 5], [3, 3, 4, 4, 4, 5]], [3, 4]),
+        # Tied dry weather codes. The highest index weather code should be selected.
+        ([0, 0, 0, 2, 2, 2, 7, 7], 3),
     ),
 )
 def test_expected_values(wxcode_series, expected):
@@ -216,7 +218,7 @@ def test_expected_values_day_weighting(
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
-    "data, ignore_intensity, expected, reverse_dict",
+    "data, ignore_intensity, expected, reverse_intensity_dict",
     (
         # All precipitation is frozen. Sleet shower is the modal code.
         ([23, 23, 23, 26, 17, 17, 17, 17], False, 17, False),
@@ -236,12 +238,12 @@ def test_expected_values_day_weighting(
     ),
 )
 def test_expected_values_ignore_intensity(
-    wxcode_series, ignore_intensity, expected, reverse_dict
+    wxcode_series, ignore_intensity, expected, reverse_intensity_dict
 ):
     """Test that the expected period representative symbol is returned."""
     intensity_categories = INTENSITY_CATEGORIES.copy()
     _, _, _, _, wxcode_cubes = wxcode_series
-    if reverse_dict:
+    if reverse_intensity_dict:
         intensity_categories = {}
         for key in INTENSITY_CATEGORIES.keys():
             intensity_categories[key] = [i for i in reversed(INTENSITY_CATEGORIES[key])]

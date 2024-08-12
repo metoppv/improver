@@ -511,8 +511,8 @@ class ModalFromGroupings(BaseModalCategory):
         interval = time_coord.bounds[0][1] - time_coord.bounds[0][0]
 
         n_times = len(day_cubes)
-        start_file = np.clip((n_times - int(self.day_end / interval)), 0, None)
-        end_file = np.clip((n_times - int(self.day_start / interval)), 0, None)
+        start_file = np.clip((n_times - int(24 - self.day_end / interval)), 0, None)
+        end_file = np.clip((n_times - int(24 - self.day_start / interval)), 0, None)
         for increment in range(1, self.day_weighting):
             for day_slice in day_cubes[start_file:end_file]:
                 day_slice = day_slice.copy()
@@ -548,7 +548,7 @@ class ModalFromGroupings(BaseModalCategory):
         return dry_counts > self.wet_bias * wet_counts
 
     @staticmethod
-    def counts_per_category(data: np.ndarray) -> np.ndarray:
+    def counts_per_category(data: np.ndarray, bin_max: int) -> np.ndarray:
         """Implemented following https://stackoverflow.com/questions/46256279/bin-elements-per-row-vectorized-2d-bincount-for-numpy/46256361#46256361  # noqa: E501
         Use np.bincount to count the number of occurrences within each category, so that
         the most common occurrence can then be found.
@@ -560,7 +560,7 @@ class ModalFromGroupings(BaseModalCategory):
         Returns:
             An array of counts for the occurrence of each category within each row.
         """
-        n_cat = data.max() + 1
+        n_cat = bin_max + 1
         a_offs = data + np.arange(data.shape[0])[:, None] * n_cat
         # Use compressed() to avoid counting masked values.
         return np.bincount(
@@ -591,14 +591,17 @@ class ModalFromGroupings(BaseModalCategory):
         )
 
         reshaped_data = data.T.reshape(-1, len(cube.coord("time").points), order="F")
-        counts = self.counts_per_category(reshaped_data)
-        # Add 1 to the final column, so that the highest index dry weather code is
-        # preferenced. This only has an effect in the event of ties. If adding 1
-        # creates a tie artifically, np.argmax will still automatically choose the
-        # lowest index result.
-        counts[:, -1] += 1
+        bins = [i for v in self.broad_categories.values() for i in v]
+        bin_max = np.amax(bins)
+
+        counts = self.counts_per_category(reshaped_data, bin_max=bin_max)
+
+        # Flip counts with the aim that the counts for the higher index weather codes
+        # are on the left, and will therefore be selected by argmax.
+        counts = np.fliplr(counts)
         reshaped_counts = counts.reshape(*data.shape[1:], -1)
-        result.data[dry_indices] = np.argmax(reshaped_counts, axis=-1)[dry_indices]
+
+        result.data[dry_indices] = (bin_max - np.argmax(reshaped_counts, axis=-1))[dry_indices]
         return result
 
     def _find_non_intensity_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
