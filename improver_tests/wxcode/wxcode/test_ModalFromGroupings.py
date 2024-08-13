@@ -105,12 +105,12 @@ INTENSITY_CATEGORIES = {
         # within the frozen precipitation categorisation.
         ([1, 3, 4, 5, 10, 17, 20, 23], 23),
         # All dry symbols. The most significant dry symbol is chosen, asssuming that
-        # higher
+        # higher index weather codes are more significant.
         ([1, 3, 4, 5], 5),
         # All wet codes. Two frozen precipitation and two "extreme". Codes from the
         # extreme category chosen in preference.
         ([29, 29, 26, 26], 29),
-        # All wet codes. Two frozen preciptiation and two liquid precipitation.
+        # All wet codes. Two frozen precipitation and two liquid precipitation.
         # Frozen precipitation chosen in preference.
         ([10, 10, 26, 26], 26),
         # More dry codes than wet codes. Most common code (2, partly cloudy night)
@@ -159,30 +159,37 @@ def test_expected_values(wxcode_series, expected):
         # More dry codes (6) than wet codes (4), the most significant dry symbol
         # is selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 1, 8, False, False),
-        # With a wet bias of 2, there are more wet codes than dry codes, so the modal
-        # wet code is selected.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. As 4 codes are wet, a wet code is produced.
         ([1, 3, 4, 5, 7, 8, 10, 10, 10, 10], 2, 10, False, False),
         # More dry codes (7) than wet codes (3),the most significant dry symbol
         # is selected.
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 1, 8, False, False),
-        # A wet bias of 2 doubles the number of wet codes to 6, however, this is
-        # still fewer than the number of dry codes.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. As 3 codes are wet, a dry code is produced.
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 8, False, False),
-        # A wet bias of 3 triples the number of wet codes to 9, so the modal wet symbol
-        # is selected.
+        # A wet bias of 2 means that at least 1/(1+3) * 10 = 2.5 codes must be wet
+        # in order to produce a wet code. As 3 codes are wet, a wet code is produced.
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10, False, False),
-        # A wet bias of 2. A tie between the wet codes with the highest index selected.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. A tie between the wet codes with the
+        # highest index selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 14, 14], 2, 14, False, False),
-        # A wet bias of 2. A tie between the wet codes with the lowest index (after
-        # reversing the dictionary) selected.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. A tie between the wet codes with the
+        # lowest index (after reversing the dictionary) selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 14, 14], 2, 10, True, False),
-        # A wet bias of 2. A tie between the wet codes with the highest index selected.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. A tie between the wet codes with the
+        # highest index selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 18, 18], 2, 18, True, False),
-        # A wet bias of 2. A tie between the wet codes with the lowest index (after
-        # reversing the dictionary) selected.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. A tie between the wet codes with the
+        # lowest index (after reversing the dictionary) selected.
         ([1, 3, 4, 5, 7, 8, 10, 10, 18, 18], 2, 10, True, True),
-        # With a wet bias of 2, there are more wet codes than dry codes, so the modal
-        # wet code is selected.
+        # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
+        # in order to produce a wet code. The point with 1 wet symbol gets a dry code,
+        # whilst the point with 4 codes gets a wet code.
         (
             [[1, 3, 4, 5, 7, 8, 10, 1, 1, 1], [1, 3, 4, 5, 7, 8, 10, 10, 10, 10]],
             2,
@@ -226,20 +233,20 @@ def test_expected_values_wet_bias(
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 0, 9, 24, 10),
         # For a day length of 9 and a day weighting of 2, the number of clear day codes
         # doubles with one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 9, 1),
-        # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 3, 5, 9, 1),
+        # Selecting a different period results in 6 dry codes and 6 wet codes,
         # so the resulting code is wet.
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 9, 10),
-        # A day weighting of 2 results in the number of clear day codes doubling,
-        # and one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 5, 7, 24, 1),
-        # Altering the day_end to 16Z results in 6 dry codes in total and 6 wet codes,
-        # so the resulting code is wet.
+        # A day weighting of 2 with a day length of 24 means that none of these codes
+        # fall within the day period, and therefore the modal code is dry (1).
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 9, 15, 24, 1),
+        # A day weighting of 2 with a day length of 24 means that none of these codes
+        # fall within the day period, and therefore the modal code is wet (10).
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 24, 10),
         # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
         # the resulting code is dry.
         ([1, 1, 1, 1, 10, 10, 10, 10, 10], 3, 4, 7, 9, 1),
-        # An example for two points for the first point being dry, and the second point
+        # An example for two points with the first point being dry, and the second point
         # being wetter, with day weighting resulting in a dry modal code.
         (
             [[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 10, 10]],
@@ -352,15 +359,17 @@ def test_expected_values_ignore_intensity(
         # The day weighting is set to emphasise the heavy snow shower (26).
         ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 4, 5, 8, False, 26),
         # Without any weighting, there would be a dry symbol. A day weighting of 2
-        # results in 6 dry codes and 5 wet codes. A wet bias results in 6 dry codes
-        # and 10 wet codes.
+        # results in 6 dry codes and 5 wet codes. A wet bias of 2 means that at
+        # least 1/(1+2) * 11 = 3.67 codes must be wet in order to produce a wet code.
+        # As 5 codes are wet, a wet code is produced.
         ([17, 17, 17, 1, 1, 1, 1, 1], 2, 2, 4, 7, 8, False, 17),
         # All precipitation is frozen. Ignoring the intensities means that a
         # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
-        # A wet bias results in 16 sleet codes and 16 light snow shower codes.
+        # A wet bias of 2 means that at least 1/(1+2) * 16 = 5.33 codes must be wet
+        # in order to produce a wet code. As all codes are wet, a wet code is produced.
         # The snow code is chosen as it is the most significant frozen precipitation,
-        # and ignoring intensity option ensures that the modal code is set to the most
-        # common snow shower code.
+        # and ignoring intensity option ensures that the modal code is set to the
+        # most common snow shower code.
         ([17, 17, 17, 17, 26, 23, 23, 23], 2, 2, 0, 8, 8, True, 23),
         # Similar to the example above but for 2 points.
         (

@@ -64,7 +64,7 @@ def process(
         wet_categories (dict):
             A JSON file containing a definition for a wet category grouping.
         intensity_categories (dict):
-            A JSON file containing a definition for a intensity category grouping.
+            A JSON file containing a definition for an intensity category grouping.
         day_weighting:
             Weighting to provide day time weather codes. A weighting of 1 indicates
             the default weighting. A weighting of 2 indicates that the weather codes
@@ -75,9 +75,9 @@ def process(
         day_end:
             Hour defining the end of the daytime period.
         wet_bias:
-            Weighting to provide wet weather codes. A weighting of 1 indicates the
-            default weighting, where half of the codes need to be a wet code,
-            in order to generate a wet code. A weighting of 3 indicates that
+            Bias to provide wet weather codes. A bias of 1 indicates the
+            default, where half of the codes need to be a wet code,
+            in order to generate a wet code. A bias of 3 indicates that
             only a quarter of codes are required to be wet, in order to generate
             a wet symbol. To generate a wet symbol, the fraction of wet symbols
             therefore need to be greater than or equal to 1 / (1 + wet_bias).

@@ -362,11 +362,11 @@ class ModalFromGroupings(BaseModalCategory):
         broad_categories: Dict[str, int],
         wet_categories: Dict[str, int],
         intensity_categories: Dict[str, int],
-        day_weighting: Optional[int] = 1,
-        day_start: Optional[int] = 6,
-        day_end: Optional[int] = 18,
-        wet_bias: Optional[int] = 1,
-        ignore_intensity: Optional[bool] = False,
+        day_weighting: int = 1,
+        day_start: int = 6,
+        day_end: int = 18,
+        wet_bias: int = 1,
+        ignore_intensity: bool = False,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
     ):
@@ -394,9 +394,9 @@ class ModalFromGroupings(BaseModalCategory):
             day_end:
                 Hour defining the end of the daytime period.
             wet_bias:
-                Weighting to provide wet weather codes. A weighting of 1 indicates the
-                default weighting, where half of the codes need to be a wet code,
-                in order to generate a wet code. A weighting of 3 indicates that
+                Bias to provide wet weather codes. A bias of 1 indicates the
+                default, where half of the codes need to be a wet code,
+                in order to generate a wet code. A bias of 3 indicates that
                 only a quarter of codes are required to be wet, in order to generate
                 a wet symbol. To generate a wet symbol, the fraction of wet symbols
                 therefore need to be greater than or equal to 1 / (1 + wet_bias).
@@ -539,8 +539,8 @@ class ModalFromGroupings(BaseModalCategory):
         return day_cubes.concatenate_cube()
 
     def _find_wet_indices(self, cube: Cube, time_axis: int) -> np.ndarray:
-        """Find the indices indicating wet weather codes. This can include a wet bias
-        if supplied.
+        """Identify the points at which a wet weather code should be selected.
+        This can include a wet bias if supplied.
 
         Args:
             cube: Weather codes cube.
@@ -593,7 +593,7 @@ class ModalFromGroupings(BaseModalCategory):
         Returns:
             Cube where points that are dry are filled with the most common dry
             code present at that point. If there is a tie, the most significant dry
-            weather code is used, assuming higher values for the weather code indicate
+            weather code is used, assuming higher values for the weather code indicates
             more significant weather.
         """
         data = cube.data.copy()
@@ -647,13 +647,15 @@ class ModalFromGroupings(BaseModalCategory):
         time_axis: int,
         categorise_using_modal: bool,
     ):
-        """Determine the most likely category and subcategory using a dictionary
+        """Determine the most common category and subcategory using a dictionary
         defining the categorisation. The category could be a group of weather codes
         representing frozen precipitation, where the subcategory would be the individual
-        weather codes. If a category or subcategory is tied, then the first as defined
-        within the categories dictionary is taken. As the categories and subcategories
-        within the dictionary are expected to be in descending priority order, this
-        will ensure that the highest priority item is chosen in the event of a tie.
+        weather codes, so that this method is able to identify the most likely weather
+        code within the most likely weather code category. If a category or subcategory
+        is tied, then the first as defined within the categories dictionary is taken.
+        As the categories and subcategories within the dictionary are expected to be
+        in descending priority order, this will ensure that the highest priority item
+        is chosen in the event of a tie.
 
         Args:
             cube: Weather codes cube.
