@@ -454,6 +454,8 @@ class ModalFromGroupings(BaseModalCategory):
 
         Args:
             cube: Cube with time coordinates.
+            template_cube: Cube to provide coordinates associated with the time
+                coordinate that will be added to the output cube.
 
         Returns:
             A cube with a time dimension coordinate and other time-related coordinates
@@ -565,6 +567,7 @@ class ModalFromGroupings(BaseModalCategory):
         Args:
             data: Array where occurrences of each possible integer value between 0
                 and data.max() will be counted.
+            bin_max: Integer defining the number of categories expected.
 
         Returns:
             An array of counts for the occurrence of each category within each row.
@@ -702,7 +705,15 @@ class ModalFromGroupings(BaseModalCategory):
     def _set_blended_times(cube: Cube, result: Cube) -> None:
         """Updates time coordinates so that time point is at the end of the time bounds,
         blend_time and forecast_reference_time (if present) are set to the end of the
-        bound period and bounds are removed, and forecast_period is updated to match."""
+        bound period and bounds are removed, and forecast_period is updated to match.
+        The result cube is modified in-place.
+
+        Args:
+            cube: Cube containing metadata on the temporal coordinates that will be
+                used to add the relevant metadata to the result cube.
+            result: Cube containing the computed modal weather code. This cube will be
+                updated in-place.
+        """
         result.coord("time").points = cube.coord("time").points[-1]
         result.coord("time").bounds = [
             cube.coord("time").bounds[0][0],

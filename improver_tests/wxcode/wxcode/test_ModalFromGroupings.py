@@ -131,7 +131,9 @@ INTENSITY_CATEGORIES = {
             ],
             [3, 4, 3, 7],
         ),
-        # Tied dry weather codes. The highest index weather code should be selected.
+        # Tied dry weather codes. The day version of the highest index weather code
+        # should be selected i.e. a partly cloudy night code (2) becomes a partly
+        # cloudy day code (3).
         ([0, 0, 0, 2, 2, 2, 7, 7], 3),
     ),
 )
