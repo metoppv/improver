@@ -46,14 +46,14 @@ MODEL_ID_ATTR = "mosg__model_configuration"
 RECORD_RUN_ATTR = "mosg__model_run"
 TARGET_TIME = dt(2020, 6, 15, 18)
 BROAD_CATEGORIES = {
-    "wet": np.arange(9, 31),
-    "dry": np.arange(0, 9),
+    "wet": [10, 11, 12, 14, 15, 17, 18, 20, 21, 23, 24, 26, 27, 29, 30],
+    "dry": [1, 3, 4, 5, 6, 7, 8],
 }
 # Priority ordered categories (keys) in case of ties
 WET_CATEGORIES = {
-    "extreme_convection": [30, 29, 28, 21, 20, 19],
-    "frozen": [27, 26, 25, 24, 23, 22, 18, 17, 16],
-    "liquid": [15, 14, 13, 12, 11, 10, 9],
+    "extreme_convection": [30, 29, 21, 20],
+    "frozen": [27, 26, 24, 23, 18, 17],
+    "liquid": [15, 14, 12, 11, 10],
 }
 INTENSITY_CATEGORIES = {
     "rain_shower": [14, 10],
@@ -140,9 +140,7 @@ INTENSITY_CATEGORIES = {
 def test_expected_values(wxcode_series, expected):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
-    result = ModalFromGroupings(BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES)(
-        wxcode_cubes
-    )
+    result = ModalFromGroupings(BROAD_CATEGORIES, WET_CATEGORIES)(wxcode_cubes)
     expected = [expected] if not isinstance(expected, list) else expected
     for index in range(len(expected)):
         assert result.data.flatten()[index] == expected[index]
@@ -212,9 +210,9 @@ def test_expected_values_wet_bias(
     if reverse_wet_keys:
         wet_categories = dict(reversed(list(wet_categories.items())))
 
-    result = ModalFromGroupings(
-        BROAD_CATEGORIES, wet_categories, INTENSITY_CATEGORIES, wet_bias=wet_bias,
-    )(wxcode_cubes)
+    result = ModalFromGroupings(BROAD_CATEGORIES, wet_categories, wet_bias=wet_bias,)(
+        wxcode_cubes
+    )
     expected = [expected] if not isinstance(expected, list) else expected
     for index in range(len(expected)):
         assert result.data.flatten()[index] == expected[index]
@@ -278,7 +276,6 @@ def test_expected_values_day_weighting(
     result = ModalFromGroupings(
         BROAD_CATEGORIES,
         WET_CATEGORIES,
-        INTENSITY_CATEGORIES,
         day_weighting=day_weighting,
         day_start=day_start,
         day_end=day_end,
@@ -332,11 +329,10 @@ def test_expected_values_ignore_intensity(
         intensity_categories = {}
         for key in INTENSITY_CATEGORIES.keys():
             intensity_categories[key] = [i for i in reversed(INTENSITY_CATEGORIES[key])]
+    if not ignore_intensity:
+        intensity_categories = None
     result = ModalFromGroupings(
-        BROAD_CATEGORIES,
-        WET_CATEGORIES,
-        intensity_categories,
-        ignore_intensity=ignore_intensity,
+        BROAD_CATEGORIES, WET_CATEGORIES, intensity_categories=intensity_categories,
     )(wxcode_cubes)
     expected = [expected] if not isinstance(expected, list) else expected
     for index in range(len(expected)):
@@ -398,15 +394,19 @@ def test_expected_values_interactions(
     _, _, _, _, wxcode_cubes = wxcode_series
     class_instance = ModalFromGroupings
     class_instance.DAY_LENGTH = day_length
+    if ignore_intensity:
+        intensity_categories = INTENSITY_CATEGORIES.copy()
+    else:
+        intensity_categories = None
+
     result = class_instance(
         BROAD_CATEGORIES,
         WET_CATEGORIES,
-        INTENSITY_CATEGORIES,
+        intensity_categories=intensity_categories,
         wet_bias=wet_bias,
         day_weighting=day_weighting,
         day_start=day_start,
         day_end=day_end,
-        ignore_intensity=ignore_intensity,
     )(wxcode_cubes)
     expected = [expected] if not isinstance(expected, list) else expected
     for index in range(len(expected)):
@@ -448,7 +448,10 @@ def test_metadata(wxcode_series):
         kwargs.update({"record_run_attr": RECORD_RUN_ATTR})
 
     result = ModalFromGroupings(
-        BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES, **kwargs,
+        BROAD_CATEGORIES,
+        WET_CATEGORIES,
+        intensity_categories=INTENSITY_CATEGORIES,
+        **kwargs,
     )(wxcode_cubes)
 
     n_times = len(wxcode_cubes)
@@ -513,6 +516,6 @@ def test_unmatching_bounds_exception(wxcode_series):
     with pytest.raises(
         ValueError, match="Input diagnostics do not have consistent periods."
     ):
-        ModalFromGroupings(BROAD_CATEGORIES, WET_CATEGORIES, INTENSITY_CATEGORIES,)(
-            wxcode_cubes
-        )
+        ModalFromGroupings(
+            BROAD_CATEGORIES, WET_CATEGORIES, intensity_categories=INTENSITY_CATEGORIES,
+        )(wxcode_cubes)

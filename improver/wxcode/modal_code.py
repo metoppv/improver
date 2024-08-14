@@ -361,12 +361,11 @@ class ModalFromGroupings(BaseModalCategory):
         self,
         broad_categories: Dict[str, int],
         wet_categories: Dict[str, int],
-        intensity_categories: Dict[str, int],
+        intensity_categories: Optional[Dict[str, int]] = None,
         day_weighting: int = 1,
         day_start: int = 6,
         day_end: int = 18,
         wet_bias: int = 1,
-        ignore_intensity: bool = False,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
     ):
@@ -383,7 +382,9 @@ class ModalFromGroupings(BaseModalCategory):
                 should both be ordered in terms of descending priority.
             intensity_categories:
                 Dictionary defining intensity groupings. Values should be ordered in
-                terms of descending priority.
+                terms of descending priority. The most common weather code from the
+                options available representing different intensities will be used as the
+                representative weather code.
             day_weighting:
                 Weighting to provide day time weather codes. A weighting of 1 indicates
                 the default weighting. A weighting of 2 indicates that the weather codes
@@ -400,12 +401,6 @@ class ModalFromGroupings(BaseModalCategory):
                 only a quarter of codes are required to be wet, in order to generate
                 a wet symbol. To generate a wet symbol, the fraction of wet symbols
                 therefore need to be greater than or equal to 1 / (1 + wet_bias).
-            ignore_intensity:
-                Boolean indicating whether weather codes of different intensities
-                should be grouped together when establishing the most representative
-                weather code. The most common weather code from the options available
-                representing different intensities will be used as the representative
-                weather code.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
@@ -421,7 +416,6 @@ class ModalFromGroupings(BaseModalCategory):
         self.day_start = day_start
         self.day_end = day_end
         self.wet_bias = wet_bias
-        self.ignore_intensity = ignore_intensity
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
 
@@ -433,10 +427,10 @@ class ModalFromGroupings(BaseModalCategory):
             cube: Weather codes cube.
 
         Returns:
-            Weather codes cube with intensity categories consolidated, if the
-            ignore_intensity option is enabled.
+            Weather codes cube with intensity categories consolidated,
+            if intensity categories are provided.
         """
-        if self.ignore_intensity:
+        if self.intensity_categories:
             # Ignore intensities, so that weather codes representing different
             # intensities can be grouped.
             for values in self.intensity_categories.values():
@@ -781,7 +775,7 @@ class ModalFromGroupings(BaseModalCategory):
                 categorise_using_modal=False,
             )
 
-            if self.ignore_intensity:
+            if self.intensity_categories:
                 intensity_indices = self._find_intensity_indices(result)
                 result = self._get_most_likely_following_grouping(
                     original_cube,
