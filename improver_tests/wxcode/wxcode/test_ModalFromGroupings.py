@@ -166,7 +166,7 @@ def test_expected_values(wxcode_series, expected):
         # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
         # in order to produce a wet code. As 3 codes are wet, a dry code is produced.
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 2, 8, False, False),
-        # A wet bias of 2 means that at least 1/(1+3) * 10 = 2.5 codes must be wet
+        # A wet bias of 3 means that at least 1/(1+3) * 10 = 2.5 codes must be wet
         # in order to produce a wet code. As 3 codes are wet, a wet code is produced.
         ([1, 3, 4, 5, 7, 8, 8, 10, 10, 10], 3, 10, False, False),
         # A wet bias of 2 means that at least 1/(1+2) * 10 = 3.33 codes must be wet
@@ -324,12 +324,15 @@ def test_expected_values_ignore_intensity(
 ):
     """Test that the expected period representative symbol is returned."""
     _, _, _, _, wxcode_cubes = wxcode_series
-    intensity_categories = INTENSITY_CATEGORIES.copy()
-    if reverse_intensity_dict:
-        intensity_categories = {}
-        for key in INTENSITY_CATEGORIES.keys():
-            intensity_categories[key] = [i for i in reversed(INTENSITY_CATEGORIES[key])]
-    if not ignore_intensity:
+    if ignore_intensity:
+        intensity_categories = INTENSITY_CATEGORIES.copy()
+        if reverse_intensity_dict:
+            intensity_categories = {}
+            for key in INTENSITY_CATEGORIES.keys():
+                intensity_categories[key] = [
+                    i for i in reversed(INTENSITY_CATEGORIES[key])
+                ]
+    else:
         intensity_categories = None
     result = ModalFromGroupings(
         BROAD_CATEGORIES, WET_CATEGORIES, intensity_categories=intensity_categories,
