@@ -512,10 +512,10 @@ class ModalFromGroupings(BaseModalCategory):
 
         n_times = len(day_cubes)
         start_file = np.clip(
-            (n_times - int(self.DAY_LENGTH - self.day_start / interval)), 0, None
+            (n_times - int((self.DAY_LENGTH - self.day_start) / interval)), 0, None
         )
         end_file = np.clip(
-            (n_times - int(self.DAY_LENGTH - self.day_end / interval)), 0, None
+            (n_times - int((self.DAY_LENGTH - self.day_end) / interval)), 0, None
         )
 
         for increment in range(1, self.day_weighting):

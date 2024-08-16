@@ -220,34 +220,34 @@ def test_expected_values_wet_bias(
 
 @pytest.mark.parametrize("record_run_attr", [False])
 @pytest.mark.parametrize("model_id_attr", [False, True])
-@pytest.mark.parametrize("interval", [1])
 @pytest.mark.parametrize("offset_reference_times", [False, True])
 @pytest.mark.parametrize("cube_type", ["gridded", "spot"])
 @pytest.mark.parametrize(
-    "data, day_weighting, day_start, day_end, day_length, expected",
+    "data, interval, day_weighting, day_start, day_end, day_length, expected",
     (
         # All weather codes supplied are considered as daytime.
         # There are more light shower codes, so this is the modal code.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 0, 9, 24, 10),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 1, 0, 9, 24, 10),
         # For a day length of 9 and a day weighting of 2, the number of clear day codes
         # doubles with one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 3, 5, 9, 1),
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 1, 2, 3, 5, 9, 1),
         # Selecting a different period results in 6 dry codes and 6 wet codes,
         # so the resulting code is wet.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 9, 10),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 2, 4, 7, 9, 10),
         # A day weighting of 2 with a day length of 24 means that none of these codes
         # fall within the day period, and therefore the modal code is dry (1).
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 2, 9, 15, 24, 1),
+        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 1, 2, 9, 15, 24, 1),
         # A day weighting of 2 with a day length of 24 means that none of these codes
         # fall within the day period, and therefore the modal code is wet (10).
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 2, 4, 7, 24, 10),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 2, 4, 7, 24, 10),
         # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
         # the resulting code is dry.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 3, 4, 7, 9, 1),
+        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 3, 4, 7, 9, 1),
         # An example for two points with the first point being dry, and the second point
         # being wetter, with day weighting resulting in a dry modal code.
         (
             [[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 10, 10]],
+            1,
             3,
             4,
             7,
@@ -258,12 +258,17 @@ def test_expected_values_wet_bias(
         # second point being wetter, with day weighting resulting in a dry modal code.
         (
             [[1, 1, 1, 1, 10, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 1, 1]],
+            1,
             3,
             2,
             5,
             9,
             [1, 10],
         ),
+        # More clear symbols, but partly cloudy symbol is emphasised more as it
+        # falls within the mid part of the day. Resulting symbol is partly cloudy.
+        # Uses 3-hourly data to ensure file counting works for non-hourly inputs.
+        ([12, 12, 10, 3, 3, 1, 0, 0], 3, 2, 6, 18, 24, 3),
     ),
 )
 def test_expected_values_day_weighting(
