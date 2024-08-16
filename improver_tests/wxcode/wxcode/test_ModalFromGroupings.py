@@ -267,7 +267,7 @@ def test_expected_values_wet_bias(
         ),
         # More clear symbols, but partly cloudy symbol is emphasised more as it
         # falls within the mid part of the day. Resulting symbol is partly cloudy.
-        # Uses 3-hourly data to ensure file counting for works for non-hourly inputs.
+        # Uses 3-hourly data to ensure file counting works for non-hourly inputs.
         ([12, 12, 10, 3, 3, 1, 0, 0], 3, 2, 6, 18, 24, 3),
     ),
 )
