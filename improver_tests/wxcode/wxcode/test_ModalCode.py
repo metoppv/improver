@@ -71,6 +71,8 @@ def wxcode_series_fixture(
     if len(data.shape) > 1:
         data = data.T
 
+    data = np.flip(data, axis=0)
+
     ntimes = len(data)
     wxcubes = CubeList()
 
