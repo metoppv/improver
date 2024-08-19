@@ -227,26 +227,26 @@ def test_expected_values_wet_bias(
     (
         # All weather codes supplied are considered as daytime.
         # There are more light shower codes, so this is the modal code.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 1, 0, 9, 24, 10),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 1, 0, 9, 24, 10),
         # For a day length of 9 and a day weighting of 2, the number of clear day codes
         # doubles with one more shower symbol giving 6 dry codes, and 5 wet codes.
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 1, 2, 3, 5, 9, 1),
+        ([10, 10, 10, 10, 1, 1, 1, 1, 1], 1, 2, 3, 5, 9, 1),
         # Selecting a different period results in 6 dry codes and 6 wet codes,
         # so the resulting code is wet.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 2, 4, 7, 9, 10),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 2, 4, 7, 9, 10),
         # A day weighting of 2 with a day length of 24 means that none of these codes
         # fall within the day period, and therefore the modal code is dry (1).
-        ([1, 1, 1, 1, 1, 10, 10, 10, 10], 1, 2, 9, 15, 24, 1),
+        ([10, 10, 10, 10, 1, 1, 1, 1, 1], 1, 2, 9, 15, 24, 1),
         # A day weighting of 2 with a day length of 24 means that none of these codes
         # fall within the day period, and therefore the modal code is wet (10).
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 2, 4, 7, 24, 10),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 2, 4, 7, 24, 10),
         # Increasing the day weighting to 3 results in 8 dry codes and 7 wet codes, so
         # the resulting code is dry.
-        ([1, 1, 1, 1, 10, 10, 10, 10, 10], 1, 3, 4, 7, 9, 1),
+        ([10, 10, 10, 10, 10, 1, 1, 1, 1], 1, 3, 4, 7, 9, 1),
         # An example for two points with the first point being dry, and the second point
         # being wetter, with day weighting resulting in a dry modal code.
         (
-            [[1, 1, 1, 1, 1, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 10, 10]],
+            [[1, 1, 1, 1, 1, 1, 1, 1, 1], [10, 10, 10, 10, 10, 1, 1, 1, 1]],
             1,
             3,
             4,
@@ -257,7 +257,7 @@ def test_expected_values_wet_bias(
         # An example for two points for the first point being mostly dry, and the
         # second point being wetter, with day weighting resulting in a dry modal code.
         (
-            [[1, 1, 1, 1, 10, 1, 1, 1, 1], [1, 1, 1, 1, 10, 10, 10, 1, 1]],
+            [[1, 1, 1, 1, 10, 1, 1, 1, 1], [1, 1, 10, 10, 10, 1, 1, 1, 1]],
             1,
             3,
             2,
@@ -268,7 +268,7 @@ def test_expected_values_wet_bias(
         # More clear symbols, but partly cloudy symbol is emphasised more as it
         # falls within the mid part of the day. Resulting symbol is partly cloudy.
         # Uses 3-hourly data to ensure file counting works for non-hourly inputs.
-        ([12, 12, 10, 3, 3, 1, 0, 0], 3, 2, 6, 18, 24, 3),
+        ([0, 0, 1, 3, 3, 10, 12, 12], 3, 2, 6, 18, 24, 3),
     ),
 )
 def test_expected_values_day_weighting(
@@ -356,17 +356,17 @@ def test_expected_values_ignore_intensity(
     "data, wet_bias, day_weighting, day_start, day_end, day_length, ignore_intensity, expected",
     (
         # The sleet code is the most common, so this is the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 1, 0, 12, 8, False, 17),
+        ([17, 17, 17, 17, 26, 23, 23, 23], 1, 1, 0, 12, 8, False, 17),
         # The day weighting with the day start and day end set to same value has no
         # impact on the modal code.
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 3, 3, 8, False, 17),
+        ([17, 17, 17, 17, 26, 23, 23, 23], 1, 10, 3, 3, 8, False, 17),
         # The day weighting is set to emphasise the heavy snow shower (26).
-        ([23, 23, 23, 26, 17, 17, 17, 17], 1, 10, 4, 5, 8, False, 26),
+        ([17, 17, 17, 17, 26, 23, 23, 23], 1, 10, 4, 5, 8, False, 26),
         # Without any weighting, there would be a dry symbol. A day weighting of 2
         # results in 6 dry codes and 5 wet codes. A wet bias of 2 means that at
         # least 1/(1+2) * 11 = 3.67 codes must be wet in order to produce a wet code.
         # As 5 codes are wet, a wet code is produced.
-        ([17, 17, 17, 1, 1, 1, 1, 1], 2, 2, 4, 7, 8, False, 17),
+        ([1, 1, 1, 1, 1, 17, 17, 17], 2, 2, 4, 7, 8, False, 17),
         # All precipitation is frozen. Ignoring the intensities means that a
         # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
         # A wet bias of 2 means that at least 1/(1+2) * 16 = 5.33 codes must be wet
