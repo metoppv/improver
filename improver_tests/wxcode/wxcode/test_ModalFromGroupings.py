@@ -367,6 +367,13 @@ def test_expected_values_ignore_intensity(
         # least 1/(1+2) * 11 = 3.67 codes must be wet in order to produce a wet code.
         # As 5 codes are wet, a wet code is produced.
         ([1, 1, 1, 1, 1, 17, 17, 17], 2, 2, 4, 7, 8, False, 17),
+        # Mixed precipitation. Day weighting results in the heavy rain (15) codes
+        # doubling. This leads to 4 heavy rain codes vs 4 light rain codes with the
+        # heavy rain codes taking precedence.
+        ([10, 11, 12, 15, 15, 12, 12, 10, 3, 3, 3], 1, 2, 0, 5, 11, False, 15),
+        # Similar to the example above with the intensity categorisation included.
+        # The heavy rain (15) code is still the result.
+        ([10, 11, 12, 15, 15, 12, 12, 10, 3, 3, 3], 1, 2, 0, 5, 11, True, 15),
         # All precipitation is frozen. Ignoring the intensities means that a
         # day weighting of 2 results in 8 sleet codes and 8 light snow shower codes.
         # A wet bias of 2 means that at least 1/(1+2) * 16 = 5.33 codes must be wet
