@@ -750,7 +750,7 @@ class ModalFromGroupings(BaseModalCategory):
         if len(cube.coord("time").points) == 1:
             result = cube
         else:
-            original_cube = cube.copy()
+            original_cube = self._emphasise_day_period(cube.copy())
             cube = self._consolidate_intensity_categories(cube)
             cube = self._emphasise_day_period(cube)
 
