@@ -18,7 +18,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class ExtractValueFromTable(BasePlugin):
-    """ Plugin to extract values from a DataFrame using the provided inputs cubes to select which
+    """ Plugin to extract values from a table using the provided inputs cubes to select which
     rows and columns to extract.
 
     The table is expected to contain numerical labels for every row and column. These labels will be
@@ -141,9 +141,9 @@ class ExtractValueFromTable(BasePlugin):
                 the table but this will be ignored.
 
         Returns:
-            Cube of the same shape and metadata as the row input cubes with values extracted
+            Cube of the same shape and metadata as the row input cube with values extracted
             from the table based on the row and column input cubes. The cube will be re-named
-            if new_name is provided.
+            if new_name is provided and the units updated to match the units of the table.
 
         Raises:
             ValueError:

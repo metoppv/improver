@@ -22,8 +22,9 @@ def process(
 
     Args:
         cubes (iris.cube.CubeList):
-            A list of iris cubes that should contain exactly two cubes: a cube to
-            with the rows to extract and a cube with the columns to extract.
+            A list of iris cubes that should contain exactly two cubes: a cube from
+            which the data determines which rows to extract and a cube from which the data
+            determines which columns to extract.
         table(dict):
             A json file containing a dictionary representing a table of data
             with numerical row and column labels. The rows and columns should be
