@@ -193,7 +193,11 @@ class BaseDistanceCalculator(ABC):
 
     @staticmethod
     def get_midpoints(axis: Coord) -> np.ndarray:
-        """Returns the midpoints along the supplied axis"""
+        """
+        Returns the midpoints along the supplied axis. If the axis is circular, the difference
+        between the last and first point is included with the assumption that this is in units of
+        degrees.
+        """
         points = axis.points
 
         if axis.circular:
@@ -203,7 +207,7 @@ class BaseDistanceCalculator(ABC):
         return mean_points.astype(axis.dtype)
 
     def get_difference_axes(self) -> Tuple[DimCoord, DimCoord]:
-        """Derives and returns the x and y coords for a difference cube"""
+        """Derives and returns the x and y coords for a cube of differences along one axis"""
         input_cube_x_axis = self.cube.coord(axis="x")
         input_cube_y_axis = self.cube.coord(axis="y")
         distance_cube_x_axis = input_cube_x_axis.copy(
@@ -216,11 +220,18 @@ class BaseDistanceCalculator(ABC):
 
     @abstractmethod
     def _get_x_distances(self) -> Cube:
-        """Abstract method for calculating distances along the x axis of the input cube"""
+        """
+        Abstract method for calculating distances along the x axis of the input cube.
+        The resulting cube shall have two dimensions as the result may be a function of position
+        along the y axis.
+        """
 
     @abstractmethod
     def _get_y_distances(self) -> Cube:
-        """Abstract method for calculating distances along the y axis of the input cube"""
+        """
+        Abstract method for calculating distances along the y axis of the input cube.
+        The resulting cube shall have two dimensions.
+        """
 
     def get_distances(self) -> Tuple[Cube, Cube]:
         """
@@ -228,8 +239,8 @@ class BaseDistanceCalculator(ABC):
         x and y axis.
 
         Returns:
-            - Cube of x-axis distances.
-            - Cube of y-axis distances.
+            - 2D Cube of x-axis distances.
+            - 2D Cube of y-axis distances.
         """
         return self._get_x_distances(), self._get_y_distances()
 
@@ -239,7 +250,7 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
     Distance calculator for cubes using a Geographic Coordinate system.
     Assumes that latitude and longitude are given in degrees, and that the origin is at the
     intersection of the equator and the prime meridian.
-    Distances are calculated assuming a spherical earth, resulting in a < 0.2% error when compared
+    Distances are calculated assuming a spherical earth, resulting in a < 0.15% error when compared
     with the full haversine formula.
     """
 
@@ -279,8 +290,12 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         Geographic coordinates.
 
         Returns:
-            A cube containing the x-axis distances between the grid points of the input
-            cube in metres.
+            A 2D cube containing the x-axis distances between adjacent grid points of the input
+            cube in metres. As the earth is an oblate spheroid, the x-axis distances vary as
+            a function of the y-axis.
+            If the x-axis is marked as being circular, the distance between the last and first
+            points is included in the output.
+            x-axis coord positions are shifted to the mid-point of each pair.
         """
         lats_as_col = np.expand_dims(self.lats, axis=1)
 
@@ -303,8 +318,9 @@ class LatLonCubeDistanceCalculator(BaseDistanceCalculator):
         Geographic coordinates.
 
         Returns:
-            A cube containing the vertical distances between the grid points of the input
+            A 2D cube containing the y-axis distances between adjacent grid points of the input
             cube in metres.
+            y-axis coord positions are shifted to the mid-point of each pair.
         """
         lat_diffs = np.diff(self.lats)
 
@@ -327,6 +343,9 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
         Args:
             cube:
                 Cube for which the distances will be calculated.
+        Raises:
+            NotImplementedError:
+                If the x-axis is marked as being circular.
         """
         if cube.coord(axis="x").circular:
             raise NotImplementedError(
@@ -341,8 +360,9 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
         Equal Area coordinates.
 
         Returns:
-            A cube containing the x-axis distances between the grid points of the input
+            A 2D cube containing the x-axis distances between the grid points of the input
             cube in metres.
+            x-axis coord positions are shifted to the mid-point of each pair.
         """
         x_distances = calculate_grid_spacing(self.cube, axis="x", units="m")
         data = np.full(
@@ -360,8 +380,9 @@ class ProjectionCubeDistanceCalculator(BaseDistanceCalculator):
         Equal Area coordinates.
 
         Returns:
-            A cube containing the vertical distances between the grid points of the input
+            A 2D cube containing the y-axis distances between the grid points of the input
             cube in metres.
+            y-axis coord positions are shifted to the mid-point of each pair.
         """
         y_grid_spacing = calculate_grid_spacing(self.cube, axis="y", units="m")
         data = np.full(
@@ -387,6 +408,8 @@ class DistanceBetweenGridSquares(BasePlugin):
 
     def _select_distance_calculator(self, cube: Cube):
         """
+        Chooses which distance calculator class to apply based on the cube's spatial coordinates.
+
         Args:
             cube:
                 Cube for which the distances will be calculated.
@@ -624,9 +647,11 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
         Args:
             regrid:
                 If True, the gradient cube is regridded to match the spatial
-                dimensions of the input cube. If False, the length of the
-                spatial dimensions of the gradient cube are one less than for
-                the input cube.
+                dimensions of the input cube. If False, the two output gradient cubes will have
+                different spatial coords such that the coord matching the gradient axis will
+                represent the midpoint of the input cube and will have one fewer points.
+                If the x-axis is marked as circular, the gradient between the last and first points
+                is also included.
         """
         self.regrid = regrid
 
