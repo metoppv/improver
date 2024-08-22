@@ -141,12 +141,12 @@ def test_latlon_cube(longitudes, is_circular):
     ):
         assert result.units == "m"
         np.testing.assert_allclose(
-            result.data, expected.data, rtol=33e-4, atol=0
-        )  # Allowing 0.33% error for spherical earth approximation.
+            result.data, expected.data, rtol=15e-4, atol=0
+        )  # Allowing 0.15% error for spherical earth approximation.
 
 
 def test_equalarea_cube():
-    """Basic test for a non-circular cube using a Lambert Azumutal Equal Area projection"""
+    """Basic test for a non-circular cube using a Lambert Azimuthal Equal Area projection"""
     spacing = 1000
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=spacing)
     expected_x_distances_cube_shape = (3, 2)
@@ -166,7 +166,7 @@ def test_equalarea_cube():
 
 
 def test_equalarea_circular_cube_error():
-    """Test for error with circular cube using a Lambert Azumutal Equal Area projection"""
+    """Test for error with circular cube using a Lambert Azimuthal Equal Area projection"""
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=1000)
     input_cube.coord(axis="x").circular = True
     with pytest.raises(
@@ -177,7 +177,7 @@ def test_equalarea_circular_cube_error():
 
 def test_equalarea_cube_nonstandard_units():
     """
-    Test for a cube using a Lambert Azumutal Equal Area projection with units of
+    Test for a cube using a Lambert Azimuthal Equal Area projection with units of
     kilometers for its x and y axes.
     """
     input_cube = make_equalarea_test_cube((3, 3), grid_spacing=10, units="km")
@@ -216,8 +216,8 @@ def test_transverse_mercator_cube():
     ):
         assert result.units == "m"
         np.testing.assert_allclose(
-            result.data, expected.data, rtol=2e-3, atol=0
-        )  # Allowing 0.2% error for spherical earth approximation.
+            result.data, expected.data, rtol=15e-4, atol=0
+        )  # Allowing 0.15% error for spherical earth approximation.
 
 
 def test_distance_cube_with_no_coordinate_system():
