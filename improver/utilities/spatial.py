@@ -20,7 +20,6 @@ from iris.cube import Cube, CubeList
 from numpy import ndarray
 from numpy.ma import MaskedArray
 from scipy.ndimage.filters import maximum_filter
-from scipy.stats import circmean
 
 from improver import BasePlugin, PostProcessingPlugin
 from improver.metadata.amend import update_diagnostic_name
@@ -558,18 +557,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
                     "circular x-axis that do not use a geographic (i.e. latlon) coordinate system."
                 )
         mean_points = (points[1:] + points[:-1]) / 2
-        if self._axis_wraps_around_meridian(axis, cube):
-            if type(axis.coord_system) != GeogCS:
-                warnings.warn(
-                    "DifferenceBetweenAdjacentGridSquares does not fully support cubes with "
-                    "circular x-axis that do not use a geographic (i.e. latlon) coordinate system. "
-                    "Such cubes will be handled as if they were not circular, meaning that the "
-                    "differences cube returned will have one fewer points along the specified axis"
-                    "than the input cube."
-                )
-            else:
-                extra_mean_point = self._get_wrap_around_mean_point(points)
-                mean_points = np.hstack([mean_points, extra_mean_point])
 
         # Copy cube metadata and coordinates into a new cube.
         # Create a new coordinate for the coordinate along which the
