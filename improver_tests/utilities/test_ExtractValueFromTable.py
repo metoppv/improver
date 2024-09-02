@@ -48,7 +48,7 @@ def lapse_class():
     data = np.full(
         (2, 2), 0, dtype=np.float32
     )  # Values will be overwritten in the test
-    return set_up_variable_cube(data=data, name="lapse_class")
+    return set_up_variable_cube(data=data, name="lapse_class", units="1")
 
 
 @pytest.fixture
@@ -57,7 +57,7 @@ def wind_gust_900m():
     data = np.full(
         (2, 2), 0, dtype=np.float32
     )  # Values will be overwritten in the test
-    return set_up_variable_cube(data=data, name="900m_wind_gust")
+    return set_up_variable_cube(data=data, name="900m_wind_gust", units="m/s")
 
 
 @pytest.fixture
@@ -73,11 +73,11 @@ def table_1D():
 
 @pytest.fixture
 def lapse_rate():
-    """Set up cube containing 900m wind gust data"""
+    """Set up cube containing lapse rate data"""
     data = np.full(
         (2, 2), 0, dtype=np.float32
     )  # Values will be overwritten in the test
-    return set_up_variable_cube(data=data, name="lapse_rate")
+    return set_up_variable_cube(data=data, name="lapse_rate", units="K/m")
 
 
 @pytest.mark.parametrize("table_name", ["table_2D", "table_2D_random_order"])
@@ -124,7 +124,8 @@ def test_read_table(
 
 
 @pytest.mark.parametrize(
-    "lapse_rate_value, expected", [[7, 1], [5.2, 3], [5.45, 2], [2, 3]]
+    "lapse_rate_value, expected",
+    [[7, 1], [5.2, 3], [5.45, 2], [2, 3], [np.nan, np.nan]],
 )
 def test_read_table_1D(
     table_1D, lapse_rate, wind_gust_900m, lapse_rate_value, expected
@@ -135,12 +136,14 @@ def test_read_table_1D(
     result = ExtractValueFromTable(row_name="lapse_rate")(
         lapse_rate, wind_gust_900m, table=table_1D
     )
+
     expected_data = np.full_like(lapse_rate.data, fill_value=expected, dtype=np.float32)
     expected_cube = lapse_rate.copy(data=expected_data)
     expected_cube.units = "1"
 
     np.testing.assert_array_almost_equal(result.data, expected_cube.data)
-    assert result == expected_cube
+    if not np.isnan(expected):  # Nan values are not equal
+        assert result == expected_cube
 
 
 def test_too_many_cubes(table_2D, lapse_class, wind_gust_900m):

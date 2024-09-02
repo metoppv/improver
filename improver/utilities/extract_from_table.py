@@ -105,6 +105,12 @@ class ExtractValueFromTable(BasePlugin):
         )
 
         result = table.to_numpy()[row_index, column_index]
+
+        nan_condition = np.logical_or(np.isnan(row_data), np.isnan(columns_data))
+        if nan_condition.any():
+            result = result.astype(np.float32)
+            result[nan_condition] = np.nan
+
         result = result.reshape(shape)
         return result
 
