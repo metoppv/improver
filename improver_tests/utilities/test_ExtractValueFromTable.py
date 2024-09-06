@@ -45,18 +45,14 @@ def table_2D_random_order():
 @pytest.fixture
 def lapse_class():
     """Set up a cube containing lapse class"""
-    data = np.full(
-        (2, 2), 0, dtype=np.float32
-    )  # Values will be overwritten in the test
+    data = np.empty((2, 2), dtype=np.float32)  # Values will be overwritten in the test
     return set_up_variable_cube(data=data, name="lapse_class", units="1")
 
 
 @pytest.fixture
 def wind_gust_900m():
     """Set up cube containing 900m wind gust data"""
-    data = np.full(
-        (2, 2), 0, dtype=np.float32
-    )  # Values will be overwritten in the test
+    data = np.empty((2, 2), dtype=np.float32)  # Values will be overwritten in the test
     return set_up_variable_cube(data=data, name="900m_wind_gust", units="m/s")
 
 
@@ -74,9 +70,7 @@ def table_1D():
 @pytest.fixture
 def lapse_rate():
     """Set up cube containing lapse rate data"""
-    data = np.full(
-        (2, 2), 0, dtype=np.float32
-    )  # Values will be overwritten in the test
+    data = np.empty((2, 2), dtype=np.float32)  # Values will be overwritten in the test
     return set_up_variable_cube(data=data, name="lapse_rate", units="K/m")
 
 
