@@ -73,6 +73,7 @@ PROCESSING_MODULES = {
     "LightningFromCapePrecip": "improver.lightning",
     "LightningMultivariateProbability_USAF2024": "improver.lightning",
     "ManipulateReliabilityTable": "improver.calibration.reliability_calibration",
+    "maximum_in_height": "improver.utilities.cube_manipulation",
     "MaxInTimeWindow": "improver.cube_combiner",
     "MergeCubes": "improver.utilities.cube_manipulation",
     "MergeCubesForWeightedBlending": "improver.blending.weighted_blend",
