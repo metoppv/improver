@@ -39,5 +39,4 @@ def process(*cubes: cli.inputcubelist):
         GradientBetweenVerticalLevels,
     )
 
-    print(cubes)
     return GradientBetweenVerticalLevels()(*cubes)
