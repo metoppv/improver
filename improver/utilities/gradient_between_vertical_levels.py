@@ -12,6 +12,7 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.utilities.common_input_handle import as_cubelist
 
 
 class GradientBetweenVerticalLevels(BasePlugin):
@@ -112,7 +113,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
 
         return gradient
 
-    def process(self, cubes: CubeList) -> Cube:
+    def process(self, *cubes: CubeList) -> Cube:
         """
             Process the input cubes to calculate the gradient between two vertical levels.
 
@@ -129,6 +130,8 @@ class GradientBetweenVerticalLevels(BasePlugin):
                 A cube containing the gradient between two vertical levels. The cube will be
                 names "gradient_of_" followed by the name of the input cubes.
             """
+        cubes = as_cubelist(cubes)
+
         orography, cubes = self.extract_cube_from_list(cubes, "surface_altitude")
         geopotential_height, cubes = self.extract_cube_from_list(
             cubes, "geopotential_height"
