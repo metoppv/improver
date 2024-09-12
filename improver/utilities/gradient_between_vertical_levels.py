@@ -53,7 +53,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
 
         If the cubes are provided at height levels this is assumed to be a height above ground level
         and the height above sea level is calculated by adding the height of the orography to the
-        "height" coordinate.If the cubes are provided at pressure levels, the height above sea level
+        height coordinate.If the cubes are provided at pressure levels, the height above sea level
         is extracted from a geopotential_height cube.
 
         Args:
@@ -128,7 +128,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
 
             Returns:
                 A cube containing the gradient between two vertical levels. The cube will be
-                names "gradient_of_" followed by the name of the input cubes.
+                names gradient_of_ followed by the name of the input cubes.
             """
         cubes = as_cubelist(cubes)
 
