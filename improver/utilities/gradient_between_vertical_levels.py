@@ -128,7 +128,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
 
             Returns:
                 A cube containing the gradient between two vertical levels. The cube will be
-                names gradient_of_ followed by the name of the input cubes.
+                named gradient of followed by the name of the input cubes.
             """
         cubes = as_cubelist(cubes)
 
