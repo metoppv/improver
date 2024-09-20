@@ -25,14 +25,13 @@ class HaltExecution(Exception):
 def test_as_cubelist_called(mock_as_cube):
     mock_as_cube.side_effect = HaltExecution
     try:
-        StandardiseMetadata()(
-            sentinel.cube,
+        StandardiseMetadata(
             new_name=sentinel.new_name,
             new_units=sentinel.new_units,
             coords_to_remove=sentinel.coords_to_remove,
             coord_modification=sentinel.coord_modification,
             attributes_dict=sentinel.attributes_dict,
-        )
+        )(sentinel.cube)
     except HaltExecution:
         pass
     mock_as_cube.assert_called_once_with(sentinel.cube)
@@ -51,12 +50,11 @@ class Test_process(IrisTest):
             time_bounds=[datetime(2019, 10, 10, 23), datetime(2019, 10, 11)],
             frt=datetime(2019, 10, 10, 18),
         )
-        self.plugin = StandardiseMetadata()
 
     def test_null(self):
         """Test process method with default arguments returns an unchanged
         cube"""
-        result = self.plugin.process(self.cube.copy())
+        result = StandardiseMetadata().process(self.cube.copy())
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertArrayAlmostEqual(result.data, self.cube.data)
         self.assertEqual(result.metadata, self.cube.metadata)
@@ -72,7 +70,7 @@ class Test_process(IrisTest):
                 np.float64
             )
         self.cube.coord("forecast_period").convert_units("hours")
-        result = self.plugin.process(self.cube)
+        result = StandardiseMetadata().process(self.cube)
         self.assertEqual(result.coord("forecast_period").units, "seconds")
         self.assertEqual(result.coord("forecast_period").points.dtype, np.int32)
         self.assertEqual(result.coord("forecast_period").bounds.dtype, np.int32)
@@ -86,13 +84,13 @@ class Test_process(IrisTest):
             np.float64
         )
         self.cube.remove_coord("forecast_period")
-        result = self.plugin.process(self.cube)
+        result = StandardiseMetadata().process(self.cube)
         self.assertEqual(result.coord("time").points.dtype, np.int64)
 
     def test_collapse_scalar_dimensions(self):
         """Test scalar dimension is collapsed"""
         cube = iris.util.new_axis(self.cube, "time")
-        result = self.plugin.process(cube)
+        result = StandardiseMetadata().process(cube)
         dim_coord_names = [coord.name() for coord in result.coords(dim_coords=True)]
         aux_coord_names = [coord.name() for coord in result.coords(dim_coords=False)]
         self.assertSequenceEqual(result.shape, (5, 5))
@@ -104,7 +102,7 @@ class Test_process(IrisTest):
         realization = AuxCoord([1], "realization")
         self.cube.add_aux_coord(realization)
         cube = iris.util.new_axis(self.cube, "realization")
-        result = self.plugin.process(cube)
+        result = StandardiseMetadata().process(cube)
         dim_coord_names = [coord.name() for coord in result.coords(dim_coords=True)]
         self.assertSequenceEqual(result.shape, (1, 5, 5))
         self.assertIn("realization", dim_coord_names)
@@ -129,14 +127,14 @@ class Test_process(IrisTest):
         # Modifier for scalar height coordinate
         coord_modification = {"height": 2.0}
 
-        result = self.plugin.process(
-            self.cube,
+        plugin = StandardiseMetadata(
             new_name=new_name,
             new_units="degC",
             coords_to_remove=["forecast_period"],
             coord_modification=coord_modification,
             attributes_dict=attribute_changes,
         )
+        result = plugin.process(self.cube)
         self.assertEqual(result.name(), new_name)
         self.assertEqual(result.units, "degC")
         self.assertArrayAlmostEqual(result.data, expected_data, decimal=5)
@@ -150,11 +148,10 @@ class Test_process(IrisTest):
 
         coord_modification = {"latitude": [0.1, 1.2, 3.4, 5.6, 7]}
         msg = "Modifying dimension coordinate values is not allowed "
+        plugin = StandardiseMetadata(coord_modification=coord_modification)
 
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(
-                self.cube, coord_modification=coord_modification,
-            )
+            plugin.process(self.cube)
 
     def test_attempt_modify_multi_valued_coord(self):
         """Test that an exception is raised if the coord_modification is used
@@ -168,10 +165,9 @@ class Test_process(IrisTest):
         coord_modification = {"kittens": [2, 3, 4, 5, 6]}
         msg = "Modifying multi-valued coordinates is not allowed."
 
+        plugin = StandardiseMetadata(coord_modification=coord_modification)
         with self.assertRaisesRegex(ValueError, msg):
-            self.plugin.process(
-                cube, coord_modification=coord_modification,
-            )
+            plugin.process(cube)
 
     def test_attempt_modify_time_coord(self):
         """Test that an exception is raised if the coord_modification targets
@@ -181,10 +177,9 @@ class Test_process(IrisTest):
         for coord in ["time", "forecast_period", "forecast_reference_time"]:
             coord_modification = {coord: 100}
 
+            plugin = StandardiseMetadata(coord_modification=coord_modification)
             with self.assertRaisesRegex(ValueError, msg):
-                self.plugin.process(
-                    self.cube, coord_modification=coord_modification,
-                )
+                plugin.process(self.cube)
 
     def test_discard_cellmethod(self):
         """Test changes to cell_methods"""
@@ -193,7 +188,7 @@ class Test_process(IrisTest):
             iris.coords.CellMethod(method="point", coords="time"),
             iris.coords.CellMethod(method="max", coords="realization"),
         ]
-        result = self.plugin.process(cube,)
+        result = StandardiseMetadata().process(cube)
         self.assertEqual(
             result.cell_methods,
             (iris.coords.CellMethod(method="max", coords="realization"),),
@@ -203,7 +198,7 @@ class Test_process(IrisTest):
         """Test precision de-escalation from float64 to float32"""
         cube = self.cube.copy()
         cube.data = cube.data.astype(np.float64)
-        result = self.plugin.process(cube)
+        result = StandardiseMetadata().process(cube)
         self.assertEqual(result.data.dtype, np.float32)
         self.assertArrayAlmostEqual(result.data, self.cube.data, decimal=4)
 
@@ -213,7 +208,7 @@ class Test_process(IrisTest):
         cube = set_up_variable_cube(
             np.ones((5, 5), dtype=np.int16), name="rainrate", units="mm h-1"
         )
-        result = self.plugin.process(cube, new_units="m s-1")
+        result = StandardiseMetadata(new_units="m s-1").process(cube)
         self.assertEqual(cube.dtype, np.float32)
         self.assertEqual(result.data.dtype, np.float32)
 
@@ -237,7 +232,7 @@ class Test_process(IrisTest):
         # surface altitude.
         result_no_sf = cube.copy()
         result_no_sf.data[:, 0, ...] = np.nan
-        target = self.plugin.process(result_no_sf)
+        target = StandardiseMetadata().process(result_no_sf)
 
         cube_with_flags = cube.copy()
         flag_status = np.zeros((3, 3, 5, 5), dtype=np.int8)
@@ -253,7 +248,7 @@ class Test_process(IrisTest):
         )
         cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2, 3))
 
-        result = self.plugin.process(cube_with_flags)
+        result = StandardiseMetadata().process(cube_with_flags)
         self.assertArrayEqual(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 
@@ -277,7 +272,7 @@ class Test_process(IrisTest):
         # surface altitude.
         result_no_sf = cube.copy()
         result_no_sf.data[0, ...] = np.nan
-        target = self.plugin.process(result_no_sf)
+        target = StandardiseMetadata().process(result_no_sf)
 
         cube_with_flags = cube.copy()
         flag_status = np.zeros((3, 5, 5), dtype=np.int8)
@@ -293,7 +288,7 @@ class Test_process(IrisTest):
         )
         cube_with_flags.add_aux_coord(status_flag_coord, (0, 1, 2))
 
-        result = self.plugin.process(cube_with_flags)
+        result = StandardiseMetadata().process(cube_with_flags)
         self.assertArrayEqual(result.data, target.data)
         self.assertEqual(result.coords(), target.coords())
 

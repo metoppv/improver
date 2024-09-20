@@ -57,11 +57,10 @@ def process(
     """
     from improver.standardise import StandardiseMetadata
 
-    return StandardiseMetadata()(
-        cube,
+    return StandardiseMetadata(
         new_name=new_name,
         new_units=new_units,
         coords_to_remove=coords_to_remove,
         coord_modification=coord_modification,
         attributes_dict=attributes_config,
-    )
+    )(cube)
