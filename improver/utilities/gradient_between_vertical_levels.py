@@ -68,15 +68,15 @@ class GradientBetweenVerticalLevels(BasePlugin):
                 the height above sea level at the pressure level of the input cubes.
             orography:
                 Optional cube containing the orography height above sea level. This cube is required
-                if exactly one input cube is defined at height levels and is used to convert the height
-                above ground level to height above sea level.
+                if exactly one input cube is defined at height levels and is used to convert the
+                height above ground level to height above sea level.
 
         Returns:
             A cube containing the gradient between the cubes between two vertical levels.
 
         Raises:
-            ValueError: If exactly one input cube is defined at height levels and no orography cube is
-                        provided.
+            ValueError: If exactly one input cube is defined at height levels and no orography cube
+                        is provided.
             ValueError: If either input cube is defined at pressure levels and no
                         geopotential_height cube is provided.
         """
@@ -99,7 +99,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
             else:
                 if orography:
                     height_ASL = orography + cube_height
-                elif not(orography or geopotential_height):
+                elif not (orography or geopotential_height):
                     height_ASL = cube_height
                 else:
                     raise ValueError(
