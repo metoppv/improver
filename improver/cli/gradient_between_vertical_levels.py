@@ -16,15 +16,16 @@ def process(*cubes: cli.inputcubelist):
 
     Input cubes can be provided at height or pressure levels. If the cubes are provided
     at a pressure level, the height above sea level is extracted from height_of_pressure_levels
-    cube. If the cubes are provided at height levels this is assumed to be a height above ground
-    level and the height above sea level is calculated by adding the height of the orography to
-    the "height" coordinate of the cube. It is possible for one cube to be defined at height
-    levels and the other at pressure levels.
+    cube. If exactly one of the cubes are provided at height levels this is assumed to be a
+    height above ground level and the height above sea level is calculated by adding the height
+    of the orography to the "height" coordinate of the cube. If both cubes have height coordinates
+    no additional cubes are required.
+    It is possible for one cube to be defined at height levels and the other at pressure levels.
 
     Args:
         cubes (iris.cube.CubeList):
             Contains two cubes of a diagnostic at two different vertical levels. The cubes must
-            either have a height coordinate or a pressure coordinate. If either cube is defined at
+            either have a height coordinate or a pressure coordinate. If only one cube is defined at
             height levels, an orography cube must also be provided. If either cube is defined at
             pressure levels, a geopotential_height cube must also be provided.
 
