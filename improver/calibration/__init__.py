@@ -15,7 +15,7 @@ from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import MergeCubes
-
+from improver.utilities.load import load_cubelist
 
 def split_forecasts_and_truth(
     cubes: List[Cube], truth_attribute: str
@@ -266,3 +266,47 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+from datetime import datetime, timedelta
+
+def get_cube_from_directory(directory, cycle_point=None, max_days_offset=None, date_format='%Y%m%dT%H%MZ'):
+    """
+    loads and merges all netCDF files in a directory
+
+    To switch on the max offset filter, both cycle_point and max_days_offset 
+    need to be provided
+    Args:
+        directory (pathlib.Path):
+            The path to the directory.
+        cycle_point (str):
+            The cycle point of the forecast, used to filter files
+        max_days_offset (int):
+            Maximum number of days before cycle_point to consider files,
+            Defined as a postive int that is subtracted from the cycle_point
+        date_format (str):
+            format of the cyclepoint and datetime in the filename, used by 
+            datetime.strptime
+
+    Returns:
+        Cube
+    """
+    files = [*map(str, directory.glob("*.nc"))]
+    if len(files) == 0:
+        # This is probably too serious - is there a quiet way to handle this?
+        raise ValueError(f"No files found in {directory}")
+    
+    if max_days_offset and cycle_point:
+        # Ignore files if they are older than max_days_offset days from cycle_point
+        cycle_point = datetime.strptime(cycle_point, date_format)
+        earliest_time = cycle_point - timedelta(days=max_days_offset)
+        for filename in files.copy():
+            file_datetime = filename.split('/')[-1].split('-')[0]
+            if datetime.strptime(file_datetime, date_format) < earliest_time:
+                files.remove(filename)
+    
+    if len(files) < 2:
+        raise ValueError(f"Not enough files found in {directory}")
+
+    # Check for a lower limit on number of files? - 2
+    cubes = load_cubelist(files)
+    return MergeCubes()(cubes)
