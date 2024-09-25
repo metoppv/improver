@@ -1,5 +1,6 @@
-from improver import api
 import pytest
+
+from improver import api
 
 
 @pytest.mark.parametrize("module", (api.PROCESSING_MODULES.keys()))
