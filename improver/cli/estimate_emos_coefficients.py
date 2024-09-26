@@ -19,8 +19,8 @@ def process(
     *,
     distribution,
     truth_attribute,
-    cycle_point=None,
-    max_days_offset=None,
+    cycle_point: str = None,
+    max_days_offset: int = None,
     point_by_point=False,
     use_default_initial_guess=False,
     units=None,
@@ -95,7 +95,7 @@ def process(
     from improver.calibration.ensemble_calibration import (
         EstimateCoefficientsForEnsembleCalibration,
     )
-    from improver.utilities.load import get_cube_from_directory
+    from improver.calibration import get_cube_from_directory
 
     forecast = get_cube_from_directory(forecast_directory, cycle_point=cycle_point, max_days_offset=max_days_offset)
     truth = get_cube_from_directory(truth_directory, cycle_point=cycle_point, max_days_offset=max_days_offset)
