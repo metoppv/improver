@@ -7,6 +7,7 @@ and coefficient inputs.
 """
 
 from collections import OrderedDict
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from iris.cube import Cube, CubeList
@@ -16,6 +17,7 @@ from improver.metadata.probabilistic import (
 )
 from improver.utilities.cube_manipulation import MergeCubes
 from improver.utilities.load import load_cubelist
+
 
 def split_forecasts_and_truth(
     cubes: List[Cube], truth_attribute: str
@@ -267,13 +269,14 @@ def add_warning_comment(forecast: Cube) -> Cube:
         )
     return forecast
 
-from datetime import datetime, timedelta
 
-def get_cube_from_directory(directory, cycle_point=None, max_days_offset=None, date_format='%Y%m%dT%H%MZ'):
+def get_cube_from_directory(
+    directory, cycle_point=None, max_days_offset=None, date_format="%Y%m%dT%H%MZ"
+):
     """
     loads and merges all netCDF files in a directory
 
-    To switch on the max offset filter, both cycle_point and max_days_offset 
+    To switch on the max offset filter, both cycle_point and max_days_offset
     need to be provided
     Args:
         directory (pathlib.Path):
@@ -284,7 +287,7 @@ def get_cube_from_directory(directory, cycle_point=None, max_days_offset=None, d
             Maximum number of days before cycle_point to consider files,
             Defined as a postive int that is subtracted from the cycle_point
         date_format (str):
-            format of the cyclepoint and datetime in the filename, used by 
+            format of the cyclepoint and datetime in the filename, used by
             datetime.strptime
 
     Returns:
@@ -294,16 +297,16 @@ def get_cube_from_directory(directory, cycle_point=None, max_days_offset=None, d
     if len(files) == 0:
         # This is probably too serious - is there a quiet way to handle this?
         raise ValueError(f"No files found in {directory}")
-    
+
     if max_days_offset and cycle_point:
         # Ignore files if they are older than max_days_offset days from cycle_point
         cycle_point = datetime.strptime(cycle_point, date_format)
         earliest_time = cycle_point - timedelta(days=max_days_offset)
         for filename in files.copy():
-            file_datetime = filename.split('/')[-1].split('-')[0]
+            file_datetime = filename.split("/")[-1].split("-")[0]
             if datetime.strptime(file_datetime, date_format) < earliest_time:
                 files.remove(filename)
-    
+
     if len(files) < 2:
         raise ValueError(f"Not enough files found in {directory}")
 

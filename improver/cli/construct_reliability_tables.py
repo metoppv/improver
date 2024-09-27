@@ -5,6 +5,8 @@
 # See LICENSE in the root of the repository for full licensing details.
 """CLI to construct reliability tables for use in reliability calibration."""
 
+from typing import Optional
+
 from improver import cli
 
 
@@ -18,8 +20,8 @@ def process(
     single_value_lower_limit: bool = False,
     single_value_upper_limit: bool = False,
     aggregate_coordinates: cli.comma_separated_list = None,
-    cycle_point: str = None,
-    max_days_offset: int = None,
+    cycle_point: Optional[str] = None,
+    max_days_offset: Optional[int] = None,
 ):
     """Populate reliability tables for use in reliability calibration.
 

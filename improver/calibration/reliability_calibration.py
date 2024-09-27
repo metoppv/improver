@@ -529,6 +529,10 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
 
 class MetaConstructReliabilityCalibrationTables(BasePlugin):
+    """
+    Meta plugin for handling directories of netcdfs as inputs, instead of cubes
+    """
+
     def __init__(
         self,
         truth_attribute,
@@ -536,8 +540,8 @@ class MetaConstructReliabilityCalibrationTables(BasePlugin):
         single_value_lower_limit: bool = False,
         single_value_upper_limit: bool = False,
         aggregate_coordinates: list = None,
-        cycle_point=None,
-        max_days_offset=None,
+        cycle_point: Optional[str] = None,
+        max_days_offset: Optional[int] = None,
     ):
         self.truth_attribute = truth_attribute
         self.n_probability_bins = n_probability_bins
