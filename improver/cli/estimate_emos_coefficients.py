@@ -85,7 +85,11 @@ def process(
             is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
-
+        cycle_point (str):
+            Current cycle point. Used in combination with max_days_offset to identify
+            which historic forecasts and truths to use.
+        max_days_offset (int):
+            Maximum offset in days, used to identify the oldest acceptable inputs
     Returns:
         iris.cube.CubeList:
             CubeList containing the coefficients estimated using EMOS. Each
@@ -99,8 +103,8 @@ def process(
     plugin = MetaEstimateCoefficientsForEnsembleCalibration(
         distribution,
         truth_attribute,
-        cycle_point = cycle_point,
-        max_days_offset = max_days_offset,
+        cycle_point=cycle_point,
+        max_days_offset=max_days_offset,
         point_by_point=point_by_point,
         use_default_initial_guess=use_default_initial_guess,
         desired_units=units,
@@ -108,4 +112,4 @@ def process(
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast_directory,truth_directory,land_sea_mask=land_sea_mask)
+    return plugin(forecast_directory, truth_directory, land_sea_mask=land_sea_mask)

@@ -25,6 +25,7 @@ from scipy.optimize import OptimizeResult, minimize
 from scipy.stats import norm
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.calibration import get_cube_from_directory
 from improver.calibration.utilities import (
     broadcast_data_to_time_coord,
     check_data_sufficiency,
@@ -51,7 +52,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
-from improver.calibration import get_cube_from_directory
+
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     """
@@ -1365,11 +1366,14 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         )
         return coefficients_cubelist
 
+
 class MetaEstimateCoefficientsForEnsembleCalibration(BasePlugin):
     """
     Meta plugin for handling directories of netcdfs as inputs, instead of cubes
     """
-    def __init__(self,
+
+    def __init__(
+        self,
         distribution,
         truth_attribute,
         cycle_point: str = None,
@@ -1393,8 +1397,17 @@ class MetaEstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.max_iterations = max_iterations
 
     def process(self, forecast_directory, truth_directory, land_sea_mask=None):
-        self.forecast = get_cube_from_directory(forecast_directory, cycle_point=self.cycle_point, max_days_offset=self.max_days_offset)
-        self.truth = get_cube_from_directory(truth_directory, cycle_point=self.cycle_point, max_days_offset=self.max_days_offset)
+        self.forecast = get_cube_from_directory(
+            forecast_directory,
+            cycle_point=self.cycle_point,
+            max_days_offset=self.max_days_offset,
+        )
+        self.truth = get_cube_from_directory(
+            truth_directory,
+            cycle_point=self.cycle_point,
+            max_days_offset=self.max_days_offset,
+        )
+
         plugin = EstimateCoefficientsForEnsembleCalibration(
             self.distribution,
             point_by_point=self.point_by_point,
