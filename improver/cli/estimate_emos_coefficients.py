@@ -93,15 +93,14 @@ def process(
     """
 
     from improver.calibration.ensemble_calibration import (
-        EstimateCoefficientsForEnsembleCalibration,
+        MetaEstimateCoefficientsForEnsembleCalibration,
     )
-    from improver.calibration import get_cube_from_directory
 
-    forecast = get_cube_from_directory(forecast_directory, cycle_point=cycle_point, max_days_offset=max_days_offset)
-    truth = get_cube_from_directory(truth_directory, cycle_point=cycle_point, max_days_offset=max_days_offset)
-
-    plugin = EstimateCoefficientsForEnsembleCalibration(
+    plugin = MetaEstimateCoefficientsForEnsembleCalibration(
         distribution,
+        truth_attribute,
+        cycle_point = cycle_point,
+        max_days_offset = max_days_offset,
         point_by_point=point_by_point,
         use_default_initial_guess=use_default_initial_guess,
         desired_units=units,
@@ -109,4 +108,4 @@ def process(
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast, truth, landsea_mask=land_sea_mask)
+    return plugin(forecast_directory,truth_directory,land_sea_mask=land_sea_mask)

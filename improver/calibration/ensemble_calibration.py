@@ -51,7 +51,7 @@ from improver.metadata.utilities import (
     generate_mandatory_attributes,
 )
 from improver.utilities.cube_manipulation import collapsed, enforce_coordinate_ordering
-
+from improver.calibration import get_cube_from_directory
 
 class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
     """
@@ -1364,6 +1364,47 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             number_of_realizations,
         )
         return coefficients_cubelist
+
+class MetaEstimateCoefficientsForEnsembleCalibration(BasePlugin):
+    """
+    Meta plugin for handling directories of netcdfs as inputs, instead of cubes
+    """
+    def __init__(self,
+        distribution,
+        truth_attribute,
+        cycle_point: str = None,
+        max_days_offset: int = None,
+        point_by_point=False,
+        use_default_initial_guess=False,
+        units=None,
+        predictor="mean",
+        tolerance: float = 0.02,
+        max_iterations: int = 1000,
+    ):
+        self.distribution = distribution
+        self.truth_attribute = truth_attribute
+        self.cycle_point = cycle_point
+        self.max_days_offset = max_days_offset
+        self.point_by_point = point_by_point
+        self.use_default_initial_guess = use_default_initial_guess
+        self.units = units
+        self.predictor = predictor
+        self.tolerance = tolerance
+        self.max_iterations = max_iterations
+
+    def process(self, forecast_directory, truth_directory, land_sea_mask=None):
+        self.forecast = get_cube_from_directory(forecast_directory, cycle_point=self.cycle_point, max_days_offset=self.max_days_offset)
+        self.truth = get_cube_from_directory(truth_directory, cycle_point=self.cycle_point, max_days_offset=self.max_days_offset)
+        plugin = EstimateCoefficientsForEnsembleCalibration(
+            self.distribution,
+            point_by_point=self.point_by_point,
+            use_default_initial_guess=self.use_default_initial_guess,
+            desired_units=self.units,
+            predictor=self.predictor,
+            tolerance=self.tolerance,
+            max_iterations=self.max_iterations,
+        )
+        return plugin(self.forecast, self.truth, landsea_mask=land_sea_mask)
 
 
 class CalibratedForecastDistributionParameters(BasePlugin):
