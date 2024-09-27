@@ -1397,27 +1397,29 @@ class MetaEstimateCoefficientsForEnsembleCalibration(BasePlugin):
         self.max_iterations = max_iterations
 
     def process(self, forecast_directory, truth_directory, land_sea_mask=None):
-        self.forecast = get_cube_from_directory(
+        forecast = get_cube_from_directory(
             forecast_directory,
             cycle_point=self.cycle_point,
             max_days_offset=self.max_days_offset,
         )
-        self.truth = get_cube_from_directory(
+        truth = get_cube_from_directory(
             truth_directory,
             cycle_point=self.cycle_point,
             max_days_offset=self.max_days_offset,
         )
-
-        plugin = EstimateCoefficientsForEnsembleCalibration(
-            self.distribution,
-            point_by_point=self.point_by_point,
-            use_default_initial_guess=self.use_default_initial_guess,
-            desired_units=self.units,
-            predictor=self.predictor,
-            tolerance=self.tolerance,
-            max_iterations=self.max_iterations,
-        )
-        return plugin(self.forecast, self.truth, landsea_mask=land_sea_mask)
+        # need any additional metadata checks?
+        if forecast and truth:
+            plugin = EstimateCoefficientsForEnsembleCalibration(
+                self.distribution,
+                point_by_point=self.point_by_point,
+                use_default_initial_guess=self.use_default_initial_guess,
+                desired_units=self.units,
+                predictor=self.predictor,
+                tolerance=self.tolerance,
+                max_iterations=self.max_iterations,
+            )
+            return plugin(forecast, truth, landsea_mask=land_sea_mask)
+        return None
 
 
 class CalibratedForecastDistributionParameters(BasePlugin):

@@ -7,8 +7,6 @@
 Statistics (EMOS), otherwise known as Non-homogeneous Gaussian
 Regression (NGR)."""
 
-from typing import Optional
-
 from improver import cli
 
 
@@ -21,8 +19,8 @@ def process(
     *,
     distribution,
     truth_attribute,
-    cycle_point: Optional[str] = None,
-    max_days_offset: Optional[int] = None,
+    cycle_point: str = None,
+    max_days_offset: int = None,
     point_by_point=False,
     use_default_initial_guess=False,
     units=None,
@@ -109,7 +107,7 @@ def process(
         max_days_offset=max_days_offset,
         point_by_point=point_by_point,
         use_default_initial_guess=use_default_initial_guess,
-        desired_units=units,
+        units=units,
         predictor=predictor,
         tolerance=tolerance,
         max_iterations=max_iterations,

@@ -271,7 +271,11 @@ def add_warning_comment(forecast: Cube) -> Cube:
 
 
 def get_cube_from_directory(
-    directory, cycle_point=None, max_days_offset=None, date_format="%Y%m%dT%H%MZ"
+    directory,
+    cycle_point=None,
+    max_days_offset=None,
+    date_format="%Y%m%dT%H%MZ",
+    verbose=False,
 ):
     """
     loads and merges all netCDF files in a directory
@@ -289,17 +293,21 @@ def get_cube_from_directory(
         date_format (str):
             format of the cyclepoint and datetime in the filename, used by
             datetime.strptime
+        verbose (bool):
+            switch on verbose output
 
     Returns:
         Cube
     """
     files = [*map(str, directory.glob("*.nc"))]
     if len(files) == 0:
-        # This is probably too serious - is there a quiet way to handle this?
-        raise ValueError(f"No files found in {directory}")
+        if verbose:
+            print(f"No files found in {directory}")
+        return None
 
     if max_days_offset and cycle_point:
         # Ignore files if they are older than max_days_offset days from cycle_point
+        # ToDo - test checking by metadata, not file names
         cycle_point = datetime.strptime(cycle_point, date_format)
         earliest_time = cycle_point - timedelta(days=max_days_offset)
         for filename in files.copy():
@@ -308,8 +316,9 @@ def get_cube_from_directory(
                 files.remove(filename)
 
     if len(files) < 2:
-        raise ValueError(f"Not enough files found in {directory}")
+        if verbose:
+            print(f"Not enough files found in {directory}")
+        return None
 
-    # Check for a lower limit on number of files? - 2
     cubes = load_cubelist(files)
     return MergeCubes()(cubes)
