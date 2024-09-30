@@ -624,8 +624,7 @@ class Test_create_condition_chain(Test_WXCode):
         self.assertIsInstance(result, list)
         self.assertEqual(len(result), 2)
         self.assertIsInstance(result[0], list)
-        print(expected)
-        print(result)
+
         for i in range(2):
             constraint_exp = expected[0][i][0]
             constraint_res = result[0][i][0]
