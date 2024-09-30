@@ -137,7 +137,7 @@ However an additional key can be added to the node to specify what path to take 
 has masked points. This key is:
 
   - **if_masked** (str,optional): The next node if the input cube has masked points. This can
-  be the same as the "if_true" or "if_false" keys or can be a different node.
+    be the same as the "if_true" or "if_false" keys or can be a different node.
 
 The first leaf node above is encoded as follows::
 
