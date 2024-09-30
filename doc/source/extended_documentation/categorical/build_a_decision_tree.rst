@@ -74,9 +74,12 @@ accessed with this key contains the essentials that make the node function.
     must be exceeded or not exceeded (see threshold_condition) for the node to
     progress to the succeed target. Two values required if condition_combination
     is being used.
-  - **threshold_condition** (str): Defines the inequality test to be applied to
+  - **threshold_condition** (str or list(str)): Defines the inequality test to be applied to
     the probability threshold(s). Inequalities that can be used are "<=", "<",
-    ">", ">=".
+    ">", ">=". If multiple tests are being applied in a single node, this can be
+    a list of the same length as the probability_thresholds list with each element
+    defining the inequality for the corresponding threshold. Alternatively a single
+    inequality can be applied to all thresholds.
   - **condition_combination** (str): If multiple tests are being applied in a
     single node, this value determines the logic with which they are combined.
     The values can be "AND", "OR".
@@ -128,6 +131,14 @@ following additional keys:
   - **deterministic** (boolean): Determines whether the node is expecting a deterministic
     input.
 
+Additionally a node can be set up to handle masked points in the diagnostic_fields. By default if
+an input cube has masked points the decision tree will return a masked point.
+However an additional key can be added to the node to specify what path to take if the input cube
+has masked points. This key is:
+
+  - **if_masked** (str,optional): The next node if the input cube has masked points. This can
+  be the same as the "if_true" or "if_false" keys or can be a different node.
+  
 The first leaf node above is encoded as follows::
 
   {

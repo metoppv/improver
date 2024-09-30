@@ -378,9 +378,17 @@ class ApplyDecisionTree(BasePlugin):
             coord = "thresholds"
         else:
             coord = "probability_thresholds"
+        if isinstance(test_conditions["threshold_condition"], str):
+            comparator = [test_conditions["threshold_condition"]] * len(
+                test_conditions[coord]
+            )
+        else:
+            comparator = test_conditions["threshold_condition"]
 
-        for index, (diagnostic, p_threshold) in enumerate(
-            zip(test_conditions["diagnostic_fields"], test_conditions[coord])
+        for index, (diagnostic, comp, p_threshold) in enumerate(
+            zip(
+                test_conditions["diagnostic_fields"], comparator, test_conditions[coord]
+            )
         ):
 
             d_threshold = test_conditions.get("diagnostic_thresholds")
@@ -416,13 +424,7 @@ class ApplyDecisionTree(BasePlugin):
                     )
                 else:
                     extract_constraint = iris.Constraint(diagnostic)
-            conditions.append(
-                [
-                    extract_constraint,
-                    test_conditions["threshold_condition"],
-                    p_threshold,
-                ]
-            )
+            conditions.append([extract_constraint, comp, p_threshold])
         condition_chain = [conditions, test_conditions["condition_combination"]]
         return condition_chain
 
@@ -639,28 +641,36 @@ class ApplyDecisionTree(BasePlugin):
         Args:
             arr
             comparator:
-                One of  '<', '>', '<=', '>='.
+                One of  '<', '>', '<=', '>=','is_masked'.
             threshold
 
         Returns:
             Array of booleans.
 
         Raises:
-            ValueError: If comparator is not one of '<', '>', '<=', '>='.
+            ValueError: If comparator is not one of '<', '>', '<=', '>=','is_masked'.
         """
         if comparator == "<":
-            return arr < threshold
+            result = arr < threshold
         elif comparator == ">":
-            return arr > threshold
+            result = arr > threshold
         elif comparator == "<=":
-            return arr <= threshold
+            result = arr <= threshold
         elif comparator == ">=":
-            return arr >= threshold
+            result = arr >= threshold
+        elif comparator == "is_masked":
+            if np.ma.is_masked(arr):
+                result = arr.mask
+            else:
+                result = arr != arr
         else:
             raise ValueError(
                 f"Invalid comparator: {comparator}. "
-                "Comparator must be one of '<', '>', '<=', '>='."
+                "Comparator must be one of '<', '>', '<=', '>=','is_masked'."
             )
+        if np.ma.is_masked(result):
+            result[result.mask] = False
+        return result
 
     def evaluate_extract_expression(
         self, cubes: CubeList, expression: Union[Constraint, List]
@@ -818,7 +828,11 @@ class ApplyDecisionTree(BasePlugin):
         graph = {
             key: [self.queries[key]["leaf"]]
             if "leaf" in self.queries[key].keys()
-            else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
+            else [
+                self.queries[key]["if_true"],
+                self.queries[key]["if_false"],
+                self.queries[key].get("if_masked"),
+            ]
             for key in self.queries
         }
         # Search through tree for all leaves (category end points)
@@ -847,6 +861,25 @@ class ApplyDecisionTree(BasePlugin):
                             current["threshold_condition"],
                             current["condition_combination"],
                         ) = self.invert_condition(current)
+                    if current.get("if_masked") == next_node and current.get(
+                        "if_masked"
+                    ) not in [current.get("if_false"), current.get("if_true")]:
+                        # if if_masked is not the same as if_false or if_true, then
+                        # it is a separate branch of the tree and we need to replace
+                        # the condition.
+                        current["diagnostic_fields"] = current["diagnostic_fields"]
+                        current["threshold_condition"] = "is_masked"
+                        current["condition_combination"] = ""
+                    elif current.get("if_masked") == next_node:
+                        # if masked is the same as if_false or if_true, then we need
+                        # to add the masked condition to the existing condition.
+                        current["diagnostic_fields"] = current["diagnostic_fields"] * 2
+                        current["threshold_condition"] = [
+                            current["threshold_condition"],
+                            "is_masked",
+                        ]
+                        current["condition_combination"] = "OR"
+                        current["thresholds"] = current["thresholds"] * 2
                     if "leaf" not in current.keys():
                         conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
