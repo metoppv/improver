@@ -149,11 +149,11 @@ class GradientBetweenVerticalLevels(BasePlugin):
                 named gradient of followed by the name of the input cubes.
             """
         cubes = as_cubelist(cubes)
-        assert_time_coords_valid(cubes, time_bounds=False)
         orography, cubes = self.extract_cube_from_list(cubes, "surface_altitude")
         geopotential_height, cubes = self.extract_cube_from_list(
             cubes, "geopotential_height"
         )
+        assert_time_coords_valid(cubes, time_bounds=False)
 
         gradient = self.gradient_over_vertical_levels(
             cubes, geopotential_height, orography
