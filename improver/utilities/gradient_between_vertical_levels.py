@@ -12,7 +12,9 @@ from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
+from improver.cube_combiner import Combine
 from improver.utilities.common_input_handle import as_cubelist
+from improver.utilities.cube_checker import assert_time_coords_valid
 
 
 class GradientBetweenVerticalLevels(BasePlugin):
@@ -54,7 +56,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
         If the cubes are provided at height levels this is assumed to be a height above ground level
         and the height above sea level is calculated by adding the height of the orography to the
         height coordinate. If the cubes are provided at pressure levels, the height above sea level
-        is extracted from a geopotential_height cube.If both cubes have a
+        is extracted from a geopotential_height cube. If both cubes have a
         height coordinate then no additional cubes are required.
 
         Args:
@@ -82,7 +84,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
         """
 
         cube_heights = []
-
+        coord_list = []
         for cube in cubes:
             try:
                 cube_height = np.array(cube.coord("height").points)
@@ -91,6 +93,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
                     height_ASL = geopotential_height.extract(
                         iris.Constraint(pressure=cube.coord("pressure").points)
                     )
+                    coord_list.append("height")
                 else:
                     raise ValueError(
                         """No geopotential height cube provided but one of the inputs cubes has a
@@ -99,8 +102,10 @@ class GradientBetweenVerticalLevels(BasePlugin):
             else:
                 if orography:
                     height_ASL = orography + cube_height
+                    coord_list.append("pressure")
                 elif not (orography or geopotential_height):
                     height_ASL = cube_height
+                    coord_list.append("pressure")
                 else:
                     raise ValueError(
                         """No orography cube provided but one of the input cubes has height
@@ -111,7 +116,16 @@ class GradientBetweenVerticalLevels(BasePlugin):
         height_diff = cube_heights[0] - cube_heights[1]
         height_diff.data = np.ma.masked_where(height_diff.data == 0, height_diff.data)
 
-        diff = cubes[0] - cubes[1]
+        if "height" in coord_list and "pressure" in coord_list:
+
+            try:
+                missing_coord = cubes[1].coord("pressure")
+            except CoordinateNotFoundError:
+                missing_coord = cubes[1].coord("height")
+            cubes[0].add_aux_coord(missing_coord)
+
+        diff = Combine(operation="-", expand_bound=True)([cubes[0], cubes[1]])
+
         gradient = diff / height_diff
 
         return gradient
@@ -135,7 +149,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
                 named gradient of followed by the name of the input cubes.
             """
         cubes = as_cubelist(cubes)
-
+        assert_time_coords_valid(cubes, time_bounds=False)
         orography, cubes = self.extract_cube_from_list(cubes, "surface_altitude")
         geopotential_height, cubes = self.extract_cube_from_list(
             cubes, "geopotential_height"

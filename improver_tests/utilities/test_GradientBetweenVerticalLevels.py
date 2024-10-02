@@ -69,23 +69,38 @@ def test_height_and_pressure(
     both on height or pressure levels. Also check the plugin produces the expected
     result with one cube defined on height levels and the other on pressure levels."""
     cubes = [orography, height_of_pressure_levels]
+    expected_coord = {"height": 1.5, "pressure": 85000}
+    expected_bounds = None
     if height_or_pressure == "height_both":
         temperature_at_850hPa.add_aux_coord(
             iris.coords.AuxCoord(101.5, long_name="height", units="m")
         )
         temperature_at_850hPa.remove_coord("pressure")
         cubes = []
+        expected_bounds = {"height": [[1.5, 101.5]]}
+        expected_coord = {"height": 101.5}
     elif height_or_pressure == "pressure_both":
         temperature_at_screen_level.add_aux_coord(
             iris.coords.AuxCoord(100000, long_name="pressure", units="Pa")
         )
         temperature_at_screen_level.remove_coord("height")
         cubes = [height_of_pressure_levels]
+        expected_bounds = {"pressure": [[85000, 100000]]}
+        expected_coord = {"pressure": 100000}
 
     cubes.append([temperature_at_850hPa, temperature_at_screen_level])
 
     expected = [[0.03, 0.01], [-0.01, -0.03]]
     result = GradientBetweenVerticalLevels()(iris.cube.CubeList(cubes))
+
+    for coord in expected_coord.keys():
+        np.testing.assert_array_almost_equal(
+            result.coord(coord).points, expected_coord[coord]
+        )
+        if expected_bounds:
+            np.testing.assert_array_almost_equal(
+                result.coord(coord).bounds, expected_bounds[coord]
+            )
     np.testing.assert_array_almost_equal(result.data, expected)
     assert result.name() == "gradient_of_air_temperature"
     assert result.units == "K/m"
