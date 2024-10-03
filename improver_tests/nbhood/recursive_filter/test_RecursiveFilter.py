@@ -15,8 +15,8 @@ from iris.tests import IrisTest
 from improver.nbhood.recursive_filter import RecursiveFilter
 from improver.synthetic_data.set_up_test_cubes import (
     add_coordinate,
-    set_up_variable_cube,
     set_up_probability_cube,
+    set_up_variable_cube,
 )
 from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 from improver.utilities.pad_spatial import pad_cube_with_halo
@@ -59,7 +59,7 @@ class Test_RecursiveFilter(IrisTest):
             data,
             thresholds=[0.00, 0.03],
             variable_name="lwe_thickness_of_snowfall_amount",
-            threshold_units="m"
+            threshold_units="m",
         )
 
         self.x_name = "smoothing_coefficient_x"
@@ -518,7 +518,11 @@ class Test_process(Test_RecursiveFilter):
 
         self.prob_cube.data = np.ma.MaskedArray(self.prob_cube.data, mask=mask)
         plugin = RecursiveFilter(iterations=self.iterations,)
-        result = plugin(self.prob_cube, smoothing_coefficients=self.smoothing_coefficients, variable_mask=True)
+        result = plugin(
+            self.prob_cube,
+            smoothing_coefficients=self.smoothing_coefficients,
+            variable_mask=True,
+        )
 
         expected = [0.14994797, 0.22903226]
         for i in range(2):
@@ -539,7 +543,11 @@ class Test_process(Test_RecursiveFilter):
         plugin = RecursiveFilter(iterations=self.iterations,)
         msg = "Input cube contains spatial slices with different masks."
         with self.assertRaisesRegex(ValueError, msg):
-            plugin(cube, smoothing_coefficients=self.smoothing_coefficients, variable_mask=False)
+            plugin(
+                cube,
+                smoothing_coefficients=self.smoothing_coefficients,
+                variable_mask=False,
+            )
 
 
 if __name__ == "__main__":

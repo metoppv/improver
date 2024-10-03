@@ -15,7 +15,6 @@ from improver import PostProcessingPlugin
 from improver.generate_ancillaries.generate_orographic_smoothing_coefficients import (
     OrographicSmoothingCoefficients,
 )
-from improver.metadata.constants.time_types import TIME_COORDS
 from improver.utilities.cube_checker import check_cube_coordinates
 from improver.utilities.pad_spatial import pad_cube_with_halo, remove_halo_from_cube
 
@@ -306,7 +305,9 @@ class RecursiveFilter(PostProcessingPlugin):
         plugin.zero_masked(coeffs_x, coeffs_y, mask)
         return coeffs_x, coeffs_y
 
-    def process(self, cube: Cube, smoothing_coefficients: CubeList, variable_mask: bool = False) -> Cube:
+    def process(
+        self, cube: Cube, smoothing_coefficients: CubeList, variable_mask: bool = False
+    ) -> Cube:
         """
         Set up the smoothing_coefficient parameters and run the recursive
         filter. Smoothing coefficients can be generated using
@@ -366,7 +367,9 @@ class RecursiveFilter(PostProcessingPlugin):
 
         if not variable_mask and np.ma.is_masked(cube.data):
             # check that all spatial slices have identical masks
-            mask_cube = next(cube.slices([cube.coord(axis="y"), cube.coord(axis="x")])).data.mask
+            mask_cube = next(
+                cube.slices([cube.coord(axis="y"), cube.coord(axis="x")])
+            ).data.mask
             for cslice in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
                 if not np.array_equal(cslice.data.mask, mask_cube):
                     raise ValueError(
