@@ -24,6 +24,8 @@ def process(cube: cli.inputcube, *, regrid: bool = False):
                 represent the midpoint of the input cube and will have one fewer points.
                 If the x-axis is marked as circular, the gradient between the last and first points
                 is also included.
+                If a status_flag coord is present, it will be preserved if regrid is true.
+
     Returns:
         iris.cube.Cube:
             - Cube after the gradients have been calculated along the

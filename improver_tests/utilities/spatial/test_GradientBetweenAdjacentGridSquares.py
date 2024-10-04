@@ -10,6 +10,7 @@ import pytest
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
+from iris.coords import AuxCoord
 
 EQUAL_AREA_GRID_SPACING = 2000  # Metres
 # Distances covered when travelling degrees north-south or east-west:
@@ -61,6 +62,7 @@ CIRCULAR_DATA = (
 )
 
 
+@pytest.mark.parametrize("status_flag", (True, False))
 @pytest.mark.parametrize(
     "projected, circular, regrid, example_x, example_y",
     (
@@ -72,7 +74,9 @@ CIRCULAR_DATA = (
         (True, False, True, REGRIDDED_DATA[0], REGRIDDED_DATA[1]),
     ),
 )
-def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA[0]):
+def test_data(
+    projected, circular, regrid, example_x, example_y, status_flag, data=INPUT_DATA[0]
+):
     """Tests that the plugin produces the expected data for valid projections"""
     x_grid_spacing = EQUAL_AREA_GRID_SPACING if projected else 90
     cube = set_up_variable_cube(
@@ -80,6 +84,11 @@ def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA
         spatial_grid="equalarea" if projected else "latlon",
         x_grid_spacing=x_grid_spacing,
     )
+    if status_flag:
+        expected_status_flag = AuxCoord(
+            np.ones_like(data), long_name="test status_flag"
+        )
+        cube.add_aux_coord(expected_status_flag, data_dims=[-2, -1])
     expected_x = example_x.copy()
     expected_y = example_y.copy()
     if circular:
@@ -100,6 +109,11 @@ def test_data(projected, circular, regrid, example_x, example_y, data=INPUT_DATA
     result_x, result_y = plugin(cube)
     assert np.allclose(expected_x, result_x.data)
     assert np.allclose(expected_y, result_y.data)
+    for result in result_x, result_y:
+        if regrid and status_flag:
+            assert result.coord(expected_status_flag) == expected_status_flag
+        else:
+            assert not [c for c in result.coords() if "status_flag" in c.name()]
 
 
 # By default, projected cubes have a spacing of 2000, and 10 for latlon.
