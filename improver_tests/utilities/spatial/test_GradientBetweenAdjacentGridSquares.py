@@ -6,6 +6,7 @@
 
 import numpy as np
 import pytest
+from iris.coords import AuxCoord
 
 from improver.metadata.constants.attributes import MANDATORY_ATTRIBUTE_DEFAULTS
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
