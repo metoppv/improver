@@ -48,4 +48,4 @@ class CopyAttributes(BasePlugin):
         for cube in cubes_proc:
             new_attributes = {k: template_cube.attributes[k] for k in self.attributes}
             amend_attributes(cube, new_attributes)
-        return cubes if len(cubes) > 1 else cubes[0]
+        return cubes_proc if len(cubes_proc) > 1 else cubes_proc[0]
