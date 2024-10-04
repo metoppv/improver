@@ -27,12 +27,8 @@ def process(cube: cli.inputcube, *, regrid: bool = False):
                 If a status_flag coord is present, it will be preserved if regrid is true.
 
     Returns:
-        iris.cube.Cube:
-            - Cube after the gradients have been calculated along the
-              x-axis.
-        iris.cube.Cube:
-            - Cube after the gradients have been calculated along the
-              y-axis.
+        Cube after the gradients have been calculated along the x-axis and Cube after the gradients
+        have been calculated along the y-axis.
     """
     from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
