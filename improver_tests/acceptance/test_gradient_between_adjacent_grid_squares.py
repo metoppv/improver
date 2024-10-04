@@ -23,7 +23,7 @@ def test_basic(tmp_path, regrid):
         "--output",
         output_path,
     ]
-    if model_id_attr:
+    if regrid:
         args += ["--regrid"]
         kgo_dir = test_dir / "with_regrid"
     else:
