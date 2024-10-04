@@ -375,12 +375,14 @@ class ApplyDecisionTree(BasePlugin):
         conditions = []
         loop = 0
         if test_conditions.get("deterministic", False):
-            coord = "thresholds"
+            # dummy variable to iterate over as deterministic forecasts don't need
+            # to extract thresholds
+            thresholds = np.full(len(test_conditions["diagnostic_fields"]), 0)
         else:
-            coord = "probability_thresholds"
+            thresholds = test_conditions["probability_thresholds"]
 
         for index, (diagnostic, p_threshold) in enumerate(
-            zip(test_conditions["diagnostic_fields"], test_conditions[coord])
+            zip(test_conditions["diagnostic_fields"], thresholds)
         ):
 
             d_threshold = test_conditions.get("diagnostic_thresholds")
@@ -398,13 +400,16 @@ class ApplyDecisionTree(BasePlugin):
                     if is_variable(item):
                         # Add a constraint from the variable name and threshold value
                         d_threshold_index += 1
-                        extract_constraint.append(
-                            self.construct_extract_constraint(
-                                item,
-                                d_threshold[d_threshold_index],
-                                self.coord_named_threshold,
+                        if test_conditions.get("deterministic"):
+                            extract_constraint.append(iris.Constraint(item))
+                        else:
+                            extract_constraint.append(
+                                self.construct_extract_constraint(
+                                    item,
+                                    d_threshold[d_threshold_index],
+                                    self.coord_named_threshold,
+                                )
                             )
-                        )
                     else:
                         # Add this operator or variable as-is
                         extract_constraint.append(item)
@@ -701,10 +706,10 @@ class ApplyDecisionTree(BasePlugin):
                         + curr_expression[idx + 1 :]
                     )
             # evaluate operators in order of precedence
-            for op_str in ["/", "*", "+", "-"]:
+            for op_str in [["/", "*"], ["+", "-"]]:
                 while len(curr_expression) > 1:
                     for idx, item in enumerate(curr_expression):
-                        if isinstance(item, str) and (item == op_str):
+                        if isinstance(item, str) and (item in op_str):
                             left_arg = curr_expression[idx - 1]
                             right_arg = curr_expression[idx + 1]
                             if isinstance(left_arg, iris.Constraint):
@@ -715,7 +720,7 @@ class ApplyDecisionTree(BasePlugin):
                                 right_eval = cubes.extract(right_arg)[0].data
                             else:
                                 right_eval = right_arg
-                            op = operator_map[op_str]
+                            op = operator_map[item]
                             res = op(left_eval, right_eval)
                             curr_expression = (
                                 curr_expression[: idx - 1]
