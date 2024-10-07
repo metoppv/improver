@@ -84,7 +84,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
         """
 
         cube_heights = []
-        coord_list = []
+        coord_used = []
         for cube in cubes:
             try:
                 cube_height = np.array(cube.coord("height").points)
@@ -93,7 +93,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
                     height_ASL = geopotential_height.extract(
                         iris.Constraint(pressure=cube.coord("pressure").points)
                     )
-                    coord_list.append("height")
+                    coord_used.append("pressure")
                 else:
                     raise ValueError(
                         """No geopotential height cube provided but one of the inputs cubes has a
@@ -102,10 +102,10 @@ class GradientBetweenVerticalLevels(BasePlugin):
             else:
                 if orography:
                     height_ASL = orography + cube_height
-                    coord_list.append("pressure")
+                    coord_used.append("height")
                 elif not (orography or geopotential_height):
                     height_ASL = cube_height
-                    coord_list.append("pressure")
+                    coord_used.append("height")
                 else:
                     raise ValueError(
                         """No orography cube provided but one of the input cubes has height
@@ -116,7 +116,7 @@ class GradientBetweenVerticalLevels(BasePlugin):
         height_diff = cube_heights[0] - cube_heights[1]
         height_diff.data = np.ma.masked_where(height_diff.data == 0, height_diff.data)
 
-        if "height" in coord_list and "pressure" in coord_list:
+        if "height" in coord_used and "pressure" in coord_used:
 
             try:
                 missing_coord = cubes[1].coord("pressure")
