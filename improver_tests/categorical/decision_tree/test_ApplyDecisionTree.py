@@ -136,7 +136,7 @@ def test_non_probablistic_tree(
 
 
 @pytest.mark.parametrize(
-    "masked_data", ("no_mask", "mask_precip", "mask_cloud_top", "mask_cloud_base")
+    "masked_data", ("mask_precip", "mask_cloud_top", "mask_cloud_base")
 )
 def test_non_probabilitic_tree_masked_data(
     precip_cube, hail_cube, cloud_top_temp, cloud_base_temp, masked_data
@@ -146,7 +146,7 @@ def test_non_probabilitic_tree_masked_data(
     precip_cube.data.fill(1)
     hail_cube.data.fill(1)
     expected_array = np.full_like(precip_cube.data, 2)
-
+    expected_mask = np.full_like(precip_cube.data, False)
     if masked_data == "mask_precip":
         # Test that if there is no if_masked setting in the decision tree, the output
         # will be masked
@@ -176,8 +176,9 @@ def test_non_probabilitic_tree_masked_data(
         iris.cube.CubeList([precip_cube, hail_cube, cloud_top_temp, cloud_base_temp])
     )
 
-    if masked_data == "mask_precip":
-        assert np.all(result.data.mask == expected_mask)
+    result_mask = np.ma.getmaskarray(result.data)
+
+    assert np.all(result_mask == expected_mask)
     assert np.all(result.data == expected_array)
 
 
