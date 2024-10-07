@@ -590,7 +590,7 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
         "cloud_base_temp": {
             "if_true": "hail_rate",
             "if_false": "snow",
-            "if_masked": "hail_rate",
+            "if_masked": "snow",
             "thresholds": [268.15],
             "threshold_condition": ">=",
             "condition_combination": "",

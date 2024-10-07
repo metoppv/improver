@@ -114,26 +114,38 @@ def cloud_base_temp() -> Cube:
 
 
 @pytest.mark.parametrize(
-    "masked_data", ("no_mask", "mask_precip", "mask_cloud_top", "mask_cloud_base")
-)
-@pytest.mark.parametrize(
     "precip_fill,hail_fill,expected", ((1, 1, 2), (1, 0, 1), (0, 0, 0), (0, 1, 0))
 )
 def test_non_probablistic_tree(
     precip_cube,
     hail_cube,
-    cloud_top_temp,
     cloud_base_temp,
+    cloud_top_temp,
     precip_fill,
     hail_fill,
     expected,
-    masked_data,
 ):
     """Test that ApplyDecisionTree correctly manages a decision tree with deterministic
-    inputs. Also check that if data is masked the output will be masked unless the
-    node includes an if_masked setting."""
+    inputs"""
+    precip_cube.data.fill(precip_fill)
+    hail_cube.data.fill(hail_fill)
+    result = ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
+        iris.cube.CubeList([precip_cube, hail_cube, cloud_base_temp, cloud_top_temp])
+    )
+    assert np.all(result.data == expected)
 
-    expected_array = np.full_like(precip_cube.data, expected)
+
+@pytest.mark.parametrize(
+    "masked_data", ("no_mask", "mask_precip", "mask_cloud_top", "mask_cloud_base")
+)
+def test_non_probabilitic_tree_masked_data(
+    precip_cube, hail_cube, cloud_top_temp, cloud_base_temp, masked_data
+):
+    """Test that ApplyDecisionTree correctly manages a decision tree with deterministic
+    that are masked inputs"""
+    precip_cube.data.fill(1)
+    hail_cube.data.fill(1)
+    expected_array = np.full_like(precip_cube.data, 2)
 
     if masked_data == "mask_precip":
         # Test that if there is no if_masked setting in the decision tree, the output
@@ -142,9 +154,9 @@ def test_non_probablistic_tree(
         precip_mask[0, 0] = True
         precip_cube.data = np.ma.masked_array(precip_cube.data, mask=precip_mask)
 
-        expected_mask = np.full_like(precip_cube.data, False)
-        expected_mask[0, 0] = True
-        expected = np.ma.masked_array(expected_array, mask=expected_mask)
+        expected_mask = precip_cube.data.mask
+        expected_array = np.ma.masked_array(expected_array, mask=expected_mask)
+
     elif masked_data == "mask_cloud_top":
         # Testing if there is an if_masked setting in the decision tree going to a
         # different node than if_true or if_false
@@ -154,16 +166,18 @@ def test_non_probablistic_tree(
         expected_array[0, 0] = 0
     elif masked_data == "mask_cloud_base":
         # Testing if there is an if_masked setting in the decision tree going to
-        # the same node as if_true
+        # the same node as if_false
         cloud_mask = np.full_like(cloud_base_temp.data, False)
         cloud_mask[0, 0] = True
         cloud_base_temp.data = np.ma.masked_array(cloud_base_temp.data, mask=cloud_mask)
+        expected_array[0, 0] = 3
 
-    precip_cube.data.fill(precip_fill)
-    hail_cube.data.fill(hail_fill)
     result = ApplyDecisionTree(decision_tree=deterministic_diagnostic_tree())(
         iris.cube.CubeList([precip_cube, hail_cube, cloud_top_temp, cloud_base_temp])
     )
+
+    if masked_data == "mask_precip":
+        assert np.all(result.data.mask == expected_mask)
     assert np.all(result.data == expected_array)
 
 
