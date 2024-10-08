@@ -20,8 +20,8 @@ def test_no_single_value_bins(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
     kgo_path = kgo_dir / "kgo_without_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+    history_path = kgo_dir / "forecast/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -42,8 +42,8 @@ def test_aggregate(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
     kgo_path = kgo_dir / "kgo_aggregated.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+    history_path = kgo_dir / "forecast/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -66,8 +66,8 @@ def test_single_value_bins(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "construct-reliability-tables/basic"
     kgo_path = kgo_dir / "kgo_single_value_bins.nc"
-    history_path = kgo_dir / "forecast*.nc"
-    truth_path = kgo_dir / "truth*.nc"
+    history_path = kgo_dir / "forecast/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,

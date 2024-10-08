@@ -1407,7 +1407,7 @@ class MetaEstimateCoefficientsForEnsembleCalibration(BasePlugin):
             cycle_point=self.cycle_point,
             max_days_offset=self.max_days_offset,
         )
-        # need any additional metadata checks?
+
         if forecast and truth:
             plugin = EstimateCoefficientsForEnsembleCalibration(
                 self.distribution,

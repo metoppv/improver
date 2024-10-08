@@ -565,13 +565,12 @@ class MetaConstructReliabilityCalibrationTables(BasePlugin):
 
         if forecast and truth:
             plugin = ConstructReliabilityCalibrationTables(
-                truth_attribute=self.truth_attribute,
+                # truth_attribute=self.truth_attribute,
                 n_probability_bins=self.n_probability_bins,
                 single_value_lower_limit=self.single_value_lower_limit,
                 single_value_upper_limit=self.single_value_upper_limit,
-                aggregate_coordinates=self.aggregate_coordinates,
             )
-            return plugin(forecast, truth)
+            return plugin(forecast, truth, aggregate_coords=self.aggregate_coordinates)
         return None
 
 

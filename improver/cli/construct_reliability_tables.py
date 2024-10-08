@@ -13,7 +13,8 @@ from improver import cli
 def process(
     forecast_directory: cli.inputpath,
     truth_directory: cli.inputpath,
-    truth_attribute,
+    *,
+    truth_attribute: str = "",
     n_probability_bins: int = 5,
     single_value_lower_limit: bool = False,
     single_value_upper_limit: bool = False,
@@ -69,6 +70,7 @@ def process(
     )
 
     return MetaConstructReliabilityCalibrationTables(
+        truth_attribute=truth_attribute,
         n_probability_bins=n_probability_bins,
         single_value_lower_limit=single_value_lower_limit,
         single_value_upper_limit=single_value_upper_limit,
