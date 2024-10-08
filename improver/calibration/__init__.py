@@ -11,6 +11,7 @@ from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from iris.cube import Cube, CubeList
+from iris import load
 
 from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
@@ -305,20 +306,20 @@ def get_cube_from_directory(
             print(f"No files found in {directory}")
         return None
 
+    cubes = load_cubelist(files)
     if max_days_offset and cycle_point:
-        # Ignore files if they are older than max_days_offset days from cycle_point
-        # ToDo - test checking by metadata, not file names
         cycle_point = datetime.strptime(cycle_point, date_format)
         earliest_time = cycle_point - timedelta(days=max_days_offset)
-        for filename in files.copy():
-            file_datetime = filename.split("/")[-1].split("-")[0]
-            if datetime.strptime(file_datetime, date_format) < earliest_time:
-                files.remove(filename)
+        for cube in cubes.copy():
+            rt = cube.coord("forecast_reference_time").points[0]
+            period = cube.coord("forecast_period").points[0]
+            dt = datetime.fromtimestamp(rt + period)
+            if dt < earliest_time:
+                cubes.remove(cube)
 
-    if len(files) < 2:
+    if len(cubes) < 2:
         if verbose:
             print(f"Not enough files found in {directory}")
         return None
 
-    cubes = load_cubelist(files)
     return MergeCubes()(cubes)
