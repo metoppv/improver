@@ -282,7 +282,7 @@ def get_cube_from_directory(
 
     To switch on the max offset filter, both cycle_point and max_days_offset
     need to be provided
-    
+
     Args:
         directory (pathlib.Path):
             The path to the directory.
