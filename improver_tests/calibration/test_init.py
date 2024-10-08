@@ -4,16 +4,21 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for calibration.__init__"""
 
+import os
 import unittest
 from datetime import datetime, timedelta
+from pathlib import Path
+from tempfile import mkdtemp
 
 import iris
 import numpy as np
 import pytest
 from iris.cube import CubeList
+from iris.tests import IrisTest
 
 from improver.calibration import (
     add_warning_comment,
+    get_cube_from_directory,
     split_forecasts_and_bias_files,
     split_forecasts_and_coeffs,
     split_forecasts_and_truth,
@@ -24,6 +29,7 @@ from improver.synthetic_data.set_up_test_cubes import (
     set_up_probability_cube,
     set_up_variable_cube,
 )
+from improver.utilities.save import save_netcdf
 from improver_tests import ImproverTest
 
 
@@ -627,6 +633,72 @@ def test_add_warning_to_comment(comment):
         expected = "\n".join([comment, expected])
     result = add_warning_comment(cube)
     assert result.attributes["comment"] == expected
+
+
+class test_get_cube_from_directory(IrisTest):
+    """Test that the get_cube_from_directory function returns a cube."""
+
+    get_cube_from_directory
+
+    def setUp(self):
+        """Set up variables for use in testing."""
+        self.directory = Path(mkdtemp())
+        self.empty_directory = Path(mkdtemp())
+        self.filepath = os.path.join(self.directory, "temp.nc")
+        self.filepath2 = os.path.join(self.directory, "temp2.nc")
+        time = datetime(2017, 11, 10, 4, 0)
+        time2 = datetime(2017, 11, 10, 5, 0)
+        frt = datetime(2017, 11, 10, 0, 0)
+        self.cube = set_up_variable_cube(
+            np.ones((3, 3, 3), dtype=np.float32), time=time, frt=frt
+        )
+        self.cube2 = set_up_variable_cube(
+            np.zeros((3, 3, 3), dtype=np.float32), time=time2, frt=frt
+        )
+        save_netcdf(self.cube, self.filepath)
+        save_netcdf(self.cube2, self.filepath2)
+        self.realization_points = self.cube.coord("realization").points
+        self.time_points = self.cube.coord("time").points
+        self.time_points2 = self.cube2.coord("time").points
+        self.latitude_points = self.cube.coord("latitude").points
+        self.longitude_points = self.cube.coord("longitude").points
+
+    def tearDown(self):
+        """Remove temporary directories created for testing."""
+        os.remove(self.filepath)
+        os.remove(self.filepath2)
+        os.rmdir(self.directory)
+        os.rmdir(self.empty_directory)
+
+    def test_no_files(self):
+        """Test that nothing is returned for no inputs"""
+        result = get_cube_from_directory(self.empty_directory)
+        self.assertIsNone(result)
+
+    def test_old_files(self):
+        """Test that nothing is returned for old files"""
+        result = get_cube_from_directory(
+            self.directory, cycle_point="20180101T0000Z", max_days_offset=30
+        )
+        self.assertIsNone(result)
+
+    def test_relevant_files(self):
+        result = get_cube_from_directory(
+            self.directory, cycle_point="20171112T0000Z", max_days_offset=30
+        )
+
+        self.assertArrayAlmostEqual(
+            result.coord("realization").points, self.realization_points
+        )
+        self.assertArrayAlmostEqual(
+            result.coord("time").points, [self.time_points[0], self.time_points2[0]]
+        )
+        self.assertArrayAlmostEqual(
+            result.coord("latitude").points, self.latitude_points
+        )
+        self.assertArrayAlmostEqual(
+            result.coord("longitude").points, self.longitude_points
+        )
 
 
 if __name__ == "__main__":

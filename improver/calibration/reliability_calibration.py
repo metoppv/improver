@@ -18,6 +18,7 @@ from numpy import ndarray
 from numpy.ma.core import MaskedArray
 
 from improver import BasePlugin, PostProcessingPlugin
+from improver.calibration import get_cube_from_directory
 from improver.calibration.utilities import (
     check_forecast_consistency,
     create_unified_frt_coord,
@@ -525,6 +526,52 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             reliability_tables.append(reliability_entry)
 
         return MergeCubes()(reliability_tables, copy=False)
+
+
+class MetaConstructReliabilityCalibrationTables(BasePlugin):
+    """
+    Meta plugin for handling directories of netcdfs as inputs, instead of cubes
+    """
+
+    def __init__(
+        self,
+        truth_attribute,
+        n_probability_bins: int = 5,
+        single_value_lower_limit: bool = False,
+        single_value_upper_limit: bool = False,
+        aggregate_coordinates: list = None,
+        cycle_point: Optional[str] = None,
+        max_days_offset: Optional[int] = None,
+    ):
+        self.truth_attribute = truth_attribute
+        self.n_probability_bins = n_probability_bins
+        self.single_value_lower_limit = single_value_lower_limit
+        self.single_value_upper_limit = single_value_upper_limit
+        self.cycle_point = cycle_point
+        self.max_days_offset = max_days_offset
+        self.aggregate_coordinates = aggregate_coordinates
+
+    def process(self, forecast_directory, truth_directory):
+        forecast = get_cube_from_directory(
+            forecast_directory,
+            cycle_point=self.cycle_point,
+            max_days_offset=self.max_days_offset,
+        )
+        truth = get_cube_from_directory(
+            truth_directory,
+            cycle_point=self.cycle_point,
+            max_days_offset=self.max_days_offset,
+        )
+
+        if forecast and truth:
+            plugin = ConstructReliabilityCalibrationTables(
+                # truth_attribute=self.truth_attribute,
+                n_probability_bins=self.n_probability_bins,
+                single_value_lower_limit=self.single_value_lower_limit,
+                single_value_upper_limit=self.single_value_upper_limit,
+            )
+            return plugin(forecast, truth, aggregate_coords=self.aggregate_coordinates)
+        return None
 
 
 class AggregateReliabilityCalibrationTables(BasePlugin):

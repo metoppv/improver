@@ -43,8 +43,8 @@ def test_normal(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     kgo_path = kgo_dir / "kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -72,8 +72,8 @@ def test_truncated_normal(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/truncated_normal"
     kgo_path = kgo_dir / "kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -101,8 +101,8 @@ def test_normal_default_initial_guess(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     kgo_path = kgo_dir / "default_initial_guess_kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -128,8 +128,8 @@ def test_units(tmp_path):
     """Test prescribed units that may not match inputs"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal"
     kgo_path = kgo_dir / "kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -155,8 +155,8 @@ def test_using_realizations_as_predictor(tmp_path):
     """Test using non-default predictor realizations"""
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "normal/realizations/kgo.nc"
-    history_path = kgo_dir / "normal/history/*.nc"
-    truth_path = kgo_dir / "normal/truth/*.nc"
+    history_path = kgo_dir / "normal/history/"
+    truth_path = kgo_dir / "normal/truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -186,8 +186,8 @@ def test_land_points_only(tmp_path):
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients"
     kgo_path = kgo_dir / "normal/land_only_kgo.nc"
     lsmask_path = kgo_dir / "landmask.nc"
-    history_path = kgo_dir / "normal/history/*.nc"
-    truth_path = kgo_dir / "normal/truth/*.nc"
+    history_path = kgo_dir / "normal/history/"
+    truth_path = kgo_dir / "normal/truth/"
     output_path = tmp_path / "output.nc"
     args = [
         history_path,
@@ -217,8 +217,8 @@ def test_normal_point_by_point_sites(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     kgo_path = kgo_dir / "point_by_point" / "kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     est_emos_tol = str(0.01)
     compare_emos_tolerance = 0.1
@@ -250,8 +250,8 @@ def test_normal_realizations_point_by_point_sites(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     kgo_path = kgo_dir / "point_by_point" / "realizations_kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     est_emos_tol = str(0.01)
     compare_emos_tolerance = 0.1
@@ -285,8 +285,8 @@ def test_normal_point_by_point_default_initial_guess_sites(tmp_path):
     """
     kgo_dir = acc.kgo_root() / "estimate-emos-coefficients/normal/sites"
     kgo_path = kgo_dir / "point_by_point_default_initial_guess" / "kgo.nc"
-    history_path = kgo_dir / "history/*.nc"
-    truth_path = kgo_dir / "truth/*.nc"
+    history_path = kgo_dir / "history/"
+    truth_path = kgo_dir / "truth/"
     output_path = tmp_path / "output.nc"
     est_emos_tol = str(0.01)
     compare_emos_tolerance = 0.1
