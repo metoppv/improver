@@ -300,8 +300,7 @@ def get_cube_from_directory(
         Cube
     """
     files = [*map(str, directory.glob("*.nc"))]
-    print(f"found {len(files)} files in {directory}")
-    print(files)
+
     if len(files) == 0:
         if verbose:
             print(f"No files found in {directory}")
@@ -323,5 +322,4 @@ def get_cube_from_directory(
             print(f"Not enough files found in {directory}")
         return None
 
-    print(f"returning {len(cubes)} cubes")
     return MergeCubes()(cubes)
