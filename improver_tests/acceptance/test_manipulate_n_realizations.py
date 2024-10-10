@@ -4,7 +4,7 @@
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
-Tests for the manipulate-realization-dimension CLI
+Tests for the manipulate-n-realizations CLI
 """
 
 import pytest
@@ -21,7 +21,7 @@ run_cli = acc.run_cli(CLI)
 )
 def test_basic(tmp_path, manipulation, kgo):
     """Test basic extension/reduction of realization dimension"""
-    kgo_dir = acc.kgo_root() / "manipulate-realization-dimension"
+    kgo_dir = acc.kgo_root() / "manipulate-n-realizations"
     kgo_path = kgo_dir / kgo
     input_path = kgo_dir / "input.nc"
 

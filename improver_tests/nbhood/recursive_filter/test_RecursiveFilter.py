@@ -525,7 +525,7 @@ class Test_process(Test_RecursiveFilter):
         )
 
         expected = [0.14994797, 0.22903226]
-        for i in range(2):
+        for i in range(result.shape[0]):
             self.assertArrayEqual(result.data[i, :, :].mask, mask[i, :, :])
             self.assertAlmostEqual(result.data[i][2][2], expected[i])
 

@@ -1406,17 +1406,11 @@ class EnsembleReordering(BasePlugin):
                     tie_break_data = random_seed.rand(*rawfc.data.shape)
                 elif tie_break == "realization":
                     realizations = raw_forecast_realizations.coord("realization").points
-                    n_realizations = len(realizations)
                     target_shape = rawfc.data.shape
-                    # get realizations array into shape which can be broadcast to the
-                    # target shape
-                    broadcast_shape = [1] * len(target_shape)
-                    broadcast_shape[0] = n_realizations
-                    broadcast_shape = tuple(broadcast_shape)
-                    realizations = realizations.reshape(n_realizations, 1)
-                    tie_break_data = realizations.reshape(broadcast_shape) * np.ones(
-                        target_shape
+                    realizations = np.expand_dims(
+                        realizations, axis=list(range(1, len(target_shape[1:]) + 1))
                     )
+                    tie_break_data = np.broadcast_to(realizations, target_shape)
                 else:
                     msg = (
                         'Input tie_break must be either "random", or "realization",'
@@ -1425,8 +1419,8 @@ class EnsembleReordering(BasePlugin):
                     raise ValueError(msg)
                 # Lexsort returns the indices sorted firstly by the
                 # primary key, the raw forecast data (unless random_ordering
-                # is enabled), and secondly by the secondary key, an array of
-                # random data, in order to split tied values randomly.
+                # is enabled), and secondly by the secondary key, the contents of which
+                # is determined by the tie_break input, in order to split tied values.
                 sorting_index = np.lexsort((tie_break_data, rawfc.data), axis=0)
                 # Returns the indices that would sort the array.
                 ranking = np.argsort(sorting_index, axis=0)

@@ -40,12 +40,37 @@ def test_basic(temperature_cube, n_realizations):
         np.testing.assert_allclose(result_slice.data, input_slice.data)
 
 
+def test_realizations_start_from_one(temperature_cube):
+    """Test that correct cube is returned when the realizations in the input cube are
+    not numbered starting from zero.
+    """
+    input_cube = temperature_cube.copy()
+    input_cube.coord("realization").points = np.array([1, 2, 3])
+    n_realizations = 6
+    expected_realizations = [1, 2, 3, 4, 5, 6]
+    expected_recycling = [1, 2, 3, 1, 2, 3]
+
+    result = manipulate_realization_dimension(input_cube, n_realizations)
+
+    assert len(result.coord("realization").points) == n_realizations
+    assert np.all(result.coord("realization").points == expected_realizations)
+    for index in range(n_realizations):
+        input_constr = iris.Constraint(realization=expected_recycling[index])
+        result_constr = iris.Constraint(realization=expected_realizations[index])
+
+        input_slice = input_cube.extract(input_constr)
+        result_slice = result.extract(result_constr)
+
+        np.testing.assert_allclose(result_slice.data, input_slice.data)
+
+
 def test_non_realization_cube(temperature_cube):
     """Test that the correct exception is raised when input cube does not contain
     a realization dimension.
     """
     temperature_cube.coord("realization").rename("percentile")
-    msg = "Input cube does not contain realizations."
+    input_coords = [c.name() for c in temperature_cube.coords(dim_coords=True)]
+    msg = "Input cube does not contain realizations. The following dimension coordinates were found: "
 
     with pytest.raises(ValueError, match=msg):
         manipulate_realization_dimension(temperature_cube, n_realizations=3)
