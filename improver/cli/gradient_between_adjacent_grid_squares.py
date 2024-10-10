@@ -10,21 +10,21 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(cube: cli.inputcube, *, regrid: bool = False):
-    """Module to calculate the size of hail stones from the
-    cloud condensation level (ccl) temperature and pressure, temperature
-    on pressure levels data, wet bulb freezing altitude above sea level and orography.
+    """Calculate the gradient between adjacent grid squares within
+    a cube. The gradient is calculated along the x and y axis
+    individually.
 
     Args:
         cube (iris.cube.Cube):
-            Cube from which the differences will be calculated.
-        regrid:
-                If True, the gradient cube is regridded to match the spatial
-                dimensions of the input cube. If False, the two output gradient cubes will have
-                different spatial coords such that the coord matching the gradient axis will
-                represent the midpoint of the input cube and will have one fewer points.
-                If the x-axis is marked as circular, the gradient between the last and first points
-                is also included.
-                If a status_flag coord is present, it will be preserved if regrid is true.
+            Cube from which the gradients will be calculated.
+        regrid (bool):
+            If True, the gradient cube is regridded to match the spatial
+            dimensions of the input cube. If False, the two output gradient cubes will have
+            different spatial coords such that the coord matching the gradient axis will
+            represent the midpoint of the input cube and will have one fewer points.
+            If the x-axis is marked as circular, the gradient between the last and first points
+            is also included.
+            If a status_flag coord is present, it will be preserved if regrid is true.
 
     Returns:
         Cube after the gradients have been calculated along the x-axis and Cube after the gradients
