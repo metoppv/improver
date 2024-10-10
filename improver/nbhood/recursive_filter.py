@@ -391,13 +391,10 @@ class RecursiveFilter(PostProcessingPlugin):
                 slice_coeffs_x, slice_coeffs_y = self._update_coefficients_from_mask(
                     slice_coeffs_x, slice_coeffs_y, mask_cube,
                 )
-                padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
-                    slice_coeffs_x, slice_coeffs_y
-                )
-            else:
-                padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
-                    slice_coeffs_x, slice_coeffs_y
-                )
+
+            padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
+                slice_coeffs_x, slice_coeffs_y
+            )
 
             new_cube = self._run_recursion(
                 padded_cube,

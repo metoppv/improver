@@ -846,7 +846,7 @@ def manipulate_realization_dimension(cube: Cube, n_realizations: int) -> Cube:
     if not cube.coords("realization", dim_coords=True):
         input_coords = [c.name() for c in cube.coords(dim_coords=True)]
         msg = (
-            "Input cube does not contain realizations. The following dimension"
+            "Input cube does not contain realizations. The following dimension "
             f"coordinates were found: {input_coords}"
         )
         raise ValueError(msg)
@@ -862,7 +862,8 @@ def manipulate_realization_dimension(cube: Cube, n_realizations: int) -> Cube:
         for index in range(n_realizations):
             realization_list.append(mpoints[index % len(mpoints)])
 
-        # Assume that the ensemble realizations are ascending linearly.
+        # Assume that the ensemble realizations are ascending linearly from a given
+        # value.
         new_realization_numbers = realization_list[0] + list(range(n_realizations))
 
         # Extract the realizations required in the realization_list from
