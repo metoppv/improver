@@ -15,6 +15,7 @@ def process(
     *,
     realizations_count: int = None,
     random_seed: int = None,
+    tie_break: str = "random",
     ignore_ecc_bounds_exceedance: bool = False,
     skip_ecc_bounds: bool = False,
 ):
@@ -36,6 +37,11 @@ def process(
             This value is for testing purposes only, to ensure reproduceable outputs.
             It should not be used in real time operations as it may introduce a bias
             into the reordered forecasts.
+        tie_break (str):
+            Option to specify the tie breaking method when reordering percentiles.
+            The available methods are "random", to tie-break randomly, and
+            "realization", to tie-break by assigning values to the highest numbered
+            realizations first.
         ignore_ecc_bounds_exceedance (bool):
             If True where percentiles (calculated as an intermediate output
             before realization) exceed the ECC bounds range, raises a
@@ -88,7 +94,9 @@ def process(
         )(cube, no_of_percentiles=realizations_count)
 
     if raw_cube:
-        result = EnsembleReordering()(percentiles, raw_cube, random_seed=random_seed)
+        result = EnsembleReordering()(
+            percentiles, raw_cube, random_seed=random_seed, tie_break=tie_break
+        )
     else:
         result = RebadgePercentilesAsRealizations()(percentiles)
 
