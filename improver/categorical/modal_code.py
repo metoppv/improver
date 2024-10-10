@@ -29,19 +29,36 @@ from .utilities import day_night_map
 class BaseModalCategory(BasePlugin):
     """Base plugin for modal weather symbol plugins."""
 
-    @staticmethod
-    def _unify_day_and_night(cube: Cube):
+    def __init__(
+        self,
+        decision_tree: Dict,
+    ):
+        """
+        Set up base plugin.
+
+
+
+
+
+        Args:
+            decision_tree:
+                The decision tree used to generate the categories and which contains the
+                mapping of day and night categories and of category groupings.
+        """
+        self.decision_tree = decision_tree
+        self.day_night_map = day_night_map(self.decision_tree)
+
+    def _unify_day_and_night(self, cube: Cube):
         """Remove distinction between day and night codes so they can each
-        contribute when calculating the modal code. The cube of weather
-        codes is modified in place with all night codes made into their
+        contribute when calculating the modal code. The cube of categorical data
+        is modified in place with all night codes made into their
         daytime equivalents.
 
         Args:
-            A cube of weather codes.
+            A cube of categorical data
         """
-        night_codes = np.array(DAYNIGHT_CODES) - 1
-        for code in night_codes:
-            cube.data[cube.data == code] += 1
+        for day, night in self.day_night_map.items():
+            cube.data[cube.data == night] = day
 
     def _prepare_input_cubes(
         self,
@@ -157,7 +174,6 @@ class ModalWeatherCode(BaseModalCategory):
 
     def __init__(
         self,
-        decision_tree: Dict,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
     ):
@@ -165,9 +181,6 @@ class ModalWeatherCode(BaseModalCategory):
         Set up plugin and create an aggregator instance for reuse
 
         Args:
-            decision_tree:
-                The decision tree used to generate the categories and which contains the
-                mapping of day and night categories and of category groupings.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
@@ -177,10 +190,8 @@ class ModalWeatherCode(BaseModalCategory):
                 constructing the categories.
         """
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
-        self.decision_tree = decision_tree
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
-        self.day_night_map = day_night_map(self.decision_tree)
 
         codes = [
             node["leaf"]
