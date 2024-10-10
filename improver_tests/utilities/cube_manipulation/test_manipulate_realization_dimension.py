@@ -69,8 +69,10 @@ def test_non_realization_cube(temperature_cube):
     a realization dimension.
     """
     temperature_cube.coord("realization").rename("percentile")
-    input_coords = [c.name() for c in temperature_cube.coords(dim_coords=True)]
-    msg = "Input cube does not contain realizations. The following dimension coordinates were found: "
+    msg = (
+        "Input cube does not contain realizations. The following dimension "
+        "coordinates were found: "
+    )
 
     with pytest.raises(ValueError, match=msg):
         manipulate_realization_dimension(temperature_cube, n_realizations=3)
