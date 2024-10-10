@@ -826,7 +826,7 @@ def height_of_maximum(
     return height_of_max
 
 
-def manipulate_realization_dimension(cube: Cube, n_realizations: int) -> Cube:
+def manipulate_n_realizations(cube: Cube, n_realizations: int) -> Cube:
     """Extend or reduce the number of realizations in a cube.
 
     If more realizations are requested than are in the input cube, then the ensemble

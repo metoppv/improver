@@ -44,7 +44,7 @@ from improver.utilities.cube_checker import (
 from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     get_dim_coord_names,
-    manipulate_realization_dimension,
+    manipulate_n_realizations,
 )
 from improver.utilities.indexing_operations import choose
 
@@ -1338,7 +1338,7 @@ class EnsembleReordering(BasePlugin):
         if plen == mlen:
             pass
         else:
-            raw_forecast_realizations = manipulate_realization_dimension(
+            raw_forecast_realizations = manipulate_n_realizations(
                 raw_forecast_realizations, plen
             )
         return raw_forecast_realizations

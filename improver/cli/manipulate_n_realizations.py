@@ -29,8 +29,8 @@ def process(
         iris.cube.Cube:
             The processed cube.
     """
-    from improver.utilities.cube_manipulation import manipulate_realization_dimension
+    from improver.utilities.cube_manipulation import manipulate_n_realizations
 
-    output = manipulate_realization_dimension(cube, n_realizations)
+    output = manipulate_n_realizations(cube, n_realizations)
 
     return output

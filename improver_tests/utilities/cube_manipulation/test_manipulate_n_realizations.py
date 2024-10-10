@@ -12,7 +12,7 @@ import numpy as np
 import pytest
 
 from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
-from improver.utilities.cube_manipulation import manipulate_realization_dimension
+from improver.utilities.cube_manipulation import manipulate_n_realizations
 
 
 @pytest.fixture
@@ -26,7 +26,7 @@ def test_basic(temperature_cube, n_realizations):
     """Test that a cube is returned with expected data and realization coordinate."""
     input_len = len(temperature_cube.coord("realization").points)
     expected_realizations = np.array([r for r in range(n_realizations)])
-    result = manipulate_realization_dimension(temperature_cube, n_realizations)
+    result = manipulate_n_realizations(temperature_cube, n_realizations)
 
     assert len(result.coord("realization").points) == n_realizations
     assert np.all(result.coord("realization").points == expected_realizations)
@@ -50,7 +50,7 @@ def test_realizations_start_from_one(temperature_cube):
     expected_realizations = [1, 2, 3, 4, 5, 6]
     expected_recycling = [1, 2, 3, 1, 2, 3]
 
-    result = manipulate_realization_dimension(input_cube, n_realizations)
+    result = manipulate_n_realizations(input_cube, n_realizations)
 
     assert len(result.coord("realization").points) == n_realizations
     assert np.all(result.coord("realization").points == expected_realizations)
@@ -75,4 +75,4 @@ def test_non_realization_cube(temperature_cube):
     )
 
     with pytest.raises(ValueError, match=msg):
-        manipulate_realization_dimension(temperature_cube, n_realizations=3)
+        manipulate_n_realizations(temperature_cube, n_realizations=3)
