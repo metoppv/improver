@@ -637,7 +637,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
 
 class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
 
-    """Calculate the gradient between adjacent grid squares within
+    """Calculate the gradients between adjacent grid squares within
     a cube. The gradient is calculated along the x and y axis
     individually."""
 
@@ -652,8 +652,10 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
                 represent the midpoint of the input cube and will have one fewer points.
                 If the x-axis is marked as circular, the gradient between the last and first points
                 is also included.
+                If a status_flag coord is present, it will be preserved if regrid is true.
         """
         self.regrid = regrid
+        self.status_flag_coord = None
 
     @staticmethod
     def _create_output_cube(gradient: Cube, name: str) -> Cube:
@@ -682,6 +684,13 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
         )
         return grad_cube
 
+    def _strip_status_flag(self, cube: Cube):
+        """Finds and removes any status_flag coord as this isn't handled by sub-Plugins"""
+        flag_coords = [c for c in cube.coords() if "status_flag" in c.name()]
+        if flag_coords:
+            (self.status_flag_coord,) = flag_coords
+            cube.remove_coord(self.status_flag_coord)
+
     def process(self, cube: Cube) -> Tuple[Cube, Cube]:
         """
         Calculate the gradient along the x and y axes and return
@@ -700,6 +709,7 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
               y-axis.
         """
         gradients = []
+        self._strip_status_flag(cube)
         diffs = DifferenceBetweenAdjacentGridSquares()(cube)
         distances = DistanceBetweenGridSquares()(cube)
         for diff, distance in zip(diffs, distances):
@@ -707,6 +717,8 @@ class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
             grad_cube = self._create_output_cube(gradient, "gradient_of_" + cube.name())
             if self.regrid:
                 grad_cube = grad_cube.regrid(cube, iris.analysis.Linear())
+                if self.status_flag_coord:
+                    grad_cube.add_aux_coord(self.status_flag_coord, data_dims=[-2, -1])
             gradients.append(grad_cube)
 
         return tuple(gradients)
