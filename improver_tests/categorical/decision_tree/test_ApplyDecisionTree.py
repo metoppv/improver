@@ -144,15 +144,15 @@ def test_deterministic_complex_diagnostic_fields(precip_cube, hail_cube):
     ]
 
     for i in range(9):
-        constraint_exp = expected_condition_chain[0][0][0][i]
-        constraint_res = condition_chain[0][0][0][i]
         if i in [0, 4]:
             assert np.all(
-                cubes.extract(constraint_res)[0].data
-                == cubes.extract(constraint_exp)[0].data
+                cubes.extract(condition_chain[0][0][0][i])[0].data
+                == cubes.extract(expected_condition_chain[0][0][0][i])[0].data
             )
         else:
             assert condition_chain[0][0][0][i] == expected_condition_chain[0][0][0][i]
+    assert condition_chain[0][0][1] == expected_condition_chain[0][0][1]
+    assert condition_chain[0][0][2] == expected_condition_chain[0][0][2]
 
     expression_result = ApplyDecisionTree(
         deterministic_diagnostic_tree()
