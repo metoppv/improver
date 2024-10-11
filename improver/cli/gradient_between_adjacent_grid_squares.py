@@ -25,8 +25,10 @@ def process(cube: cli.inputcube, *, regrid: bool = False):
                 If the x-axis is marked as circular, the gradient between the last and first points
                 is also included.
     Returns:
-        Cube after the gradients have been calculated along the x-axis and Cube after the gradients
-        have been calculated along the y-axis.
+        iris.cube.Cube:
+            Gradients calculated along the x-axis
+        iris.cube.Cube:
+            Gradients calculated along the y-axis
     """
     from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
