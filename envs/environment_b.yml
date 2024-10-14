@@ -44,3 +44,5 @@ dependencies:
   - sphinx-autodoc-typehints
   - sphinx_rtd_theme
   - threadpoolctl
+  # pinned dependencies of dependencies
+  - pyparsing=3.1.2
