@@ -569,12 +569,32 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
     queries = {
         "meta": {"name": "precipitation_type"},
         "precip_rate": {
-            "if_true": "hail_rate",
+            "if_true": "cloud_top_temp",
             "if_false": "dry",
             "thresholds": [0],
             "threshold_condition": ">",
             "condition_combination": "",
             "diagnostic_fields": ["precipitation_rate"],
+            "deterministic": True,
+        },
+        "cloud_top_temp": {
+            "if_true": "cloud_base_temp",
+            "if_false": "snow",
+            "if_masked": "dry",
+            "thresholds": [258.15],
+            "threshold_condition": "<=",
+            "condition_combination": "",
+            "diagnostic_fields": ["cloud_top_temperature"],
+            "deterministic": True,
+        },
+        "cloud_base_temp": {
+            "if_true": "hail_rate",
+            "if_false": "snow",
+            "if_masked": "snow",
+            "thresholds": [268.15],
+            "threshold_condition": ">=",
+            "condition_combination": "",
+            "diagnostic_fields": ["cloud_base_temperature"],
             "deterministic": True,
         },
         "hail_rate": {
@@ -589,6 +609,7 @@ def deterministic_diagnostic_tree() -> Dict[str, Dict[str, Any]]:
         "dry": {"leaf": 0},
         "rain": {"leaf": 1},
         "hail": {"leaf": 2},
+        "snow": {"leaf": 3},
     }
 
     return queries

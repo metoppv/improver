@@ -425,6 +425,8 @@ def test_interrogate_decision_tree_accumulation_3h():
 def test_interrogate_decision_tree_deterministic():
     """Test that the function returns the right strings."""
     expected = (
+        "\u26C5 cloud_base_temperature (deterministic)\n"
+        "\u26C5 cloud_top_temperature (deterministic)\n"
         "\u26C5 hail_rate (deterministic)\n"
         "\u26C5 precipitation_rate (deterministic)\n"
     )
