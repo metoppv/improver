@@ -22,7 +22,9 @@ def test_as_cubelist_called(mock_as_cubelist):
         )
     except HaltExecution:
         pass
-    mock_as_cubelist.assert_called_once_with(sentinel.cube0, sentinel.cube1, sentinel.template_cube)
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube0, sentinel.cube1, sentinel.template_cube
+    )
 
 
 def test_copy_attributes_multi_input():
