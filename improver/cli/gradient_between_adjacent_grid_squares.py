@@ -18,12 +18,13 @@ def process(cube: cli.inputcube, *, regrid: bool = False):
         cube (iris.cube.Cube):
             Cube from which the gradients will be calculated.
         regrid (bool):
-                If True, the gradient cube is regridded to match the spatial
-                dimensions of the input cube. If False, the two output gradient cubes will have
-                different spatial coords such that the coord matching the gradient axis will
-                represent the midpoint of the input cube and will have one fewer points.
-                If the x-axis is marked as circular, the gradient between the last and first points
-                is also included.
+            If True, the gradient cube is regridded to match the spatial
+            dimensions of the input cube. If False, the two output gradient cubes will have
+            different spatial coords such that the coord matching the gradient axis will
+            represent the midpoint of the input cube and will have one fewer points.
+            If the x-axis is marked as circular, the gradient between the last and first points
+            is also included.
+
     Returns:
         tuple:
             iris.cube.Cube:
