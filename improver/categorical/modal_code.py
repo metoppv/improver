@@ -30,15 +30,10 @@ class BaseModalCategory(BasePlugin):
     """Base plugin for modal weather symbol plugins."""
 
     def __init__(
-        self,
-        decision_tree: Dict,
+        self, decision_tree: Dict,
     ):
         """
         Set up base plugin.
-
-
-
-
 
         Args:
             decision_tree:
@@ -146,8 +141,8 @@ class BaseModalCategory(BasePlugin):
         return result
 
 
-class ModalWeatherCode(BaseModalCategory):
-    """Plugin that returns the modal code over the period spanned by the
+class ModalCategory(BaseModalCategory):
+    """Plugin that returns the modal category over the period spanned by the
     input data. In cases of a tie in the mode values, scipy returns the smaller
     value. The opposite is desirable in this case as the significance /
     importance of the weather code categories generally increases with the value. To
@@ -174,6 +169,7 @@ class ModalWeatherCode(BaseModalCategory):
 
     def __init__(
         self,
+        decision_tree: Dict,
         model_id_attr: Optional[str] = None,
         record_run_attr: Optional[str] = None,
     ):
@@ -181,6 +177,9 @@ class ModalWeatherCode(BaseModalCategory):
         Set up plugin and create an aggregator instance for reuse
 
         Args:
+            decision_tree:
+                The decision tree used to generate the categories and which contains the
+                mapping of day and night categories and of category groupings.
             model_id_attr:
                 Name of attribute recording source models that should be
                 inherited by the output cube. The source models are expected as
@@ -189,6 +188,7 @@ class ModalWeatherCode(BaseModalCategory):
                 Name of attribute used to record models and cycles used in
                 constructing the categories.
         """
+        super().__init__(decision_tree)
         self.aggregator_instance = Aggregator("mode", self.mode_aggregator)
         self.model_id_attr = model_id_attr
         self.record_run_attr = record_run_attr
@@ -364,6 +364,7 @@ class ModalFromGroupings(BaseModalCategory):
 
     def __init__(
         self,
+        decision_tree: Dict,
         broad_categories: Dict[str, int],
         wet_categories: Dict[str, int],
         intensity_categories: Optional[Dict[str, int]] = None,
@@ -378,6 +379,9 @@ class ModalFromGroupings(BaseModalCategory):
         Set up plugin.
 
         Args:
+            decision_tree:
+                The decision tree used to generate the categories and which contains the
+                mapping of day and night categories and of category groupings.
             broad_categories:
                 Dictionary defining the broad categories for grouping the weather
                 symbol codes. This is expected to have the keys: "dry" and "wet".
@@ -414,6 +418,7 @@ class ModalFromGroupings(BaseModalCategory):
                 Name of attribute used to record models and cycles used in
                 constructing the categories.
         """
+        super().__init__(decision_tree)
         self.broad_categories = broad_categories
         self.wet_categories = wet_categories
         self.intensity_categories = intensity_categories
