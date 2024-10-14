@@ -40,6 +40,12 @@ def wxcode_series_fixture(
 
     time = TARGET_TIME
 
+    data = np.array(data)
+    if len(data.shape) > 1:
+        data = data.T
+
+    data = np.flip(data, axis=0)
+
     ntimes = len(data)
     wxcubes = CubeList()
 
@@ -51,7 +57,15 @@ def wxcode_series_fixture(
         else:
             wxfrt = time - timedelta(hours=42)
         wxdata = np.ones((2, 2), dtype=np.int8)
-        wxdata[0, 0] = data[i]
+
+        if len(data[i].shape) > 0 and np.product(wxdata.shape) == data[i].shape[0]:
+            wxdata = np.reshape(data[i], wxdata.shape)
+        else:
+            if len(data[i].shape) == 0:
+                index = 0
+            else:
+                index = slice(None, len(data[i]))
+            wxdata[0, index] = data[i]
 
         if cube_type == "gridded":
             wxcubes.append(
