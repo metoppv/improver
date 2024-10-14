@@ -201,6 +201,22 @@ def test_basic(
         cube_shape_check_without_realizations(result)
 
 
+@pytest.mark.parametrize("least_significant_digit", (None, 2, np.int32(2)))
+def test_fill_invalid_supported_lsd_types(
+    temperature_on_height_levels, least_significant_digit
+):
+    """
+    Ensure performing power of negative python int/numpy int least_significant_digit supported.
+    """
+    cube = temperature_on_height_levels
+    cube.data = np.ma.MaskedArray(cube.data, mask=False)
+    cube.data.mask[0, 0, 0, 0] = True
+    if least_significant_digit is not None:
+        cube.attributes["least_significant_digit"] = least_significant_digit
+    plugin = ExtractLevel(value_of_level=277, positive_correlation=True)
+    plugin(cube)
+
+
 @pytest.mark.parametrize(
     "index, expected",
     (
