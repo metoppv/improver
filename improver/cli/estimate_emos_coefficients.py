@@ -13,9 +13,14 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube,
+    forecast_directory: cli.inputpath,
+    truth_directory: cli.inputpath,
+    land_sea_mask: cli.inputcube = None,
+    *,
     distribution,
     truth_attribute,
+    cycle_point: str = None,
+    max_days_offset: int = None,
     point_by_point=False,
     use_default_initial_guess=False,
     units=None,
@@ -32,13 +37,12 @@ def process(
     The estimated coefficients are output as a cube.
 
     Args:
-        cubes (list of iris.cube.Cube):
-            A list of cubes containing the historical forecasts and
-            corresponding truth used for calibration. They must have the same
-            cube name and will be separated based on the truth attribute.
-            Optionally this may also contain a single land-sea mask cube on the
-            same domain as the historic forecasts and truth (where land points
-            are set to one and sea points are set to zero).
+        forecast_directory (posix.Path):
+            The path to a directory containing the historical forecasts
+        truth_directory (posix.Path):
+            The path to a directory containing the truths to be used
+        land_sea_mask (iris.cube.Cube):
+            Optional land-sea mask cube, used as a static additonal predictor.
         distribution (str):
             The distribution that will be used for minimising the
             Continuous Ranked Probability Score when estimating the EMOS
@@ -81,27 +85,31 @@ def process(
             is raised. If the predictor is "realizations", then the number of
             iterations may require increasing, as there will be more
             coefficients to solve.
-
+        cycle_point (str):
+            Current cycle point. Used in combination with max_days_offset to identify
+            which historic forecasts and truths to use.
+        max_days_offset (int):
+            Maximum offset in days, used to identify the oldest acceptable inputs
     Returns:
         iris.cube.CubeList:
             CubeList containing the coefficients estimated using EMOS. Each
             coefficient is stored in a separate cube.
     """
 
-    from improver.calibration import split_forecasts_and_truth
     from improver.calibration.ensemble_calibration import (
-        EstimateCoefficientsForEnsembleCalibration,
+        MetaEstimateCoefficientsForEnsembleCalibration,
     )
 
-    forecast, truth, land_sea_mask = split_forecasts_and_truth(cubes, truth_attribute)
-
-    plugin = EstimateCoefficientsForEnsembleCalibration(
+    plugin = MetaEstimateCoefficientsForEnsembleCalibration(
         distribution,
+        truth_attribute,
+        cycle_point=cycle_point,
+        max_days_offset=max_days_offset,
         point_by_point=point_by_point,
         use_default_initial_guess=use_default_initial_guess,
-        desired_units=units,
+        units=units,
         predictor=predictor,
         tolerance=tolerance,
         max_iterations=max_iterations,
     )
-    return plugin(forecast, truth, landsea_mask=land_sea_mask)
+    return plugin(forecast_directory, truth_directory, land_sea_mask=land_sea_mask)

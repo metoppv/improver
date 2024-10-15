@@ -7,6 +7,7 @@ and coefficient inputs.
 """
 
 from collections import OrderedDict
+from datetime import datetime, timedelta
 from typing import Dict, List, Optional, Tuple
 
 from iris.cube import Cube, CubeList
@@ -15,6 +16,7 @@ from improver.metadata.probabilistic import (
     get_diagnostic_cube_name_from_probability_name,
 )
 from improver.utilities.cube_manipulation import MergeCubes
+from improver.utilities.load import load_cubelist
 
 
 def split_forecasts_and_truth(
@@ -266,3 +268,59 @@ def add_warning_comment(forecast: Cube) -> Cube:
             "however, no calibration has been applied."
         )
     return forecast
+
+
+def get_cube_from_directory(
+    directory,
+    cycle_point=None,
+    max_days_offset=None,
+    date_format="%Y%m%dT%H%MZ",
+    verbose=False,
+):
+    """
+    loads and merges all netCDF files in a directory
+
+    To switch on the max offset filter, both cycle_point and max_days_offset
+    need to be provided
+
+    Args:
+        directory (pathlib.Path):
+            The path to the directory.
+        cycle_point (str):
+            The cycle point of the forecast, used to filter files
+        max_days_offset (int):
+            Maximum number of days before cycle_point to consider files,
+            Defined as a postive int that is subtracted from the cycle_point
+        date_format (str):
+            format of the cyclepoint and datetime in the filename, used by
+            datetime.strptime
+        verbose (bool):
+            switch on verbose output
+
+    Returns:
+        Cube
+    """
+    files = [*map(str, directory.glob("*.nc"))]
+
+    if len(files) == 0:
+        if verbose:
+            print(f"No files found in {directory}")
+        return None
+
+    cubes = load_cubelist(files)
+    if max_days_offset and cycle_point:
+        cycle_point = datetime.strptime(cycle_point, date_format)
+        earliest_time = cycle_point - timedelta(days=max_days_offset)
+        for cube in cubes.copy():
+            rt = cube.coord("forecast_reference_time").points[0]
+            period = cube.coord("forecast_period").points[0]
+            dt = datetime.fromtimestamp(rt + period)
+            if dt < earliest_time:
+                cubes.remove(cube)
+
+    if len(cubes) < 2:
+        if verbose:
+            print(f"Not enough files found in {directory}")
+        return None
+
+    return MergeCubes()(cubes)
