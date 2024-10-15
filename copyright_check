@@ -1,12 +1,9 @@
 #!/bin/bash
 
-# debug information
-DEBUG=false
-
 copyright_header="\
 # (C) Crown Copyright, Met Office. All rights reserved.\n\
 #\n\
-# This file is part of IMPROVER and is released under the BSD 3-Clause license.\n\
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.\n\
 # See LICENSE in the root of the repository for full licensing details.\
 "
 
@@ -23,21 +20,42 @@ show_help() {
     echo '  FILEPATH...    The file(s) to check'
     echo ""
     echo "options:"
-    echo "  -h|--help     Show this help message and exit"
+    echo "  -h|--help     Show this help message and exit."
+    echo "  -v|--verbose  Print verbose output."
+    echo "  -f|--fix      Fix files with missing copyright header by adding it."
     echo ""
 }
 
-if [[ " $@ " =~ " --help " || " $@ " =~ " -h " ]]; then
-    echo "Showing help..."
-    show_help
-    exit 0
-fi
-if [[ " $@ " =~ " --fix " ]]; then
-    # Remove the --fix argument from $@
-    set -- "${@/--fix/}"
-    echo fix argument provided
-fi
-echo "$@"
+VERBOSE=false
+FIX=false
+ARGS=""
+DEBUG=false
+
+while :; do
+    case $1 in
+        --help|-h)
+            show_help
+            exit 0
+            ;;
+        --verbose|-v)
+            VERBOSE=true
+            ;;
+        --fix|-f)
+            FIX=true
+            ;;
+        -*)
+            echo "Unknown option: $1"
+            show_help
+            exit 1
+            ;;
+        *)
+            ARGS+="$1"$'\n'
+            ;;
+    esac
+    shift
+    [ -z "$1" ] && break  # Exit loop when there are no more arguments
+done
+
 
 contains_copyright() {
     grep -qi '# .*copyright' $1
@@ -59,31 +77,33 @@ cleanup() {
     for filepath in "$@"; do
         tmp_file="${filepath}.tmp"
         if [ -f "$tmp_file" ]; then
-            echo "Deleting temporary file: $tmp_file"
+            [[ ${DEBUG} == true ]] && echo "problem occurred while adding Copyright header, deleting temporary file: $tmp_file" >&2
             rm -f "$tmp_file" 2&> /dev/null
         fi
     done
 }
 
 # Trap the EXIT signal to call the cleanup function
-trap 'cleanup "$@"' EXIT
+trap 'cleanup $ARGS' EXIT
 
 found_error=0
-for filepath in "$@"; do
-    echo checking ${filepath}
+for filepath in $ARGS; do
+    [[ ${VERBOSE} == true ]] && echo checking ${filepath}
     if contains_copyright "${filepath}"; then
-        [[ ${DEBUG} == true ]] && echo "File '${filepath}' appears to already contain a Copyright"
+        [[ ${VERBOSE} == true ]] && echo "File '${filepath}' appears to already contain a Copyright header"
         if correct_copyright "${copyright_header}" "${filepath}"; then
-            [[ ${DEBUG} == true ]] && echo "Copyright verified"
+            [[ ${VERBOSE} == true ]] && echo "Copyright verified"
             continue
         else
-            echo "Incorrect Copyright header in '${filepath}'"
-            [[ ${DEBUG} == true ]] && diff <(echo $copyright_header | sed s'~\\n~\n~'g) <(grep -i -A3 '# .*copyright' ${filepath})
+            echo "Incorrect Copyright header in '${filepath}'" >&2
+            [[ ${VERBOSE} == true ]] && (diff <(echo -e $copyright_header) <(grep -i -A3 '# .*copyright' ${filepath}) >&2; echo >&2)
             found_error=1
         fi
     elif [ -s "${filepath}" ]; then  # skip empty files
-        echo "Adding missing Copyright to '${filepath}'"
-                    tmp_file="${filepath}.tmp"
+        echo "File '${filepath}' is missing a copyright header." >&2
+        if [[ ${FIX} == true ]]; then
+            echo "Adding missing Copyright to '${filepath}'"
+            tmp_file="${filepath}.tmp"
             if defines_hash_bang "${filepath}"; then
                 head -n 1 ${filepath} > ${tmp_file}
                 echo -e ${copyright_header} >> ${tmp_file}
@@ -92,9 +112,10 @@ for filepath in "$@"; do
                 echo -e ${copyright_header} > ${tmp_file}
                 cat ${filepath} >> ${tmp_file}
             fi
-            mv ${tmp_file} ${filepath}
+                mv ${tmp_file} ${filepath}
                 found_error=1
-    fi
+            fi
+        fi
 done
 
 exit ${found_error}
