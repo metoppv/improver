@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   Sphinx-Pytest-Coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -72,7 +72,7 @@ jobs:
       if: matrix.env != 'conda_forge'
 
   pre-commit-checks:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
     steps:
@@ -114,7 +114,7 @@ jobs:
         pre-commit run --verbose --color=always --files ${files_changed}
 
   PR-standards:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
 
@@ -127,7 +127,7 @@ jobs:
         uses: cylc/release-actions/check-shortlog@v1
 
   Safety-Bandit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:

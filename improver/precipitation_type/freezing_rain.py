@@ -4,7 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing the FreezingRain class."""
 
-from typing import Optional, Tuple
+from typing import Optional, Tuple, Union
 
 import iris
 import numpy as np
@@ -17,6 +17,7 @@ from improver.metadata.utilities import (
     create_new_diagnostic_cube,
     generate_mandatory_attributes,
 )
+from improver.utilities.common_input_handle import as_cubelist
 from improver.utilities.cube_checker import spatial_coords_match
 from improver.utilities.cube_extraction import extract_subcube
 from improver.utilities.probability_manipulation import to_threshold_inequality
@@ -268,7 +269,7 @@ class FreezingRain(PostProcessingPlugin):
 
         return freezing_rain
 
-    def process(self, input_cubes: CubeList) -> Cube:
+    def process(self, *input_cubes: Union[Cube, CubeList]) -> Cube:
         """Check input cubes, then calculate a probability of freezing rain
         diagnostic. Collapses the realization coordinate if present.
 
@@ -282,6 +283,7 @@ class FreezingRain(PostProcessingPlugin):
         Returns:
             Cube of freezing rain probabilties.
         """
+        input_cubes = as_cubelist(*input_cubes)
         self._get_input_cubes(input_cubes)
 
         try:

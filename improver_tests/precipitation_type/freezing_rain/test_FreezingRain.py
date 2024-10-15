@@ -5,6 +5,7 @@
 """ Tests of FreezingRain plugin"""
 
 import itertools
+from unittest.mock import patch, sentinel
 
 import iris
 import pytest
@@ -17,6 +18,22 @@ RATE_NAME = "lwe_freezing_rainrate"
 ACCUM_NAME = "thickness_of_lwe_freezing_rainfall_amount"
 PROB_NAME = "probability_of_{}_above_threshold"
 TIME_WINDOW_TYPE = ["instantaneous", "period"]
+
+
+class HaltExecution(Exception):
+    pass
+
+
+@patch("improver.precipitation_type.freezing_rain.as_cubelist")
+def test_as_cubelist_called(mock_as_cubelist):
+    mock_as_cubelist.side_effect = HaltExecution
+    try:
+        FreezingRain()(sentinel.cube1, sentinel.cube2, sentinel.cube3)
+    except HaltExecution:
+        pass
+    mock_as_cubelist.assert_called_once_with(
+        sentinel.cube1, sentinel.cube2, sentinel.cube3
+    )
 
 
 def modify_coordinate(cube, coord):

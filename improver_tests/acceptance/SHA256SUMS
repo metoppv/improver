@@ -70,6 +70,10 @@ c7eb9bab2ad43ac19ecc071730479a9f27a58992fcb22050743d34cdf2ad9639  ./apply-lapse-
 6eb89848a2a36007d9a2210e2ff4cb459921502329eb4bb6ef0bde74701d0c27  ./apply-lapse-rate/realizations/enukx_orography.nc
 25eeaa6b86b95354efd9406b1f9f1b5b43f0a7dd46f75fc5f3d144f52a30059e  ./apply-lapse-rate/realizations/enukx_temperature.nc
 a747cf91ea8a2b720e1a22a9569cc1a2c22bb7ad28282e661127413470ba0392  ./apply-lapse-rate/realizations/kgo.nc
+e455d391d15c30fe3cf3680fa0c355a3d4f0a9a84450f685f618655eb962ff52  ./apply-mask/kgo.nc
+a3aca2f841ff96a7780cb98a5ccf874001905f18db0c6166dffcf116a3f1b319  ./apply-mask/kgo_inverted.nc
+f33c0f3d10846ee69edd24fb318bebd4a2645363c89a434f56aeff24313fc886  ./apply-mask/mask.nc
+9fba2a41268f30c530e9362bf15ef34c781d24b5e580589cec7715b1a6d25b27  ./apply-mask/wind_speed.nc
 3a3d1b902e9e97f6ec7c74937e43dfce460c6599ef1890ac90f711959415f6ed  ./apply-night-mask/global_basic/input.nc
 65ba596b39ae589e1033b8e35fcb71f341b2fe64337fc2e4d88edff4331925e9  ./apply-night-mask/global_basic/kgo.nc
 c5860ce0801d097e1705130d6e3f49b19c43fa399041bd7726b7a1257335f2fb  ./apply-night-mask/uk_basic/input.nc
@@ -403,6 +407,13 @@ f61aa0326219c7e3934823bc4d607c2b3ec022a7c1df15d3519aea91207effce  ./expected-val
 62c0a3bfdae12ba69bb669b34a8cdf6859197f841560179d47c2680f8e759f1b  ./extend-radar-mask/basic/201811271330_nimrod_ng_radar_arc_composite_2km_UK.nc
 2df05ec61225fea26cbaa178994b50b9ce4324b02e5e9e29f833fc4a8f8711e2  ./extend-radar-mask/basic/201811271330_nimrod_ng_radar_rainrate_composite_2km_UK.nc
 19c8132dae73c2f2630b682542e4565743f6bc84bb466d65379d0abcd49015c6  ./extend-radar-mask/basic/kgo.nc
+ff7b6e4e0995b0e92a227dd207cdc89189438540232bb09a2943b4c85b720557  ./extract-from-table/kgo_gust_ratio.nc
+64dd8b8e3eba30587f640f88a7fb175896e1c422bcb4093b404075367ba58ad1  ./extract-from-table/kgo_lapse_class.nc
+f378ed97e2e8074b62dc94e8ce36c073805c536769df922f9228aad1433cae03  ./extract-from-table/lapse_class.nc
+6d17c1daeb204026b1c654b1c658fa6d34c1b42e18a6fc8c53dbb7f17df3c55d  ./extract-from-table/lapse_rate.nc
+6ac5591824d34c85403401fe1dddde54eccf9675ab20f8795416948574bb4a32  ./extract-from-table/table_1d.json
+d53d1406912f77b7c2195c832ca48bae21065177dbc0194ecee8f16fb58f8c97  ./extract-from-table/table_2d.json
+c0398240b0181e8d0211a6c0e25fd68e50dd0e63a7cc5ee33ed3d4316b529e9e  ./extract-from-table/wind_speed_800m.nc
 fbe545efe8a4c0de0a18ec883e45be8135b66a2909da05e16ab983044a3bc45f  ./extract/basic/input.nc
 55bfbe08a37b084547f1f21b05cf0ca1d5b997acc3ed79040fdf71347b5c7a8f  ./extract/basic/kgo.nc
 b714ab5ab4e96bc3b12c19fc2c5a1ac2767dcf7971fea9afaee2a4be3644f142  ./extract/change_units/kgo.nc
@@ -521,6 +532,11 @@ f21b03402171eaeb6ad2eb2e0f204db1b17d22f337e93f3790ce69c18f56d253  ./generate-top
 ba7a8a4dab8552656cfc38962d8cc6dce7e32d0965823c77008906d0c6afe7b5  ./generate-topography-bands-weights/multi_realization/input_land.nc
 06911b6df4f8195a9349ff12f352bd1a6251dfcdbcd9f573d652c242f4fed596  ./generate-topography-bands-weights/multi_realization/input_orog.nc
 0c52d393be6e53eaa8b9d88a38ceff5ca07772e3385f776ac85df971afaa532b  ./generate-topography-bands-weights/multi_realization/kgo.nc
+19e48705dd34036cf8e974dacdfeb510a55720f387daf64044d12b73d8d18ca7  ./gradient-between-vertical-levels/height_of_pressure_levels.nc
+fafd9c642ef7a63b1c453dae66cb55eab3d7816b02122d12da9320763d2d8db2  ./gradient-between-vertical-levels/kgo.nc
+a8eb2c78a65acb58d9535c3390fbf22249e98929002c21b5a4b5c534640d18e1  ./gradient-between-vertical-levels/orography.nc
+2048e3a2dc7ea8f9e990dceb1108d69223c52fad5a1b5e21bc6206c60e2115a0  ./gradient-between-vertical-levels/temperature_at_850hpa.nc
+0f61a96ffc719c656a6461b4f5562170e12dd1a4fb5096f5ada6ed89cc41ba7b  ./gradient-between-vertical-levels/temperature_at_screen_level.nc
 129a2405d8460804e577a1dbff2c0ab39aab709bd12f7d92b096af5ea0981380  ./hail-fraction/cloud_condensation_level.nc
 6be57a39af9927f742d6805bf7196d2667c94452dfb94b9ac9f8e65faa69471a  ./hail-fraction/convective_cloud_top_temperature.nc
 a01f1ab686e1570b89a91e2eb4d9c0fa1bb71bd1abf26d1e58b5b5610ae953dd  ./hail-fraction/hail_melting_level.nc
@@ -535,6 +551,9 @@ caa759d708afc535223bcf35924e98962675f6e3f690fe1f82c5de5ba08302b4  ./hail-size/te
 c4451e5a94a946215e5a3e09787b0d25c215aa4511110f46b6015c1c5aab13c9  ./hail-size/wet_bulb_freezing_altitude.nc
 0af18a52713334627696679bb369bb00332e5cb8f8a1a82ca9a2a7612071e6d3  ./hail-size/with_id_attr/kgo.nc
 76d84b674d8c0c9bed8bd27fad6697be7559c9ebe1c13296363717cbcd888add  ./hail-size/without_id_attr/kgo.nc
+e4ad2774923662fad733e3d95730416993abd94486aa9e032256e9d60d4b1bc0  ./height-of-max-vertical-velocity/kgo.nc
+90ac17c415ba2b0249de3f304bf2f511a9a294710e0577dac9231b6ab822660d  ./height-of-max-vertical-velocity/max_vertical_velocity.nc
+929f98fa947ca8b635d76f6d3509b368fe7780019af76172dddbae4fef21822d  ./height-of-max-vertical-velocity/vertical_velocity_on_height_levels.nc
 cebc2ccbe6c8e33b3e39d65f07d189172133a3fc6c22e3567c61572e14750cef  ./integrate-time-bounds/basic/kgo.nc
 b8ae3b9d3db05fc0c8479bb707465aeaf140202ab4477d025f5c793e2d287dc8  ./integrate-time-bounds/basic/kgo_renamed.nc
 5aaa03199faf9df5fda699936b33df862b071b3790b04791fef31d8cc0fd074a  ./integrate-time-bounds/basic/lightning_frequency.nc

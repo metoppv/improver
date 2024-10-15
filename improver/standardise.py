@@ -28,6 +28,46 @@ from improver.utilities.round import round_close
 class StandardiseMetadata(BasePlugin):
     """Plugin to standardise cube metadata"""
 
+    def __init__(
+        self,
+        new_name: Optional[str] = None,
+        new_units: Optional[str] = None,
+        coords_to_remove: Optional[List[str]] = None,
+        coord_modification: Optional[Dict[str, float]] = None,
+        attributes_dict: Optional[Dict[str, Any]] = None,
+    ):
+        """
+        Instantiate our class for standardising cube metadata.
+
+        Args:
+            new_name:
+                Optional rename for output cube
+            new_units:
+                Optional unit conversion for output cube
+            coords_to_remove:
+                Optional list of scalar coordinates to remove from output cube
+            coord_modification:
+                Optional dictionary used to directly modify the values of
+                scalar coordinates. To be used with extreme caution.
+                For example this dictionary might take the form:
+                {"height": 1.5} to set the height coordinate to have a value
+                of 1.5m (assuming original units of m).
+                This can be used to align e.g. temperatures defined at slightly
+                different heights where this difference is considered small
+                enough to ignore. Type is inferred, so providing a value of 2
+                will result in an integer type, whilst a value of 2.0 will
+                result in a float type.
+            attributes_dict:
+                Optional dictionary of required attribute updates. Keys are
+                attribute names, and values are the required changes.
+                See improver.metadata.amend.amend_attributes for details.
+        """
+        self._new_name = new_name
+        self._new_units = new_units
+        self._coords_to_remove = coords_to_remove
+        self._coord_modification = coord_modification
+        self._attributes_dict = attributes_dict
+
     @staticmethod
     def _rm_air_temperature_status_flag(cube: Cube) -> Cube:
         """
@@ -198,15 +238,7 @@ class StandardiseMetadata(BasePlugin):
 
         cube.cell_methods = updated_cms
 
-    def process(
-        self,
-        cube: Cube,
-        new_name: Optional[str] = None,
-        new_units: Optional[str] = None,
-        coords_to_remove: Optional[List[str]] = None,
-        coord_modification: Optional[Dict[str, float]] = None,
-        attributes_dict: Optional[Dict[str, Any]] = None,
-    ) -> Cube:
+    def process(self, cube: Cube) -> Cube:
         """
         Perform compulsory and user-configurable metadata adjustments.  The
         compulsory adjustments are:
@@ -220,27 +252,6 @@ class StandardiseMetadata(BasePlugin):
         Args:
             cube:
                 Input cube to be standardised
-            new_name:
-                Optional rename for output cube
-            new_units:
-                Optional unit conversion for output cube
-            coords_to_remove:
-                Optional list of scalar coordinates to remove from output cube
-            coord_modification:
-                Optional dictionary used to directly modify the values of
-                scalar coordinates. To be used with extreme caution.
-                For example this dictionary might take the form:
-                {"height": 1.5} to set the height coordinate to have a value
-                of 1.5m (assuming original units of m).
-                This can be used to align e.g. temperatures defined at slightly
-                different heights where this difference is considered small
-                enough to ignore. Type is inferred, so providing a value of 2
-                will result in an integer type, whilst a value of 2.0 will
-                result in a float type.
-            attributes_dict:
-                Optional dictionary of required attribute updates. Keys are
-                attribute names, and values are the required changes.
-                See improver.metadata.amend.amend_attributes for details.
 
         Returns:
             The processed cube
@@ -249,16 +260,16 @@ class StandardiseMetadata(BasePlugin):
         cube = self._rm_air_temperature_status_flag(cube)
         cube = self._collapse_scalar_dimensions(cube)
 
-        if new_name:
-            cube.rename(new_name)
-        if new_units:
-            cube.convert_units(new_units)
-        if coords_to_remove:
-            self._remove_scalar_coords(cube, coords_to_remove)
-        if coord_modification:
-            self._modify_scalar_coord_value(cube, coord_modification)
-        if attributes_dict:
-            amend_attributes(cube, attributes_dict)
+        if self._new_name:
+            cube.rename(self._new_name)
+        if self._new_units:
+            cube.convert_units(self._new_units)
+        if self._coords_to_remove:
+            self._remove_scalar_coords(cube, self._coords_to_remove)
+        if self._coord_modification:
+            self._modify_scalar_coord_value(cube, self._coord_modification)
+        if self._attributes_dict:
+            amend_attributes(cube, self._attributes_dict)
         self._discard_redundant_cell_methods(cube)
 
         # this must be done after unit conversion as if the input is an integer

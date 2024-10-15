@@ -908,11 +908,13 @@ class Test_process(IrisTest):
                 )
             )
 
-    def test_empty_cube_list(self):
+    def test_too_few_cubes(self):
         """Tests that an error is raised if there is an empty list."""
         msg = "Expected 4"
         with self.assertRaisesRegex(ValueError, msg):
-            PhaseChangeLevel(phase_change="snow-sleet").process(CubeList([]))
+            PhaseChangeLevel(phase_change="snow-sleet").process(
+                CubeList([self.wet_bulb_temperature_cube])
+            )
 
 
 if __name__ == "__main__":
