@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Functions to set up variable, multi-realization, percentile and probability
@@ -279,8 +279,9 @@ def _create_dimension_coord(
     if coord_array is not None:
         if len(coord_array) != data_length:
             raise ValueError(
-                "Cannot generate {} {}s with data of length "
-                "{}".format(len(coord_array), coord_name, data_length)
+                "Cannot generate {} {}s with data of length " "{}".format(
+                    len(coord_array), coord_name, data_length
+                )
             )
 
         coord_array = np.array(coord_array)
@@ -704,7 +705,10 @@ def set_up_percentile_cube(*args, **kwargs):
 
 
 def _percentile_cube(
-    function, data: ndarray, percentiles: Union[List[float], ndarray], **kwargs: Any,
+    function,
+    data: ndarray,
+    percentiles: Union[List[float], ndarray],
+    **kwargs: Any,
 ) -> Cube:
     """
     Set up a cube containing percentiles of a variable with:
@@ -725,7 +729,11 @@ def _percentile_cube(
     Returns:
         Cube containing percentiles
     """
-    cube = function(data, realizations=percentiles, **kwargs,)
+    cube = function(
+        data,
+        realizations=percentiles,
+        **kwargs,
+    )
     cube.coord("realization").rename("percentile")
     cube.coord("percentile").units = Unit("%")
     if len(percentiles) == 1:
@@ -816,7 +824,13 @@ def _probability_cube(
         )
         raise ValueError(msg)
 
-    cube = function(data, name=name, units="1", realizations=thresholds, **kwargs,)
+    cube = function(
+        data,
+        name=name,
+        units="1",
+        realizations=thresholds,
+        **kwargs,
+    )
     threshold_name = variable_name.replace("_in_vicinity", "")
     cube.coord("realization").rename(threshold_name)
     cube.coord(threshold_name).var_name = "threshold"
@@ -888,7 +902,9 @@ def add_coordinate(
     for val in coord_points:
         temp_cube = cube.copy()
         coord = DimCoord(
-            np.array([val], dtype=dtype), units=coord_units, attributes=attributes,
+            np.array([val], dtype=dtype),
+            units=coord_units,
+            attributes=attributes,
         )
         coord.rename(coord_name)
         temp_cube.add_aux_coord(coord)

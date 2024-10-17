@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for combining a visibility forecast with a scaled cloud base at ground level forecast"""
 
@@ -123,7 +123,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
             in vis_thresholds.
         """
         scaling_factors = (1 - self.initial_scaling_value) * (
-            -1 / self.first_unscaled_threshold ** 4
+            -1 / self.first_unscaled_threshold**4
         ) * (vis_thresholds - self.first_unscaled_threshold) ** 4 + 1
 
         scaling_factors = np.where(

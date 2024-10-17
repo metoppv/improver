@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the utilities.OccurrenceWithinVicinity plugin."""
 
@@ -91,7 +91,9 @@ def latlon_cube() -> Cube:
 @pytest.fixture
 def radius_coord() -> AuxCoord:
     return AuxCoord(
-        np.array([RADIUS], dtype=np.float32), units="m", long_name="radius_of_vicinity",
+        np.array([RADIUS], dtype=np.float32),
+        units="m",
+        long_name="radius_of_vicinity",
     )
 
 
@@ -358,7 +360,11 @@ def test_with_multiple_realizations_and_times(
         ]
     )
     cube = add_coordinate(
-        cube, TIMESTEPS, "time", order=[1, 0, 2, 3], is_datetime=True,
+        cube,
+        TIMESTEPS,
+        "time",
+        order=[1, 0, 2, 3],
+        is_datetime=True,
     )
     cube.data[0, 0, 2, 1] = 1.0
     cube.data[1, 1, 1, 3] = 1.0
@@ -370,7 +376,11 @@ def test_with_multiple_realizations_and_times(
 
 
 @pytest.mark.parametrize(
-    "kwargs", (({"radii": [2000, 5000]}), ({"grid_point_radii": [2, 3, 4, 5]}),)
+    "kwargs",
+    (
+        ({"radii": [2000, 5000]}),
+        ({"grid_point_radii": [2, 3, 4, 5]}),
+    ),
 )
 def test_coordinate_order_with_multiple_realizations_and_times(
     cube_with_realizations, kwargs
@@ -380,7 +390,11 @@ def test_coordinate_order_with_multiple_realizations_and_times(
 
     cube = cube_with_realizations
     cube = add_coordinate(
-        cube, TIMESTEPS, "time", order=[1, 0, 2, 3], is_datetime=True,
+        cube,
+        TIMESTEPS,
+        "time",
+        order=[1, 0, 2, 3],
+        is_datetime=True,
     )
 
     # Add the expected radius_of_vicinity coordinate dimension size
@@ -450,7 +464,12 @@ def test_with_multiple_times(request, cube_with_realizations, land_fixture):
         ]
     )
     cube = cube[0]
-    cube = add_coordinate(cube, TIMESTEPS, "time", is_datetime=True,)
+    cube = add_coordinate(
+        cube,
+        TIMESTEPS,
+        "time",
+        is_datetime=True,
+    )
     cube.data[0, 2, 1] = 1.0
     cube.data[1, 1, 3] = 1.0
     orig_shape = cube.data.shape

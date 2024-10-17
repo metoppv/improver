@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for calibration.__init__"""
 
@@ -28,7 +28,6 @@ from improver_tests import ImproverTest
 
 
 class Test_split_forecasts_and_truth(unittest.TestCase):
-
     """Test the split_forecasts_and_truth method."""
 
     def setUp(self):
@@ -213,7 +212,6 @@ class Test_split_forecasts_and_truth(unittest.TestCase):
 
 
 class Test_split_forecasts_and_coeffs(ImproverTest):
-
     """Test the split_forecasts_and_coeffs function."""
 
     def setUp(self):
@@ -611,7 +609,8 @@ def test_matching_validity_times(time, validity_times, expected):
 
 
 @pytest.mark.parametrize(
-    "comment", [(None), ("Example comment")],
+    "comment",
+    [(None), ("Example comment")],
 )
 def test_add_warning_to_comment(comment):
     """Test the addition of a warning comment if calibration has been attempted

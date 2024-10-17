@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """A module for creating a saturated vapour pressure table"""
 
@@ -16,7 +16,6 @@ from improver.constants import TRIPLE_PT_WATER
 
 
 class SaturatedVapourPressureTable(BasePlugin):
-
     """
     Plugin to create a saturated vapour pressure lookup table.
     """

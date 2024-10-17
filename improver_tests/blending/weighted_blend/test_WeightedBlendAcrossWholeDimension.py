@@ -1,10 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the
-   weighted_blend.WeightedBlendAcrossWholeDimension plugin."""
-
+weighted_blend.WeightedBlendAcrossWholeDimension plugin."""
 
 import unittest
 from datetime import datetime
@@ -55,7 +54,6 @@ def percentile_cube(frt_points, time, frt):
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -72,7 +70,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -83,7 +80,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_weighted_blend(IrisTest):
-
     """A shared setup for tests in the WeightedBlendAcrossWholeDimension
     plugin."""
 
@@ -170,7 +166,6 @@ class Test_weighted_blend(IrisTest):
 
 
 class Test_check_percentile_coord(Test_weighted_blend):
-
     """Test the percentile coord checking function."""
 
     def test_basic(self):
@@ -200,7 +195,6 @@ class Test_check_percentile_coord(Test_weighted_blend):
 
 
 class Test_check_compatible_time_points(Test_weighted_blend):
-
     """Test the time point compatibility checking function."""
 
     def test_basic(self):
@@ -231,7 +225,6 @@ class Test_check_compatible_time_points(Test_weighted_blend):
 
 
 class Test_shape_weights(Test_weighted_blend):
-
     """Test the shape weights function is able to create a valid a set of
     weights, or raises an error."""
 
@@ -311,7 +304,6 @@ class Test_shape_weights(Test_weighted_blend):
 
 
 class Test_get_weights_array(Test_weighted_blend):
-
     """Test the get_weights_array function."""
 
     def test_no_weights_cube_provided(self):
@@ -344,7 +336,6 @@ class Test_get_weights_array(Test_weighted_blend):
 
 
 class Test__normalise_weights(Test_weighted_blend):
-
     """Test the _normalise_weights function."""
 
     def test_noop(self):
@@ -382,7 +373,6 @@ class Test__normalise_weights(Test_weighted_blend):
 
 
 class Test_percentile_weighted_mean(Test_weighted_blend):
-
     """Test the percentile_weighted_mean function."""
 
     def test_with_weights(self):
@@ -415,7 +405,6 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
 
 class Test_weighted_mean(Test_weighted_blend):
-
     """Test the weighted_mean function."""
 
     def test_with_weights(self):
@@ -510,7 +499,6 @@ class Test_weighted_mean(Test_weighted_blend):
 
 
 class Test_process(Test_weighted_blend):
-
     """Test the process method."""
 
     def test_basic(self):

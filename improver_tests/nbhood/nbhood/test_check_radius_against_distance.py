@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for nbhood.nbhood.check_radius_against_distance."""
 
@@ -14,7 +14,6 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_check_radius_against_distance(IrisTest):
-
     """Test check_radius_against_distance function."""
 
     def setUp(self):

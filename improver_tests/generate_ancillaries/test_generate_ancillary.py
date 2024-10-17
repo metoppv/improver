@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the the stand alone functions in generate_ancillary.py"""
 
@@ -87,7 +87,7 @@ class Test__make_mask_cube(IrisTest):
 
     def test_cube_attribute_include_seapoints(self):
         """Test the new attribute is added to the cube when seapoints
-           included."""
+        included."""
         result = _make_mask_cube(
             self.mask,
             self.coords,

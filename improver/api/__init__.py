@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 # flake8: noqa
 """
@@ -8,6 +8,7 @@ This module contains the plugins for the IMPROVER project.  This aids in discove
 by making them available to a single flat namespace.  This also protects end-users from
 changes in structure to IMPROVER impacting their use of the plugins.
 """
+
 from importlib import import_module
 
 # alphabetically sorted IMPROVER plugin lookup

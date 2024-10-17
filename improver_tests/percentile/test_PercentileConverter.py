@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the percentile.PercentileConverter plugin."""
 
@@ -18,7 +18,6 @@ from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_
 
 
 class Test_process(IrisTest):
-
     """Test the creation of percentiles by the plugin."""
 
     def setUp(self):

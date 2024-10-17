@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for psychrometric_calculations PhaseChangeLevel."""
 
@@ -24,7 +24,6 @@ from improver.utilities.cube_manipulation import sort_coord_in_cube
 
 
 class Test__init__(IrisTest):
-
     """Test the init method."""
 
     def test_snow_sleet(self):
@@ -75,7 +74,6 @@ class Test__init__(IrisTest):
 
 
 class Test_find_falling_level(IrisTest):
-
     """Test the find_falling_level method."""
 
     def setUp(self):
@@ -114,7 +112,6 @@ class Test_find_falling_level(IrisTest):
 
 
 class Test_fill_in_high_phase_change_falling_levels(IrisTest):
-
     """Test the fill_in_high_phase_change_falling_levels method."""
 
     def setUp(self):
@@ -157,7 +154,6 @@ class Test_fill_in_high_phase_change_falling_levels(IrisTest):
 
 
 class Test_linear_wet_bulb_fit(IrisTest):
-
     """Test the linear_wet_bulb_fit method."""
 
     def setUp(self):
@@ -207,7 +203,6 @@ class Test_linear_wet_bulb_fit(IrisTest):
 
 
 class Test_find_extrapolated_falling_level(IrisTest):
-
     """Test the find_extrapolated_falling_level method."""
 
     def setUp(self):
@@ -271,7 +266,6 @@ class Test_find_extrapolated_falling_level(IrisTest):
 
 
 class Test_fill_sea_points(IrisTest):
-
     """Test the fill_in_sea_points method."""
 
     def setUp(self):
@@ -365,7 +359,6 @@ class Test_fill_sea_points(IrisTest):
 
 
 class Test_find_max_in_nbhood_orography(IrisTest):
-
     """Test the find_max_in_nbhood_orography method"""
 
     def setUp(self):
@@ -427,7 +420,6 @@ class Test_find_max_in_nbhood_orography(IrisTest):
 
 
 class Test_horizontally_interpolate_phase(IrisTest):
-
     """Test the PhaseChangeLevel horizontal interpolation."""
 
     def setUp(self):
@@ -599,7 +591,6 @@ class Test_horizontally_interpolate_phase(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the PhaseChangeLevel processing works"""
 
     def setUp(self):
@@ -719,9 +710,9 @@ class Test_process(IrisTest):
         values when the model_id_attr is provided. In this instance the phase change
         is from snow to sleet. The returned level has three values, all above
         orography."""
-        self.wet_bulb_temperature_cube.attributes[
-            "mosg__model_configuration"
-        ] = "uk_ens"
+        self.wet_bulb_temperature_cube.attributes["mosg__model_configuration"] = (
+            "uk_ens"
+        )
         self.wet_bulb_integral_cube.attributes["mosg__model_configuration"] = "uk_ens"
         result = PhaseChangeLevel(
             phase_change="snow-sleet", model_id_attr="mosg__model_configuration"
@@ -745,9 +736,9 @@ class Test_process(IrisTest):
 
     def test_model_id_attr_exception(self):
         """Test that non-matching model_id_attr values result in an exception."""
-        self.wet_bulb_temperature_cube.attributes[
-            "mosg__model_configuration"
-        ] = "uk_ens"
+        self.wet_bulb_temperature_cube.attributes["mosg__model_configuration"] = (
+            "uk_ens"
+        )
         self.wet_bulb_integral_cube.attributes["mosg__model_configuration"] = "uk_det"
         msg = "Attribute mosg__model_configuration"
         with self.assertRaisesRegex(ValueError, msg):

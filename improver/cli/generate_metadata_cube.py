@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """CLI to generate metadata cube for acceptance tests."""
 
@@ -24,7 +24,7 @@ def process(
     domain_corner: cli.comma_separated_list_of_float = None,
     npoints: int = 71,
 ):
-    """ Generate a cube with metadata only.
+    """Generate a cube with metadata only.
 
     Args:
         mandatory_attributes_json (Dict):

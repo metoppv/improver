@@ -1,10 +1,11 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Functions for use within unit tests for `ensemble_calibration` plugins.
 """
+
 import datetime
 
 import iris
@@ -21,7 +22,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 
 
 class EnsembleCalibrationAssertions(IrisTest):
-
     """Additional assertions, specifically for usage in the
     ensemble calibration unit tests."""
 
@@ -38,7 +38,7 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-         """
+        """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
     def assertCalibratedVariablesAlmostEqual(self, first, second):
@@ -54,12 +54,11 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-         """
+        """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
 
 class SetupCubes(IrisTest):
-
     """Set up cubes for testing."""
 
     def setUp(self):

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
 from datetime import datetime, timedelta
@@ -209,7 +209,8 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
     )
     with pytest.raises(ValueError, match="valid-hour differ"):
         ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
+            forecast_cube,
+            bias_cubes,
         )
     # Case 2: The bias data defined with a mix of forecast_reference_time valid-hours
     bias_cubes = generate_bias_cubelist(
@@ -224,7 +225,8 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
     )
     with pytest.raises(ValueError, match="Multiple forecast_reference_time valid-hour"):
         ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
+            forecast_cube,
+            bias_cubes,
         )
     # Case 3: The bias data defined for different forecast_period relative to forecast
     bias_cubes = generate_bias_cubelist(
@@ -236,7 +238,8 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
         ).points + (3 * 3600)
     with pytest.raises(ValueError, match="Forecast period differ"):
         ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
+            forecast_cube,
+            bias_cubes,
         )
     # Case 4: The bias data defined with a mix of forecast-period values
     bias_cubes = generate_bias_cubelist(
@@ -245,13 +248,14 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
     bias_cube_w_different_fp = generate_bias_cubelist(
         1, last_valid_time=VALID_TIME - timedelta(days=6), single_frt_with_bounds=False
     )[0]
-    bias_cube_w_different_fp.coord(
-        "forecast_period"
-    ).points = bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    bias_cube_w_different_fp.coord("forecast_period").points = (
+        bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    )
     bias_cubes.append(bias_cube_w_different_fp)
     with pytest.raises(ValueError, match="Multiple forecast period"):
         ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
+            forecast_cube,
+            bias_cubes,
         )
 
 

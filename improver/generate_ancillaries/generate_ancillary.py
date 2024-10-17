@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing ancillary generation utilities for Improver"""
 
@@ -299,7 +299,7 @@ class GenerateOrographyBandAncils(BasePlugin):
                 "bounds": list of list of pairs of bounds for each band and
                 "units":"string containing units of bounds", for example::
 
-                    {'bounds':[[0,100], [100,200]], 'units': "m"}
+                    {"bounds": [[0, 100], [100, 200]], "units": "m"}
 
             landmask:
                 land mask on standard grid, with land points set to one and

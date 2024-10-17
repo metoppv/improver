@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """init for cli and clize"""
 
@@ -362,8 +362,7 @@ def with_output(
 
 
 def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
-    """Decorator for creating CLI objects.
-    """
+    """Decorator for creating CLI objects."""
     if obj is None:
         return partial(clizefy, helper_class=helper_class, **kwargs)
     if hasattr(obj, "cli"):
@@ -432,7 +431,7 @@ SUBCOMMANDS_DISPATCHER = clizefy(
 def unbracket(args):
     """Convert input list with bracketed items into nested lists.
 
-    >>> unbracket('foo [ bar a b ] [ baz c ] -o z'.split())
+    >>> unbracket("foo [ bar a b ] [ baz c ] -o z".split())
     ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
 
     """

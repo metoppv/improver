@@ -1,11 +1,12 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to run neighbourhooding processing over areas of land and sea
 separately before combining them to return unified fields. Topographic zones
 may also be employed, with the sea area being treated as a distinct zone."""
+
 from improver import cli
 
 
@@ -21,7 +22,7 @@ def process(
     lead_times: cli.comma_separated_list = None,
     area_sum=False,
 ):
-    """ Module to process land and sea separately before combining them.
+    """Module to process land and sea separately before combining them.
 
     Neighbourhood the input dataset over two distinct regions of land and sea.
     If performed as a single level neighbourhood, a land-sea mask should be
@@ -89,7 +90,6 @@ def process(
     if any(
         "topographic_zone" in coord.name() for coord in mask.coords(dim_coords=True)
     ):
-
         if mask.attributes["topographic_zones_include_seapoints"] == "True":
             raise ValueError(
                 "The topographic zones mask cube must have been "

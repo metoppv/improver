@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for cli.__init__"""
 
@@ -57,7 +57,6 @@ def wrapped_with_output(first):
 
 
 class Test_docutilize(unittest.TestCase):
-
     """Test the docutilize function."""
 
     def setUp(self):
@@ -218,7 +217,7 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_with_least_significant_figure(self, m):
-        """Tests save_netcdf, compression-level=0 and least-significant-digit=2 """
+        """Tests save_netcdf, compression-level=0 and least-significant-digit=2"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         result = wrapped_with_output.cli(
             "argv[0]",

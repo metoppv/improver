@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the apply-emos-coefficients CLI"""
 
@@ -479,7 +479,10 @@ def test_no_coefficients_with_prob_template(tmp_path):
     )
     # Check output matches kgo.
     acc.compare(
-        output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE,
+        output_path,
+        kgo_path,
+        atol=LOOSE_TOLERANCE,
+        rtol=LOOSE_TOLERANCE,
     )
 
 

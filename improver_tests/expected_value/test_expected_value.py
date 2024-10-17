@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ExpectedValue plugin."""
+
 import numpy as np
 import pytest
 from iris.coords import CellMethod
@@ -155,7 +156,10 @@ def test_process_threshold_bounded(single_bounded_threshold_cube):
     """Check expected value of a below bounded distribution eg. precipitation."""
     expval = ExpectedValue().process(single_bounded_threshold_cube)
     np.testing.assert_allclose(
-        expval.data[0], [0.0, 0.01, 3.985], rtol=0, atol=1e-6,
+        expval.data[0],
+        [0.0, 0.01, 3.985],
+        rtol=0,
+        atol=1e-6,
     )
 
 
@@ -166,7 +170,8 @@ def test_process_threshold_abovebelow(threshold_cube):
     threshold_cube_airtemp = threshold_cube.coord("air_temperature")
     threshold_below_cube_airtemp = threshold_below_cube.coord("air_temperature")
     np.testing.assert_array_equal(
-        threshold_cube_airtemp.points, threshold_below_cube_airtemp.points,
+        threshold_cube_airtemp.points,
+        threshold_below_cube_airtemp.points,
     )
     assert (
         threshold_cube_airtemp.attributes["spp__relative_to_threshold"]

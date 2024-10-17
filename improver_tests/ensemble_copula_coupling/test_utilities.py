@@ -1,11 +1,12 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the
 `ensemble_copula_coupling.EnsembleCopulaCouplingUtilities` class.
 """
+
 import importlib
 import unittest
 import unittest.mock as mock
@@ -41,7 +42,6 @@ from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS, set_up_spot_test_cube
 
 
 class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
-
     """Test the concatenate_2d_array_with_2d_array_endpoints."""
 
     def test_basic(self):
@@ -68,7 +68,6 @@ class Test_concatenate_2d_array_with_2d_array_endpoints(IrisTest):
 
 
 class Test_choose_set_of_percentiles(IrisTest):
-
     """Test the choose_set_of_percentiles plugin."""
 
     def test_basic(self):
@@ -113,7 +112,6 @@ class Test_choose_set_of_percentiles(IrisTest):
 
 
 class Test_create_cube_with_percentiles(IrisTest):
-
     """Test the _create_cube_with_percentiles plugin."""
 
     def setUp(self):
@@ -139,8 +137,7 @@ class Test_create_cube_with_percentiles(IrisTest):
         self.assertEqual(result.units, Unit("1"))
 
     def test_many_percentiles(self):
-        """Test that the plugin returns an Iris.cube.Cube with many percentiles.
-        """
+        """Test that the plugin returns an Iris.cube.Cube with many percentiles."""
         percentiles = np.linspace(0, 100, 100)
         cube_data = np.zeros(
             [
@@ -247,7 +244,6 @@ class Test_create_cube_with_percentiles(IrisTest):
 
 
 class Test_get_bounds_of_distribution(IrisTest):
-
     """Test the get_bounds_of_distribution plugin."""
 
     def test_basic(self):
@@ -291,7 +287,6 @@ class Test_get_bounds_of_distribution(IrisTest):
 
 
 class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
-
     """Test the insert_lower_and_upper_endpoint_to_1d_array."""
 
     def test_basic(self):
@@ -311,7 +306,6 @@ class Test_insert_lower_and_upper_endpoint_to_1d_array(IrisTest):
 
 
 class Test_restore_non_percentile_dimensions(IrisTest):
-
     """Test the restore_non_percentile_dimensions."""
 
     def setUp(self):
@@ -392,7 +386,6 @@ except ImportError:
 
 
 class Test_interpolate_multiple_rows_same_y(IrisTest):
-
     """Test interpolate_multiple_rows_same_y"""
 
     def setUp(self):
@@ -480,7 +473,6 @@ class Test_interpolate_multiple_rows_same_y(IrisTest):
 
 
 class TestInterpolateMultipleRowsSameX(IrisTest):
-
     """Test interpolate_multiple_rows"""
 
     def setUp(self):

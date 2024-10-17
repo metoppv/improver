@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the cube_checker utility."""
 
@@ -30,7 +30,6 @@ from improver.utilities.cube_checker import (
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
-
     """Test whether the cube has an x and y axis."""
 
     def setUp(self):
@@ -78,7 +77,6 @@ class Test_check_for_x_and_y_axes(IrisTest):
 
 
 class Test_check_cube_coordinates(IrisTest):
-
     """Test check_cube_coordinates successfully promotes scalar coordinates to
     dimension coordinates in a new cube if they were dimension coordinates in
     the progenitor cube."""
@@ -167,7 +165,6 @@ class Test_check_cube_coordinates(IrisTest):
 
 
 class Test_find_dimension_coordinate_mismatch(IrisTest):
-
     """Test if two cubes have the dimension coordinates."""
 
     def setUp(self):
@@ -418,7 +415,11 @@ def only_one_cube(cubes: List[Cube]):
             True,
             "^air_temperature and air_pressure must have time bounds",
         ),
-        (only_one_cube, False, "^Need at least 2 cubes to check. Found 1",),
+        (
+            only_one_cube,
+            False,
+            "^Need at least 2 cubes to check. Found 1",
+        ),
     ),
 )
 def test_time_coord_exceptions(

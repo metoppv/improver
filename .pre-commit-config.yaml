@@ -1,0 +1,24 @@
+repos:
+- repo: https://github.com/astral-sh/ruff-pre-commit
+  # Ruff version.
+  rev: v0.4.8
+  hooks:
+    # Run the linter (must come before any formatter, black/ruff when --fix).
+    - id: ruff
+      args: [ --fix ]
+    # Run the formatter.
+    - id: ruff-format
+- repo: local
+  hooks:
+    - id: copyright_check
+      name: Check copyright header
+      types: [python]
+      args: [ --fix ]
+      language: system
+      entry: ./copyright_check
+    - id: init_check
+      name: Check for missing __init__.py files
+      types: [python]
+      language: system
+      entry: ./init_check
+      files: ^(improver/|improver_tests/)

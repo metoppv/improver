@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Unit tests for the nowcasting.Accumulation plugin """
+"""Unit tests for the nowcasting.Accumulation plugin"""
 
 import datetime
 import unittest
@@ -172,7 +172,6 @@ class Test_sort_cubes_by_time(rate_cube_set_up):
 
 
 class Test__check_inputs(rate_cube_set_up):
-
     """Test the _check_inputs method."""
 
     def test_basic(self):
@@ -278,7 +277,6 @@ class Test__check_inputs(rate_cube_set_up):
 
 
 class Test__get_cube_subsets(rate_cube_set_up):
-
     """Test the _get_cube_subsets method."""
 
     def test_basic(self):
@@ -295,7 +293,6 @@ class Test__get_cube_subsets(rate_cube_set_up):
 
 
 class Test__calculate_accumulation(rate_cube_set_up):
-
     """Test the _calculate_accumulation method."""
 
     def test_basic(self):
@@ -330,7 +327,6 @@ class Test__calculate_accumulation(rate_cube_set_up):
 
 
 class Test__set_metadata(rate_cube_set_up):
-
     """Test the _set_metadata method."""
 
     def test_basic(self):

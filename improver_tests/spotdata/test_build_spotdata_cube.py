@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the build_spotdata_cube function"""
 
@@ -101,7 +101,9 @@ class Test_build_spotdata_cube(IrisTest):
         msg = "A unique_site_id_key must be provided"
         with self.assertRaisesRegex(ValueError, msg):
             build_spotdata_cube(
-                data, *self.args, unique_site_id=self.unique_site_id,
+                data,
+                *self.args,
+                unique_site_id=self.unique_site_id,
             )
 
     def test_neighbour_method(self):
@@ -129,7 +131,9 @@ class Test_build_spotdata_cube(IrisTest):
         )
 
         result = build_spotdata_cube(
-            data, *self.args, grid_attributes=self.grid_attributes,
+            data,
+            *self.args,
+            grid_attributes=self.grid_attributes,
         )
 
         self.assertArrayAlmostEqual(result.data, data)

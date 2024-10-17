@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing neighbourhood processing utilities."""
 
@@ -83,11 +83,11 @@ def circular_kernel(ranges: int, weighted_mode: bool) -> ndarray:
         # Create a kernel, such that the central grid point has the
         # highest weighting, with the weighting decreasing with distance
         # away from the central grid point.
-        open_grid_summed_squared = np.sum(open_grid ** 2.0).astype(float)
+        open_grid_summed_squared = np.sum(open_grid**2.0).astype(float)
         kernel[:] = (area - open_grid_summed_squared) / area
         mask = kernel < 0.0
     else:
-        mask = np.reshape(np.sum(open_grid ** 2) > area, np.shape(kernel))
+        mask = np.reshape(np.sum(open_grid**2) > area, np.shape(kernel))
     kernel[mask] = 0.0
     return kernel
 
@@ -99,7 +99,9 @@ class BaseNeighbourhoodProcessing(PostProcessingPlugin):
     """
 
     def __init__(
-        self, radii: Union[float, List[float]], lead_times: Optional[List] = None,
+        self,
+        radii: Union[float, List[float]],
+        lead_times: Optional[List] = None,
     ) -> None:
         """
         Create a base neighbourhood processing plugin that processes radii
@@ -317,7 +319,9 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
         return data.astype(out_data_dtype)
 
     def _do_nbhood_sum(
-        self, data: np.ndarray, max_extreme: Optional[np.ndarray] = None,
+        self,
+        data: np.ndarray,
+        max_extreme: Optional[np.ndarray] = None,
     ) -> np.ndarray:
         """Calculate the sum-in-area from an array.
         As this can be expensive, the method first checks for the extreme cases where the data are:
@@ -466,7 +470,6 @@ class NeighbourhoodProcessing(BaseNeighbourhoodProcessing):
 
 
 class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
-
     """Class for generating percentiles from a circular neighbourhood."""
 
     def __init__(
@@ -521,33 +524,43 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
             1. Take the input slice_2d cube with the data, where 1 is an
                occurrence and 0 is an non-occurrence::
 
-                    [[1., 1., 1.,],
-                     [1., 0., 1.],
-                     [1., 1., 1.]]
+                    [
+                        [
+                            1.0,
+                            1.0,
+                            1.0,
+                        ],
+                        [1.0, 0.0, 1.0],
+                        [1.0, 1.0, 1.0],
+                    ]
 
             2. Define a kernel. This kernel is effectively placed over each
                point within the input data. Note that the input data is padded
                prior to placing the kernel over each point, so that the kernel
                does not exceed the bounds of the padded data::
 
-                    [[ 0.,  0.,  1.,  0.,  0.],
-                     [ 0.,  1.,  1.,  1.,  0.],
-                     [ 1.,  1.,  1.,  1.,  1.],
-                     [ 0.,  1.,  1.,  1.,  0.],
-                     [ 0.,  0.,  1.,  0.,  0.]]
+                    [
+                        [0.0, 0.0, 1.0, 0.0, 0.0],
+                        [0.0, 1.0, 1.0, 1.0, 0.0],
+                        [1.0, 1.0, 1.0, 1.0, 1.0],
+                        [0.0, 1.0, 1.0, 1.0, 0.0],
+                        [0.0, 0.0, 1.0, 0.0, 0.0],
+                    ]
 
             3. Pad the input data. The extent of the padding is given by the
                shape of the kernel. The number of values included within the
                calculation of the mean is determined by the size of the
                kernel::
 
-                    [[ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
-                     [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
-                     [ 1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ],
-                     [ 0.5 ,  0.5 ,  1.  ,  0.  ,  1.  ,  0.5 ,  0.5 ],
-                     [ 1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ,  1.  ],
-                     [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75],
-                     [ 0.75,  0.75,  1.  ,  0.5 ,  1.  ,  0.75,  0.75]]
+                    [
+                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
+                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
+                        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                        [0.5, 0.5, 1.0, 0.0, 1.0, 0.5, 0.5],
+                        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
+                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
+                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
+                    ]
 
             4. Calculate the values at the percentiles: [10].
                For the point in the upper right corner within the original
@@ -570,7 +583,7 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
 
                This gives::
 
-                    [0, 0.5, 0.5, 0.75, 1., 1., 1., 1., 1., 1., 1., 1., 1.]
+                    [0, 0.5, 0.5, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
 
                As there are 13 points within the kernel, this gives the
                following relationship between percentiles and values.
@@ -599,19 +612,23 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                When this process is applied to every point within the original
                input data, the result is::
 
-                    [[[ 0.75,  0.75,  0.5 ,  0.5 ,  0.5 ,  0.75,  0.75],
-                      [ 0.75,  0.55,  0.55,  0.5 ,  0.55,  0.55,  0.55],
-                      [ 0.55,  0.55,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ],
-                      [ 0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ],
-                      [ 0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.5 ,  0.55,  0.55],
-                      [ 0.55,  0.55,  0.55,  0.5 ,  0.55,  0.55,  0.75],
-                      [ 0.75,  0.75,  0.5 ,  0.5 ,  0.5 ,  0.75,  0.75]]],
+                    (
+                        [
+                            [
+                                [0.75, 0.75, 0.5, 0.5, 0.5, 0.75, 0.75],
+                                [0.75, 0.55, 0.55, 0.5, 0.55, 0.55, 0.55],
+                                [0.55, 0.55, 0.5, 0.5, 0.5, 0.5, 0.5],
+                                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
+                                [0.5, 0.5, 0.5, 0.5, 0.5, 0.55, 0.55],
+                                [0.55, 0.55, 0.55, 0.5, 0.55, 0.55, 0.75],
+                                [0.75, 0.75, 0.5, 0.5, 0.5, 0.75, 0.75],
+                            ]
+                        ],
+                    )
 
             5. The padding is then removed to give::
 
-                   [[[ 0.5,  0.5,  0.5],
-                     [ 0.5,  0.5,  0.5],
-                     [ 0.5,  0.5,  0.5]]]
+                   [[[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]]
         """
         kernel_mask = kernel > 0
         nb_slices = pad_and_roll(

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the wind_direction.WindDirection plugin."""
 
@@ -341,7 +341,7 @@ class Test_process(IrisTest):
         )
 
     def test_basic(self):
-        """Test that the plugin returns expected data types. """
+        """Test that the plugin returns expected data types."""
         result_cube = WindDirection().process(self.cube)
 
         self.assertIsInstance(result_cube, Cube)
@@ -371,7 +371,7 @@ class Test_process(IrisTest):
         self.assertEqual(result_cube.dtype, np.float32)
 
     def test_returns_expected_values(self):
-        """Test that the function returns correct 2D arrays of floats. """
+        """Test that the function returns correct 2D arrays of floats."""
 
         result_cube = WindDirection().process(self.cube)
 
