@@ -6,6 +6,7 @@
 This module defines the optical flow velocity calculation and extrapolation
 classes for advection nowcasting.
 """
+
 import warnings
 from typing import List, Optional, Tuple
 
@@ -172,8 +173,9 @@ def check_input_coords(cube: Cube, require_time: bool = False) -> None:
     non_scalar_coords = np.sum(np.where(data_shape > 1, 1, 0))
     if non_scalar_coords > 2:
         raise InvalidCubeError(
-            "Cube has {:d} (more than 2) non-scalar "
-            "coordinates".format(non_scalar_coords)
+            "Cube has {:d} (more than 2) non-scalar " "coordinates".format(
+                non_scalar_coords
+            )
         )
 
     if require_time:
@@ -228,8 +230,9 @@ class OpticalFlow(BasePlugin):
         """
         if iterations < 20:
             raise ValueError(
-                "Got {} iterations; minimum requirement 20 "
-                "iterations".format(iterations)
+                "Got {} iterations; minimum requirement 20 " "iterations".format(
+                    iterations
+                )
             )
 
         self.data_smoothing_radius_km = data_smoothing_radius_km
@@ -441,7 +444,7 @@ class OpticalFlow(BasePlugin):
         """
         boxes = []
         weights = []
-        weighting_factor = 0.5 / self.boxsize ** 2.0
+        weighting_factor = 0.5 / self.boxsize**2.0
         for i in range(0, field.shape[0], self.boxsize):
             for j in range(0, field.shape[1], self.boxsize):
                 boxes.append(field[i : i + self.boxsize, j : j + self.boxsize])
@@ -707,7 +710,6 @@ class OpticalFlow(BasePlugin):
         # (b) Solve optical flow displacement calculation on each subbox
         velocity = ([], [])
         for deriv_x, deriv_y, deriv_t in zip(dx_boxed, dy_boxed, dt_boxed):
-
             # Flatten arrays to create the system of linear simultaneous
             # equations to solve for this subbox
             deriv_x = deriv_x.flatten()

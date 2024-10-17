@@ -22,8 +22,8 @@ from improver.synthetic_data import utilities
     ],
 )
 def test_get_leading_dimension(coord_data, expected_cube_type):
-    """ Tests leading dimension data extracted from dictionary and the correct cube
-    type is assigned, or if more than one leading dimension present raises an error """
+    """Tests leading dimension data extracted from dictionary and the correct cube
+    type is assigned, or if more than one leading dimension present raises an error"""
     if expected_cube_type is None:
         msg = "Only one"
         with pytest.raises(ValueError, match=msg):
@@ -47,7 +47,7 @@ def test_get_leading_dimension(coord_data, expected_cube_type):
     ],
 )
 def test_get_height_levels(coord_data, expected_pressure):
-    """ Tests height level data extracted successfully and pressure flag set correctly """
+    """Tests height level data extracted successfully and pressure flag set correctly"""
     dimension_key = list(coord_data)[0]
 
     if dimension_key == "realizations":

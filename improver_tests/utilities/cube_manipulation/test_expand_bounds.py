@@ -5,6 +5,7 @@
 """
 Unit tests for the function "cube_manipulation.expand_bounds".
 """
+
 import unittest
 from datetime import datetime as dt
 
@@ -21,7 +22,6 @@ CALENDAR = "gregorian"
 
 
 class Test_expand_bounds(IrisTest):
-
     """Test expand_bounds function"""
 
     def setUp(self):

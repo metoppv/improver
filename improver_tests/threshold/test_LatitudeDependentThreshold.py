@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the threshold.LatitudeThreshold plugin."""
 
-
 import unittest
 
 import numpy as np
@@ -76,7 +75,6 @@ class Test__add_latitude_threshold_coord(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the thresholding plugin."""
 
     def setUp(self):

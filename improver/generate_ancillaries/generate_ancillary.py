@@ -299,7 +299,7 @@ class GenerateOrographyBandAncils(BasePlugin):
                 "bounds": list of list of pairs of bounds for each band and
                 "units":"string containing units of bounds", for example::
 
-                    {'bounds':[[0,100], [100,200]], 'units': "m"}
+                    {"bounds": [[0, 100], [100, 200]], "units": "m"}
 
             landmask:
                 land mask on standard grid, with land points set to one and

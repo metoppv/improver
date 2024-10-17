@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Provides support utilities."""
+"""Provides support utilities."""
 
 import copy
 from abc import ABC, abstractmethod
@@ -636,7 +636,6 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
 
 
 class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
-
     """Calculate the gradient between adjacent grid squares within
     a cube. The gradient is calculated along the x and y axis
     individually."""
@@ -827,7 +826,6 @@ def create_vicinity_coord(
 
 
 class OccurrenceWithinVicinity(PostProcessingPlugin):
-
     """Calculate whether a phenomenon occurs within the specified radii about
     a point. These radii can be given in metres, or as numbers of grid points.
     Each radius provided will result in a distinct output, with these demarked

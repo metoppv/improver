@@ -5,6 +5,7 @@
 """
 Unit tests for the `ensemble_copula_coupling.ResamplePercentiles` class.
 """
+
 import unittest
 from datetime import datetime
 
@@ -25,7 +26,6 @@ from .ecc_test_data import set_up_spot_test_cube
 
 
 class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
-
     """
     Test the _add_bounds_to_percentiles_and_forecast_values method of the
     ResamplePercentiles plugin.
@@ -165,7 +165,6 @@ class Test__add_bounds_to_percentiles_and_forecast_values(IrisTest):
 
 
 class Test__interpolate_percentiles(IrisTest):
-
     """
     Test the _interpolate_percentiles method of the ResamplePercentiles plugin.
     """
@@ -424,7 +423,6 @@ class Test__interpolate_percentiles(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process plugin of the Resample Percentiles plugin."""
 
     def setUp(self):

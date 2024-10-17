@@ -428,7 +428,7 @@ def test_record_run_coord_to_attr_discard_weights_no_duplicates(
     [
         [1 / 3, 1 / 3, 1 / 3],  # Evenly weighted
         [0.25, 0.25, 0.5],  # Unevenly weighted
-        [1, 1, 1]  # Overweighted. This method does nothing to prevent this; relies on
+        [1, 1, 1],  # Overweighted. This method does nothing to prevent this; relies on
         # sensible input weights.
     ],
 )

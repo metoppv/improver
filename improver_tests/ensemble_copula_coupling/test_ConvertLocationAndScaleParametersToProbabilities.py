@@ -5,6 +5,7 @@
 """
 Unit tests for ConvertLocationAndScaleParametersToProbabilities
 """
+
 import unittest
 
 import iris
@@ -21,7 +22,6 @@ from .ecc_test_data import ECC_TEMPERATURE_PROBABILITIES, ECC_TEMPERATURE_THRESH
 
 
 class Test__repr__(IrisTest):
-
     """Test string representation of plugin."""
 
     def test_basic(self):
@@ -35,7 +35,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__check_template_cube(IrisTest):
-
     """Test the _check_template_cube function."""
 
     def setUp(self):
@@ -80,7 +79,6 @@ class Test__check_template_cube(IrisTest):
 
 
 class Test__check_unit_compatibility(IrisTest):
-
     """Test the _check_unit_compatibility function."""
 
     def setUp(self):
@@ -125,7 +123,6 @@ class Test__check_unit_compatibility(IrisTest):
 
 
 class Test__location_and_scale_parameters_to_probabilities(IrisTest):
-
     """Test the _location_and_scale_parameters_to_probabilities function."""
 
     def setUp(self):
@@ -243,7 +240,6 @@ class Test__location_and_scale_parameters_to_probabilities(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process function."""
 
     def setUp(self):

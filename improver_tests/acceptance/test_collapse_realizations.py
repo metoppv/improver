@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the collapse-realizations CLI"""
 
-
 import pytest
 
 from . import acceptance as acc

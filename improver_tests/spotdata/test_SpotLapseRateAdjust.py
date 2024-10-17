@@ -27,7 +27,6 @@ from improver.utilities.temporal import iris_time_to_datetime
 
 
 class Test_SpotLapseRateAdjust(IrisTest):
-
     """Test class for the SpotLapseRateAdjust tests, setting up inputs."""
 
     def setUp(self):
@@ -136,9 +135,9 @@ class Test_SpotLapseRateAdjust(IrisTest):
             coord_name="height",
         )
 
-        self.spot_temperature_nearest.attributes[
-            "model_grid_hash"
-        ] = diagnostic_cube_hash
+        self.spot_temperature_nearest.attributes["model_grid_hash"] = (
+            diagnostic_cube_hash
+        )
 
         # This temperature cube is set up with the spot sites having obtained
         # their temperature values from the nearest minimum vertical
@@ -162,7 +161,6 @@ class Test_SpotLapseRateAdjust(IrisTest):
 
 
 class Test_process(Test_SpotLapseRateAdjust):
-
     """Tests the class process method."""
 
     def test_basic(self):
@@ -249,7 +247,7 @@ class Test_process(Test_SpotLapseRateAdjust):
 
     def test_probability_cube(self):
         """Ensure that the plugin exits with value error if the spot data cube
-        is in probability space. """
+        is in probability space."""
 
         diagnostic_cube_hash = create_coordinate_hash(self.lapse_rate_cube)
         data = np.ones((3, 3, 3), dtype=np.float32)

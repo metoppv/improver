@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the "forecast_reference_enforcement.normalise_to_reference" function."""
+
 import iris
 import numpy as np
 import pytest

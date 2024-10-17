@@ -87,9 +87,9 @@ class HailFraction(PostProcessingPlugin):
             | (convective_cloud_top.data > cct_limit)
             | (hail_melting_level.data > orography.data)
         ] = 0
-        hail_fraction[
-            (hail_size.data > hail_size_limit) & (hail_fraction < 0.05)
-        ] = 0.05
+        hail_fraction[(hail_size.data > hail_size_limit) & (hail_fraction < 0.05)] = (
+            0.05
+        )
         return hail_fraction
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:

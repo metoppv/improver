@@ -14,7 +14,6 @@ from improver.synthetic_data.set_up_test_cubes import set_up_variable_cube
 
 
 class Test_check_radius_against_distance(IrisTest):
-
     """Test check_radius_against_distance function."""
 
     def setUp(self):

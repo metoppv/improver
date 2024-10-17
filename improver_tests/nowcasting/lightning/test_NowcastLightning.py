@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the nowcast.lightning.NowcastLightning plugin."""
 
-
 import unittest
 from datetime import datetime as dt
 
@@ -132,7 +131,6 @@ def set_up_lightning_test_cubes(
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method accepts keyword arguments."""
 
     def test_with_radius(self):
@@ -145,7 +143,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -167,7 +164,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__update_metadata(IrisTest):
-
     """Test the _update_metadata method."""
 
     def setUp(self):
@@ -230,7 +226,6 @@ class Test__update_metadata(IrisTest):
 
 
 class Test__modify_first_guess(IrisTest):
-
     """Test the _modify_first_guess method."""
 
     def setUp(self):
@@ -438,7 +433,6 @@ class Test__modify_first_guess(IrisTest):
 
 
 class Test_apply_precip(IrisTest):
-
     """Test the apply_precip method."""
 
     def setUp(self):
@@ -586,7 +580,6 @@ class Test_apply_precip(IrisTest):
 
 
 class Test_apply_ice(IrisTest):
-
     """Test the apply_ice method."""
 
     def setUp(self):
@@ -712,7 +705,6 @@ class Test_apply_ice(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the nowcast lightning plugin."""
 
     def setUp(self):

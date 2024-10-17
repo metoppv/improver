@@ -22,7 +22,6 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class Test_SpotExtraction(IrisTest):
-
     """Test class for the SpotExtraction tests, setting up inputs."""
 
     def setUp(self):
@@ -159,7 +158,6 @@ class Test_SpotExtraction(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Tests the class __repr__ function."""
 
     def test_basic(self):
@@ -179,7 +177,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_extract_coordinates(Test_SpotExtraction):
-
     """Test the extraction of x and y coordinate indices from a neighbour
     cube for a given neighbour_selection_method."""
 
@@ -207,7 +204,6 @@ class Test_extract_coordinates(Test_SpotExtraction):
 
 
 class Test_check_for_unique_id(Test_SpotExtraction):
-
     """Test identification of unique site ID coordinates from coordinate
     attributes."""
 
@@ -229,7 +225,6 @@ class Test_check_for_unique_id(Test_SpotExtraction):
 
 
 class Test_get_aux_coords(Test_SpotExtraction):
-
     """Test the extraction of scalar and non-scalar auxiliary coordinates
     from a cube."""
 
@@ -289,7 +284,6 @@ class Test_get_aux_coords(Test_SpotExtraction):
 
 
 class Test_get_coordinate_data(Test_SpotExtraction):
-
     """Test the extraction of data from the provided coordinates."""
 
     def test_coordinate_with_bounds_extraction(self):
@@ -324,7 +318,6 @@ class Test_get_coordinate_data(Test_SpotExtraction):
 
 
 class Test_build_diagnostic_cube(Test_SpotExtraction):
-
     """Test the building of a spot data cube with given inputs."""
 
     def test_building_cube(self):
@@ -353,7 +346,6 @@ class Test_build_diagnostic_cube(Test_SpotExtraction):
 
 
 class Test_process(Test_SpotExtraction):
-
     """Test the process method which extracts data and builds cubes with
     metadata added."""
 

@@ -361,9 +361,9 @@ class Test_process(IrisTest):
             model_id_attr="mosg__model_configuration",
             record_run_attr="mosg__model_run",
         )
-        self.cube_ukv.attributes[
-            "mosg__model_run"
-        ] = "uk_det:20151123T0200Z:0.500\nuk_det:20151123T0300Z:0.500"
+        self.cube_ukv.attributes["mosg__model_run"] = (
+            "uk_det:20151123T0200Z:0.500\nuk_det:20151123T0300Z:0.500"
+        )
         cube = plugin.process([self.cube_ukv, self.cube_enuk])
         self.assertArrayEqual(
             cube.coord("blend_record").points,

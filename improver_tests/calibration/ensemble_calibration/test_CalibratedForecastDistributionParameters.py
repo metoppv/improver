@@ -8,6 +8,7 @@ Unit tests for the
 class.
 
 """
+
 import unittest
 
 import numpy as np
@@ -29,7 +30,6 @@ from .test_EstimateCoefficientsForEnsembleCalibration import SetupExpectedCoeffi
 
 
 class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
-
     """Set up coefficients cubes for testing."""
 
     def setUp(self):
@@ -150,7 +150,8 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
             dtype=np.float32,
         )
         self.expected_loc_param_realizations_sites = np.array(
-            [277.7531, 277.4529, 277.553, 277.2528], dtype=np.float32,
+            [277.7531, 277.4529, 277.553, 277.2528],
+            dtype=np.float32,
         )
 
         self.expected_scale_param_realizations_sites = np.array(
@@ -191,7 +192,6 @@ class SetupCoefficientsCubes(SetupCubes, SetupExpectedCoefficients):
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -206,7 +206,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the __repr__ method."""
 
     def test_basic(self):
@@ -223,8 +222,7 @@ class Test__repr__(IrisTest):
 
 
 class Test__spatial_domain_match(SetupCoefficientsCubes):
-
-    """ Test the _spatial_domain_match method."""
+    """Test the _spatial_domain_match method."""
 
     def setUp(self):
         super().setUp()
@@ -281,7 +279,6 @@ class Test__spatial_domain_match(SetupCoefficientsCubes):
 class Test__calculate_location_parameter_from_mean(
     SetupCoefficientsCubes, EnsembleCalibrationAssertions
 ):
-
     """Test the __calculate_location_parameter_from_mean method."""
 
     def setUp(self):
@@ -302,7 +299,9 @@ class Test__calculate_location_parameter_from_mean(
             location_parameter, self.expected_loc_param_mean
         )
         assert_array_almost_equal(
-            location_parameter, self.expected_loc_param_realizations, decimal=0,
+            location_parameter,
+            self.expected_loc_param_realizations,
+            decimal=0,
         )
 
     def test_missing_additional_predictor(self):
@@ -317,7 +316,6 @@ class Test__calculate_location_parameter_from_mean(
 class Test__calculate_location_parameter_from_realizations(
     SetupCoefficientsCubes, EnsembleCalibrationAssertions
 ):
-
     """Test the _calculate_location_parameter_from_realizations method."""
 
     def setUp(self):
@@ -347,7 +345,6 @@ class Test__calculate_location_parameter_from_realizations(
 class Test__calculate_scale_parameter(
     SetupCoefficientsCubes, EnsembleCalibrationAssertions
 ):
-
     """Test the _calculate_scale_parameter method."""
 
     def setUp(self):
@@ -366,7 +363,6 @@ class Test__calculate_scale_parameter(
 
 
 class Test__create_output_cubes(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
-
     """Test the _create_output_cubes method."""
 
     def setUp(self):
@@ -389,7 +385,6 @@ class Test__create_output_cubes(SetupCoefficientsCubes, EnsembleCalibrationAsser
 
 
 class Test_process(SetupCoefficientsCubes, EnsembleCalibrationAssertions):
-
     """Test the process plugin."""
 
     def setUp(self):

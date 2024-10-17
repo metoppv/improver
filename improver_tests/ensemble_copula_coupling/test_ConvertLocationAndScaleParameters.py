@@ -5,6 +5,7 @@
 """
 Unit tests for ConvertLocationAndScaleParameters
 """
+
 import unittest
 
 import numpy as np
@@ -18,7 +19,6 @@ from improver.ensemble_copula_coupling.ensemble_copula_coupling import (
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method."""
 
     def test_valid_distribution(self):
@@ -47,7 +47,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test string representation of plugin."""
 
     def test_basic(self):
@@ -61,7 +60,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__rescale_shape_parameters(IrisTest):
-
     """Test the _rescale_shape_parameters"""
 
     def setUp(self):

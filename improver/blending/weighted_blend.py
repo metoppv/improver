@@ -3,7 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing classes for doing weighted blending by collapsing a
-   whole dimension."""
+whole dimension."""
 
 import warnings
 from typing import List, Optional, Union
@@ -204,8 +204,9 @@ class MergeCubesForWeightedBlending(BasePlugin):
         for cube in cubelist:
             if "model" not in self.blend_coord and not cube.coords(self.blend_coord):
                 raise ValueError(
-                    "{} coordinate is not present on all input "
-                    "cubes".format(self.blend_coord)
+                    "{} coordinate is not present on all input " "cubes".format(
+                        self.blend_coord
+                    )
                 )
 
         # create model ID and model configuration coordinates if blending
@@ -221,29 +222,29 @@ class MergeCubesForWeightedBlending(BasePlugin):
 class PercentileBlendingAggregator:
     """Class for the percentile blending aggregator
 
-       This class implements the method described by Combining Probabilities
-       by Caroline Jones, 2017. This method implements blending in probability
-       space.
+    This class implements the method described by Combining Probabilities
+    by Caroline Jones, 2017. This method implements blending in probability
+    space.
 
-       The steps are:
-           1. At each geographic point in the cube we take the percentile
-              threshold's values across the percentile dimensional coordinate.
-              We recalculate, using linear interpolation, their probabilities
-              in the pdf of the other points across the coordinate we are
-              blending over. Thus at each point we have a set of thresholds
-              and their corresponding probability values in each of the
-              probability spaces across the blending coordinate.
-           2. We do a weighted blend across all the probability spaces,
-              combining all the thresholds in all the points in the coordinate
-              we are blending over. This gives us an array of thresholds and an
-              array of blended probabilities for each of the grid points.
-           3. We convert back to the original percentile values, again using
-              linear interpolation, resulting in blended values at each of the
-              original percentiles.
+    The steps are:
+        1. At each geographic point in the cube we take the percentile
+           threshold's values across the percentile dimensional coordinate.
+           We recalculate, using linear interpolation, their probabilities
+           in the pdf of the other points across the coordinate we are
+           blending over. Thus at each point we have a set of thresholds
+           and their corresponding probability values in each of the
+           probability spaces across the blending coordinate.
+        2. We do a weighted blend across all the probability spaces,
+           combining all the thresholds in all the points in the coordinate
+           we are blending over. This gives us an array of thresholds and an
+           array of blended probabilities for each of the grid points.
+        3. We convert back to the original percentile values, again using
+           linear interpolation, resulting in blended values at each of the
+           original percentiles.
 
-       References:
-        :download:`Combining Probabilities by Caroline Jones, 2017
-        <../files/Combining_Probabilities.pdf>`
+    References:
+     :download:`Combining Probabilities by Caroline Jones, 2017
+     <../files/Combining_Probabilities.pdf>`
     """
 
     @staticmethod
@@ -311,7 +312,7 @@ class PercentileBlendingAggregator:
     def blend_percentiles(
         perc_values: ndarray, percentiles: ndarray, weights: ndarray
     ) -> ndarray:
-        """ Blend percentiles function, to calculate the weighted blend across
+        """Blend percentiles function, to calculate the weighted blend across
             a given axis of percentile data for a single grid point.
 
         Args:
@@ -362,8 +363,8 @@ class PercentileBlendingAggregator:
 
 class WeightedBlendAcrossWholeDimension(PostProcessingPlugin):
     """Apply a Weighted blend to a cube, collapsing across the whole
-       dimension. Uses one of two methods, either weighted average, or
-       the maximum of the weighted probabilities."""
+    dimension. Uses one of two methods, either weighted average, or
+    the maximum of the weighted probabilities."""
 
     def __init__(self, blend_coord: str, timeblending: bool = False) -> None:
         """Set up for a Weighted Blending plugin

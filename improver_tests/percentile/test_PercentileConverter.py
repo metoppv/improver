@@ -18,7 +18,6 @@ from improver.utilities.cube_manipulation import get_coord_names, get_dim_coord_
 
 
 class Test_process(IrisTest):
-
     """Test the creation of percentiles by the plugin."""
 
     def setUp(self):

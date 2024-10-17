@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Unit tests for the nowcasting.CreateExtrapolationForecast plugin """
+"""Unit tests for the nowcasting.CreateExtrapolationForecast plugin"""
 
 import unittest
 
@@ -41,7 +41,7 @@ class SetUpCubes(IrisTest):
     """
 
     def setUp(self):
-        """Set up cubes needed for the __init__ method """
+        """Set up cubes needed for the __init__ method"""
         self.precip_cube = setup_precipitation_cube()
         self.oe_cube = setup_orographic_enhancement_cube()
         self.vel_x = set_up_xy_velocity_cube("advection_velocity_x")
@@ -67,7 +67,7 @@ class Test__init__(SetUpCubes):
 
     def test_basic_with_metadata_dict(self):
         """Test for simple case where __init__ does not change the input and
-           we amend the attributes."""
+        we amend the attributes."""
         # Change the input cube so no orographic enhancement is expected.
         input_cube = self.precip_cube.copy()
         input_cube.rename("air_temperature")
@@ -92,7 +92,7 @@ class Test__init__(SetUpCubes):
 
     def test_no_orographic_enhancement_rainfall_rate(self):
         """Test what happens if no orographic enhancement cube is provided.
-           for rainfall_rate"""
+        for rainfall_rate"""
         message = (
             "For precipitation or rainfall fields, orographic "
             "enhancement cube must be supplied."

@@ -4,6 +4,7 @@
 # See LICENSE in the root of the repository for full licensing details.
 
 """Apply temperature lapse rate adjustments to a spot data cube."""
+
 from typing import Optional
 
 import iris
@@ -40,10 +41,10 @@ class SpotLapseRateAdjust(PostProcessingPlugin):
                 The methods available will be all, or a subset, of the
                 following::
 
-                  - nearest
-                  - nearest_land
-                  - nearest_land_minimum_dz
-                  - nearest_minimum_dz
+                  -nearest
+                  -nearest_land
+                  -nearest_land_minimum_dz
+                  -nearest_minimum_dz
 
                 The method available in a neighbour cube will depend on the
                 options that were specified when it was created.

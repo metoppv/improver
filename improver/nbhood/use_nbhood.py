@@ -21,7 +21,6 @@ from improver.utilities.cube_manipulation import collapsed
 
 
 class ApplyNeighbourhoodProcessingWithAMask(PostProcessingPlugin):
-
     r"""Class for applying neighbourhood processing when passing in a mask
     cube that is iterated over.
 

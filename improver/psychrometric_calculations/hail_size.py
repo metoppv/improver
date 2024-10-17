@@ -77,9 +77,9 @@ class HailSize(BasePlugin):
 
     def __init__(self, model_id_attr: str = None):
         """Sets up Class
-            Args:
-                model_id_attr:
-                    Name of model ID attribute to be copied from source cubes to output cube
+        Args:
+            model_id_attr:
+                Name of model ID attribute to be copied from source cubes to output cube
         """
 
         self.final_order = None
@@ -93,7 +93,6 @@ class HailSize(BasePlugin):
 
     @staticmethod
     def nomogram_values() -> np.ndarray:
-
         """Sets-up an array of a table containing possible diameter of hail stones(mm).
         It is a transposed version of the table in Hand and Cappelluti (2011).
 
@@ -149,7 +148,6 @@ class HailSize(BasePlugin):
 
     @staticmethod
     def updated_nomogram() -> Tuple[List, List, np.array]:
-
         """Sets up a dictionary of updated hail diameter values (mm).
 
         The dictionary keys are the height of the wet bulb freezing level (m) where,
@@ -190,17 +188,17 @@ class HailSize(BasePlugin):
     ) -> None:
         """Checks the size and units of input cubes and enforces the standard coord order
 
-            Args:
-                ccl_temperature:
-                    Cube of cloud condensation level temperature
-                ccl_pressure:
-                    Cube of cloud condensation level pressure
-                temperature_on_pressure:
-                    Cube of environment temperature on pressure levels
-                wet_bulb_zero_asl:
-                    Cube of the height of the wet bulb freezing level above sea level
-                orography:
-                    Cube of the orography height.
+        Args:
+            ccl_temperature:
+                Cube of cloud condensation level temperature
+            ccl_pressure:
+                Cube of cloud condensation level pressure
+            temperature_on_pressure:
+                Cube of environment temperature on pressure levels
+            wet_bulb_zero_asl:
+                Cube of the height of the wet bulb freezing level above sea level
+            orography:
+                Cube of the orography height.
         """
         coord_order = ["realization", "pressure"] + [
             temperature_on_pressure.coord(axis=axis).name() for axis in "yx"
@@ -519,7 +517,9 @@ class HailSize(BasePlugin):
         temperature_at_268.rename("temperature_of_atmosphere_at_268.15K")
         temperature_at_268.remove_coord("pressure")
         temperature = np.full_like(
-            temperature_at_268.data, extract_pressure.value_of_level, dtype=np.float32,
+            temperature_at_268.data,
+            extract_pressure.value_of_level,
+            dtype=np.float32,
         )
         temperature = np.ma.masked_where(np.ma.getmask(pressure_at_268), temperature)
         temperature_at_268.data = temperature

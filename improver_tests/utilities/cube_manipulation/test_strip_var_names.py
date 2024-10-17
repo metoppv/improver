@@ -16,7 +16,6 @@ from improver.utilities.cube_manipulation import strip_var_names
 
 
 class Test_strip_var_names(unittest.TestCase):
-
     """Test the _slice_var_names utility."""
 
     def setUp(self):

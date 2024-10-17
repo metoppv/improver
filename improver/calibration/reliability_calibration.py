@@ -37,7 +37,6 @@ from improver.utilities.cube_manipulation import (
 
 
 class ConstructReliabilityCalibrationTables(BasePlugin):
-
     """A plugin for creating and populating reliability calibration tables."""
 
     def __init__(
@@ -231,7 +230,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             A reliability table cube.
         """
 
-        def _get_coords_and_dims(coord_names: List[str],) -> List[Tuple[DimCoord, int]]:
+        def _get_coords_and_dims(
+            coord_names: List[str],
+        ) -> List[Tuple[DimCoord, int]]:
             """Obtain the requested coordinates and their dimension index from
             the forecast slice cube."""
             coords_and_dims = []
@@ -414,7 +415,9 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             # as being masked within the resulting reliability table.
             mask = threshold_reliability.mask & table.mask
             threshold_reliability = np.ma.array(
-                threshold_reliability.data + table.data, mask=mask, dtype=np.float32,
+                threshold_reliability.data + table.data,
+                mask=mask,
+                dtype=np.float32,
             )
         else:
             np.add(
@@ -503,7 +506,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
             truths.slices_over(threshold_coord),
         )
         for forecast_slice, truth_slice in threshold_slices:
-
             time_slices = zip(
                 forecast_slice.slices_over(time_coord),
                 truth_slice.slices_over(time_coord),
@@ -528,7 +530,6 @@ class ConstructReliabilityCalibrationTables(BasePlugin):
 
 
 class AggregateReliabilityCalibrationTables(BasePlugin):
-
     """This plugin enables the aggregation of multiple reliability calibration
     tables, and/or the aggregation over coordinates in the tables."""
 
@@ -1065,7 +1066,6 @@ class ManipulateReliabilityTable(BasePlugin):
 
 
 class ApplyReliabilityCalibration(PostProcessingPlugin):
-
     """
     A plugin for the application of reliability calibration to probability
     forecasts. This calibration is designed to improve the reliability of
@@ -1287,7 +1287,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return np.clip(interpolated, 0, 1)
 
     def _apply_calibration(
-        self, forecast: Cube, reliability_table: Union[Cube, CubeList],
+        self,
+        forecast: Cube,
+        reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
         Apply reliability calibration to a forecast.
@@ -1343,7 +1345,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return calibrated_forecast
 
     def _apply_point_by_point_calibration(
-        self, forecast: Cube, reliability_table: CubeList,
+        self,
+        forecast: Cube,
+        reliability_table: CubeList,
     ) -> Cube:
         """
         Apply point by point reliability calibration by iteratively picking a spatial
@@ -1415,7 +1419,9 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
         return calibrated_forecast
 
     def process(
-        self, forecast: Cube, reliability_table: Union[Cube, CubeList],
+        self,
+        forecast: Cube,
+        reliability_table: Union[Cube, CubeList],
     ) -> Cube:
         """
         Apply reliability calibration to a forecast. The reliability table
@@ -1440,7 +1446,8 @@ class ApplyReliabilityCalibration(PostProcessingPlugin):
 
         else:
             calibrated_forecast = self._apply_calibration(
-                forecast=forecast, reliability_table=reliability_table,
+                forecast=forecast,
+                reliability_table=reliability_table,
             )
 
         # enforce correct data type

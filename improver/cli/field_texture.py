@@ -17,7 +17,6 @@ def process(
     diagnostic_threshold: float = 0.8125,
     model_id_attr: str = None,
 ):
-
     """Calculates field texture for a given neighbourhood radius.
 
        The field texture is an assessment of the transitions/edges within a

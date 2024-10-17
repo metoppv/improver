@@ -151,7 +151,6 @@ class ResolveWindComponents(BasePlugin):
         return [speed.copy(data=uspeed), speed.copy(data=vspeed)]
 
     def process(self, wind_speed: Cube, wind_dir: Cube) -> Tuple[Cube, Cube]:
-
         """
         Convert wind speed and direction into u,v components along input cube
         projection axes.

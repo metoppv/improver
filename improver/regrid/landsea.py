@@ -331,8 +331,9 @@ class AdjustLandSeaPoints(PostProcessingPlugin):
         # Check cube and output_land are on the same grid:
         if not spatial_coords_match([cube, output_land]):
             raise ValueError(
-                "X and Y coordinates do not match for cubes {}"
-                "and {}".format(repr(cube), repr(output_land))
+                "X and Y coordinates do not match for cubes {}" "and {}".format(
+                    repr(cube), repr(output_land)
+                )
             )
         self.output_land = output_land
 

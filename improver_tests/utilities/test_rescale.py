@@ -15,7 +15,6 @@ from improver.utilities.rescale import apply_double_scaling, rescale
 
 
 class Test_rescale(IrisTest):
-
     """Test the utilities.rescale rescale function."""
 
     def setUp(self):
@@ -82,7 +81,6 @@ class Test_rescale(IrisTest):
 
 
 class Test_apply_double_scaling(IrisTest):
-
     """Test the apply_double_scaling method."""
 
     def setUp(self):

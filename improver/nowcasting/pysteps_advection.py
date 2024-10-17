@@ -124,9 +124,9 @@ class PystepsExtrapolate(BasePlugin):
             [self.analysis_cube]
         )
         self.analysis_cube.attributes["source"] = "MONOW"
-        self.analysis_cube.attributes[
-            "title"
-        ] = "MONOW Extrapolation Nowcast on UK 2 km Standard Grid"
+        self.analysis_cube.attributes["title"] = (
+            "MONOW Extrapolation Nowcast on UK 2 km Standard Grid"
+        )
         set_history_attribute(self.analysis_cube, "Nowcast")
         if attribute_changes is not None:
             amend_attributes(self.analysis_cube, attribute_changes)

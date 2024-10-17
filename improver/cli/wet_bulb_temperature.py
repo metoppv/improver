@@ -4,7 +4,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """CLI to generate wet bulb temperatures from air temperature, relative
-   humidity, and pressure data. """
+humidity, and pressure data."""
 
 from improver import cli
 

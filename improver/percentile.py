@@ -18,7 +18,6 @@ from improver.utilities.cube_manipulation import collapsed
 
 
 class PercentileConverter(BasePlugin):
-
     """Plugin for converting from a set of values to a PDF.
 
     Generate percentiles together with min, max, mean, stdev.

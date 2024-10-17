@@ -123,7 +123,7 @@ class VisibilityCombineCloudBase(PostProcessingPlugin):
             in vis_thresholds.
         """
         scaling_factors = (1 - self.initial_scaling_value) * (
-            -1 / self.first_unscaled_threshold ** 4
+            -1 / self.first_unscaled_threshold**4
         ) * (vis_thresholds - self.first_unscaled_threshold) ** 4 + 1
 
         scaling_factors = np.where(

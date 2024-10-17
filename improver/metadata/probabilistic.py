@@ -144,8 +144,9 @@ def find_threshold_coordinate(cube: Cube) -> Coord:
     """
     if not isinstance(cube, iris.cube.Cube):
         msg = (
-            "Expecting data to be an instance of "
-            "iris.cube.Cube but is {0}.".format(type(cube))
+            "Expecting data to be an instance of " "iris.cube.Cube but is {0}.".format(
+                type(cube)
+            )
         )
         raise TypeError(msg)
 
@@ -225,8 +226,9 @@ def find_percentile_coordinate(cube: Cube) -> Coord:
     """
     if not isinstance(cube, iris.cube.Cube):
         msg = (
-            "Expecting data to be an instance of "
-            "iris.cube.Cube but is {0}.".format(type(cube))
+            "Expecting data to be an instance of " "iris.cube.Cube but is {0}.".format(
+                type(cube)
+            )
         )
         raise TypeError(msg)
     standard_name = cube.name()

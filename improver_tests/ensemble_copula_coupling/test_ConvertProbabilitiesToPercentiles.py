@@ -6,6 +6,7 @@
 Unit tests for the
 `ensemble_copula_coupling.ConvertProbabilitiesToPercentiles` class.
 """
+
 import unittest
 from datetime import datetime
 
@@ -34,7 +35,6 @@ from .ecc_test_data import (
 
 
 class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
-
     """
     Test the _add_bounds_to_thresholds_and_probabilities method of the
     ConvertProbabilitiesToPercentiles.
@@ -137,7 +137,6 @@ class Test__add_bounds_to_thresholds_and_probabilities(IrisTest):
 
 
 class Test__probabilities_to_percentiles(IrisTest):
-
     """Test the _probabilities_to_percentiles method of the
     ConvertProbabilitiesToPercentiles plugin."""
 
@@ -488,7 +487,6 @@ class Test__probabilities_to_percentiles(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """
     Test the process method of the ConvertProbabilitiesToPercentiles plugin.
     """

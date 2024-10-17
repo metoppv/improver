@@ -6,6 +6,7 @@
 This module contains a plugin to calculate the enhancement of precipitation
 over orography.
 """
+
 from typing import Tuple
 
 import iris

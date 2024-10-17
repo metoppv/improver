@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""This module defines the utilities required for decision tree plugin """
+"""This module defines the utilities required for decision tree plugin"""
 
 from collections import OrderedDict
 from typing import Any, Dict, List, Optional, Union
@@ -143,7 +143,7 @@ def expand_nested_lists(query: Dict[str, Any], key: str) -> List[Any]:
 
 
 def update_daynight(cube: Cube, day_night: Dict) -> Cube:
-    """ Update category depending on whether it is day or night
+    """Update category depending on whether it is day or night
 
     Args:
         cube:
@@ -231,7 +231,7 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
         )
         if query.get("deterministic", False):
             for diagnostic in diagnostics:
-                output.append(f"\u26C5 {diagnostic} (deterministic)")
+                output.append(f"\u26c5 {diagnostic} (deterministic)")
                 output.sort()
         else:
             thresholds = expand_nested_lists(query, "diagnostic_thresholds")
@@ -241,7 +241,7 @@ def interrogate_decision_tree(decision_tree: Dict[str, Dict[str, Any]]) -> str:
     for requirement, uniq_thresh in sorted(requirements.items()):
         (units,) = {u.units for u in uniq_thresh}  # enforces same units
         thresh_str = ", ".join(map(str, sorted({v.points[0] for v in uniq_thresh})))
-        output.append("\u26C5 {} ({}): {}".format(requirement, units, thresh_str))
+        output.append("\u26c5 {} ({}): {}".format(requirement, units, thresh_str))
 
     n_files = len(output)
     formatted_string = "{}\n" * n_files

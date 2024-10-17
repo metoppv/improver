@@ -186,7 +186,6 @@ class InterpolateUsingDifference(BasePlugin):
         for cslice, rslice in zip(
             cube.slices([yaxis, xaxis]), reference_cube.slices([yaxis, xaxis])
         ):
-
             invalid_points = cslice.data.mask.copy()
             valid_points = ~invalid_points
 

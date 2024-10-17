@@ -11,6 +11,7 @@ into an iris cube.
 
 
 """
+
 import warnings
 from typing import List, Optional, Sequence, Tuple
 
@@ -219,7 +220,6 @@ def _ensure_consistent_static_cols(
     # Check if any of the assumed static columns are actually not static when
     # the DataFrame is grouped by the site_id_col.
     if (forecast_df.groupby(site_id_col)[static_cols].nunique().nunique() > 1).any():
-
         for static_col in static_cols:
             # For each static column, find the last value from the list of unique
             # values for each site. The last value corresponds to the most recent value
@@ -236,7 +236,8 @@ def _ensure_consistent_static_cols(
 
 
 def _define_time_coord(
-    adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None,
+    adate: pd.Timestamp,
+    time_bounds: Optional[Sequence[pd.Timestamp]] = None,
 ) -> DimCoord:
     """Define a time coordinate. The coordinate will have bounds,
     if bounds are provided.
@@ -274,7 +275,11 @@ def _define_height_coord(height) -> AuxCoord:
     Returns:
         The height coordinate.
     """
-    return AuxCoord(np.array(height, dtype=np.float32), "height", units="m",)
+    return AuxCoord(
+        np.array(height, dtype=np.float32),
+        "height",
+        units="m",
+    )
 
 
 def _training_dates_for_calibration(
@@ -573,7 +578,9 @@ def _prepare_dataframes(
 
 
 def forecast_dataframe_to_cube(
-    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int,
+    df: DataFrame,
+    training_dates: DatetimeIndex,
+    forecast_period: int,
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -694,7 +701,10 @@ def forecast_dataframe_to_cube(
     return cube
 
 
-def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
+def truth_dataframe_to_cube(
+    df: DataFrame,
+    training_dates: DatetimeIndex,
+) -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
     Args:

@@ -11,7 +11,8 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, model_id_attr: str = None,
+    *cubes: cli.inputcube,
+    model_id_attr: str = None,
 ):
     """
     From the supplied following cubes:

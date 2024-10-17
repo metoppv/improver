@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module to contain wet-bulb temperature plugins."""
+
 from typing import List, Union
 
 import iris
@@ -216,7 +217,6 @@ class WetBulbTemperature(BasePlugin):
         to_update = np.arange(temperature.size)
         update_to_update = slice(None)
         while to_update.size and iteration < self.maximum_iterations:
-
             if iteration > 0:
                 wbt_data_upd = wbt_data[to_update]
                 pressure = pressure[update_to_update]
@@ -351,9 +351,9 @@ class WetBulbTemperatureIntegral(BasePlugin):
         wbt.data
         wet_bulb_temperature_integral = self.integration_plugin(wbt)
         if self.model_id_attr:
-            wet_bulb_temperature_integral.attributes[
-                self.model_id_attr
-            ] = wbt.attributes[self.model_id_attr]
+            wet_bulb_temperature_integral.attributes[self.model_id_attr] = (
+                wbt.attributes[self.model_id_attr]
+            )
         # although the integral is computed over degC the standard unit is
         # 'K m', and these are equivalent
         wet_bulb_temperature_integral.units = Unit("K m")

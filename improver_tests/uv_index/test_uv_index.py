@@ -15,8 +15,8 @@ from improver.uv_index import calculate_uv_index
 
 
 class Test_uv_index(IrisTest):
-    """ Tests that the uv_index plugin calculates the UV index
-    correctly. """
+    """Tests that the uv_index plugin calculates the UV index
+    correctly."""
 
     def setUp(self):
         """Set up cubes for downward uv flux."""
@@ -31,7 +31,7 @@ class Test_uv_index(IrisTest):
         )
 
     def test_basic(self):
-        """ Test that the a basic uv calculation works, using the
+        """Test that the a basic uv calculation works, using the
         default scaling factor. Make sure the output is a cube
         with the expected data."""
         scale_factor = 1.0
@@ -40,14 +40,14 @@ class Test_uv_index(IrisTest):
         self.assertArrayEqual(result.data, expected)
 
     def test_scale_factor(self):
-        """ Test the uv calculation works when changing the scale factor. Make
+        """Test the uv calculation works when changing the scale factor. Make
         sure the output is a cube with the expected data."""
         expected = np.ones_like(self.cube_uv_down.data, dtype=np.float32)
         result = calculate_uv_index(self.cube_uv_down, scale_factor=10)
         self.assertArrayEqual(result.data, expected)
 
     def test_metadata(self):
-        """ Tests that the uv index output has the correct metadata (no units,
+        """Tests that the uv index output has the correct metadata (no units,
         and name = ultraviolet index)."""
         result = calculate_uv_index(self.cube_uv_down)
         self.assertEqual(str(result.standard_name), "ultraviolet_index")
@@ -57,14 +57,14 @@ class Test_uv_index(IrisTest):
 
     def test_badname_down(self):
         """Tests that a ValueError is raised if the input uv down
-        file has the wrong name. """
+        file has the wrong name."""
         msg = "The radiation flux in UV downward has the wrong name"
         with self.assertRaisesRegex(ValueError, msg):
             calculate_uv_index(self.cube_down_badname)
 
     def test_negative_input(self):
         """Tests that a ValueError is raised if the input contains
-        negative values. """
+        negative values."""
         negative_data_down = np.full_like(
             self.cube_uv_down.data, dtype=np.float32, fill_value=-0.1
         )
@@ -78,7 +78,7 @@ class Test_uv_index(IrisTest):
 
     def test_nan_input(self):
         """Tests that a ValueError is raised if the input contains
-        values that are not a number. """
+        values that are not a number."""
         self.cube_uv_down.data.fill(np.nan)
         msg = (
             "The radiation flux in UV downward contains data "

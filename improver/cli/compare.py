@@ -5,7 +5,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Script to compare netcdf files"""
 
-
 from improver import cli
 from improver.constants import DEFAULT_TOLERANCE
 
