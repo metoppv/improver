@@ -30,17 +30,13 @@ from improver.utilities.cube_checker import (
 
 
 class Test_check_for_x_and_y_axes(IrisTest):
-
     """Test whether the cube has an x and y axis."""
 
     def setUp(self):
         """Set up a cube."""
         data = np.ones((1, 5, 5), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2",
-            spatial_grid="equalarea",
+            data, name="precipitation_amount", units="kg m^-2", spatial_grid="equalarea"
         )
 
     def test_no_y_coordinate(self):
@@ -78,7 +74,6 @@ class Test_check_for_x_and_y_axes(IrisTest):
 
 
 class Test_check_cube_coordinates(IrisTest):
-
     """Test check_cube_coordinates successfully promotes scalar coordinates to
     dimension coordinates in a new cube if they were dimension coordinates in
     the progenitor cube."""
@@ -87,10 +82,7 @@ class Test_check_cube_coordinates(IrisTest):
         """Set up a cube."""
         data = np.ones((1, 16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2",
-            spatial_grid="equalarea",
+            data, name="precipitation_amount", units="kg m^-2", spatial_grid="equalarea"
         )
         self.squeezed_cube = iris.util.squeeze(self.cube)
 
@@ -167,17 +159,13 @@ class Test_check_cube_coordinates(IrisTest):
 
 
 class Test_find_dimension_coordinate_mismatch(IrisTest):
-
     """Test if two cubes have the dimension coordinates."""
 
     def setUp(self):
         """Set up a cube."""
         data = np.ones((2, 16, 16), dtype=np.float32)
         self.cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2",
-            spatial_grid="equalarea",
+            data, name="precipitation_amount", units="kg m^-2", spatial_grid="equalarea"
         )
 
     def test_no_mismatch(self):
@@ -418,7 +406,7 @@ def only_one_cube(cubes: List[Cube]):
             True,
             "^air_temperature and air_pressure must have time bounds",
         ),
-        (only_one_cube, False, "^Need at least 2 cubes to check. Found 1",),
+        (only_one_cube, False, "^Need at least 2 cubes to check. Found 1"),
     ),
 )
 def test_time_coord_exceptions(

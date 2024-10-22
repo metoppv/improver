@@ -28,12 +28,7 @@ def test_single_bias_file(tmp_path):
         / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     )
     output_path = tmp_path / "output.nc"
-    args = [
-        fcst_path,
-        bias_file_path,
-        "--output",
-        output_path,
-    ]
+    args = [fcst_path, bias_file_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -50,12 +45,7 @@ def test_multiple_bias_files(tmp_path):
         "202208*T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     )
     output_path = tmp_path / "output.nc"
-    args = [
-        fcst_path,
-        *bias_file_paths,
-        "--output",
-        output_path,
-    ]
+    args = [fcst_path, *bias_file_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 
@@ -103,12 +93,7 @@ def test_with_masked_bias_data(tmp_path):
         kgo_dir / "bias_data" / "20220813T0300Z-PT0003H00M-wind_speed_at_10m.nc"
     )
     output_path = tmp_path / "output.nc"
-    args = [
-        fcst_path,
-        bias_file_path,
-        "--output",
-        output_path,
-    ]
+    args = [fcst_path, bias_file_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

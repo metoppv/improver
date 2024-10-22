@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the solar calculations in solar.py """
+"""Unit tests for the solar calculations in solar.py"""
 
 import unittest
 from datetime import datetime, timezone
@@ -262,7 +262,6 @@ class Test_calc_solar_elevation(IrisTest):
 
 
 class Test_daynight_terminator(IrisTest):
-
     """Test DayNight terminator."""
 
     def setUp(self):

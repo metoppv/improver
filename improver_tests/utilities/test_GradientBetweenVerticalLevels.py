@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the GradientBetweenVerticalLevels plugin."""
 
-
 import iris
 import numpy as np
 import pytest
@@ -139,9 +138,7 @@ def test_height_and_no_orography(
     """Test an error is raised if a height coordinate is present but no orography cube
     is present."""
 
-    with pytest.raises(
-        ValueError, match="No orography cube provided",
-    ):
+    with pytest.raises(ValueError, match="No orography cube provided"):
         GradientBetweenVerticalLevels()(
             iris.cube.CubeList(
                 [
@@ -159,9 +156,7 @@ def test_pressure_coord_and_no_pressure_levels(
     """Test an error is raised if a pressure coordinate is present but no geopotential_height
     cube is present."""
 
-    with pytest.raises(
-        ValueError, match="No geopotential height",
-    ):
+    with pytest.raises(ValueError, match="No geopotential height"):
         GradientBetweenVerticalLevels()(
             iris.cube.CubeList(
                 [temperature_at_screen_level, temperature_at_850hPa, orography]

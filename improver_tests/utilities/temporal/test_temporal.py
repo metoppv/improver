@@ -37,7 +37,6 @@ from improver.utilities.temporal import (
 
 
 class Test_cycletime_to_datetime(IrisTest):
-
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
     into a datetime object."""
 
@@ -58,7 +57,6 @@ class Test_cycletime_to_datetime(IrisTest):
 
 
 class Test_datetime_to_cycletime(IrisTest):
-
     """Test that a datetime object can be converted into a cycletime
     of a format such as YYYYMMDDTHHMMZ."""
 
@@ -86,7 +84,6 @@ class Test_datetime_to_cycletime(IrisTest):
 
 
 class Test_cycletime_to_number(IrisTest):
-
     """Test that a cycletime of a format such as YYYYMMDDTHHMMZ is converted
     into a numeric time value."""
 
@@ -174,7 +171,6 @@ class Test_iris_time_to_datetime(IrisTest):
 
 
 class Test_datetime_to_iris_time(IrisTest):
-
     """Test the datetime_to_iris_time function."""
 
     def setUp(self):
@@ -314,7 +310,6 @@ class Test_extract_cube_at_time(IrisTest):
 
 
 class Test_extract_nearest_time_point(IrisTest):
-
     """Test the extract_nearest_time_point function."""
 
     def setUp(self):
@@ -406,7 +401,6 @@ class Test_extract_nearest_time_point(IrisTest):
 
 
 class Test_relabel_to_period(unittest.TestCase):
-
     """Test relabel_to_period function."""
 
     def setUp(self):
@@ -436,7 +430,7 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [2 * 3600, 3 * 3600], TIME_COORDS["forecast_period"].dtype,
+            [2 * 3600, 3 * 3600], TIME_COORDS["forecast_period"].dtype
         )
         result = relabel_to_period(self.cube, 1)
         self.assertIsInstance(result, Cube)
@@ -456,7 +450,7 @@ class Test_relabel_to_period(unittest.TestCase):
         )
         expected_fp = self.cube.coord("forecast_period").copy()
         expected_fp.bounds = np.array(
-            [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype,
+            [0, 3 * 3600], dtype=TIME_COORDS["forecast_period"].dtype
         )
         result = relabel_to_period(self.cube_with_bounds, 3)
         self.assertEqual(result.coord("time"), expected_time)
@@ -526,7 +520,7 @@ def period_cube(data, period_lengths):
     [
         # Array with a rate of 1 per second, with a period of 3-hours.
         # The resulting data are a count of 10800 (3-hours in seconds * rate)
-        ({}, np.ones((5, 5)), [10800], np.full((5, 5), 10800),),
+        ({}, np.ones((5, 5)), [10800], np.full((5, 5), 10800)),
         # Array with two rates, 1/200 per second and 3/400 per second. Two
         # periods of 3 and 2 hours leading to counts of 54 in each period;
         # (10800 * 0.005) and (7200 * 0.0075).

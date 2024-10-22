@@ -80,7 +80,6 @@ def set_up_orographic_enhancement_cube():
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -90,7 +89,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the __repr__ method."""
 
     def test_basic(self):
@@ -101,7 +99,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__select_orographic_enhancement_cube(IrisTest):
-
     """Test the _select_orographic_enhancement method."""
 
     def setUp(self):
@@ -171,7 +168,6 @@ class Test__select_orographic_enhancement_cube(IrisTest):
 
 
 class Test__apply_orographic_enhancement(IrisTest):
-
     """Test the _apply_orographic_enhancement method."""
 
     def setUp(self):
@@ -232,7 +228,6 @@ class Test__apply_orographic_enhancement(IrisTest):
 
 
 class Test__apply_minimum_precip_rate(IrisTest):
-
     """Test the _apply_minimum_precip_rate method."""
 
     def setUp(self):
@@ -406,7 +401,6 @@ class Test__apply_minimum_precip_rate(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the apply_orographic_enhancement method."""
 
     def setUp(self):

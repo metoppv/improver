@@ -13,7 +13,6 @@ from improver.nbhood.nbhood import circular_kernel
 
 
 class Test_circular_kernel(IrisTest):
-
     """Test neighbourhood processing plugin."""
 
     def test_basic(self):

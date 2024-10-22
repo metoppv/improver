@@ -100,9 +100,7 @@ class Test_build_spotdata_cube(IrisTest):
         data = np.array([1.6, 1.3, 1.4, 1.1])
         msg = "A unique_site_id_key must be provided"
         with self.assertRaisesRegex(ValueError, msg):
-            build_spotdata_cube(
-                data, *self.args, unique_site_id=self.unique_site_id,
-            )
+            build_spotdata_cube(data, *self.args, unique_site_id=self.unique_site_id)
 
     def test_neighbour_method(self):
         """Test output where neighbour_methods is populated"""
@@ -129,7 +127,7 @@ class Test_build_spotdata_cube(IrisTest):
         )
 
         result = build_spotdata_cube(
-            data, *self.args, grid_attributes=self.grid_attributes,
+            data, *self.args, grid_attributes=self.grid_attributes
         )
 
         self.assertArrayAlmostEqual(result.data, data)

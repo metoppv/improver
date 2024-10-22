@@ -16,7 +16,6 @@ from improver.utilities.cube_manipulation import get_filtered_attributes
 
 
 class Test_get_filtered_attributes(IrisTest):
-
     """Test the get_filtered_attributes function."""
 
     def setUp(self):

@@ -19,12 +19,7 @@ def test_basic(tmp_path):
     input_file1 = kgo_dir / "vertical_velocity_on_height_levels.nc"
     input_file2 = kgo_dir / "max_vertical_velocity.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_file1,
-        input_file2,
-        "--output",
-        f"{output_path}",
-    ]
+    args = [input_file1, input_file2, "--output", f"{output_path}"]
 
     kgo_path = kgo_dir / "kgo.nc"
     run_cli(args)

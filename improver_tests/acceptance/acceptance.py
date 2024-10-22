@@ -169,7 +169,7 @@ def calculate_checksum(path):
     with open(path, mode="rb") as kgo_file:
         while True:
             # read 1 megabyte binary chunks from file and feed them to hasher
-            kgo_chunk = kgo_file.read(2 ** 20)
+            kgo_chunk = kgo_file.read(2**20)
             if not kgo_chunk:
                 break
             hasher.update(kgo_chunk)

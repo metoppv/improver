@@ -26,7 +26,7 @@ def prob_cube() -> Cube:
     longitude = np.linspace(-0.25, 0.5, 4)
     wmo_id = ["03854", "03962", "03142", "03331"]
     threshold_coord = DimCoord(
-        points=[50, 100, 1000], var_name="threshold", long_name=name, units="m",
+        points=[50, 100, 1000], var_name="threshold", long_name=name, units="m"
     )
 
     data = np.asarray([[0.1, 0, 0.2, 0.1], [0.7, 0, 0.3, 0.2], [1, 0.4, 0.4, 0.9]])

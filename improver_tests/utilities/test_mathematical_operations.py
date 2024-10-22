@@ -2,8 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Unit tests for the plugins and functions within mathematical_operations.py
-"""
+"""Unit tests for the plugins and functions within mathematical_operations.py"""
 
 import unittest
 
@@ -41,7 +40,6 @@ def _set_up_height_cube(height_points, ascending=True):
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -57,7 +55,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
-
     """Test the ensure_monotonic_increase_in_chosen_direction method."""
 
     def setUp(self):
@@ -121,7 +118,6 @@ class Test_ensure_monotonic_increase_in_chosen_direction(IrisTest):
 
 
 class Test_prepare_for_integration(IrisTest):
-
     """Test the prepare_for_integration method."""
 
     def setUp(self):
@@ -169,7 +165,6 @@ class Test_prepare_for_integration(IrisTest):
 
 
 class Test_perform_integration(IrisTest):
-
     """Test the perform_integration method."""
 
     def setUp(self):
@@ -403,7 +398,6 @@ class Test_perform_integration(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the process method."""
 
     def setUp(self):

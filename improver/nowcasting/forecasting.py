@@ -7,6 +7,7 @@ DEPRECATED MODULE. This module has been replaced by pysteps_advection.py
 and is no longer called by any CLI.
 This module defines plugins used to create nowcast extrapolation forecasts.
 """
+
 import datetime
 import warnings
 from datetime import timedelta

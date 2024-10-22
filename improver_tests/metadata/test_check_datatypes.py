@@ -24,7 +24,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 
 
 class Test_check_mandatory_standards(IrisTest):
-
     """Test whether a cube conforms to mandatory dtype and units standards."""
 
     def setUp(self):
@@ -156,7 +155,6 @@ class Test_check_mandatory_standards(IrisTest):
 
 
 class Test_enforce_dtypes(IrisTest):
-
     """Test whether a cube conforms to mandatory dtype and units standards."""
 
     def setUp(self):

@@ -7,6 +7,7 @@ Unit tests for the
 `ensemble_copula_coupling._scipy_continuous_distns` scipy truncnorm workaround.
 
 """
+
 import unittest
 
 import numpy as np

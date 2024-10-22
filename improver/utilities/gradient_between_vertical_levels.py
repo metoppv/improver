@@ -117,7 +117,6 @@ class GradientBetweenVerticalLevels(BasePlugin):
         height_diff.data = np.ma.masked_where(height_diff.data == 0, height_diff.data)
 
         if "height" in coord_used and "pressure" in coord_used:
-
             try:
                 missing_coord = cubes[1].coord("pressure")
             except CoordinateNotFoundError:
@@ -132,22 +131,22 @@ class GradientBetweenVerticalLevels(BasePlugin):
 
     def process(self, *cubes: CubeList) -> Cube:
         """
-            Process the input cubes to calculate the gradient between two vertical levels.
+        Process the input cubes to calculate the gradient between two vertical levels.
 
-            Args:
-                cubes:
-                    A cubelist of two cubes containing a diagnostic at two vertical levels.
-                    The cubes must contain either a height or pressure scalar coordinate.
-                    If exactly one of the cubes contain a height scalar coordinate this is assumed
-                    to be a height above ground level and a cube with the name "surface_altitude"
-                    must also be provided. If either cube contains a pressure scalar coordinate
-                    a cube with the name "geopotential_height" must be provided.If both cubes are
-                    on height levels then no additional cubes are required.
+        Args:
+            cubes:
+                A cubelist of two cubes containing a diagnostic at two vertical levels.
+                The cubes must contain either a height or pressure scalar coordinate.
+                If exactly one of the cubes contain a height scalar coordinate this is assumed
+                to be a height above ground level and a cube with the name "surface_altitude"
+                must also be provided. If either cube contains a pressure scalar coordinate
+                a cube with the name "geopotential_height" must be provided.If both cubes are
+                on height levels then no additional cubes are required.
 
-            Returns:
-                A cube containing the gradient between two vertical levels. The cube will be
-                named gradient of followed by the name of the input cubes.
-            """
+        Returns:
+            A cube containing the gradient between two vertical levels. The cube will be
+            named gradient of followed by the name of the input cubes.
+        """
         cubes = as_cubelist(cubes)
         orography, cubes = self.extract_cube_from_list(cubes, "surface_altitude")
         geopotential_height, cubes = self.extract_cube_from_list(

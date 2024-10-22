@@ -21,12 +21,7 @@ def test_basic(tmp_path, with_model_attr):
     cape_path = kgo_dir / "cape.nc"
     precipitation_path = kgo_dir / "precipitation_rate.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        cape_path,
-        precipitation_path,
-        "--output",
-        f"{output_path}",
-    ]
+    args = [cape_path, precipitation_path, "--output", f"{output_path}"]
     if with_model_attr:
         args.append("--model-id-attr=mosg__model_configuration")
         kgo_path = kgo_dir / "kgo_with_model_config.nc"

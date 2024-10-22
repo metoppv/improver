@@ -25,7 +25,6 @@ from improver.utilities.save import save_netcdf
 
 
 class Test_load_cube(IrisTest):
-
     """Test the load function."""
 
     def setUp(self):
@@ -240,7 +239,6 @@ class Test_load_cube(IrisTest):
 
 
 class Test_load_cubelist(IrisTest):
-
     """Test the load function."""
 
     def setUp(self):

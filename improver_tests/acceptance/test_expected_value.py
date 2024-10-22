@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the expected-value CLI."""
 
-
 import iris
 import numpy as np
 import pytest

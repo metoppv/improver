@@ -226,7 +226,6 @@ class RecursiveFilter(PostProcessingPlugin):
         axes = ["x", "y"]
 
         for axis, smoothing_coefficient in zip(axes, smoothing_coefficients):
-
             # Check the smoothing coefficient cube name is as expected
             expected_name = self.smoothing_coefficient_name_format.format(axis)
             if smoothing_coefficient.name() != expected_name:
@@ -279,7 +278,7 @@ class RecursiveFilter(PostProcessingPlugin):
         """Pad smoothing coefficients"""
         pad_x, pad_y = [
             pad_cube_with_halo(
-                coeff, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric",
+                coeff, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
             )
             for coeff in [coeff_x, coeff_y]
         ]
@@ -371,7 +370,7 @@ class RecursiveFilter(PostProcessingPlugin):
 
             mask_cube = cube_format.copy(data=cube_format.data.mask)
             coeffs_x, coeffs_y = self._update_coefficients_from_mask(
-                coeffs_x, coeffs_y, mask_cube,
+                coeffs_x, coeffs_y, mask_cube
             )
 
         padded_coefficients_x, padded_coefficients_y = self._pad_coefficients(
@@ -380,7 +379,6 @@ class RecursiveFilter(PostProcessingPlugin):
 
         recursed_cube = iris.cube.CubeList()
         for output in cube.slices([cube.coord(axis="y"), cube.coord(axis="x")]):
-
             padded_cube = pad_cube_with_halo(
                 output, 2 * self.edge_width, 2 * self.edge_width, pad_method="symmetric"
             )

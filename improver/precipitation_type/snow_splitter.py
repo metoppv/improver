@@ -21,7 +21,7 @@ class SnowSplitter(BasePlugin):
     rate/accumulation. This is calculated using the probability of rain and snow
     at the surface to determine what fraction of the precipitation rate/accumulation
     is rain or snow.
-     """
+    """
 
     def __init__(self, output_is_rain: bool):
         """

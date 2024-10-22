@@ -16,7 +16,6 @@ from improver.constants import TRIPLE_PT_WATER
 
 
 class SaturatedVapourPressureTable(BasePlugin):
-
     """
     Plugin to create a saturated vapour pressure lookup table.
     """

@@ -95,7 +95,7 @@ def split_forecasts_and_truth(
 
 
 def split_forecasts_and_coeffs(
-    cubes: CubeList, land_sea_mask_name: Optional[str] = None,
+    cubes: CubeList, land_sea_mask_name: Optional[str] = None
 ):
     """Split the input forecast, coefficients, static additional predictors,
     land sea-mask and probability template, if provided. The coefficients

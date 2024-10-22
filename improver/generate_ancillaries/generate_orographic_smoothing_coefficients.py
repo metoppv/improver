@@ -20,7 +20,6 @@ from improver.utilities.spatial import GradientBetweenAdjacentGridSquares
 
 
 class OrographicSmoothingCoefficients(BasePlugin):
-
     """
     Class to generate smoothing coefficients for recursive filtering based on
     orography gradients.

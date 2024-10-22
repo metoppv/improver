@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing utilities for modifying cube metadata"""
+
 import re
 from datetime import datetime, timedelta, timezone
 from typing import Any, Dict, List, Tuple, Union
@@ -148,7 +149,7 @@ def update_diagnostic_name(source_cube: Cube, new_diagnostic_name: str, result: 
 
 
 def _update_cell_methods(
-    cell_methods: Tuple[CellMethod], original_name: str, new_diagnostic_name: str,
+    cell_methods: Tuple[CellMethod], original_name: str, new_diagnostic_name: str
 ) -> List[CellMethod]:
     """
     Update any cell methods that include a comment that refers to the

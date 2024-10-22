@@ -22,12 +22,6 @@ def test_basic(tmp_path):
     input_dir = kgo_dir
     input_paths = sorted((input_dir.glob("??00Z_precip_rate.nc")))
     output_path = tmp_path / "output.nc"
-    args = [
-        "--cycletime",
-        "20190101T1000Z",
-        *input_paths,
-        "--output",
-        output_path,
-    ]
+    args = ["--cycletime", "20190101T1000Z", *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

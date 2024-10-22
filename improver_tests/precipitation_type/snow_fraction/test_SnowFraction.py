@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Tests of SnowFraction plugin"""
+"""Tests of SnowFraction plugin"""
 
 from datetime import datetime
 

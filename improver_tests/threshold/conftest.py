@@ -262,8 +262,5 @@ def landmask(mask: np.ndarray) -> Cube:
         A land mask cube.
     """
     return set_up_variable_cube(
-        mask.astype(np.int8),
-        name="land_binary_mask",
-        units=1,
-        spatial_grid="equalarea",
+        mask.astype(np.int8), name="land_binary_mask", units=1, spatial_grid="equalarea"
     )

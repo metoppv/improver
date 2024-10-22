@@ -41,7 +41,7 @@ def test_cub_monotonic_no_undersampled_bins(
     obs_count = forecast_probability_sum = default_obs_counts
 
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, default_fcst_counts, probability_bin_coord,
+        obs_count, forecast_probability_sum, default_fcst_counts, probability_bin_coord
     )
 
     assert_array_equal(
@@ -64,12 +64,12 @@ def test_cub_poorly_sampled_bins(probability_bin_coord):
     )
 
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.5], dtype=np.float32)
-    expected_bin_coord_bounds = np.array([[0.0, 1.0]], dtype=np.float32,)
+    expected_bin_coord_bounds = np.array([[0.0, 1.0]], dtype=np.float32)
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
 
@@ -89,13 +89,13 @@ def test_cub_one_undersampled_bin_at_top(probability_bin_coord):
     )
 
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -114,13 +114,13 @@ def test_cub_one_undersampled_bin_at_bottom(default_obs_counts, probability_bin_
         ]
     )
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.2, 0.5, 0.7, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -141,13 +141,13 @@ def test_cub_one_undersampled_bin_lower_neighbour(probability_bin_coord):
         ]
     )
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.1, 0.4, 0.7, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -168,13 +168,13 @@ def test_cub_one_undersampled_bin_upper_neighbour(probability_bin_coord):
         ]
     )
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -194,13 +194,13 @@ def test_cub_two_undersampled_bins(probability_bin_coord):
         ]
     )
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.1, 0.4, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -222,13 +222,13 @@ def test_cub_two_equal_undersampled_bins(probability_bin_coord):
     )
 
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.1, 0.4, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -249,13 +249,13 @@ def test_cub_three_equal_undersampled_bin_neighbours(probability_bin_coord):
     )
 
     result = Plugin()._combine_undersampled_bins(
-        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord,
+        obs_count, forecast_probability_sum, forecast_count, probability_bin_coord
     )
 
     assert_array_equal(result[:3], expected)
     expected_bin_coord_points = np.array([0.1, 0.5, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -271,12 +271,12 @@ def test_cbp_one_non_monotonic_bin_pair(
     obs_count = np.array([0, 250, 500, 1000, 750], dtype=np.float32)
     forecast_probability_sum = default_obs_counts
     result = Plugin()._combine_bin_pair(
-        obs_count, forecast_probability_sum, default_fcst_counts, probability_bin_coord,
+        obs_count, forecast_probability_sum, default_fcst_counts, probability_bin_coord
     )
     assert_array_equal(result[:3], expected_enforced_monotonic)
     expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -295,12 +295,12 @@ def test_cbp_two_non_monotonic_bin_pairs(
     forecast_probability_sum = default_obs_counts
     expected_enforced_monotonic[0][1] = 750  # Amend observation count
     result = Plugin()._combine_bin_pair(
-        obs_count, forecast_probability_sum, default_fcst_counts, probability_bin_coord,
+        obs_count, forecast_probability_sum, default_fcst_counts, probability_bin_coord
     )
     assert_array_equal(result[:3], expected_enforced_monotonic)
     expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     assert_allclose(expected_bin_coord_points, result[3].points)
     assert_allclose(expected_bin_coord_bounds, result[3].bounds)
@@ -310,7 +310,7 @@ def test_acof_monotonic(default_fcst_counts):
     """Test no change to observation frequency, if already monotonic."""
     obs_count = np.array([0, 0, 250, 500, 750], dtype=np.float32)
     result = Plugin()._assume_constant_observation_frequency(
-        obs_count, default_fcst_counts,
+        obs_count, default_fcst_counts
     )
     assert_array_equal(result.data, obs_count)
 
@@ -320,7 +320,7 @@ def test_acof_non_monotonic_equal_forecast_count(default_fcst_counts):
     obs_count = np.array([0, 750, 500, 1000, 750], dtype=np.float32)
     expected_result = np.array([0, 750, 750, 1000, 1000], dtype=np.float32)
     result = Plugin()._assume_constant_observation_frequency(
-        obs_count, default_fcst_counts,
+        obs_count, default_fcst_counts
     )
     assert_array_equal(result.data, expected_result)
 
@@ -352,7 +352,7 @@ def test_emcam_combine_undersampled_bins_monotonic(reliability_table_slice):
     )
     expected_bin_coord_points = np.array([0.1, 0.3, 0.6, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     reliability_table_slice.data = np.array(
         [
@@ -375,7 +375,7 @@ def test_emcam_combine_undersampled_bins_non_monotonic(reliability_table_slice):
     expected_data = np.array([[1000, 425, 1000], [1000, 425, 1000], [2000, 600, 1000]])
     expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     reliability_table_slice.data = np.array(
         [
@@ -401,7 +401,7 @@ def test_emcam_highest_bin_non_monotonic(reliability_table_slice):
     )
     expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     reliability_table_slice.data = np.array(
         [
@@ -425,7 +425,7 @@ def test_emcam_central_bin_non_monotonic(reliability_table_slice):
     )
     expected_bin_coord_points = np.array([0.1, 0.4, 0.7, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     reliability_table_slice.data = np.array(
         [
@@ -449,7 +449,7 @@ def test_emcam_upper_bins_non_monotonic(reliability_table_slice):
     )
     expected_bin_coord_points = np.array([0.1, 0.3, 0.5, 0.8], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32,
+        [[0.0, 0.2], [0.2, 0.4], [0.4, 0.6], [0.6, 1.0]], dtype=np.float32
     )
     reliability_table_slice.data = np.array(
         [
@@ -475,7 +475,7 @@ def test_emcam_lowest_bin_non_monotonic(reliability_table_slice):
     expected_bin_coord_points = np.array([0.2, 0.5, 0.7, 0.9], dtype=np.float32)
 
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.4], [0.4, 0.6], [0.6, 0.8], [0.8, 1.0]], dtype=np.float32
     )
 
     reliability_table_slice.data = np.array(
@@ -527,7 +527,7 @@ def test_process_undersampled_non_monotonic_point(create_rel_tables_point):
     expected_data = np.array([[1000, 425, 1000], [1000, 425, 1000], [2000, 600, 1000]])
     expected_bin_coord_points = np.array([0.2, 0.6, 0.9], dtype=np.float32)
     expected_bin_coord_bounds = np.array(
-        [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32,
+        [[0.0, 0.4], [0.4, 0.8], [0.8, 1.0]], dtype=np.float32
     )
     rel_table = create_rel_tables_point.table
     rel_table.data[create_rel_tables_point.indices0] = np.array(

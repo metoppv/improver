@@ -21,7 +21,6 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class Test_enforce_coordinate_ordering(IrisTest):
-
     """Test the enforce_coordinate_ordering utility."""
 
     def setUp(self):

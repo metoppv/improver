@@ -23,7 +23,6 @@ from improver.utilities.pad_spatial import (
 
 
 class Test_pad_coord(IrisTest):
-
     """Test the padding of a coordinate."""
 
     def setUp(self):
@@ -159,7 +158,6 @@ class Test_create_cube_with_halo(IrisTest):
 
 
 class Test__create_cube_with_padded_data(IrisTest):
-
     """Test creating a new cube using a template cube."""
 
     def setUp(self):
@@ -239,7 +237,6 @@ class Test__create_cube_with_padded_data(IrisTest):
 
 
 class Test_pad_cube_with_halo(IrisTest):
-
     """Test for padding a cube with a halo."""
 
     def setUp(self):
@@ -250,7 +247,7 @@ class Test_pad_cube_with_halo(IrisTest):
         self.cube.data[2, 2] = 0
 
         data = np.array(
-            [[0.0, 0.1, 0.0], [0.1, 0.5, 0.1], [0.0, 0.1, 0.0]], dtype=np.float32,
+            [[0.0, 0.1, 0.0], [0.1, 0.5, 0.1], [0.0, 0.1, 0.0]], dtype=np.float32
         )
         self.alternative_cube = self.cube[1:-1, 1:-1].copy(data=data)
 
@@ -487,7 +484,6 @@ class Test_remove_cube_halo(IrisTest):
 
 
 class Test_remove_halo_from_cube(IrisTest):
-
     """Test a halo is removed from the cube data."""
 
     def setUp(self):

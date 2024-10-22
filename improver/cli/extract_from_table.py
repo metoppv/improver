@@ -11,9 +11,9 @@ from improver import cli
 @cli.clizefy
 @cli.with_output
 def process(
-    *cubes: cli.inputcube, table: cli.inputjson, row_name: str, new_name: str = None,
+    *cubes: cli.inputcube, table: cli.inputjson, row_name: str, new_name: str = None
 ):
-    """ Extract values from a table based on the provided row and column cubes.
+    """Extract values from a table based on the provided row and column cubes.
 
     The data from the row cube is compared to the labels of the rows in the table of which
     the nearest lower label is selected. The same is done for the columns using the column cube.

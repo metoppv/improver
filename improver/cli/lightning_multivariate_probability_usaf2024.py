@@ -10,9 +10,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube, model_id_attr: str = None,
-):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """
     From the supplied following cubes:
     Convective Available Potential Energy (CAPE in J/kg),

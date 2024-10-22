@@ -25,7 +25,6 @@ from improver.utilities.temporal import iris_time_to_datetime
 
 
 class TemporalInterpolation(BasePlugin):
-
     """
     Interpolate data to intermediate times between the validity times of two
     cubes. This can be used to fill in missing data (e.g. for radar fields) or
@@ -151,8 +150,9 @@ class TemporalInterpolation(BasePlugin):
         known_interpolation_methods = ["linear", "solar", "daynight"]
         if interpolation_method not in known_interpolation_methods:
             raise ValueError(
-                "TemporalInterpolation: Unknown interpolation "
-                "method {}. ".format(interpolation_method)
+                "TemporalInterpolation: Unknown interpolation " "method {}. ".format(
+                    interpolation_method
+                )
             )
         self.interpolation_method = interpolation_method
         self.period_inputs = False

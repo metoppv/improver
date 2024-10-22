@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Test methods in lightning.LightningFromCapePrecip"""
+
 from datetime import datetime
 from unittest.mock import patch, sentinel
 

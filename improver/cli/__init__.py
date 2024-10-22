@@ -362,8 +362,7 @@ def with_output(
 
 
 def clizefy(obj=None, helper_class=DocutilizeClizeHelp, **kwargs):
-    """Decorator for creating CLI objects.
-    """
+    """Decorator for creating CLI objects."""
     if obj is None:
         return partial(clizefy, helper_class=helper_class, **kwargs)
     if hasattr(obj, "cli"):
@@ -432,7 +431,7 @@ SUBCOMMANDS_DISPATCHER = clizefy(
 def unbracket(args):
     """Convert input list with bracketed items into nested lists.
 
-    >>> unbracket('foo [ bar a b ] [ baz c ] -o z'.split())
+    >>> unbracket("foo [ bar a b ] [ baz c ] -o z".split())
     ['foo', ['bar', 'a', 'b'], ['baz', 'c'], '-o', 'z']
 
     """

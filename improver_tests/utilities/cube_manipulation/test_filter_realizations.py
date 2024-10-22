@@ -5,6 +5,7 @@
 """
 Unit tests for the "utilities.filter_realizations" function.
 """
+
 from datetime import datetime
 
 import numpy as np

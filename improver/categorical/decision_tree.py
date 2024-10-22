@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing categorical decision tree implementation."""
 
-
 import copy
 import operator
 from typing import Dict, List, Optional, Tuple, Union
@@ -49,12 +48,7 @@ from improver.utilities.common_input_handle import as_cubelist
 def _define_invertible_conditions() -> Dict[str, str]:
     """Returns a dictionary of boolean comparator strings where the value is the
     logical inverse of the key."""
-    invertible_conditions = {
-        ">=": "<",
-        ">": "<=",
-        "OR": "AND",
-        "": "",
-    }
+    invertible_conditions = {">=": "<", ">": "<=", "OR": "AND", "": ""}
     # Add reverse {value: key} entries to invertible_conditions
     reverse_inversions = {}
     for k, v in invertible_conditions.items():
@@ -197,7 +191,6 @@ class ApplyDecisionTree(BasePlugin):
                 for diagnostic, threshold, condition in zip(
                     diagnostics, thresholds, conditions
                 ):
-
                     # First we check the diagnostic name and units, performing
                     # a conversion is required and possible.
                     test_condition = iris.Constraint(name=diagnostic)
@@ -382,7 +375,6 @@ class ApplyDecisionTree(BasePlugin):
         for index, (diagnostic, p_threshold) in enumerate(
             zip(test_conditions["diagnostic_fields"], test_conditions[coord])
         ):
-
             d_threshold = test_conditions.get("diagnostic_thresholds")
             d_threshold = d_threshold[index] if d_threshold else None
             loop += 1
@@ -462,11 +454,11 @@ class ApplyDecisionTree(BasePlugin):
         threshold_val = threshold.points.item()
         if abs(threshold_val) < self.float_abs_tolerance:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance,
+                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance
             )
         else:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=self.float_tolerance, atol=0,
+                cell.point, threshold_val, rtol=self.float_tolerance, atol=0
             )
 
         kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
@@ -490,7 +482,6 @@ class ApplyDecisionTree(BasePlugin):
                 is allowed.
         """
         for missing in optional_node_data_missing:
-
             # Get the name of the alternative node to bypass the missing one
             target = self.queries[missing]["if_diagnostic_missing"]
             alternative = self.queries[missing][target]
@@ -506,7 +497,7 @@ class ApplyDecisionTree(BasePlugin):
 
     @staticmethod
     def find_all_routes(
-        graph: Dict, start: str, end: int, route: Optional[List[str]] = None,
+        graph: Dict, start: str, end: int, route: Optional[List[str]] = None
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -820,9 +811,11 @@ class ApplyDecisionTree(BasePlugin):
 
         # Construct graph nodes dictionary
         graph = {
-            key: [self.queries[key]["leaf"]]
-            if "leaf" in self.queries[key].keys()
-            else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
+            key: (
+                [self.queries[key]["leaf"]]
+                if "leaf" in self.queries[key].keys()
+                else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
+            )
             for key in self.queries
         }
         # Search through tree for all leaves (category end points)
@@ -836,7 +829,7 @@ class ApplyDecisionTree(BasePlugin):
         # Loop over possible categories
 
         for category_code in defined_categories:
-            routes = self.find_all_routes(graph, self.start_node, category_code,)
+            routes = self.find_all_routes(graph, self.start_node, category_code)
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
@@ -846,7 +839,6 @@ class ApplyDecisionTree(BasePlugin):
                     next_node = route[i_node + 1]
 
                     if current.get("if_false") == next_node:
-
                         (
                             current["threshold_condition"],
                             current["condition_combination"],

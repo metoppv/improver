@@ -22,14 +22,7 @@ def test_normal(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, emos_est_path, "--random-seed", "0", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -41,14 +34,7 @@ def test_truncated_normal(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "truncated_normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, emos_est_path, "--random-seed", "0", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -61,14 +47,7 @@ def test_normal_point_by_point_sites(tmp_path):
     input_path = kgo_dir / ".." / "realization_input.nc"
     emos_est_path = kgo_dir / "coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, emos_est_path, "--random-seed", "0", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -82,14 +61,7 @@ def test_normal_sites_subhourly(tmp_path):
     input_path = kgo_dir / "offset_input.nc"
     emos_est_path = kgo_dir / "coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, emos_est_path, "--random-seed", "0", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE)
 
@@ -186,12 +158,7 @@ def test_probabilities_error(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--output",
-        output_path,
-    ]
+    args = [input_path, emos_est_path, "--output", output_path]
     with pytest.raises(ValueError, match=".*provided as probabilities.*"):
         run_cli(args)
 
@@ -266,12 +233,7 @@ def test_percentiles_error(tmp_path):
     input_path = kgo_dir / "input.nc"
     emos_est_path = kgo_dir / "../normal/normal_coefficients.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        emos_est_path,
-        "--output",
-        output_path,
-    ]
+    args = [input_path, emos_est_path, "--output", output_path]
     with pytest.raises(ValueError):
         run_cli(args)
 
@@ -405,13 +367,7 @@ def test_no_coefficients(tmp_path):
     kgo_path = kgo_dir / "kgo_with_comment.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, "--random-seed", "0", "--output", output_path]
     with pytest.warns(UserWarning, match=".*no coefficients provided.*"):
         run_cli(args)
     # Check output matches input excluding the comment attribute.
@@ -478,9 +434,7 @@ def test_no_coefficients_with_prob_template(tmp_path):
         exclude_attributes="comment",
     )
     # Check output matches kgo.
-    acc.compare(
-        output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE,
-    )
+    acc.compare(output_path, kgo_path, atol=LOOSE_TOLERANCE, rtol=LOOSE_TOLERANCE)
 
 
 def test_wrong_coefficients(tmp_path):
@@ -488,14 +442,7 @@ def test_wrong_coefficients(tmp_path):
     kgo_dir = acc.kgo_root() / "apply-emos-coefficients/normal"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        input_path,
-        "--random-seed",
-        "0",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, input_path, "--random-seed", "0", "--output", output_path]
     with pytest.raises(ValueError, match="Multiple items have been provided.*"):
         run_cli(args)
 

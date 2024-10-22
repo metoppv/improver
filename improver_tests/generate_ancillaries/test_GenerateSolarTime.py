@@ -26,7 +26,7 @@ ATTRIBUTES = {
 @pytest.fixture
 def target_grid() -> Cube:
     return set_up_variable_cube(
-        data=np.ones((10, 8), dtype=np.float32), name="template", attributes=ATTRIBUTES,
+        data=np.ones((10, 8), dtype=np.float32), name="template", attributes=ATTRIBUTES
     )
 
 
@@ -42,7 +42,6 @@ def target_grid_equal_area() -> Cube:
 
 @pytest.mark.parametrize("new_title", (None, "IMPROVER ancillary on sample grid"))
 def test__create_solar_time_cube(target_grid, new_title):
-
     solar_time_data = np.zeros_like(target_grid.data)
     time = datetime(2022, 1, 1, 0, 0)
 

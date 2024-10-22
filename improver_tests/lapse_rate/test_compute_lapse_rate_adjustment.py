@@ -24,12 +24,7 @@ def set_up_cubes(lapse_rate):
         Cube of the orographic difference and a cube of the lapse rate.
     """
     orog_diff = np.array(
-        [
-            [10, 20, -10, -20],
-            [200.0, -200, 10, 0],
-            [30, 40, 50, -50],
-            [5, 0.5, 40, 60],
-        ],
+        [[10, 20, -10, -20], [200.0, -200, 10, 0], [30, 40, 50, -50], [5, 0.5, 40, 60]],
         dtype=np.float32,
     )
     orog_diff_cube = set_up_variable_cube(
@@ -47,7 +42,7 @@ def set_up_cubes(lapse_rate):
     return orog_diff_cube, lapse_rate_cube
 
 
-@pytest.mark.parametrize("max_orog_diff_limit", (50, 70,))
+@pytest.mark.parametrize("max_orog_diff_limit", (50, 70))
 @pytest.mark.parametrize("lapse_rate", (-ELR, 0, ELR))
 def test_compute_lapse_rate_adjustment(lapse_rate, max_orog_diff_limit):
     """Test the computation of the lapse rate adjustment."""

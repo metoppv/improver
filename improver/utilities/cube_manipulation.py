@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Provides support utilities for cube manipulation."""
+"""Provides support utilities for cube manipulation."""
 
 import warnings
 from typing import Any, Dict, List, Optional, Union
@@ -563,7 +563,7 @@ def clip_cube_data(cube: Cube, minimum_value: float, maximum_value: float) -> Cu
 
 
 def expand_bounds(
-    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str],
+    result_cube: Cube, cubelist: Union[List[Cube], CubeList], coord_names: List[str]
 ) -> Cube:
     """Alter a coordinate on result_cube such that bounds are expanded to cover
     the entire range of the input cubes (cubelist).  The input result_cube is
@@ -586,7 +586,6 @@ def expand_bounds(
         Cube with coords expanded.
     """
     for coord in coord_names:
-
         if len(result_cube.coord(coord).points) != 1:
             emsg = (
                 "the expand bounds function should only be used on a"
@@ -777,7 +776,7 @@ def maximum_in_height(
 
 
 def height_of_maximum(
-    cube: Cube, max_cube: Cube, find_lowest: bool = True, new_name: str = None,
+    cube: Cube, max_cube: Cube, find_lowest: bool = True, new_name: str = None
 ) -> Cube:
     """Calculates the height level at which the maximum value has been calculated. This
     takes in a cube with values at different heights, and also a cube with the maximum

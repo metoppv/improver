@@ -10,7 +10,7 @@ from improver import cli
 
 # Creates the value_converter that clize needs.
 inputflow = cli.create_constrained_inputcubelist_converter(
-    "grid_eastward_wind", "grid_northward_wind",
+    "grid_eastward_wind", "grid_northward_wind"
 )
 
 

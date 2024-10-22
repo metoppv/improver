@@ -10,9 +10,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube, model_id_attr: str = None,
-):
+def process(*cubes: cli.inputcube, model_id_attr: str = None):
     """
     Apply latitude-dependent thresholds to CAPE and precipitation rate to derive a
     probability-of-lightning cube.

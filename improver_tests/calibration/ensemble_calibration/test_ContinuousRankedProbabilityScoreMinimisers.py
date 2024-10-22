@@ -7,6 +7,7 @@ Unit tests for the
 `ensemble_calibration.ContinuousRankedProbabilityScoreMinimisers`
 class.
 """
+
 import unittest
 
 import iris
@@ -24,7 +25,6 @@ from .helper_functions import EnsembleCalibrationAssertions, SetupCubes
 
 
 class SetupInputs(IrisTest):
-
     """Set up inputs for testing."""
 
     def setUp(self):
@@ -47,7 +47,6 @@ class SetupInputs(IrisTest):
 
 
 class SetupNormalInputs(SetupInputs, SetupCubes):
-
     """Create a class for setting up cubes for testing."""
 
     def setUp(self):
@@ -100,20 +99,19 @@ class SetupNormalInputs(SetupInputs, SetupCubes):
         spatial_product = np.prod(self.truth.shape[-2:])
         self.initial_guess_spot_mean = np.broadcast_to(
             self.initial_guess_for_mean,
-            (spatial_product, len(self.initial_guess_for_mean),),
+            (spatial_product, len(self.initial_guess_for_mean)),
         )
         self.initial_guess_spot_realizations = np.broadcast_to(
             self.initial_guess_for_realization,
-            (spatial_product, len(self.initial_guess_for_realization),),
+            (spatial_product, len(self.initial_guess_for_realization)),
         )
         self.ig_spot_mean_additional_predictor = np.broadcast_to(
             self.initial_guess_mean_additional_predictor,
-            (spatial_product, len(self.initial_guess_mean_additional_predictor),),
+            (spatial_product, len(self.initial_guess_mean_additional_predictor)),
         )
 
 
 class Test_calculate_normal_crps(SetupNormalInputs):
-
     """
     Test minimising the CRPS for a normal distribution.
     Either the ensemble mean or the individual ensemble realizations are
@@ -184,7 +182,6 @@ class Test_calculate_normal_crps(SetupNormalInputs):
 class Test_process_normal_distribution(
     SetupNormalInputs, EnsembleCalibrationAssertions
 ):
-
     """
     Test minimising the CRPS for a normal distribution.
     Either the ensemble mean or the individual ensemble realizations are used
@@ -529,9 +526,9 @@ class Test_process_normal_distribution(
             self.forecast_variance,
             distribution,
         )
-        self.expected_mean_coefficients_point_by_point[
-            :, 0, 0
-        ] = self.initial_guess_for_mean
+        self.expected_mean_coefficients_point_by_point[:, 0, 0] = (
+            self.initial_guess_for_mean
+        )
         self.assertEMOSCoefficientsAlmostEqual(
             result, self.expected_mean_coefficients_point_by_point
         )
@@ -578,7 +575,6 @@ class Test_process_normal_distribution(
 
 
 class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
-
     """Create a class for setting up cubes for testing."""
 
     def setUp(self):
@@ -638,7 +634,6 @@ class SetupTruncatedNormalInputs(SetupInputs, SetupCubes):
 
 
 class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
-
     """
     Test minimising the crps for a truncated normal distribution.
     Either the ensemble mean or the individual ensemble realizations are used
@@ -709,7 +704,6 @@ class Test_calculate_truncated_normal_crps(SetupTruncatedNormalInputs):
 class Test_process_truncated_normal_distribution(
     SetupTruncatedNormalInputs, EnsembleCalibrationAssertions
 ):
-
     """
     Test minimising the CRPS for a truncated normal distribution.
     Either the ensemble mean or the individual ensemble realizations are used

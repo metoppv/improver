@@ -10,9 +10,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    cube: cli.inputcube, *, min_value: float = None, max_value: float = None,
-):
+def process(cube: cli.inputcube, *, min_value: float = None, max_value: float = None):
     """Clip the data in the input cube such that any data above max_value is set equal to
      max_value and any data below min_value is set equal to min_value.
 

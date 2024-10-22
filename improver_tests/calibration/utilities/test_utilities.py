@@ -7,6 +7,7 @@ Unit tests for the utilities within the `calibration.utilities`
 module.
 
 """
+
 import datetime
 import unittest
 
@@ -43,7 +44,6 @@ from ..ensemble_calibration.helper_functions import SetupCubes
 
 
 class Test_convert_cube_data_to_2d(IrisTest):
-
     """Test the convert_cube_data_to_2d utility."""
 
     def setUp(self):
@@ -120,7 +120,6 @@ class Test_convert_cube_data_to_2d(IrisTest):
 
 
 class Test_flatten_ignoring_masked_data(IrisTest):
-
     """Test the flatten_ignoring_masked_data utility."""
 
     def setUp(self):
@@ -204,7 +203,7 @@ class Test_flatten_ignoring_masked_data(IrisTest):
 
     def test_4D_input_not_masked_preserve_leading_dim(self):
         """Test input array is unchanged when input in 4D.
-           This should give the same answer as the corresponding 3D array."""
+        This should give the same answer as the corresponding 3D array."""
         data_array = self.data_array.reshape((3, 2, 2, 2))
         result = flatten_ignoring_masked_data(
             data_array, preserve_leading_dimension=True
@@ -230,7 +229,6 @@ class Test_flatten_ignoring_masked_data(IrisTest):
 
 
 class Test_check_predictor(unittest.TestCase):
-
     """
     Test to check the predictor.
     """
@@ -399,7 +397,7 @@ class Test__filter_non_matching_cubes(SetupCubes):
 
         # Add multi-dimensional time coordinate.
         time_coord = AuxCoord(
-            np.array(np.reshape(time_points, (2, 2)), dtype=TIME_COORDS["time"].dtype,),
+            np.array(np.reshape(time_points, (2, 2)), dtype=TIME_COORDS["time"].dtype),
             "time",
             units=TIME_COORDS["time"].units,
         )
@@ -504,7 +502,6 @@ def test_create_unified_frt_input_with_bounds(reliability_cube, different_frt):
 
 
 class Test_merge_land_and_sea(IrisTest):
-
     """Test merge_land_and_sea"""
 
     def setUp(self):
@@ -589,9 +586,8 @@ class Test_merge_land_and_sea(IrisTest):
 
 
 class Test_forecast_coords_match(IrisTest):
-
     """Test for function that tests if forecast period and the hour of the
-     forecast_reference_time coordinate match between two cubes."""
+    forecast_reference_time coordinate match between two cubes."""
 
     def setUp(self):
         """Set-up testing."""
@@ -653,7 +649,6 @@ class Test_forecast_coords_match(IrisTest):
 
 
 class Test_get_frt_hours(IrisTest):
-
     """Test the get_frt_hours function."""
 
     def test_single_value(self):
@@ -682,7 +677,6 @@ class Test_get_frt_hours(IrisTest):
 
 
 class Test_check_forecast_consistency(IrisTest):
-
     """Test the check_forecast_consistency function."""
 
     def setUp(self):
@@ -742,7 +736,6 @@ class Test_check_forecast_consistency(IrisTest):
 
 
 class Test_broadcast_data_to_time_coord(IrisTest):
-
     """Test the broadcast_data_to_time_coord function."""
 
     def setUp(self):

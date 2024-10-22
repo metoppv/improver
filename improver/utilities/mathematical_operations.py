@@ -263,7 +263,7 @@ class Integration(BasePlugin):
             lower_bounds_cube.slices_over(self.coord_name_to_integrate),
         )
 
-        for (upper_bounds_slice, lower_bounds_slice) in levels_tuple:
+        for upper_bounds_slice, lower_bounds_slice in levels_tuple:
             (upper_bound,) = upper_bounds_slice.coord(
                 self.coord_name_to_integrate
             ).points

@@ -2,8 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Provides ability to extract values from table."""
-
+"""Provides ability to extract values from table."""
 
 from typing import List
 
@@ -18,7 +17,7 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class ExtractValueFromTable(BasePlugin):
-    """ Plugin to extract values from a table using the provided inputs cubes to select which
+    """Plugin to extract values from a table using the provided inputs cubes to select which
     rows and columns to extract.
 
     The table is expected to contain numerical labels for every row and column. These labels will be
@@ -39,12 +38,12 @@ class ExtractValueFromTable(BasePlugin):
     def __init__(self, row_name: str, new_name: str = None) -> None:
         """Initialise the plugin
 
-            Args:
-                row_name:
-                    Name of the cube used for indexing rows.
-                new_name:
-                    Optional new name for the resulting cube.
-                """
+        Args:
+            row_name:
+                Name of the cube used for indexing rows.
+            new_name:
+                Optional new name for the resulting cube.
+        """
         self.row_name = row_name
         self.new_name = new_name
 
@@ -53,13 +52,13 @@ class ExtractValueFromTable(BasePlugin):
         values: np.array, sorted_table_labels: np.array
     ) -> np.array:
         """Returns the index of the nearest lower label for every element of values.
-            Args:
-                values:
-                    Array of values to extract from table
-                table_label:
-                    An array of the labels along an axis of the table.
-            Returns:
-                An array of indices of the nearest lower label for each value in values.
+        Args:
+            values:
+                Array of values to extract from table
+            table_label:
+                An array of the labels along an axis of the table.
+        Returns:
+            An array of indices of the nearest lower label for each value in values.
         """
 
         sorted_index = np.searchsorted(sorted_table_labels, values, side="right") - 1
@@ -83,15 +82,15 @@ class ExtractValueFromTable(BasePlugin):
         self, table: DataFrame, columns_cube: iris.cube.Cube, row_cube: iris.cube.Cube
     ) -> np.array:
         """Extract values from the table based on the provided row and column cubes.
-            Args:
-                table:
-                    DataFrame representing the table from which values are extracted.
-                columns_cube:
-                    Cube used to index the columns of the table.
-                row_cube:
-                    Cube used to index the rows of the table.
-            Returns:
-                Array of values extracted from the table.
+        Args:
+            table:
+                DataFrame representing the table from which values are extracted.
+            columns_cube:
+                Cube used to index the columns of the table.
+            row_cube:
+                Cube used to index the rows of the table.
+        Returns:
+            Array of values extracted from the table.
         """
         shape = columns_cube.shape
 

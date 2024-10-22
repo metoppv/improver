@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the cube_combiner.Combine plugin."""
+
 from datetime import datetime
 from unittest.mock import patch, sentinel
 
@@ -89,9 +90,7 @@ def test_filtering_realizations(realization_cubes, short_realizations):
 
 
 @pytest.mark.parametrize("coordinate_name", ("realization", "percentile"))
-def test_cubes_different_size(
-    realization_cubes, coordinate_name,
-):
+def test_cubes_different_size(realization_cubes, coordinate_name):
     """Checks Combine works with different broadcast coordinates."""
     cubes = realization_cubes.merge_cube()
     cubes.data = np.full_like(cubes.data, 1)

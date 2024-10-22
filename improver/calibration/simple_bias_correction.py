@@ -395,7 +395,7 @@ class ApplyBiasCorrection(BasePlugin):
                 "Forecast period differ between forecast and bias datasets."
             )
 
-    def process(self, *cubes: Union[Cube, CubeList],) -> Cube:
+    def process(self, *cubes: Union[Cube, CubeList]) -> Cube:
         """Split then apply bias correction using the specified bias values.
 
         Where the bias data is defined point-by-point, the bias-correction will also

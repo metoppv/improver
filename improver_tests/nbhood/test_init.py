@@ -10,7 +10,6 @@ from improver.nbhood import radius_by_lead_time
 
 
 class Test_radius_by_lead_time(unittest.TestCase):
-
     """Test the radius_by_lead_time method."""
 
     def test_single_radius(self):

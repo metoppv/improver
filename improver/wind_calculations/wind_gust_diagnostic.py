@@ -17,7 +17,6 @@ from improver.metadata.probabilistic import find_percentile_coordinate
 
 
 class WindGustDiagnostic(PostProcessingPlugin):
-
     """Plugin for calculating wind-gust diagnostic.
 
     In the model a shear-driven turbulence parameterization is used to

@@ -16,7 +16,6 @@ from improver.utilities.cube_manipulation import collapsed
 
 
 class Test_collapsed(unittest.TestCase):
-
     """Test the collapsed utility."""
 
     def setUp(self):

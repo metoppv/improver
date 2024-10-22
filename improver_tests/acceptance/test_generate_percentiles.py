@@ -53,7 +53,7 @@ def test_probconvert(tmp_path, count):
 
 
 @pytest.mark.slow
-def test_ignore_ecc_bounds(tmp_path,):
+def test_ignore_ecc_bounds(tmp_path):
     """Test ECC bounds warning option"""
     kgo_dir = acc.kgo_root() / "generate-percentiles/ecc_bounds_warning"
     kgo_path = kgo_dir / "kgo.nc"
@@ -150,11 +150,7 @@ def test_rebadging(tmp_path, identifier):
     kgo_path = kgo_dir / "rebadging" / f"{identifier}_kgo.nc"
     perc_input = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        perc_input,
-        "--output",
-        output_path,
-    ]
+    args = [perc_input, "--output", output_path]
     if identifier == "optimal_crps_percentiles":
         args += ["--optimal-crps-percentiles"]
 

@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ExtractLevel plugin"""
+
 from collections.abc import Iterable
 
 import numpy as np
@@ -184,9 +185,9 @@ def test_basic(
         expected_data = expected_data[0]
 
     if least_significant_digit:
-        temperature_on_levels.attributes[
-            "least_significant_digit"
-        ] = least_significant_digit
+        temperature_on_levels.attributes["least_significant_digit"] = (
+            least_significant_digit
+        )
 
     result = ExtractLevel(
         value_of_level=temperature, positive_correlation=positive_correlation
@@ -214,9 +215,7 @@ def test_basic(
     ),
 )
 @pytest.mark.parametrize("special_value", (np.nan, True, np.inf))
-def test_only_one_point(
-    temperature_on_pressure_levels, index, expected, special_value,
-):
+def test_only_one_point(temperature_on_pressure_levels, index, expected, special_value):
     """Tests the ExtractLevel plugin with the unusual case that only one layer has
     a valid value.
     """

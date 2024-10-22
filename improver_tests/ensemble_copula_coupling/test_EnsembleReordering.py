@@ -7,6 +7,7 @@ Unit tests for the
 `ensemble_copula_coupling.EnsembleReordering` plugin.
 
 """
+
 import itertools
 import unittest
 
@@ -26,7 +27,6 @@ from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
 class Test__recycle_raw_ensemble_realizations(IrisTest):
-
     """
     Test the _recycle_raw_ensemble_realizations
     method in the EnsembleReordering plugin.
@@ -67,7 +67,7 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         )
 
         result = Plugin()._recycle_raw_ensemble_realizations(
-            self.percentile_cube, self.realization_cube, self.perc_coord,
+            self.percentile_cube, self.realization_cube, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord("realization").points, [0, 1, 2])
@@ -88,7 +88,7 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
         raw_forecast_realizations = self.realization_cube[:2, :, :]
         raw_forecast_realizations.coord("realization").points = [12, 13]
         result = Plugin()._recycle_raw_ensemble_realizations(
-            self.percentile_cube, raw_forecast_realizations, self.perc_coord,
+            self.percentile_cube, raw_forecast_realizations, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord("realization").points, [12, 13, 14])
@@ -108,7 +108,7 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
 
         post_processed_forecast_percentiles = self.percentile_cube[:2, :, :]
         result = Plugin()._recycle_raw_ensemble_realizations(
-            post_processed_forecast_percentiles, self.realization_cube, self.perc_coord,
+            post_processed_forecast_percentiles, self.realization_cube, self.perc_coord
         )
         self.assertIsInstance(result, Cube)
         self.assertArrayEqual(result.coord("realization").points, [0, 1])
@@ -116,7 +116,6 @@ class Test__recycle_raw_ensemble_realizations(IrisTest):
 
 
 class Test_rank_ecc(IrisTest):
-
     """Test the rank_ecc method in the EnsembleReordering plugin."""
 
     def setUp(self):
@@ -355,7 +354,6 @@ class Test_rank_ecc(IrisTest):
 
 
 class Test__check_input_cube_masks(IrisTest):
-
     """Test the _check_input_cube_masks method in the EnsembleReordering plugin."""
 
     def setUp(self):
@@ -455,7 +453,6 @@ class Test__check_input_cube_masks(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test the EnsembleReordering plugin."""
 
     def setUp(self):

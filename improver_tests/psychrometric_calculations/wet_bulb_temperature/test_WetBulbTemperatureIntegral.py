@@ -20,7 +20,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 
 
 class Test_process(IrisTest):
-
     """Test the calculation of the wet bulb temperature integral from
     temperature, pressure, and relative humidity information using the
     process function. Integration is calculated in the vertical.

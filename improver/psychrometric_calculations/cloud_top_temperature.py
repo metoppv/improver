@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing the CloudTopTemperature plugin"""
+
 from typing import Union
 
 import numpy as np
@@ -69,7 +70,7 @@ class CloudTopTemperature(PostProcessingPlugin):
 
             (pressure,) = t.coord("pressure").points
             t_dry_parcel = dry_adiabatic_temperature(
-                self.t_at_ccl.data[mask], self.p_at_ccl.data[mask], pressure,
+                self.t_at_ccl.data[mask], self.p_at_ccl.data[mask], pressure
             )
 
             t_parcel = np.full_like(t.data, np.nan)

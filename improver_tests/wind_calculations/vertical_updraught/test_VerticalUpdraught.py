@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the VerticalUpdraught plugin"""
+
 import re
 from datetime import datetime
 from typing import List
@@ -221,7 +222,7 @@ def set_mismatched_model_ids(cubes: List[Cube]):
         (lambda l: l[0].rename("kittens"), "Expected to find cubes of "),
         (lambda l: l[1].rename("poodles"), "Expected to find cubes of "),
         (remove_a_cube, "Expected to find cubes of "),
-        (add_unexpected_cube, re.escape("Unexpected Cube(s) found in inputs: "),),
+        (add_unexpected_cube, re.escape("Unexpected Cube(s) found in inputs: ")),
         (spatial_shift, "Spatial coords of input Cubes do not match: "),
         (lambda l: units_to_kg(l[0]), "Unable to convert from"),
         (lambda l: units_to_kg(l[1]), "Unable to convert from"),

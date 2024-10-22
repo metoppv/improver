@@ -341,7 +341,7 @@ class Test_process(IrisTest):
         )
 
     def test_basic(self):
-        """Test that the plugin returns expected data types. """
+        """Test that the plugin returns expected data types."""
         result_cube = WindDirection().process(self.cube)
 
         self.assertIsInstance(result_cube, Cube)
@@ -371,7 +371,7 @@ class Test_process(IrisTest):
         self.assertEqual(result_cube.dtype, np.float32)
 
     def test_returns_expected_values(self):
-        """Test that the function returns correct 2D arrays of floats. """
+        """Test that the function returns correct 2D arrays of floats."""
 
         result_cube = WindDirection().process(self.cube)
 

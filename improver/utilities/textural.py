@@ -2,8 +2,8 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Module containing plugin to calculate whether or not the input field texture
-    exceeds a given threshold."""
+"""Module containing plugin to calculate whether or not the input field texture
+exceeds a given threshold."""
 
 from typing import Optional
 

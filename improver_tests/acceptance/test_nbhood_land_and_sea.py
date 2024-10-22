@@ -16,7 +16,7 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "kgo_name, shape", (("kgo.nc", "square"), ("kgo_circular.nc", "circular")),
+    "kgo_name, shape", (("kgo.nc", "square"), ("kgo_circular.nc", "circular"))
 )
 def test_basic(tmp_path, kgo_name, shape):
     """Test basic land-sea without topographic bands"""

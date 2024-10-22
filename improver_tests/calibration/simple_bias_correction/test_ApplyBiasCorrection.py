@@ -208,9 +208,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
         single_frt_with_bounds=True,
     )
     with pytest.raises(ValueError, match="valid-hour differ"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
     # Case 2: The bias data defined with a mix of forecast_reference_time valid-hours
     bias_cubes = generate_bias_cubelist(
         num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=False
@@ -223,9 +221,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
         )
     )
     with pytest.raises(ValueError, match="Multiple forecast_reference_time valid-hour"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
     # Case 3: The bias data defined for different forecast_period relative to forecast
     bias_cubes = generate_bias_cubelist(
         num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=True
@@ -235,9 +231,7 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
             "forecast_period"
         ).points + (3 * 3600)
     with pytest.raises(ValueError, match="Forecast period differ"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
     # Case 4: The bias data defined with a mix of forecast-period values
     bias_cubes = generate_bias_cubelist(
         num_bias_inputs, last_valid_time=VALID_TIME, single_frt_with_bounds=False
@@ -245,14 +239,12 @@ def test_inconsistent_bias_forecast_inputs(forecast_cube, num_bias_inputs):
     bias_cube_w_different_fp = generate_bias_cubelist(
         1, last_valid_time=VALID_TIME - timedelta(days=6), single_frt_with_bounds=False
     )[0]
-    bias_cube_w_different_fp.coord(
-        "forecast_period"
-    ).points = bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    bias_cube_w_different_fp.coord("forecast_period").points = (
+        bias_cube_w_different_fp.coord("forecast_period").points + (3 * 3600)
+    )
     bias_cubes.append(bias_cube_w_different_fp)
     with pytest.raises(ValueError, match="Multiple forecast period"):
-        ApplyBiasCorrection()._check_forecast_bias_consistent(
-            forecast_cube, bias_cubes,
-        )
+        ApplyBiasCorrection()._check_forecast_bias_consistent(forecast_cube, bias_cubes)
 
 
 @pytest.mark.parametrize("num_bias_inputs", (1, 30))
@@ -352,9 +344,7 @@ def test_missing_fcst_file():
     a ValueError.
     """
     bias_cubes = generate_bias_cubelist(
-        3,
-        last_valid_time=VALID_TIME + timedelta(hours=3),
-        single_frt_with_bounds=False,
+        3, last_valid_time=VALID_TIME + timedelta(hours=3), single_frt_with_bounds=False
     )
 
     with pytest.raises(ValueError, match="No forecast"):
@@ -367,9 +357,7 @@ def test_multiple_fcst_files(forecast_cube):
     ValueError.
     """
     bias_cubes = generate_bias_cubelist(
-        3,
-        last_valid_time=VALID_TIME + timedelta(hours=3),
-        single_frt_with_bounds=False,
+        3, last_valid_time=VALID_TIME + timedelta(hours=3), single_frt_with_bounds=False
     )
 
     with pytest.raises(ValueError, match="Multiple forecast"):

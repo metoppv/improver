@@ -67,7 +67,6 @@ def load_cubelist(
     cubes = strip_var_names(cubes)
 
     for cube in cubes:
-
         # Remove metadata attributes pointing to legacy prefix cube
         cube.attributes.pop("bald__isPrefixedBy", None)
 

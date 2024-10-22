@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HumidityMixingRatio plugin"""
+
 from unittest.mock import patch, sentinel
 
 import numpy as np
@@ -49,7 +50,7 @@ def temperature_cube_fixture() -> Cube:
     """Set up a r, y, x cube of temperature data"""
     data = np.full((2, 2, 2), fill_value=300, dtype=np.float32)
     temperature_cube = set_up_variable_cube(
-        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="air_temperature", units="K", attributes=LOCAL_MANDATORY_ATTRIBUTES
     )
     return temperature_cube
 
@@ -72,10 +73,7 @@ def humidity_cube_fixture() -> Cube:
     """Set up a r, y, x cube of relative humidity data"""
     data = np.full((2, 2, 2), fill_value=1e-1, dtype=np.float32)
     humidity_cube = set_up_variable_cube(
-        data,
-        name="relative_humidity",
-        units="1",
-        attributes=LOCAL_MANDATORY_ATTRIBUTES,
+        data, name="relative_humidity", units="1", attributes=LOCAL_MANDATORY_ATTRIBUTES
     )
     return humidity_cube
 

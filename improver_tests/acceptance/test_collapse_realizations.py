@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the collapse-realizations CLI"""
 
-
 import pytest
 
 from . import acceptance as acc
@@ -45,13 +44,7 @@ def test_no_rename(tmp_path):
     kgo_path = kgo_dir / "kgo_no_rename.nc"
     input_path = kgo_dir / "input.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--method",
-        "mean",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, "--method", "mean", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

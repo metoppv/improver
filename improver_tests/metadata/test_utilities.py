@@ -318,7 +318,6 @@ class Test_create_coordinate_hash(unittest.TestCase):
 
 
 class Test_check_grid_match(unittest.TestCase):
-
     """Test the check_grid_match function."""
 
     def setUp(self):
@@ -462,8 +461,7 @@ def attribute_not_unique(cubes: List[Cube]):
     ),
 )
 def test_errors_get_model_id_attr(cubes: List[Cube], method: Callable, message):
-    """Checks that get_model_id_attr raises useful errors when the required conditions are not met.
-    """
+    """Checks that get_model_id_attr raises useful errors when the required conditions are not met."""
     model_id_attr = "test_attribute"
     model_id_value = "test_value"
     for cube in cubes:

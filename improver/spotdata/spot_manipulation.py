@@ -165,7 +165,6 @@ class SpotManipulation(BasePlugin):
         # which to constrain is provided, e.g. wmo_id. Otherwise pass the
         # spot forecast cube forwards unchanged.
         if cube.coords("spot_index"):
-
             if (
                 self.apply_lapse_rate_correction is not False
                 or self.fixed_lapse_rate is not None

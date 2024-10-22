@@ -8,6 +8,7 @@
    bilinear_land_sea.rst
 
 """
+
 from typing import Tuple, Union
 
 import numpy as np
@@ -566,16 +567,10 @@ def lakes_islands(
     # If the expanded search area hasn't found any same surface type matches anywhere
     # just ignore surface type, use normal bilinear approach
     if points_with_no_match.shape[0] > 0:
-
         # revert back to the basic bilinear weights, indexes unchanged
         no_match_indexes = lake_island_indexes[points_with_no_match]
         weights[no_match_indexes] = basic_weights(
-            no_match_indexes,
-            indexes,
-            out_latlons,
-            in_latlons,
-            lat_spacing,
-            lon_spacing,
+            no_match_indexes, indexes, out_latlons, in_latlons, lat_spacing, lon_spacing
         )
 
     points_with_match = np.where(count_matching_surface > 0)[0]

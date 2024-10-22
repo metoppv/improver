@@ -117,7 +117,7 @@ def test_basic(
 
 
 @pytest.mark.slow
-def test_invalid_truth_filter(tmp_path,):
+def test_invalid_truth_filter(tmp_path):
     """
     Test using an invalid diagnostic name to filter the truth table.
     """
@@ -150,7 +150,7 @@ def test_invalid_truth_filter(tmp_path,):
 
 
 @pytest.mark.slow
-def test_return_none(tmp_path,):
+def test_return_none(tmp_path):
     """
     Test that None is returned if a non-existent forecast period is requested.
     """

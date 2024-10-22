@@ -165,7 +165,7 @@ def probability_over_time_in_vicinity_above_fixture():
     )
     cube.add_cell_method(
         iris.coords.CellMethod(
-            method="sum", coords="time", comments=(f"of {diagnostic_name}",),
+            method="sum", coords="time", comments=(f"of {diagnostic_name}",)
         )
     )
     for coord in ["time", "forecast_period"]:

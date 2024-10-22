@@ -21,10 +21,6 @@ def test_basic(tmp_path):
     inputs = kgo_dir / "cloud_texture.nc"
     output_path = tmp_path / "output.nc"
 
-    args = [
-        inputs,
-        "--output",
-        output_path,
-    ]
+    args = [inputs, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

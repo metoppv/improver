@@ -168,7 +168,7 @@ class PrecipPhaseProbability(BasePlugin):
         self._extract_input_cubes(cubes)
 
         result_data = np.where(
-            self.comparator(self.altitudes, self.falling_level_cube.data), 1, 0,
+            self.comparator(self.altitudes, self.falling_level_cube.data), 1, 0
         ).astype(np.int8)
         mandatory_attributes = generate_mandatory_attributes([self.falling_level_cube])
 

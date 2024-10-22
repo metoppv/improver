@@ -21,7 +21,7 @@ from improver.utilities.save import _order_cell_methods, save_netcdf
 
 
 def set_up_test_cube():
-    """ Set up a temperature cube with additional global attributes. """
+    """Set up a temperature cube with additional global attributes."""
     data = np.linspace(-45.0, 45.0, 9, dtype=np.float32).reshape((1, 3, 3)) + 273.15
 
     attributes = {
@@ -40,10 +40,10 @@ def set_up_test_cube():
 
 
 class Test_save_netcdf(IrisTest):
-    """ Test function to save iris cubes as NetCDF files. """
+    """Test function to save iris cubes as NetCDF files."""
 
     def setUp(self):
-        """ Set up cube to write, read and check """
+        """Set up cube to write, read and check"""
         self.global_keys_ref = [
             "title",
             "um_version",
@@ -67,7 +67,7 @@ class Test_save_netcdf(IrisTest):
         self.cube.cell_methods = self.cell_methods
 
     def tearDown(self):
-        """ Remove temporary directories created for testing. """
+        """Remove temporary directories created for testing."""
         try:
             os.remove(self.filepath)
         except FileNotFoundError:
@@ -75,13 +75,13 @@ class Test_save_netcdf(IrisTest):
         os.rmdir(self.directory)
 
     def test_basic_cube(self):
-        """ Test saves file in required location """
+        """Test saves file in required location"""
         self.assertFalse(os.path.exists(self.filepath))
         save_netcdf(self.cube, self.filepath)
         self.assertTrue(os.path.exists(self.filepath))
 
     def test_compression(self):
-        """ Test data gets compressed with default complevel 1 when saved """
+        """Test data gets compressed with default complevel 1 when saved"""
         save_netcdf(self.cube, self.filepath)
 
         data = Dataset(self.filepath, mode="r")
@@ -91,8 +91,8 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(filters["complevel"], 1)
 
     def test_compression_level(self):
-        """ Test data gets compressed with complevel provided by compression_level
-        when saved """
+        """Test data gets compressed with complevel provided by compression_level
+        when saved"""
         save_netcdf(self.cube, self.filepath, compression_level=3)
 
         data = Dataset(self.filepath, mode="r")
@@ -102,7 +102,7 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(filters["complevel"], 3)
 
     def test_no_compression(self):
-        """ Test data does not get compressed when saved with compression_level 0 """
+        """Test data does not get compressed when saved with compression_level 0"""
         save_netcdf(self.cube, self.filepath, compression_level=0)
 
         data = Dataset(self.filepath, mode="r")
@@ -111,12 +111,12 @@ class Test_save_netcdf(IrisTest):
         self.assertFalse(filters["zlib"])
 
     def test_compression_level_invalid(self):
-        """ Test ValueError raised when invalid compression_level """
+        """Test ValueError raised when invalid compression_level"""
         with self.assertRaises(ValueError):
             save_netcdf(self.cube, self.filepath, compression_level="one")
 
     def test_compression_level_out_of_range(self):
-        """ Test ValueError raised when compression_level out of range """
+        """Test ValueError raised when compression_level out of range"""
         with self.assertRaises(ValueError):
             save_netcdf(self.cube, self.filepath, compression_level=10)
 
@@ -140,14 +140,14 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(len(read_cubes), 2)
 
     def test_cube_data(self):
-        """ Test valid cube can be read from saved file """
+        """Test valid cube can be read from saved file"""
         save_netcdf(self.cube, self.filepath)
         cube = load_cube(self.filepath)
         self.assertTrue(isinstance(cube, iris.cube.Cube))
         self.assertArrayEqual(cube.data, self.cube.data)
 
     def test_cube_dimensions(self):
-        """ Test cube dimension coordinates are preserved """
+        """Test cube dimension coordinates are preserved"""
         save_netcdf(self.cube, self.filepath)
         cube = load_cube(self.filepath)
         coord_names = [coord.name() for coord in cube.coords(dim_coords=True)]
@@ -155,7 +155,7 @@ class Test_save_netcdf(IrisTest):
         self.assertCountEqual(coord_names, reference_names)
 
     def test_cell_method_reordering_in_saved_file(self):
-        """ Test cell methods are in the correct order when written out and
+        """Test cell methods are in the correct order when written out and
         read back in."""
         self.cube.cell_methods = (self.cell_methods[1], self.cell_methods[0])
         save_netcdf(self.cube, self.filepath)
@@ -163,7 +163,7 @@ class Test_save_netcdf(IrisTest):
         self.assertEqual(cube.cell_methods, self.cell_methods)
 
     def test_cf_global_attributes(self):
-        """ Test that a NetCDF file saved from one cube only contains the
+        """Test that a NetCDF file saved from one cube only contains the
         expected global attributes.
 
         NOTE Loading the file as an iris.cube.Cube does not distinguish global
@@ -175,7 +175,7 @@ class Test_save_netcdf(IrisTest):
         self.assertTrue(all(key in self.global_keys_ref for key in global_keys))
 
     def test_cf_data_attributes(self):
-        """ Test that forbidden global metadata are saved as data variable
+        """Test that forbidden global metadata are saved as data variable
         attributes
         """
         self.cube.attributes["test_attribute"] = np.arange(12)
@@ -189,7 +189,7 @@ class Test_save_netcdf(IrisTest):
         )
 
     def test_cf_shared_attributes_list(self):
-        """ Test that a NetCDF file saved from a list of cubes that share
+        """Test that a NetCDF file saved from a list of cubes that share
         non-global attributes does not promote these attributes to global.
         """
         cube_list = [self.cube, self.cube]
@@ -230,7 +230,7 @@ class Test_save_netcdf(IrisTest):
 
 @pytest.fixture(name="bitshaving_cube")
 def bitshaving_cube_fixture():
-    """ Sets up a cube with a recurring decimal for bitshaving testing """
+    """Sets up a cube with a recurring decimal for bitshaving testing"""
     cube = set_up_test_cube()
     # 1/9 fractions are recurring decimal and binary fractions
     # good for checking number of digits remaining after bitshaving
@@ -243,7 +243,7 @@ def bitshaving_cube_fixture():
 @pytest.mark.parametrize("lsd", (0, 2, 3))
 @pytest.mark.parametrize("compress", (0, 2))
 def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
-    """ Test the least significant digit for bitshaving output files"""
+    """Test the least significant digit for bitshaving output files"""
     filepath = tmp_path / "temp.nc"
     save_netcdf(
         bitshaving_cube,
@@ -267,10 +267,10 @@ def test_least_significant_digit(bitshaving_cube, tmp_path, lsd, compress):
 
 
 class Test__order_cell_methods(IrisTest):
-    """ Test function that sorts cube cell_methods before saving. """
+    """Test function that sorts cube cell_methods before saving."""
 
     def setUp(self):
-        """ Set up cube with cell_methods."""
+        """Set up cube with cell_methods."""
         self.cube = set_up_test_cube()
         self.cell_methods = (
             CellMethod(method="maximum", coords="time", intervals="1 hour"),
@@ -279,12 +279,12 @@ class Test__order_cell_methods(IrisTest):
         self.cube.cell_methods = self.cell_methods
 
     def test_no_reordering_cube(self):
-        """ Test the order is preserved is no reordering required."""
+        """Test the order is preserved is no reordering required."""
         _order_cell_methods(self.cube)
         self.assertEqual(self.cube.cell_methods, self.cell_methods)
 
     def test_reordering_cube(self):
-        """ Test the order is changed when reordering is required."""
+        """Test the order is changed when reordering is required."""
         self.cube.cell_methods = (self.cell_methods[1], self.cell_methods[0])
         # Test that following the manual reorder above the cube cell methods
         # and the tuple don't match.

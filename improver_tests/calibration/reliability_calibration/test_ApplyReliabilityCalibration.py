@@ -64,7 +64,6 @@ def create_point_by_point_reliability_table(
 
 
 class Test_ReliabilityCalibrate(unittest.TestCase):
-
     """Test class for the Test_ApplyReliabilityCalibration tests,
     setting up cubes to use as inputs."""
 
@@ -161,7 +160,6 @@ class Test_ReliabilityCalibrate(unittest.TestCase):
 
 
 class Test__init__(unittest.TestCase):
-
     """Test the __init__ method."""
 
     def test_using_defaults(self):
@@ -172,7 +170,6 @@ class Test__init__(unittest.TestCase):
 
 
 class Test__extract_matching_reliability_table(Test_ReliabilityCalibrate):
-
     """Test the _extract_matching_reliability_table method."""
 
     def test_matching_coords(self):
@@ -206,7 +203,6 @@ class Test__extract_matching_reliability_table(Test_ReliabilityCalibrate):
 
 
 class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
-
     """Test the _ensure_monotonicity_across_thresholds method."""
 
     def test_monotonic_case(self):
@@ -243,9 +239,9 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
         the relative_to_threshold attribute."""
 
         expected = self.forecast.copy(data=self.forecast.data[::-1])
-        self.forecast.coord(self.threshold).attributes[
-            "spp__relative_to_threshold"
-        ] = "below"
+        self.forecast.coord(self.threshold).attributes["spp__relative_to_threshold"] = (
+            "below"
+        )
         warning_msg = "Below threshold probabilities are not increasing"
 
         with pytest.warns(UserWarning, match=warning_msg):
@@ -267,7 +263,6 @@ class Test__ensure_monotonicity_across_thresholds(Test_ReliabilityCalibrate):
 
 
 class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
-
     """Test the _calculate_reliability_probabilities method."""
 
     def test_values(self):
@@ -322,11 +317,9 @@ class Test__calculate_reliability_probabilities(Test_ReliabilityCalibrate):
 
 
 class Test__interpolate(unittest.TestCase):
-
     """Test the _interpolate method."""
 
     def setUp(self):
-
         """Set up data for testing the interpolate method."""
 
         self.reliability_probabilities = np.array([0.0, 0.4, 0.8])
@@ -398,7 +391,6 @@ class Test__interpolate(unittest.TestCase):
 
 
 class Test_process(Test_ReliabilityCalibrate):
-
     """Test the process method."""
 
     def test_calibrating_forecast_with_reliability_table_cube(self):

@@ -60,11 +60,6 @@ def test_no_input(tmp_path):
     """Test an exceptions is raised by the CLI if no cubes are provided."""
     wxtree = acc.kgo_root() / "categorical-modes" / "wx_decision_tree.json"
     output_path = tmp_path / "output.nc"
-    args = [
-        "--decision-tree",
-        wxtree,
-        "--output",
-        output_path,
-    ]
+    args = ["--decision-tree", wxtree, "--output", output_path]
     with pytest.raises(RuntimeError, match="Not enough input arguments*"):
         run_cli(args)

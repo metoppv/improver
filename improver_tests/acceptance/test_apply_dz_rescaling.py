@@ -22,11 +22,6 @@ def test_apply_dz_rescaling(tmp_path):
     forecast_path = kgo_dir / "20230220T1200Z-PT0006H00M-wind_speed_at_10m.nc"
     scaled_dz_path = kgo_dir / "scaled_dz.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        forecast_path,
-        scaled_dz_path,
-        "--output",
-        output_path,
-    ]
+    args = [forecast_path, scaled_dz_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

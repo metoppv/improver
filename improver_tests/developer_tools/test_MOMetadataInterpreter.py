@@ -95,9 +95,9 @@ def test_probabilities_above(probability_above_cube, interpreter):
 def test_handles_duplicate_model_string(probability_above_cube, interpreter):
     """Test the interpreter can distinguish between the Global Model and the
     Global Grid in cube titles"""
-    probability_above_cube.attributes[
-        "title"
-    ] = "UKV Model Forecast on Global 10 km Standard Grid"
+    probability_above_cube.attributes["title"] = (
+        "UKV Model Forecast on Global 10 km Standard Grid"
+    )
     interpreter.run(probability_above_cube)
     assert interpreter.model == "UKV"
 
@@ -500,9 +500,9 @@ def test_error_missing_model_run_information(
 
 def test_error_unrecognised_model_in_blend(blended_probability_below_cube, interpreter):
     """Test error when a blended model ID attribute has an unknown value"""
-    blended_probability_below_cube.attributes[
-        "mosg__model_configuration"
-    ] = "nc_ens uk_det"
+    blended_probability_below_cube.attributes["mosg__model_configuration"] = (
+        "nc_ens uk_det"
+    )
     with pytest.raises(ValueError, match="unrecognised model code"):
         interpreter.run(blended_probability_below_cube)
 
@@ -510,9 +510,9 @@ def test_error_unrecognised_model_in_blend(blended_probability_below_cube, inter
 def test_error_blend_missing_from_title(blended_probability_below_cube, interpreter):
     """Test error raised if a blended cube title doesn't indicate a blend, but the
     model ID attribute contains multiple models"""
-    blended_probability_below_cube.attributes[
-        "title"
-    ] = "IMPROVER Forecast on UK 2 km Standard Grid"
+    blended_probability_below_cube.attributes["title"] = (
+        "IMPROVER Forecast on UK 2 km Standard Grid"
+    )
     with pytest.raises(ValueError, match="is not a valid single model"):
         interpreter.run(blended_probability_below_cube)
 
@@ -553,9 +553,9 @@ def test_error_inconsistent_spot_coords(
 
 def test_error_inconsistent_spot_title(blended_spot_median_cube, interpreter):
     """Test error raised if a spot cube has a non-spot title"""
-    blended_spot_median_cube.attributes[
-        "title"
-    ] = "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid"
+    blended_spot_median_cube.attributes["title"] = (
+        "IMPROVER Post-Processed Multi-Model Blend on UK 2 km Standard Grid"
+    )
     with pytest.raises(ValueError, match="not consistent with spot data"):
         interpreter.run(blended_spot_median_cube)
 

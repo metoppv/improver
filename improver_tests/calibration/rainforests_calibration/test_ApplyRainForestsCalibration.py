@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyRainForestsCalibration class."""
+
 import sys
 
 import numpy as np
@@ -44,7 +45,7 @@ class MockPredictor:
 @pytest.mark.parametrize("treelite_model", (TREELITE_ENABLED, False))
 @pytest.mark.parametrize("treelite_file", (True, False))
 def test__new__(
-    lightgbm_keys, treelite_model, treelite_file, monkeypatch, model_config,
+    lightgbm_keys, treelite_model, treelite_file, monkeypatch, model_config
 ):
     """Test treelite models are loaded if model_config correctly defines them. If all thresholds
     contain treelite model AND the treelite module is available, treelite Predictor is returned,

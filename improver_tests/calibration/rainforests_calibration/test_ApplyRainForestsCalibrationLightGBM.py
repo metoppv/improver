@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyRainForestsCalibrationLightGBM class."""
+
 import numpy as np
 import pytest
 from iris import Constraint
@@ -106,7 +107,7 @@ def test__align_feature_variables_ensemble(ensemble_features, ensemble_forecast)
     derived_field_cube.remove_coord("realization")
     ensemble_features.append(derived_field_cube)
 
-    (aligned_features, aligned_forecast,) = ApplyRainForestsCalibrationLightGBM(
+    (aligned_features, aligned_forecast) = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}
     )._align_feature_variables(ensemble_features, ensemble_forecast)
 
@@ -128,7 +129,7 @@ def test__align_feature_variables_deterministic(
     deterministic_forecast = deterministic_forecast.extract(Constraint(realization=0))
     deterministic_forecast.remove_coord("realization")
 
-    (aligned_features, aligned_forecast,) = ApplyRainForestsCalibrationLightGBM(
+    (aligned_features, aligned_forecast) = ApplyRainForestsCalibrationLightGBM(
         model_config_dict={}
     )._align_feature_variables(deterministic_features, deterministic_forecast)
 
@@ -207,12 +208,10 @@ def test__evaluate_probabilities(
     probability data."""
     plugin_cls, dummy_models = plugin_and_dummy_models
     plugin = plugin_cls(model_config_dict={})
-    plugin.tree_models, plugin.lead_times, plugin.model_thresholds, = dummy_models
+    plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
     input_dataset = plugin._prepare_features_array(ensemble_features)
     data_before = threshold_cube.data.copy()
-    plugin._evaluate_probabilities(
-        input_dataset, 24, threshold_cube.data,
-    )
+    plugin._evaluate_probabilities(input_dataset, 24, threshold_cube.data)
     diff = threshold_cube.data - data_before
     # check each threshold has been populated
     assert np.all(np.any(diff != 0, axis=0))
@@ -343,13 +342,13 @@ def test_lead_time_without_matching_model(
 
     output_thresholds = [0.0, 0.0005, 0.001]
     result_24_hour = plugin.process(
-        ensemble_forecast, ensemble_features, output_thresholds,
+        ensemble_forecast, ensemble_features, output_thresholds
     )
     ensemble_forecast.coord("forecast_period").points = [27 * SECONDS_IN_HOUR]
     for cube in ensemble_features:
         cube.coord("forecast_period").points = [27 * SECONDS_IN_HOUR]
     result_27_hour = plugin.process(
-        ensemble_forecast, ensemble_features, output_thresholds,
+        ensemble_forecast, ensemble_features, output_thresholds
     )
     np.testing.assert_almost_equal(result_24_hour.data, result_27_hour.data)
 
@@ -364,7 +363,7 @@ def test_process_ensemble_specifying_thresholds(
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
 
     output_thresholds = [0.0, 0.0005, 0.001]
-    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
+    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds)
 
     forecast_variable = ensemble_forecast.name()
     assert result.long_name == f"probability_of_{forecast_variable}_above_threshold"
@@ -414,7 +413,7 @@ def test_process_with_bin_data(
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
 
     output_thresholds = [0.0, 0.0005, 0.001]
-    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds,)
+    result = plugin.process(ensemble_forecast, ensemble_features, output_thresholds)
 
     # check that there are duplicated rows in result (so that binning will actually
     # have an effect)
@@ -423,9 +422,7 @@ def test_process_with_bin_data(
     plugin = plugin_cls(model_config_dict={}, bin_data=True)
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
     plugin.combined_feature_splits = plugin._get_feature_splits(model_config)
-    result_bin = plugin.process(
-        ensemble_forecast, ensemble_features, output_thresholds,
-    )
+    result_bin = plugin.process(ensemble_forecast, ensemble_features, output_thresholds)
     np.testing.assert_equal(result.data, result_bin.data)
 
 
@@ -440,7 +437,7 @@ def test_process_deterministic(
     plugin.tree_models, plugin.lead_times, plugin.model_thresholds = dummy_models
     output_thresholds = [0.0, 0.0005, 0.001]
     result = plugin.process(
-        deterministic_forecast, deterministic_features, output_thresholds,
+        deterministic_forecast, deterministic_features, output_thresholds
     )
 
     forecast_variable = deterministic_forecast.name()

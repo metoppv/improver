@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing lightning classes."""
+
 from datetime import timedelta
 from typing import Tuple, Union
 
@@ -164,7 +165,7 @@ class LightningFromCapePrecip(PostProcessingPlugin):
 
 
 def latitude_to_threshold(
-    latitude: np.ndarray, midlatitude: float, tropics: float,
+    latitude: np.ndarray, midlatitude: float, tropics: float
 ) -> np.ndarray:
     """
     Rescale a latitude range into a range of threshold values suitable for
@@ -277,7 +278,7 @@ class LightningMultivariateProbability_USAF2024(PostProcessingPlugin):
 
         for input_name, units in input_names.items():
             output_cubes.append(self._extract_input(cubes, input_name))
-            if not output_cubes[-1].units in units:
+            if output_cubes[-1].units not in units:
                 expected_unit_string = " or ".join(map(str, units))
                 received_unit_string = str(output_cubes[-1].units)
                 raise ValueError(

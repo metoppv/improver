@@ -3,7 +3,8 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the distance_to_number_of_grid_cells function from
- spatial.py."""
+spatial.py."""
+
 from copy import copy
 from datetime import datetime as dt
 
@@ -39,7 +40,6 @@ from improver.utilities.spatial import (
 
 
 class Test_common_functions(IrisTest):
-
     """A class originally written for testing spot-data functionality that no
     longer exists. It was also used in this set of tests, so upon deletion of
     the old spot-data code, the class was moved here."""
@@ -269,7 +269,6 @@ class Test_calculate_grid_spacing_with_tolerance(GridSpacingTest):
 
 
 class Test_convert_distance_into_number_of_grid_cells(IrisTest):
-
     """Test conversion of distance in metres into number of grid cells."""
 
     def setUp(self):
@@ -278,10 +277,7 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
         data = np.ones((1, 16, 16), dtype=np.float32)
         data[:, 7, 7] = 0.0
         self.cube = set_up_variable_cube(
-            data,
-            name="precipitation_amount",
-            units="kg m^-2",
-            spatial_grid="equalarea",
+            data, name="precipitation_amount", units="kg m^-2", spatial_grid="equalarea"
         )
 
     def test_basic_distance_to_grid_cells(self):
@@ -343,13 +339,12 @@ class Test_convert_distance_into_number_of_grid_cells(IrisTest):
 
 
 class Test_number_of_grid_cells_to_distance(IrisTest):
-
     """Test the number_of_grid_cells_to_distance method"""
 
     def setUp(self):
         """Set up a cube with x and y coordinates"""
         data = np.ones((3, 4))
-        self.cube = Cube(data, standard_name="air_temperature",)
+        self.cube = Cube(data, standard_name="air_temperature")
         self.cube.add_dim_coord(
             DimCoord(
                 np.linspace(2000.0, 6000.0, 3), "projection_x_coordinate", units="m"
@@ -391,7 +386,6 @@ class Test_number_of_grid_cells_to_distance(IrisTest):
 
 
 class Test_check_if_grid_is_equal_area(IrisTest):
-
     """Test that the grid is an equal area grid."""
 
     def setUp(self):
@@ -497,7 +491,7 @@ class Test_get_grid_y_x_values(IrisTest):
         """Set up the cube."""
         data = np.ones((1, 2, 4), dtype=np.float32)
         self.latlon_cube = set_up_variable_cube(
-            data, name="precipitation_amount", units="kg m^-2",
+            data, name="precipitation_amount", units="kg m^-2"
         )
         self.expected_lons = np.array([-15, -5, 5, 15, -15, -5, 5, 15]).reshape(2, 4)
         self.expected_lats = np.array([-5, -5, -5, -5, 5, 5, 5, 5]).reshape(2, 4)
@@ -684,7 +678,7 @@ def test_rename_vicinity_cube(test_cube):
     [
         # Vicinity processing, with one non-zero central value resulting
         # in the whole domain returning values of 1
-        (np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, np.ones((3, 3)),),
+        (np.array([[0, 0, 0], [0, 1.0, 0], [0, 0, 0]]), 1, None, np.ones((3, 3))),
         # Vicinity processing, with one non-zero corner value resulting
         # in neighbouring cells values of 1 within the limit of the
         # defined vicinity radius

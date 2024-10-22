@@ -3,8 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the
-   weighted_blend.WeightedBlendAcrossWholeDimension plugin."""
-
+weighted_blend.WeightedBlendAcrossWholeDimension plugin."""
 
 import unittest
 from datetime import datetime
@@ -55,7 +54,6 @@ def percentile_cube(frt_points, time, frt):
 
 
 class Test__init__(IrisTest):
-
     """Test the __init__ method."""
 
     def test_basic(self):
@@ -72,7 +70,6 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -83,7 +80,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_weighted_blend(IrisTest):
-
     """A shared setup for tests in the WeightedBlendAcrossWholeDimension
     plugin."""
 
@@ -170,7 +166,6 @@ class Test_weighted_blend(IrisTest):
 
 
 class Test_check_percentile_coord(Test_weighted_blend):
-
     """Test the percentile coord checking function."""
 
     def test_basic(self):
@@ -200,7 +195,6 @@ class Test_check_percentile_coord(Test_weighted_blend):
 
 
 class Test_check_compatible_time_points(Test_weighted_blend):
-
     """Test the time point compatibility checking function."""
 
     def test_basic(self):
@@ -231,7 +225,6 @@ class Test_check_compatible_time_points(Test_weighted_blend):
 
 
 class Test_shape_weights(Test_weighted_blend):
-
     """Test the shape weights function is able to create a valid a set of
     weights, or raises an error."""
 
@@ -311,7 +304,6 @@ class Test_shape_weights(Test_weighted_blend):
 
 
 class Test_get_weights_array(Test_weighted_blend):
-
     """Test the get_weights_array function."""
 
     def test_no_weights_cube_provided(self):
@@ -344,7 +336,6 @@ class Test_get_weights_array(Test_weighted_blend):
 
 
 class Test__normalise_weights(Test_weighted_blend):
-
     """Test the _normalise_weights function."""
 
     def test_noop(self):
@@ -375,14 +366,13 @@ class Test__normalise_weights(Test_weighted_blend):
                 [[0.1, 0.5625], [0.2, 0.4]],
                 [[0.1, 0.1875], [0.2, 0.4]],
                 [[0.8, 0.25], [0.6, 0.2]],
-            ],
+            ]
         )
         result = self.plugin._normalise_weights(weights)
         self.assertArrayAlmostEqual(result, expected_data)
 
 
 class Test_percentile_weighted_mean(Test_weighted_blend):
-
     """Test the percentile_weighted_mean function."""
 
     def test_with_weights(self):
@@ -415,7 +405,6 @@ class Test_percentile_weighted_mean(Test_weighted_blend):
 
 
 class Test_weighted_mean(Test_weighted_blend):
-
     """Test the weighted_mean function."""
 
     def test_with_weights(self):
@@ -449,10 +438,7 @@ class Test_weighted_mean(Test_weighted_blend):
     def test_wind_directions(self):
         """Test function when a wind direction data cube is provided, and
         the directions don't cross the 0/360° boundary."""
-        frt_points = [
-            datetime(2015, 11, 19, 0),
-            datetime(2015, 11, 19, 1),
-        ]
+        frt_points = [datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)]
         cube = set_up_variable_cube(
             np.zeros((2, 2), dtype=np.float32),
             name="wind_from_direction",
@@ -474,10 +460,7 @@ class Test_weighted_mean(Test_weighted_blend):
     def test_wind_directions_over_north(self):
         """Test function when a wind direction data cube is provided, and
         the directions cross the 0/360° boundary."""
-        frt_points = [
-            datetime(2015, 11, 19, 0),
-            datetime(2015, 11, 19, 1),
-        ]
+        frt_points = [datetime(2015, 11, 19, 0), datetime(2015, 11, 19, 1)]
         cube = set_up_variable_cube(
             np.zeros((2, 2), dtype=np.float32),
             name="wind_direction",
@@ -510,7 +493,6 @@ class Test_weighted_mean(Test_weighted_blend):
 
 
 class Test_process(Test_weighted_blend):
-
     """Test the process method."""
 
     def test_basic(self):

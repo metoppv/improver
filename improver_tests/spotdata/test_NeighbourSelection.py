@@ -18,7 +18,6 @@ from improver.spotdata.neighbour_finding import NeighbourSelection
 
 
 class Test_NeighbourSelection(IrisTest):
-
     """Test class for the NeighbourSelection tests, setting up inputs."""
 
     def setUp(self):
@@ -118,7 +117,6 @@ class Test_NeighbourSelection(IrisTest):
 
 
 class Test__repr__(IrisTest):
-
     """Tests the class __repr__ function."""
 
     def test_basic(self):
@@ -155,7 +153,6 @@ class Test__repr__(IrisTest):
 
 
 class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
-
     """Test the function for converting arrays of site coordinates into the
     correct coordinate system for the model/grid cube."""
 
@@ -221,7 +218,6 @@ class Test__transform_sites_coordinate_system(Test_NeighbourSelection):
 
 
 class Test_check_sites_are_within_domain(Test_NeighbourSelection):
-
     """Test the function that removes sites falling outside the model domain
     from the site list."""
 
@@ -260,13 +256,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         msg = "1 spot sites fall outside the grid"
 
         with pytest.warns(UserWarning, match=msg):
-            (
-                sites_out,
-                site_coords_out,
-                out_x,
-                out_y,
-            ) = plugin.check_sites_are_within_domain(
-                sites, site_coords, x_points, y_points, self.region_orography
+            (sites_out, site_coords_out, out_x, out_y) = (
+                plugin.check_sites_are_within_domain(
+                    sites, site_coords, x_points, y_points, self.region_orography
+                )
             )
 
         self.assertArrayEqual(sites_out, sites[0:2])
@@ -291,13 +284,10 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
         plugin.global_coordinate_system = True
 
         with pytest.warns(UserWarning, match=msg):
-            (
-                sites_out,
-                site_coords_out,
-                out_x,
-                out_y,
-            ) = plugin.check_sites_are_within_domain(
-                sites, site_coords, x_points, y_points, self.global_orography
+            (sites_out, site_coords_out, out_x, out_y) = (
+                plugin.check_sites_are_within_domain(
+                    sites, site_coords, x_points, y_points, self.global_orography
+                )
             )
 
         self.assertArrayEqual(sites_out, sites[0:2])
@@ -333,7 +323,6 @@ class Test_check_sites_are_within_domain(Test_NeighbourSelection):
 
 
 class Test_get_nearest_indices(Test_NeighbourSelection):
-
     """Test function wrapping iris functionality to get nearest grid point
     indices to arbitrary coordinates."""
 
@@ -356,7 +345,6 @@ class Test_get_nearest_indices(Test_NeighbourSelection):
 
 
 class Test_geocentric_cartesian(Test_NeighbourSelection):
-
     """Test conversion of global coordinates to geocentric cartesians. In  this
     coordinate system, x and y are in the equitorial plane, and z is towards
     the poles."""
@@ -456,7 +444,6 @@ class Test_geocentric_cartesian(Test_NeighbourSelection):
 
 
 class Test_build_KDTree(Test_NeighbourSelection):
-
     """Test construction of a KDTree with scipy."""
 
     def test_basic(self):
@@ -487,7 +474,6 @@ class Test_build_KDTree(Test_NeighbourSelection):
 
 
 class Test_select_minimum_dz(Test_NeighbourSelection):
-
     """Test extraction of the minimum height difference points from a provided
     array of neighbours. Note that the region orography has a series of islands
     at a y index of 4, changing elevation with x. As such the nodes are chosen
@@ -560,7 +546,6 @@ class Test_select_minimum_dz(Test_NeighbourSelection):
 
 
 class Test_process(Test_NeighbourSelection):
-
     """Test the process method of the NeighbourSelection class."""
 
     def test_non_metre_spatial_dimensions(self):

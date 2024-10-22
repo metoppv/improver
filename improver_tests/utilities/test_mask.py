@@ -59,7 +59,7 @@ def test_basic(wind_gust_cube, mask, switch_coord_order, invert_mask):
 
 
 def test_different_dimensions(wind_gust_cube, mask):
-    """ Test that the function will raise an error if the mask cube has different
+    """Test that the function will raise an error if the mask cube has different
     dimensions to other cube."""
     mask = mask[0]
     input_list = [wind_gust_cube, mask]

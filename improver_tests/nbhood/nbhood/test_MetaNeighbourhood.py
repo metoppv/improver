@@ -61,7 +61,7 @@ def test___init___exceptions(
     degrees_as_complex,
     exception_msg,
 ):
-    """Exception when passing """
+    """Exception when passing"""
     args = [neighbourhood_output]
     kwargs = {
         "weighted_mode": weighted_mode,

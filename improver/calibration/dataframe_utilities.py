@@ -11,6 +11,7 @@ into an iris cube.
 
 
 """
+
 import warnings
 from typing import List, Optional, Sequence, Tuple
 
@@ -28,10 +29,7 @@ from improver.ensemble_copula_coupling.utilities import choose_set_of_percentile
 from improver.metadata.constants.time_types import TIME_COORDS
 from improver.spotdata.build_spotdata_cube import build_spotdata_cube
 
-REPRESENTATION_COLUMNS = [
-    "percentile",
-    "realization",
-]
+REPRESENTATION_COLUMNS = ["percentile", "realization"]
 
 FORECAST_DATAFRAME_COLUMNS = [
     "altitude",
@@ -219,7 +217,6 @@ def _ensure_consistent_static_cols(
     # Check if any of the assumed static columns are actually not static when
     # the DataFrame is grouped by the site_id_col.
     if (forecast_df.groupby(site_id_col)[static_cols].nunique().nunique() > 1).any():
-
         for static_col in static_cols:
             # For each static column, find the last value from the list of unique
             # values for each site. The last value corresponds to the most recent value
@@ -236,7 +233,7 @@ def _ensure_consistent_static_cols(
 
 
 def _define_time_coord(
-    adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None,
+    adate: pd.Timestamp, time_bounds: Optional[Sequence[pd.Timestamp]] = None
 ) -> DimCoord:
     """Define a time coordinate. The coordinate will have bounds,
     if bounds are provided.
@@ -254,12 +251,14 @@ def _define_time_coord(
     return DimCoord(
         np.array(adate.timestamp(), dtype=TIME_COORDS["time"].dtype),
         "time",
-        bounds=time_bounds
-        if time_bounds is None
-        else [
-            np.array(t.timestamp(), dtype=TIME_COORDS["time"].dtype)
-            for t in time_bounds
-        ],
+        bounds=(
+            time_bounds
+            if time_bounds is None
+            else [
+                np.array(t.timestamp(), dtype=TIME_COORDS["time"].dtype)
+                for t in time_bounds
+            ]
+        ),
         units=TIME_COORDS["time"].units,
     )
 
@@ -274,7 +273,7 @@ def _define_height_coord(height) -> AuxCoord:
     Returns:
         The height coordinate.
     """
-    return AuxCoord(np.array(height, dtype=np.float32), "height", units="m",)
+    return AuxCoord(np.array(height, dtype=np.float32), "height", units="m")
 
 
 def _training_dates_for_calibration(
@@ -573,7 +572,7 @@ def _prepare_dataframes(
 
 
 def forecast_dataframe_to_cube(
-    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int,
+    df: DataFrame, training_dates: DatetimeIndex, forecast_period: int
 ) -> Cube:
     """Convert a forecast DataFrame into an iris Cube. The percentiles
     within the forecast DataFrame are rebadged as realizations.
@@ -629,12 +628,16 @@ def forecast_dataframe_to_cube(
                 fp_point.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype
             ),
             "forecast_period",
-            bounds=fp_bounds
-            if fp_bounds is None
-            else [
-                np.array(f.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype)
-                for f in fp_bounds
-            ],
+            bounds=(
+                fp_bounds
+                if fp_bounds is None
+                else [
+                    np.array(
+                        f.total_seconds(), dtype=TIME_COORDS["forecast_period"].dtype
+                    )
+                    for f in fp_bounds
+                ]
+            ),
             units=TIME_COORDS["forecast_period"].units,
         )
         frt_coord = AuxCoord(
@@ -694,7 +697,7 @@ def forecast_dataframe_to_cube(
     return cube
 
 
-def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex,) -> Cube:
+def truth_dataframe_to_cube(df: DataFrame, training_dates: DatetimeIndex) -> Cube:
     """Convert a truth DataFrame into an iris Cube.
 
     Args:

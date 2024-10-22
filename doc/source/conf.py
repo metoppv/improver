@@ -286,7 +286,7 @@ latex_elements = {
 # (source start file, target name, title,
 #  author, documentclass [howto, manual, or own class]).
 latex_documents = [
-    (master_doc, "Improver.tex", "IMPROVER Documentation", "Met Office", "manual"),
+    (master_doc, "Improver.tex", "IMPROVER Documentation", "Met Office", "manual")
 ]
 
 # The name of an image file (relative to this directory) to place at the top of
@@ -347,7 +347,7 @@ texinfo_documents = [
         "IMPROVER",
         "One line description of project.",
         "Miscellaneous",
-    ),
+    )
 ]
 
 # Documents to append as an appendix to all manuals.

@@ -34,7 +34,7 @@ def gridded_variable(forecast_data):
         np.array([1.5], dtype=np.float32), standard_name="height", units="m"
     )
     return set_up_variable_cube(
-        forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES,
+        forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES
     )
 
 
@@ -44,7 +44,7 @@ def spot_variable(forecast_data):
         np.array([1.5], dtype=np.float32), standard_name="height", units="m"
     )
     return set_up_spot_variable_cube(
-        forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES,
+        forecast_data, include_scalar_coords=[height_crd], attributes=ATTRIBUTES
     )
 
 
@@ -67,7 +67,7 @@ def gridded_percentiles(forecast_data):
     """Create a gridded percentile cube from which to extract spot forecasts."""
     n_percentiles = forecast_data.shape[0]
     percentiles = np.linspace(20, 80, n_percentiles)
-    return set_up_percentile_cube(forecast_data, percentiles, attributes=ATTRIBUTES,)
+    return set_up_percentile_cube(forecast_data, percentiles, attributes=ATTRIBUTES)
 
 
 def spot_percentiles(forecast_data):
@@ -75,7 +75,7 @@ def spot_percentiles(forecast_data):
     n_percentiles = forecast_data.shape[0]
     percentiles = np.linspace(20, 80, n_percentiles)
     return set_up_spot_percentile_cube(
-        forecast_data, percentiles, attributes=ATTRIBUTES,
+        forecast_data, percentiles, attributes=ATTRIBUTES
     )
 
 
@@ -83,7 +83,7 @@ def gridded_probabilities(forecast_data):
     """Create a gridded probability cube from which to extract spot forecasts."""
     n_thresholds = forecast_data.shape[0]
     thresholds = np.linspace(273, 283, n_thresholds)
-    return set_up_probability_cube(forecast_data, thresholds, attributes=ATTRIBUTES,)
+    return set_up_probability_cube(forecast_data, thresholds, attributes=ATTRIBUTES)
 
 
 def spot_probabilities(forecast_data):
@@ -91,7 +91,7 @@ def spot_probabilities(forecast_data):
     n_thresholds = forecast_data.shape[0]
     thresholds = np.linspace(273, 283, n_thresholds)
     return set_up_spot_probability_cube(
-        forecast_data, thresholds, attributes=ATTRIBUTES,
+        forecast_data, thresholds, attributes=ATTRIBUTES
     )
 
 
@@ -454,7 +454,7 @@ def test_neighbour_selection_method_setting(kwargs, expected):
 
 
 @pytest.mark.parametrize(
-    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])]
 )
 def test_spot_subset_incomplete(neighbour_cube):
     """Test spot subsetting where the neighbour cube includes sites that are
@@ -475,7 +475,7 @@ def test_spot_subset_incomplete(neighbour_cube):
 
 
 @pytest.mark.parametrize(
-    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])]
 )
 def test_spot_unset_ids(neighbour_cube):
     """Test spot subsetting where the neighbour cube and forecast cube include
@@ -500,7 +500,7 @@ def test_spot_unset_ids(neighbour_cube):
 
 
 @pytest.mark.parametrize(
-    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])]
 )
 def test_spot_subset_coord_not_found(neighbour_cube):
     """Test exception raised for unknown subsetting coordinate."""
@@ -511,7 +511,7 @@ def test_spot_subset_coord_not_found(neighbour_cube):
 
 
 @pytest.mark.parametrize(
-    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])]
 )
 def test_no_spots_returned(neighbour_cube):
     """Test exception raised if subsetting a spot forecast results in no
@@ -533,7 +533,7 @@ def test_no_spots_returned(neighbour_cube):
 
 
 @pytest.mark.parametrize(
-    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])],
+    "neighbour_data", [np.array([[[1, 2, 3], [0, 0, 0], [5, 10, 15]]])]
 )
 def test_spot_subset_lapse_rate_exception(neighbour_cube):
     """Test exception raised if attempting to apply a lapse rate to an existing

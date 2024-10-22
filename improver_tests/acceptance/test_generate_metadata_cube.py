@@ -19,11 +19,7 @@ def test_default(tmp_path):
     """Test default metadata cube generation"""
     kgo_path = kgo_dir / "kgo_default.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        mandatory_attributes_json,
-        "--output",
-        output_path,
-    ]
+    args = [mandatory_attributes_json, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

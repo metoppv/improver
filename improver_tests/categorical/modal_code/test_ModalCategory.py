@@ -187,13 +187,9 @@ def test_metadata(wxcode_series):
     def as_utc_timestamp(time):
         return timegm(time.utctimetuple())
 
-    (
-        interval,
-        model_id_attr,
-        record_run_attr,
-        offset_reference_times,
-        wxcode_cubes,
-    ) = wxcode_series
+    (interval, model_id_attr, record_run_attr, offset_reference_times, wxcode_cubes) = (
+        wxcode_series
+    )
 
     kwargs = {}
     if model_id_attr:

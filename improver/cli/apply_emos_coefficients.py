@@ -121,13 +121,9 @@ def process(
         ResamplePercentiles,
     )
 
-    (
-        forecast,
-        coefficients,
-        additional_predictors,
-        land_sea_mask,
-        prob_template,
-    ) = split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+    (forecast, coefficients, additional_predictors, land_sea_mask, prob_template) = (
+        split_forecasts_and_coeffs(cubes, land_sea_mask_name)
+    )
 
     if validity_times is not None and not validity_time_check(forecast, validity_times):
         if percentiles:

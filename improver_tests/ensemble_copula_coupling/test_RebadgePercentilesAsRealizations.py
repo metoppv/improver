@@ -7,6 +7,7 @@ Unit tests for the
 `ensemble_copula_coupling.RebadgePercentilesAsRealizations` class.
 
 """
+
 import unittest
 
 import numpy as np
@@ -24,7 +25,6 @@ from .ecc_test_data import ECC_TEMPERATURE_REALIZATIONS
 
 
 class Test_process(IrisTest):
-
     """Test the process method of the
     RebadgePercentilesAsRealizations plugin."""
 

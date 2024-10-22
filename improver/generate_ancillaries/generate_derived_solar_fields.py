@@ -3,6 +3,7 @@
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for generating derived solar fields."""
+
 import warnings
 from datetime import datetime, timedelta, timezone
 from typing import List, Optional, Tuple, Union
@@ -387,7 +388,6 @@ class GenerateClearskySolarRadiation(BasePlugin):
         )
 
         for time_index, time_step in enumerate(irradiance_times):
-
             day_of_year = get_day_of_year(time_step)
             utc_hour = get_hour_of_day(time_step)
 

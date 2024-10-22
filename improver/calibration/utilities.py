@@ -7,6 +7,7 @@ This module defines all the utilities used by the "plugins"
 specific for ensemble calibration.
 
 """
+
 from typing import List, Set, Tuple, Union
 
 import iris
@@ -140,7 +141,7 @@ def check_predictor(predictor: str) -> str:
 
 
 def filter_non_matching_cubes(
-    historic_forecast: Cube, truth: Cube,
+    historic_forecast: Cube, truth: Cube
 ) -> Tuple[Cube, Cube]:
     """
     Provide filtering for the historic forecast and truth to make sure

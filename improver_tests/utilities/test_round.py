@@ -4,7 +4,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the "round" module"""
 
-
 import numpy as np
 import pytest
 

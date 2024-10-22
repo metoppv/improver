@@ -6,6 +6,7 @@
 Unit tests for the SaturatedVapourPressureTable utility.
 
 """
+
 import unittest
 
 import numpy as np
@@ -18,7 +19,6 @@ from improver.generate_ancillaries.generate_svp_table import (
 
 
 class Test__repr__(IrisTest):
-
     """Test the repr method."""
 
     def test_basic(self):
@@ -32,7 +32,6 @@ class Test__repr__(IrisTest):
 
 
 class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
-
     """Test calculations of the saturated vapour pressure using the Goff-Gratch
     method."""
 
@@ -46,7 +45,6 @@ class Test_saturation_vapour_pressure_goff_gratch(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test that the plugin functions as expected."""
 
     def test_cube_attributes(self):

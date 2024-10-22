@@ -152,7 +152,7 @@ def test_cpb_coordinate_no_single_value_bins():
     type with no single value lower and upper bins."""
     expected_bounds = np.array([[0, 0.5], [0.5, 1]])
     expected_points = np.mean(expected_bounds, axis=1)
-    plugin = Plugin(n_probability_bins=2,)
+    plugin = Plugin(n_probability_bins=2)
     result = plugin._create_probability_bins_coord()
 
     assert isinstance(result, iris.coords.DimCoord)

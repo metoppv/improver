@@ -81,7 +81,7 @@ class ShowerConditionProbability(PostProcessingPlugin):
         )
 
         result = create_new_diagnostic_cube(
-            template.name(), "1", template, mandatory_attributes=attributes, data=data,
+            template.name(), "1", template, mandatory_attributes=attributes, data=data
         )
 
         return result

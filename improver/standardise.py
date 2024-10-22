@@ -227,9 +227,7 @@ class StandardiseMetadata(BasePlugin):
         """
         if not cube.cell_methods:
             return
-        removable_cms = [
-            CellMethod(method="point", coords="time"),
-        ]
+        removable_cms = [CellMethod(method="point", coords="time")]
         updated_cms = []
         for cm in cube.cell_methods:
             if cm in removable_cms:

@@ -5,7 +5,6 @@
 # See LICENSE in the root of the repository for full licensing details.
 """Script to calculate orographic enhancement."""
 
-
 from improver import cli
 
 

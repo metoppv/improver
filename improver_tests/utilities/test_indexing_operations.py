@@ -13,7 +13,6 @@ from improver.utilities.indexing_operations import choose
 
 
 class Test_choose(IrisTest):
-
     """Test the choose function behaves as expected, giving the same results
     as the numpy choose method, but without the 32 leading dimensions limit."""
 

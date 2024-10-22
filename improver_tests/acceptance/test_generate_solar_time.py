@@ -19,13 +19,7 @@ def test_basic(tmp_path):
     kgo_path = kgo_dir / "basic" / "kgo.nc"
     input_path = kgo_dir / "surface_altitude.nc"  # Use this as target_grid
     output_path = tmp_path / "output.nc"
-    args = [
-        input_path,
-        "--time",
-        "20220607T0000Z",
-        "--output",
-        output_path,
-    ]
+    args = [input_path, "--time", "20220607T0000Z", "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
 

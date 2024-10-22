@@ -57,7 +57,6 @@ def wrapped_with_output(first):
 
 
 class Test_docutilize(unittest.TestCase):
-
     """Test the docutilize function."""
 
     def setUp(self):
@@ -218,7 +217,7 @@ class Test_with_output(unittest.TestCase):
 
     @patch("improver.utilities.save.save_netcdf")
     def test_with_output_with_least_significant_figure(self, m):
-        """Tests save_netcdf, compression-level=0 and least-significant-digit=2 """
+        """Tests save_netcdf, compression-level=0 and least-significant-digit=2"""
         # pylint disable is needed as it can't see the wrappers output kwarg.
         result = wrapped_with_output.cli(
             "argv[0]",
@@ -321,7 +320,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def test_list_no_match(self):
         """Tests that providing no valid constraints raises a ConstraintMismatchError."""
         func = create_constrained_inputcubelist_converter(
-            "airspeed_velocity_of_unladen_swallow",
+            "airspeed_velocity_of_unladen_swallow"
         )
         with self.assertRaisesRegex(ConstraintMismatchError, "^Got 0 cubes"):
             func(self.wind_cubes)
@@ -329,7 +328,7 @@ class Test_create_constrained_inputcubelist_converter(unittest.TestCase):
     def test_two_valid_cubes(self):
         """Tests that providing 2 valid constraints raises a ConstraintMismatchError."""
         func = create_constrained_inputcubelist_converter(
-            lambda cube: cube.name() in ["wind_speed", "wind_from_direction"],
+            lambda cube: cube.name() in ["wind_speed", "wind_from_direction"]
         )
         with self.assertRaisesRegex(ConstraintMismatchError, "^Got 2 cubes"):
             func(self.wind_cubes)

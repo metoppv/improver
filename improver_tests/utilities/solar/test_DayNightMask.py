@@ -2,7 +2,7 @@
 #
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Unit tests for DayNightMask class """
+"""Unit tests for DayNightMask class"""
 
 import unittest
 from datetime import datetime, timedelta
@@ -41,17 +41,17 @@ def create_spot_cube(xrange=175, yrange=85):
     time_coords = [item[0] for item in time_coords]
 
     spot_cube = build_spotdata_cube(
-        data, "generic_spot_cube", "1", *args, scalar_coords=time_coords,
+        data, "generic_spot_cube", "1", *args, scalar_coords=time_coords
     )
     spot_cube.attributes = ATTRIBUTES
     return spot_cube
 
 
 class Test__init__(IrisTest):
-    """ Test initialisation of the DayNightMask class """
+    """Test initialisation of the DayNightMask class"""
 
     def test_basic_init(self):
-        """ Test Initiation of DayNightMask Object"""
+        """Test Initiation of DayNightMask Object"""
         plugin = DayNightMask()
         self.assertEqual(plugin.day, 1)
         self.assertEqual(plugin.night, 0)
@@ -59,17 +59,17 @@ class Test__init__(IrisTest):
 
 
 class Test__repr__(IrisTest):
-    """ Test string representation """
+    """Test string representation"""
 
     def test_basic_repr(self):
-        """ Test Representation string of DayNightMask Object"""
+        """Test Representation string of DayNightMask Object"""
         expected = "<DayNightMask : Day = 1, Night = 0>"
         result = str(DayNightMask())
         self.assertEqual(result, expected)
 
 
 class Test__create_daynight_mask(IrisTest):
-    """ Test string representation """
+    """Test string representation"""
 
     def setUp(self):
         """Set up the cube for testing."""
@@ -86,7 +86,7 @@ class Test__create_daynight_mask(IrisTest):
         self.spot_cube = create_spot_cube()
 
     def test_basic_daynight_mask(self):
-        """ Test this creates a blank mask cube for gridded data"""
+        """Test this creates a blank mask cube for gridded data"""
         plugin = DayNightMask()
         result = plugin._create_daynight_mask(self.cube)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -101,7 +101,7 @@ class Test__create_daynight_mask(IrisTest):
         self.assertEqual(plugin.irregular, False)
 
     def test_basic_daynight_mask_spot(self):
-        """ Test this creates a blank mask cube for spot data"""
+        """Test this creates a blank mask cube for spot data"""
         plugin = DayNightMask()
         result = plugin._create_daynight_mask(self.spot_cube)
         self.assertIsInstance(result, iris.cube.Cube)
@@ -117,7 +117,7 @@ class Test__create_daynight_mask(IrisTest):
 
 
 class Test__daynight_lat_lon_cube(IrisTest):
-    """ Test string representation """
+    """Test string representation"""
 
     def setUp(self):
         """Set up the cube for testing."""
@@ -141,7 +141,7 @@ class Test__daynight_lat_lon_cube(IrisTest):
         self.spot_cube = create_spot_cube(xrange=10, yrange=10)
 
     def test_basic_lat_lon_cube_gridded(self):
-        """ Test this create a blank gridded mask cube"""
+        """Test this create a blank gridded mask cube"""
         day_of_year = 10
         utc_hour = 12.0
         expected_result = np.ones((16, 16))
@@ -153,7 +153,7 @@ class Test__daynight_lat_lon_cube(IrisTest):
         self.assertArrayEqual(result.data, expected_result)
 
     def test_basic_lat_lon_cube_360(self):
-        """ Test this still works with 360 data"""
+        """Test this still works with 360 data"""
         day_of_year = 10
         utc_hour = 0.0
         expected_result = np.zeros((16, 16))
@@ -165,7 +165,7 @@ class Test__daynight_lat_lon_cube(IrisTest):
         self.assertArrayEqual(result.data, expected_result)
 
     def test_basic_lat_lon_cube_spot(self):
-        """ Test this create a blank spot mask cube"""
+        """Test this create a blank spot mask cube"""
         day_of_year = 10
         utc_hour = 12.0
         expected_result = np.ones((99))
@@ -178,7 +178,6 @@ class Test__daynight_lat_lon_cube(IrisTest):
 
 
 class Test_process(IrisTest):
-
     """Test DayNight Mask."""
 
     def setUp(self):

@@ -27,7 +27,7 @@ CUBE_TYPES = ("variable", "percentile", "probability")
 
 
 def _get_units(name: str) -> str:
-    """ Get output variable units from iris.std_names.STD_NAMES """
+    """Get output variable units from iris.std_names.STD_NAMES"""
     try:
         units = STD_NAMES[name]["canonical_units"]
     except KeyError:
@@ -37,7 +37,7 @@ def _get_units(name: str) -> str:
 
 
 def _create_time_bounds(time: datetime, time_period: int) -> Tuple[datetime, datetime]:
-    """ Create time bounds using time - time_period as the lower bound and time as the
+    """Create time bounds using time - time_period as the lower bound and time as the
     upper bound"""
     lower_bound = time - timedelta(minutes=time_period)
     upper_bound = time
@@ -51,7 +51,7 @@ def _create_data_array(
     npoints: int,
     height_levels: Optional[List[float]],
 ) -> ndarray:
-    """ Create data array of specified shape filled with zeros """
+    """Create data array of specified shape filled with zeros"""
     if leading_dimension is not None:
         nleading_dimension = len(leading_dimension)
     else:
@@ -87,7 +87,7 @@ def generate_metadata(
     npoints: int = 71,
     **kwargs: Any,
 ) -> Cube:
-    """ Generate a cube with metadata only.
+    """Generate a cube with metadata only.
 
     Args:
         mandatory_attributes:
@@ -194,7 +194,7 @@ def generate_metadata(
     # Set up requested cube
     if cube_type == "percentile":
         metadata_cube = set_up_percentile_cube(
-            data, percentiles=leading_dimension, name=name, units=units, **kwargs,
+            data, percentiles=leading_dimension, name=name, units=units, **kwargs
         )
     elif cube_type == "probability":
         metadata_cube = set_up_probability_cube(
@@ -207,7 +207,7 @@ def generate_metadata(
         )
     else:
         metadata_cube = set_up_variable_cube(
-            data, name=name, units=units, realizations=leading_dimension, **kwargs,
+            data, name=name, units=units, realizations=leading_dimension, **kwargs
         )
 
     metadata_cube = squeeze(metadata_cube)

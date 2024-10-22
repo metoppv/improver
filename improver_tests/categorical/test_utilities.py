@@ -79,20 +79,20 @@ def test_update_tree_thresholds_exception():
 
 
 class Test_categorical_attributes(IrisTest):
-    """ Test categorical_attributes is working correctly """
+    """Test categorical_attributes is working correctly"""
 
     def setUp(self):
-        """Set up cube """
+        """Set up cube"""
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
         ).reshape((2, 3, 3))
-        cube = set_up_variable_cube(data, name="weather_code", units="1",)
+        cube = set_up_variable_cube(data, name="weather_code", units="1")
         date_times = [
             datetime.datetime(2017, 11, 19, 0, 30),
             datetime.datetime(2017, 11, 19, 1, 30),
         ]
         self.cube = add_coordinate(
-            cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3],
+            cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3]
         )
         self.decision_tree = wxcode_decision_tree()
         wxmeanings = [
@@ -161,10 +161,10 @@ class Test_categorical_attributes(IrisTest):
 
 
 class Test_expand_nested_lists(IrisTest):
-    """ Test expand_nested_lists is working correctly """
+    """Test expand_nested_lists is working correctly"""
 
     def setUp(self):
-        """ Set up dictionary for testing """
+        """Set up dictionary for testing"""
         self.dictionary = {
             "list": ["a", "a"],
             "list_of_lists": [["a", "a"], ["a", "a"]],
@@ -272,7 +272,7 @@ class Test_update_daynight(IrisTest):
         self.assertEqual(result.shape, (16, 16))
 
     def test_wxcode_time_different_seconds(self):
-        """ Test code works if time coordinate has a difference in the number
+        """Test code works if time coordinate has a difference in the number
         of seconds, which should round to the same time in hours and minutes.
         This was raised by changes to cftime which altered its precision."""
         cube = set_up_wxcube(time=datetime.datetime(2018, 9, 12, 5, 42, 59))
@@ -303,7 +303,7 @@ class Test_update_daynight(IrisTest):
         self.assertEqual(result.data.shape, (16, 16))
 
     def test_wxcode_time_as_array(self):
-        """ Test code works if time is an array of dimension > 1 """
+        """Test code works if time is an array of dimension > 1"""
         time_points = [
             datetime.datetime(2018, 9, 12, 5),
             datetime.datetime(2018, 9, 12, 6),
@@ -360,18 +360,18 @@ class Test_update_daynight(IrisTest):
 def test_interrogate_decision_tree():
     """Test that the function returns the right strings."""
     expected = (
-        "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-        "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-        "\u26C5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
-        "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_shower_condition_above_threshold (1): 1.0\n"
-        "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+        "\u26c5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+        "\u26c5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+        "\u26c5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03, 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+        "\u26c5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_shower_condition_above_threshold (1): 1.0\n"
+        "\u26c5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
     )
     tree = update_tree_thresholds(wxcode_decision_tree(), None)
     result = interrogate_decision_tree(tree)
@@ -381,19 +381,19 @@ def test_interrogate_decision_tree():
 def test_interrogate_decision_tree_accumulation_1h():
     """Test that the function returns the right strings."""
     expected = (
-        "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-        "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-        "\u26C5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_lwe_thickness_of_precipitation_amount_above_threshold (mm): 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
-        "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_shower_condition_above_threshold (1): 1.0\n"
-        "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+        "\u26c5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+        "\u26c5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+        "\u26c5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_lwe_thickness_of_precipitation_amount_above_threshold (mm): 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+        "\u26c5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_shower_condition_above_threshold (1): 1.0\n"
+        "\u26c5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
     )
     tree = update_tree_thresholds(wxcode_decision_tree(accumulation=True), 3600)
     result = interrogate_decision_tree(tree)
@@ -403,19 +403,19 @@ def test_interrogate_decision_tree_accumulation_1h():
 def test_interrogate_decision_tree_accumulation_3h():
     """Test that the function returns the right strings."""
     expected = (
-        "\u26C5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
-        "\u26C5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
-        "\u26C5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
-        "\u26C5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_lwe_thickness_of_precipitation_amount_above_threshold (mm): 3.0\n"  # noqa: E501
-        "\u26C5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
-        "\u26C5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
-        "\u26C5 probability_of_shower_condition_above_threshold (1): 1.0\n"
-        "\u26C5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
+        "\u26c5 probability_of_low_and_medium_type_cloud_area_fraction_above_threshold (1): 0.1875, 0.8125\n"  # noqa: E501
+        "\u26c5 probability_of_low_type_cloud_area_fraction_above_threshold (1): 0.85\n"
+        "\u26c5 probability_of_lwe_graupel_and_hail_fall_rate_in_vicinity_above_threshold (mm hr-1): 0.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_above_threshold (mm hr-1): 0.03\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_in_vicinity_above_threshold (mm hr-1): 0.1, 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_precipitation_rate_max_above_threshold (mm hr-1): 1.0\n"  # noqa: E501
+        "\u26c5 probability_of_lwe_sleetfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_lwe_snowfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_lwe_thickness_of_precipitation_amount_above_threshold (mm): 3.0\n"  # noqa: E501
+        "\u26c5 probability_of_number_of_lightning_flashes_per_unit_area_in_vicinity_above_threshold (m-2): 0.0\n"  # noqa: E501
+        "\u26c5 probability_of_rainfall_rate_above_threshold (mm hr-1): 0.03, 1.0\n"
+        "\u26c5 probability_of_shower_condition_above_threshold (1): 1.0\n"
+        "\u26c5 probability_of_visibility_in_air_below_threshold (m): 1000.0, 5000.0\n"
     )
     tree = update_tree_thresholds(wxcode_decision_tree(accumulation=True), 10800)
     result = interrogate_decision_tree(tree)
@@ -425,8 +425,8 @@ def test_interrogate_decision_tree_accumulation_3h():
 def test_interrogate_decision_tree_deterministic():
     """Test that the function returns the right strings."""
     expected = (
-        "\u26C5 hail_rate (deterministic)\n"
-        "\u26C5 precipitation_rate (deterministic)\n"
+        "\u26c5 hail_rate (deterministic)\n"
+        "\u26c5 precipitation_rate (deterministic)\n"
     )
     tree = deterministic_diagnostic_tree()
     result = interrogate_decision_tree(tree)
@@ -473,9 +473,9 @@ def modify_tree_fixture(node, key, value):
 @pytest.mark.parametrize(
     "node, key, value, expected",
     (
-        ("meta", None, None, "Decision tree does not contain a mandatory meta key",),
-        ("meta", "name", None, "Meta node does not contain mandatory keys {'name'}",),
-        ("meta", "pets", "kittens", "Meta node contains unexpected keys {'pets'}",),
+        ("meta", None, None, "Decision tree does not contain a mandatory meta key"),
+        ("meta", "name", None, "Meta node does not contain mandatory keys {'name'}"),
+        ("meta", "pets", "kittens", "Meta node contains unexpected keys {'pets'}"),
         (
             "lightning",
             "if_diagnostic_missing",
@@ -518,7 +518,7 @@ def modify_tree_fixture(node, key, value):
                 "should be 'above' or 'below'"
             ),
         ),
-        ("Thunder", "leaf", 10.2, "Leaf 'Thunder' has non-int target: 10.2",),
+        ("Thunder", "leaf", 10.2, "Leaf 'Thunder' has non-int target: 10.2"),
         (
             "Clear_Night",
             "pets",
@@ -537,7 +537,7 @@ def modify_tree_fixture(node, key, value):
             None,
             "Unreachable leaf 'Dust'. Add 'is_unreachable': True to suppress this issue.",
         ),
-        ("Mist", "group", None, "Leaf 'Fog' is in a group of 1 (visibility).",),
+        ("Mist", "group", None, "Leaf 'Fog' is in a group of 1 (visibility)."),
         (
             "sleet_in_vicinity_cloud",
             "if_false",
@@ -609,7 +609,7 @@ def modify_tree_fixture(node, key, value):
             "no_precipitation_cloud",
             "Unreachable node 'fog_conditions'",
         ),
-        ("lightning", "kittens", 0, "Node lightning contains unknown key 'kittens'",),
+        ("lightning", "kittens", 0, "Node lightning contains unknown key 'kittens'"),
         (
             "sleet_in_vicinity_cloud",
             "if_false",
@@ -631,7 +631,7 @@ def test_check_tree(modify_tree, expected):
 @pytest.mark.parametrize(
     "value, expected",
     (
-        ("kittens", "Leaf 'Sunny_Day' does not point to a valid target (kittens).",),
+        ("kittens", "Leaf 'Sunny_Day' does not point to a valid target (kittens)."),
         (
             "Partly_Cloudy_Day",
             "Night target 'Partly_Cloudy_Day' of leaf 'Sunny_Day' also has a night target.",
@@ -653,7 +653,7 @@ def test_check_tree_if_night(modify_tree, expected):
 @pytest.mark.parametrize(
     "nodes, expected",
     (
-        ({"Thunder": 28}, "These leaf categories are used more than once: [28]",),
+        ({"Thunder": 28}, "These leaf categories are used more than once: [28]"),
         (
             {"Thunder": 28, "Thunder_Shower_Day": 28},
             "These leaf categories are used more than once: [28]",

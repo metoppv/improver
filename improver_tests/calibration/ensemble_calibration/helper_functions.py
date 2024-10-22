@@ -5,6 +5,7 @@
 """
 Functions for use within unit tests for `ensemble_calibration` plugins.
 """
+
 import datetime
 
 import iris
@@ -21,7 +22,6 @@ from improver.synthetic_data.set_up_test_cubes import (
 
 
 class EnsembleCalibrationAssertions(IrisTest):
-
     """Additional assertions, specifically for usage in the
     ensemble calibration unit tests."""
 
@@ -38,7 +38,7 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-         """
+        """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
     def assertCalibratedVariablesAlmostEqual(self, first, second):
@@ -54,12 +54,11 @@ class EnsembleCalibrationAssertions(IrisTest):
                 First array to compare.
             second (numpy.ndarray):
                 Second array to compare.
-         """
+        """
         self.assertArrayAlmostEqual(first, second, decimal=4)
 
 
 class SetupCubes(IrisTest):
-
     """Set up cubes for testing."""
 
     def setUp(self):
