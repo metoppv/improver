@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to fill masked regions in a field using interpolation of the
 difference between it and a reference field."""
@@ -54,6 +54,6 @@ def process(
     from improver.utilities.interpolation import InterpolateUsingDifference
 
     result = InterpolateUsingDifference(limit_as_maximum=limit_as_maximum)(
-        cube, reference_cube=reference_cube, limit=limit,
+        cube, reference_cube=reference_cube, limit=limit
     )
     return result

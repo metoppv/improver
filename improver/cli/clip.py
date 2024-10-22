@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to clip the input cube's data to be between the specified values"""
 
@@ -10,9 +10,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    cube: cli.inputcube, *, min_value: float = None, max_value: float = None,
-):
+def process(cube: cli.inputcube, *, min_value: float = None, max_value: float = None):
     """Clip the data in the input cube such that any data above max_value is set equal to
      max_value and any data below min_value is set equal to min_value.
 

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the AggregateReliabilityCalibrationTables plugin."""
 
@@ -112,7 +112,7 @@ def test_process_aggregating_over_cubes_and_coordinates(
 
     plugin = Plugin()
     result = plugin.process(
-        [reliability_cube, different_frt], coordinates=["latitude", "longitude"],
+        [reliability_cube, different_frt], coordinates=["latitude", "longitude"]
     )
     assert_array_equal(result.data, lat_lon_collapse * 2)
     assert_array_equal(result.coord(frt).points, expected_points)

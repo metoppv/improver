@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 This module defines the truncnorm as per scipy v1.3.3 to overcome performance
@@ -9,6 +9,7 @@ issue introduced in later versions:
 - https://github.com/scipy/scipy/issues/12733
 
 """
+
 import numpy as np
 import scipy.special as sc
 from scipy.stats._distn_infrastructure import rv_continuous
@@ -61,11 +62,11 @@ _norm_pdf_logC = np.log(_norm_pdf_C)
 
 
 def _norm_pdf(x):
-    return np.exp(-(x ** 2) / 2.0) / _norm_pdf_C
+    return np.exp(-(x**2) / 2.0) / _norm_pdf_C
 
 
 def _norm_logpdf(x):
-    return -(x ** 2) / 2.0 - _norm_pdf_logC
+    return -(x**2) / 2.0 - _norm_pdf_logC
 
 
 def _norm_cdf(x):

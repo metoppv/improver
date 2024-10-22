@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Provides utilities for updating a forecast or forecasts based on a reference."""
 
@@ -330,7 +330,7 @@ def normalise_to_reference(
 
 
 def split_cubes_by_name(
-    cubes: Union[Iterable[Cube], CubeList], cube_names: Union[str, List[str]] = None,
+    cubes: Union[Iterable[Cube], CubeList], cube_names: Union[str, List[str]] = None
 ) -> tuple:
     """Split a list of cubes into two lists; one containing all cubes with names which
     match cube_names, and the other containing all the other cubes.

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """RainForests calibration Plugins.
 
@@ -9,7 +9,6 @@
    rainforests_calibration.rst
 
 """
-
 
 import warnings
 from collections import OrderedDict
@@ -50,7 +49,6 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
         threads: int = 1,
         bin_data: bool = False,
     ):
-
         """Initialise class object based on package and model file availability.
 
         Args:
@@ -281,15 +279,15 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 "24": {
                     "0.000010": {
                         "lightgbm_model": "<path_to_lightgbm_model_object>",
-                        "treelite_model": "<path_to_treelite_model_object>"
+                        "treelite_model": "<path_to_treelite_model_object>",
                     },
                     "0.000050": {
                         "lightgbm_model": "<path_to_lightgbm_model_object>",
-                        "treelite_model": "<path_to_treelite_model_object>"
+                        "treelite_model": "<path_to_treelite_model_object>",
                     },
                     "0.000100": {
                         "lightgbm_model": "<path_to_lightgbm_model_object>",
-                        "treelite_model": "<path_to_treelite_model_object>"
+                        "treelite_model": "<path_to_treelite_model_object>",
                     },
                 }
             }
@@ -446,7 +444,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
             attributes={"spp__relative_to_threshold": "greater_than_or_equal_to"},
         )
         probability_cube = add_coordinate_to_cube(
-            probability_cube, new_coord=threshold_coord,
+            probability_cube, new_coord=threshold_coord
         )
 
         return probability_cube
@@ -507,7 +505,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         return 0.5 * (upper + lower)
 
     def _evaluate_probabilities(
-        self, input_data: ndarray, lead_time_hours: int, output_data: ndarray,
+        self, input_data: ndarray, lead_time_hours: int, output_data: ndarray
     ) -> None:
         """Evaluate probability that forecast exceeds thresholds.
 
@@ -573,7 +571,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 )
 
     def _calculate_threshold_probabilities(
-        self, forecast_cube: Cube, feature_cubes: CubeList,
+        self, forecast_cube: Cube, feature_cubes: CubeList
     ) -> Cube:
         """Evaluate the threshold exceedence probabilities for each ensemble member in
         forecast_cube using the tree_models, with the associated feature_cubes taken as
@@ -605,7 +603,7 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
         )
 
         self._evaluate_probabilities(
-            input_dataset, lead_time_hours, threshold_probability_cube.data,
+            input_dataset, lead_time_hours, threshold_probability_cube.data
         )
 
         # Enforcing monotonicity
@@ -780,7 +778,6 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
         threads: int = 1,
         bin_data: bool = False,
     ):
-
         """Check required dependency and all model files are available before initialising."""
         # Try and initialise the treelite_runtime library to test if the package
         # is available.
@@ -816,15 +813,15 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 "24": {
                     "0.000010": {
                         "lightgbm_model": "<path_to_lightgbm_model_object>",
-                        "treelite_model": "<path_to_treelite_model_object>"
+                        "treelite_model": "<path_to_treelite_model_object>",
                     },
                     "0.000050": {
                         "lightgbm_model": "<path_to_lightgbm_model_object>",
-                        "treelite_model": "<path_to_treelite_model_object>"
+                        "treelite_model": "<path_to_treelite_model_object>",
                     },
                     "0.000100": {
                         "lightgbm_model": "<path_to_lightgbm_model_object>",
-                        "treelite_model": "<path_to_treelite_model_object>"
+                        "treelite_model": "<path_to_treelite_model_object>",
                     },
                 }
             }

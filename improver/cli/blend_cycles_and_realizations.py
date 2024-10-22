@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
 """Script to run weighted blending to collapse realization and forecast_reference_time
@@ -12,9 +12,7 @@ from improver import cli
 
 @cli.clizefy
 @cli.with_output
-def process(
-    *cubes: cli.inputcube, cycletime: str = None,
-):
+def process(*cubes: cli.inputcube, cycletime: str = None):
     """Runs equal-weighted blending for a specific scenario.
 
     Calculates an equal-weighted blend of input cube data across the realization and
@@ -42,6 +40,6 @@ def process(
     for cube in cubes:
         cubelist.append(collapse_realizations(cube))
 
-    plugin = WeightAndBlend("forecast_reference_time", "linear", y0val=0.5, ynval=0.5,)
-    cube = plugin(cubelist, cycletime=cycletime,)
+    plugin = WeightAndBlend("forecast_reference_time", "linear", y0val=0.5, ynval=0.5)
+    cube = plugin(cubelist, cycletime=cycletime)
     return cube

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 
 """Neighbour finding for the Improver site specific process chain."""
@@ -485,13 +485,10 @@ class NeighbourSelection(BasePlugin):
 
         # Exclude any sites falling outside the domain given by the cube and
         # notify the user.
-        (
-            sites,
-            site_coords,
-            site_x_coords,
-            site_y_coords,
-        ) = self.check_sites_are_within_domain(
-            sites, site_coords, site_x_coords, site_y_coords, orography
+        (sites, site_coords, site_x_coords, site_y_coords) = (
+            self.check_sites_are_within_domain(
+                sites, site_coords, site_x_coords, site_y_coords, orography
+            )
         )
 
         # Find nearest neighbour point using quick iris method.

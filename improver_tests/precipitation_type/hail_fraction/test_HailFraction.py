@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the HailFraction plugin."""
+
 from unittest.mock import patch, sentinel
 
 import iris
@@ -165,10 +166,10 @@ def test_basic(
     )
     hail_size.data = np.full_like(hail_size.data, hail_size_value)
     cloud_condensation_level.data = np.full_like(
-        cloud_condensation_level.data, cloud_condensation_level_value,
+        cloud_condensation_level.data, cloud_condensation_level_value
     )
     convective_cloud_top.data = np.full_like(
-        convective_cloud_top.data, convective_cloud_top_value,
+        convective_cloud_top.data, convective_cloud_top_value
     )
     hail_melting_level.data = np.full_like(
         hail_melting_level.data, hail_melting_level_value

@@ -1,12 +1,13 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 This module defines the utilities required for Ensemble Copula Coupling
 plugins.
 
 """
+
 import warnings
 from typing import List, Optional, Union
 
@@ -21,7 +22,7 @@ from improver.ensemble_copula_coupling.constants import BOUNDS_FOR_ECDF
 
 
 def concatenate_2d_array_with_2d_array_endpoints(
-    array_2d: ndarray, low_endpoint: float, high_endpoint: float,
+    array_2d: ndarray, low_endpoint: float, high_endpoint: float
 ) -> ndarray:
     """
     For a 2d array, add a 2d array as the lower and upper endpoints.

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the blend-cycles-and-realizations CLI
@@ -22,12 +22,6 @@ def test_basic(tmp_path):
     input_dir = kgo_dir
     input_paths = sorted((input_dir.glob("??00Z_precip_rate.nc")))
     output_path = tmp_path / "output.nc"
-    args = [
-        "--cycletime",
-        "20190101T1000Z",
-        *input_paths,
-        "--output",
-        output_path,
-    ]
+    args = ["--cycletime", "20190101T1000Z", *input_paths, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the plugins and functions within indexing_operations.py"""
 
@@ -13,7 +13,6 @@ from improver.utilities.indexing_operations import choose
 
 
 class Test_choose(IrisTest):
-
     """Test the choose function behaves as expected, giving the same results
     as the numpy choose method, but without the 32 leading dimensions limit."""
 

@@ -1,12 +1,13 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the utilities within the `calibration.dataframe_utilities`
 module.
 
 """
+
 import unittest
 
 import iris
@@ -40,7 +41,6 @@ def _chunker(seq, size):
 
 
 class SetupSharedDataFrames(ImproverTest):
-
     """A shared dataframe creation class."""
 
     def setUp(self):
@@ -136,7 +136,7 @@ class SetupSharedDataFrames(ImproverTest):
         )
 
         self.height_coord = iris.coords.AuxCoord(
-            np.array(self.height, dtype=np.float32), "height", units="m",
+            np.array(self.height, dtype=np.float32), "height", units="m"
         )
 
         # Modify the forecast and truth DataFrames so that one of the sites is
@@ -179,7 +179,6 @@ class SetupSharedDataFrames(ImproverTest):
 
 
 class SetupConstructedForecastCubes(SetupSharedDataFrames):
-
     """A constructed forecast cube class."""
 
     def setUp(self):
@@ -292,7 +291,6 @@ class SetupConstructedForecastCubes(SetupSharedDataFrames):
 
 
 class SetupConstructedTruthCubes(SetupSharedDataFrames):
-
     """A constructed truth cube class."""
 
     def setUp(self):
@@ -361,7 +359,6 @@ class SetupConstructedTruthCubes(SetupSharedDataFrames):
 
 
 class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
-
     """Test the forecast_dataframe_to_cube function."""
 
     def setUp(self):
@@ -413,7 +410,6 @@ class Test_forecast_dataframe_to_cube(SetupConstructedForecastCubes):
 
 
 class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
-
     """Test the truth_dataframe_to_cube function."""
 
     def setUp(self):
@@ -423,20 +419,20 @@ class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
     def test_three_day_training_period_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for a period diagnostic."""
-        result = truth_dataframe_to_cube(self.truth_df, self.date_range,)
+        result = truth_dataframe_to_cube(self.truth_df, self.date_range)
         self.assertCubeEqual(result, self.expected_period_truth)
 
     def test_three_day_training_instantaneous_diag(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a three day training length for an instantaneous diagnostic."""
         self.truth_df["period"] = pd.Timedelta("NaT")
-        result = truth_dataframe_to_cube(self.truth_df, self.date_range,)
+        result = truth_dataframe_to_cube(self.truth_df, self.date_range)
         self.assertCubeEqual(result, self.expected_instantaneous_truth)
 
     def test_two_day_training(self):
         """Test an input DataFrame is converted correctly into an Iris Cube
         for a two day training length."""
-        result = truth_dataframe_to_cube(self.truth_df, self.date_range_two_days,)
+        result = truth_dataframe_to_cube(self.truth_df, self.date_range_two_days)
         self.assertCubeEqual(result, self.expected_period_truth[1:, :])
 
     def test_empty_dataframe(self):
@@ -445,7 +441,7 @@ class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
         date_range = pd.date_range(
             end=validity_time, periods=int(self.training_length), freq="D", tz="UTC"
         )
-        result = truth_dataframe_to_cube(self.truth_df, date_range,)
+        result = truth_dataframe_to_cube(self.truth_df, date_range)
         self.assertIsNone(result)
 
     def test_nonunique_values_in_column(self):
@@ -460,7 +456,6 @@ class Test_truth_dataframe_to_cube(SetupConstructedTruthCubes):
 class Test_forecast_and_truth_dataframes_to_cubes(
     SetupConstructedForecastCubes, SetupConstructedTruthCubes
 ):
-
     """Test the forecast_and_truth_dataframes_to_cubes function."""
 
     def setUp(self):

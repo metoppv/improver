@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the generate_ancillary.GenerateOrogBandAncils plugin."""
 
@@ -188,7 +188,7 @@ class Test_gen_orography_masks(IrisTest):
 
     def test_all_land_points(self):
         """Test that a correct mask is produced when the landsea mask only has
-           land points in it."""
+        land points in it."""
         land_mask_cube = self.landmask.copy()
         land_mask_cube.data = np.ones((3, 3))
         result = GenOrogMasks().gen_orography_masks(
@@ -199,7 +199,7 @@ class Test_gen_orography_masks(IrisTest):
 
     def test_any_surface_type_mask(self):
         """Test that the correct mask is produced when no landsea mask is
-           provided. This is equivalent to the all_land_points test above."""
+        provided. This is equivalent to the all_land_points test above."""
         result = GenOrogMasks().gen_orography_masks(
             self.orography, None, self.valley_threshold
         )

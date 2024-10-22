@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module for calculating the uv index using radiation flux in UV downward
 at the surface."""
@@ -17,7 +17,7 @@ from improver.metadata.utilities import (
 
 
 def calculate_uv_index(
-    uv_downward: Cube, scale_factor: float = 3.6, model_id_attr: Optional[str] = None,
+    uv_downward: Cube, scale_factor: float = 3.6, model_id_attr: Optional[str] = None
 ) -> Cube:
     """
     A plugin to calculate the uv index using radiation flux in UV downward

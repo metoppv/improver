@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the apply-dz-rescaling CLI
@@ -22,11 +22,6 @@ def test_apply_dz_rescaling(tmp_path):
     forecast_path = kgo_dir / "20230220T1200Z-PT0006H00M-wind_speed_at_10m.nc"
     scaled_dz_path = kgo_dir / "scaled_dz.nc"
     output_path = tmp_path / "output.nc"
-    args = [
-        forecast_path,
-        scaled_dz_path,
-        "--output",
-        output_path,
-    ]
+    args = [forecast_path, scaled_dz_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)

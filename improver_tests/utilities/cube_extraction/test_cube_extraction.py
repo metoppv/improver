@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Unit tests for cube extraction utilities """
+"""Unit tests for cube extraction utilities"""
 
 import collections
 import unittest
@@ -168,10 +168,10 @@ class Test_create_constraint(IrisTest):
 
 
 class Test_parse_constraint_list(IrisTest):
-    """ Test function to parse constraints and units into dictionaries """
+    """Test function to parse constraints and units into dictionaries"""
 
     def setUp(self):
-        """ Set up some constraints to parse """
+        """Set up some constraints to parse"""
         self.constraints = ["percentile=10", "threshold=0.1"]
         self.units = ["none", "mm h-1"]
         self.p_crd = iris.coords.AuxCoord(
@@ -182,7 +182,7 @@ class Test_parse_constraint_list(IrisTest):
         )
 
     def test_basic_no_units(self):
-        """ Test simple key-value splitting with no units """
+        """Test simple key-value splitting with no units"""
         result, udict, _, _ = parse_constraint_list(self.constraints)
         self.assertIsInstance(result, iris.Constraint)
         self.assertCountEqual(
@@ -198,7 +198,7 @@ class Test_parse_constraint_list(IrisTest):
         self.assertFalse(udict)
 
     def test_whitespace(self):
-        """ Test constraint parsing with padding whitespace """
+        """Test constraint parsing with padding whitespace"""
         constraints = ["percentile = 10", "threshold = 0.1"]
         result, _, _, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
@@ -208,7 +208,7 @@ class Test_parse_constraint_list(IrisTest):
         self.assertTrue(cdict["threshold"](self.t_crd.cell(0)))
 
     def test_string_constraint(self):
-        """ Test that a string constraint results in a simple iris constraint,
+        """Test that a string constraint results in a simple iris constraint,
         not a lambda function. This is created via the literal_eval ValueError.
         """
         constraints = ["percentile=kittens"]
@@ -219,27 +219,27 @@ class Test_parse_constraint_list(IrisTest):
         self.assertIsInstance(cdict, dict)
 
     def test_some_units(self):
-        """ Test units list containing "None" elements is correctly parsed """
+        """Test units list containing "None" elements is correctly parsed"""
         _, udict, _, _ = parse_constraint_list(self.constraints, units=self.units)
         self.assertEqual(udict["threshold"], "mm h-1")
         self.assertNotIn("percentile", udict.keys())
 
     def test_unmatched_units(self):
-        """ Test for ValueError if units list does not match constraints """
+        """Test for ValueError if units list does not match constraints"""
         units = ["mm h-1"]
         msg = "units list must match constraints"
         with self.assertRaisesRegex(ValueError, msg):
             parse_constraint_list(self.constraints, units=units)
 
     def test_list_constraint(self):
-        """ Test that a list of constraints is parsed correctly """
+        """Test that a list of constraints is parsed correctly"""
         constraints = ["threshold=[0.1,1.0]"]
         result, _, _, _ = parse_constraint_list(constraints)
         cdict = result._coord_values
         self.assertTrue(islambda(cdict["threshold"]))
 
     def test_range_constraint(self):
-        """ Test that a constraint passed in as a range is parsed correctly """
+        """Test that a constraint passed in as a range is parsed correctly"""
         # create input cube
         precip_cube = set_up_precip_probability_cube()
         threshold_coord = find_threshold_coordinate(precip_cube).name()
@@ -257,14 +257,14 @@ class Test_parse_constraint_list(IrisTest):
         )
 
     def test_longitude_constraint(self):
-        """ Test that the longitude constraint is parsed correctly """
+        """Test that the longitude constraint is parsed correctly"""
         constraint = ["longitude=[0:20:2]"]
         _, _, longitude_constraint, thinning_dict = parse_constraint_list(constraint)
         self.assertEqual(longitude_constraint, [0, 20])
         self.assertEqual(thinning_dict, {"longitude": 2})
 
     def test_longitude_constraint_whitespace(self):
-        """ Test that the longitude constraint is parsed correctly with whitespace """
+        """Test that the longitude constraint is parsed correctly with whitespace"""
         constraint = ["longitude = [ 0 : 20 : 2 ]"]
         _, _, longitude_constraint, thinning_dict = parse_constraint_list(constraint)
         self.assertEqual(longitude_constraint, [0, 20])
@@ -272,10 +272,10 @@ class Test_parse_constraint_list(IrisTest):
 
 
 class Test_apply_extraction(IrisTest):
-    """ Test function to extract subcube according to constraints """
+    """Test function to extract subcube according to constraints"""
 
     def setUp(self):
-        """ Set up temporary input cube """
+        """Set up temporary input cube"""
         self.precip_cube = set_up_precip_probability_cube()
         self.threshold_coord = find_threshold_coordinate(self.precip_cube).name()
         self.uk_gridded_cube = set_up_uk_gridded_cube()
@@ -283,7 +283,7 @@ class Test_apply_extraction(IrisTest):
         self.units_dict = {self.threshold_coord: "mm h-1"}
 
     def test_basic_no_units(self):
-        """ Test cube extraction for single constraint without units """
+        """Test cube extraction for single constraint without units"""
         constraint_dict = {"name": "probability_of_precipitation_rate_above_threshold"}
         constr = iris.Constraint(**constraint_dict)
         cube = apply_extraction(self.precip_cube, constr)
@@ -292,7 +292,7 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_basic_with_units(self):
-        """ Test cube extraction for single constraint with units """
+        """Test cube extraction for single constraint with units"""
         constraint_dict = {
             self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1]))
         }
@@ -304,8 +304,8 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_basic_without_reconverting_units(self):
-        """ Test cube extraction for single constraint with units,
-         where the coordinates are not reconverted into the original units."""
+        """Test cube extraction for single constraint with units,
+        where the coordinates are not reconverted into the original units."""
         constraint_dict = {
             self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1]))
         }
@@ -319,7 +319,7 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_multiple_constraints_with_units(self):
-        """ Test behaviour with a list of constraints and units """
+        """Test behaviour with a list of constraints and units"""
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
             self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.03])),
@@ -331,17 +331,17 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_error_non_coord_units(self):
-        """ Test error raised if units are provided for a non-coordinate
-        constraint """
+        """Test error raised if units are provided for a non-coordinate
+        constraint"""
         constraint_dict = {"name": "probability_of_precipitation_rate_above_threshold"}
         units_dict = {"name": "1"}
         with self.assertRaises(CoordinateNotFoundError):
             apply_extraction(self.precip_cube, constraint_dict, units_dict)
 
     def test_allow_none(self):
-        """ Test function returns None rather than raising an error where
+        """Test function returns None rather than raising an error where
         no subcubes match the required constraints, when unit conversion is
-        required """
+        required"""
         constraint_dict = {
             "name": "probability_of_precipitation_rate_above_threshold",
             self.threshold_coord: 5,
@@ -351,7 +351,7 @@ class Test_apply_extraction(IrisTest):
         self.assertFalse(cube)
 
     def test_list_constraints(self):
-        """ Test that a list of constraints behaves correctly """
+        """Test that a list of constraints behaves correctly"""
         constraint_dict = {
             self.threshold_coord: lambda cell: any(np.isclose(cell.point, [0.1, 1.0]))
         }
@@ -361,7 +361,7 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_range_constraints(self):
-        """ Test that a list of constraints behaves correctly. This includes
+        """Test that a list of constraints behaves correctly. This includes
         converting the units to the units that the constraints is
         defined in."""
         lower_bound = 0.03 - 1.0e-7
@@ -375,7 +375,7 @@ class Test_apply_extraction(IrisTest):
         self.assertArrayEqual(cube.data, reference_data)
 
     def test_subset_uk_grid(self):
-        """ Test subsetting a gridded cube. """
+        """Test subsetting a gridded cube."""
         expected_data = np.array(
             [
                 [27.0, 28.0, 29.0, 30.0],
@@ -403,7 +403,7 @@ class Test_apply_extraction(IrisTest):
             self.assertArrayAlmostEqual(result.coord(coord).points, expected_points)
 
     def test_subset_global_grid(self):
-        """ Extract subset of global lat-lon grid """
+        """Extract subset of global lat-lon grid"""
         lower_bound = 42 - 1.0e-7
         upper_bound = 52 + 1.0e-7
         constraint_dict = {
@@ -464,7 +464,7 @@ class Test_extract_subcube(IrisTest):
     applied."""
 
     def setUp(self):
-        """ Set up temporary input cube """
+        """Set up temporary input cube"""
         self.precip_cube = set_up_precip_probability_cube()
         self.global_gridded_cube = set_up_global_gridded_cube()
 
@@ -541,7 +541,7 @@ class Test_extract_subcube(IrisTest):
         )
 
     def test_thin_global_gridded_cube(self):
-        """ Subsets a grid from a global grid and thins the data"""
+        """Subsets a grid from a global grid and thins the data"""
         expected_result = np.array([[1.0, 4.0], [17.0, 20.0]])
         result = extract_subcube(
             self.global_gridded_cube, ["latitude=[42:52:2]", "longitude=[0:7:3]"]
@@ -555,7 +555,7 @@ class Test_extract_subcube(IrisTest):
         )
 
     def test_thin_longitude_global_gridded_cube(self):
-        """ Subsets a grid from a global grid and thins the data"""
+        """Subsets a grid from a global grid and thins the data"""
         expected_result = np.array(
             [
                 [1.0, 4.0],
@@ -565,7 +565,7 @@ class Test_extract_subcube(IrisTest):
                 [33.0, 36.0],
                 [41.0, 44.0],
                 [49.0, 52.0],
-            ],
+            ]
         )
         result = extract_subcube(self.global_gridded_cube, ["longitude=[0:7:3]"])
         self.assertArrayAlmostEqual(result.data, expected_result)

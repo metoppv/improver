@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 This module defines all the "plugins" specific for Ensemble Model Output
@@ -11,6 +11,7 @@ Statistics (EMOS).
    ensemble_calibration.rst
 
 """
+
 import warnings
 from typing import Any, Callable, Dict, List, Optional, Sequence, Tuple, Union
 
@@ -351,7 +352,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         optimised_coeffs = minimize(
             minimisation_function,
             initial_guess,
-            args=(forecast_predictor_data, truth_data, forecast_var_data, sqrt_pi,),
+            args=(forecast_predictor_data, truth_data, forecast_var_data, sqrt_pi),
             method="Nelder-Mead",
             tol=self.tolerance,
             options={"maxiter": self.max_iterations, "return_all": True},
@@ -422,10 +423,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
             are provided.
         """
         fp_template = forecast_predictors[0]
-        sindex = [
-            fp_template.coord(axis="y"),
-            fp_template.coord(axis="x"),
-        ]
+        sindex = [fp_template.coord(axis="y"), fp_template.coord(axis="x")]
 
         y_name = truth.coord(axis="y").name()
         x_name = truth.coord(axis="x").name()
@@ -468,7 +466,7 @@ class ContinuousRankedProbabilityScoreMinimisers(BasePlugin):
         x_coord = fp_template.coord(axis="x")
         if fp_template.coord_dims(y_coord) == fp_template.coord_dims(x_coord):
             return np.transpose(np.array(optimised_coeffs)).reshape(
-                (len(initial_guess[0]), len(fp_template.coord(axis="y").points),)
+                (len(initial_guess[0]), len(fp_template.coord(axis="y").points))
             )
         else:
             return np.transpose(np.array(optimised_coeffs)).reshape(
@@ -810,7 +808,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         if self.point_by_point:
             spatial_coords = [historic_forecasts.coord(axis=axis) for axis in "yx"]
             spatial_dims = {
-                n for n, in [historic_forecasts.coord_dims(c) for c in spatial_coords]
+                n for (n,) in [historic_forecasts.coord_dims(c) for c in spatial_coords]
             }
             template_dims = [x for x in spatial_dims]
             spatial_associated_coords = [
@@ -850,7 +848,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
         for index, fp in enumerate(forecast_predictors):
             template_cube_copy = template_cube.copy()
             predictor_index = iris.coords.DimCoord(
-                np.array(index, dtype=np.int8), long_name="predictor_index", units="1",
+                np.array(index, dtype=np.int8), long_name="predictor_index", units="1"
             )
             template_cube_copy.add_aux_coord(predictor_index)
             template_cube_copy = iris.util.new_axis(template_cube_copy, predictor_index)
@@ -861,7 +859,7 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             fp_names, long_name="predictor_name", units="no_unit"
         )
         template_cube.add_aux_coord(
-            predictor_name, data_dims=template_cube.coord_dims("predictor_index"),
+            predictor_name, data_dims=template_cube.coord_dims("predictor_index")
         )
         return iris.util.squeeze(template_cube)
 
@@ -887,10 +885,9 @@ class EstimateCoefficientsForEnsembleCalibration(BasePlugin):
             cubelist is for a separate EMOS coefficient e.g. alpha, beta,
             gamma, delta.
         """
-        (
-            template_dims,
-            spatial_associated_coords,
-        ) = self._get_spatial_associated_coordinates(historic_forecasts)
+        (template_dims, spatial_associated_coords) = (
+            self._get_spatial_associated_coordinates(historic_forecasts)
+        )
         coords_to_replace = (
             self._create_temporal_coordinates(historic_forecasts)
             + spatial_associated_coords
@@ -1436,15 +1433,12 @@ class CalibratedForecastDistributionParameters(BasePlugin):
         for axis in ["x", "y"]:
             for coeff_cube in self.coefficients_cubelist:
                 if (
-                    (
-                        self.current_forecast.coord(axis=axis).collapsed().points
-                        != coeff_cube.coord(axis=axis).collapsed().points
-                    ).all()
-                    or (
-                        self.current_forecast.coord(axis=axis).collapsed().bounds
-                        != coeff_cube.coord(axis=axis).collapsed().bounds
-                    ).all()
-                ):
+                    self.current_forecast.coord(axis=axis).collapsed().points
+                    != coeff_cube.coord(axis=axis).collapsed().points
+                ).all() or (
+                    self.current_forecast.coord(axis=axis).collapsed().bounds
+                    != coeff_cube.coord(axis=axis).collapsed().bounds
+                ).all():
                     raise ValueError(
                         msg.format(
                             axis,
@@ -1899,9 +1893,9 @@ class ApplyEMOS(PostProcessingPlugin):
                     self.distribution["location"],
                     self.distribution["scale"],
                     template,
-                    percentiles=self.percentiles
-                    if self.percentiles
-                    else perc_coord.points,
+                    percentiles=(
+                        self.percentiles if self.percentiles else perc_coord.points
+                    ),
                 )
             else:
                 no_of_percentiles = len(template.coord("realization").points)

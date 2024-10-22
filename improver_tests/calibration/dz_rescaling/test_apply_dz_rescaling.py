@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ApplyDzRescaling plugin."""
+
 from datetime import datetime as dt
 from typing import List
 
@@ -23,7 +24,7 @@ WMO_ID = ["00001", "00002"]
 
 
 def _create_forecasts(
-    forecast_reference_time: str, validity_time: str, forecast_percs: List[float],
+    forecast_reference_time: str, validity_time: str, forecast_percs: List[float]
 ) -> Cube:
     """Create site forecast cube for testing.
 
@@ -140,7 +141,7 @@ def test_apply_dz_rescaling(
         + pd.Timedelta(hours=forecast_period + forecast_period_offset)
     ).strftime(DT_FORMAT)
 
-    forecast = _create_forecasts(forecast_reference_time, validity_time, forecast,)
+    forecast = _create_forecasts(forecast_reference_time, validity_time, forecast)
     # Use min(fp, 24) here to ensure that the scaling cube contains
     # the scaling factor for the last forecast_period if the specified
     # forecast period is beyond the T+24 limit of the scaling cube.
@@ -184,7 +185,7 @@ def test_use_correct_time():
         pd.Timestamp(forecast_reference_time) + pd.Timedelta(hours=forecast_period)
     ).strftime(DT_FORMAT)
 
-    forecast = _create_forecasts(forecast_reference_time, validity_time, forecast,)
+    forecast = _create_forecasts(forecast_reference_time, validity_time, forecast)
     scaling_factor = _create_scaling_factor_cube(12, forecast_period, scaling_factor)
     scaling_factor.data[0, 0, 0] = scaling_factor.data[0, 0, 0].copy() + 0.01
 

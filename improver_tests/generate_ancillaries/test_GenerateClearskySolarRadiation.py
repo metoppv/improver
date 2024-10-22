@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the GenerateClearskySolarRadiation plugin."""
 
@@ -279,7 +279,6 @@ def test__calc_clearsky_solar_radiation_data(
 @pytest.mark.parametrize("at_mean_sea_level", (True, False))
 @pytest.mark.parametrize("new_title", (None, "IMPROVER ancillary on sample grid"))
 def test__create_solar_radiation_cube(target_grid, at_mean_sea_level, new_title):
-
     solar_radiation_data = np.zeros_like(target_grid.data)
     time = datetime(2022, 1, 1, 0, 0)
     accumulation_period = 24
@@ -327,7 +326,7 @@ def test_process_lat_lon(target_grid, surface_altitude):
     accumulation_period = 24
 
     # Check that default behaviour results in cube with altitude for z-coord.
-    result = GenerateClearskySolarRadiation()(target_grid, time, accumulation_period,)
+    result = GenerateClearskySolarRadiation()(target_grid, time, accumulation_period)
     assert np.isclose(result.coord("altitude").points[0], 0.0)
 
     # Check cube has same spatial coords as target_grid
@@ -355,7 +354,7 @@ def test_process_equal_area(target_grid_equal_area):
 
     # Check that default behaviour results in cube with altitude for z-coord.
     result = GenerateClearskySolarRadiation()(
-        target_grid_equal_area, time, accumulation_period,
+        target_grid_equal_area, time, accumulation_period
     )
     # Check cube has same spatial coords as target_grid
     assert result.coords(dim_coords=True) == target_grid_equal_area.coords(

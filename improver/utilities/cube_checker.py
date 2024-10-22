@@ -1,8 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-""" Provides support utilities for checking cubes."""
+"""Provides support utilities for checking cubes."""
 
 from typing import List, Optional, Union
 
@@ -80,7 +80,6 @@ def check_cube_coordinates(
     new_cube_dim_names = [coord.name() for coord in new_cube.dim_coords]
     # If we have the wrong number of dimensions then raise an error.
     if len(cube.dim_coords) + len(exception_coordinates) != len(new_cube.dim_coords):
-
         msg = (
             "The number of dimension coordinates within the new cube "
             "do not match the number of dimension coordinates within the "

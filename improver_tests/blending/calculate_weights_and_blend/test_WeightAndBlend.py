@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the WeightAndBlend plugin"""
 
@@ -340,7 +340,7 @@ class Test_process(IrisTest):
     def test_basic(self):
         """Test output is a cube"""
         result = self.plugin_cycle.process(
-            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+            [self.ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime
         )
         self.assertIsInstance(result, iris.cube.Cube)
 
@@ -353,7 +353,7 @@ class Test_process(IrisTest):
         message = "Blending masked data without spatial weights"
         with pytest.warns(UserWarning, match=message):
             self.plugin_cycle.process(
-                [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime,
+                [ukv_cube, self.ukv_cube_latest], cycletime=self.cycletime
             )
 
     def test_cycle_blend_linear(self):

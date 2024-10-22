@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the threshold.Threshold plugin."""
-
 
 import numpy as np
 import pytest
@@ -82,7 +81,7 @@ from improver.threshold import Threshold
             "threshold_config and threshold_values are mutually exclusive arguments",
         ),
         # at least one set means of defining the thresholds must be used.
-        ({}, "One of threshold_config or threshold_values must be provided.",),
+        ({}, "One of threshold_config or threshold_values must be provided."),
     ],
 )
 def test_init(kwargs, exception):
@@ -175,7 +174,7 @@ def test_threshold_metadata(
     threshold_values,
     threshold_units,
 ):
-    """"Test that the metadata relating to the thresholding options, on both
+    """ "Test that the metadata relating to the thresholding options, on both
     the cube and threshold coordinate is as expected. Many combinations of
     options are tested, including:
 

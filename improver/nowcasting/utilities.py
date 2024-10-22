@@ -1,7 +1,7 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module with utilities required for nowcasting."""
 
@@ -54,8 +54,9 @@ class ExtendRadarMask(BasePlugin):
         for crd in radar_data.coords():
             if coverage.coord(crd.name()) != crd:
                 raise ValueError(
-                    "Rain rate and coverage composites unmatched "
-                    "- coord {}".format(crd.name())
+                    "Rain rate and coverage composites unmatched " "- coord {}".format(
+                        crd.name()
+                    )
                 )
 
         # accommodate data from multiple times
@@ -187,9 +188,8 @@ class FillRadarHoles(BasePlugin):
 
 
 class ApplyOrographicEnhancement(BasePlugin):
-
     """Apply orographic enhancement to precipitation rate input, either to
-     add or subtract an orographic enhancement component."""
+    add or subtract an orographic enhancement component."""
 
     def __init__(self, operation: str) -> None:
         """Initialise class.

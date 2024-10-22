@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the RegridWithLandSeaMask class"""
 # set up a special data set and corresponding land-sea mask info
@@ -31,7 +31,7 @@ def modify_cube_coordinate_value(cube, coord_x, coord_y):
 
 
 def define_source_target_grid_data():
-    """ define cube_in, cube_in_mask,cube_out_mask using assumed data """
+    """define cube_in, cube_in_mask,cube_out_mask using assumed data"""
     # source (input) grid
     in_lats = np.linspace(0, 15, 4, dtype=np.float32)
     in_lons = np.linspace(0, 40, 5, dtype=np.float32)
@@ -75,7 +75,7 @@ def define_source_target_grid_data():
 
 
 def define_source_target_grid_data_same_domain():
-    """ define cube_in, cube_in_mask,cube_out_mask, assume the same domain  """
+    """define cube_in, cube_in_mask,cube_out_mask, assume the same domain"""
     # source (input) grid
     in_lats = np.linspace(0, 15, 4, dtype=np.float32)
     in_lons = np.linspace(0, 40, 5, dtype=np.float32)
@@ -117,7 +117,7 @@ def define_source_target_grid_data_same_domain():
 
 
 def test_basic_indexes():
-    """Test basic_indexes for identical source and target domain case """
+    """Test basic_indexes for identical source and target domain case"""
     cube_in, cube_out_mask, _ = define_source_target_grid_data_same_domain()
     in_latlons = latlon_from_cube(cube_in)
     out_latlons = latlon_from_cube(cube_out_mask)
@@ -143,7 +143,7 @@ def test_regrid_nearest_2():
     """Test nearest neighbour regridding option 'nearest-2'"""
 
     cube_in, cube_out_mask, _ = define_source_target_grid_data()
-    regrid_nearest = RegridLandSea(regrid_mode="nearest-2",)(cube_in, cube_out_mask)
+    regrid_nearest = RegridLandSea(regrid_mode="nearest-2")(cube_in, cube_out_mask)
     expected_results = np.array(
         [
             [0, 1, 1, 1, 2, 2, 2, 3, 3, 3, 3],
@@ -163,7 +163,7 @@ def test_regrid_bilinear_2():
     """Test bilinear regridding option 'bilinear-2'"""
 
     cube_in, cube_out_mask, _ = define_source_target_grid_data()
-    regrid_bilinear = RegridLandSea(regrid_mode="bilinear-2",)(cube_in, cube_out_mask)
+    regrid_bilinear = RegridLandSea(regrid_mode="bilinear-2")(cube_in, cube_out_mask)
 
     expected_results = np.array(
         [
@@ -223,7 +223,7 @@ def test_regrid_nearest_with_mask_2():
 
 
 def test_regrid_bilinear_with_mask_2():
-    """Test bilinear-with-mask-2 regridding """
+    """Test bilinear-with-mask-2 regridding"""
 
     cube_in, cube_out_mask, cube_in_mask = define_source_target_grid_data()
     regrid_bilinear_with_mask = RegridLandSea(
@@ -303,14 +303,14 @@ def test_target_domain_bigger_than_source_domain(regridder, landmask, maskedinpu
 
     # run the regridding
     regridderLandSea = RegridLandSea(
-        regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000,
+        regrid_mode=regrid_mode, landmask=cube_in_mask, landmask_vicinity=250000000
     )
     regrid_out = regridderLandSea(cube_in, cube_out_mask)
     regrid_out_pad = regridderLandSea(cube_in, cube_out_mask_pad)
 
     # check that results inside the padding matches the same regridding without padding
     np.testing.assert_allclose(
-        regrid_out.data, regrid_out_pad.data[width_y:-width_y, width_x:-width_x],
+        regrid_out.data, regrid_out_pad.data[width_y:-width_y, width_x:-width_x]
     )
 
     # check results in the padded area

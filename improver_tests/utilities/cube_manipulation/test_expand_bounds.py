@@ -1,10 +1,11 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the function "cube_manipulation.expand_bounds".
 """
+
 import unittest
 from datetime import datetime as dt
 
@@ -21,7 +22,6 @@ CALENDAR = "gregorian"
 
 
 class Test_expand_bounds(IrisTest):
-
     """Test expand_bounds function"""
 
     def setUp(self):

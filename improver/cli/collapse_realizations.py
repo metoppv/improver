@@ -1,19 +1,16 @@
 #!/usr/bin/env python
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Script to collapse the realizations dimension of a cube."""
-
 
 from improver import cli
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    cube: cli.inputcube, *, method: str = "mean", new_name: str = None,
-):
+def process(cube: cli.inputcube, *, method: str = "mean", new_name: str = None):
     """Collapse the realization dimension of a cube.
 
     Args:

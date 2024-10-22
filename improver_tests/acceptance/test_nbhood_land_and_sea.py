@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Tests for the nbhood-land-and-sea CLI
@@ -16,7 +16,7 @@ run_cli = acc.run_cli(CLI)
 
 
 @pytest.mark.parametrize(
-    "kgo_name, shape", (("kgo.nc", "square"), ("kgo_circular.nc", "circular")),
+    "kgo_name, shape", (("kgo.nc", "square"), ("kgo_circular.nc", "circular"))
 )
 def test_basic(tmp_path, kgo_name, shape):
     """Test basic land-sea without topographic bands"""

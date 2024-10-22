@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Module containing the HailFraction class."""
 
@@ -87,9 +87,9 @@ class HailFraction(PostProcessingPlugin):
             | (convective_cloud_top.data > cct_limit)
             | (hail_melting_level.data > orography.data)
         ] = 0
-        hail_fraction[
-            (hail_size.data > hail_size_limit) & (hail_fraction < 0.05)
-        ] = 0.05
+        hail_fraction[(hail_size.data > hail_size_limit) & (hail_fraction < 0.05)] = (
+            0.05
+        )
         return hail_fraction
 
     def process(self, *cubes: Union[Cube, CubeList]) -> Cube:

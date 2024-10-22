@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for plugin wind_downscaling.RoughnessCorrection."""
-
 
 import datetime
 import unittest
@@ -85,7 +84,6 @@ def make_data_cube(data, name, unit, shape, heights):
 
 
 class TestMultiPoint:
-
     """Test (typically) 3x1 or 3x3 point tests.
 
     It constructs cubes for the ancillary fields:
@@ -296,7 +294,6 @@ class TestSinglePoint:
 
 
 class Test1D(IrisTest):
-
     """Class to test 1 x-y point cubes.
 
     This class tests the correct behaviour if np.nan or RMDI are
@@ -316,25 +313,25 @@ class Test1D(IrisTest):
 
     def test_section0a(self):
         """Test AoS is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(AoS=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(AoS=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0b(self):
         """Test AoS is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(AoS=np.nan, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(AoS=np.nan, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0c(self):
         """Test Sigma is RMDI, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(Sigma=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(Sigma=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
     def test_section0d(self):
         """Test Sigma is np.nan, point should not do anything, uin = uout."""
-        landpointtests_hc_rc = TestSinglePoint(Sigma=np.nan, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(Sigma=np.nan, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
 
@@ -345,7 +342,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=RMDI, pporog=230.0, heightlevels=self.hls,
+            z_0=RMDI, pporog=230.0, heightlevels=self.hls
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
@@ -357,7 +354,7 @@ class Test1D(IrisTest):
 
         """
         landpointtests_hc_rc = TestSinglePoint(
-            z_0=np.nan, pporog=230.0, heightlevels=self.hls,
+            z_0=np.nan, pporog=230.0, heightlevels=self.hls
         )
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertArrayEqual(landpointtests_hc_rc.w_cube, land_hc_rc)
@@ -368,7 +365,7 @@ class Test1D(IrisTest):
         modeloro < pporo, so point should do positive HC, uin < uout.
 
         """
-        landpointtests_hc_rc = TestSinglePoint(z_0=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(z_0=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue((land_hc_rc.data > landpointtests_hc_rc.w_cube.data).all())
 
@@ -381,7 +378,7 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(pporog=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -397,7 +394,7 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(pporog=np.nan, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(pporog=np.nan, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -413,7 +410,7 @@ class Test1D(IrisTest):
         uout[0] = 0
 
         """
-        landpointtests_hc_rc = TestSinglePoint(modelorog=RMDI, heightlevels=self.hls,)
+        landpointtests_hc_rc = TestSinglePoint(modelorog=RMDI, heightlevels=self.hls)
         land_hc_rc = landpointtests_hc_rc.run_hc_rc(self.uin)
         self.assertTrue(
             (land_hc_rc.data <= landpointtests_hc_rc.w_cube.data).all()
@@ -563,7 +560,6 @@ class Test1D(IrisTest):
 
 
 class Test2D(IrisTest):
-
     """Test multi-point wind corrections.
 
     Section 2 are multiple point, multiple time tests

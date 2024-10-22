@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the improver.metadata.amend module"""
+
 import re
 import unittest
 from datetime import datetime as dt
@@ -133,7 +134,6 @@ class Test_set_history_attribute(IrisTest):
 
 
 class Test_update_model_id_attr_attribute(IrisTest):
-
     """Test the update_model_id_attr_attribute function."""
 
     def setUp(self):

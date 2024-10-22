@@ -31,11 +31,8 @@ dependencies:
   # Development
   - astroid
   - bandit
-  - black
   - codacy-coverage
   - filelock
-  - flake8
-  - isort
   - mock
   - mypy
   - pytest

@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """
 Unit tests for the function "cube_manipulation.enforce_coordinate_ordering".
@@ -21,7 +21,6 @@ from improver.utilities.cube_manipulation import enforce_coordinate_ordering
 
 
 class Test_enforce_coordinate_ordering(IrisTest):
-
     """Test the enforce_coordinate_ordering utility."""
 
     def setUp(self):

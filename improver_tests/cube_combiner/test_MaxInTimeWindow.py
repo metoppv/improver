@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the cube_combiner.MaxInTimeWindow plugin."""
+
 from datetime import datetime, timedelta
 
 import numpy as np
@@ -59,11 +60,9 @@ def setup_probability_cubes(period=3) -> CubeList:
     return cubes
 
 
+@pytest.mark.parametrize("period", [(3), (1)])
 @pytest.mark.parametrize(
-    "period", [(3), (1)],
-)
-@pytest.mark.parametrize(
-    "forecast_cubes", [(setup_realization_cubes), (setup_probability_cubes)],
+    "forecast_cubes", [(setup_realization_cubes), (setup_probability_cubes)]
 )
 def test_basic(forecast_cubes, period):
     """Test for max in a time window."""
@@ -143,9 +142,7 @@ def test_bound_mismatch():
         MaxInTimeWindow()(cubes)
 
 
-@pytest.mark.parametrize(
-    "minimum_realizations", [(4), (5)],
-)
+@pytest.mark.parametrize("minimum_realizations", [(4), (5)])
 def test_minimum_realizations(minimum_realizations):
     """Test the behaviour if the number of realizations is less than the minimum
     allowed."""

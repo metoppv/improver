@@ -1,9 +1,8 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Plugin to calculate probabilities of occurrence between specified thresholds
-"""
+"""Plugin to calculate probabilities of occurrence between specified thresholds"""
 
 from typing import List
 
@@ -46,8 +45,9 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         threshold_diffs = np.diff(threshold_ranges)
         if any(diff < 1e-5 for diff in threshold_diffs):
             raise ValueError(
-                "Plugin cannot distinguish between thresholds at "
-                "{} {}".format(threshold_ranges, threshold_units)
+                "Plugin cannot distinguish between thresholds at " "{} {}".format(
+                    threshold_ranges, threshold_units
+                )
             )
         self.threshold_ranges = threshold_ranges
         self.threshold_units = threshold_units
@@ -137,7 +137,7 @@ class OccurrenceBetweenThresholds(PostProcessingPlugin):
         thresh_name = self.thresh_coord.name()
 
         cubelist = iris.cube.CubeList([])
-        for (lower_cube, upper_cube) in self.cube_slices:
+        for lower_cube, upper_cube in self.cube_slices:
             # construct difference cube
             between_thresholds_data = (lower_cube.data - upper_cube.data) * multiplier
             between_thresholds_cube = upper_cube.copy(between_thresholds_data)

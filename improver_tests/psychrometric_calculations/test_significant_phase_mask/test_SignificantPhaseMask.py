@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for psychrometric_calculations SignificantPhaseMask plugin."""
 
@@ -83,7 +83,7 @@ def test_masked_values():
     data = np.zeros((2, 2), dtype=np.float32)
     data = np.ma.masked_array(data, [[True, False], [False, False]])
     input_cube = set_up_variable_cube(
-        data, name="snow_fraction", units="1", standard_grid_metadata="uk_ens",
+        data, name="snow_fraction", units="1", standard_grid_metadata="uk_ens"
     )
     with pytest.raises(
         NotImplementedError, match="SignificantPhaseMask cannot handle masked data"
@@ -139,8 +139,10 @@ def test_data_error(snow_fraction):
         units="1",
         standard_grid_metadata="uk_ens",
     )
-    msg = "Expected cube data to be in range 0 <= x <= 1. Found max={0}; min={0}".format(
-        snow_fraction
+    msg = (
+        "Expected cube data to be in range 0 <= x <= 1. Found max={0}; min={0}".format(
+            snow_fraction
+        )
     )
     with pytest.raises(ValueError, match=msg):
         SignificantPhaseMask()(input_cube, "snow")

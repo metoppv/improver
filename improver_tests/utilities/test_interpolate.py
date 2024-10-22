@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the functions within interpolation.py"""
 
@@ -16,7 +16,7 @@ class Test_interpolate_missing_data(IrisTest):
     """Test the interpolate_missing_data method"""
 
     def setUp(self):
-        """ Set up arrays for testing."""
+        """Set up arrays for testing."""
         self.data = np.array([[1.0, 1.0, 2.0], [1.0, np.nan, 2.0], [1.0, 2.0, 2.0]])
         self.limit_data = np.full((3, 3), 3.0)
         self.valid_data = np.full((3, 3), True)
@@ -48,7 +48,8 @@ class Test_interpolate_missing_data(IrisTest):
         The point of this test is to highlight a case where values outside of the max:min
         range of the input can be found, if the test tolerance is sufficiently tight.
         If this test fails with a newer version of Scipy, then the enforcement of this range
-        in improver.utilitiess.interpolation.InterpolateUsingDifference needs revisiting."""
+        in improver.utilitiess.interpolation.InterpolateUsingDifference needs revisiting.
+        """
         data = np.zeros(
             (18, 18)
         )  # The smallest array where this behaviour has been found

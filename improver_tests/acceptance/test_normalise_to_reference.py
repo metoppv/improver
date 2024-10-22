@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Tests for the normalise-to-reference CLI."""
 
@@ -17,9 +17,7 @@ run_cli = acc.run_cli(CLI)
     "forecast_type,ignore_zero_total",
     (("probability", False), ("percentile", False), ("percentile", True)),
 )
-def test_normalise_to_reference(
-    tmp_path, forecast_type, ignore_zero_total,
-):
+def test_normalise_to_reference(tmp_path, forecast_type, ignore_zero_total):
     """
     Test input cubes are updated correctly so that their total equals the reference cube
     """

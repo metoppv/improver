@@ -1,6 +1,6 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the GenerateTopographicZoneWeights plugin."""
 
@@ -323,7 +323,7 @@ class Test_process(IrisTest):
 
     def test_data_no_mask_input(self):
         """Test that the result data is as expected, when no landsea
-           mask is input."""
+        mask is input."""
         expected_weights_data = np.array(
             [[[1.0, 1.0], [0.33, 0.17]], [[0.0, 0.0], [0.67, 0.83]]], dtype=np.float32
         )
@@ -333,7 +333,7 @@ class Test_process(IrisTest):
 
     def test_data_no_mask_input_metatdata(self):
         """Test that the result metadata is as expected, when no landsea
-           mask is input."""
+        mask is input."""
         result = self.plugin.process(self.orography, self.thresholds_dict)
         self.assertIsInstance(result, iris.cube.Cube)
         self.assertEqual(

@@ -1,8 +1,9 @@
-# (C) Crown copyright, Met Office. All rights reserved.
+# (C) Crown Copyright, Met Office. All rights reserved.
 #
-# This file is part of IMPROVER and is released under a BSD 3-Clause license.
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
 """Unit tests for the ExpectedValue plugin."""
+
 import numpy as np
 import pytest
 from iris.coords import CellMethod
@@ -64,7 +65,7 @@ def single_bounded_threshold_cube():
             [0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.1, 0.0, 0.0, 0.0, 0.0, 0.0],
             [0.8, 0.7, 0.2, 0.1, 0.05, 0.02],
-        ],
+        ]
     ).transpose(1, 0)
     data = np.broadcast_to(probs[:, np.newaxis, :], [6, 2, 3])
     return set_up_probability_cube(
@@ -84,7 +85,7 @@ def double_bounded_threshold_cube():
             [1.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0, 0.0],
             [1.0, 0.25, 0.2, 0.1, 0.05, 0.02, 0.01, 0.0, 0.0, 0.0],
             [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-        ],
+        ]
     ).transpose(1, 0)
     data = np.broadcast_to(probs[:, np.newaxis, :], [10, 2, 3])
     return set_up_probability_cube(
@@ -154,9 +155,7 @@ def test_process_threshold_doublebounded(double_bounded_threshold_cube):
 def test_process_threshold_bounded(single_bounded_threshold_cube):
     """Check expected value of a below bounded distribution eg. precipitation."""
     expval = ExpectedValue().process(single_bounded_threshold_cube)
-    np.testing.assert_allclose(
-        expval.data[0], [0.0, 0.01, 3.985], rtol=0, atol=1e-6,
-    )
+    np.testing.assert_allclose(expval.data[0], [0.0, 0.01, 3.985], rtol=0, atol=1e-6)
 
 
 def test_process_threshold_abovebelow(threshold_cube):
@@ -166,7 +165,7 @@ def test_process_threshold_abovebelow(threshold_cube):
     threshold_cube_airtemp = threshold_cube.coord("air_temperature")
     threshold_below_cube_airtemp = threshold_below_cube.coord("air_temperature")
     np.testing.assert_array_equal(
-        threshold_cube_airtemp.points, threshold_below_cube_airtemp.points,
+        threshold_cube_airtemp.points, threshold_below_cube_airtemp.points
     )
     assert (
         threshold_cube_airtemp.attributes["spp__relative_to_threshold"]
