@@ -31,19 +31,9 @@ function get_python_files {
                                                ! -name '*~' \)`
 }
 
-function improver_test_black {
-    ${BLACK:-black} $FILES_TO_TEST
-    echo_ok "black"
-}
-
-function improver_test_isort {
-    ${ISORT:-isort} $FILES_TO_TEST
-    echo_ok "isort"
-}
-
-function improver_test_flake8 {
-    ${FLAKE8:-flake8} $FILES_TO_TEST
-    echo_ok "flake8"
+function improver_test_pre_commit {
+    pre-commit run --all-files
+    echo_ok "pre-commit"
 }
 
 function improver_test_doc {
@@ -105,7 +95,7 @@ function print_usage {
     cat <<'__USAGE__'
 improver tests [OPTIONS] [SUBTEST...] [SUBCLI...]
 
-Run black, isort, flake8, documentation, unit and CLI acceptance tests.
+Run pre-commit, documentation, unit and CLI acceptance tests.
 
 Optional arguments:
     --debug         Run in verbose mode (may take longer for CLI)
@@ -113,11 +103,11 @@ Optional arguments:
 
 Arguments:
     SUBTEST         Name(s) of a subtest to run without running the rest.
-                    Valid names are: black, isort, flake8, doc, unit, cli,
-                    and recreate_checksums. The default tests are black,
-                    isort, flake8, doc, unit, and cli.  Using
-                    recreate_checksums will regenerate the test data
-                    checksum file which is used as part of the cli tests.
+                    Valid names are: pre_commit, doc, unit, cli,
+                    and recreate_checksums. The default tests are pre_commit,
+                    doc, unit, and cli.  Using recreate_checksums will
+                    regenerate the test data checksum file which is used as
+                    part of the cli tests.
 __USAGE__
 }
 
@@ -158,7 +148,7 @@ for arg in "$@"; do
         print_usage
         exit 0
         ;;
-        black|isort|flake8|doc|unit|cli|recreate_checksums)
+        pre_commit|doc|unit|cli|recreate_checksums)
         SUBTESTS="$SUBTESTS $arg"
         ;;
         $cli_tasks)
@@ -176,7 +166,7 @@ if [[ -n "$SUBTESTS" ]]; then
     TESTS="$SUBTESTS"
 else
     # Default tests.
-    TESTS="isort black flake8 doc unit cli"
+    TESTS="pre_commit doc unit cli"
 fi
 
 # If cli sub test is not specified by user, do all cli tests.
