@@ -108,10 +108,7 @@ jobs:
 
     - name: pre-commit run
       run: |
-        files_changed=$(git diff --name-status origin/master... | grep -E '^\s*(M|A)' | awk '{print $2}')
-        echo "Checking the following files:"
-        echo ${files_changed}
-        pre-commit run --verbose --color=always --files ${files_changed}
+        pre-commit run --verbose --color=always --all-files
 
   PR-standards:
     runs-on: ubuntu-22.04
