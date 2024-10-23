@@ -532,6 +532,9 @@ f21b03402171eaeb6ad2eb2e0f204db1b17d22f337e93f3790ce69c18f56d253  ./generate-top
 ba7a8a4dab8552656cfc38962d8cc6dce7e32d0965823c77008906d0c6afe7b5  ./generate-topography-bands-weights/multi_realization/input_land.nc
 06911b6df4f8195a9349ff12f352bd1a6251dfcdbcd9f573d652c242f4fed596  ./generate-topography-bands-weights/multi_realization/input_orog.nc
 0c52d393be6e53eaa8b9d88a38ceff5ca07772e3385f776ac85df971afaa532b  ./generate-topography-bands-weights/multi_realization/kgo.nc
+4fe3a154c46e079ab0f42c04db93c94a35b1b7e73a6b3a303f29b8a7167aaa5b  ./gradient-between-adjacent-grid-squares/input.nc
+9792de8e7df23e9272c0fe8fa647256e5871c4dc1daf78d0584d5750c868bd43  ./gradient-between-adjacent-grid-squares/with_regrid/kgo.nc
+1324ec666cd38b5ee9974396c556457a91c020a00d90c34eac1d842013f869d8  ./gradient-between-adjacent-grid-squares/without_regrid/kgo.nc
 19e48705dd34036cf8e974dacdfeb510a55720f387daf64044d12b73d8d18ca7  ./gradient-between-vertical-levels/height_of_pressure_levels.nc
 fafd9c642ef7a63b1c453dae66cb55eab3d7816b02122d12da9320763d2d8db2  ./gradient-between-vertical-levels/kgo.nc
 a8eb2c78a65acb58d9535c3390fbf22249e98929002c21b5a4b5c534640d18e1  ./gradient-between-vertical-levels/orography.nc

@@ -637,7 +637,7 @@ class DifferenceBetweenAdjacentGridSquares(BasePlugin):
 
 class GradientBetweenAdjacentGridSquares(PostProcessingPlugin):
 
-    """Calculate the gradient between adjacent grid squares within
+    """Calculate the gradients between adjacent grid squares within
     a cube. The gradient is calculated along the x and y axis
     individually."""
 
