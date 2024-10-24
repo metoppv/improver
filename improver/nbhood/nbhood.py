@@ -520,66 +520,78 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
             1. Take the input slice_2d cube with the data, where 1 is an
                occurrence and 0 is an non-occurrence::
 
+                    # fmt: off
                     [
-                        [
-                            1.0,
-                            1.0,
-                            1.0,
-                        ],
-                        [1.0, 0.0, 1.0],
-                        [1.0, 1.0, 1.0],
+                        [1., 1., 1.],
+                        [1., 0., 1.],
+                        [1., 1., 1.],
                     ]
+                    # fmt: on
 
             2. Define a kernel. This kernel is effectively placed over each
                point within the input data. Note that the input data is padded
                prior to placing the kernel over each point, so that the kernel
                does not exceed the bounds of the padded data::
 
+                    # fmt: off
                     [
-                        [0.0, 0.0, 1.0, 0.0, 0.0],
-                        [0.0, 1.0, 1.0, 1.0, 0.0],
-                        [1.0, 1.0, 1.0, 1.0, 1.0],
-                        [0.0, 1.0, 1.0, 1.0, 0.0],
-                        [0.0, 0.0, 1.0, 0.0, 0.0],
+                        [0., 0., 1., 0., 0.],
+                        [0., 1., 1., 1., 0.],
+                        [1., 1., 1., 1., 1.],
+                        [0., 1., 1., 1., 0.],
+                        [0., 0., 1., 0., 0.],
                     ]
+                    # fmt: on
 
             3. Pad the input data. The extent of the padding is given by the
                shape of the kernel. The number of values included within the
                calculation of the mean is determined by the size of the
                kernel::
 
+                    # fmt: off
                     [
-                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
-                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
-                        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        [0.5, 0.5, 1.0, 0.0, 1.0, 0.5, 0.5],
-                        [1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0],
-                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
-                        [0.75, 0.75, 1.0, 0.5, 1.0, 0.75, 0.75],
+                        [0.75, 0.75, 1. , 0.5, 1., 0.75, 0.75],
+                        [0.75, 0.75, 1. , 0.5, 1., 0.75, 0.75],
+                        [1.  , 1.  , 1. , 1. , 1., 1.  , 1.  ],
+                        [0.5 , 0.5 , 1. , 0. , 1., 0.5 , 0.5 ],
+                        [1.  , 1.  , 1. , 1. , 1., 1.  , 1.  ],
+                        [0.75, 0.75, 1. , 0.5, 1., 0.75, 0.75],
+                        [0.75, 0.75, 1. , 0.5, 1., 0.75, 0.75],
                     ]
+                    # fmt: on
 
             4. Calculate the values at the percentiles: [10].
                For the point in the upper right corner within the original
                input data e.g. ::
 
-                    [[->1.<-, 1., 1.,],
-                     [  1.,   0., 1.],
-                     [  1.,   1., 1.]]
+                    # fmt: off
+                    [
+                        [->1.<-, 1., 1.],
+                        [  1.  , 0., 1.],
+                        [  1.  , 1., 1.],
+                    ]
+                    # fmt: on
 
                When the kernel is placed over this point within the padded
                data, then the following points are included::
 
-                    [[   0.75,    0.75,  ->1.<-,  0.5 ,  1.  ,  0.75,  0.75],
-                     [   0.75,  ->0.75,    1.  ,  0.5<-, 1.  ,  0.75,  0.75],
-                     [ ->1.  ,    1.  ,    1.  ,  1.  ,  1.<-,  1.  ,  1.  ],
-                     [   0.5 ,  ->0.5 ,    1.  ,  0.<-,  1.  ,  0.5 ,  0.5 ],
-                     [   1.  ,    1.  ,  ->1.<-,  1.  ,  1.  ,  1.  ,  1.  ],
-                     [   0.75,    0.75,    1.  ,  0.5 ,  1.  ,  0.75,  0.75],
-                     [   0.75,    0.75,    1.  ,  0.5 ,  1.  ,  0.75,  0.75]]
+                    # fmt: off
+                    [
+                        [  0.75,   0.75, ->1.<-, 0.5  , 1.  , 0.75, 0.75],
+                        [  0.75, ->0.75,   1.  , 0.5<-, 1.  , 0.75, 0.75],
+                        [->1.  ,   1.  ,   1.  , 1.   , 1.<-, 1.  , 1.  ],
+                        [  0.5 , ->0.5 ,   1.  , 0.<- , 1.  , 0.5 , 0.5 ],
+                        [  1.  ,   1.  , ->1.<-, 1.   , 1.  , 1.  , 1.  ],
+                        [  0.75,   0.75,   1.  , 0.5  , 1.  , 0.75, 0.75],
+                        [  0.75,   0.75,   1.  , 0.5  , 1.  , 0.75, 0.75],
+                    ]
+                    # fmt: on
 
                This gives::
 
-                    [0, 0.5, 0.5, 0.75, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0, 1.0]
+                    # fmt: off
+                    [0, 0.5, 0.5, 0.75, 1., 1., 1., 1., 1., 1., 1., 1., 1.]
+                    # fmt: on
 
                As there are 13 points within the kernel, this gives the
                following relationship between percentiles and values.
@@ -608,23 +620,31 @@ class GeneratePercentilesFromANeighbourhood(BaseNeighbourhoodProcessing):
                When this process is applied to every point within the original
                input data, the result is::
 
-                    (
+                    # fmt: off
+                    [
                         [
-                            [
-                                [0.75, 0.75, 0.5, 0.5, 0.5, 0.75, 0.75],
-                                [0.75, 0.55, 0.55, 0.5, 0.55, 0.55, 0.55],
-                                [0.55, 0.55, 0.5, 0.5, 0.5, 0.5, 0.5],
-                                [0.5, 0.5, 0.5, 0.5, 0.5, 0.5, 0.5],
-                                [0.5, 0.5, 0.5, 0.5, 0.5, 0.55, 0.55],
-                                [0.55, 0.55, 0.55, 0.5, 0.55, 0.55, 0.75],
-                                [0.75, 0.75, 0.5, 0.5, 0.5, 0.75, 0.75],
-                            ]
-                        ],
-                    )
+                            [0.75, 0.75, 0.5 , 0.5, 0.5 , 0.75, 0.75],
+                            [0.75, 0.55, 0.55, 0.5, 0.55, 0.55, 0.55],
+                            [0.55, 0.55, 0.5 , 0.5, 0.5 , 0.5 , 0.5 ],
+                            [0.5,  0.5 , 0.5 , 0.5, 0.5 , 0.5 , 0.5 ],
+                            [0.5,  0.5 , 0.5 , 0.5, 0.5 , 0.55, 0.55],
+                            [0.55, 0.55, 0.55, 0.5, 0.55, 0.55, 0.75],
+                            [0.75, 0.75, 0.5 , 0.5, 0.5 , 0.75, 0.75],
+                        ]
+                    ]
+                    # fmt: on
 
             5. The padding is then removed to give::
 
-                   [[[0.5, 0.5, 0.5], [0.5, 0.5, 0.5], [0.5, 0.5, 0.5]]]
+                   # fmt: off
+                   [
+                        [
+                            [0.5, 0.5, 0.5],
+                            [0.5, 0.5, 0.5],
+                            [0.5, 0.5, 0.5],
+                        ]
+                    ]
+                    # fmt: on
         """
         kernel_mask = kernel > 0
         nb_slices = pad_and_roll(
