@@ -9,7 +9,7 @@ from typing import Callable, Dict, List, Optional, Tuple, Union
 
 import numpy as np
 from iris import Constraint
-from iris.cube import Cube
+from iris.cube import Cube, CubeList
 from iris.exceptions import CoordinateNotFoundError
 
 from improver import BasePlugin
@@ -345,6 +345,17 @@ def thin_cube(cube: Cube, thinning_dict: Dict[str, int]) -> Cube:
         slices[coord_names.index(key)] = slice(None, None, val)
     return cube[tuple(slices)]
 
+def cubelist_extract(cubes: CubeList, name:str):
+    """Extract a cube from a CubeList based on provided name.
+    Args:
+        cubes:
+            A CubeList.
+        name:
+            Name of the cube to be extracted.
+    Returns:
+        A single cube matching the input name.
+    """
+    return cubes.extract_cube(name)
 
 class ExtractLevel(BasePlugin):
     """

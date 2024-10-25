@@ -22,6 +22,7 @@ from improver.utilities.cube_extraction import (
     create_constraint,
     extract_subcube,
     parse_constraint_list,
+    cubelist_extract,
 )
 
 
@@ -97,6 +98,18 @@ def set_up_uk_gridded_cube():
         y_grid_spacing=2000,
     )
 
+def test_cubelist_extract():
+    """Test the extraction of a single cube from a cube list."""
+
+    cube1 = set_up_variable_cube(
+        np.empty((3, 3), dtype=np.float32), name="temperature", units="K"
+    )
+    cube2 = set_up_variable_cube(
+        np.empty((3, 3), dtype=np.float32), name="precipitation_rate", units="mm h-1"
+    )
+    cube_list = iris.cube.CubeList([cube1,cube2])
+    result = cubelist_extract(cube_list, "temperature")
+    assert result == cube1
 
 class Test_create_constraint(IrisTest):
     """Test the creation of constraints that allow for floating point
