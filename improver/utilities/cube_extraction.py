@@ -345,7 +345,8 @@ def thin_cube(cube: Cube, thinning_dict: Dict[str, int]) -> Cube:
         slices[coord_names.index(key)] = slice(None, None, val)
     return cube[tuple(slices)]
 
-def cubelist_extract(cubes: CubeList, name:str):
+
+def cubelist_extract(cubes: CubeList, name: str):
     """Extract a cube from a CubeList based on provided name.
     Args:
         cubes:
@@ -356,6 +357,7 @@ def cubelist_extract(cubes: CubeList, name:str):
         A single cube matching the input name.
     """
     return cubes.extract_cube(name)
+
 
 class ExtractLevel(BasePlugin):
     """

@@ -6,16 +6,11 @@
 """Script to extract a cube from a cubelist"""
 
 from improver import cli
-from improver.cli import parameters
 
 
 @cli.clizefy
 @cli.with_output
-def process(
-    cubes: cli.inputcubelist,
-    *,
-    name: str
-):
+def process(cubes: cli.inputcubelist, *, name: str):
     """Extract a single cube from a cubelist whose name matches
     the provided name.
 
@@ -32,4 +27,4 @@ def process(
     """
     from improver.utilities.cube_extraction import cubelist_extract
 
-    return cubelist_extract(cubes,name)
+    return cubelist_extract(cubes, name)
