@@ -136,8 +136,8 @@ def test_metadata(
     expected_y_coord = cube.coord(axis="y").copy(expected_y_points)
     plugin = GradientBetweenAdjacentGridSquares(regrid=regrid)
     result_x, result_y = plugin(cube)
-    for result in (result_x, result_y):
-        assert result.name() == "gradient_of_air_temperature"
+    for result, name in [(result_x, "x"), (result_y, "y")]:
+        assert result.name() == f"gradient_of_air_temperature_wrt_{name}"
         assert result.units == "K m-1"
         assert result.attributes == cube.attributes
     if regrid:
