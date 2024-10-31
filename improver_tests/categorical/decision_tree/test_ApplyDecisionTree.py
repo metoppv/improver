@@ -192,6 +192,61 @@ def test_non_probablistic_tree_missing_data(hail_cube):
         )
 
 
+def test_deterministic_complex_diagnostic_fields(precip_cube, hail_cube):
+    """Test that ApplyDecisionTree correctly manages a decision node with complex
+    diagnostic fields containing floats and all valid operators"""
+    precip_cube.data.fill(2)
+    hail_cube.data.fill(1)
+    cubes = iris.cube.CubeList([precip_cube, hail_cube])
+
+    example_node = deterministic_diagnostic_tree()["precip_rate"]
+    example_node["diagnostic_fields"] = [
+        ["precipitation_rate", "-", 2.0, "*", "hail_rate", "+", 630, "/", 2]
+    ]
+
+    condition_chain = ApplyDecisionTree(
+        deterministic_diagnostic_tree()
+    ).create_condition_chain(example_node)
+    expected_condition_chain = [
+        [
+            [
+                [
+                    iris.Constraint(name="precipitation_rate"),
+                    "-",
+                    2.0,
+                    "*",
+                    iris.Constraint(name="hail_rate"),
+                    "+",
+                    630,
+                    "/",
+                    2,
+                ],
+                ">",
+                0,
+            ]
+        ],
+        "",
+    ]
+
+    for i in range(9):
+        if i in [0, 4]:
+            assert np.all(
+                cubes.extract(condition_chain[0][0][0][i])[0].data
+                == cubes.extract(expected_condition_chain[0][0][0][i])[0].data
+            )
+        else:
+            assert condition_chain[0][0][0][i] == expected_condition_chain[0][0][0][i]
+    assert condition_chain[0][0][1] == expected_condition_chain[0][0][1]
+    assert condition_chain[0][0][2] == expected_condition_chain[0][0][2]
+
+    expression_result = ApplyDecisionTree(
+        deterministic_diagnostic_tree()
+    ).evaluate_extract_expression(
+        iris.cube.CubeList([precip_cube, hail_cube]), condition_chain[0][0][0]
+    )
+    assert np.all(expression_result == 315)
+
+
 class Test_WXCode(IrisTest):
 
     """Test class for the WX code tests, setting up inputs."""

@@ -6,7 +6,7 @@ on:
   workflow_dispatch:
 jobs:
   Sphinx-Pytest-Coverage:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -63,7 +63,7 @@ jobs:
         name:  ${{ matrix.env }}
       if: matrix.env != 'conda_forge'
   Codestyle-and-flake8:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
@@ -105,7 +105,7 @@ jobs:
         conda activate im${{ matrix.env }}
         flake8 improver improver_tests
   PR-standards:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     timeout-minutes: 10
     steps:
       - name: Checkout
@@ -115,7 +115,7 @@ jobs:
       - name: Check CONTRIBUTING.md
         uses: cylc/release-actions/check-shortlog@v1
   Safety-Bandit:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-22.04
     strategy:
       fail-fast: false
       matrix:
