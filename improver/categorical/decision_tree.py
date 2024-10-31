@@ -645,14 +645,14 @@ class ApplyDecisionTree(BasePlugin):
         Args:
             arr
             comparator:
-                One of  '<', '>', '<=', '>=','is_masked'.
+                One of '<', '>', '<=', '>=', 'is_masked'.
             threshold
 
         Returns:
             Array of booleans.
 
         Raises:
-            ValueError: If comparator is not one of '<', '>', '<=', '>=','is_masked'.
+            ValueError: If comparator is not one of '<', '>', '<=', '>=', 'is_masked'.
         """
         if comparator == "<":
             result = arr < threshold
@@ -670,7 +670,7 @@ class ApplyDecisionTree(BasePlugin):
         else:
             raise ValueError(
                 f"Invalid comparator: {comparator}. "
-                "Comparator must be one of '<', '>', '<=', '>=','is_masked'."
+                "Comparator must be one of '<', '>', '<=', '>=', 'is_masked'."
             )
         if np.ma.is_masked(result):
             result[result.mask] = False
