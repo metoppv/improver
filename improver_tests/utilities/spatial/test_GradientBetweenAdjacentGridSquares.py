@@ -140,6 +140,7 @@ def test_metadata(
         assert result.name() == f"gradient_of_air_temperature_wrt_{name}"
         assert result.units == "K m-1"
         assert result.attributes == cube.attributes
+        assert result.data.dtype == np.float32
     if regrid:
         # In regrid mode, we expect the original spatial coords
         for axis in "xy":
