@@ -557,7 +557,6 @@ c4451e5a94a946215e5a3e09787b0d25c215aa4511110f46b6015c1c5aab13c9  ./hail-size/we
 e4ad2774923662fad733e3d95730416993abd94486aa9e032256e9d60d4b1bc0  ./height-of-max-vertical-velocity/kgo.nc
 90ac17c415ba2b0249de3f304bf2f511a9a294710e0577dac9231b6ab822660d  ./height-of-max-vertical-velocity/max_vertical_velocity.nc
 929f98fa947ca8b635d76f6d3509b368fe7780019af76172dddbae4fef21822d  ./height-of-max-vertical-velocity/vertical_velocity_on_height_levels.nc
-6250ebf0e5c233b22337eb119100f7bac932c378f15ed5bfeb4429859ab69e7d  ./input.nc
 cebc2ccbe6c8e33b3e39d65f07d189172133a3fc6c22e3567c61572e14750cef  ./integrate-time-bounds/basic/kgo.nc
 b8ae3b9d3db05fc0c8479bb707465aeaf140202ab4477d025f5c793e2d287dc8  ./integrate-time-bounds/basic/kgo_renamed.nc
 5aaa03199faf9df5fda699936b33df862b071b3790b04791fef31d8cc0fd074a  ./integrate-time-bounds/basic/lightning_frequency.nc
