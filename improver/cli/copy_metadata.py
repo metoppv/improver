@@ -3,7 +3,7 @@
 #
 # This file is part of IMPROVER and is released under a BSD 3-Clause license.
 # See LICENSE in the root of the repository for full licensing details.
-"""Script to copy attributes from template_cube to cube"""
+"""Script to copy metadata from template_cube to cube"""
 
 from improver import cli
 
@@ -14,7 +14,8 @@ def process(
     cube: cli.inputcube,
     template_cube: cli.inputcube,
     *,
-    attributes: cli.comma_separated_list,
+    attributes: cli.comma_separated_list = [],
+    aux_coord: cli.comma_separated_list = [],
 ):
     """
     Copy attribute values from template_cube to cube, overwriting any existing values.
@@ -27,11 +28,15 @@ def process(
         attributes (list):
             List of names of attributes to copy. If any are not present on template_cube, a
             KeyError will be raised.
+        aux_coord (list):
+            List of names of auxilary coordinates to copy. If any are not present on
+            template_cube, a KeyError will be raised. If the aux_coord is already present
+            in the cube, it will be overwritten.
 
     Returns:
         iris.cube.Cube
     """
-    from improver.utilities.copy_attributes import CopyAttributes
+    from improver.utilities.copy_metadata import CopyMetadata
 
-    plugin = CopyAttributes(attributes)
+    plugin = CopyMetadata(attributes, aux_coord)
     return plugin(cube, template_cube=template_cube)

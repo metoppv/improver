@@ -11,25 +11,32 @@ from improver.metadata.amend import amend_attributes
 from improver.utilities.common_input_handle import as_cube, as_cubelist
 
 
-class CopyAttributes(BasePlugin):
-    """Copy attribute values from template_cube to cube, overwriting any existing values."""
+class CopyMetadata(BasePlugin):
+    """Copy attribute or auxilary coordinate values from template_cube to cube,
+    overwriting any existing values."""
 
-    def __init__(self, attributes: List):
+    def __init__(self, attributes: List = [], aux_coord: List = []):
         """
         Initialise the plugin with a list of attributes to copy.
 
         Args:
             attributes:
-                List of names of attributes to copy. If any are not present on template_cube, a
-                KeyError will be raised.
+                List of names of attributes to copy. If any are not present on
+                template_cube, a KeyError will be raised.
+            aux_coord:
+                List of names of auxilary coordinates to copy. If any are not
+                present on template_cube, a KeyError will be raised. If the
+                aux_coord is already present in the cube, it will be overwritten.
         """
         self.attributes = attributes
+        self.aux_coord = aux_coord
 
     def process(
         self, *cubes: Union[Cube, CubeList], template_cube: Union[Cube, CubeList]
     ) -> Union[Tuple[Union[Cube, CubeList]], Cube, CubeList]:
         """
-        Copy attribute values from template_cube to cube, overwriting any existing values.
+        Copy attribute or auxilary coordinate values from template_cube to cube,
+        overwriting any existing values.
 
         Operation is performed in-place on provided inputs.
 
@@ -49,4 +56,17 @@ class CopyAttributes(BasePlugin):
         for cube in cubes_proc:
             new_attributes = {k: template_cube.attributes[k] for k in self.attributes}
             amend_attributes(cube, new_attributes)
+            for coord in self.aux_coord:
+                # If coordinate is already present in the cube, remove it
+                try:
+                    cube.coord(coord)
+                except KeyError:
+                    pass
+                else:
+                    cube.remove_coord(coord)
+                cube.add_aux_coord(
+                    template_cube.coord(coord),
+                    data_dims=template_cube.coord_dims(coord=coord),
+                )
+
         return cubes if len(cubes) > 1 else cubes[0]
