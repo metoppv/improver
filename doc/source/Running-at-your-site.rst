@@ -131,24 +131,35 @@ tests are quick to run. Unit tests are run as part of the test suite on
 
    # Run unit tests via improver-tests wrapper
    bin/improver-tests unit
+   bin/improver-tests --help # Prints out the help information
    # Use pytest directly with marker to run only the unit tests
    pytest -m 'not acc'
+   # To run a particular function within a unit test, you can use the :: notation
+   pytest -m improver_tests/test_unit_test.py::Test_function
 
 The CLI (command line interface) acceptance tests use known good output
-(KGO) files on disk for validating that the behaviour is as expected.
-These data files are large, so the acceptance tests are not run on
-Github actions. Contact a `Met Office IMPROVER
-contributor <https://github.com/metoppv/improver/commits/master>`_ to
-arrange for a copy of the acceptance test input and output files.
+(KGO) files for validating that the behaviour is as expected. This data
+can be found in the `improver_test_data` open source repository on GitHub.
 
 The path to the acceptance test data is set using the
 ``IMPROVER_ACC_TEST_DIR`` environment variable. Acceptance tests will be
 skipped if this environment variable is not defined.
+To run the acceptance tests you can use the following:
 
 .. code:: bash
 
-   export IMPROVER_ACC_TEST_DIR=/path/to/acceptance/data
+   export IMPROVER_ACC_TEST_DIR=/path/to/acceptance/data/repo
    # Use pytest marker to run only the acceptance tests
    pytest -m acc
    # Acceptance tests can be run significantly faster in parallel using the pytest-xdist plugin
    pytest -n 8
+   # An example of running just one particular acceptance test
+   pytest -v -s -m acc -k test_cli_name.py
+
+To run all tests together at once, the following command can be input
+
+.. code:: bash
+
+   bin/improver-tests # runs all tests
+   bin/improver-tests unit # runs unit tests
+   bin/improver-tests --help # Prints out the help information

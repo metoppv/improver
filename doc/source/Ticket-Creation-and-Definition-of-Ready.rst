@@ -9,9 +9,9 @@ User stories
 
 When creating new tickets you should follow the template provided:
 
-   As a X I want Y so that Z
-
    Related issues: #I, #J
+
+   As a W I want X so that Y. It is done when Z.
 
    Optional extra information text goes here
 
@@ -49,15 +49,9 @@ Type
 * Investigative: A more open-ended investigation, into a technical or
   scientific development, which may or may not lead to future work to implement
   the results of the investigation.
-* Maintenance: Improvements to the design, structuring and/or behaviour of a
-  function. Can be viewed as the removal of minor technical debt to improve the
-  supportability and maintainability.
-* Optimisation: An optimisation task mostly focussed on improving the
-  timeliness of processing.
-* Review: A review of the current status of a piece of functionality is
-  required, ahead of starting more work.
 * Technical Debt: Previous issues have resulted in the accumulation of
   technical debt. These issues do the groundwork to remove the technical debt.
+  This also covers code maintenance and optimisation.
 
 Inactive:
 ~~~~~~~~~
@@ -71,7 +65,7 @@ Inactive:
   reasons, it is not possible to fix the problem described in this
   issue, or we are acknowledging that we won’t fix this issue as it’s
   low priority, and alternative solutions may need to be investigated.
-* On Hold: Work started on this issue, however, the priority of this
+* Paused: Work started on this issue, however, the priority of this
   issue decreased, and is now On Hold, potentially until a firmer
   requirement can be established.
 

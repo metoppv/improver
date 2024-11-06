@@ -37,6 +37,9 @@ General comments
   line interfaces) have acceptance tests.
 * Use type annotations on function and method interfaces, except for
   CLIs.
+* Avoid putting any functionality within the CLI at all other than
+  passing in arguments to the plugin, all functionality should be
+  done within the plugin layer itself.
 
 Pull requests
 ~~~~~~~~~~~~~
@@ -519,7 +522,7 @@ Add a command line interface (improver/cli/<cli_name>.py) to invoke plugins
 that can be used as a standalone utility or executable within a suite context
 (e.g. wind downscaling, neighbourhood processing, spot data extraction).
 These CLIs are invoked using ``bin/improver <cli-name>`` (note that the
-CLI filename uses underscores, but the call to use the CLI uses hyphens)
+CLI filename uses underscores, but the call to use the CLI uses hyphens).
 
 IMPROVER CLIs should only have ``from improver import cli`` as the top
 level imports. Other imports are placed inside the function that uses
@@ -533,6 +536,11 @@ Each CLI should have a process function. This will require a
 to save a cube to disk, it will need the decorator ``@cli.with_output``,
 this will mean on the command line, the ``--output`` flag can be used to
 specify an output path.
+
+As mentioned above, it is important to ensure that no other functionality
+than passing inputs into the plugin is done within the CLI layer.
+So any checks on the data or requirements of inputs should be done in
+the plugin itself.
 
 To load the cubes, each cube argument will need a type. For a basic cube
 this will be ``cube: cli.inputcube``. If there is a default argument to
@@ -765,5 +773,6 @@ New release steps:
    case just check it. The checksum of the compressed ``.tar.gz`` IMPROVER
    source code can be obtained via ``openssl sha256 <file name>``.
    Currently the people with write access to the improver-feedstock
-   repository are @benfitzpatrick, @PaulAbernethy, @tjtg and @lucyleeow.
+   repository are @benfitzpatrick, @PaulAbernethy, @tjtg, @cpelley and
+   @dementipl.
    You can ping one of these people to merge your pull request.
