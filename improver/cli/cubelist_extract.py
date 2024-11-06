@@ -16,7 +16,7 @@ def process(cubes: cli.inputcubelist, *, name: str):
 
     Args:
         cubes (iris.cube.CubeList):
-            A cubelist containing exactly one cube of with the provided name to
+            A cubelist containing exactly one cube with the provided name to
             be extracted.
         name (str):
             The name of the cube to be extracted.
