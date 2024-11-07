@@ -213,6 +213,11 @@ class CubeCombiner(BasePlugin):
         Check all coordinate dimensions on the input cubes match according to
         the comparators specified.
 
+        The var_name attributes on input cubes and  coordinates are ignored during these
+        checks, except where the attribute is required to support probabilistic metadata.
+        This is to ensure consistency of behaviour with the MergeCubes plugin in
+        /utilities/cube_manipulation.py.
+
         Args:
             cube_list:
                 List of cubes to compare
