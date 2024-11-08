@@ -23,6 +23,7 @@ from improver.utilities.cube_manipulation import (
     enforce_coordinate_ordering,
     expand_bounds,
     filter_realizations,
+    strip_var_names,
 )
 
 
@@ -212,6 +213,11 @@ class CubeCombiner(BasePlugin):
         Check all coordinate dimensions on the input cubes match according to
         the comparators specified.
 
+        The var_name attributes on input cubes and  coordinates are ignored during these
+        checks, except where the attribute is required to support probabilistic metadata.
+        This is to ensure consistency of behaviour with the MergeCubes plugin in
+        /utilities/cube_manipulation.py.
+
         Args:
             cube_list:
                 List of cubes to compare
@@ -222,8 +228,10 @@ class CubeCombiner(BasePlugin):
         Raises:
             ValueError: If dimension coordinates do not match
         """
-        ref_coords = cube_list[0].coords(dim_coords=True)
-        for cube in cube_list[1:]:
+        test_cube_list = iris.cube.CubeList(cube_list.copy())
+        strip_var_names(test_cube_list)
+        ref_coords = test_cube_list[0].coords(dim_coords=True)
+        for cube in test_cube_list[1:]:
             coords = cube.coords(dim_coords=True)
             compare = [
                 np.any([comp(a, b) for comp in comparators])
