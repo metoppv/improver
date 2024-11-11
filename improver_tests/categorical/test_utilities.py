@@ -86,13 +86,21 @@ class Test_categorical_attributes(IrisTest):
         data = np.array(
             [0, 1, 5, 11, 20, 5, 9, 10, 4, 2, 0, 1, 29, 30, 1, 5, 6, 6], dtype=np.int32
         ).reshape((2, 3, 3))
-        cube = set_up_variable_cube(data, name="weather_code", units="1")
+        cube = set_up_variable_cube(
+            data,
+            name="weather_code",
+            units="1",
+        )
         date_times = [
             datetime.datetime(2017, 11, 19, 0, 30),
             datetime.datetime(2017, 11, 19, 1, 30),
         ]
         self.cube = add_coordinate(
-            cube, date_times, "time", is_datetime=True, order=[1, 0, 2, 3]
+            cube,
+            date_times,
+            "time",
+            is_datetime=True,
+            order=[1, 0, 2, 3],
         )
         self.decision_tree = wxcode_decision_tree()
         wxmeanings = [
@@ -425,6 +433,8 @@ def test_interrogate_decision_tree_accumulation_3h():
 def test_interrogate_decision_tree_deterministic():
     """Test that the function returns the right strings."""
     expected = (
+        "\u26c5 cloud_base_temperature (deterministic)\n"
+        "\u26c5 cloud_top_temperature (deterministic)\n"
         "\u26c5 hail_rate (deterministic)\n"
         "\u26c5 precipitation_rate (deterministic)\n"
     )
@@ -473,9 +483,24 @@ def modify_tree_fixture(node, key, value):
 @pytest.mark.parametrize(
     "node, key, value, expected",
     (
-        ("meta", None, None, "Decision tree does not contain a mandatory meta key"),
-        ("meta", "name", None, "Meta node does not contain mandatory keys {'name'}"),
-        ("meta", "pets", "kittens", "Meta node contains unexpected keys {'pets'}"),
+        (
+            "meta",
+            None,
+            None,
+            "Decision tree does not contain a mandatory meta key",
+        ),
+        (
+            "meta",
+            "name",
+            None,
+            "Meta node does not contain mandatory keys {'name'}",
+        ),
+        (
+            "meta",
+            "pets",
+            "kittens",
+            "Meta node contains unexpected keys {'pets'}",
+        ),
         (
             "lightning",
             "if_diagnostic_missing",
@@ -518,7 +543,12 @@ def modify_tree_fixture(node, key, value):
                 "should be 'above' or 'below'"
             ),
         ),
-        ("Thunder", "leaf", 10.2, "Leaf 'Thunder' has non-int target: 10.2"),
+        (
+            "Thunder",
+            "leaf",
+            10.2,
+            "Leaf 'Thunder' has non-int target: 10.2",
+        ),
         (
             "Clear_Night",
             "pets",
@@ -537,7 +567,12 @@ def modify_tree_fixture(node, key, value):
             None,
             "Unreachable leaf 'Dust'. Add 'is_unreachable': True to suppress this issue.",
         ),
-        ("Mist", "group", None, "Leaf 'Fog' is in a group of 1 (visibility)."),
+        (
+            "Mist",
+            "group",
+            None,
+            "Leaf 'Fog' is in a group of 1 (visibility).",
+        ),
         (
             "sleet_in_vicinity_cloud",
             "if_false",
@@ -609,7 +644,12 @@ def modify_tree_fixture(node, key, value):
             "no_precipitation_cloud",
             "Unreachable node 'fog_conditions'",
         ),
-        ("lightning", "kittens", 0, "Node lightning contains unknown key 'kittens'"),
+        (
+            "lightning",
+            "kittens",
+            0,
+            "Node lightning contains unknown key 'kittens'",
+        ),
         (
             "sleet_in_vicinity_cloud",
             "if_false",
@@ -631,7 +671,10 @@ def test_check_tree(modify_tree, expected):
 @pytest.mark.parametrize(
     "value, expected",
     (
-        ("kittens", "Leaf 'Sunny_Day' does not point to a valid target (kittens)."),
+        (
+            "kittens",
+            "Leaf 'Sunny_Day' does not point to a valid target (kittens).",
+        ),
         (
             "Partly_Cloudy_Day",
             "Night target 'Partly_Cloudy_Day' of leaf 'Sunny_Day' also has a night target.",
@@ -653,7 +696,10 @@ def test_check_tree_if_night(modify_tree, expected):
 @pytest.mark.parametrize(
     "nodes, expected",
     (
-        ({"Thunder": 28}, "These leaf categories are used more than once: [28]"),
+        (
+            {"Thunder": 28},
+            "These leaf categories are used more than once: [28]",
+        ),
         (
             {"Thunder": 28, "Thunder_Shower_Day": 28},
             "These leaf categories are used more than once: [28]",

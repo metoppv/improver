@@ -37,3 +37,21 @@ def test_internal_mask(tmp_path):
     args = [input_path, smoothing_coefficients_path, "--output", output_path]
     run_cli(args)
     acc.compare(output_path, kgo_path)
+
+
+def test_variable_internal_mask(tmp_path):
+    """Test recursive filter with variably masked data"""
+    kgo_dir = acc.kgo_root() / "recursive-filter"
+    kgo_path = kgo_dir / "kgo_variable_internal_mask_with_re_mask.nc"
+    input_path = kgo_dir / "input_variable_masked.nc"
+    smoothing_coefficients_path = kgo_dir / "smoothing_coefficients.nc"
+    output_path = tmp_path / "output.nc"
+    args = [
+        input_path,
+        smoothing_coefficients_path,
+        "--variable-mask",
+        "--output",
+        output_path,
+    ]
+    run_cli(args)
+    acc.compare(output_path, kgo_path)

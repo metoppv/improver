@@ -27,6 +27,7 @@ LEAF_REQUIRED_KEY_WORDS = ["leaf"]
 LEAF_OPTIONAL_KEY_WORDS = ["if_night", "is_unreachable", "group"]
 
 OPTIONAL_KEY_WORDS = [
+    "if_masked",
     "if_diagnostic_missing",
     "deterministic",
     "diagnostic_thresholds",
@@ -493,9 +494,13 @@ def check_tree(
                     f"Node {node} uses invalid threshold condition {threshold}"
                 )
 
-            # Check the succeed and fail destinations are valid; that is a valid
+            # Check the succeed fail and masked destinations are valid; that is a valid
             # category for leaf nodes, and other tree nodes otherwise
-            for result in "if_true", "if_false":
+            if items.get("if_masked"):
+                nodes = ["if_true", "if_false", "if_masked"]
+            else:
+                nodes = ["if_true", "if_false"]
+            for result in nodes:
                 value = items[result]
                 if isinstance(value, str):
                     if value not in decision_tree.keys():

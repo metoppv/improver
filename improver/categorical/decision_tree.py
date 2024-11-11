@@ -48,7 +48,12 @@ from improver.utilities.common_input_handle import as_cubelist
 def _define_invertible_conditions() -> Dict[str, str]:
     """Returns a dictionary of boolean comparator strings where the value is the
     logical inverse of the key."""
-    invertible_conditions = {">=": "<", ">": "<=", "OR": "AND", "": ""}
+    invertible_conditions = {
+        ">=": "<",
+        ">": "<=",
+        "OR": "AND",
+        "": "",
+    }
     # Add reverse {value: key} entries to invertible_conditions
     reverse_inversions = {}
     for k, v in invertible_conditions.items():
@@ -371,9 +376,17 @@ class ApplyDecisionTree(BasePlugin):
             coord = "thresholds"
         else:
             coord = "probability_thresholds"
+        if isinstance(test_conditions["threshold_condition"], str):
+            comparator = [test_conditions["threshold_condition"]] * len(
+                test_conditions[coord]
+            )
+        else:
+            comparator = test_conditions["threshold_condition"]
 
-        for index, (diagnostic, p_threshold) in enumerate(
-            zip(test_conditions["diagnostic_fields"], test_conditions[coord])
+        for index, (diagnostic, comp, p_threshold) in enumerate(
+            zip(
+                test_conditions["diagnostic_fields"], comparator, test_conditions[coord]
+            )
         ):
             d_threshold = test_conditions.get("diagnostic_thresholds")
             d_threshold = d_threshold[index] if d_threshold else None
@@ -412,13 +425,7 @@ class ApplyDecisionTree(BasePlugin):
                     )
                 else:
                     extract_constraint = iris.Constraint(diagnostic)
-            conditions.append(
-                [
-                    extract_constraint,
-                    test_conditions["threshold_condition"],
-                    p_threshold,
-                ]
-            )
+            conditions.append([extract_constraint, comp, p_threshold])
         condition_chain = [conditions, test_conditions["condition_combination"]]
         return condition_chain
 
@@ -454,11 +461,17 @@ class ApplyDecisionTree(BasePlugin):
         threshold_val = threshold.points.item()
         if abs(threshold_val) < self.float_abs_tolerance:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=0, atol=self.float_abs_tolerance
+                cell.point,
+                threshold_val,
+                rtol=0,
+                atol=self.float_abs_tolerance,
             )
         else:
             cell_constraint = lambda cell: np.isclose(
-                cell.point, threshold_val, rtol=self.float_tolerance, atol=0
+                cell.point,
+                threshold_val,
+                rtol=self.float_tolerance,
+                atol=0,
             )
 
         kw_dict = {"{}".format(threshold_coord_name): cell_constraint}
@@ -497,7 +510,10 @@ class ApplyDecisionTree(BasePlugin):
 
     @staticmethod
     def find_all_routes(
-        graph: Dict, start: str, end: int, route: Optional[List[str]] = None
+        graph: Dict,
+        start: str,
+        end: int,
+        route: Optional[List[str]] = None,
     ) -> List[str]:
         """
         Function to trace all routes through the decision tree.
@@ -634,28 +650,36 @@ class ApplyDecisionTree(BasePlugin):
         Args:
             arr
             comparator:
-                One of  '<', '>', '<=', '>='.
+                One of '<', '>', '<=', '>=', 'is_masked'.
             threshold
 
         Returns:
             Array of booleans.
 
         Raises:
-            ValueError: If comparator is not one of '<', '>', '<=', '>='.
+            ValueError: If comparator is not one of '<', '>', '<=', '>=', 'is_masked'.
         """
         if comparator == "<":
-            return arr < threshold
+            result = arr < threshold
         elif comparator == ">":
-            return arr > threshold
+            result = arr > threshold
         elif comparator == "<=":
-            return arr <= threshold
+            result = arr <= threshold
         elif comparator == ">=":
-            return arr >= threshold
+            result = arr >= threshold
+        elif comparator == "is_masked":
+            if np.ma.is_masked(arr):
+                result = arr.mask
+            else:
+                result = arr != arr
         else:
             raise ValueError(
                 f"Invalid comparator: {comparator}. "
-                "Comparator must be one of '<', '>', '<=', '>='."
+                "Comparator must be one of '<', '>', '<=', '>=', 'is_masked'."
             )
+        if np.ma.is_masked(result):
+            result[result.mask] = False
+        return result
 
     def evaluate_extract_expression(
         self, cubes: CubeList, expression: Union[Constraint, List]
@@ -811,11 +835,13 @@ class ApplyDecisionTree(BasePlugin):
 
         # Construct graph nodes dictionary
         graph = {
-            key: (
-                [self.queries[key]["leaf"]]
-                if "leaf" in self.queries[key].keys()
-                else [self.queries[key]["if_true"], self.queries[key]["if_false"]]
-            )
+            key: [self.queries[key]["leaf"]]
+            if "leaf" in self.queries[key].keys()
+            else [
+                self.queries[key]["if_true"],
+                self.queries[key]["if_false"],
+                self.queries[key].get("if_masked"),
+            ]
             for key in self.queries
         }
         # Search through tree for all leaves (category end points)
@@ -829,7 +855,11 @@ class ApplyDecisionTree(BasePlugin):
         # Loop over possible categories
 
         for category_code in defined_categories:
-            routes = self.find_all_routes(graph, self.start_node, category_code)
+            routes = self.find_all_routes(
+                graph,
+                self.start_node,
+                category_code,
+            )
             # Loop over possible routes from root to leaf
             for route in routes:
                 conditions = []
@@ -843,6 +873,25 @@ class ApplyDecisionTree(BasePlugin):
                             current["threshold_condition"],
                             current["condition_combination"],
                         ) = self.invert_condition(current)
+                    if current.get("if_masked") == next_node and current.get(
+                        "if_masked"
+                    ) not in [current.get("if_false"), current.get("if_true")]:
+                        # if if_masked is not the same as if_false or if_true, then
+                        # it is a separate branch of the tree and we need to replace
+                        # the condition.
+                        current["diagnostic_fields"] = current["diagnostic_fields"]
+                        current["threshold_condition"] = "is_masked"
+                        current["condition_combination"] = ""
+                    elif current.get("if_masked") == next_node:
+                        # if masked is the same as if_false or if_true, then we need
+                        # to add the masked condition to the existing condition.
+                        current["diagnostic_fields"] = current["diagnostic_fields"] * 2
+                        current["threshold_condition"] = [
+                            current["threshold_condition"],
+                            "is_masked",
+                        ]
+                        current["condition_combination"] = "OR"
+                        current["thresholds"] = current["thresholds"] * 2
                     if "leaf" not in current.keys():
                         conditions.append(self.create_condition_chain(current))
                 test_chain = [conditions, "AND"]
