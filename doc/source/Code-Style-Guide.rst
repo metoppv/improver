@@ -37,9 +37,8 @@ General comments
   line interfaces) have acceptance tests.
 * Use type annotations on function and method interfaces, except for
   CLIs.
-* Avoid putting any functionality within the CLI at all other than
-  passing in arguments to the plugin, all functionality should be
-  done within the plugin layer itself.
+* Avoid adding functionality to CLIs beyond calling the relevant plugin,
+  all other functionality should be added to the plugin itself.
 
 Pull requests
 ~~~~~~~~~~~~~
@@ -537,10 +536,9 @@ to save a cube to disk, it will need the decorator ``@cli.with_output``,
 this will mean on the command line, the ``--output`` flag can be used to
 specify an output path.
 
-As mentioned above, it is important to ensure that no other functionality
-than passing inputs into the plugin is done within the CLI layer.
-So any checks on the data or requirements of inputs should be done in
-the plugin itself.
+As mentioned above, it is important to ensure that no functionality
+other than calling the plugin exists within the CLI layer.
+Any checks on the data or input requirements should be done in the plugin itself.
 
 To load the cubes, each cube argument will need a type. For a basic cube
 this will be ``cube: cli.inputcube``. If there is a default argument to

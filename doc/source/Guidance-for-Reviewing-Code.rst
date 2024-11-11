@@ -46,10 +46,10 @@ As a Reviewer:
    e.   **The criteria within the Definition of Done has been satisfied.**
    f.   **Ensure their testing is documented on the issue.**
 
-4. Reviewers should post comments to the pull request to show that
+3. Reviewers should post comments to the pull request to show that
    they have completed: a, b, c, d, e, f.
 
-5. Things to consider when reading through the code are:
+4. Things to consider when reading through the code are:
 
    a.   **Naming conventions and coding style**
 
@@ -73,9 +73,10 @@ As a Reviewer:
 
    d.   **Functionality**
 
-        * Does the code do what is supposed to?
+        * Does the code do what it's supposed to?
         * Are errors handled appropriately?
-        * Is the code written to be run efficiently?
+        * Is the code efficient with respect to processing time and
+          memory requirements?
 
    e.   **Test coverage**
 
@@ -83,11 +84,11 @@ As a Reviewer:
         * Are the tests understandable?
         * Have edge cases been considered?
 
-6. If this is a first review, the developer should then move the issue
+5. If this is a first review, the developer should then move the issue
    into 'Second Review' and a second reviewer should ensure that the
    criteria listed above have been met. The Scrum Master can be
    consulted, if necessary.
 
-7. If this is a second review, the developer should assign the issue back
+6. If this is a second review, the developer should assign the issue back
    to the developer and contact them prior to moving the issue into the
    'Done' column. The Scrum Master can be consulted during the Stand-up.

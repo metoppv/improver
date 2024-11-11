@@ -161,5 +161,3 @@ To run all tests together at once, the following command can be input
 .. code:: bash
 
    bin/improver-tests # runs all tests
-   bin/improver-tests unit # runs unit tests
-   bin/improver-tests --help # Prints out the help information
