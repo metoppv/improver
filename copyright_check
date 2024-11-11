@@ -1,11 +1,12 @@
 #!/bin/bash
 
-copyright_header="\
-# (C) Crown Copyright, Met Office. All rights reserved.\n\
+copyright_header_pattern="^\
+# \(C\) Crown Copyright, Met Office. All rights reserved\.\n\
 #\n\
-# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license.\n\
-# See LICENSE in the root of the repository for full licensing details.\
+# This file is part of 'IMPROVER' and is released under the BSD 3-Clause license\.\n\
+# See LICENSE in the root of the repository for full licensing details\.$\
 "
+copyright_header=$(echo "$copyright_header_pattern" | sed 's/\\(/\(/g; s/\\)/\)/g; s/\\\././g; s/\^//g; s/\$//g')
 
 show_help() {
     echo "info: Check the copyright header in the specified files."
@@ -68,7 +69,7 @@ defines_hash_bang() {
 
 
 correct_copyright() {
-    python -c 'import sys; sys.exit(0 if "'"$1"'" in open("'"$2"'", "r").read() else 1)'
+    grep -zPq "$copyright_header_pattern" "$1"
 }
 
 
@@ -89,16 +90,15 @@ trap 'cleanup $ARGS' EXIT
 found_error=0
 for filepath in $ARGS; do
     [[ ${VERBOSE} == true ]] && echo checking ${filepath}
+    if correct_copyright "${filepath}"; then
+        [[ ${VERBOSE} == true ]] && echo "File '${filepath}': Copyright verified"
+        continue
+    fi
+
     if contains_copyright "${filepath}"; then
-        [[ ${VERBOSE} == true ]] && echo "File '${filepath}' appears to already contain a Copyright header"
-        if correct_copyright "${copyright_header}" "${filepath}"; then
-            [[ ${VERBOSE} == true ]] && echo "Copyright verified"
-            continue
-        else
-            echo "Incorrect Copyright header in '${filepath}'" >&2
-            [[ ${VERBOSE} == true ]] && (diff <(echo -e $copyright_header) <(grep -i -A3 '# .*copyright' ${filepath}) >&2; echo >&2)
-            found_error=1
-        fi
+        echo "Incorrect Copyright header in '${filepath}'" >&2
+        [[ ${VERBOSE} == true ]] && (diff <(echo -e $copyright_header) <(grep -i -A3 '# .*copyright' ${filepath}) >&2; echo >&2)
+        found_error=1
     elif [ -s "${filepath}" ]; then  # skip empty files
         echo "File '${filepath}' is missing a copyright header." >&2
         if [[ ${FIX} == true ]]; then
