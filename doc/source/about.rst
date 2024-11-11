@@ -3,7 +3,7 @@ What is IMPROVER?
 
 IMPROVER: Integrated Model post-PROcessing and VERification
 
-The IMPROVER repository provides a toolbox for post-processing ensemble weather forecasts. An example application of these tools is the combination of forecasts from different weather models into a blended forecast with improved forecast skill compared to any of the inputs. Additional techniques, such as spatial and temporal neighbourhooding, are available within the IMPROVER repository to further increase the spread of forecasts, capturing more of this range. Functionality also exists to include older forecasts into the final blend, weighting them appropriately to capture the fall off in forecast skill at longer lead times. The end result is the consolidation of tens or hundreds of representations of a weather situation into an interrogable probabilistic output.
+The IMPROVER repository provides a toolbox for post-processing ensemble weather forecasts. An example application of these tools is the combination of forecasts from different weather models into a blended forecast with improved forecast skill compared to any of the inputs. Additional techniques, such as spatial and temporal neighbourhooding, are available within the IMPROVER repository to further increase the spread of forecasts, capturing a greater range of possible future weather states. Functionality also exists to include older forecasts in the final blend, weighting them appropriately to capture the reduction in forecast skill at longer lead times. The end result is the consolidation of tens or hundreds of representations of a weather situation into an interrogable probabilistic output.
 
 The IMPROVER repository also includes tools to improve the statistical properties of the forecast. For example, Ensemble Model Output Statistics and Reliability Calibration can be applied independently, or within a sequence of steps to improve forecast skill. Other tools are available to generate new diagnostics, such as the creation of a feels like temperature diagnostic, as well as understanding forecast characteristics by diagnosing whether the precipitation is showery or dynamic based upon the cloud "texture".
 
@@ -15,7 +15,7 @@ The `Met Office`_ in the UK is leading a project to create a probabilistic post-
 
 .. _Met Office: http://www.metoffice.gov.uk/
 
-Within the Met Office, the IMPROVER strategy is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's `Unified Model (UM)`_ first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
+Within the Met Office, a new system built upon functionality in the IMPROVER repository is being used to provide a new probabilistic approach to post-processing forecasts. Gridded forecasts taken from multiple configurations of the Met Office's `Unified Model (UM)`_ first undergo physical corrections if necessary, before being converted into probabilities. The resulting probabilistic forecasts from each UM configuration are then blended to create seamless probabilistic outputs. These gridded probabilities aim to deliver both improved forecast information at each grid square and at geographical (“spot”) locations.
 
 .. _Unified Model (UM): https://www.metoffice.gov.uk/research/approach/modelling-systems/unified-model/index
 
@@ -26,7 +26,7 @@ Key principles of the IMPROVER strategy are:
   3. The ability to provide outputs to enable automated forecasts of “ordinary” weather for any required location as well as more granular information about the possibility of high-impact weather for constructing warnings and risk estimation.
   4. A modular software framework following modern professional software development practices.
 
-Using the tools in the open-source repository produces a forecast as shown below, here for wind speed. Four fields are plotted at different wind speed thresholds that may be of interest to the user, each field shows the probability of exceeding the relevant threshold.
+An example wind speed forecast produced using tools in the open-source repository is shown below. Four fields are plotted at different wind speed thresholds that may be of interest to the user, each field shows the probability of exceeding the relevant threshold.
 
 
 .. figure:: ../files/wind_probabilities.jpg
