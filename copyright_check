@@ -1,12 +1,12 @@
 #!/bin/bash
 
-copyright_header_pattern="^\
+copyright_header_pattern="\
 # \(C\) Crown Copyright, Met Office. All rights reserved\.\n\
 #\n\
 # This file is part of 'IMPROVER' and is released under the BSD 3-Clause license\.\n\
-# See LICENSE in the root of the repository for full licensing details\.$\
+# See LICENSE in the root of the repository for full licensing details\.\
 "
-copyright_header=$(echo "$copyright_header_pattern" | sed 's/\\(/\(/g; s/\\)/\)/g; s/\\\././g; s/\^//g; s/\$//g')
+copyright_header=$(echo "$copyright_header_pattern" | sed 's/\\(/\(/g; s/\\)/\)/g; s/\\\././g')
 
 show_help() {
     echo "info: Check the copyright header in the specified files."
