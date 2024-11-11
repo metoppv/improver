@@ -112,10 +112,10 @@ for filepath in $ARGS; do
                 echo -e ${copyright_header} > ${tmp_file}
                 cat ${filepath} >> ${tmp_file}
             fi
-                mv ${tmp_file} ${filepath}
-                found_error=1
-            fi
+            mv ${tmp_file} ${filepath}
+            found_error=1
         fi
+    fi
 done
 
 exit ${found_error}
