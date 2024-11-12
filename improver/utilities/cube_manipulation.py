@@ -16,7 +16,7 @@ from iris.exceptions import CoordinateNotFoundError
 from improver import BasePlugin
 from improver.metadata.constants import FLOAT_DTYPE, FLOAT_TYPES
 from improver.metadata.probabilistic import find_threshold_coordinate
-from improver.utilities.common_input_handle import as_cube
+from improver.utilities.common_input_handle import as_cube, as_cubelist
 from improver.utilities.cube_checker import check_cube_coordinates
 
 
@@ -208,7 +208,7 @@ class MergeCubes(BasePlugin):
 
     def process(
         self,
-        cubes_in: Union[List[Cube], CubeList],
+        *cubes: Union[Cube, CubeList],
         check_time_bounds_ranges: bool = False,
         slice_over_realization: bool = False,
         copy: bool = True,
@@ -225,7 +225,7 @@ class MergeCubes(BasePlugin):
         result of premature iris merging on load).
 
         Args:
-            cubes_in:
+            *cubes:
                 Cubes to be merged.
             check_time_bounds_ranges:
                 Flag to check whether scalar time bounds ranges match.
@@ -244,16 +244,14 @@ class MergeCubes(BasePlugin):
         Returns:
             Merged cube.
         """
-        # if input is already a single cube, return unchanged
-        if isinstance(cubes_in, iris.cube.Cube):
-            return cubes_in
+        cubes = as_cubelist(*cubes)
 
-        if len(cubes_in) == 1:
+        if len(cubes) == 1:
             # iris merges cubelist into shortest list possible on load
             # - may already have collapsed across invalid time bounds
             if check_time_bounds_ranges:
-                self._check_time_bounds_ranges(cubes_in[0])
-            return cubes_in[0]
+                self._check_time_bounds_ranges(cubes[0])
+            return cubes[0]
 
         if copy:
             # create copies of input cubes so as not to modify in place
@@ -262,7 +260,7 @@ class MergeCubes(BasePlugin):
             cube_return = lambda cube: cube
 
         cubelist = iris.cube.CubeList([])
-        for cube in cubes_in:
+        for cube in cubes:
             if slice_over_realization:
                 for real_slice in cube.slices_over("realization"):
                     cubelist.append(cube_return(real_slice))
