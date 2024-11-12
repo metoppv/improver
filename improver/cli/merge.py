@@ -21,8 +21,5 @@ def process(*cubes: cli.inputcube):
         iris.cube.Cube:
             A merged cube.
     """
-    from iris.cube import CubeList
-
     from improver.utilities.cube_manipulation import MergeCubes
-
-    return MergeCubes()(CubeList(cubes))
+    return MergeCubes()(*cubes)
