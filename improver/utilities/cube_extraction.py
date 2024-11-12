@@ -411,7 +411,9 @@ class ExtractLevel(BasePlugin):
         # We don't really care so long as it is non-zero and has the same sign.
         increasing_order = np.all(np.diff(cube.coord(self.coordinate).points) > 0)
         sign = 1 if self.positive_correlation == increasing_order else -1
-        v_increment = sign * 10 ** (-cube.attributes.get("least_significant_digit", 2))
+        v_increment = sign * 10 ** (
+            -int(cube.attributes.get("least_significant_digit", 2))
+        )
         self._one_way_fill(
             data, coordinate_axis, coordinate_points, v_increment, reverse=True
         )

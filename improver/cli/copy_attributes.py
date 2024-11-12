@@ -34,4 +34,4 @@ def process(
     from improver.utilities.copy_attributes import CopyAttributes
 
     plugin = CopyAttributes(attributes)
-    return plugin(cube, template_cube=template_cube)
+    return plugin(cube, template_cube)
