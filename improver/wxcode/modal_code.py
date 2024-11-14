@@ -49,7 +49,7 @@ from improver.constants import HOURS_IN_DAY
 from improver.utilities.cube_manipulation import MergeCubes
 
 from ..metadata.forecast_times import forecast_period_coord
-from .utilities import DAYNIGHT_CODES, GROUPED_CODES
+from .utilities import DAYNIGHT_CODES, DRY_EQUIVALENTS, GROUPED_CODES
 
 CODE_MAX = 100
 UNSET_CODE_INDICATOR = -99
@@ -352,6 +352,12 @@ class ModalFromGroupings(BaseModalCategory):
     Where there are different categories available for night and day, the
     modal code returned is always a day code, regardless of the times
     covered by the input files.
+
+    If a location is to return a dry code after consideration of the various
+    weightings, the wet codes for that location are converted into the best
+    matching dry cloud code and these are included in determining the resulting
+    dry code. The wet bias has no impact on the weight of these converted wet
+    codes, but the day weighting still applies.
     """
 
     # Day length set to aid testing.
@@ -733,6 +739,25 @@ class ModalFromGroupings(BaseModalCategory):
             )
             result.replace_coord(new_coord)
 
+    def _get_cloud_equivalents(self, cube: Cube) -> Cube:
+        """
+        Returns a cube with only dry codes in which all wet codes have
+        been replaced by their nearest dry cloud equivalent. For example a
+        shower code is replaced with a partly cloudy code, a light rain code
+        is replaced with a cloud code, and a heavy rain code is replaced with
+        an overcast cloud code.
+
+        Args:
+            cube: Weather code cube.
+
+        Returns:
+            cube: All dry symbol code cube.
+        """
+        dry_cube = cube.copy()
+        for value, target in DRY_EQUIVALENTS.items():
+            dry_cube.data = np.where(cube.data == value, target, dry_cube.data)
+        return dry_cube
+
     def process(self, cubes: CubeList) -> Cube:
         """Calculate the modal categorical code by grouping weather codes.
 
@@ -764,7 +789,10 @@ class ModalFromGroupings(BaseModalCategory):
             (time_axis,) = cube.coord_dims("time")
 
             wet_indices = self._find_wet_indices(cube, time_axis)
-            result = self._find_most_significant_dry_code(cube, result, ~wet_indices)
+            dry_cube = self._get_cloud_equivalents(cube)
+            result = self._find_most_significant_dry_code(
+                dry_cube, result, ~wet_indices
+            )
 
             result = self._get_most_likely_following_grouping(
                 cube,
