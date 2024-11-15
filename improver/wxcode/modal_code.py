@@ -789,7 +789,7 @@ class ModalFromGroupings(BaseModalCategory):
             (time_axis,) = cube.coord_dims("time")
 
             wet_indices = self._find_wet_indices(cube, time_axis)
-            dry_cube = self._get_cloud_equivalents(cube)
+            dry_cube = self._get_cloud_equivalents(original_cube)
             result = self._find_most_significant_dry_code(
                 dry_cube, result, ~wet_indices
             )
