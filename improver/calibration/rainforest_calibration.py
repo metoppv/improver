@@ -10,6 +10,7 @@
 
 """
 
+import os
 import warnings
 from collections import OrderedDict
 from pathlib import Path
@@ -152,7 +153,11 @@ class ApplyRainForestsCalibration(PostProcessingPlugin):
             all_splits = [set() for i in range(self._get_num_features())]
             for threshold_str in model_config_dict[lead_time].keys():
                 lgb_model_filename = Path(
-                    model_config_dict[lead_time][threshold_str].get("lightgbm_model")
+                    os.path.expandvars(
+                        model_config_dict[lead_time][threshold_str].get(
+                            "lightgbm_model"
+                        )
+                    )
                 ).expanduser()
                 with open(lgb_model_filename, "r") as f:
                     for line in f:
@@ -312,7 +317,11 @@ class ApplyRainForestsCalibrationLightGBM(ApplyRainForestsCalibration):
                 )
             for threshold in self.model_thresholds:
                 model_filename = Path(
-                    sorted_model_config_dict[lead_time][threshold].get("lightgbm_model")
+                    os.path.expandvars(
+                        sorted_model_config_dict[lead_time][threshold].get(
+                            "lightgbm_model"
+                        )
+                    )
                 ).expanduser()
                 self.tree_models[lead_time, threshold] = Booster(
                     model_file=str(model_filename)
@@ -841,7 +850,11 @@ class ApplyRainForestsCalibrationTreelite(ApplyRainForestsCalibrationLightGBM):
                 raise ValueError("The same thresholds must be used for all lead times.")
             for threshold in self.model_thresholds:
                 model_filename = Path(
-                    sorted_model_config_dict[lead_time][threshold].get("treelite_model")
+                    os.path.expandvars(
+                        sorted_model_config_dict[lead_time][threshold].get(
+                            "treelite_model"
+                        )
+                    )
                 ).expanduser()
                 self.tree_models[lead_time, threshold] = Predictor(
                     libpath=str(model_filename), verbose=False, nthread=threads
