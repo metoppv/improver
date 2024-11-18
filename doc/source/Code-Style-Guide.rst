@@ -344,7 +344,7 @@ Plugins (classes) should be an example of a non-trivial algorithm or set
 of algorithms for a particular purpose. They should be set up via the
 ``__init__`` method and then invoked on a particular iris Cube ``cube``
 using a ``process`` method - e.g. using ``process(cube)``. See
-e.g. `Threshold <https://github.com/metoppv/improver/blob/master/lib/improver/threshold.py>`_
+e.g. `Threshold <https://github.com/metoppv/improver/blob/master/improver/threshold.py>`_
 class. In some limited cases an iris ``CubeList`` may be preferable.
 Avoid writing code that can do both. Class names use
 `PascalCase <https://en.wikipedia.org/wiki/PascalCase>`_ whilst

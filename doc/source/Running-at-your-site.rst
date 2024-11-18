@@ -99,24 +99,6 @@ At the Python interpreter prompt:
    print(output)
    iris.save(output, "output.nc")
 
-Input data
-----------
-
-IMPROVER processes standardised data in NetCDF format.
-
-The main Met Office weather models have data available on `Amazon Web
-Services Open Data
-registry <https://registry.opendata.aws/uk-met-office/>`_ which is
-Creative Commons BY-NC-ND licenced (free to use for non-commercial
-purposes) and compatible with IMPROVER.
-
-There are some examples of how to retrieve and use the data on the `Met
-Office aws-earth-examples Github
-repository <https://github.com/MetOffice/aws-earth-examples>`_. The
-`getting started Jupyter
-notebook <https://github.com/MetOffice/aws-earth-examples/blob/master/examples/1.%20Getting%20Started.ipynb>`_
-in that repository also provides examples of the data structure.
-
 Test suite
 ----------
 

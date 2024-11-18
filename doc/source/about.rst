@@ -56,9 +56,9 @@ IMPROVER does not currently include installation functionality (e.g. setup.py). 
 
     git clone https://github.com/metoppv/improver.git <local directory>
 
-The list of dependencies can be found in the `environment.yml`_ file.
+The list of dependencies can be found in the `environment_a.yml`_ file.
 
-.. _environment.yml: https://github.com/metoppv/improver/blob/master/environment.yml
+.. _environment.yml: https://github.com/metoppv/improver/blob/master/envs/environment_a.yml
 
 Example use of a CLI
 ====================
@@ -119,7 +119,7 @@ When citing IMPROVER, we recommend using the sources in the first two rows of th
 +---------------------------------------------------------------------------------------------+-----------------------------------+
 
 .. _IMPROVER - The New Probabilistic Postprocessing System at the Met Office (BAMS 2023): https://doi.org/10.1175/BAMS-D-21-0273.1
-.. _Archive of latest released version of IMPROVER (Zenodo): https://doi.org/10.5281/zenodo.8410114
+.. _Archive of latest released version of IMPROVER (Zenodo): https://zenodo.org/records/13354071
 .. _A post-processing and verification strategy for the future (MOSAC 2015): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_2015_20.19_Post-processing-verification.pdf
 .. _IMPROVER - the new post processing and verification system (MOSAC 2019): https://github.com/metoppv/improver/tree/master/doc/files/MOSAC_23.9_Roberts_Paper_171218.pdf
 .. _Generating probabilistic forecasts from convection permitting ensembles: https://presentations.copernicus.org/EMS2017-277_presentation.pdf
